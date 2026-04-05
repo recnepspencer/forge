@@ -45,9 +45,11 @@ pub(crate) fn finalize_commit_publication(
     let phase_started = Instant::now();
     apply_adjacency_deltas(&mut working_state, &input.adjacency_deltas);
     phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
+    let clone_mode = working_state.clone_mode();
     finalize_published_commit(
         runtime,
-        working_state.into_partition_commits(),
+        clone_mode,
+        working_state.into_partition_commits().1,
         input.changed_records,
         input.version_id,
         input.previous_branch_head_version,

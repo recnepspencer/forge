@@ -34,9 +34,18 @@ export function ScenarioPanel({
   const arenaMode = mode === "adversarial-gear-merge";
   return (
     <div className="scenario-panel">
-      <p className="panel__hint">
-        Run the scripted gear merge workload to certify bounded merge behavior under topology churn, render divergence, and replay.
-      </p>
+      <div className="scenario-panel__hero">
+        <div>
+          <div className="scenario-panel__hero-title">
+            {arenaMode ? "Merge arena armed" : "Manual shaping mode"}
+          </div>
+          <p className="scenario-panel__hero-copy">
+            {arenaMode
+              ? "Stage a hostile fork, certify the merge, then hand the result to the fullscreen review."
+              : "Use the dock to sculpt the hero object before you branch it into the arena."}
+          </p>
+        </div>
+      </div>
       <label className="scenario-panel__field">
         <span className="scenario-panel__label">Scenario mode</span>
         <select
@@ -91,10 +100,10 @@ export function ScenarioPanel({
               <ProofStat label="Replay" value={friendlyReplayStatus(scenario.proof)} />
             </div>
             {!arenaMode && (
-              <div className="merge-proof__microcopy">Manual Gear mode is for freeform edits. The arena mode is the scripted certification run.</div>
+              <div className="merge-proof__microcopy">Stay here while shaping. Branch when the object feels ready for conflict.</div>
             )}
             {arenaMode && (
-              <div className="merge-proof__microcopy">Run the script, plan the merge, then execute it to enter the guided merge review. Changing diagnostics tier should only change retained detail. Merge choices, proof digests, and replay parity stay invariant.</div>
+              <div className="merge-proof__microcopy">Run, plan, execute, then move to the visual review. Diagnostics only change retained evidence, not the merge outcome.</div>
             )}
           </div>
           {scenario.steps.length > 0 && (

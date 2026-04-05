@@ -1,13 +1,13 @@
-import * as wasmModule from "../pkg/forge_signal_wasm.js";
-
 import { SignalApp } from "./surface/app.ts";
 import { SignalRuntime } from "./surface/runtime.ts";
 
-let initPromise: Promise<typeof wasmModule> | undefined;
+type WasmModule = typeof import("@forge/signal/wasm");
+
+let initPromise: Promise<WasmModule> | undefined;
 
 export async function initForgeSignal() {
   if (!initPromise) {
-    initPromise = Promise.resolve(wasmModule);
+    initPromise = import("@forge/signal/wasm");
   }
 
   return initPromise;

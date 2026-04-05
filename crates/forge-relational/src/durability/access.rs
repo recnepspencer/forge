@@ -44,7 +44,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
     }
 
     pub fn durable_branch_heads(&self) -> Vec<BranchHead> {
-        self.runtime.history_access().branches()
+        self.runtime.history().branches()
     }
 
     fn persisted_recovery_plan(
@@ -205,7 +205,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn durability_access(&self) -> DurabilityAccess<'_> {
+    pub(crate) fn durability_access(&self) -> DurabilityAccess<'_> {
         DurabilityAccess::new(self)
     }
 }

@@ -227,6 +227,7 @@ pub(crate) fn partition_from_image(image: PartitionCheckpointImage) -> Partition
             backend: AdjacencyBackend::CompressedFanoutAdjacency,
             small_degree_inline_capacity: 4,
         },
+        relation_overlay_is_sparse: false,
         entity_arena: arena_from_image::<EntityRecordKind>(image.partition_id, image.entity_arena),
         relation_arena: arena_from_image::<RelationRecordKind>(
             image.partition_id,

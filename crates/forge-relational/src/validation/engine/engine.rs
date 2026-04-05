@@ -611,7 +611,7 @@ mod tests {
             ))],
         };
 
-        let results = runtime.invariant_access().commit_boundary(&plan);
+        let results = runtime.validation().commit_boundary(&plan);
 
         assert!(results.results().is_empty());
     }

@@ -1,11 +1,14 @@
-import type { SignalApp } from "@forge/signal";
-
 import {
   SHELL_SIGNAL_BINDINGS,
   SHELL_SIGNAL_KEYS,
   type DemoShellSignalKey,
   type DemoShellSignals,
 } from "./shell_signal_schema";
+
+export type LocalSignalStore = {
+  read<T>(id: string): T;
+  watch<T>(id: string, listener: (value: T) => void, options?: { emitCurrent?: boolean }): () => void;
+};
 
 export class SignalValues {
   private values = new Map<DemoShellSignalKey, unknown>();
@@ -42,7 +45,7 @@ export class SignalValues {
     }
   }
 
-  attach(app: SignalApp) {
+  attach(app: LocalSignalStore) {
     for (const unsubscribe of this.watchUnsubs) {
       unsubscribe();
     }

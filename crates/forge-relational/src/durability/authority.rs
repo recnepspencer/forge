@@ -265,13 +265,13 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         );
         let outcome = RuntimeRecoveryOutcome {
             recovered_commits: restored.history.commit_envelopes.len(),
-            latest_commit: restored.history_access().latest_commit().cloned(),
+            latest_commit: restored.history().latest_commit().cloned(),
             restored_branches: restored.history.branch_heads.len(),
             cursor: plan.cursor,
             coverage: RecoveryCoverage {
                 checkpoint_commits,
                 replayed_tail_commits: tail_commits,
-                recovered_through_commit: restored.history_access().latest_commit().cloned(),
+                recovered_through_commit: restored.history().latest_commit().cloned(),
             },
             integrity_report: plan.integrity_report,
         };
@@ -436,7 +436,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     }
 
     fn build_checkpoint_image(&self) -> DurableCheckpoint {
-        let envelopes = self.runtime.history_access().commit_envelopes_snapshot();
+        let envelopes = self.runtime.history().commit_envelopes_snapshot();
         let published_lineage_commit_count = envelopes
             .iter()
             .filter(|envelope| envelope.has_lineage_authority())
@@ -461,14 +461,14 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             .sum();
         DurableCheckpoint {
             coverage: CheckpointCoverage {
-                up_to_commit: self.runtime.history_access().latest_commit().cloned(),
+                up_to_commit: self.runtime.history().latest_commit().cloned(),
                 up_to_version: self
                     .runtime
-                    .history_access()
+                    .history()
                     .latest_commit()
                     .map(|commit| commit.version_id),
             },
-            branches: self.runtime.history_access().branches(),
+            branches: self.runtime.history().branches(),
             envelopes,
             partition_images: self
                 .runtime
@@ -1072,7 +1072,7 @@ fn validate_recovered_history_parity(
     runtime: &RelationalRuntime,
     durable_envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
-    let replay_access = runtime.replay_access();
+    let replay_access = runtime.replay();
     let Some(recovered_envelope) =
         replay_access.canonical_commit_envelope(durable_envelope.commit.commit_id)
     else {

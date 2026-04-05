@@ -8,8 +8,8 @@ import {
   executeMergePolicyPreview,
   planMerge,
   planMergePolicyPreview,
-  readBranchInspect,
   readBranchInspectForNode,
+  renderInteractivePreview,
   renderBranch,
   totalGraphNodes,
   updateScene,
@@ -23,11 +23,13 @@ import type {
   ScenePatch,
   ScenarioMode,
   ScenarioProofArtifacts,
+  SceneState,
 } from "../core/types";
 import type {
   BranchFrame,
   BranchSummary,
   MergeReviewSnapshot,
+  ReviewManualSelections,
   ReviewFrame,
   WorkerCommand,
   WorkerEvent,
@@ -64,6 +66,8 @@ let session: SessionState | null = null;
 let booting = false;
 let renderLock = false;
 let bootStartedAt = 0;
+const pendingScenePatches = new Map<BranchId, { patch: ScenePatch; label?: string }>();
+let pendingScenePatchFlushTimer: number | null = null;
 
 self.onmessage = (event: MessageEvent<WorkerCommand>) => {
   postDebug("worker:message-received", event.data?.type ?? "unknown");
@@ -83,6 +87,14 @@ function postDebug(phase: string, detail?: string) {
 
 async function handleCommand(command: WorkerCommand) {
   try {
+    if (command.type === "setScenePatch" && renderLock) {
+      queueScenePatch(command.branchId, command.patch, command.label);
+      if (session) {
+        await renderQueuedPatchPreview(session, command.branchId);
+      }
+      scheduleScenePatchFlush();
+      return;
+    }
     switch (command.type) {
       case "init":
         await initializeSession();
@@ -111,6 +123,9 @@ async function handleCommand(command: WorkerCommand) {
       case "setDiagnosticsTier":
         await withSession((current) => setDiagnosticsTier(current, command.tier));
         break;
+      case "setReviewManualSelections":
+        await withSession((current) => setReviewManualSelections(current, command.selections));
+        break;
       case "activateBranch":
         await withSession((current) => activateBranch(current, command.branchId));
         break;
@@ -121,7 +136,7 @@ async function handleCommand(command: WorkerCommand) {
         await withSession((current) => scrubTimeline(current, command.index));
         break;
       case "setScenePatch":
-        await withSession((current) => applyScenePatch(current, command.branchId, command.patch, command.label));
+        await handleScenePatchCommand(command.branchId, command.patch, command.label);
         break;
     }
   } catch (error) {
@@ -138,15 +153,15 @@ async function initializeSession() {
   bootStartedAt = performance.now();
   try {
     postDebug("boot:start", "worker init received");
-    const { runtime } = await createSceneRuntime((phase, detail) => {
+    const { runtime, initialRender } = await createSceneRuntime((phase, detail) => {
       postDebug(phase, detail);
     });
-    const initial = await renderBranch(runtime, runtime.history().currentBranch().id, (phase, detail) => {
+    const initial = initialRender ?? await renderBranch(runtime, runtime.history().currentBranch().id, (phase, detail) => {
       postDebug(phase, detail);
     });
     session = createSessionFromInitialRender(runtime, initial);
     session.graphNodes = totalGraphNodes(runtime);
-    session.inspect = readBranchInspect(runtime, initial.branchId);
+    session.inspect = null;
     session.scenario = createScenarioState("manual-gear", "idle", "manual gear mode ready", "webDevelopment");
     applyDiagnosticsTierToRuntime(
       session.runtime,
@@ -156,6 +171,7 @@ async function initializeSession() {
     captureTimeline(session, "boot", true);
     emitSnapshot([initial.branchId]);
     postDebug("boot:ready", "worker session ready");
+    postDebug("boot:hydrate:skipped", "leaving stress grid promotion out of startup path");
   } finally {
     booting = false;
   }
@@ -165,19 +181,19 @@ async function createFreshSession(
   progressLabel?: string,
   diagnosticsTier: DiagnosticsTier = "webDevelopment",
 ): Promise<SessionState> {
-  const { runtime } = await createSceneRuntime((phase, detail) => {
+  const { runtime, initialRender } = await createSceneRuntime((phase, detail) => {
     if (progressLabel) {
       postDebug(`${progressLabel}:${phase}`, detail);
     }
-  });
-  const initial = await renderBranch(runtime, runtime.history().currentBranch().id, (phase, detail) => {
+  }, { renderInitial: true });
+  const initial = initialRender ?? await renderBranch(runtime, runtime.history().currentBranch().id, (phase, detail) => {
     if (progressLabel) {
       postDebug(`${progressLabel}:${phase}`, detail);
     }
   });
   const fresh: SessionState = createSessionFromInitialRender(runtime, initial);
   fresh.graphNodes = totalGraphNodes(runtime);
-  fresh.inspect = readBranchInspect(runtime, initial.branchId);
+  fresh.inspect = null;
   fresh.scenario = createScenarioState("manual-gear", "idle", "manual gear mode ready", diagnosticsTier);
   fresh.scenario = withScenarioTier(fresh.scenario, diagnosticsTier, `diagnostics tier set to ${diagnosticsTier}`);
   applyDiagnosticsTierToRuntime(fresh.runtime, diagnosticsTier);
@@ -223,11 +239,25 @@ async function setDiagnosticsTier(
       update.frame,
     );
     current.latestSummary = update.summary;
-    current.inspect = safeInspect(current.runtime, current.activeBranchId, current.inspectNodeId);
+    current.inspect = current.inspectNodeId
+      ? safeInspect(current.runtime, current.activeBranchId, current.inspectNodeId)
+      : null;
   }
   current.scenario = withScenarioTier(current.scenario, tier, `diagnostics tier set to ${tier}`);
   current.scenario = withScenarioProof(current.scenario, await buildScenarioProof(current));
   emitSnapshot(current.activeBranchId != null ? [current.activeBranchId] : []);
+}
+
+async function setReviewManualSelections(
+  current: SessionState,
+  selections: ReviewManualSelections,
+) {
+  current.reviewManualSelections = selections;
+  if (!current.mergeReview) {
+    return;
+  }
+  await refreshManualReviewPreview(current);
+  emitSnapshot([]);
 }
 
 async function withSession(fn: (current: SessionState) => Promise<void>) {
@@ -241,6 +271,18 @@ async function withSession(fn: (current: SessionState) => Promise<void>) {
   } finally {
     renderLock = false;
   }
+}
+
+async function handleScenePatchCommand(branchId: BranchId, patch: ScenePatch, label?: string) {
+  if (!session) {
+    return;
+  }
+
+  queueScenePatch(branchId, patch, label);
+  if (!renderLock) {
+    await renderQueuedPatchPreview(session, branchId);
+  }
+  scheduleScenePatchFlush();
 }
 
 async function runAdversarialMergeScenario() {
@@ -274,39 +316,38 @@ async function runAdversarialMergeScenario() {
     await applyScenePatch(
       current,
       mainId,
-      { gear: { teeth: 20, outerRadius: 0.98, innerRadius: 0.34 } },
+      { gear: { teeth: 28, outerRadius: 1.12, innerRadius: 0.24 } },
       "scenario-main-topology",
     );
-    current.scenario.steps.push("main: teeth=20, outerRadius=0.98, innerRadius=0.34");
+    current.scenario.steps.push("main: teeth=28, outerRadius=1.12, innerRadius=0.24");
 
     await applyScenePatch(
       current,
       mainId,
-      { light: { intensity: 1.43 }, gear: { rotation: 0.2 } },
+      { light: { intensity: 1.72 }, gear: { rotation: 0.48 } },
       "scenario-main-render",
     );
-    current.scenario.steps.push("main: light=1.43, rotation=0.2");
+    current.scenario.steps.push("main: light=1.72, rotation=0.48");
 
     await applyScenePatch(
       current,
       featureId,
-      { gear: { teeth: 14, outerRadius: 0.9, innerRadius: 0.39 } },
+      { gear: { teeth: 9, outerRadius: 0.72, innerRadius: 0.47 } },
       "scenario-feature-topology",
     );
-    current.scenario.steps.push("what-if: teeth=14, outerRadius=0.9, innerRadius=0.39");
+    current.scenario.steps.push("what-if: teeth=9, outerRadius=0.72, innerRadius=0.47");
 
     await applyScenePatch(
       current,
       featureId,
-      { light: { intensity: 0.93 }, gear: { rotation: -0.35 } },
+      { light: { intensity: 0.68 }, gear: { rotation: -0.82 } },
       "scenario-feature-render",
     );
-    current.scenario.steps.push("what-if: light=0.93, rotation=-0.35");
+    current.scenario.steps.push("what-if: light=0.68, rotation=-0.82");
 
     current.activeBranchId = featureId;
-    current.runtime.history().switchBranch(featureId);
-    current.inspectNodeId = "gearTopologyModel";
-    current.inspect = safeInspect(current.runtime, featureId, current.inspectNodeId);
+    current.inspectNodeId = null;
+    current.inspect = null;
     current.mergePlan = computeMergePlan(current);
     current.mergeResult = null;
     current.mergeReview = null;
@@ -331,10 +372,8 @@ async function planScenarioMerge(current: SessionState) {
   current.mergeResult = null;
   current.mergeReview = null;
   current.reviewFrames.clear();
-  current.inspectNodeId = "gearTopologyModel";
-  if (current.activeBranchId !== null) {
-    current.inspect = safeInspect(current.runtime, current.activeBranchId, current.inspectNodeId);
-  }
+  current.inspectNodeId = null;
+  current.inspect = null;
   current.scenario = withScenarioStatus(
     current.scenario,
     "planned",
@@ -352,10 +391,8 @@ async function executeScenarioMerge(current: SessionState) {
     "scenario merge executed",
     await buildScenarioProof(current),
   );
-  current.inspectNodeId = "hudModel";
-  if (current.activeBranchId !== null) {
-    current.inspect = safeInspect(current.runtime, current.activeBranchId, current.inspectNodeId);
-  }
+  current.inspectNodeId = null;
+  current.inspect = null;
   emitSnapshot([]);
 }
 
@@ -403,22 +440,19 @@ async function replayScenarioMerge(current: SessionState) {
         }
       : null,
   );
-  session.inspectNodeId = "gearToothModel::tooth-0";
-  if (session.activeBranchId !== null) {
-    session.inspect = safeInspect(session.runtime, session.activeBranchId, session.inspectNodeId);
-  }
+  session.inspectNodeId = null;
+  session.inspect = null;
   emitSnapshot([]);
 }
 
 
 
 async function applyScenePatch(current: SessionState, branchId: BranchId, patch: ScenePatch, label?: string) {
+  const applyStartedAt = performance.now();
   const target = current.branches.get(branchId) ?? getActiveBranch(current);
   if (!target || isEmptyScenePatch(patch)) {
     return;
   }
-  current.runtime.history().switchBranch(target.summary.id);
-
   postDebug(
     "scene-patch:start",
     JSON.stringify({
@@ -430,9 +464,11 @@ async function applyScenePatch(current: SessionState, branchId: BranchId, patch:
   );
 
 
+  const updateStartedAt = performance.now();
   const update = await updateScene(current.runtime, target.summary.id, patch, (phase, detail) => {
     postDebug(phase, detail);
   });
+  const updateMs = performance.now() - updateStartedAt;
 
   updateBranchCache(
     current,
@@ -448,12 +484,16 @@ async function applyScenePatch(current: SessionState, branchId: BranchId, patch:
   current.activeBranchId = update.branchId;
   current.latestSummary = update.summary;
   current.mergePlan = null;
-  current.inspect = safeInspect(current.runtime, update.branchId, current.inspectNodeId);
+  current.inspect = current.inspectNodeId
+    ? safeInspect(current.runtime, update.branchId, current.inspectNodeId)
+    : null;
   postDebug(
     "scene-patch:done",
     JSON.stringify({
       branchId: update.branchId,
       label: label ?? "edit",
+      updateMs: Number(updateMs.toFixed(2)),
+      totalMs: Number((performance.now() - applyStartedAt).toFixed(2)),
       after: summarizeBranchState({
         id: update.branchId,
         name: update.branchName,
@@ -464,6 +504,107 @@ async function applyScenePatch(current: SessionState, branchId: BranchId, patch:
   );
   captureTimeline(current, label ?? "edit", false);
   emitSnapshot([update.branchId]);
+}
+
+function queueScenePatch(branchId: BranchId, patch: ScenePatch, label?: string) {
+  const existing = pendingScenePatches.get(branchId);
+  pendingScenePatches.set(branchId, {
+    patch: mergeQueuedPatch(existing?.patch, patch),
+    label: label ?? existing?.label,
+  });
+}
+
+function scheduleScenePatchFlush() {
+  if (pendingScenePatchFlushTimer != null) {
+    clearTimeout(pendingScenePatchFlushTimer);
+  }
+  pendingScenePatchFlushTimer = self.setTimeout(() => {
+    pendingScenePatchFlushTimer = null;
+    void flushPendingScenePatches();
+  }, 90);
+}
+
+async function flushPendingScenePatches() {
+  if (!session || renderLock || pendingScenePatches.size === 0) {
+    if (pendingScenePatches.size > 0) {
+      scheduleScenePatchFlush();
+    }
+    return;
+  }
+
+  const flushStartedAt = performance.now();
+  await withSession(async (current) => {
+    const queued = Array.from(pendingScenePatches.entries());
+    pendingScenePatches.clear();
+    postDebug("scene-patch:flush-start", `flushing ${queued.length} queued branch patch batch(es)`);
+    for (const [branchId, pending] of queued) {
+      await applyScenePatch(current, branchId, pending.patch, pending.label);
+    }
+  });
+  postDebug("scene-patch:flush-done", `flush completed in ${(performance.now() - flushStartedAt).toFixed(2)} ms`);
+}
+
+async function renderQueuedPatchPreview(current: SessionState, branchId: BranchId) {
+  const pending = pendingScenePatches.get(branchId);
+  const target = current.branches.get(branchId) ?? getActiveBranch(current);
+  if (!pending || !target) {
+    return;
+  }
+  const previewStartedAt = performance.now();
+
+  const nextState: SceneState = {
+    camera: {
+      ...target.summary.state.camera,
+      ...(pending.patch.camera ?? {}),
+    },
+    light: {
+      ...target.summary.state.light,
+      ...(pending.patch.light ?? {}),
+    },
+    gear: {
+      ...target.summary.state.gear,
+      ...(pending.patch.gear ?? {}),
+    },
+  };
+
+  const preview = renderInteractivePreview(
+    target.summary.id,
+    target.summary.name,
+    nextState,
+    target.summary.hud,
+  );
+
+  updateBranchCache(
+    current,
+    target.summary.id,
+    {
+      id: preview.branchId,
+      name: preview.branchName,
+      state: preview.state,
+      hud: preview.hud,
+    },
+    preview.frame,
+  );
+  current.activeBranchId = target.summary.id;
+  emitSnapshot([target.summary.id]);
+  postDebug("scene-patch:preview", `preview rendered in ${(performance.now() - previewStartedAt).toFixed(2)} ms`);
+}
+
+function mergeQueuedPatch(base: ScenePatch | undefined, next: ScenePatch): ScenePatch {
+  return {
+    camera: {
+      ...(base?.camera ?? {}),
+      ...(next.camera ?? {}),
+    },
+    light: {
+      ...(base?.light ?? {}),
+      ...(next.light ?? {}),
+    },
+    gear: {
+      ...(base?.gear ?? {}),
+      ...(next.gear ?? {}),
+    },
+  };
 }
 
 async function createBranch(current: SessionState) {
@@ -486,7 +627,9 @@ async function createBranch(current: SessionState) {
   current.activeBranchId = branchId;
   current.latestSummary = update.summary;
   current.mergePlan = null;
-  current.inspect = safeInspect(current.runtime, branchId, current.inspectNodeId);
+  current.inspect = current.inspectNodeId
+    ? safeInspect(current.runtime, branchId, current.inspectNodeId)
+    : null;
   captureTimeline(current, "branch", true);
   emitSnapshot([branchId]);
 }
@@ -497,8 +640,6 @@ async function mergeActiveBranch(current: SessionState) {
   if (!feature || !main) {
     return;
   }
-  current.runtime.history().switchBranch(feature.summary.id);
-
   postDebug(
     "merge:start",
     JSON.stringify({
@@ -543,7 +684,9 @@ async function mergeActiveBranch(current: SessionState) {
     },
     current.mergePlan,
   );
-  current.inspect = safeInspect(current.runtime, main.summary.id, current.inspectNodeId);
+  current.inspect = current.inspectNodeId
+    ? safeInspect(current.runtime, main.summary.id, current.inspectNodeId)
+    : null;
   postDebug(
     "merge:done",
     JSON.stringify({
@@ -572,7 +715,9 @@ async function activateBranch(current: SessionState, branchId: BranchId) {
   current.mergePlan = null;
   current.mergeReview = null;
   current.reviewFrames.clear();
-  current.inspect = safeInspect(current.runtime, branchId, current.inspectNodeId);
+  current.inspect = current.inspectNodeId
+    ? safeInspect(current.runtime, branchId, current.inspectNodeId)
+    : null;
   postDebug(
     "activate:branch-selected",
     JSON.stringify({
@@ -604,10 +749,7 @@ async function scrubTimeline(current: SessionState, index: number) {
     timelineIndex: index,
     ...rebuildCommitState(current.timeline, index),
   };
-  session.inspectNodeId = nextEntry.primaryNode;
-  if (session.activeBranchId !== null) {
-    session.inspect = safeInspect(session.runtime, session.activeBranchId, session.inspectNodeId);
-  }
+  session.inspect = null;
 
   emitSnapshot(branchFrameIds(session.branches));
 }
@@ -616,7 +758,7 @@ async function rebuildFromTimeline(
   entry: TimelineState,
   diagnosticsTier: DiagnosticsTier,
 ) {
-  const { runtime } = await createSceneRuntime();
+  const { runtime } = await createSceneRuntime(undefined, { renderInitial: false });
   applyDiagnosticsTierToRuntime(runtime, diagnosticsTier);
   const branches = new Map<BranchId, CachedBranch>();
 
@@ -676,12 +818,22 @@ async function rebuildFromTimeline(
     commitCounter: 0,
     branchHeads: new Map(),
     inspect: null,
-    inspectNodeId: entry.primaryNode,
+    inspectNodeId: null,
     scenario: null,
+    reviewManualSelections: {
+      teeth: "source",
+      outerRadius: "source",
+      innerRadius: "source",
+      thickness: "source",
+      lightIntensity: "source",
+      lightPosition: "source",
+      rotation: "source",
+      camera: "source",
+    },
   };
 
   provisional.mergePlan = null;
-  provisional.inspect = readBranchInspectForNode(runtime, activeBranchId, provisional.inspectNodeId);
+  provisional.inspect = null;
   return provisional;
 }
 
@@ -707,6 +859,7 @@ type ReviewPreviewDefinition = {
     deletionPolicyName?: string | null;
   } | null;
   fallbackPlan: MergePlan | null;
+  customState?: BranchSummary["state"] | null;
 };
 
 type ReviewPreviewRender = {
@@ -744,19 +897,6 @@ async function buildMergeReviewSnapshot(
     request: null,
     fallbackPlan: currentPlan,
   }, source, target, diagnosticsTier);
-  const strictPreview = await renderReviewPreview({
-    id: "strict",
-    label: "Conflict override",
-    accent: "#ff8e78",
-    description: "Swap the conflict resolver to reject shared-state edits and stop for manual review.",
-    frameId: buildReviewFrameId("strict"),
-    request: {
-      conflictPolicyName: "signal.conflict.reject-shared-state",
-    },
-    fallbackPlan: tryPreviewPlan(current, source.id, target.id, {
-      conflictPolicyName: "signal.conflict.reject-shared-state",
-    }),
-  }, source, target, diagnosticsTier);
   const perAspectPreview = await renderReviewPreview({
     id: "perAspect",
     label: "Isolation override",
@@ -770,13 +910,44 @@ async function buildMergeReviewSnapshot(
       conflictIsolationPolicyName: "signal.conflict-isolation.per-aspect",
     }),
   }, source, target, diagnosticsTier);
+  const rulebookState = composeManualMergedState(source.state, target.state, {
+    teeth: source.state.gear.teeth >= target.state.gear.teeth ? "source" : "target",
+    outerRadius: source.state.gear.outerRadius >= target.state.gear.outerRadius ? "source" : "target",
+    innerRadius: source.state.gear.innerRadius >= target.state.gear.innerRadius ? "source" : "target",
+    thickness: source.state.gear.thickness >= target.state.gear.thickness ? "source" : "target",
+    lightIntensity: source.state.light.intensity >= target.state.light.intensity ? "source" : "target",
+    lightPosition: source.state.light.z >= target.state.light.z ? "source" : "target",
+    rotation: Math.abs(source.state.gear.rotation) >= Math.abs(target.state.gear.rotation) ? "source" : "target",
+    camera: source.state.camera.z >= target.state.camera.z ? "source" : "target",
+  });
+  const rulebookPreview = await renderReviewPreview({
+    id: "rulebook",
+    label: "Rulebook experiment",
+    accent: "#ff70d8",
+    description: "Custom demo rulebook: higher tooth count, brighter light, and stronger rotation win.",
+    frameId: buildReviewFrameId("rulebook"),
+    request: null,
+    fallbackPlan: null,
+    customState: rulebookState,
+  }, source, target, diagnosticsTier);
+  const manualPreview = await renderReviewPreview({
+    id: "manual",
+    label: "Manual gear resolution",
+    accent: "#ff8e78",
+    description: "Choose the winning branch for each concrete gear and render property.",
+    frameId: buildReviewFrameId("manual"),
+    request: null,
+    fallbackPlan: null,
+    customState: composeManualMergedState(source.state, target.state, current.reviewManualSelections),
+  }, source, target, diagnosticsTier);
 
   current.reviewFrames.clear();
   current.reviewFrames.set(sourceFrameId, currentPreview.sourceFrame ?? currentPreview.frame);
   current.reviewFrames.set(targetFrameId, currentPreview.targetFrame ?? currentPreview.frame);
   current.reviewFrames.set(mergedFrameId, currentPreview.frame);
-  current.reviewFrames.set(strictPreview.frameId, strictPreview.frame);
   current.reviewFrames.set(perAspectPreview.frameId, perAspectPreview.frame);
+  current.reviewFrames.set(rulebookPreview.frameId, rulebookPreview.frame);
+  current.reviewFrames.set(manualPreview.frameId, manualPreview.frame);
 
   return {
     source: cloneBranchSummary(source),
@@ -797,16 +968,6 @@ async function buildMergeReviewSnapshot(
         visualMode: currentPreview.visualMode,
       },
       {
-        id: strictPreview.id,
-        label: strictPreview.label,
-        accent: strictPreview.accent,
-        description: strictPreview.description,
-        plan: strictPreview.plan,
-        frameId: strictPreview.frameId,
-        resultState: strictPreview.resultState,
-        visualMode: strictPreview.visualMode,
-      },
-      {
         id: perAspectPreview.id,
         label: perAspectPreview.label,
         accent: perAspectPreview.accent,
@@ -815,6 +976,26 @@ async function buildMergeReviewSnapshot(
         frameId: perAspectPreview.frameId,
         resultState: perAspectPreview.resultState,
         visualMode: perAspectPreview.visualMode,
+      },
+      {
+        id: rulebookPreview.id,
+        label: rulebookPreview.label,
+        accent: rulebookPreview.accent,
+        description: rulebookPreview.description,
+        plan: rulebookPreview.plan,
+        frameId: rulebookPreview.frameId,
+        resultState: rulebookPreview.resultState,
+        visualMode: rulebookPreview.visualMode,
+      },
+      {
+        id: manualPreview.id,
+        label: manualPreview.label,
+        accent: manualPreview.accent,
+        description: manualPreview.description,
+        plan: manualPreview.plan,
+        frameId: manualPreview.frameId,
+        resultState: manualPreview.resultState,
+        visualMode: "manual-review",
       },
     ],
   };
@@ -826,8 +1007,24 @@ async function renderReviewPreview(
   target: BranchSummary,
   diagnosticsTier: DiagnosticsTier,
 ): Promise<ReviewPreviewRender> {
-  const { runtime } = await createSceneRuntime();
+  const { runtime } = await createSceneRuntime(undefined, { renderInitial: false });
   applyDiagnosticsTierToRuntime(runtime, diagnosticsTier);
+
+  if (definition.customState) {
+    const branchId = runtime.history().currentBranch().id;
+    const update = await updateScene(runtime, branchId, fullScenePatch(definition.customState));
+    return {
+      id: definition.id,
+      label: definition.label,
+      accent: definition.accent,
+      description: definition.description,
+      frameId: definition.frameId,
+      frame: update.frame,
+      plan: definition.fallbackPlan,
+      resultState: update.state,
+      visualMode: definition.id === "manual" ? "manual-review" : "rendered",
+    };
+  }
 
   const targetBranchId = runtime.history().currentBranch().id;
   const targetUpdate = await updateScene(runtime, targetBranchId, fullScenePatch(target.state));
@@ -891,6 +1088,64 @@ async function renderReviewPreview(
       visualMode: "manual-review",
     };
   }
+}
+
+async function refreshManualReviewPreview(current: SessionState) {
+  const review = current.mergeReview;
+  if (!review) {
+    return;
+  }
+  const manualPreview = review.previews.find((preview) => preview.id === "manual");
+  if (!manualPreview) {
+    return;
+  }
+  const frameId = manualPreview.frameId;
+  if (!frameId) {
+    return;
+  }
+  const nextState = composeManualMergedState(
+    review.source.state,
+    review.target.state,
+    current.reviewManualSelections,
+  );
+  const { runtime } = await createSceneRuntime(undefined, { renderInitial: false });
+  applyDiagnosticsTierToRuntime(runtime, current.scenario?.diagnosticsTier ?? "webDevelopment");
+  const branchId = runtime.history().currentBranch().id;
+  const update = await updateScene(runtime, branchId, fullScenePatch(nextState));
+  closeBitmapSafe(current.reviewFrames.get(frameId));
+  current.reviewFrames.set(frameId, update.frame);
+  manualPreview.resultState = update.state;
+}
+
+function composeManualMergedState(
+  source: BranchSummary["state"],
+  target: BranchSummary["state"],
+  selections: ReviewManualSelections,
+): BranchSummary["state"] {
+  const teethWinner = selections.teeth === "source" ? source : target;
+  const outerRadiusWinner = selections.outerRadius === "source" ? source : target;
+  const innerRadiusWinner = selections.innerRadius === "source" ? source : target;
+  const thicknessWinner = selections.thickness === "source" ? source : target;
+  const lightIntensityWinner = selections.lightIntensity === "source" ? source : target;
+  const lightPositionWinner = selections.lightPosition === "source" ? source : target;
+  const rotationWinner = selections.rotation === "source" ? source : target;
+  const cameraWinner = selections.camera === "source" ? source : target;
+  return {
+    camera: { ...cameraWinner.camera },
+    light: {
+      x: lightPositionWinner.light.x,
+      y: lightPositionWinner.light.y,
+      z: lightPositionWinner.light.z,
+      intensity: lightIntensityWinner.light.intensity,
+    },
+    gear: {
+      teeth: teethWinner.gear.teeth,
+      outerRadius: outerRadiusWinner.gear.outerRadius,
+      innerRadius: innerRadiusWinner.gear.innerRadius,
+      thickness: thicknessWinner.gear.thickness,
+      rotation: rotationWinner.gear.rotation,
+    },
+  };
 }
 
 function tryPreviewPlan(
@@ -1003,6 +1258,7 @@ function closeBitmapSafe(bitmap: ImageBitmap | null | undefined) {
 }
 
 function emitSnapshot(frameBranchIds: BranchId[]) {
+  const snapshotStartedAt = performance.now();
   const current = session;
   if (!current) {
     return;
@@ -1043,6 +1299,15 @@ function emitSnapshot(frameBranchIds: BranchId[]) {
   const snapshot: WorkerSnapshot = buildWorkerSnapshot(current);
 
   postEvent({ type: "snapshot", snapshot, frames, reviewFrames }, transfer);
+  postDebug(
+    "snapshot:emit",
+    JSON.stringify({
+      frames: frames.length,
+      reviewFrames: reviewFrames.length,
+      transferCount: transfer.length,
+      buildMs: Number((performance.now() - snapshotStartedAt).toFixed(2)),
+    }),
+  );
 }
 
 function safeInspect(runtime: SessionState["runtime"], branchId: BranchId, nodeId: string): BranchInspect | null {

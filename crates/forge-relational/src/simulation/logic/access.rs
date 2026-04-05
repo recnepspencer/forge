@@ -7,7 +7,7 @@ pub struct SimulationAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn simulation_access(&self) -> SimulationAccess<'_> {
+    pub(crate) fn simulation_access(&self) -> SimulationAccess<'_> {
         SimulationAccess::new(self)
     }
 }

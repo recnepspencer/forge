@@ -29,7 +29,7 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
     merged_plan: &MergedCommitPlan,
     target_branch: Option<&BranchId>,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
-    let version_id = runtime.history_access().preview_next_version_id();
+    let version_id = runtime.history().preview_next_version_id();
     let apply_plan = AuthoritativeApplyPlan {
         transaction_id,
         version_id,
@@ -105,7 +105,7 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
     let Some(branch_id) = target_branch else {
         return BranchLocalDeleteAllowance::default();
     };
-    let history = runtime.history_access();
+    let history = runtime.history();
     let Some(branch_head) = history.branch_head(branch_id) else {
         return BranchLocalDeleteAllowance::default();
     };

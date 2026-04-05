@@ -58,7 +58,7 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
         txn.commit().unwrap()
     };
     let visible = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(deleted.version_id)
         .relations::<EdgeProjection>();
 
@@ -76,7 +76,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let _ = create_relation(&mut runtime_a, a_left, a_right, "r1");
     let _ = create_relation(&mut runtime_a, a_right, a_third, "r2");
     let scan_a = runtime_a
-        .visibility_reads()
+        .read_truth()
         .project_version(runtime_a.current_version_id())
         .relations::<EdgeProjection>();
 
@@ -88,7 +88,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let _ = create_relation(&mut runtime_b, b_right, b_third, "r2");
     let _ = create_relation(&mut runtime_b, b_left, b_right, "r1");
     let scan_b = runtime_b
-        .visibility_reads()
+        .read_truth()
         .project_version(runtime_b.current_version_id())
         .relations::<EdgeProjection>();
 
@@ -112,10 +112,10 @@ fn relation_aspects_at_version_follow_declared_contract_not_payload_shape() {
     let left = create_entity(&mut runtime, "left");
     let right = create_entity(&mut runtime, "right");
     let relation = create_relation(&mut runtime, left, right, "declared");
-    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
+    let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     let aspects = runtime
-        .visibility_reads()
+        .read_truth()
         .relation_aspects_at_version(relation, version_id)
         .unwrap();
 

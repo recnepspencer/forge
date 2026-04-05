@@ -215,7 +215,8 @@ fn perf_baseline_elapsed_rows() -> &'static BTreeMap<(String, String), PerfBasel
     })
 }
 
-fn perf_baseline_metric_rows() -> &'static BTreeMap<(String, String, String), PerfBaselineMetricRow> {
+fn perf_baseline_metric_rows() -> &'static BTreeMap<(String, String, String), PerfBaselineMetricRow>
+{
     PERF_BASELINE_METRIC_ROWS.get_or_init(|| {
         perf_baseline_rows()
             .into_iter()
@@ -254,12 +255,17 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("hot_cold_path_matrix", "chip_hot_compile_vs_recovery_compile")
         | ("hot_cold_path_matrix", "geometry_rich_publication_hot_vs_replay_truth")
         | ("hot_cold_path_matrix", "chip_rich_compile_hot_vs_recovery_compile")
-        | (
-            "recoverability_policy_matrix",
-            "geometry_hot_truth_vs_deferred_trace_policy",
-        )
+        | ("recoverability_policy_matrix", "geometry_hot_truth_vs_deferred_trace_policy")
         | ("recoverability_policy_matrix", "chip_compile_reconstructable_policy")
         | ("rocketship_scale_matrix", "hundred_k_nodes_geometry_profile_propagation_wave")
+        | (
+            "rocketship_scale_matrix",
+            "hundred_k_nodes_pseudorealistic_large_flat_entity_batch_wave",
+        )
+        | (
+            "rocketship_scale_matrix",
+            "hundred_k_nodes_pseudorealistic_mixed_entity_relation_batch_wave",
+        )
         | ("rocketship_scale_matrix", "hundred_k_nodes_pseudorealistic_propagation_wave")
         | ("rocketship_scale_matrix", "hundred_k_nodes_pseudorealistic_subsystem_round_trip")
         | ("rocketship_scale_matrix", "hundred_k_nodes_zero_diagnostics_narrow_round_trip")
@@ -277,10 +283,7 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("index_parity_matrix", "entity_field_equals_warm_generation")
         | ("inspection_budget_matrix", "retention_commit_window")
         | ("sustained_load_matrix", "commit_query_churn_stability")
-        | (
-            "snapshot_materialization_matrix",
-            "projection_entity_identity_surface",
-        )
+        | ("snapshot_materialization_matrix", "projection_entity_identity_surface")
         | ("workflow_matrix", "persisted_recovery_replay_round_trip")
         | ("profile_matrix", "certification_core_rich_commit_query_round_trip")
         | ("profile_matrix", "geometry_kernel_rich_commit_query_round_trip") => {
@@ -304,14 +307,8 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("chip_simulator_matrix", "dense_fanout_compile_wave_rich_diagnostics")
         | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_operational")
         | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_development")
-        | (
-            "runtime_bridge_mock_matrix",
-            "geometry_commit_bridge_wave_medium_region_operational",
-        )
-        | (
-            "runtime_bridge_mock_matrix",
-            "geometry_commit_bridge_wave_medium_region_development",
-        )
+        | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_medium_region_operational")
+        | ("runtime_bridge_mock_matrix", "geometry_commit_bridge_wave_medium_region_development")
         | (
             "runtime_bridge_mock_matrix",
             "geometry_commit_bridge_wave_mixed_locality_operational",
@@ -325,15 +322,13 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
         | ("workflow_matrix", "trade_correction_analysis_round_trip")
         | ("workflow_matrix", "fintech_intraday_risk_branch_round_trip")
         | ("workflow_matrix", "fintech_trade_correction_audit_round_trip")
-        | (
-            "profile_matrix",
-            "certification_core_zero_diagnostics_commit_query_round_trip",
-        ) => {
+        | ("profile_matrix", "certification_core_zero_diagnostics_commit_query_round_trip") => {
             PerfCaseContract::bursty()
         }
         ("commit_delta_matrix", "cross_partition_relation_burst")
         | ("geometry_kernel_matrix", "topology_bridge_connectivity_wave_rich_geometry_profile")
         | ("geometry_kernel_matrix", "topology_bridge_connectivity_wave_zero_diagnostics")
+        | ("chip_simulator_matrix", "flat_entity_step_batch_compile_window")
         | ("mixed_load_matrix", "concurrent_snapshot_version_read_pressure")
         | ("query_packet_matrix", "connectivity_traversal_cross_partition")
         | ("snapshot_materialization_matrix", "version_read_view_historical")
@@ -397,15 +392,12 @@ fn profile_boundary_metric(metric_name: &str) -> bool {
     )
 }
 
-fn assert_elapsed_against_baseline(
-    suite: &str,
-    case: &str,
-    summary: &PerfSummaryRecord<'_>,
-) {
+fn assert_elapsed_against_baseline(suite: &str, case: &str, summary: &PerfSummaryRecord<'_>) {
     if skip_baseline_asserts() {
         return;
     }
-    let Some(baseline) = perf_baseline_elapsed_rows().get(&(suite.to_string(), case.to_string())) else {
+    let Some(baseline) = perf_baseline_elapsed_rows().get(&(suite.to_string(), case.to_string()))
+    else {
         if allow_missing_baseline_rows() {
             return;
         }
@@ -413,8 +405,10 @@ fn assert_elapsed_against_baseline(
     };
     let contract = perf_case_contract(suite, case);
 
-    let allowed_median =
-        allowed_perf_regression(baseline.median_elapsed_micros, contract.elapsed_median_tolerance);
+    let allowed_median = allowed_perf_regression(
+        baseline.median_elapsed_micros,
+        contract.elapsed_median_tolerance,
+    );
     assert!(
         summary.median_elapsed_micros <= allowed_median,
         "elapsed median regressed for {suite}/{case}: observed {} > allowed {} from baseline {}",
@@ -445,9 +439,11 @@ fn assert_metric_against_baseline(
     if skip_baseline_asserts() {
         return;
     }
-    let Some(baseline) = perf_baseline_metric_rows()
-        .get(&(suite.to_string(), case.to_string(), metric_name.to_string()))
-    else {
+    let Some(baseline) = perf_baseline_metric_rows().get(&(
+        suite.to_string(),
+        case.to_string(),
+        metric_name.to_string(),
+    )) else {
         if allow_missing_baseline_rows() {
             return;
         }

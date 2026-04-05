@@ -106,7 +106,7 @@ fn execute_strategy_commit(
         .expect("canonical strategy request");
     let snapshot = if let Some(branch_id) = target_branch.as_ref() {
         let branch_head = runtime
-            .history_access()
+            .history()
             .branch_head(branch_id)
             .cloned()
             .expect("target branch head for strategy snapshot");
@@ -163,7 +163,7 @@ fn planning_for(
     target_branch: BranchId,
 ) -> crate::merge::data::MergePlanningArtifactCore {
     runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             target_branch,
             source_branch,
@@ -299,19 +299,19 @@ fn recover_stage_from_final_history(
     target_head: crate::history::data::CommitReference,
 ) -> RelationalRuntime {
     let mut chain = source
-        .history_access()
+        .history()
         .ancestor_closure_by_commit_id_order(source_head.commit_id)
         .into_iter()
         .chain(
             source
-                .history_access()
+                .history()
                 .ancestor_closure_by_commit_id_order(target_head.commit_id),
         )
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
     chain.sort_unstable();
-    let replay_access = source.replay_access();
+    let replay_access = source.replay();
     let checkpoint = source
         .durable_checkpoints()
         .iter()
@@ -375,11 +375,11 @@ fn recover_stage_from_final_history(
         .recover(plan)
         .expect("recover staged runtime from final history");
     if let Some(base_commit_id) = recovered
-        .history_access()
+        .history()
         .max_commit_id_common_ancestor(source_head.commit_id, target_head.commit_id)
     {
         let base_version_id = recovered
-            .history_access()
+            .history()
             .commit_envelope(base_commit_id)
             .map(|envelope| envelope.commit.version_id);
         if let Some(base_version_id) = base_version_id {
@@ -423,12 +423,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     assert_strategy_conflict(&overlap_planning, entity, "overlap");
     let overlap_conflict_digest = planning_digest(&overlap_planning);
     let overlap_main_head = runtime
-        .history_access()
+        .history()
         .branch_head(&main_branch)
         .cloned()
         .expect("overlap main head");
     let overlap_controller_head = runtime
-        .history_access()
+        .history()
         .branch_head(&controller_branch)
         .cloned()
         .expect("overlap controller head");
@@ -472,12 +472,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     assert_non_strategy_conflict(&narrowed_planning, entity, "narrowed");
     let narrowed_non_conflict_digest = planning_digest(&narrowed_planning);
     let narrowed_main_head = runtime
-        .history_access()
+        .history()
         .branch_head(&main_branch)
         .cloned()
         .expect("narrowed main head");
     let narrowed_controller_head = runtime
-        .history_access()
+        .history()
         .branch_head(&controller_branch)
         .cloned()
         .expect("narrowed controller head");
@@ -505,12 +505,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     assert_strategy_conflict(&rebroadened_planning, entity, "rebroadened");
     let rebroadened_conflict_digest = planning_digest(&rebroadened_planning);
     let rebroadened_main_head = runtime
-        .history_access()
+        .history()
         .branch_head(&main_branch)
         .cloned()
         .expect("rebroadened main head");
     let rebroadened_controller_head = runtime
-        .history_access()
+        .history()
         .branch_head(&controller_branch)
         .cloned()
         .expect("rebroadened controller head");
@@ -593,7 +593,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     assert_strategy_replay_clean(&rebroadened_intent_replay, "rebroadened intent");
 
     let current = runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(runtime.current_version_id());
     let live_bundle = KubernetesIntentCertificationBundle {
         overlap_conflict_digest,
@@ -619,11 +619,8 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         rebroadened_intent_replay_digest: full_replay_digest(&rebroadened_intent_replay),
         revalidation_noop_replay_digest: full_replay_digest(&revalidation_replay),
         branch_heads_digest: certification_digest(&(
-            runtime.history_access().branch_head(&main_branch).cloned(),
-            runtime
-                .history_access()
-                .branch_head(&controller_branch)
-                .cloned(),
+            runtime.history().branch_head(&main_branch).cloned(),
+            runtime.history().branch_head(&controller_branch).cloned(),
         )),
         visible_truth_digest: certification_digest(&(
             read_entity_name(current.get_entity(entity).expect("entity visible"))
@@ -734,7 +731,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         "recovered rebroadened intent",
     );
     let recovered_current = recovered
-        .visibility_reads()
+        .read_truth()
         .read_version(recovered.current_version_id());
     assert_eq!(
         planning_digest(&recovered_revalidated_planning),
@@ -744,7 +741,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         certification_digest(&(
             certification_digest(
                 recovered
-                    .replay_access()
+                    .replay()
                     .canonical_commit_envelope(revalidation_commit.commit.commit_id)
                     .expect("recovered revalidation envelope")
                     .strategy_artifacts
@@ -752,14 +749,14 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
                     .expect("recovered revalidation strategy artifacts"),
             ),
             recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(revalidation_commit.commit.commit_id)
                 .expect("recovered revalidation envelope")
                 .patch
                 .records
                 .len(),
             recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(revalidation_commit.commit.commit_id)
                 .expect("recovered revalidation envelope")
                 .patch
@@ -790,14 +787,8 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     );
     assert_eq!(
         certification_digest(&(
-            recovered
-                .history_access()
-                .branch_head(&main_branch)
-                .cloned(),
-            recovered
-                .history_access()
-                .branch_head(&controller_branch)
-                .cloned(),
+            recovered.history().branch_head(&main_branch).cloned(),
+            recovered.history().branch_head(&controller_branch).cloned(),
         )),
         live_bundle.branch_heads_digest
     );

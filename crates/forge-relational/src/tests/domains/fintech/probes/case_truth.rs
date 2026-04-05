@@ -108,7 +108,7 @@ pub(crate) fn read_version_probe(
     stage: ProbeStage,
 ) -> CaseTruthProbe {
     let packet = world.packet_for_case_probe(case, &world.latest_snapshot());
-    let read = world.runtime.visibility_reads().read_version(version_id);
+    let read = world.runtime.read_truth().read_version(version_id);
     let fragment = read
         .execute_planned_packet_fragment(
             crate::facade::query::DeterministicQueryPlanKey(0),

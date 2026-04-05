@@ -8,7 +8,7 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let publication = runtime.publication_access();
+    let publication = runtime.publication();
     let patch = publication.latest_patch().unwrap();
 
     assert_eq!(
@@ -31,7 +31,7 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
         create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
     let relation_b =
         create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
-    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
+    let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     assert_eq!(
         runtime.config().storage.adjacency_policy.backend,
@@ -57,10 +57,10 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let commit = runtime.history_access().latest_commit().unwrap().clone();
+    let commit = runtime.history().latest_commit().unwrap().clone();
 
     let artifact = runtime
-        .simulation_authority()
+        .compiled_artifacts_authority()
         .compile_execution_artifact(
             commit.commit_id,
             vec![PartitionId(7), PartitionId(11), PartitionId(29)],
@@ -72,7 +72,7 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     assert_eq!(artifact.source_branch_id, BranchId("main".to_string()));
     assert_eq!(
         runtime
-            .simulation_access()
+            .compiled_artifacts()
             .compiled_artifact_compatibility(artifact.artifact_id),
         CompiledArtifactCompatibility::Compatible
     );
@@ -83,14 +83,14 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
     let original = create_entity_outcome(&mut runtime, "seed");
     let artifact = runtime
-        .simulation_authority()
+        .compiled_artifacts_authority()
         .compile_execution_artifact(original.commit.commit_id, vec![PartitionId::main()])
         .unwrap();
     let _later = create_entity_outcome(&mut runtime, "later");
 
     assert_eq!(
         runtime
-            .simulation_access()
+            .compiled_artifacts()
             .compiled_artifact_compatibility(artifact.artifact_id),
         CompiledArtifactCompatibility::StaleVersion
     );
@@ -125,10 +125,10 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
             )
         })
         .collect::<Vec<_>>();
-    let live_version = runtime.history_access().latest_commit().unwrap().version_id;
-    let live_commit_id = runtime.history_access().latest_commit().unwrap().commit_id;
+    let live_version = runtime.history().latest_commit().unwrap().version_id;
+    let live_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let compiled = runtime
-        .simulation_authority()
+        .compiled_artifacts_authority()
         .compile_execution_artifact(
             live_commit_id,
             vec![
@@ -149,13 +149,13 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
     );
     assert_eq!(
         runtime
-            .simulation_access()
+            .compiled_artifacts()
             .compiled_artifact_compatibility(compiled.artifact_id),
         CompiledArtifactCompatibility::StaleVersion
     );
     assert_eq!(deleted.changed_records.len(), 4);
     for relation in relations {
-        let history = runtime.history_access().relation_aspect_history(
+        let history = runtime.history().relation_aspect_history(
             &BranchId("main".to_string()),
             relation,
             None,
@@ -188,9 +188,9 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     let target = create_entity_in_partition(&mut runtime, "topo-target", PartitionId(11));
     let relation =
         create_relation_in_partition(&mut runtime, source, target, "topo-edge", PartitionId(21));
-    let main_commit = runtime.history_access().latest_commit().unwrap().clone();
+    let main_commit = runtime.history().latest_commit().unwrap().clone();
     let main_artifact = runtime
-        .simulation_authority()
+        .compiled_artifacts_authority()
         .compile_execution_artifact(
             main_commit.commit_id,
             vec![PartitionId(7), PartitionId(11), PartitionId(21)],
@@ -215,20 +215,20 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         BranchId("feature".to_string()),
     );
     let main_view = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(main_commit.version_id)
         .all_relation_records();
     let feature_commit = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("feature".to_string()))
         .unwrap()
         .clone();
     let feature_view = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(feature_commit.version_id)
         .all_relation_records();
     let feature_artifact = runtime
-        .simulation_authority()
+        .compiled_artifacts_authority()
         .compile_execution_artifact(
             feature_commit.commit_id,
             vec![
@@ -240,16 +240,14 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
             ],
         )
         .unwrap();
-    let main_history = runtime.history_access().relation_aspect_history(
-        &BranchId("main".to_string()),
-        relation,
-        None,
-    );
-    let feature_history = runtime.history_access().relation_aspect_history(
-        &BranchId("feature".to_string()),
-        relation,
-        None,
-    );
+    let main_history =
+        runtime
+            .history()
+            .relation_aspect_history(&BranchId("main".to_string()), relation, None);
+    let feature_history =
+        runtime
+            .history()
+            .relation_aspect_history(&BranchId("feature".to_string()), relation, None);
     let main_digest = relation_aspect_history_digest_on_branch(
         &runtime,
         &BranchId("main".to_string()),
@@ -300,13 +298,13 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     assert_eq!(feature_digest.entry_count, 0);
     assert_eq!(
         runtime
-            .simulation_access()
+            .compiled_artifacts()
             .compiled_artifact_compatibility(main_artifact.artifact_id),
         CompiledArtifactCompatibility::StaleVersion
     );
     assert_eq!(
         runtime
-            .simulation_access()
+            .compiled_artifacts()
             .compiled_artifact_compatibility(feature_artifact.artifact_id),
         CompiledArtifactCompatibility::Compatible
     );

@@ -210,7 +210,7 @@ impl<'runtime> MergeAccess<'runtime> {
         &self,
         causal_plan: CausallyAnnotatedMergePlan,
     ) -> Result<PolicyResolvedMergePlan, MergePlanningError> {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let base_envelope = history
             .commit_envelope(causal_plan.merge_base.commit_id)
             .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
@@ -218,15 +218,15 @@ impl<'runtime> MergeAccess<'runtime> {
             })?;
         let source_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(causal_plan.source_head.version_id);
         let target_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(causal_plan.target_head.version_id);
         let base_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(base_envelope.commit.version_id);
         let source_view_index = PolicyReadViewIndex::new(&source_view);
         let target_view_index = PolicyReadViewIndex::new(&target_view);
@@ -286,7 +286,7 @@ impl<'runtime> MergeAccess<'runtime> {
                         .version_id;
                     record_base_views
                         .entry(base_commit_id)
-                        .or_insert_with(|| self.runtime.visibility_reads().read_version(version_id))
+                        .or_insert_with(|| self.runtime.read_truth().read_version(version_id))
                 };
                 let record_base_view_index = if base_commit_id == causal_plan.merge_base.commit_id {
                     &base_view_index

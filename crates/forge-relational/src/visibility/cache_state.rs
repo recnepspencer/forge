@@ -1,3 +1,4 @@
+use crate::capabilities::VisibilityPolicySource;
 use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
 use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
 use crate::storage::overlay::SnapshotState;
@@ -25,15 +26,17 @@ pub(crate) fn bump_active_snapshot_ref(
     version_id: crate::identity::data::VersionId,
     delta: i32,
 ) {
+    let was_active = residency_for_version(runtime, version_id).active_snapshot_refs > 0;
     bump_visibility_ref(runtime, version_id, |residency| {
         residency.active_snapshot_refs =
             residency.active_snapshot_refs.saturating_add_signed(delta);
     });
-    if delta > 0 {
+    let is_active = residency_for_version(runtime, version_id).active_snapshot_refs > 0;
+    if delta > 0 && !was_active && is_active {
         runtime
             .services
             .instrumentation
-            .count(|counters| counters.visibility_cache_snapshot_promotions += delta as usize);
+            .count(|counters| counters.visibility_cache_snapshot_promotions += 1);
     }
 }
 
@@ -144,7 +147,7 @@ pub(crate) fn is_protected_version(
     let residency = residency_for_version(runtime, version_id);
     residency.branch_head_refs > 0
         || residency.replay_refs > 0
-        || residency.active_snapshot_refs > 0
+        || (runtime.protect_active_snapshots() && residency.active_snapshot_refs > 0)
 }
 
 pub(crate) fn mark_recent_state(

@@ -188,7 +188,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
         )),
     );
     let outcome = txn.commit().unwrap();
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(outcome.commit.commit_id)
         .unwrap();

@@ -100,7 +100,7 @@ impl forge_harness::facade::DiagnosticsHarnessAdapter for InvariantHarnessAdapte
 fn diagnostics_and_replay_are_emitted_for_commit() {
     let mut runtime = runtime_with_test_schema();
     let _entity = create_entity(&mut runtime, "first");
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
         artifact.scope == DiagnosticsScope::Transaction
@@ -111,11 +111,11 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::EntityCreated));
-    assert!(runtime.publication_access().latest_patch().is_some());
-    assert!(runtime.publication_access().latest_replay().is_some());
+    assert!(runtime.publication().latest_patch().is_some());
+    assert!(runtime.publication().latest_replay().is_some());
     assert_eq!(
         runtime
-            .publication_access()
+            .publication()
             .latest_replay()
             .unwrap()
             .schema_registry,
@@ -156,7 +156,7 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         ))),
     );
     let error = txn.commit().unwrap_err();
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let artifact = diagnostics
         .by_scope(DiagnosticsScope::Invariant)
         .into_iter()
@@ -240,7 +240,7 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
     );
     txn.commit().unwrap();
 
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let entry = diagnostics
         .by_scope(DiagnosticsScope::Invariant)
         .into_iter()
@@ -307,7 +307,7 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
     );
     let _error = txn.commit().unwrap_err();
 
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics
         .by_scope(DiagnosticsScope::Invariant)
         .into_iter()
@@ -328,23 +328,17 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
 fn publication_bundle_is_the_single_visible_commit_surface() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "first");
-    let publication = runtime.publication_access();
+    let publication = runtime.publication();
     let bundle = publication.latest_bundle().unwrap();
 
     assert_eq!(outcome.publication_status, PublicationStatus::Published);
     assert_eq!(bundle.snapshot, outcome.snapshot);
     assert_eq!(bundle.commit, outcome.commit);
-    assert_eq!(
-        bundle.commit,
-        *runtime.history_access().latest_commit().unwrap()
-    );
-    assert_eq!(
-        bundle.patch,
-        *runtime.publication_access().latest_patch().unwrap()
-    );
+    assert_eq!(bundle.commit, *runtime.history().latest_commit().unwrap());
+    assert_eq!(bundle.patch, *runtime.publication().latest_patch().unwrap());
     assert_eq!(
         bundle.replay,
-        *runtime.publication_access().latest_replay().unwrap()
+        *runtime.publication().latest_replay().unwrap()
     );
 }
 
@@ -353,13 +347,13 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "first");
 
-    let retention = runtime.retention_authority().inspect_plan();
+    let retention = runtime.retention().inspect_plan();
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let inspection = runtime
-        .visibility_reads()
+        .read_truth()
         .inspect_snapshot(&outcome.snapshot)
         .unwrap();
     let packet = explicit_query_packet(
@@ -395,7 +389,7 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
         .visibility_authority()
         .release_snapshot(&outcome.snapshot));
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .is_none());
 }
@@ -415,11 +409,11 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
     let after_first_release = runtime.storage_access().storage_stats();
     assert_eq!(after_first_release.published_snapshot_handle_count, 1);
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&first.snapshot)
         .is_none());
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&second.snapshot)
         .is_some());
 
@@ -449,15 +443,15 @@ fn publication_handle_retention_is_bounded_by_policy() {
 
     assert_eq!(stats.published_snapshot_handle_count, 2);
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&first.snapshot)
         .is_none());
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&second.snapshot)
         .is_some());
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&third.snapshot)
         .is_some());
 }
@@ -496,14 +490,10 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
     let parallel_second = create_entity_outcome(&mut parallel, "second");
     let parallel_third = create_entity_outcome(&mut parallel, "third");
 
-    let serial_bundle = serial.publication_access().latest_bundle().unwrap().clone();
-    let parallel_bundle = parallel
-        .publication_access()
-        .latest_bundle()
-        .unwrap()
-        .clone();
+    let serial_bundle = serial.publication().latest_bundle().unwrap().clone();
+    let parallel_bundle = parallel.publication().latest_bundle().unwrap().clone();
     let parallel_stats = parallel.storage_access().storage_stats();
-    let diagnostics = parallel.publication_access().diagnostics();
+    let diagnostics = parallel.publication().diagnostics();
 
     assert_eq!(parallel_bundle.commit, serial_bundle.commit);
     assert_eq!(parallel_bundle.patch, serial_bundle.patch);
@@ -511,11 +501,11 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
     assert_eq!(parallel_bundle.snapshot, parallel_third.snapshot);
     assert_eq!(parallel_stats.published_snapshot_handle_count, 2);
     assert!(parallel
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&parallel_second.snapshot)
         .is_some());
     assert!(parallel
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&parallel_third.snapshot)
         .is_some());
     assert!(diagnostics
@@ -650,15 +640,16 @@ fn geometry_operational_hot_path_policy_suppresses_detailed_traces() {
         .build();
 
     let _ = create_entity_outcome(&mut runtime, "geometry-hot-policy");
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
         artifact.scope == DiagnosticsScope::Transaction
             && artifact.kind == DiagnosticsArtifactKind::MinimalSummary
     }));
-    assert!(!diagnostics.artifacts().iter().any(|artifact| {
-        artifact.kind == DiagnosticsArtifactKind::DetailedTrace
-    }));
+    assert!(!diagnostics
+        .artifacts()
+        .iter()
+        .any(|artifact| { artifact.kind == DiagnosticsArtifactKind::DetailedTrace }));
 }
 
 #[test]
@@ -670,15 +661,16 @@ fn chip_rich_certification_policy_keeps_detailed_traces_available() {
         .build();
 
     let _ = create_entity_outcome(&mut runtime, "chip-rich-policy");
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
         artifact.scope == DiagnosticsScope::Transaction
             && artifact.kind == DiagnosticsArtifactKind::MinimalSummary
     }));
-    assert!(diagnostics.artifacts().iter().any(|artifact| {
-        artifact.kind == DiagnosticsArtifactKind::DetailedTrace
-    }));
+    assert!(diagnostics
+        .artifacts()
+        .iter()
+        .any(|artifact| { artifact.kind == DiagnosticsArtifactKind::DetailedTrace }));
 }
 
 #[test]
@@ -725,7 +717,7 @@ fn snapshot_audit_failure_blocks_publication() {
         TransactionCommitError::Publication { error: ref publication, .. }
             if publication.stage == PublicationStage::InvariantCheck
     ));
-    assert!(runtime.publication_access().latest_bundle().is_none());
+    assert!(runtime.publication().latest_bundle().is_none());
 }
 
 #[test]
@@ -1828,11 +1820,11 @@ fn harness_heavy_invariants_are_opt_in() {
     let _ = create_entity(&mut runtime, "duplicate");
 
     let default_results = runtime
-        .invariant_access()
+        .validation()
         .harness_audit(HarnessAuditMode::Disabled)
         .into_results();
     let enabled_results = runtime
-        .invariant_access()
+        .validation()
         .harness_audit(HarnessAuditMode::Full)
         .into_results();
 
@@ -1851,15 +1843,15 @@ fn cross_order_equivalent_mutations_converge() {
     let runtime_b = apply_batches(vec![batch_create("b"), batch_create("a")]);
 
     assert_eq!(
-        runtime_a.publication_access().latest_patch(),
-        runtime_b.publication_access().latest_patch()
+        runtime_a.publication().latest_patch(),
+        runtime_b.publication().latest_patch()
     );
     assert_eq!(
-        runtime_a.publication_access().latest_replay(),
-        runtime_b.publication_access().latest_replay()
+        runtime_a.publication().latest_replay(),
+        runtime_b.publication().latest_replay()
     );
     assert_eq!(
-        runtime_a.publication_access().diagnostics(),
-        runtime_b.publication_access().diagnostics()
+        runtime_a.publication().diagnostics(),
+        runtime_b.publication().diagnostics()
     );
 }

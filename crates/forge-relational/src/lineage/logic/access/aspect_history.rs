@@ -18,7 +18,7 @@ impl<'runtime> LineageAccess<'runtime> {
         filter: Option<&AspectFilter>,
     ) -> LineageAspectHistoryQueryResult {
         self.runtime
-            .history_access()
+            .history()
             .lineage_entity_aspect_history_with_trace(
                 &request.branch_id,
                 request.lineage_id,

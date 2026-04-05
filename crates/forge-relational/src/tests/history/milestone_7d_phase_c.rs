@@ -60,7 +60,7 @@ fn prepared_merge_promoted_to_deleted_on_both_sides(
     }
 
     let compiled = runtime
-        .merge_access()
+        .merge()
         .compile_execution_ready_merge_plan_for_test(prepared.execution_ready_plan_mut_for_test())
         .expect("compiled promoted executable plan");
     *prepared.bound_executable_plan_mut_for_test() = compiled;
@@ -103,7 +103,7 @@ fn promoted_deleted_on_both_sides_derives_zero_mutation_intent_execution_plan() 
     let prepared = prepared_merge_promoted_to_deleted_on_both_sides(&mut runtime);
 
     let plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(TransactionId(701), &prepared)
         .expect("merge mutation plan");
 
@@ -140,7 +140,7 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
     let merge = runtime
         .execute_prepared_merge(prepared)
         .expect("executed prepared merge");
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("canonical envelope");
@@ -176,7 +176,7 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         serde_json::json!(1)
     );
 
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let success_artifact = diagnostics
         .artifacts()
         .iter()
@@ -217,7 +217,7 @@ fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),

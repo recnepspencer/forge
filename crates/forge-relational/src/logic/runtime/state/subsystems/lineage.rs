@@ -54,6 +54,7 @@ impl LineageSubsystem {
         self.events.push(event);
     }
 
+    #[cfg(test)]
     pub(crate) fn branch_events(
         &self,
         branch_id: &BranchId,
@@ -82,6 +83,7 @@ impl LineageSubsystem {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn record_rejected_decision(&mut self, decision: LineageDecisionRecord) {
         self.rejected_decisions.push(decision);
         self.rejected_decisions.sort_by_key(|decision| {

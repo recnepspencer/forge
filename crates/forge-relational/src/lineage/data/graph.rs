@@ -65,6 +65,7 @@ pub struct LineageGraphDigestBasis {
 }
 
 impl LineageGraphSnapshot {
+    #[cfg(test)]
     pub(crate) fn new(
         branch_id: BranchId,
         nodes: Vec<LineageNode>,
@@ -115,6 +116,7 @@ impl LineageGraphSnapshot {
 }
 
 impl LineageGraphDigestBasis {
+    #[cfg(test)]
     pub(crate) fn new(
         branch_id: BranchId,
         traversal_basis: LineageGraphTraversalBasis,

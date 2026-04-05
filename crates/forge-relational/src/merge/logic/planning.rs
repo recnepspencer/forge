@@ -14,7 +14,7 @@ impl<'runtime> MergeAccess<'runtime> {
         &self,
         request: MergePlanningRequest,
     ) -> Result<HistoryScopedMergePlan, MergePlanningError> {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let target_head = history
             .branch_head(&request.target_branch)
             .cloned()
@@ -71,7 +71,7 @@ impl<'runtime> MergeAccess<'runtime> {
         branch_id: crate::history::data::BranchId,
         commits: &[CommitId],
     ) -> BranchCommitDelta {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let mut touched_records = BTreeMap::new();
         for commit_id in commits {
             if let Some(envelope) = history.commit_envelope(*commit_id) {
@@ -121,7 +121,7 @@ impl<'runtime> MergeAccess<'runtime> {
         commits: &[CommitId],
         merge_base_ancestors: &[CommitId],
     ) -> Vec<CommitId> {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let merge_base_ancestors = merge_base_ancestors
             .iter()
             .copied()

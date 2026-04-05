@@ -132,41 +132,24 @@ impl SchemaSource for RelationalRuntimeConfig {
 }
 
 impl RelationalRuntime {
-    pub fn entity_aspect_declaration_trace(
-        &self,
-        kind_id: crate::identity::data::KindId,
-    ) -> Result<AspectDeclarationTrace, crate::schema::data::SchemaRegistryError> {
-        self.config
-            .schema
-            .registry
-            .entity_aspect_declaration_trace(kind_id)
-    }
-
-    pub fn relation_aspect_declaration_trace(
-        &self,
-        kind_id: crate::identity::data::KindId,
-    ) -> Result<AspectDeclarationTrace, crate::schema::data::SchemaRegistryError> {
-        self.config
-            .schema
-            .registry
-            .relation_aspect_declaration_trace(kind_id)
-    }
-
-    pub fn entity_aspect_plan_trace(
+    #[cfg(test)]
+    pub(crate) fn entity_aspect_plan_trace(
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace> {
         AspectPlanSource::entity_aspect_plan_trace(self, kind_id)
     }
 
-    pub fn relation_aspect_plan_trace(
+    #[cfg(test)]
+    pub(crate) fn relation_aspect_plan_trace(
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace> {
         AspectPlanSource::relation_aspect_plan_trace(self, kind_id)
     }
 
-    pub fn relation_integrity_plan(
+    #[cfg(test)]
+    pub(crate) fn relation_integrity_plan(
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<&LoweredRelationIntegrityPlan> {

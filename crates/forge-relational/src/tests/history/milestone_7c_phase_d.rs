@@ -42,7 +42,7 @@ fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
         .expect("prepared merge");
 
     let plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(TransactionId(77), &prepared)
         .expect("merge mutation plan");
 
@@ -111,7 +111,7 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
         .expect("prepared merge");
 
     let plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(TransactionId(88), &prepared)
         .expect("merge mutation plan");
 
@@ -215,7 +215,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
         .expect("prepared merge");
 
     let plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(TransactionId(99), &prepared)
         .expect("merge mutation plan");
 
@@ -261,7 +261,7 @@ fn derive_merge_commit_mutation_plan_does_not_rely_on_raw_lowered_record_arrays(
     prepared.execution_ready_plan_mut_for_test().lowered_records = Arc::from([]);
 
     let plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(TransactionId(123), &prepared)
         .expect("merge mutation plan");
 

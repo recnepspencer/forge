@@ -131,6 +131,29 @@ fn prepare_patch_fragments(
             .len(),
     );
 
+    let use_parallel_packets =
+        matches!(
+            runtime.config.execution.execution_model,
+            RelationalExecutionModel::StagedParallelPreparation
+        ) && packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH);
+
+    if !use_parallel_packets {
+        runtime
+            .performance_access()
+            .count_preparation_serial_strategy();
+        return direct_diff_record_order(records);
+    }
+
+    runtime
+        .performance_access()
+        .count_preparation_parallel_legal();
+    runtime
+        .performance_access()
+        .count_preparation_parallel_profitable();
+    runtime
+        .performance_access()
+        .count_preparation_staged_parallel_strategy();
+
     let mut packets = Vec::with_capacity(packet_count);
     for (packet_index, chunk) in records
         .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
@@ -144,38 +167,46 @@ fn prepare_patch_fragments(
         });
     }
 
-    let fragment_streams = match runtime.config.execution.execution_model {
-        RelationalExecutionModel::StagedParallelPreparation
-            if packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH) =>
-        {
-            runtime
-                .performance_access()
-                .count_preparation_parallel_legal();
-            runtime
-                .performance_access()
-                .count_preparation_parallel_profitable();
-            runtime
-                .performance_access()
-                .count_preparation_staged_parallel_strategy();
-            packets
-                .par_iter()
-                .map(diff_packet_stream)
-                .collect::<Vec<_>>()
-        }
-        _ => {
-            runtime
-                .performance_access()
-                .count_preparation_serial_strategy();
-            packets
-                .into_iter()
-                .map(|packet| diff_packet_stream(&packet))
-                .collect::<Vec<_>>()
-        }
-    };
+    canonical_merge_streams(
+        packets
+            .par_iter()
+            .map(diff_packet_stream)
+            .collect::<Vec<_>>(),
+    )
+    .into_iter()
+    .map(|(_, record)| record)
+    .collect()
+}
 
-    canonical_merge_streams(fragment_streams)
+fn direct_diff_record_order(records: Vec<PatchRecord>) -> Vec<PatchRecord> {
+    use crate::authority::commit::preparation::packets::diff::DiffFragmentKind;
+    use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
+
+    let mut keyed_records = records
         .into_iter()
-        .map(|(_, record)| record)
+        .enumerate()
+        .map(|(record_index, record)| {
+            let canonical = record.canonicalized();
+            #[allow(unused_mut)]
+            let mut key = DiffReductionKey::new(
+                canonical.target.clone(),
+                diff_kind_order(DiffFragmentKind::from(&canonical.kind)),
+                record_index,
+            );
+            #[cfg(test)]
+            if matches!(
+                current_test_diff_preparation_fault(),
+                Some(TestDiffPreparationFault::PacketOverlapDetected)
+            ) {
+                key = DiffReductionKey::new(canonical.target.clone(), 0, 0);
+            }
+            (key, canonical)
+        })
+        .collect::<Vec<_>>();
+    keyed_records.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+    keyed_records
+        .into_iter()
+        .map(|(_key, record)| record)
         .collect()
 }
 
@@ -261,11 +292,83 @@ pub(super) fn diagnostics_summary_artifact(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{diff_packet_stream, direct_diff_record_order};
+    use crate::authority::commit::preparation::packets::diff::{
+        DiffPreparationHeader, DiffPreparationPacket,
+    };
+    use crate::authority::commit::preparation::reduction::merge::canonical_merge_streams;
+    use crate::identity::data::{EntityId, PartitionId};
+    use crate::publication::data::diff::{
+        AspectKey, CanonicalAspectSet, PatchDetail, PatchRecord, PatchRecordKind,
+        RecordStructuralChange,
+    };
+    use crate::symbols::data::InternedString;
+    use crate::transactions::data::RecordRef;
+
+    #[test]
+    fn direct_serial_patch_preparation_matches_packet_merge_order() {
+        let records = vec![
+            patch_record(7, PatchRecordKind::Updated),
+            patch_record(3, PatchRecordKind::Deleted),
+            patch_record(3, PatchRecordKind::Created),
+            patch_record(8, PatchRecordKind::RetainedForAudit),
+            patch_record(7, PatchRecordKind::Created),
+            patch_record(3, PatchRecordKind::Updated),
+        ];
+
+        let mut packets = Vec::new();
+        for (packet_index, chunk) in records.chunks(2).enumerate() {
+            packets.push(DiffPreparationPacket {
+                header: DiffPreparationHeader {
+                    packet_index_floor: packet_index * 2,
+                },
+                records: chunk.to_vec(),
+            });
+        }
+
+        let merged =
+            canonical_merge_streams(packets.iter().map(diff_packet_stream).collect::<Vec<_>>())
+                .into_iter()
+                .map(|(_key, record)| record)
+                .collect::<Vec<_>>();
+        let direct = direct_diff_record_order(records);
+
+        assert_eq!(direct, merged);
+    }
+
+    fn patch_record(raw_entity_id: u64, kind: PatchRecordKind) -> PatchRecord {
+        let kind_label = format!("{kind:?}");
+        let structural_change = match kind {
+            PatchRecordKind::Created => RecordStructuralChange::Created,
+            PatchRecordKind::Updated => RecordStructuralChange::Updated,
+            PatchRecordKind::Deleted => RecordStructuralChange::Deleted,
+            PatchRecordKind::RetainedForAudit => RecordStructuralChange::RetainedForAudit,
+        };
+        PatchRecord {
+            kind,
+            target: RecordRef::Entity(EntityId::new(PartitionId(0), raw_entity_id, 0)),
+            structural_change,
+            aspects: CanonicalAspectSet::new([AspectKey(InternedString::from("geometry"))]),
+            contains_degraded_precision: false,
+            detail: PatchDetail::StructuredJson(serde_json::json!({
+                "entity": raw_entity_id,
+                "kind": kind_label,
+            })),
+        }
+    }
+}
+
 pub(super) fn finalize_published_commit(
     runtime: &mut RelationalRuntime,
+    clone_mode: crate::storage::overlay::PartitionCloneMode,
     committed_partitions: std::collections::BTreeMap<
         crate::identity::data::PartitionId,
-        (PartitionState, crate::storage::overlay::PartitionMutationJournal),
+        (
+            PartitionState,
+            crate::storage::overlay::PartitionMutationJournal,
+        ),
     >,
     changed_records: &[RecordRef],
     version_id: VersionId,
@@ -282,7 +385,7 @@ pub(super) fn finalize_published_commit(
     let phase_started = std::time::Instant::now();
     runtime
         .storage_authority()
-        .publish_partition_commits(committed_partitions);
+        .publish_partition_commits(clone_mode, committed_partitions);
     phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
 
     let phase_started = std::time::Instant::now();
@@ -316,7 +419,7 @@ pub(super) fn finalize_published_commit(
 
     let phase_started = std::time::Instant::now();
     runtime
-        .retention_authority()
+        .retention()
         .trim_live_history_for_records(changed_records, version_id);
     phase_timing.retention_trim_micros = phase_started.elapsed().as_micros() as u64;
 
@@ -335,7 +438,7 @@ pub(super) fn finalize_published_commit(
             == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
     {
         let phase_started = std::time::Instant::now();
-        let _ = runtime.retention_authority().run_pass();
+        let _ = runtime.retention().run_pass();
         phase_timing.retention_pass_micros = phase_started.elapsed().as_micros() as u64;
     }
 

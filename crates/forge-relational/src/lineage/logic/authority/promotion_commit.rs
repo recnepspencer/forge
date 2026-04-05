@@ -35,7 +35,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         let anchor_commit = plan.commit();
         let authoritative_anchor = self
             .runtime
-            .history_access()
+            .history()
             .branch_head(&anchor_commit.branch_id)
             .cloned();
         if authoritative_anchor.as_ref().map(|head| head.commit_id) != Some(anchor_commit.commit_id)
@@ -60,7 +60,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         let authoritative_anchor = plan.authoritative_anchor();
 
         let promotion_commit = CommitReference {
-            commit_id: self.runtime.history_access().next_commit_id(),
+            commit_id: self.runtime.history().next_commit_id(),
             version_id: authoritative_anchor.version_id,
             branch_id: authoritative_anchor.branch_id.clone(),
             parents: vec![authoritative_anchor.commit_id],

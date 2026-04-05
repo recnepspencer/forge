@@ -63,6 +63,7 @@ pub(crate) struct LineageDecisionLog {
 }
 
 impl LineageDecisionLog {
+    #[cfg(test)]
     pub(crate) fn single(decision: LineageDecisionRecord) -> Self {
         Self::new(vec![decision])
     }
@@ -95,6 +96,7 @@ impl FinalizedLineageEventBatch {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn single(event: LineageEventRecord) -> Self {
         Self::new(vec![event])
     }
@@ -148,6 +150,7 @@ impl LineageFinalizationArtifact {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn single_event(
         branch_id: BranchId,
         event: LineageEventRecord,
@@ -290,11 +293,13 @@ impl PublishedLineageArtifact {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg(test)]
 pub(crate) struct LineageRejectionArtifact {
     branch_id: BranchId,
     decision_log: LineageDecisionLog,
 }
 
+#[cfg(test)]
 impl LineageRejectionArtifact {
     pub(crate) fn single_rejected_promotion(decision: LineageDecisionRecord) -> Self {
         Self {

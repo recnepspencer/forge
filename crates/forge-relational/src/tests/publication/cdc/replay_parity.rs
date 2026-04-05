@@ -7,14 +7,14 @@ fn subscriber_stream_matches_patch_stream_for_committed_history() {
     let _ = create_entity_outcome(&mut runtime, "b");
 
     let patch_batch = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: None,
             max_commits: 8,
         })
         .unwrap();
     let subscriber_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(8))
         .unwrap();
 
@@ -34,14 +34,14 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
         .remove_commit_envelope_for_test(first.commit.commit_id));
 
     let subscriber_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1)),
             8,
         ))
         .unwrap();
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
@@ -50,7 +50,7 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
         .recover(recovery_plan)
         .unwrap();
     let recovered_patch_batch = recovered
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(1)),
             max_commits: 8,

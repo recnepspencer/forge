@@ -402,7 +402,10 @@ mod tests {
         let chip = RelationalRuntimeProfile::ChipSimulation.boundary_policy();
         let ai = RelationalRuntimeProfile::AiWorkflow.boundary_policy();
 
-        assert_eq!(geometry.execution_lane, RuntimeExecutionLane::RichInteractive);
+        assert_eq!(
+            geometry.execution_lane,
+            RuntimeExecutionLane::RichInteractive
+        );
         assert_eq!(
             geometry.diagnostics_boundary,
             DiagnosticsBoundary::RichCertification
@@ -417,7 +420,10 @@ mod tests {
         assert!(chip.allows_compiled_lane);
 
         assert_eq!(ai.execution_lane, RuntimeExecutionLane::AuditReplayHeavy);
-        assert_eq!(ai.diagnostics_boundary, DiagnosticsBoundary::DurableWorkflow);
+        assert_eq!(
+            ai.diagnostics_boundary,
+            DiagnosticsBoundary::DurableWorkflow
+        );
         assert!(!ai.keeps_replay_hot_path_thin);
     }
 
@@ -429,7 +435,8 @@ mod tests {
             RelationalRuntimeProfile::ChipSimulation,
             RelationalRuntimeProfile::AiWorkflow,
         ] {
-            let config = RelationalRuntimeConfig::resolved(profile, RelationalConfigOverride::default());
+            let config =
+                RelationalRuntimeConfig::resolved(profile, RelationalConfigOverride::default());
             assert!(
                 config.profile_boundary_matches_defaults(),
                 "profile {:?} drifted from its boundary defaults",
@@ -441,12 +448,11 @@ mod tests {
     #[test]
     fn overriding_diagnostics_profile_breaks_boundary_default_match() {
         let mut overrides = RelationalConfigOverride::default();
-        overrides.diagnostics.profile = Some(RelationalDiagnosticsProfile::chip_rich_certification());
+        overrides.diagnostics.profile =
+            Some(RelationalDiagnosticsProfile::chip_rich_certification());
 
-        let config = RelationalRuntimeConfig::resolved(
-            RelationalRuntimeProfile::ChipSimulation,
-            overrides,
-        );
+        let config =
+            RelationalRuntimeConfig::resolved(RelationalRuntimeProfile::ChipSimulation, overrides);
 
         assert!(!config.profile_boundary_matches_defaults());
     }

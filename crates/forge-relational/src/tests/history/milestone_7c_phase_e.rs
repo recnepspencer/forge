@@ -30,7 +30,7 @@ fn execute_feature_into_main_merge() -> (
         })
         .expect("prepared merge execution");
     let main_head_commit_id = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .expect("main head before merge")
         .commit_id;
@@ -49,7 +49,7 @@ fn execute_feature_into_main_merge() -> (
 fn execute_prepared_merge_publishes_ordered_multi_parent_commit_through_canonical_envelope() {
     let (runtime, merge, main_head_commit_id, feature_head_commit_id) =
         execute_feature_into_main_merge();
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
 
     assert_eq!(merge.commit.merge_parent_count(), 1);
     assert_eq!(
@@ -76,7 +76,7 @@ fn execute_prepared_merge_publishes_ordered_multi_parent_commit_through_canonica
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .expect("main branch head")
             .commit_id,
@@ -84,7 +84,7 @@ fn execute_prepared_merge_publishes_ordered_multi_parent_commit_through_canonica
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string()))
             .expect("feature branch head")
             .commit_id,
@@ -98,7 +98,7 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
         execute_feature_into_main_merge();
     let before_bundle = capture_aspect_truth_bundle(&mut runtime, &[], &[], &[]);
     let merge_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("live merge envelope");
@@ -107,7 +107,7 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -153,16 +153,14 @@ fn execute_prepared_merge_produces_merge_ready_history_shape() {
         execute_feature_into_main_merge();
 
     assert_eq!(
-        runtime
-            .history_access()
-            .latest_common_ancestor_between_branches(
-                &BranchId("main".to_string()),
-                &BranchId("feature".to_string())
-            ),
+        runtime.history().latest_common_ancestor_between_branches(
+            &BranchId("main".to_string()),
+            &BranchId("feature".to_string())
+        ),
         Some(feature_head_commit_id)
     );
 
-    let inspection = runtime.history_access().inspect_merge(
+    let inspection = runtime.history().inspect_merge(
         &BranchId("feature".to_string()),
         &BranchId("main".to_string()),
     );
@@ -315,7 +313,7 @@ fn execute_prepared_merge_records_attempt_without_success_on_failure() {
     assert_eq!(counters.merge_execution_records_admitted, 0);
     assert_eq!(counters.merge_execution_mutation_intents_emitted, 0);
     assert!(runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .artifacts()
         .iter()
@@ -326,7 +324,7 @@ fn execute_prepared_merge_records_attempt_without_success_on_failure() {
                 .iter()
                 .any(|entry| entry.code == DiagnosticCode::DeterministicMergeViolation)));
     assert!(!runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .artifacts()
         .iter()
@@ -357,7 +355,7 @@ fn merge_commit_context_rejects_mismatched_parent_branch_metadata() {
         })
         .expect("prepared merge execution");
     let mutation_plan = runtime
-        .merge_access()
+        .merge()
         .derive_merge_commit_mutation_plan(
             crate::facade::transactions::TransactionId(999),
             &prepared,
@@ -408,7 +406,7 @@ fn execute_prepared_merge_preserves_reserved_summary_when_optional_diagnostics_b
     let merge = runtime
         .execute_prepared_merge(prepared)
         .expect("executed prepared merge");
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("canonical merge envelope");

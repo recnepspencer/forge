@@ -51,7 +51,7 @@ fn lineage_promotion_execution_stays_advisory_until_promoted() {
     let promotion_commit_id = resolution
         .promoted_commit_id()
         .expect("promotion commit id");
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(promotion_commit_id)
         .unwrap();

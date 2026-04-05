@@ -1,4 +1,5 @@
 use crate::logic::runtime::RelationalRuntime;
+#[cfg(test)]
 use crate::performance::data::{
     ComplexityContract, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
 };
@@ -21,7 +22,7 @@ pub(crate) enum ReplayLineageAuthorityIndexedSource {
 }
 
 impl RelationalRuntime {
-    pub fn performance_access(&self) -> PerformanceAccess<'_> {
+    pub(crate) fn performance_access(&self) -> PerformanceAccess<'_> {
         PerformanceAccess::new(self)
     }
 }
@@ -31,10 +32,12 @@ impl<'runtime> PerformanceAccess<'runtime> {
         Self { runtime }
     }
 
+    #[cfg(test)]
     pub fn contracts(&self) -> &'static [ComplexityContract] {
         COMPLEXITY_CONTRACTS
     }
 
+    #[cfg(test)]
     pub fn counters(&self) -> RuntimeComplexityCounters {
         self.runtime
             .services
@@ -45,6 +48,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .clone()
     }
 
+    #[cfg(test)]
     pub fn reset_counters(&self) {
         *self
             .runtime
@@ -65,6 +69,27 @@ impl<'runtime> PerformanceAccess<'runtime> {
             counters.partitions_cloned += partitions;
             counters.entity_slots_cloned += entity_slots;
             counters.relation_slots_cloned += relation_slots;
+        });
+    }
+
+    pub(crate) fn count_aosoa_prepare_chunks(&self, chunk_count: usize, slot_count: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.aosoa_entity_chunks_staged += chunk_count;
+            counters.aosoa_entity_chunk_slots_materialized += slot_count;
+        });
+    }
+
+    pub(crate) fn count_aosoa_publish_fallback(&self, chunk_count: usize, slot_count: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.aosoa_entity_chunks_published += chunk_count;
+            counters.aosoa_entity_slot_fallback_merges += slot_count;
+            counters.aosoa_publish_fallback_count += 1;
+        });
+    }
+
+    pub(crate) fn count_aosoa_publish_chunks(&self, chunk_count: usize) {
+        self.runtime.services.instrumentation.count(|counters| {
+            counters.aosoa_entity_chunks_published += chunk_count;
         });
     }
 
@@ -363,6 +388,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
             .count(|counters| counters.post_commit_parallel_strategy_count += 1);
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_graph_snapshot_request(
         &self,
         node_count: usize,
@@ -377,6 +403,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_candidate_validation(
         &self,
         recorded_width: usize,
@@ -388,12 +415,14 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_promotion_rejection(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_promotion_rejection_count += 1;
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_promotion_plan_lowering(&self, promotion_eligible_width: usize) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_promotion_eligible_candidate_width += promotion_eligible_width;
@@ -422,12 +451,14 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_promotion_accepted(&self) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_promotion_accepted_count += 1;
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_graph_snapshot_visibility_cache(&self, hit: bool) {
         self.runtime.services.instrumentation.count(|counters| {
             if hit {
@@ -450,6 +481,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
+    #[cfg(test)]
     pub(crate) fn count_lineage_branch_divergence(
         &self,
         left_event_count: usize,

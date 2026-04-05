@@ -34,7 +34,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         &mut self,
         merged_plan: &MergedCommitPlan,
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
-        let result = self.runtime.invariant_access().commit_boundary(merged_plan);
+        let result = self.runtime.validation().commit_boundary(merged_plan);
         self.emit_preparation_diagnostics(&result);
         let collect_all = self.emit_collect_all_failure_diagnostics(&result);
         if let Some(failure) = result.summary().blocking_failure() {
@@ -57,9 +57,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
         let result = {
             let storage = self.runtime.storage_access();
             let overlay_state = storage.overlay_state_view(working_state);
-            self.runtime
-                .invariant_access()
-                .mutation_sensitive_for_state(overlay_state, version_id, Some(merged_plan))
+            self.runtime.validation().mutation_sensitive_for_state(
+                overlay_state,
+                version_id,
+                Some(merged_plan),
+            )
         };
         self.emit_preparation_diagnostics(&result);
         let collect_all = self.emit_collect_all_failure_diagnostics(&result);
@@ -81,9 +83,11 @@ impl<'runtime> InvariantAuthority<'runtime> {
         let result = {
             let storage = self.runtime.storage_access();
             let overlay_state = storage.overlay_state_view(working_state);
-            self.runtime
-                .invariant_access()
-                .snapshot_publication_for_state(overlay_state, version_id, Some(merged_plan))
+            self.runtime.validation().snapshot_publication_for_state(
+                overlay_state,
+                version_id,
+                Some(merged_plan),
+            )
         };
         self.emit_preparation_diagnostics(&result);
         let collect_all = self.emit_collect_all_failure_diagnostics(&result);
@@ -101,7 +105,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
     pub(crate) fn enforce_certification_boundary(
         &mut self,
     ) -> Result<InvariantExecutionResult, PublicationError> {
-        let result = self.runtime.invariant_access().certification_state();
+        let result = self.runtime.validation().certification_state();
         self.emit_preparation_diagnostics(&result);
         let collect_all = self.emit_collect_all_failure_diagnostics(&result);
         if let Some(failure) = result.summary().publication_failure() {

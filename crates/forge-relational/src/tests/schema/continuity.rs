@@ -694,7 +694,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
         }
         other => panic!("expected schema continuity conflict, got {other:?}"),
     }
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics
         .by_scope(DiagnosticsScope::Schema)
         .into_iter()
@@ -704,7 +704,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
         entry.code == DiagnosticCode::SchemaContinuityViolation
             && entry.fields["conflict_class"]
                 .as_str()
-                .is_some_and(|class| class.contains("UndeclaredSchemaTransition"))
+                .is_some_and(|class: &str| class.contains("UndeclaredSchemaTransition"))
     }));
 }
 
@@ -1064,7 +1064,7 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         }
         other => panic!("expected target-basis conflict, got {other:?}"),
     }
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics
         .by_scope(DiagnosticsScope::Schema)
         .into_iter()

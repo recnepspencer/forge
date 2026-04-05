@@ -25,7 +25,7 @@ impl<'runtime> ReplayAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn replay_access(&self) -> ReplayAccess<'_> {
+    pub(crate) fn replay_access(&self) -> ReplayAccess<'_> {
         ReplayAccess::new(self)
     }
 }

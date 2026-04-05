@@ -16,7 +16,7 @@ fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
 
     runtime.performance_access().reset_counters();
     let summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&GraphInspectionRequest {
             scope: InspectionScope::Current,
             partition_scope: None,
@@ -54,7 +54,7 @@ fn complexity_budget_structural_identity_distinguishes_direct_lookup_from_broad_
     let _other = create_entity(&mut runtime, "beta");
 
     runtime.performance_access().reset_counters();
-    let direct = runtime.inspection_access().structural_identity(
+    let direct = runtime.inspect_what_happened().structural_identity(
         InspectionScope::Current,
         crate::facade::transactions::RecordRef::Entity(entity),
     );
@@ -69,14 +69,13 @@ fn complexity_budget_structural_identity_distinguishes_direct_lookup_from_broad_
     assert_eq!(direct_counters.visibility_entity_slot_scans, 0);
 
     runtime.performance_access().reset_counters();
-    let broad =
-        runtime
-            .inspection_access()
-            .query_structural_identity(&StructuralIdentityQueryRequest {
-                scope: InspectionScope::Current,
-                partition_scope: None,
-                fingerprint_family: Symbol(1),
-            });
+    let broad = runtime.inspect_what_happened().query_structural_identity(
+        &StructuralIdentityQueryRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            fingerprint_family: Symbol(1),
+        },
+    );
     let broad_counters = runtime.performance_access().counters();
 
     assert!(broad.is_empty());
@@ -94,7 +93,7 @@ fn complexity_budget_kind_summary_reports_request_shaped_scope() {
 
     runtime.performance_access().reset_counters();
     let summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .kind_summary(&KindInspectionRequest {
             scope: InspectionScope::Current,
             partition_scope: Some(vec![PartitionId(7)]),
@@ -121,7 +120,7 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
     runtime.performance_access().reset_counters();
     let summary =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .connectivity_summary(&ConnectivityInspectionRequest {
                 scope: InspectionScope::Current,
                 partition_scope: None,
@@ -173,7 +172,7 @@ fn complexity_budget_retention_summary_reports_bounded_slot_scans() {
 
     runtime.performance_access().reset_counters();
     let summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .retention_summary(&RetentionInspectionRequest {
             max_entity_slots_scanned: 32,
             max_relation_slots_scanned: 32,
@@ -199,7 +198,7 @@ fn complexity_budget_neighbor_inspection_uses_adjacency_not_relation_materializa
 
     runtime.performance_access().reset_counters();
     let neighbors = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .neighbors(InspectionScope::Current, source);
     let counters = runtime.performance_access().counters();
 
@@ -215,19 +214,19 @@ fn complexity_budget_commit_inspection_reads_are_index_explicit_and_bounded() {
     let _first = create_entity(&mut runtime, "first");
     let _second = create_entity(&mut runtime, "second");
     let latest_commit = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id)
         .expect("latest commit");
 
     runtime.performance_access().reset_counters();
     let commit = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_commit(latest_commit)
         .expect("commit inspection");
     let recent =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .inspect_recent_commits(&RecentCommitInspectionRequest {
                 branch_id: Some(crate::facade::history::BranchId("main".to_string())),
                 limit: 2,

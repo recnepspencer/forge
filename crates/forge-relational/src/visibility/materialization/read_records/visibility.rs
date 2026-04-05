@@ -171,6 +171,7 @@ mod tests {
             PartitionState {
                 partition_id,
                 adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
                 entity_arena,
                 relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
                 adjacency: vec![AdjacencySet::new(&adjacency_policy)],
@@ -180,7 +181,7 @@ mod tests {
 
         let current_state = runtime.storage_access().current_state();
         assert!(runtime
-            .visibility_reads()
+            .read_truth()
             .entity_record_for_id_at_version(&current_state, stale_id, runtime.current_version_id())
             .is_none());
     }

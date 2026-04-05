@@ -146,7 +146,12 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
     let touched_by_partition = partition_ids
         .iter()
         .copied()
-        .map(|partition_id| (partition_id, touched_slots(context.partition_access(), partition_id)))
+        .map(|partition_id| {
+            (
+                partition_id,
+                touched_slots(context.partition_access(), partition_id),
+            )
+        })
         .collect::<Vec<_>>();
     let has_touched_surface = touched_by_partition
         .iter()

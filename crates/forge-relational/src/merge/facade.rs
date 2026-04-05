@@ -7,7 +7,7 @@ use crate::transactions::data::MergeExecutionOutcome;
 use crate::transactions::data::TransactionOptions;
 
 impl RelationalRuntime {
-    pub fn merge_access(&self) -> MergeAccess<'_> {
+    pub(crate) fn merge_access(&self) -> MergeAccess<'_> {
         MergeAccess::new(self)
     }
 
@@ -18,7 +18,7 @@ impl RelationalRuntime {
         crate::merge::data::PreparedMergeExecution,
         crate::merge::data::MergeExecutionPreparationError,
     > {
-        self.merge_access().prepare_merge_execution(request)
+        self.merge().prepare_merge_execution(request)
     }
 
     pub fn execute_prepared_merge(
@@ -26,16 +26,13 @@ impl RelationalRuntime {
         prepared: crate::merge::data::PreparedMergeExecution,
     ) -> Result<MergeExecutionOutcome, crate::merge::data::MergeExecutionError> {
         self.performance_access().count_merge_execution_attempt();
-        if let Err(error) = self
-            .merge_access()
-            .verify_prepared_merge_execution(&prepared)
-        {
+        if let Err(error) = self.merge().verify_prepared_merge_execution(&prepared) {
             emit_merge_execution_failure_artifact(self, &prepared, &error);
             return Err(error);
         }
         let transaction_id = self.services.next_transaction_id();
         let mutation_plan = match self
-            .merge_access()
+            .merge()
             .derive_merge_commit_mutation_plan(transaction_id, &prepared)
         {
             Ok(plan) => plan,

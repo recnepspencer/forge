@@ -32,7 +32,9 @@ pub use resolution::{
     RecordHistoryRequest,
 };
 
+#[cfg(test)]
+pub(crate) use artifacts::LineageRejectionArtifact;
 pub(crate) use artifacts::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
-    LineageRejectionArtifact, PublishedLineageArtifact,
+    PublishedLineageArtifact,
 };

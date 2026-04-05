@@ -153,13 +153,13 @@ fn run_check(
             let branch_head = session
                 .world
                 .runtime
-                .history_access()
+                .history()
                 .branch_head(&branch)
                 .map(|head| head.commit_id);
             let latest = session
                 .world
                 .runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .map(|commit| commit.commit_id);
             (

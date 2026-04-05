@@ -15,7 +15,7 @@ pub struct InspectionAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn inspection_access(&self) -> InspectionAccess<'_> {
+    pub(crate) fn inspection_access(&self) -> InspectionAccess<'_> {
         InspectionAccess::new(self)
     }
 }
@@ -32,15 +32,13 @@ impl<'runtime> InspectionAccess<'runtime> {
         match scope {
             InspectionScope::Current => Some(
                 self.runtime
-                    .visibility_reads()
+                    .read_truth()
                     .read_version(self.runtime.current_version_id()),
             ),
             InspectionScope::Version(version_id) => {
-                Some(self.runtime.visibility_reads().read_version(*version_id))
+                Some(self.runtime.read_truth().read_version(*version_id))
             }
-            InspectionScope::Snapshot(handle) => {
-                self.runtime.visibility_reads().read_snapshot(handle)
-            }
+            InspectionScope::Snapshot(handle) => self.runtime.read_truth().read_snapshot(handle),
         }
     }
 

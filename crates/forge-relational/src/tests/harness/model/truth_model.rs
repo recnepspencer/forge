@@ -18,7 +18,7 @@ pub(crate) struct VisibleTruthSummary {
 impl VisibleTruthSummary {
     pub(crate) fn capture(runtime: &mut RelationalRuntime) -> Self {
         let snapshot = runtime.visibility_authority().snapshot();
-        let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+        let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
 
         let mut entity_names = read
             .entities()

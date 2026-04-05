@@ -126,7 +126,7 @@ fn planned_query_execution_supports_entity_kind_scans_through_reducer_path() {
     let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -148,11 +148,11 @@ fn planned_query_execution_supports_entity_kind_scans_through_reducer_path() {
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -172,7 +172,7 @@ fn planned_query_execution_reports_non_zero_packet_items_for_kind_scans() {
     let _right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -195,11 +195,11 @@ fn planned_query_execution_reports_non_zero_packet_items_for_kind_scans() {
 
     runtime.performance_access().reset_counters();
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let _ = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
     let counters = runtime.performance_access().counters();
@@ -221,7 +221,7 @@ fn planned_query_execution_supports_relation_kind_scans_through_reducer_path() {
         create_relation_in_partition(&mut runtime, right, third, "r2", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -241,11 +241,11 @@ fn planned_query_execution_supports_relation_kind_scans_through_reducer_path() {
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -270,7 +270,7 @@ fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer
     let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -296,11 +296,11 @@ fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -329,7 +329,7 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
         create_relation_in_partition(&mut runtime, right, third, "r2", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -360,11 +360,11 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -391,7 +391,7 @@ fn planned_query_execution_supports_outgoing_neighborhood_with_canonical_travers
     let second_relation = create_relation_in_partition(&mut runtime, a, c, "ac", PartitionId(13));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -411,11 +411,11 @@ fn planned_query_execution_supports_outgoing_neighborhood_with_canonical_travers
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -451,7 +451,7 @@ fn planned_query_execution_supports_incoming_neighborhood_with_canonical_travers
     let second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -471,11 +471,11 @@ fn planned_query_execution_supports_incoming_neighborhood_with_canonical_travers
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -510,7 +510,7 @@ fn planned_query_execution_supports_connectivity_traversal_with_depth_bound() {
     let _second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -531,11 +531,11 @@ fn planned_query_execution_supports_connectivity_traversal_with_depth_bound() {
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
 
@@ -572,7 +572,7 @@ fn planned_query_execution_normalizes_traversal_seed_order_deterministically() {
     let _second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
 
@@ -608,19 +608,19 @@ fn planned_query_execution_normalizes_traversal_seed_order_deterministically() {
     };
 
     let descending = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, descending_packet)
                 .expect("descending plan"),
         )
         .expect("descending outcome");
     let ascending = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, ascending_packet)
                 .expect("ascending plan"),
         )
@@ -675,7 +675,7 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
         .collect::<Vec<_>>();
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -696,11 +696,11 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
 
     runtime.performance_access().reset_counters();
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("planned query packet");
     let outcome = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan)
         .expect("query execution outcome");
     let counters = runtime.performance_access().counters();
@@ -779,7 +779,7 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
         }
         let snapshot = runtime.visibility_authority().snapshot();
         let context = runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&snapshot)
             .expect("query plan context");
         let packet = PlannedQueryPacket {
@@ -804,10 +804,10 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
         build_runtime(crate::facade::runtime::RelationalExecutionModel::SerialAuthority);
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     let serial = serial_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             serial_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&serial_snapshot, serial_packet)
                 .expect("serial query plan"),
         )
@@ -817,10 +817,10 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
         build_runtime(crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation);
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     let staged = staged_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             staged_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&staged_snapshot, staged_packet)
                 .expect("staged query plan"),
         )
@@ -886,7 +886,7 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
         }
         let snapshot = runtime.visibility_authority().snapshot();
         let context = runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&snapshot)
             .expect("query plan context");
         (
@@ -914,10 +914,10 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     serial_runtime.performance_access().reset_counters();
     let serial = serial_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             serial_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&serial_snapshot, serial_packet)
                 .expect("serial query plan"),
         )
@@ -929,10 +929,10 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     staged_runtime.performance_access().reset_counters();
     let staged = staged_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             staged_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&staged_snapshot, staged_packet)
                 .expect("staged query plan"),
         )
@@ -995,7 +995,7 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
         create_relation_in_partition(runtime, shared, tail, "shared-tail", PartitionId(31));
         let snapshot = runtime.visibility_authority().snapshot();
         let context = runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&snapshot)
             .expect("query plan context");
         (
@@ -1023,10 +1023,10 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
         build_runtime(crate::facade::runtime::RelationalExecutionModel::SerialAuthority);
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     let serial = serial_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             serial_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&serial_snapshot, serial_packet)
                 .expect("serial plan"),
         )
@@ -1036,10 +1036,10 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
         build_runtime(crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation);
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     let staged = staged_runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             staged_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&staged_snapshot, staged_packet)
                 .expect("staged plan"),
         )

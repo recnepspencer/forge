@@ -41,6 +41,14 @@ export type RenderStats = {
   hits: number;
   misses: number;
   renderMs: number;
+  tileCount: number;
+  tileColumns: number;
+  tileRows: number;
+  dirtyTiles: number;
+  uploadedTiles: number;
+  uploadSpans: number;
+  uploadBytes: number;
+  changedDetails: number;
 };
 
 export type SceneState = {
@@ -55,6 +63,23 @@ export type ScenePatch = {
   gear?: Partial<GearState>;
 };
 
+export type ScreenBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+export type TileDetailOccupancy = {
+  detail: string;
+  tileIndices: number[];
+  gridColumns: number;
+  gridRows: number;
+  bounds?: ScreenBounds | null;
+};
+
+export type SceneOccupancySnapshot = Record<string, TileDetailOccupancy>;
+
 export type HudModel = {
   frameIndex: number;
   raysMarched: number;
@@ -62,6 +87,9 @@ export type HudModel = {
   hits: number;
   misses: number;
   renderMs: number;
+  tileCount: number;
+  tileColumns: number;
+  tileRows: number;
   touchedNodes: number;
   nodesEvaluated: number;
   nodesSuppressed: number;
@@ -72,6 +100,11 @@ export type HudModel = {
   lightX: number;
   lightY: number;
   lightZ: number;
+  dirtyTiles: number;
+  uploadedTiles: number;
+  uploadSpans: number;
+  uploadBytes: number;
+  changedDetails: number;
 };
 
 export type GearDimensionsModel = {
@@ -144,6 +177,64 @@ export type ViewportShadingModel = {
   specularPower: number;
 };
 
+export type RenderTileCoord = {
+  column: number;
+  row: number;
+};
+
+export type RenderTileGridModel = {
+  columns: number;
+  rows: number;
+  tileCount: number;
+  tileWidth: number;
+  tileHeight: number;
+};
+
+export type RenderTileModel = {
+  column: number;
+  row: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+  radialWeight: number;
+  lightWeight: number;
+  gearWeight: number;
+};
+
+export type RenderTileGeometryLayerModel = {
+  bodyFace: number;
+  toothBand: number;
+  bore: number;
+};
+
+export type RenderTileLightingLayerModel = {
+  shadow: number;
+  specular: number;
+  reflection: number;
+};
+
+export type RenderTileEnvironmentLayerModel = {
+  background: number;
+  floor: number;
+};
+
+export type RenderTileUploadLayerModel = {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+};
+
+export type RenderTileUploadRect = {
+  row: number;
+  startColumn: number;
+  width: number;
+  height: number;
+};
+
 export type RenderAspects = {
   dimensions: GearDimensionsModel;
   profile: GearProfileModel;
@@ -153,6 +244,11 @@ export type RenderAspects = {
   lighting: LightingModel;
   projection: ViewportProjectionModel;
   shading: ViewportShadingModel;
+  tileGrid: RenderTileGridModel;
+  tileUploadBuffer: Float32Array;
+  fullComposeUpload: boolean;
+  dirtyTileIndices: number[];
+  dirtyTileRects: RenderTileUploadRect[];
 };
 
 export type SceneBranchView = {
@@ -176,6 +272,7 @@ export type RuntimeState = {
 
 export type SceneRuntimeBundle = {
   runtime: SignalRuntime;
+  initialRender: RenderUpdate | null;
 };
 
 export type RenderUpdate = {

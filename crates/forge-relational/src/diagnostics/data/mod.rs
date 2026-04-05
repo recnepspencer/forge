@@ -339,11 +339,7 @@ impl RelationalDiagnosticsProfile {
         self.artifact_policy(scope, kind).delivery_class
     }
 
-    pub fn max_entries_for(
-        &self,
-        scope: DiagnosticsScope,
-        kind: DiagnosticsArtifactKind,
-    ) -> usize {
+    pub fn max_entries_for(&self, scope: DiagnosticsScope, kind: DiagnosticsArtifactKind) -> usize {
         self.artifact_policy(scope, kind).max_entries
     }
 
@@ -500,7 +496,10 @@ mod tests {
             DiagnosticsScope::Transaction,
             DiagnosticsArtifactKind::MinimalSummary,
         );
-        assert_eq!(hot_summary.delivery_class, DiagnosticsDeliveryClass::MustBeHot);
+        assert_eq!(
+            hot_summary.delivery_class,
+            DiagnosticsDeliveryClass::MustBeHot
+        );
         assert!(hot_summary.enabled);
         assert_eq!(hot_summary.max_entries, 64);
 

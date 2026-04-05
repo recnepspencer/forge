@@ -1,5 +1,5 @@
 import type { BranchId, DiagnosticsTier, ScenePatch, ScenarioMode } from "../gear-scene/core/types";
-import type { WorkerCommand } from "../gear-scene/worker/protocol";
+import type { ReviewManualSelections, WorkerCommand } from "../gear-scene/worker/protocol";
 import { demoSession } from "./demo_session";
 import {
   closeWalkthrough,
@@ -7,7 +7,7 @@ import {
   openWalkthrough,
   prevWalkthrough,
   setDiagnosticsTier as writeDiagnosticsTier,
-  setReviewManualChoice as writeReviewManualChoice,
+  setReviewManualSelections as writeReviewManualSelections,
   setReviewPolicyLane as writeReviewPolicyLane,
   setTracedNode as writeTracedNode,
   toggleControls,
@@ -76,10 +76,11 @@ export const demoActions = {
     if (!app) return;
     writeReviewPolicyLane(app, lane);
   },
-  setReviewManualChoice(choice: "source" | "target") {
+  setReviewManualSelections(selections: ReviewManualSelections) {
     const app = demoSession.getApp();
     if (!app) return;
-    writeReviewManualChoice(app, choice);
+    writeReviewManualSelections(app, selections);
+    demoSession.command({ type: "setReviewManualSelections", selections });
   },
   setScenarioMode(mode: ScenarioMode) {
     demoSession.command({ type: "setScenarioMode", mode });

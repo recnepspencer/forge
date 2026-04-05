@@ -98,13 +98,13 @@ fn replay_contract_success_reproduces_canonical_surfaces() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
         replay.reconstructed_commit_closure,
         vec![outcome.commit.commit_id]
     );
     assert!(runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::Replay)
         .iter()
@@ -179,10 +179,10 @@ fn replay_contract_success_preserves_merge_parent_order() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
         runtime
-            .replay_access()
+            .replay()
             .canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .commit
@@ -191,7 +191,7 @@ fn replay_contract_success_preserves_merge_parent_order() {
     );
     assert_eq!(
         runtime
-            .replay_access()
+            .replay()
             .canonical_commit_envelope(merge.commit.commit_id)
             .unwrap()
             .merge_base_commits,
@@ -485,7 +485,7 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
         });
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let compatibility_entry = diagnostics
         .by_scope(DiagnosticsScope::Replay)
         .into_iter()
@@ -613,19 +613,18 @@ fn replay_contract_preserves_aspect_bearing_patch_and_history_surfaces() {
     let relation = changed_relations(&relation_outcome)[0];
     let expected_entity_history =
         runtime
-            .history_access()
+            .history()
             .entity_aspect_history(&BranchId("main".to_string()), entity, None);
-    let expected_relation_history = runtime.history_access().relation_aspect_history(
-        &BranchId("main".to_string()),
-        relation,
-        None,
-    );
+    let expected_relation_history =
+        runtime
+            .history()
+            .relation_aspect_history(&BranchId("main".to_string()), relation, None);
     let expected_entity_digest = runtime
-        .history_access()
+        .history()
         .entity_aspect_history_with_trace(&BranchId("main".to_string()), entity, None)
         .aspect_history_digest();
     let expected_relation_digest = runtime
-        .history_access()
+        .history()
         .relation_aspect_history_with_trace(&BranchId("main".to_string()), relation, None)
         .aspect_history_digest();
 
@@ -638,7 +637,7 @@ fn replay_contract_preserves_aspect_bearing_patch_and_history_surfaces() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert!(replay
         .compared_surfaces
         .contains(&ReplayObservableSurface::Patch));
@@ -827,7 +826,7 @@ fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
         replay
             .lineage_authority_basis
@@ -924,7 +923,7 @@ fn replay_contract_uses_checkpoint_canonical_basis_in_audit_mode_when_durable_lo
             verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
         replay
             .lineage_authority_basis
@@ -961,7 +960,7 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
         .unwrap();
     let promoted_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
     let promoted_commit = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .cloned()
         .expect("promoted branch head");
@@ -978,9 +977,9 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
@@ -989,7 +988,7 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
         .recover(recovery_plan)
         .unwrap();
     let recovered_head = recovered
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .cloned()
         .expect("recovered promoted branch head");
@@ -1004,7 +1003,7 @@ fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery()
 
     assert_eq!(recovered_head.commit_id, promoted_commit_id);
     assert_eq!(recovered_head.version_id, second.commit.version_id);
-    assert!(recovered.replay_access().compare_outcome(&recovered_replay));
+    assert!(recovered.replay().compare_outcome(&recovered_replay));
 }
 
 #[test]
@@ -1104,8 +1103,8 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    assert!(runtime.replay_access().compare_outcome(&replay));
-    let replay_diagnostics = runtime.publication_access().diagnostics();
+    assert!(runtime.replay().compare_outcome(&replay));
+    let replay_diagnostics = runtime.publication().diagnostics();
     assert!(replay_diagnostics
         .by_scope(DiagnosticsScope::Replay)
         .into_iter()
@@ -1118,7 +1117,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     let replay_counters = runtime.performance_access().counters();
     assert!(replay_counters.replay_digest_parity_checks > 0);
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered =
@@ -1145,9 +1144,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
         &[relation],
         &[start_lineage],
     );
-    assert!(recovered
-        .replay_access()
-        .compare_outcome(&recovered_replay_check));
+    assert!(recovered.replay().compare_outcome(&recovered_replay_check));
     let recovered_bundle =
         capture_aspect_truth_bundle(&mut recovered, &[anchor], &[relation], &[start_lineage]);
     assert_eq!(
@@ -1213,7 +1210,7 @@ fn hostile_commit_replay_equivalence_test() {
         merge.commit.version_id,
     );
     let original_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
         .cloned()
         .unwrap();
@@ -1225,7 +1222,7 @@ fn hostile_commit_replay_equivalence_test() {
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
 
     let truth_digest = certification_digest(&(
         format!("{:?}", &original_bundle.visible_truth),
@@ -1247,11 +1244,11 @@ fn hostile_commit_replay_equivalence_test() {
     let diagnostics_digest = certification_digest(&original_envelope.diagnostics_summary);
     let branch_heads_digest = certification_digest(&(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned(),
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string()))
             .cloned(),
     ));
@@ -1264,7 +1261,7 @@ fn hostile_commit_replay_equivalence_test() {
         format!("{:?}", &original_inspection.record_retention),
     ));
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = RelationalRuntimeApi::builder()
@@ -1295,7 +1292,7 @@ fn hostile_commit_replay_equivalence_test() {
         merge.commit.version_id,
     );
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
         .cloned()
         .unwrap();
@@ -1307,7 +1304,7 @@ fn hostile_commit_replay_equivalence_test() {
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    let recovered_replay_diagnostics = recovered.publication_access().diagnostics();
+    let recovered_replay_diagnostics = recovered.publication().diagnostics();
     assert!(recovered_replay_diagnostics
         .by_scope(DiagnosticsScope::Replay)
         .into_iter()
@@ -1355,11 +1352,11 @@ fn hostile_commit_replay_equivalence_test() {
         branch_heads_digest,
         certification_digest(&(
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("feature".to_string()))
                 .cloned(),
         ))
@@ -1438,12 +1435,12 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
             execution_mode: ReplayExecutionMode::SerialDeterministic,
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
-    let replay_access = runtime.replay_access();
+    let replay_access = runtime.replay();
     let envelope = replay_access
         .canonical_commit_envelope(outcome.commit.commit_id)
         .unwrap();
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
         envelope
             .schema_registry
@@ -1503,7 +1500,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         txn.commit().unwrap()
     };
     let feature_head_before_reject = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("feature".to_string()))
         .cloned();
 
@@ -1535,7 +1532,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
     }
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string())),
         feature_head_before_reject.as_ref()
     );
@@ -1549,13 +1546,13 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
-    assert!(runtime.replay_access().compare_outcome(&replay));
+    assert!(runtime.replay().compare_outcome(&replay));
     assert!(replay
         .compared_surfaces
         .contains(&ReplayObservableSurface::History));
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string()))
             .unwrap()
             .commit_id,

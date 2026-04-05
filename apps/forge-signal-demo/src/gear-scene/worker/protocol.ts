@@ -58,6 +58,17 @@ export type MergeReviewPolicyPreview = {
   visualMode: "rendered" | "manual-review";
 };
 
+export type ReviewManualSelections = {
+  teeth: "source" | "target";
+  outerRadius: "source" | "target";
+  innerRadius: "source" | "target";
+  thickness: "source" | "target";
+  lightIntensity: "source" | "target";
+  lightPosition: "source" | "target";
+  rotation: "source" | "target";
+  camera: "source" | "target";
+};
+
 export type MergeReviewSnapshot = {
   source: BranchSummary;
   target: BranchSummary;
@@ -104,6 +115,7 @@ export type WorkerCommand =
   | { type: "replayScenarioMerge" }
   | { type: "setScenarioMode"; mode: ScenarioMode }
   | { type: "setDiagnosticsTier"; tier: DiagnosticsTier }
+  | { type: "setReviewManualSelections"; selections: ReviewManualSelections }
   | { type: "activateBranch"; branchId: BranchId }
   | { type: "inspectNode"; branchId: BranchId; nodeId: string }
   | { type: "scrub"; index: number }

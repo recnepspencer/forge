@@ -28,7 +28,14 @@ pub(super) fn apply(
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let mut outcome = MutationOutcome::bulk_entities_created(intent.partition_id, intent.kind_id);
+    let mut outcome = MutationOutcome::with_capacity(intent.payloads.len(), 1);
+    outcome.record_event(
+        crate::authority::mutation::outcomes::MutationEvent::BulkEntitiesCreated {
+            partition_id: intent.partition_id,
+            kind_id: intent.kind_id,
+            count: 0,
+        },
+    );
     let staged_rows = stage_bulk_entity_rows(intent, workspace)?;
     workspace.with_context(|context| {
         reserve_bulk_entity_capacity(context.state, intent.partition_id, intent.payloads.len());
@@ -141,20 +148,26 @@ fn stage_import_packets(
         1,
         strategy,
     );
-    let staged_streams = match strategy.selected_mode {
-        PreparationStrategySelection::StagedParallel => packets
-            .par_iter()
-            .map(import_packet_stream)
-            .collect::<Vec<_>>(),
-        PreparationStrategySelection::Serial => packets
-            .into_iter()
-            .map(|packet| import_packet_stream(&packet))
-            .collect::<Vec<_>>(),
-    };
-    canonical_merge_streams(staged_streams)
+    if packets.len() == 1 {
+        return packets.into_iter().next().unwrap().rows;
+    }
+    match strategy.selected_mode {
+        // Packets are constructed in canonical packet-index order and each packet row is already
+        // locally ordered, so serial execution can flatten directly without a redundant k-way
+        // merge.
+        PreparationStrategySelection::Serial => {
+            packets.into_iter().flat_map(|packet| packet.rows).collect()
+        }
+        PreparationStrategySelection::StagedParallel => canonical_merge_streams(
+            packets
+                .par_iter()
+                .map(import_packet_stream)
+                .collect::<Vec<_>>(),
+        )
         .into_iter()
         .map(|(_, row)| row)
-        .collect()
+        .collect(),
+    }
 }
 
 fn record_import_strategy(

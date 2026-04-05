@@ -334,10 +334,7 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "alpha");
     let updated = update_entity(&mut runtime, entity, "beta");
-    let versions = runtime
-        .visibility_reads()
-        .entity_aspect_versions(entity)
-        .unwrap();
+    let versions = runtime.read_truth().entity_aspect_versions(entity).unwrap();
 
     assert_eq!(
         versions
@@ -355,7 +352,7 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
 
     let relation = create_relation(&mut runtime, entity, entity, "edge");
     let relation_versions = runtime
-        .visibility_reads()
+        .read_truth()
         .relation_aspect_versions(relation)
         .unwrap();
     assert_eq!(
@@ -383,12 +380,9 @@ fn visibility_aspect_versions_reject_stale_generation_ids() {
         entity.generation.0 + 1,
     );
 
+    assert!(runtime.read_truth().entity_aspect_versions(stale).is_none());
     assert!(runtime
-        .visibility_reads()
-        .entity_aspect_versions(stale)
-        .is_none());
-    assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .entity_aspect_versions(entity)
         .is_some());
 }
@@ -829,7 +823,7 @@ fn entity_slot_reuse_increments_generation() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&delete_outcome.snapshot));
-    let retention = runtime.retention_authority().run_pass();
+    let retention = runtime.retention().run_pass();
     let entity_b = create_entity(&mut runtime, "second");
 
     assert!(retention.entity_reclaimed <= 1);
@@ -929,7 +923,7 @@ fn savepoint_rollback_discards_inner_work_only() {
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     let outcome = txn.commit().unwrap();
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let rollback_summary = rollback.summary();
@@ -955,7 +949,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     txn.push_batch(batch_create("blocked"));
     let error = txn.commit().unwrap_err();
     let committed_read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&baseline.snapshot)
         .unwrap();
 
@@ -970,7 +964,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
         .iter()
         .any(|record| read_entity_name(record) == Some("baseline")));
     assert_eq!(
-        runtime.history_access().latest_commit().unwrap().commit_id,
+        runtime.history().latest_commit().unwrap().commit_id,
         baseline.commit.commit_id
     );
 }
@@ -1009,7 +1003,7 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
     let relation = changed_relations(&relation_outcome)[0];
     let deleted = delete_entity(&mut runtime, source);
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&deleted.snapshot)
         .unwrap();
     let relation = read.get_relation(relation).unwrap();
@@ -1045,7 +1039,7 @@ fn snapshot_reads_are_immutable_after_later_mutation() {
     let first = create_entity(&mut runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let _second = create_entity(&mut runtime, "second");
-    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
 
     assert!(read.get_entity(first).is_some());
     assert_eq!(read.entities().len(), 1);
@@ -1059,14 +1053,12 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
     let snapshot = runtime.visibility_authority().snapshot();
     let update_outcome = update_entity(&mut runtime, entity, "after");
 
-    let old_read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let old_read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
     let current_read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&update_outcome.snapshot)
         .unwrap();
-    let version_read = runtime
-        .visibility_reads()
-        .read_version(create_outcome.version_id);
+    let version_read = runtime.read_truth().read_version(create_outcome.version_id);
 
     assert_eq!(
         read_entity_name(old_read.get_entity(entity).unwrap()),
@@ -1094,10 +1086,10 @@ fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&deleted.snapshot));
-    let _ = runtime.retention_authority().run_pass();
+    let _ = runtime.retention().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
-    let historical = runtime.visibility_reads().read_version(created.version_id);
+    let historical = runtime.read_truth().read_version(created.version_id);
     let record = historical.get_entity(original).unwrap();
 
     assert_eq!(record.entity_id, original);
@@ -1159,7 +1151,7 @@ fn snapshot_pins_block_reclaim_until_release() {
     let entity = changed_entities(&create_outcome)[0];
     let _delete_outcome = delete_entity(&mut runtime, entity);
     let delete_snapshot = runtime.visibility_authority().snapshot();
-    let first_retention = runtime.retention_authority().run_pass();
+    let first_retention = runtime.retention().run_pass();
 
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert_eq!(runtime.storage_access().storage_stats().deleted_entities, 1);
@@ -1171,7 +1163,7 @@ fn snapshot_pins_block_reclaim_until_release() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&delete_snapshot));
-    let second_retention = runtime.retention_authority().run_pass();
+    let second_retention = runtime.retention().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
     assert_eq!(
@@ -1399,14 +1391,14 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
     let _delete_outcome = delete_entity(&mut runtime, entity);
     let delete_snapshot = runtime.visibility_authority().snapshot();
 
-    let first_retention = runtime.retention_authority().run_pass();
+    let first_retention = runtime.retention().run_pass();
     assert_eq!(
         runtime.config().storage.retention.backend,
         RetentionBackend::EpochChunkRetention
     );
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&create_snapshot)
         .unwrap()
         .get_entity(entity)
@@ -1418,7 +1410,7 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&delete_snapshot));
-    let second_retention = runtime.retention_authority().run_pass();
+    let second_retention = runtime.retention().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
     assert_eq!(
@@ -1435,7 +1427,7 @@ fn read_records_expose_visibility_metadata() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "visible");
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let record = read.entities().first().unwrap();

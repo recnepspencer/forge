@@ -9,14 +9,14 @@ fn patch_stream_resume_batches_commits_without_duplication() {
     let _third = create_entity_outcome(&mut runtime, "c");
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: None,
             max_commits: 2,
         })
         .unwrap();
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: first_batch.next_position,
             max_commits: 2,
@@ -37,7 +37,7 @@ fn patch_stream_rejects_unknown_resume_position() {
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(99)),
             max_commits: 1,

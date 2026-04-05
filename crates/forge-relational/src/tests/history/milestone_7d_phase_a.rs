@@ -24,7 +24,7 @@ fn merge_planning_conflict_classification_carries_target_view_visibility_evidenc
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -81,7 +81,7 @@ fn merge_planning_conflict_classification_carries_base_window_evidence_for_targe
     delete_entity(&mut runtime, entity);
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -134,7 +134,7 @@ fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_sou
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -194,11 +194,11 @@ fn merge_planning_conflict_classification_carries_target_lookup_evidence_for_sou
     );
 
     let main_head_version = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .expect("main branch head")
         .version_id;
-    let main_view = runtime.visibility_reads().read_version(main_head_version);
+    let main_view = runtime.read_truth().read_version(main_head_version);
     let target_record = main_view
         .get_entity(entity)
         .expect("main branch should still see entity at its head");
@@ -220,7 +220,7 @@ fn merge_planning_digest_basis_carries_visibility_evidence_rows() {
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -271,7 +271,7 @@ fn merge_planning_policy_surface_is_explicitly_runtime_owned_before_lowering() {
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -301,7 +301,7 @@ fn merge_planning_digest_basis_carries_policy_ownership_surface_rows() {
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),

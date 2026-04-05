@@ -250,7 +250,7 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
     assert_eq!(merge.structural_summary.reconciled_record_count, 1);
     assert_eq!(merge.structural_summary.emitted_entity_update_count, 1);
     let current = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&merge.commit.snapshot)
         .expect("current merge snapshot");
     let current_record = current
@@ -280,12 +280,12 @@ where
     F: FnOnce() -> RelationalRuntime,
 {
     let envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("canonical merge envelope");
     let truth_bundle = capture_aspect_truth_bundle(runtime, &[], &[], &[]);
-    let direct_rebuild_plan = runtime.durability_access().recovery_plan(
+    let direct_rebuild_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
     );
     crate::logic::runtime::RelationalRuntime::rebuild_runtime_from_plan(direct_rebuild_plan)
@@ -307,7 +307,7 @@ where
 
     let (_recovery, mut recovered) = checkpoint_and_recover_with(runtime, recovered_factory);
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -319,18 +319,14 @@ where
         recovered_truth_bundle.visible_truth
     );
     assert_eq!(
-        runtime
-            .history_access()
-            .latest_common_ancestor_between_branches(
-                &BranchId("main".to_string()),
-                &BranchId("feature".to_string())
-            ),
-        recovered
-            .history_access()
-            .latest_common_ancestor_between_branches(
-                &BranchId("main".to_string()),
-                &BranchId("feature".to_string())
-            )
+        runtime.history().latest_common_ancestor_between_branches(
+            &BranchId("main".to_string()),
+            &BranchId("feature".to_string())
+        ),
+        recovered.history().latest_common_ancestor_between_branches(
+            &BranchId("main".to_string()),
+            &BranchId("feature".to_string())
+        )
     );
 
     MergeExecutionCertificationArtifacts {
@@ -347,11 +343,11 @@ where
         )),
         merge_execution_branch_heads_digest: certification_digest(&(
             runtime
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .map(|head| head.commit_id),
             runtime
-                .history_access()
+                .history()
                 .branch_head(&BranchId("feature".to_string()))
                 .map(|head| head.commit_id),
         )),

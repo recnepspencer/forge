@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 use crate::identity::data::{PartitionId, RecordId, VersionBound, VersionId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::overlay::{
-    PartitionCloneMode, PartitionMutationJournal, PartitionState, WorkingState,
+    summarize_entity_chunk_plan, EntityWorkingSetLayout, PartitionCloneMode,
+    PartitionMutationJournal, PartitionState, WorkingState,
 };
 use crate::storage::substrate::{HistoricalMetadata, PinClass, RecordKind};
 
@@ -13,7 +15,7 @@ pub struct StorageAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn storage_authority(&mut self) -> StorageAuthority<'_> {
+    pub(crate) fn storage_authority(&mut self) -> StorageAuthority<'_> {
         StorageAuthority::new(self)
     }
 }
@@ -25,6 +27,7 @@ impl<'runtime> StorageAuthority<'runtime> {
 
     pub(crate) fn publish_partition_commits(
         &mut self,
+        clone_mode: PartitionCloneMode,
         committed_partitions: BTreeMap<
             crate::identity::data::PartitionId,
             (PartitionState, PartitionMutationJournal),
@@ -35,16 +38,109 @@ impl<'runtime> StorageAuthority<'runtime> {
                 && journal.relation_slots.is_empty()
                 && journal.adjacency_slots.is_empty()
                 && journal.reverse_adjacency_slots.is_empty();
+            let hybrid_graph_commit = matches!(clone_mode, PartitionCloneMode::GraphSparseEntities);
 
             if entity_only_commit {
+                let entity_working_set_layout =
+                    select_publish_entity_working_set_layout(journal.entity_slots.len());
+                let chunk_plan = summarize_entity_chunk_plan(
+                    journal.entity_slots.len(),
+                    entity_working_set_layout,
+                );
                 if let Some(base_partition) = self.runtime.partitions.get_mut(&partition_id) {
-                    base_partition
-                        .entity_arena
-                        .merge_slots_from_owned(
-                            &mut partition_state.entity_arena,
-                            &journal.entity_slots,
-                            journal.entity_free_list_changed,
+                    match entity_working_set_layout {
+                        EntityWorkingSetLayout::AoSoACandidate { chunk_width } => {
+                            let published_chunks =
+                                base_partition.entity_arena.merge_slot_chunks_from_owned(
+                                    &mut partition_state.entity_arena,
+                                    &journal.entity_slots,
+                                    chunk_width,
+                                    journal.entity_free_list_changed,
+                                );
+                            self.runtime
+                                .performance_access()
+                                .count_aosoa_publish_chunks(
+                                    published_chunks.max(chunk_plan.chunk_count),
+                                );
+                        }
+                        EntityWorkingSetLayout::CanonicalSoA => {
+                            base_partition.entity_arena.merge_slots_from_owned(
+                                &mut partition_state.entity_arena,
+                                &journal.entity_slots,
+                                journal.entity_free_list_changed,
+                            );
+                        }
+                    }
+                    continue;
+                }
+                if matches!(
+                    entity_working_set_layout,
+                    EntityWorkingSetLayout::AoSoACandidate { .. }
+                ) {
+                    self.runtime
+                        .performance_access()
+                        .count_aosoa_publish_fallback(
+                            chunk_plan.chunk_count.max(1),
+                            journal.entity_slots.len(),
                         );
+                }
+            }
+
+            if hybrid_graph_commit {
+                if let Some(mut base_partition) = self.runtime.partitions.remove(&partition_id) {
+                    if !journal.entity_slots.is_empty() {
+                        let entity_working_set_layout =
+                            select_publish_entity_working_set_layout(journal.entity_slots.len());
+                        let chunk_plan = summarize_entity_chunk_plan(
+                            journal.entity_slots.len(),
+                            entity_working_set_layout,
+                        );
+                        match entity_working_set_layout {
+                            EntityWorkingSetLayout::AoSoACandidate { chunk_width } => {
+                                let published_chunks =
+                                    base_partition.entity_arena.merge_slot_chunks_from_owned(
+                                        &mut partition_state.entity_arena,
+                                        &journal.entity_slots,
+                                        chunk_width,
+                                        journal.entity_free_list_changed,
+                                    );
+                                self.runtime
+                                    .performance_access()
+                                    .count_aosoa_publish_chunks(
+                                        published_chunks.max(chunk_plan.chunk_count),
+                                    );
+                            }
+                            EntityWorkingSetLayout::CanonicalSoA => {
+                                base_partition.entity_arena.merge_slots_from_owned(
+                                    &mut partition_state.entity_arena,
+                                    &journal.entity_slots,
+                                    journal.entity_free_list_changed,
+                                );
+                            }
+                        }
+                    }
+                    partition_state.entity_arena = base_partition.entity_arena;
+                    if partition_state.relation_overlay_is_sparse
+                        && !journal.relation_slots.is_empty()
+                    {
+                        base_partition.relation_arena.merge_slots_from_owned(
+                            &mut partition_state.relation_arena,
+                            &journal.relation_slots,
+                            journal.relation_free_list_changed,
+                        );
+                        partition_state.relation_arena = base_partition.relation_arena;
+                    } else if journal.relation_slots.is_empty() {
+                        partition_state.relation_arena = base_partition.relation_arena;
+                    }
+                    if journal.adjacency_slots.is_empty() {
+                        partition_state.adjacency = base_partition.adjacency;
+                    }
+                    if journal.reverse_adjacency_slots.is_empty() {
+                        partition_state.reverse_adjacency = base_partition.reverse_adjacency;
+                    }
+                    self.runtime
+                        .partitions
+                        .insert(partition_id, partition_state);
                     continue;
                 }
             }
@@ -63,7 +159,9 @@ impl<'runtime> StorageAuthority<'runtime> {
                     partition_state.reverse_adjacency = base_partition.reverse_adjacency;
                 }
             }
-            self.runtime.partitions.insert(partition_id, partition_state);
+            self.runtime
+                .partitions
+                .insert(partition_id, partition_state);
         }
     }
 
@@ -71,12 +169,18 @@ impl<'runtime> StorageAuthority<'runtime> {
         &self,
         touched_partitions: impl IntoIterator<Item = crate::identity::data::PartitionId>,
         clone_mode: PartitionCloneMode,
+        entity_working_set_layout: EntityWorkingSetLayout,
+        sparse_entity_slots: Option<&BTreeMap<PartitionId, BTreeSet<usize>>>,
+        sparse_relation_overlay_partitions: Option<&BTreeSet<PartitionId>>,
     ) -> WorkingState {
-        WorkingState::from_touched_partitions(
+        WorkingState::from_touched_partitions_with_layout_and_sparse_slots(
             &self.runtime.partitions,
             touched_partitions,
             self.runtime.config.storage.adjacency_policy.clone(),
             clone_mode,
+            entity_working_set_layout,
+            sparse_entity_slots,
+            sparse_relation_overlay_partitions,
         )
     }
 
@@ -173,6 +277,50 @@ impl<'runtime> StorageAuthority<'runtime> {
             .get(&partition_id)
             .and_then(|partition| K::arena(partition).retired_at_for_slot(slot));
         self.refresh_retention_state::<K>(partition_id, slot, retired_at, retention_fence);
+    }
+
+    pub(crate) fn increment_named_pins_bulk<K: RecordKind>(
+        &mut self,
+        slots_by_partition: &BTreeMap<PartitionId, BTreeSet<usize>>,
+        class: PinClass,
+    ) {
+        for (partition_id, slots) in slots_by_partition {
+            let Some(partition_len) = self
+                .runtime
+                .partitions
+                .get(partition_id)
+                .map(|partition| K::arena(partition).slot_count())
+            else {
+                continue;
+            };
+            {
+                let partition = self
+                    .runtime
+                    .partitions
+                    .get_mut(partition_id)
+                    .expect("pin partition present");
+                let arena = K::arena_mut(partition);
+                arena.increment_named_pins_bulk(slots, class);
+            }
+            for &slot in slots {
+                if slot >= partition_len {
+                    continue;
+                }
+                let retired_at = self
+                    .runtime
+                    .partitions
+                    .get(partition_id)
+                    .and_then(|partition| K::arena(partition).retired_at_for_slot(slot));
+                self.refresh_retention_state::<K>(
+                    *partition_id,
+                    slot,
+                    retired_at,
+                    self.runtime
+                        .visibility
+                        .retention_fence_version(self.runtime.current_version_id()),
+                );
+            }
+        }
     }
 
     pub(crate) fn refresh_retention_state<K: RecordKind>(
@@ -298,6 +446,22 @@ impl<'runtime> StorageAuthority<'runtime> {
         }
         total_trimmed
     }
+}
+
+fn select_publish_entity_working_set_layout(touched_entity_slots: usize) -> EntityWorkingSetLayout {
+    if touched_entity_slots == 0 {
+        return EntityWorkingSetLayout::CanonicalSoA;
+    }
+
+    let chunk_width = if touched_entity_slots <= 128 {
+        128
+    } else if touched_entity_slots <= 512 {
+        256
+    } else {
+        512
+    };
+
+    EntityWorkingSetLayout::AoSoACandidate { chunk_width }
 }
 
 fn partition_of<K: RecordKind>(id: &RecordId<K::Domain>) -> PartitionId {

@@ -69,7 +69,13 @@ pub(crate) fn storage_stats(runtime: &RelationalRuntime) -> StorageStats {
         snapshot_count: runtime.visibility.active_snapshot_count(),
         published_snapshot_handle_count: runtime.visibility.published_snapshot_handle_count(),
         cached_visibility_version_count: runtime.visibility.cached_visibility_version_count(),
-        protected_visibility_version_count: runtime.visibility.protected_visibility_version_count(),
+        protected_visibility_version_count: runtime.visibility.protected_visibility_version_count(
+            runtime
+                .config
+                .visibility
+                .cache_policy
+                .protect_active_snapshots,
+        ),
         recent_visibility_cache_count: runtime.visibility.recent_visibility_cache_count(),
     }
 }

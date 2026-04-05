@@ -10,7 +10,7 @@ pub(crate) trait ReplayRead {
 
 impl ReplayRead for RelationalRuntime {
     fn replay_snapshot_surface_at_version(&self, version_id: VersionId) -> ReplaySnapshotSurface {
-        let projection = self.visibility_reads().project_version(version_id);
+        let projection = self.read_truth().project_version(version_id);
         ReplaySnapshotSurface {
             version_id,
             entities: projection.all_entity_records(),

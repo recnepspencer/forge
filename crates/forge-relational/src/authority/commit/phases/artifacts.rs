@@ -3,14 +3,15 @@ use crate::authority::commit::phases::publication::{
 };
 use crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan;
 use crate::authority::commit::publication::diagnostics_summary_artifact;
-use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
+use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::history::data::CommitReference;
 use crate::publication::data::diff::RelationalPatchRecord;
 use crate::transactions::data::{
     AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
     CommitPublicationSummary, MergedCommitPlan, RecordRef, TransactionCommitError,
 };
+use std::collections::BTreeMap;
 
 pub(crate) struct PublicationPreparation {
     pub(crate) change_summary: CommitChangeSummary,
@@ -143,19 +144,20 @@ fn derive_aspect_emission_traces(
     patch_records: &[crate::publication::data::diff::PatchRecord],
     deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> Vec<AspectEmissionTrace> {
+    let delta_index = deltas
+        .iter()
+        .map(|delta| (delta.target.clone(), delta))
+        .collect::<BTreeMap<_, _>>();
     patch_records
         .iter()
         .enumerate()
         .map(|(patch_record_index, record)| {
-            let delta = deltas
-                .iter()
-                .find(|delta| delta.target == record.target)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "missing canonical aspect delta for emitted patch target {:?}",
-                        record.target
-                    )
-                });
+            let delta = delta_index.get(&record.target).copied().unwrap_or_else(|| {
+                panic!(
+                    "missing canonical aspect delta for emitted patch target {:?}",
+                    record.target
+                )
+            });
             AspectEmissionTrace {
                 target: delta.target.clone(),
                 patch_position,
@@ -166,6 +168,81 @@ fn derive_aspect_emission_traces(
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::derive_aspect_emission_traces;
+    use crate::authority::mutation::CanonicalRecordAspectDelta;
+    use crate::identity::data::{EntityId, KindId, PartitionId};
+    use crate::publication::data::diff::{
+        AspectKey, CanonicalAspectSet, PatchDetail, PatchRecord, PatchRecordKind,
+        PatchStreamPosition, RecordStructuralChange,
+    };
+    use crate::schema::data::AspectPlanRevision;
+    use crate::symbols::data::InternedString;
+    use crate::transactions::data::RecordRef;
+
+    #[test]
+    fn aspect_emission_traces_use_indexed_target_lookup() {
+        let target_a = RecordRef::Entity(EntityId::new(PartitionId(3), 1, 1));
+        let target_b = RecordRef::Entity(EntityId::new(PartitionId(3), 2, 1));
+        let aspect_a = AspectKey(InternedString::from("a"));
+        let aspect_b = AspectKey(InternedString::from("b"));
+        let deltas = vec![
+            CanonicalRecordAspectDelta {
+                target: target_a.clone(),
+                kind_id: KindId(7),
+                plan_revision: AspectPlanRevision(1),
+                structural_change: RecordStructuralChange::Updated,
+                changed_aspects: CanonicalAspectSet::new([aspect_a.clone()]),
+                evaluated_bindings: Default::default(),
+                contains_degraded_precision: false,
+            },
+            CanonicalRecordAspectDelta {
+                target: target_b.clone(),
+                kind_id: KindId(7),
+                plan_revision: AspectPlanRevision(1),
+                structural_change: RecordStructuralChange::Created,
+                changed_aspects: CanonicalAspectSet::new([aspect_b.clone()]),
+                evaluated_bindings: Default::default(),
+                contains_degraded_precision: true,
+            },
+        ];
+        let patch_records = vec![
+            PatchRecord {
+                kind: PatchRecordKind::Created,
+                target: target_b.clone(),
+                structural_change: RecordStructuralChange::Created,
+                aspects: CanonicalAspectSet::new([aspect_b.clone()]),
+                contains_degraded_precision: true,
+                detail: PatchDetail::DenseBitset(Vec::new()),
+            },
+            PatchRecord {
+                kind: PatchRecordKind::Updated,
+                target: target_a.clone(),
+                structural_change: RecordStructuralChange::Updated,
+                aspects: CanonicalAspectSet::new([aspect_a.clone()]),
+                contains_degraded_precision: false,
+                detail: PatchDetail::DenseBitset(Vec::new()),
+            },
+        ];
+
+        let traces = derive_aspect_emission_traces(PatchStreamPosition(9), &patch_records, &deltas);
+        assert_eq!(traces.len(), 2);
+        assert_eq!(traces[0].target, target_b);
+        assert_eq!(
+            traces[0].changed_aspects,
+            CanonicalAspectSet::new([aspect_b])
+        );
+        assert!(traces[0].contains_degraded_precision);
+        assert_eq!(traces[1].target, target_a);
+        assert_eq!(
+            traces[1].changed_aspects,
+            CanonicalAspectSet::new([aspect_a])
+        );
+        assert!(!traces[1].contains_degraded_precision);
+    }
 }
 
 fn summarize_commit_aspects(

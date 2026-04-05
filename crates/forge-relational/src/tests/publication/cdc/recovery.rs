@@ -13,7 +13,7 @@ fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_checkpoint_i
 
     let checkpoint = checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1));
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 8))
         .unwrap();
 

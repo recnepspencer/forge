@@ -37,7 +37,7 @@ pub(crate) fn resolve_commit_history(
     transaction: &mut RelationalTransaction<'_>,
     version_id: VersionId,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError> {
-    let commit_id = transaction.runtime.history_access().next_commit_id();
+    let commit_id = transaction.runtime.history().next_commit_id();
     let branch_id = transaction
         .options
         .target_branch
@@ -53,7 +53,7 @@ pub(crate) fn resolve_commit_history(
     let requested_merge_parent_count = transaction.options.merge_parent_branches.len();
     let previous_branch_head_version = transaction
         .runtime
-        .history_access()
+        .history()
         .branch_head(&branch_id)
         .map(|head| head.version_id);
     let (parents, merge_base_commits) = match transaction.resolve_parent_commits(&branch_id) {
@@ -129,7 +129,7 @@ where
     )
         -> Result<(Vec<CommitId>, Vec<CommitId>), crate::transactions::data::CommitConflict>,
 {
-    let commit_id = runtime.history_access().next_commit_id();
+    let commit_id = runtime.history().next_commit_id();
     let branch_id = merge_plan
         .map(|plan| plan.target_branch.clone())
         .or_else(|| options.target_branch.clone())
@@ -141,7 +141,7 @@ where
         .map(|plan| plan.merge_parent_branches.as_ref())
         .unwrap_or(options.merge_parent_branches.as_slice());
     let previous_branch_head_version = runtime
-        .history_access()
+        .history()
         .branch_head(&branch_id)
         .map(|head| head.version_id);
     let (parents, merge_base_commits) = match resolve_parents(&branch_id) {

@@ -21,16 +21,17 @@ use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
 use forge_signal::facade::specialist::EvaluationOutput;
 use forge_signal::facade::specialist::EvaluationVerdict;
 use forge_signal::facade::{
-    Aspect, AspectVersion, DependencyEdge, EvaluationContext, NodeEvaluationResult, NodeId,
-    OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
+    Aspect, AspectVersion, ChangedRegion, DependencyEdge, EvaluationContext,
+    NodeEvaluationResult, NodeId, OutputChange, SignalError, SignalGraph,
+    SignalRuntime as NativeRuntime,
 };
 
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::expression::evaluation::ExprEnvironment;
 use crate::expression::model::{IdentitySpec, SignalValue};
 use crate::recipe::model::{
-    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec, RecipeSpec,
-    SourceSpec, TransactionOp,
+    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec,
+    RecipeReadSignalSpec, RecipeReadSpec, RecipeSpec, SourceSpec, TransactionOp,
 };
 use crate::runtime::adapters::{
     MergePlanProofEnvelope, MergeResultProofEnvelope, RuntimeDefinitionEnvelope, RuntimeEnvelope,
@@ -44,13 +45,11 @@ use crate::runtime::summaries::{
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
 #[cfg(target_arch = "wasm32")]
-const WASM_DEBUG_LOGS: bool = false;
+const WASM_DEBUG_LOGS: bool = true;
 
 #[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn console_log(message: &str);
+thread_local! {
+    static WASM_DEBUG_EVENTS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
 fn perf_now_ms() -> f64 {
@@ -73,12 +72,51 @@ fn perf_now_ms() -> f64 {
 #[cfg(target_arch = "wasm32")]
 fn wasm_debug(message: impl AsRef<str>) {
     if WASM_DEBUG_LOGS {
-        console_log(message.as_ref());
+        WASM_DEBUG_EVENTS.with(|events| {
+            events.borrow_mut().push(message.as_ref().to_owned());
+        });
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn wasm_debug(_message: impl AsRef<str>) {}
+
+#[cfg(target_arch = "wasm32")]
+fn take_wasm_debug_events() -> Vec<String> {
+    WASM_DEBUG_EVENTS.with(|events| {
+        let mut borrowed = events.borrow_mut();
+        borrowed.drain(..).collect()
+    })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn take_wasm_debug_events() -> Vec<String> {
+    Vec::new()
+}
+
+fn checked_grid_cells(width: u32, height: u32) -> Result<usize, ForgeSignalJsError> {
+    (width as usize)
+        .checked_mul(height as usize)
+        .ok_or_else(|| {
+            ForgeSignalJsError::invalid_input(format!(
+                "grid dimensions overflow capacity math: {width}x{height}"
+            ))
+        })
+}
+
+fn checked_packed_capacity(
+    width: u32,
+    height: u32,
+    fields_len: usize,
+) -> Result<usize, ForgeSignalJsError> {
+    checked_grid_cells(width, height)?
+        .checked_mul(fields_len)
+        .ok_or_else(|| {
+            ForgeSignalJsError::invalid_input(format!(
+                "packed field capacity overflow for grid {width}x{height} with {fields_len} fields"
+            ))
+        })
+}
 
 type SharedStore = Arc<Mutex<RuntimeStore>>;
 pub type SharedCore = Rc<RefCell<RuntimeCore>>;
@@ -135,6 +173,31 @@ struct DenseGridFamily {
     ids: Vec<String>,
     nodes: Vec<NodeId>,
     key_to_index: BTreeMap<String, usize>,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct KeyedEnsureStats {
+    source_hits: usize,
+    source_created: usize,
+    recipe_hits: usize,
+    recipe_created: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct PackedFieldReadStats {
+    key_reads: usize,
+    source_reads: usize,
+    recipe_reads: usize,
+    recipe_cold_reads: usize,
+    runtime_read_ms: f64,
+    field_extract_ms: f64,
+    fields_packed: usize,
+}
+
+#[derive(Debug, Clone)]
+struct KeyedTarget {
+    id: String,
+    node: NodeId,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -259,6 +322,10 @@ impl RuntimeCore {
         Ok(())
     }
 
+    pub fn take_debug_events(&mut self) -> Vec<String> {
+        take_wasm_debug_events()
+    }
+
     pub fn define_source_family(
         &mut self,
         spec: KeyedSourceFamilySpec,
@@ -293,7 +360,7 @@ impl RuntimeCore {
         }
         for read in &spec.reads {
             match read {
-                RecipeFamilyReadSpec::Signal { id } => {
+                RecipeFamilyReadSpec::Signal { id, .. } => {
                     if !self.catalog.contains_key(id) {
                         return Err(ForgeSignalJsError::invalid_input(format!(
                             "keyed family `{}` reads unknown signal `{id}`",
@@ -301,7 +368,7 @@ impl RuntimeCore {
                         )));
                     }
                 }
-                RecipeFamilyReadSpec::Keyed { family_id } => {
+                RecipeFamilyReadSpec::Keyed { family_id, .. } => {
                     if !store.source_families.contains_key(family_id)
                         && !store.recipe_families.contains_key(family_id)
                     {
@@ -352,10 +419,20 @@ impl RuntimeCore {
             .iter()
             .map(|read| {
                 self.catalog
-                    .get(read)
-                    .map(|entry| DependencyEdge::new(entry.node, DEFAULT_ASPECT))
+                    .get(read.id())
+                    .map(|entry| match read.scope() {
+                        Some(scope) => DependencyEdge::with_partition_scope(
+                            entry.node,
+                            DEFAULT_ASPECT,
+                            scope.clone(),
+                        ),
+                        None => DependencyEdge::new(entry.node, DEFAULT_ASPECT),
+                    })
                     .ok_or_else(|| {
-                        ForgeSignalJsError::invalid_input(format!("unknown read `{read}`"))
+                        ForgeSignalJsError::invalid_input(format!(
+                            "unknown read `{}`",
+                            read.id()
+                        ))
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -405,14 +482,83 @@ impl RuntimeCore {
             .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
     }
 
+    pub fn read_values(
+        &mut self,
+        ids: Vec<String>,
+    ) -> Result<Vec<SignalValue>, ForgeSignalJsError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut nodes = Vec::with_capacity(ids.len());
+        for id in &ids {
+            let node = self.node_for_id(id)?;
+            let should_recompute_recipe = self
+                .lock_store()?
+                .recipes
+                .get(id)
+                .map(|recipe| !recipe.initialized)
+                .unwrap_or(false);
+            if should_recompute_recipe {
+                forge_signal::facade::core::mark_dirty(
+                    self.runtime.graph_mut(),
+                    node,
+                    DEFAULT_ASPECT,
+                )
+                .map_err(ForgeSignalJsError::from)?;
+            }
+            nodes.push(node);
+        }
+
+        let read_started_at = perf_now_ms();
+        let evaluator = self.evaluator();
+        let _ = self
+            .runtime
+            .targets(nodes)
+            .on_demand()
+            .read_many(&self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        self.runtime.clear_live_branch_mutation_residue();
+        wasm_debug(format!(
+            "[forge-signal-wasm] read-many ids={} elapsed_ms={:.1}",
+            ids.len(),
+            perf_now_ms() - read_started_at
+        ));
+
+        let store = self.lock_store()?;
+        ids.into_iter()
+            .map(|id| {
+                store.read_value(&id).ok_or_else(|| {
+                    ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`"))
+                })
+            })
+            .collect()
+    }
+
     pub fn ensure_source_key(
         &mut self,
         family_id: &str,
         key: &str,
         initial: Option<SignalValue>,
     ) -> Result<String, ForgeSignalJsError> {
+        self.ensure_source_key_with_stats(
+            family_id,
+            key,
+            initial,
+            &mut KeyedEnsureStats::default(),
+        )
+    }
+
+    fn ensure_source_key_with_stats(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        initial: Option<SignalValue>,
+        stats: &mut KeyedEnsureStats,
+    ) -> Result<String, ForgeSignalJsError> {
         if let Some(grid) = self.dense_grids.get(family_id) {
             if let Some(index) = grid.key_to_index.get(key) {
+                stats.source_hits = stats.source_hits.saturating_add(1);
                 return Ok(grid.ids[*index].clone());
             }
             return Err(ForgeSignalJsError::invalid_input(format!(
@@ -422,6 +568,7 @@ impl RuntimeCore {
 
         let composite_id = composite_keyed_id(family_id, key);
         if self.catalog.contains_key(&composite_id) {
+            stats.source_hits = stats.source_hits.saturating_add(1);
             return Ok(composite_id);
         }
         let spec = {
@@ -435,6 +582,7 @@ impl RuntimeCore {
             }
         };
         self.define_source(spec)?;
+        stats.source_created = stats.source_created.saturating_add(1);
         Ok(composite_id)
     }
 
@@ -459,7 +607,7 @@ impl RuntimeCore {
             "[forge-signal-wasm] dense-grid:init family={family_id} size={}x{} cells={}",
             width,
             height,
-            (width as usize) * (height as usize)
+            checked_grid_cells(width, height)?
         ));
 
         let initial = {
@@ -470,12 +618,13 @@ impl RuntimeCore {
             family.spec.initial.clone()
         };
 
-        let mut ids = Vec::with_capacity((width as usize) * (height as usize));
-        let mut nodes = Vec::with_capacity((width as usize) * (height as usize));
+        let grid_cells = checked_grid_cells(width, height)?;
+        let mut ids = Vec::with_capacity(grid_cells);
+        let mut nodes = Vec::with_capacity(grid_cells);
         let mut key_to_index = BTreeMap::new();
-        let mut pending_sources = Vec::with_capacity((width as usize) * (height as usize));
+        let mut pending_sources = Vec::with_capacity(grid_cells);
 
-        for index in 0..((width as usize) * (height as usize)) {
+        for index in 0..grid_cells {
             let x = index % (width as usize);
             let y = index / (width as usize);
             let key = format!("{x},{y}");
@@ -525,13 +674,104 @@ impl RuntimeCore {
         Ok(family)
     }
 
+    pub fn seed_keyed_grid_coords(
+        &mut self,
+        family_id: &str,
+        width: u32,
+        height: u32,
+    ) -> Result<(), ForgeSignalJsError> {
+        if let Some(existing) = self.dense_grids.get(family_id) {
+            if existing.width == width && existing.height == height {
+                wasm_debug(format!(
+                    "[forge-signal-wasm] dense-grid:coords family={family_id} size={}x{} reused",
+                    width, height
+                ));
+                return Ok(());
+            }
+            return Err(ForgeSignalJsError::invalid_input(format!(
+                "dense grid family `{family_id}` was initialized as {}x{} and cannot become {width}x{height}",
+                existing.width, existing.height
+            )));
+        }
+
+        let started_at = perf_now_ms();
+        let grid_cells = checked_grid_cells(width, height)?;
+        let mut ids = Vec::with_capacity(grid_cells);
+        let mut nodes = Vec::with_capacity(grid_cells);
+        let mut key_to_index = BTreeMap::new();
+        let mut pending_sources = Vec::with_capacity(grid_cells);
+
+        for row in 0..height {
+            for column in 0..width {
+                let index = (row as usize) * (width as usize) + (column as usize);
+                let key = format!("tile-{column}-{row}");
+                let id = composite_keyed_id(family_id, &key);
+                if let Some(existing) = self.catalog.get(&id) {
+                    ids.push(id.clone());
+                    nodes.push(existing.node);
+                    key_to_index.insert(key, index);
+                    continue;
+                }
+
+                let node = self.runtime.graph_mut().node().build();
+                self.catalog.insert(id.clone(), CatalogEntry { node });
+                self.nodes_by_id.insert(node, id.clone());
+                ids.push(id.clone());
+                nodes.push(node);
+                key_to_index.insert(key, index);
+                pending_sources.push((
+                    id,
+                    SignalValue::Object(vec![
+                        ("column".to_owned(), SignalValue::Number(column as f64)),
+                        ("row".to_owned(), SignalValue::Number(row as f64)),
+                    ]),
+                ));
+            }
+        }
+
+        if !pending_sources.is_empty() {
+            let mut store = self.lock_store()?;
+            for (id, value) in pending_sources {
+                store.sources.insert(id, StoredSource { value, version: 1 });
+            }
+        }
+
+        self.dense_grids.insert(
+            family_id.to_owned(),
+            Arc::new(DenseGridFamily {
+                width,
+                height,
+                ids,
+                nodes,
+                key_to_index,
+            }),
+        );
+        wasm_debug(format!(
+            "[forge-signal-wasm] dense-grid:coords family={family_id} size={}x{} elapsed_ms={:.1}",
+            width,
+            height,
+            perf_now_ms() - started_at
+        ));
+        Ok(())
+    }
+
     pub fn ensure_recipe_key(
         &mut self,
         family_id: &str,
         key: &str,
     ) -> Result<String, ForgeSignalJsError> {
+        self.ensure_recipe_key_with_stats(family_id, key, &mut KeyedEnsureStats::default())
+    }
+
+    fn ensure_recipe_key_with_stats(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        stats: &mut KeyedEnsureStats,
+    ) -> Result<String, ForgeSignalJsError> {
         let composite_id = composite_keyed_id(family_id, key);
         if self.catalog.contains_key(&composite_id) {
+            stats.recipe_hits = stats.recipe_hits.saturating_add(1);
             return Ok(composite_id);
         }
         let family = {
@@ -547,13 +787,13 @@ impl RuntimeCore {
                 })?
         };
         for read in &family.spec.reads {
-            if let RecipeFamilyReadSpec::Keyed { family_id } = read {
+            if let RecipeFamilyReadSpec::Keyed { family_id, .. } = read {
                 let source_id = composite_keyed_id(family_id, key);
                 if !self.catalog.contains_key(&source_id) {
                     if self.lock_store()?.source_families.contains_key(family_id) {
-                        self.ensure_source_key(family_id, key, None)?;
+                        self.ensure_source_key_with_stats(family_id, key, None, stats)?;
                     } else {
-                        self.ensure_recipe_key(family_id, key)?;
+                        self.ensure_recipe_key_with_stats(family_id, key, stats)?;
                     }
                 }
             }
@@ -565,8 +805,18 @@ impl RuntimeCore {
                 .reads
                 .iter()
                 .map(|read| match read {
-                    RecipeFamilyReadSpec::Signal { id } => id.clone(),
-                    RecipeFamilyReadSpec::Keyed { family_id } => composite_keyed_id(family_id, key),
+                    RecipeFamilyReadSpec::Signal { id, scope } => {
+                        RecipeReadSpec::Signal(RecipeReadSignalSpec {
+                            id: id.clone(),
+                            scope: scope.as_ref().and_then(|value| value.resolve(key)),
+                        })
+                    }
+                    RecipeFamilyReadSpec::Keyed { family_id, scope } => {
+                        RecipeReadSpec::Signal(RecipeReadSignalSpec {
+                            id: composite_keyed_id(family_id, key),
+                            scope: scope.as_ref().and_then(|value| value.resolve(key)),
+                        })
+                    }
                 })
                 .collect(),
             expr: rewrite_keyed_expr(&family.spec.expr, &family.spec.reads, key),
@@ -587,6 +837,7 @@ impl RuntimeCore {
                 }),
         };
         self.define_recipe(recipe)?;
+        stats.recipe_created = stats.recipe_created.saturating_add(1);
         Ok(composite_id)
     }
 
@@ -625,11 +876,173 @@ impl RuntimeCore {
         Ok(values)
     }
 
+    pub fn read_keyed_values_packed_fields(
+        &mut self,
+        family_id: &str,
+        keys: Vec<String>,
+        fields: Vec<String>,
+    ) -> Result<Vec<f32>, ForgeSignalJsError> {
+        let started_at = perf_now_ms();
+        let targets = self.ensure_keyed_targets(family_id, &keys)?;
+        let mut read_stats = self.bulk_evaluate_targets(&targets)?;
+        let mut packed = Vec::with_capacity(keys.len().saturating_mul(fields.len()));
+        self.pack_fields_from_targets(&targets, &fields, &mut packed, &mut read_stats)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] packed-many:read family={family_id} keys={} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            read_stats.key_reads,
+            perf_now_ms() - started_at,
+            read_stats.runtime_read_ms,
+            read_stats.field_extract_ms,
+            read_stats.source_reads,
+            read_stats.recipe_reads,
+            read_stats.recipe_cold_reads,
+            read_stats.fields_packed
+        ));
+        Ok(packed)
+    }
+
+    pub fn read_keyed_grid_packed_fields(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+        fields: Vec<String>,
+    ) -> Result<Vec<f32>, ForgeSignalJsError> {
+        let ensure_started_at = perf_now_ms();
+        let targets = self.ensure_keyed_grid_targets(family_id, columns, rows)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] packed-grid:ensure family={family_id} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
+            perf_now_ms() - ensure_started_at,
+            targets.1.source_hits,
+            targets.1.source_created,
+            targets.1.recipe_hits,
+            targets.1.recipe_created
+        ));
+        let extract_started_at = perf_now_ms();
+        let mut read_stats = self.bulk_evaluate_targets(&targets.0)?;
+        let mut packed = Vec::with_capacity(checked_packed_capacity(
+            columns,
+            rows,
+            fields.len(),
+        )?);
+        self.pack_fields_from_targets(&targets.0, &fields, &mut packed, &mut read_stats)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] packed-grid:extract family={family_id} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            perf_now_ms() - extract_started_at,
+            read_stats.runtime_read_ms,
+            read_stats.field_extract_ms,
+            read_stats.key_reads,
+            read_stats.source_reads,
+            read_stats.recipe_reads,
+            read_stats.recipe_cold_reads,
+            read_stats.fields_packed
+        ));
+        Ok(packed)
+    }
+
+    pub fn read_keyed_rect_packed_fields(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+        row: u32,
+        start_column: u32,
+        width: u32,
+        height: u32,
+        fields: Vec<String>,
+    ) -> Result<Vec<f32>, ForgeSignalJsError> {
+        if row >= rows || start_column >= columns {
+            return Ok(Vec::new());
+        }
+        let ensure_started_at = perf_now_ms();
+        let targets =
+            self.ensure_keyed_rect_targets(family_id, columns, rows, row, start_column, width, height)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] packed-rect:ensure family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
+            row,
+            start_column,
+            width,
+            height,
+            perf_now_ms() - ensure_started_at,
+            targets.1.source_hits,
+            targets.1.source_created,
+            targets.1.recipe_hits,
+            targets.1.recipe_created
+        ));
+        let clamped_width = width.min(columns.saturating_sub(start_column));
+        let clamped_height = height.min(rows.saturating_sub(row));
+        let extract_started_at = perf_now_ms();
+        let mut read_stats = self.bulk_evaluate_targets(&targets.0)?;
+        let mut packed = Vec::with_capacity(checked_packed_capacity(
+            clamped_width,
+            clamped_height,
+            fields.len(),
+        )?);
+        self.pack_fields_from_targets(&targets.0, &fields, &mut packed, &mut read_stats)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] packed-rect:extract family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
+            row,
+            start_column,
+            clamped_width,
+            clamped_height,
+            perf_now_ms() - extract_started_at,
+            read_stats.runtime_read_ms,
+            read_stats.field_extract_ms,
+            read_stats.key_reads,
+            read_stats.source_reads,
+            read_stats.recipe_reads,
+            read_stats.recipe_cold_reads,
+            read_stats.fields_packed
+        ));
+        Ok(packed)
+    }
+
+    pub fn prewarm_keyed_grid(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(), ForgeSignalJsError> {
+        let ensure_started_at = perf_now_ms();
+        let targets = self.ensure_keyed_grid_targets(family_id, columns, rows)?;
+        let evaluate_started_at = perf_now_ms();
+        let read_stats = self.bulk_evaluate_targets(&targets.0)?;
+        wasm_debug(format!(
+            "[forge-signal-wasm] keyed-grid:prewarm family={family_id} size={}x{} ensure_ms={:.1} evaluate_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={} source_reads={} recipe_reads={} recipe_cold_reads={} runtime_read_ms={:.1}",
+            columns,
+            rows,
+            perf_now_ms() - ensure_started_at,
+            perf_now_ms() - evaluate_started_at,
+            targets.1.source_hits,
+            targets.1.source_created,
+            targets.1.recipe_hits,
+            targets.1.recipe_created,
+            read_stats.source_reads,
+            read_stats.recipe_reads,
+            read_stats.recipe_cold_reads,
+            read_stats.runtime_read_ms
+        ));
+        Ok(())
+    }
+
     pub fn set_keyed_values(
         &mut self,
         family_id: &str,
         values: Vec<KeyedSetValue>,
     ) -> Result<RunSummary, ForgeSignalJsError> {
+        if self.try_fast_seed_keyed_grid_coords(family_id, &values)? {
+            return Ok(RunSummary {
+                touched_nodes: 0,
+                nodes_evaluated: 0,
+                nodes_recomputed: 0,
+                nodes_suppressed: 0,
+                plans_built: 0,
+                stages_executed: 0,
+                total_nanos: "0".to_owned(),
+                evaluation_nanos: "0".to_owned(),
+                commit_nanos: "0".to_owned(),
+            });
+        }
         let mut normalized = Vec::with_capacity(values.len());
         for entry in values {
             let id = self.ensure_source_key(family_id, &entry.key, Some(entry.value.clone()))?;
@@ -640,6 +1053,54 @@ impl RuntimeCore {
         }
 
         self.apply_transaction(vec![TransactionOp::SetMany { values: normalized }])
+    }
+
+    fn try_fast_seed_keyed_grid_coords(
+        &mut self,
+        family_id: &str,
+        values: &[KeyedSetValue],
+    ) -> Result<bool, ForgeSignalJsError> {
+        if family_id != "renderTileCoord" || values.is_empty() {
+            return Ok(false);
+        }
+
+        let mut max_column = 0u32;
+        let mut max_row = 0u32;
+
+        for entry in values {
+            let Some((column, row)) = parse_tile_key(&entry.key) else {
+                return Ok(false);
+            };
+            let SignalValue::Object(fields) = &entry.value else {
+                return Ok(false);
+            };
+            let Some(value_column) = object_number_field(fields, "column") else {
+                return Ok(false);
+            };
+            let Some(value_row) = object_number_field(fields, "row") else {
+                return Ok(false);
+            };
+            if value_column != column as f64 || value_row != row as f64 {
+                return Ok(false);
+            }
+            max_column = max_column.max(column);
+            max_row = max_row.max(row);
+        }
+
+        let width = max_column.saturating_add(1);
+        let height = max_row.saturating_add(1);
+        if checked_grid_cells(width, height)? != values.len() {
+            return Ok(false);
+        }
+
+        wasm_debug(format!(
+            "[forge-signal-wasm] keyed-set:coords-fast-path family={family_id} size={}x{} entries={}",
+            width,
+            height,
+            values.len()
+        ));
+        self.seed_keyed_grid_coords(family_id, width, height)?;
+        Ok(true)
     }
 
     pub fn clear_keyed_family_cache(&mut self, family_id: &str) -> Result<(), ForgeSignalJsError> {
@@ -673,6 +1134,372 @@ impl RuntimeCore {
         Ok(())
     }
 
+    fn push_packed_fields_for_key(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        fields: &[String],
+        packed: &mut Vec<f32>,
+        stats: &mut PackedFieldReadStats,
+    ) -> Result<(), ForgeSignalJsError> {
+        let object = match self.read_keyed_value_profiled(family_id, key, stats)? {
+            SignalValue::Object(entries) => entries,
+            other => {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "family `{family_id}` key `{key}` is not an object value: {other:?}"
+                )));
+            }
+        };
+        let extract_started_at = perf_now_ms();
+        for field in fields {
+            let Some((_, value)) = object.iter().find(|(candidate, _)| candidate == field) else {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "family `{family_id}` key `{key}` is missing numeric field `{field}`"
+                )));
+            };
+            match value {
+                SignalValue::Number(number) => packed.push(*number as f32),
+                other => {
+                    return Err(ForgeSignalJsError::invalid_input(format!(
+                        "family `{family_id}` key `{key}` field `{field}` is not numeric: {other:?}"
+                    )));
+                }
+            }
+        }
+        stats.field_extract_ms += perf_now_ms() - extract_started_at;
+        stats.fields_packed = stats.fields_packed.saturating_add(fields.len());
+        Ok(())
+    }
+
+    fn pack_fields_from_targets(
+        &mut self,
+        targets: &[KeyedTarget],
+        fields: &[String],
+        packed: &mut Vec<f32>,
+        stats: &mut PackedFieldReadStats,
+    ) -> Result<(), ForgeSignalJsError> {
+        let store = self.lock_store()?;
+        for target in targets {
+            let object = match store.read_value(&target.id) {
+                Some(SignalValue::Object(entries)) => entries,
+                Some(other) => {
+                    return Err(ForgeSignalJsError::invalid_input(format!(
+                        "target `{}` is not an object value: {other:?}",
+                        target.id
+                    )));
+                }
+                None => {
+                    return Err(ForgeSignalJsError::invalid_input(format!(
+                        "missing stored value for `{}`",
+                        target.id
+                    )));
+                }
+            };
+            let extract_started_at = perf_now_ms();
+            for field in fields {
+                let Some((_, value)) = object.iter().find(|(candidate, _)| candidate == field) else {
+                    return Err(ForgeSignalJsError::invalid_input(format!(
+                        "target `{}` is missing numeric field `{field}`",
+                        target.id
+                    )));
+                };
+                match value {
+                    SignalValue::Number(number) => packed.push(*number as f32),
+                    other => {
+                        return Err(ForgeSignalJsError::invalid_input(format!(
+                            "target `{}` field `{field}` is not numeric: {other:?}",
+                            target.id
+                        )));
+                    }
+                }
+            }
+            stats.field_extract_ms += perf_now_ms() - extract_started_at;
+            stats.fields_packed = stats.fields_packed.saturating_add(fields.len());
+        }
+        Ok(())
+    }
+
+    fn bulk_evaluate_targets(
+        &mut self,
+        targets: &[KeyedTarget],
+    ) -> Result<PackedFieldReadStats, ForgeSignalJsError> {
+        let mut stats = PackedFieldReadStats::default();
+        if targets.is_empty() {
+            return Ok(stats);
+        }
+        {
+            let store = self.lock_store()?;
+            for target in targets {
+                if store.sources.contains_key(&target.id) {
+                    stats.source_reads = stats.source_reads.saturating_add(1);
+                } else if let Some(recipe) = store.recipes.get(&target.id) {
+                    stats.recipe_reads = stats.recipe_reads.saturating_add(1);
+                    if !recipe.initialized {
+                        stats.recipe_cold_reads = stats.recipe_cold_reads.saturating_add(1);
+                    }
+                }
+            }
+        }
+        stats.key_reads = targets.len();
+        let read_started_at = perf_now_ms();
+        let evaluator = self.evaluator();
+        let nodes = targets.iter().map(|target| target.node).collect::<Vec<_>>();
+        let _ = self
+            .runtime
+            .targets(nodes)
+            .on_demand()
+            .read_many(&self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        stats.runtime_read_ms = perf_now_ms() - read_started_at;
+        Ok(stats)
+    }
+
+    fn ensure_keyed_targets(
+        &mut self,
+        family_id: &str,
+        keys: &[String],
+    ) -> Result<Vec<KeyedTarget>, ForgeSignalJsError> {
+        let mut stats = KeyedEnsureStats::default();
+        let mut targets = Vec::with_capacity(keys.len());
+        for key in keys {
+            let id = self.ensure_keyed_entry(family_id, key, &mut stats)?;
+            let node = self.node_for_id(&id)?;
+            targets.push(KeyedTarget { id, node });
+        }
+        Ok(targets)
+    }
+
+    fn ensure_keyed_grid_targets(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(Vec<KeyedTarget>, KeyedEnsureStats), ForgeSignalJsError> {
+        let mut stats = KeyedEnsureStats::default();
+        let mut targets = Vec::with_capacity(checked_grid_cells(columns, rows)?);
+        for row in 0..rows {
+            for column in 0..columns {
+                let key = format!("tile-{column}-{row}");
+                let id = self.ensure_keyed_entry(family_id, &key, &mut stats)?;
+                let node = self.node_for_id(&id)?;
+                targets.push(KeyedTarget { id, node });
+            }
+        }
+        Ok((targets, stats))
+    }
+
+    fn ensure_keyed_rect_targets(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+        row: u32,
+        start_column: u32,
+        width: u32,
+        height: u32,
+    ) -> Result<(Vec<KeyedTarget>, KeyedEnsureStats), ForgeSignalJsError> {
+        if row >= rows || start_column >= columns {
+            return Ok((Vec::new(), KeyedEnsureStats::default()));
+        }
+        let clamped_width = width.min(columns.saturating_sub(start_column));
+        let clamped_height = height.min(rows.saturating_sub(row));
+        let mut stats = KeyedEnsureStats::default();
+        let mut targets = Vec::with_capacity(checked_grid_cells(
+            clamped_width,
+            clamped_height,
+        )?);
+        for row_offset in 0..clamped_height {
+            let current_row = row + row_offset;
+            for column_offset in 0..clamped_width {
+                let current_column = start_column + column_offset;
+                let key = format!("tile-{current_column}-{current_row}");
+                let id = self.ensure_keyed_entry(family_id, &key, &mut stats)?;
+                let node = self.node_for_id(&id)?;
+                targets.push(KeyedTarget { id, node });
+            }
+        }
+        Ok((targets, stats))
+    }
+
+    fn read_keyed_value_profiled(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        stats: &mut PackedFieldReadStats,
+    ) -> Result<SignalValue, ForgeSignalJsError> {
+        let is_recipe_family = self.lock_store()?.recipe_families.contains_key(family_id);
+        let id = if is_recipe_family {
+            self.ensure_recipe_key(family_id, key)?
+        } else {
+            self.ensure_source_key(family_id, key, None)?
+        };
+        stats.key_reads = stats.key_reads.saturating_add(1);
+        if is_recipe_family {
+            stats.recipe_reads = stats.recipe_reads.saturating_add(1);
+        } else {
+            stats.source_reads = stats.source_reads.saturating_add(1);
+        }
+        self.read_value_profiled(&id, stats)
+    }
+
+    fn read_value_profiled(
+        &mut self,
+        id: &str,
+        stats: &mut PackedFieldReadStats,
+    ) -> Result<SignalValue, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let should_recompute_recipe = self
+            .lock_store()?
+            .recipes
+            .get(id)
+            .map(|recipe| !recipe.initialized)
+            .unwrap_or(false);
+        if should_recompute_recipe {
+            stats.recipe_cold_reads = stats.recipe_cold_reads.saturating_add(1);
+            forge_signal::facade::core::mark_dirty(self.runtime.graph_mut(), node, DEFAULT_ASPECT)
+                .map_err(ForgeSignalJsError::from)?;
+        }
+        let read_started_at = perf_now_ms();
+        let evaluator = self.evaluator();
+        self.runtime
+            .read(node, &self.store, &evaluator)
+            .map_err(ForgeSignalJsError::from)?;
+        self.runtime.clear_live_branch_mutation_residue();
+        stats.runtime_read_ms += perf_now_ms() - read_started_at;
+        let store = self.lock_store()?;
+        store
+            .read_value(id)
+            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
+    }
+
+    fn ensure_keyed_grid(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+    ) -> Result<KeyedEnsureStats, ForgeSignalJsError> {
+        let mut stats = KeyedEnsureStats::default();
+        for row in 0..rows {
+            for column in 0..columns {
+                let key = format!("tile-{column}-{row}");
+                self.ensure_keyed_entry(family_id, &key, &mut stats)?;
+            }
+        }
+        Ok(stats)
+    }
+
+    fn ensure_keyed_rect(
+        &mut self,
+        family_id: &str,
+        columns: u32,
+        rows: u32,
+        row: u32,
+        start_column: u32,
+        width: u32,
+        height: u32,
+    ) -> Result<KeyedEnsureStats, ForgeSignalJsError> {
+        if row >= rows || start_column >= columns {
+            return Ok(KeyedEnsureStats::default());
+        }
+        let clamped_width = width.min(columns.saturating_sub(start_column));
+        let clamped_height = height.min(rows.saturating_sub(row));
+        let mut stats = KeyedEnsureStats::default();
+        for row_offset in 0..clamped_height {
+            let current_row = row + row_offset;
+            for column_offset in 0..clamped_width {
+                let current_column = start_column + column_offset;
+                let key = format!("tile-{current_column}-{current_row}");
+                self.ensure_keyed_entry(family_id, &key, &mut stats)?;
+            }
+        }
+        Ok(stats)
+    }
+
+    fn ensure_keyed_entry(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        stats: &mut KeyedEnsureStats,
+    ) -> Result<String, ForgeSignalJsError> {
+        if self.lock_store()?.recipe_families.contains_key(family_id) {
+            self.ensure_recipe_key_with_stats(family_id, key, stats)
+        } else {
+            self.ensure_source_key_with_stats(family_id, key, None, stats)
+        }
+    }
+
+    pub fn mark_changed_with_regions(
+        &mut self,
+        id: &str,
+        changed_regions: Vec<ChangedRegion>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        let started_at = perf_now_ms();
+        let previous = self.lock_store()?.clone();
+        let store = self.store.clone();
+        let evaluator = self.evaluator();
+
+        let result = self.runtime.transaction(&mut self.store, move |tx| {
+            {
+                let mut locked = store
+                    .lock()
+                    .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
+                let source = locked.sources.get_mut(id).ok_or_else(|| {
+                    SignalError::invalid_input(format!("unknown source `{id}`"))
+                })?;
+                source.version = source.version.saturating_add(1);
+            }
+
+            tx.mark_changed_with_regions(node, DEFAULT_ASPECT, &changed_regions)?;
+            tx.evaluate_dirty(&evaluator)?;
+            Ok(())
+        });
+
+        match result {
+            Ok(result) => {
+                let active_branch_id = self.runtime.current_branch().id.0;
+                self.branch_states
+                    .insert(active_branch_id, self.snapshot_branch_state());
+                wasm_debug(format!(
+                    "[forge-signal-wasm] tx:regions-done touched={} evaluated={} elapsed_ms={:.1}",
+                    result.touched_nodes,
+                    result.evaluation_summary.nodes_evaluated,
+                    perf_now_ms() - started_at
+                ));
+                Ok(RunSummary {
+                    touched_nodes: result.touched_nodes,
+                    nodes_evaluated: result.evaluation_summary.nodes_evaluated,
+                    nodes_recomputed: result.evaluation_summary.nodes_recomputed,
+                    nodes_suppressed: result.evaluation_summary.nodes_suppressed,
+                    plans_built: result.evaluation_summary.plans_built,
+                    stages_executed: result.evaluation_summary.stages_executed,
+                    total_nanos: result.timing.total_nanos.to_string(),
+                    evaluation_nanos: result.timing.evaluation_nanos.to_string(),
+                    commit_nanos: result.timing.commit_nanos.to_string(),
+                })
+            }
+            Err(err) => {
+                wasm_debug(format!(
+                    "[forge-signal-wasm] tx:regions-error elapsed_ms={:.1} message={}",
+                    perf_now_ms() - started_at,
+                    err
+                ));
+                self.restore_store(previous)?;
+                Err(ForgeSignalJsError::from(err))
+            }
+        }
+    }
+
+    pub fn mark_keyed_changed_with_regions(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        changed_regions: Vec<ChangedRegion>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let id = self.ensure_source_key(family_id, key, None)?;
+        self.mark_changed_with_regions(&id, changed_regions)
+    }
+
     pub fn apply_transaction(
         &mut self,
         ops: Vec<TransactionOp>,
@@ -698,13 +1525,26 @@ impl RuntimeCore {
                     .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
                 for change in &changes {
                     match change {
-                        SetChange::Source { id, value, node } => {
+                        SetChange::Source {
+                            id,
+                            value,
+                            node,
+                            changed_regions,
+                        } => {
                             let source = locked.sources.get_mut(id).ok_or_else(|| {
                                 SignalError::invalid_input(format!("unknown source `{id}`"))
                             })?;
                             source.value = value.clone();
                             source.version = source.version.saturating_add(1);
-                            tx.mark_changed(*node, DEFAULT_ASPECT)?;
+                            if changed_regions.is_empty() {
+                                tx.mark_changed(*node, DEFAULT_ASPECT)?;
+                            } else {
+                                tx.mark_changed_with_regions(
+                                    *node,
+                                    DEFAULT_ASPECT,
+                                    changed_regions,
+                                )?;
+                            }
                         }
                         SetChange::DenseGridRgba { family_id, rgba } => {
                             let family = dense_grids.get(family_id).ok_or_else(|| {
@@ -1522,11 +2362,12 @@ impl RuntimeCore {
         Ok(())
     }
 
-    fn ensure_known_reads(&self, reads: &[String]) -> Result<(), ForgeSignalJsError> {
+    fn ensure_known_reads(&self, reads: &[RecipeReadSpec]) -> Result<(), ForgeSignalJsError> {
         for read in reads {
-            if !self.catalog.contains_key(read) {
+            if !self.catalog.contains_key(read.id()) {
                 return Err(ForgeSignalJsError::invalid_input(format!(
-                    "unknown read `{read}`"
+                    "unknown read `{}`",
+                    read.id()
                 )));
             }
         }
@@ -1537,16 +2378,31 @@ impl RuntimeCore {
         &mut self,
         ops: &[TransactionOp],
     ) -> Result<Vec<SetChange>, ForgeSignalJsError> {
-        let mut deduped = BTreeMap::<String, SignalValue>::new();
+        let mut deduped = BTreeMap::<String, (SignalValue, Vec<ChangedRegion>)>::new();
         let mut packed = Vec::new();
         for op in ops {
             match op {
                 TransactionOp::Set { id, value } => {
-                    deduped.insert(id.clone(), value.clone());
+                    deduped.insert(id.clone(), (value.clone(), Vec::new()));
+                }
+                TransactionOp::SetWithRegions {
+                    id,
+                    value,
+                    changed_regions,
+                } => {
+                    deduped.insert(id.clone(), (value.clone(), changed_regions.clone()));
                 }
                 TransactionOp::SetMany { values } => {
                     for value in values {
-                        deduped.insert(value.id.clone(), value.value.clone());
+                        deduped.insert(value.id.clone(), (value.value.clone(), Vec::new()));
+                    }
+                }
+                TransactionOp::SetManyWithRegions { values } => {
+                    for value in values {
+                        deduped.insert(
+                            value.id.clone(),
+                            (value.value.clone(), value.changed_regions.clone()),
+                        );
                     }
                 }
                 TransactionOp::SetManyKeyed { family_id, values } => {
@@ -1556,7 +2412,7 @@ impl RuntimeCore {
                             &value.key,
                             Some(value.value.clone()),
                         )?;
-                        deduped.insert(id, value.value.clone());
+                        deduped.insert(id, (value.value.clone(), Vec::new()));
                     }
                 }
                 TransactionOp::SetPackedGridRgba {
@@ -1582,9 +2438,14 @@ impl RuntimeCore {
         }
         let mut normalized = deduped
             .into_iter()
-            .map(|(id, value)| {
+            .map(|(id, (value, changed_regions))| {
                 let node = self.node_for_id(&id)?;
-                Ok(SetChange::Source { id, value, node })
+                Ok(SetChange::Source {
+                    id,
+                    value,
+                    node,
+                    changed_regions,
+                })
             })
             .collect::<Result<Vec<_>, ForgeSignalJsError>>()?;
         normalized.extend(packed);
@@ -1693,6 +2554,7 @@ enum SetChange {
         id: String,
         value: SignalValue,
         node: NodeId,
+        changed_regions: Vec<ChangedRegion>,
     },
     DenseGridRgba {
         family_id: String,
@@ -1820,22 +2682,38 @@ fn evaluate_node(
 
     let mut read_values = BTreeMap::new();
     for read in &reads {
-        let Some(read_node) =
-            nodes_by_id
-                .iter()
-                .find_map(|(node, candidate)| if candidate == read { Some(*node) } else { None })
+        let Some(read_node) = nodes_by_id.iter().find_map(|(node, candidate)| {
+            if candidate == read.id() {
+                Some(*node)
+            } else {
+                None
+            }
+        })
         else {
             return Err(SignalError::invalid_input(format!(
-                "recipe `{id}` references unknown read `{read}`"
+                "recipe `{id}` references unknown read `{}`",
+                read.id()
             )));
         };
-        let _ = view.read_aspect_version(read_node, DEFAULT_ASPECT)?;
-        let value = locked.read_value(read).ok_or_else(|| {
+        match read.scope() {
+            Some(scope) => {
+                let _ = view.read_partitioned_aspect_version(
+                    read_node,
+                    DEFAULT_ASPECT,
+                    scope.clone(),
+                )?;
+            }
+            None => {
+                let _ = view.read_aspect_version(read_node, DEFAULT_ASPECT)?;
+            }
+        }
+        let value = locked.read_value(read.id()).ok_or_else(|| {
             SignalError::invalid_input(format!(
-                "recipe `{id}` could not read current value for `{read}`"
+                "recipe `{id}` could not read current value for `{}`",
+                read.id()
             ))
         })?;
-        read_values.insert(read.clone(), value);
+        read_values.insert(read.id().to_owned(), value);
     }
 
     let env = ExprEnvironment::new(&read_values);
@@ -1949,6 +2827,24 @@ fn composite_keyed_id(family_id: &str, key: &str) -> String {
     format!("{family_id}::{key}")
 }
 
+fn parse_tile_key(key: &str) -> Option<(u32, u32)> {
+    let payload = key.strip_prefix("tile-")?;
+    let (column, row) = payload.split_once('-')?;
+    Some((column.parse().ok()?, row.parse().ok()?))
+}
+
+fn object_number_field(fields: &[(String, SignalValue)], field: &str) -> Option<f64> {
+    fields.iter().find_map(|(name, value)| {
+        if name != field {
+            return None;
+        }
+        match value {
+            SignalValue::Number(number) => Some(*number),
+            _ => None,
+        }
+    })
+}
+
 fn rewrite_keyed_expr(
     expr: &crate::expression::model::Expr,
     reads: &[RecipeFamilyReadSpec],
@@ -1965,7 +2861,7 @@ fn rewrite_keyed_expr(
                 .iter()
                 .find_map(|read| match read {
                     RecipeFamilyReadSpec::Signal { .. } => None,
-                    RecipeFamilyReadSpec::Keyed { family_id } if family_id == id => {
+                    RecipeFamilyReadSpec::Keyed { family_id, .. } if family_id == id => {
                         Some(composite_keyed_id(family_id, key))
                     }
                     RecipeFamilyReadSpec::Keyed { .. } => None,

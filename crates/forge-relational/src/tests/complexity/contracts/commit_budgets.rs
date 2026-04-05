@@ -656,7 +656,7 @@ fn complexity_budget_relation_integrity_minimum_certification_reports_snapshot_b
     create_relation(&mut runtime, source, target, "single");
 
     runtime.performance_access().reset_counters();
-    let result = runtime.invariant_access().certification_state();
+    let result = runtime.validation().certification_state();
     let counters = runtime.performance_access().counters();
 
     assert!(result.summary().publication_failure().is_some());
@@ -730,7 +730,7 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
 
     runtime.performance_access().reset_counters();
     let _ = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
         .unwrap();
     let counters = runtime.performance_access().counters();
@@ -756,7 +756,7 @@ fn complexity_budget_replay_verification_tracks_digest_and_deep_layers_separatel
                 verification_mode:
                     crate::replay::data::ReplayVerificationMode::NormalRecoveryVerification,
             });
-    assert!(runtime.replay_access().compare_outcome(&normal));
+    assert!(runtime.replay().compare_outcome(&normal));
     let normal_counters = runtime.performance_access().counters();
     assert!(normal_counters.replay_digest_parity_checks > 0);
     assert_eq!(normal_counters.replay_deep_artifact_parity_checks, 0);
@@ -824,7 +824,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
 
     runtime.performance_access().reset_counters();
     let _batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             baseline_checkpoint.clone(),
             32,
@@ -840,7 +840,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     assert_eq!(cdc_counters.replay_deep_artifact_parity_checks, 0);
 
     runtime.performance_access().reset_counters();
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let plan_counters = runtime.performance_access().counters();
@@ -875,7 +875,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     assert!(recovered_counters.replay_digest_parity_checks >= 1);
     assert_eq!(recovered_counters.replay_deep_artifact_parity_checks, 0);
     assert!(recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(transitioned.commit.commit_id)
         .is_some());
 }

@@ -78,7 +78,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         handle: &crate::snapshots::data::SnapshotHandle,
     ) -> Option<SnapshotPinInspection> {
         Some(SnapshotPinInspection {
-            snapshot: self.runtime.visibility_reads().inspect_snapshot(handle)?,
+            snapshot: self.runtime.read_truth().inspect_snapshot(handle)?,
             origin: InspectionOrigin::VisibilitySnapshot,
             access_path: InspectionAccessPath::SnapshotRead,
             availability: InspectionAvailability::Direct,

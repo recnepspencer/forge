@@ -42,6 +42,22 @@ pub(crate) struct MutationEffect {
 }
 
 impl MutationEffect {
+    pub(crate) fn with_capacity(change_count: usize, diagnostic_count: usize) -> Self {
+        Self {
+            publication: MutationPublicationEffect {
+                changed_records: Vec::with_capacity(change_count),
+                canonical_deltas: Vec::with_capacity(change_count),
+                patch_records: Vec::with_capacity(change_count),
+            },
+            diagnostics: MutationDiagnosticsEffect {
+                entries: Vec::with_capacity(diagnostic_count),
+            },
+            adjacency: MutationAdjacencyEffect {
+                deltas: Vec::with_capacity(change_count),
+            },
+        }
+    }
+
     pub(crate) fn accumulate(&mut self, child: MutationEffect) {
         self.publication
             .changed_records

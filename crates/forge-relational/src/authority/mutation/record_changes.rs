@@ -248,6 +248,21 @@ pub(super) fn delete_relation(
         .get_slot(slot)
         .and_then(|relation_slot| relation_slot.kind_id());
     partition.relation_arena.retire(slot, version_id);
+    let lifecycle = if partition
+        .relation_arena
+        .snapshot_pin_count(slot)
+        .unwrap_or(0)
+        > 0
+    {
+        RecordLifecycleState::PinnedBySnapshot
+    } else if partition.relation_arena.branch_pin_count(slot).unwrap_or(0) > 0 {
+        RecordLifecycleState::PinnedByBranch
+    } else if partition.relation_arena.replay_pin_count(slot).unwrap_or(0) > 0 {
+        RecordLifecycleState::PinnedByReplayRetention
+    } else {
+        RecordLifecycleState::DeletedRetained
+    };
+    partition.relation_arena.lifecycle[slot] = lifecycle;
     if let (Some(endpoints), Some(kind_id)) = (endpoints, kind_id) {
         outcome.record_change(RecordMutation::RelationDeleted {
             relation_id,

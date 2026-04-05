@@ -13,6 +13,10 @@ export default defineConfig({
     fs: {
       allow: [workspaceRoot],
     },
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
   },
   worker: {
     format: "es",

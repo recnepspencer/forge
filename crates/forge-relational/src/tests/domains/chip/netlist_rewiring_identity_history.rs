@@ -40,7 +40,7 @@ fn netlist_rewiring_identity_history_preserves_exact_lineage_truth() {
         .promoted_commit_id()
         .expect("promotion commit id");
     let envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(promotion_commit_id)
         .cloned()
         .expect("promotion envelope");
@@ -78,13 +78,13 @@ fn netlist_rewiring_identity_history_preserves_exact_lineage_truth() {
     );
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(promotion_commit_id)
         .cloned()
         .expect("recovered promotion envelope");

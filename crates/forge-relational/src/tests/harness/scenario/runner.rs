@@ -113,11 +113,7 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
         create_entity_in_partition(&mut runtime, "seed-center", PartitionId(29)),
     ];
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
     let mut checkpoints = vec![baseline_checkpoint.clone()];
@@ -174,15 +170,11 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
             .map(|interval| (step + 1) % interval == 0)
             .unwrap_or(false)
         {
-            let _ = runtime.retention_authority().run_pass();
+            let _ = runtime.retention().run_pass();
             operations.push(ScenarioOperation::RunRetentionPass);
         }
 
-        let latest_position = runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position;
+        let latest_position = runtime.publication().latest_patch().unwrap().position;
         if latest_position.0 > checkpoints.last().unwrap().position().0
             && latest_position.0 as usize % config.checkpoint_stride == 0
         {
@@ -193,11 +185,7 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
         }
     }
 
-    let latest_position = runtime
-        .publication_access()
-        .latest_patch()
-        .unwrap()
-        .position;
+    let latest_position = runtime.publication().latest_patch().unwrap().position;
     if checkpoints
         .last()
         .map(|checkpoint| checkpoint.position() != latest_position)
@@ -231,11 +219,7 @@ pub(crate) fn run_property_scenario(
         create_entity_in_partition(&mut runtime, "property-center", PartitionId(29)),
     ];
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
     let mut checkpoints = vec![baseline_checkpoint.clone()];
@@ -258,11 +242,7 @@ pub(crate) fn run_property_scenario(
             step,
             operation,
         );
-        let latest_position = runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position;
+        let latest_position = runtime.publication().latest_patch().unwrap().position;
         if latest_position.0 > checkpoints.last().unwrap().position().0 {
             checkpoints.push(checkpoint_for_schema_version(
                 latest_position,
@@ -543,7 +523,7 @@ fn apply_operation(
             }
         }
         ScenarioOperation::RunRetentionPass => {
-            let _ = runtime.retention_authority().run_pass();
+            let _ = runtime.retention().run_pass();
             refresh_live_world(runtime, entities, relations);
         }
         ScenarioOperation::DurableCheckpoint | ScenarioOperation::CompactDurableStore => {}
@@ -556,7 +536,7 @@ fn refresh_live_world(
     relations: &mut Vec<ActiveRelation>,
 ) {
     let snapshot = runtime.visibility_authority().snapshot();
-    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
     *entities = read
         .entities()
         .iter()

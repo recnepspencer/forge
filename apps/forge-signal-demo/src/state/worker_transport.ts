@@ -2,7 +2,7 @@ import type { DiagnosticsTier } from "../gear-scene/core/types";
 import type { BranchId } from "../gear-scene/core/types";
 import type { WorkerCommand, WorkerEvent, WorkerSnapshot } from "../gear-scene/worker/protocol";
 
-const DEBUG_CONSOLE = false;
+const DEBUG_CONSOLE = true;
 
 export type WorkerTransportOptions = {
   onDebugStatus: (status: string) => void;

@@ -355,7 +355,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         Some(feature_branch.clone()),
     );
     let planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             feature_branch.clone(),
@@ -411,7 +411,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         Some(aspect_overlap_branch.clone()),
     );
     let aspect_overlap_planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_overlap_branch.clone(),
@@ -455,7 +455,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         Some(aspect_disjoint_branch.clone()),
     );
     let aspect_disjoint_planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_disjoint_branch.clone(),
@@ -531,7 +531,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         0
     );
     let controller_sequence_planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             controller_sequence_branch.clone(),
@@ -558,7 +558,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
     );
 
     let planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             feature_branch.clone(),
@@ -566,7 +566,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         ))
         .expect("final merge planning");
     let aspect_overlap_planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_overlap_branch.clone(),
@@ -574,7 +574,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         ))
         .expect("final aspect overlap merge planning");
     let aspect_disjoint_planning = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_disjoint_branch.clone(),
@@ -610,18 +610,15 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         .compared_surfaces
         .contains(&ReplayObservableSurface::Strategy));
     let current = runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(runtime.current_version_id());
     let visible_truth_digest = certification_digest(&(
         read_entity_name(current.get_entity(entity).expect("entity visible")).map(str::to_string),
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned(),
-        runtime
-            .history_access()
-            .branch_head(&feature_branch)
-            .cloned(),
+        runtime.history().branch_head(&feature_branch).cloned(),
     ));
 
     let mut live_bundle = StrategyCertificationBundle {
@@ -687,18 +684,15 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         failing_executor_replay_digest: String::new(),
         branch_heads_digest: certification_digest(&(
             runtime
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
-            runtime
-                .history_access()
-                .branch_head(&feature_branch)
-                .cloned(),
+            runtime.history().branch_head(&feature_branch).cloned(),
         )),
         visible_truth_digest,
     };
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
     );
 
@@ -754,7 +748,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         checkpoint_and_recover_with(&mut runtime, || persisted_strategy_runtime(recovered_root));
 
     let recovered_planning = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             feature_branch.clone(),
@@ -794,7 +788,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         .compared_surfaces
         .contains(&ReplayObservableSurface::Strategy));
     let recovered_aspect_overlap_planning = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_overlap_branch.clone(),
@@ -802,7 +796,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         ))
         .expect("recovered aspect overlap planning");
     let recovered_aspect_disjoint_planning = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             aspect_disjoint_branch.clone(),
@@ -810,7 +804,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         ))
         .expect("recovered aspect disjoint planning");
     let recovered_controller_sequence_planning = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(MergePlanningRequest::new(
             BranchId("main".to_string()),
             controller_sequence_branch.clone(),
@@ -818,17 +812,17 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         ))
         .expect("recovered controller sequence planning");
     let recovered_main_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(main_commit.commit.commit_id)
         .cloned()
         .expect("recovered main envelope");
     let recovered_feature_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(feature_commit.commit.commit_id)
         .cloned()
         .expect("recovered feature envelope");
     let recovered_current = recovered
-        .visibility_reads()
+        .read_truth()
         .read_version(recovered.current_version_id());
     let recovered_bundle = StrategyCertificationBundle {
         main_commit_strategy_digest: certification_digest(
@@ -875,7 +869,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         controller_sequence_noop_digest: certification_digest(&(
             certification_digest(
                 recovered
-                    .replay_access()
+                    .replay()
                     .canonical_commit_envelope(
                         controller_feature_idempotent_commit.commit.commit_id,
                     )
@@ -885,14 +879,14 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
                     .expect("recovered controller noop strategy artifacts"),
             ),
             recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
                 .expect("recovered controller noop envelope")
                 .patch
                 .records
                 .len(),
             recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
                 .expect("recovered controller noop envelope")
                 .patch
@@ -905,13 +899,10 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         failing_executor_replay_digest: full_replay_digest(&failing_executor_replay),
         branch_heads_digest: certification_digest(&(
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
-            recovered
-                .history_access()
-                .branch_head(&feature_branch)
-                .cloned(),
+            recovered.history().branch_head(&feature_branch).cloned(),
         )),
         visible_truth_digest: certification_digest(&(
             read_entity_name(
@@ -921,13 +912,10 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             )
             .map(str::to_string),
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
-            recovered
-                .history_access()
-                .branch_head(&feature_branch)
-                .cloned(),
+            recovered.history().branch_head(&feature_branch).cloned(),
         )),
     };
     assert_eq!(recovered_bundle, live_bundle);
@@ -956,7 +944,7 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         None,
     );
     let current = runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(runtime.current_version_id());
     let replacement_record = changed_entities(&replacement_commit)
         .into_iter()
@@ -969,7 +957,7 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         .lineage_id;
     assert_ne!(replacement_start_lineage, replacement_end_lineage);
     let replacement_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(replacement_commit.commit.commit_id)
         .cloned()
         .expect("replacement envelope");
@@ -1026,7 +1014,7 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         persisted_replacement_strategy_runtime(recovered_root)
     });
     let recovered_replacement_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(replacement_commit.commit.commit_id)
         .cloned()
         .expect("recovered replacement envelope");

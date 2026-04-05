@@ -62,9 +62,32 @@ export type SourceSpec<T = SignalValue> = {
   initial?: T;
 };
 
+export type PartitionMatchMode = "WholePartition" | "PartitionAndDetail";
+
+export type PartitionSubscription = {
+  partition: string;
+  detail?: string | null;
+  matchMode: PartitionMatchMode;
+};
+
+export type RecipeReadScopeSpec = {
+  partition?: string | null;
+  partitionFrom?: "key" | null;
+  detail?: string | null;
+  matchMode?: PartitionMatchMode | null;
+};
+
+export type RecipeReadSpec =
+  | string
+  | {
+      kind: "signal";
+      id: string;
+      scope?: PartitionSubscription | null;
+    };
+
 export type RecipeSpec<T = SignalValue> = {
   id: string;
-  reads?: string[];
+  reads?: RecipeReadSpec[];
   expr: Expr<T>;
   when?: ConditionSpec | null;
   identity?: IdentitySpec | null;
@@ -76,8 +99,8 @@ export type KeyedSourceFamilySpec<T = SignalValue> = {
 };
 
 export type RecipeFamilyReadSpec =
-  | { kind: "signal"; id: string }
-  | { kind: "keyed"; familyId: string };
+  | { kind: "signal"; id: string; scope?: RecipeReadScopeSpec | null }
+  | { kind: "keyed"; familyId: string; scope?: RecipeReadScopeSpec | null };
 
 export type KeyedRecipeFamilySpec<T = SignalValue> = {
   familyId: string;
@@ -89,9 +112,16 @@ export type KeyedRecipeFamilySpec<T = SignalValue> = {
 
 export type TransactionOp<T = SignalValue> =
   | { kind: "set"; id: string; value: T }
+  | { kind: "setWithRegions"; id: string; value: T; changedRegions: ChangedRegion[] }
   | { kind: "setMany"; values: Array<{ id: string; value: T }> }
+  | { kind: "setManyWithRegions"; values: Array<{ id: string; value: T; changedRegions: ChangedRegion[] }> }
   | { kind: "setManyKeyed"; familyId: string; values: Array<{ key: string; value: T }> }
   | { kind: "setPackedGridRgba"; familyId: string; width: number; height: number; rgba: Uint8ClampedArray | Uint8Array };
+
+export type ChangedRegion = {
+  partition: string;
+  detail?: string | null;
+};
 
 export type RuntimePolicyPreset =
   | "development"

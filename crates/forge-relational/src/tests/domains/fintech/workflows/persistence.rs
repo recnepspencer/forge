@@ -10,7 +10,7 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
     let _checkpoint = checkpoint_world(&mut world).unwrap();
     let _correction = correct_seeded_trade_candidate(&mut world, analysis);
     let expected = {
-        let plan = world.runtime.durability_access().recovery_plan(
+        let plan = world.runtime.durability().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         );
         let mut recovered = FintechWorld::setup_persisted_world().runtime;
@@ -20,14 +20,14 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
 
     let (recovered, outcome) = recover_persisted_world(&world).unwrap();
     let recovered_snapshot = recovered
-        .publication_access()
+        .publication()
         .latest_bundle()
         .unwrap()
         .snapshot
         .clone();
     let packet = {
         let context = recovered
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&recovered_snapshot)
             .expect("recovered portfolio query plan context");
         PlannedQueryPacket::explicit_targets(
@@ -41,10 +41,10 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
         )
     };
     let result = recovered
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             recovered
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&recovered_snapshot, packet)
                 .expect("planned recovered query"),
         )
@@ -60,10 +60,10 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
     assert_eq!(result.entities.len(), 3);
     assert_eq!(
         recovered
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
-        recovered.history_access().latest_commit().cloned()
+        recovered.history().latest_commit().cloned()
     );
     let after_probe = read_snapshot_probe(
         &world,
@@ -94,7 +94,7 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
     );
     let merged = merge_branch_into_main(&mut world, audit.clone());
     let (merge_parent_branches, merge_base_count, parent_count) = {
-        let replay = world.runtime.replay_access();
+        let replay = world.runtime.replay();
         let envelope = replay
             .canonical_commit_envelope(merged.commit.commit_id)
             .expect("merged commit should have canonical envelope");
@@ -109,7 +109,7 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
     assert_eq!(
         world
             .runtime
-            .history_access()
+            .history()
             .branch_head(&audit)
             .map(|commit| commit.commit_id),
         Some(merged.commit.parents[1])
@@ -117,7 +117,7 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
     assert_ne!(
         world
             .runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .map(|commit| commit.commit_id),
         Some(merged.commit.commit_id)
@@ -153,10 +153,9 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
 
     let mut persisted = setup_world_for(FintechScenario::PersistedSmokeBook);
     checkpoint_world(&mut persisted).unwrap();
-    let path =
-        corrupt_latest_checkpoint_file(&persisted.runtime.durability_access().recovery_plan(
-            crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-        ));
+    let path = corrupt_latest_checkpoint_file(&persisted.runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    ));
     assert!(path.is_some());
 }
 
@@ -209,15 +208,15 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
     );
     assert_eq!(
         recovered
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
-        recovered.history_access().latest_commit().cloned()
+        recovered.history().latest_commit().cloned()
     );
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {
         let context = recovered
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&recovered_snapshot)
             .expect("recovered portfolio query plan context");
         PlannedQueryPacket::explicit_targets(
@@ -231,10 +230,10 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
         )
     };
     let result = recovered
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             recovered
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&recovered_snapshot, packet)
                 .expect("planned recovered portfolio query"),
         )
@@ -305,21 +304,21 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     checkpoint_world(&mut world).unwrap();
     let correction = correct_seeded_trade_candidate(&mut world, analysis);
     checkpoint_world(&mut world).unwrap();
-    let plan = world.runtime.durability_access().recovery_plan(
+    let plan = world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let corrupted = corrupt_latest_checkpoint_file(&plan);
     assert!(corrupted.is_some());
 
     let (mut recovered, outcome) =
-        recover_runtime_from_plan(world.runtime.durability_access().recovery_plan(
+        recover_runtime_from_plan(world.runtime.durability().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         ))
         .unwrap();
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {
         let context = recovered
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&recovered_snapshot)
             .expect("recovered correction query plan context");
         PlannedQueryPacket::explicit_targets(
@@ -333,10 +332,10 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
         )
     };
     let result = recovered
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             recovered
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&recovered_snapshot, packet)
                 .expect("planned recovered correction query"),
         )

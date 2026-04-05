@@ -17,7 +17,7 @@ fn durable_log_compaction_respects_checkpoint_policy() {
     create_entity(&mut runtime, "second");
     create_entity(&mut runtime, "third");
 
-    assert!(runtime.durability_access().durable_log().len() <= 1);
+    assert!(runtime.durability().durable_log().len() <= 1);
 }
 
 #[test]
@@ -74,10 +74,10 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
     runtime
         .visibility_authority()
         .release_snapshot(&deleted.snapshot);
-    let _ = runtime.retention_authority().run_pass();
+    let _ = runtime.retention().run_pass();
 
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
-    let historical = runtime.visibility_reads().read_version(created.version_id);
+    let historical = runtime.read_truth().read_version(created.version_id);
     let record = historical.get_relation(relation).unwrap();
     assert_eq!(
         record
@@ -107,8 +107,8 @@ fn visibility_cache_zero_window_does_not_accumulate_unprotected_history() {
     let second = create_entity_outcome(&mut runtime, "second");
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_version(first.version_id);
-    let _ = runtime.visibility_reads().read_version(first.version_id);
+    let _ = runtime.read_truth().read_version(first.version_id);
+    let _ = runtime.read_truth().read_version(first.version_id);
     let stats = runtime.storage_access().storage_stats();
     let counters = runtime.performance_access().counters();
 
@@ -139,7 +139,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     let _updated = update_entity(&mut runtime, entity, "first-updated");
 
     let read_path = runtime
-        .visibility_reads()
+        .read_truth()
         .inspect_snapshot_read_path(&snapshot)
         .unwrap();
     assert!(read_path
@@ -155,11 +155,8 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
                 == Some(false)
     }));
 
-    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
-    let inspection = runtime
-        .visibility_reads()
-        .inspect_snapshot(&snapshot)
-        .unwrap();
+    let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
+    let inspection = runtime.read_truth().inspect_snapshot(&snapshot).unwrap();
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(
@@ -172,10 +169,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     assert_eq!(stats.protected_visibility_version_count, 0);
 
     assert!(runtime.visibility_authority().release_snapshot(&snapshot));
-    assert!(runtime
-        .visibility_reads()
-        .read_snapshot(&snapshot)
-        .is_none());
+    assert!(runtime.read_truth().read_snapshot(&snapshot).is_none());
 }
 
 #[test]
@@ -197,8 +191,8 @@ fn unprotected_active_snapshots_can_use_recent_cache_when_enabled() {
     let _updated = update_entity(&mut runtime, entity, "first-updated");
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
-    let _ = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let _ = runtime.read_truth().read_snapshot(&snapshot).unwrap();
+    let _ = runtime.read_truth().read_snapshot(&snapshot).unwrap();
 
     let stats = runtime.storage_access().storage_stats();
     let counters = runtime.performance_access().counters();
@@ -229,7 +223,7 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     let third = create_entity_outcome(&mut runtime, "third");
 
     let first_read_path = runtime
-        .visibility_reads()
+        .read_truth()
         .inspect_version_read_path(first.version_id)
         .unwrap();
     assert!(first_read_path
@@ -246,9 +240,9 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     }));
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_version(first.version_id);
-    let _ = runtime.visibility_reads().read_version(second.version_id);
-    let _ = runtime.visibility_reads().read_version(second.version_id);
+    let _ = runtime.read_truth().read_version(first.version_id);
+    let _ = runtime.read_truth().read_version(second.version_id);
+    let _ = runtime.read_truth().read_version(second.version_id);
     let stats = runtime.storage_access().storage_stats();
     let counters = runtime.performance_access().counters();
 
@@ -259,7 +253,7 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     assert!(counters.visibility_cache_hits >= 1);
     assert!(counters.visibility_cache_recent_evictions >= 1);
     let second_read_path = runtime
-        .visibility_reads()
+        .read_truth()
         .inspect_version_read_path(second.version_id)
         .unwrap();
     assert!(second_read_path
@@ -267,7 +261,7 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         .iter()
         .any(|entry| entry.code == DiagnosticCode::VisibilityCacheHit));
     let evicted_first_read_path = runtime
-        .visibility_reads()
+        .read_truth()
         .inspect_version_read_path(first.version_id)
         .unwrap();
     assert!(evicted_first_read_path.entries.iter().any(|entry| {
@@ -285,7 +279,7 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     }));
     assert_eq!(
         third.version_id,
-        runtime.history_access().latest_commit().unwrap().version_id
+        runtime.history().latest_commit().unwrap().version_id
     );
 }
 
@@ -302,7 +296,7 @@ fn heavy_profiles_keep_recent_visibility_cache_small_under_sustained_history_rea
 
     runtime.performance_access().reset_counters();
     for version_id in &versions[..versions.len() - 1] {
-        let _ = runtime.visibility_reads().read_version(*version_id);
+        let _ = runtime.read_truth().read_version(*version_id);
     }
     let stats = runtime.storage_access().storage_stats();
 
@@ -385,7 +379,7 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
     assert_eq!(stats.cached_visibility_version_count, 0);
     assert_eq!(stats.recent_visibility_cache_count, 0);
 
-    let _ = runtime.visibility_reads().read_version(base.version_id);
+    let _ = runtime.read_truth().read_version(base.version_id);
     let warmed_stats = runtime.storage_access().storage_stats();
     assert_eq!(warmed_stats.cached_visibility_version_count, 1);
     assert_eq!(warmed_stats.protected_visibility_version_count, 2);
@@ -417,6 +411,6 @@ fn geometry_profile_does_not_force_retention_pass_on_each_commit() {
         .visibility_authority()
         .release_snapshot(&deleted.snapshot));
 
-    let plan = runtime.retention_authority().inspect_plan();
+    let plan = runtime.retention().inspect_plan();
     assert!(plan.reclaimable_entities >= 1);
 }

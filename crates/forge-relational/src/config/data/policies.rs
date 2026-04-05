@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
+use crate::durability::data::{DurabilityMode, DurableStoreLayout};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RelationalRuntimeProfile {

@@ -159,7 +159,17 @@ pub(super) fn materialize_relation_record_at_version(
             metadata.generation,
         ),
         kind,
-        lifecycle: historical_lifecycle(metadata.retired_at(), version_id),
+        lifecycle: if partition
+            .relation_arena
+            .get_slot(slot)
+            .is_some_and(|slot_view| {
+                slot_view.generation() == metadata.generation
+                    && slot_view.lifecycle() == RecordLifecycleState::RetainedDanglingForAudit
+            }) {
+            RecordLifecycleState::RetainedDanglingForAudit
+        } else {
+            historical_lifecycle(metadata.retired_at(), version_id)
+        },
         created_at_version: metadata.effective_at(),
         retired_at_version: metadata.retired_at(),
         source: metadata.endpoints.source,

@@ -72,7 +72,7 @@ impl VisibilityCache {
             .len()
     }
 
-    pub(crate) fn protected_version_count(&self) -> usize {
+    pub(crate) fn protected_version_count(&self, protect_active_snapshots: bool) -> usize {
         self.residency
             .read()
             .expect("visibility residency lock poisoned")
@@ -80,7 +80,7 @@ impl VisibilityCache {
             .filter(|entry| {
                 entry.branch_head_refs > 0
                     || entry.replay_refs > 0
-                    || entry.active_snapshot_refs > 0
+                    || (protect_active_snapshots && entry.active_snapshot_refs > 0)
             })
             .count()
     }

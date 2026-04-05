@@ -45,7 +45,7 @@ pub(crate) fn promote_case_correspondence(
 ) -> LineageResolutionStatus {
     let authoritative_commit = world
         .runtime
-        .history_access()
+        .history()
         .branch_head(&commit.branch_id)
         .cloned()
         .unwrap_or(commit.clone());

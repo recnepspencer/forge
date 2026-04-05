@@ -125,7 +125,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
         };
 
         let Some(replayed_envelope) = replay_runtime
-            .replay_access()
+            .replay()
             .canonical_commit_envelope(request.commit_id)
             .cloned()
         else {
@@ -1088,7 +1088,7 @@ fn verify_strategy_reexecution_surface(
             }
         }
         (None, Some(validated_version_id)) if validated_version_id.0 > 0 => {
-            let history = runtime.history_access();
+            let history = runtime.history();
             let Some(basis_commit_id) = history
                 .commit_envelope_for_version(validated_version_id)
                 .map(|envelope| envelope.commit.commit_id)
@@ -1325,7 +1325,7 @@ fn ensure_strategy_replay_basis_branch(
 ) -> Result<(), String> {
     if envelope.branch_context == BranchId("main".to_string())
         || basis_runtime
-            .history_access()
+            .history()
             .branch_head(&envelope.branch_context)
             .is_some()
     {
@@ -1336,7 +1336,7 @@ fn ensure_strategy_replay_basis_branch(
         .validated_against_commit_id()
         .and_then(|commit_id| {
             basis_runtime
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(commit_id)
                 .map(|basis| basis.branch_context.clone())
         })

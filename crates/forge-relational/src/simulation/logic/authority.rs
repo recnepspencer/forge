@@ -17,7 +17,7 @@ pub struct SimulationAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn simulation_authority(&mut self) -> SimulationAuthority<'_> {
+    pub(crate) fn simulation_authority(&mut self) -> SimulationAuthority<'_> {
         SimulationAuthority::new(self)
     }
 }
@@ -40,12 +40,7 @@ impl<'runtime> SimulationAuthority<'runtime> {
                 detail: "compiled execution lane is disabled for this profile".to_string(),
             });
         }
-        let Some(envelope) = self
-            .runtime
-            .history_access()
-            .commit_envelope(commit_id)
-            .cloned()
-        else {
+        let Some(envelope) = self.runtime.history().commit_envelope(commit_id).cloned() else {
             return Err(CompiledArtifactError {
                 compatibility: CompiledArtifactCompatibility::MissingSourceCommit,
                 detail: format!("missing source commit {}", commit_id.0),

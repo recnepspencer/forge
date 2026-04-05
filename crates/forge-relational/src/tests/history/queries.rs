@@ -60,18 +60,18 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
     let main_second =
         create_entity_outcome_on_branch(&mut runtime, "main-b", BranchId("main".to_string()));
-    let graph = runtime.history_access().version_graph();
+    let graph = runtime.history().version_graph();
 
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string()))
             .unwrap(),
         &feature_outcome.commit
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .unwrap(),
         &main_second.commit
@@ -115,18 +115,16 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         ]
     );
     assert_eq!(
-        runtime
-            .history_access()
-            .branch_head(&BranchId("main".to_string())),
+        runtime.history().branch_head(&BranchId("main".to_string())),
         Some(&merge_outcome.commit)
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string())),
         Some(&feature_outcome.commit)
     );
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(merge_outcome.commit.commit_id)
         .unwrap();
@@ -139,20 +137,20 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         vec![main_outcome.commit.commit_id]
     );
     assert!(runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::MergeCommitPublished));
     assert!(runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::MergeBaseResolved));
-    let publication_diagnostics = runtime.publication_access().diagnostics();
+    let publication_diagnostics = runtime.publication().diagnostics();
     let merge_diagnostic = publication_diagnostics
         .by_scope(DiagnosticsScope::PatchPublication)
         .into_iter()
@@ -206,18 +204,16 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
     let chain = runtime
-        .history_access()
+        .history()
         .ancestor_closure_by_commit_id_order(feature.commit.commit_id);
-    let merge_base = runtime
-        .history_access()
-        .latest_common_ancestor_between_branches(
-            &BranchId("main".to_string()),
-            &BranchId("feature".to_string()),
-        );
+    let merge_base = runtime.history().latest_common_ancestor_between_branches(
+        &BranchId("main".to_string()),
+        &BranchId("feature".to_string()),
+    );
 
     assert_eq!(chain, vec![main.commit.commit_id, feature.commit.commit_id]);
     assert_eq!(merge_base, Some(main.commit.commit_id));
-    assert!(runtime.history_access().can_merge_branch_into(
+    assert!(runtime.history().can_merge_branch_into(
         &BranchId("feature".to_string()),
         &BranchId("main".to_string())
     ));
@@ -242,7 +238,7 @@ fn merge_inspection_reports_overlapping_authority() {
         "feature-updated",
         BranchId("feature".to_string()),
     );
-    let inspection = runtime.history_access().inspect_merge(
+    let inspection = runtime.history().inspect_merge(
         &BranchId("feature".to_string()),
         &BranchId("main".to_string()),
     );
@@ -292,7 +288,7 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
         None
     ));
     assert!(runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::History)
         .iter()
@@ -336,7 +332,7 @@ fn chunked_storage_summary_tracks_visibility_boundaries() {
         .chunked_storage_summary(snapshot.version_id);
     let summary_current = runtime
         .storage_access()
-        .chunked_storage_summary(runtime.history_access().latest_commit().unwrap().version_id);
+        .chunked_storage_summary(runtime.history().latest_commit().unwrap().version_id);
 
     assert_eq!(summary_before_update.entity_chunks.len(), 2);
     assert_eq!(summary_before_update.entity_chunks[0].visible_records, 2);
@@ -383,9 +379,9 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
     let updated = update_entity(&mut runtime, entity, "after");
     let history =
         runtime
-            .history_access()
+            .history()
             .entity_aspect_history(&BranchId("main".to_string()), entity, None);
-    let traced = runtime.history_access().entity_aspect_history_with_trace(
+    let traced = runtime.history().entity_aspect_history_with_trace(
         &BranchId("main".to_string()),
         entity,
         None,
@@ -433,7 +429,7 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
     assert_eq!(history[0].origin.changed_aspects, resolved_aspects);
     assert_eq!(history[1].origin.commit_id, updated.commit.commit_id);
 
-    let filtered = runtime.history_access().entity_aspect_history(
+    let filtered = runtime.history().entity_aspect_history(
         &BranchId("main".to_string()),
         entity,
         Some(&AspectFilter {
@@ -441,7 +437,7 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
             aspects: RequestedAspectSet::new([AspectKey(InternedString::Raw("name".to_string()))]),
         }),
     );
-    let any_filtered = runtime.history_access().entity_aspect_history(
+    let any_filtered = runtime.history().entity_aspect_history(
         &BranchId("main".to_string()),
         entity,
         Some(&AspectFilter {
@@ -535,7 +531,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         })
         .collect::<Vec<_>>();
     runtime.durability_authority().checkpoint().unwrap();
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
 

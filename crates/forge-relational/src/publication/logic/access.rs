@@ -13,7 +13,7 @@ pub struct PublicationAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn publication_access(&self) -> PublicationAccess<'_> {
+    pub(crate) fn publication_access(&self) -> PublicationAccess<'_> {
         PublicationAccess::new(self)
     }
 }

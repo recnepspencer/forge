@@ -30,10 +30,6 @@ impl<'runtime> MergeAccess<'runtime> {
         Self { runtime }
     }
 
-    pub fn runtime(&self) -> &'runtime RelationalRuntime {
-        self.runtime
-    }
-
     pub fn inspect_history_scope(
         &self,
         request: MergePlanningRequest,

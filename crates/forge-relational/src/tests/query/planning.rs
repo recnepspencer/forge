@@ -6,7 +6,7 @@ fn query_planning_context_binds_snapshot_runtime_and_schema_identity() {
     let committed = create_entity_outcome(&mut runtime, "first");
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&committed.snapshot)
         .expect("query plan context");
 
@@ -74,7 +74,7 @@ fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_s
     let created = create_entity_outcome(&mut runtime, "seed");
     let seed = changed_entities(&created)[0];
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&created.snapshot)
         .expect("query plan context");
 
@@ -96,7 +96,7 @@ fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_s
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&created.snapshot, packet)
         .expect("snapshot pinned plan");
 
@@ -125,7 +125,7 @@ fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization
         changed_entities(&fifth)[0],
     ];
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&fifth.snapshot)
         .expect("query plan context");
 
@@ -147,7 +147,7 @@ fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization
     };
 
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&fifth.snapshot, packet)
         .expect("snapshot pinned plan");
 
@@ -161,7 +161,7 @@ fn query_planning_rejects_packets_with_forged_context() {
     let created = create_entity_outcome(&mut runtime, "forged");
     let entity = changed_entities(&created)[0];
     let mut context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&created.snapshot)
         .expect("query plan context");
     context.version_id = crate::facade::identity::VersionId(context.version_id.0 + 1);
@@ -182,7 +182,7 @@ fn query_planning_rejects_packets_with_forged_context() {
     };
 
     assert!(runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&created.snapshot, packet)
         .is_none());
 }
@@ -216,7 +216,7 @@ fn empty_runtime_query_planning_uses_explicit_genesis_basis() {
     let snapshot = runtime.visibility_authority().snapshot();
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("genesis query plan context");
 

@@ -39,7 +39,7 @@ fn entity_projections_collapse_kind_and_partition_threading() {
     let _other_left = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let view = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(runtime.current_version_id());
 
     let projected = view.entities::<NamedEntityProjection>();
@@ -68,7 +68,7 @@ fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
     let created = create_entity_outcome(&mut runtime, "visible");
 
     let projected = runtime
-        .visibility_reads()
+        .read_truth()
         .project_snapshot(&created.snapshot)
         .unwrap()
         .entities::<NamedEntityProjection>();
@@ -88,8 +88,8 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let relation = create_relation(&mut runtime, left, right, "r0");
     let version_id = runtime.current_version_id();
-    let view = runtime.visibility_reads().project_version(version_id);
-    let read = runtime.visibility_reads().read_version(version_id);
+    let view = runtime.read_truth().project_version(version_id);
+    let read = runtime.read_truth().read_version(version_id);
 
     assert_eq!(
         view.all_entity_records()
@@ -116,7 +116,7 @@ fn projection_rejects_undeclared_required_aspects() {
     let mut runtime = runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "visible");
     let _ = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(runtime.current_version_id())
         .entities::<NamedEntityProjection>();
 }

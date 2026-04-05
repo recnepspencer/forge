@@ -35,12 +35,22 @@ export function Viewport({
   );
 
   return (
-    <div className={`vp ${active ? "vp--active" : ""}`} onClick={onActivate}>
-      <div className="vp__head">
+    <button type="button" className={`vp ${active ? "vp--active" : ""}`} onClick={onActivate}>
+      <div className="vp__badge-rail">
         <span className="vp__name">{branch.name}</span>
-        <span className="vp__meta">{branch.state.gear.teeth} teeth - frame {branch.hud.frameIndex}</span>
+        <span className="vp__pill">{branch.state.gear.teeth} teeth</span>
+        <span className="vp__pill">frame {branch.hud.frameIndex}</span>
       </div>
       <canvas ref={drawCanvas} className="vp__canvas" width={RENDER_WIDTH} height={RENDER_HEIGHT} />
-    </div>
+      <div className="vp__footer">
+        <div className="vp__footer-copy">
+          <span className="vp__footer-label">{active ? "Active branch" : "Tap to inspect"}</span>
+          <strong className="vp__footer-title">{branch.name === "what-if" ? "Counterfactual branch" : "Mainline branch"}</strong>
+        </div>
+        <span className={`vp__state ${active ? "vp__state--active" : ""}`}>
+          {active ? "Live" : "Standby"}
+        </span>
+      </div>
+    </button>
   );
 }

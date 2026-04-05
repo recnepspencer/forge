@@ -82,7 +82,7 @@ fn lowered_plan_preserves_source_deleted_target_live_block_reason() {
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -147,7 +147,7 @@ fn lowered_plan_preserves_source_live_target_deleted_block_reason() {
     delete_entity(&mut runtime, entity);
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -207,7 +207,7 @@ fn lowered_plan_preserves_deleted_vs_modified_block_reason() {
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -266,7 +266,7 @@ fn lowered_plan_carries_explicit_manual_resolution_policy_boundary_for_generic_d
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -315,7 +315,7 @@ fn lowered_plan_carries_explicit_hard_reject_policy_boundary_for_fail_on_conflic
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -367,7 +367,7 @@ fn admitted_source_addition_carries_executable_class() {
     let entity = crate::tests::support::changed_entities(&feature_only)[0];
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -421,7 +421,7 @@ fn compile_rejects_corrupted_non_executable_resolution_class() {
     lowered[0].executable_class = None;
 
     match runtime
-        .merge_access()
+        .merge()
         .compile_execution_ready_merge_plan_for_test(execution_ready)
     {
         Err(MergeExecutionCompilationError::MissingExecutableClass { .. }) => {}

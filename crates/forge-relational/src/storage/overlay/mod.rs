@@ -6,6 +6,7 @@ mod working_state;
 pub(crate) use access::{BorrowedWorkingState, OverlayStateView, PartitionAccess};
 #[allow(unused_imports)]
 pub(crate) use partition::{
+    summarize_entity_chunk_plan, EntityChunkPlanSummary, EntityWorkingSetLayout,
     PartitionCloneMode, PartitionMutationJournal, PartitionState, SnapshotPartitionPins,
     SnapshotState,
 };

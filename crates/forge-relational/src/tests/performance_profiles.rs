@@ -4,16 +4,23 @@ use std::time::Instant;
 
 use serde_json::json;
 
+use super::domains::fintech::{
+    perf_capture_baseline_observability, perf_capture_intraday_risk_probe,
+    perf_capture_post_mutation_observability, perf_capture_trade_correction_probe,
+    perf_correct_trade_correction, perf_emit_trade_correction_audit, perf_open_analysis_branch,
+    perf_stress_intraday_risk, setup_intraday_risk_perf_world, setup_trade_correction_perf_world,
+};
+use super::performance_support::*;
 use crate::capabilities::{DurabilityRead, DurabilityWrite};
 use crate::facade::config::{AdjacencyBackend, RelationalRuntimeProfile};
 use crate::facade::history::BranchId;
+use crate::facade::indexes::{
+    DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
+};
 use crate::facade::inspection::{
     ConnectivityInspectionBudget, ConnectivityInspectionRequest, InspectionRecordClass,
     InspectionScope, KindInspectionRequest, RecentCommitInspectionRequest,
     StructuralIdentityQueryRequest,
-};
-use crate::facade::indexes::{
-    DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
 use crate::facade::lineage::{
     HistoricalResolutionBoundednessBasis, HistoricalResolutionRequest, LineageDivergenceRequest,
@@ -25,27 +32,17 @@ use crate::facade::query::{
     QueryFallbackContract, QueryLocalityClass, QueryOrderingContract, QueryScope,
     ReductionDiscipline,
 };
-use crate::facade::replay::{
-    RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
-};
+use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
 use crate::facade::runtime::{CompiledArtifactCompatibility, EntityRecordProjection};
 use crate::facade::symbols::Symbol;
+use crate::tests::support::*;
 use crate::validation::data::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
     CustomInvariantRegistration, CustomInvariantRule, CustomInvariantRuleId,
-    CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
-};
-use crate::tests::support::*;
-use super::performance_support::*;
-use super::domains::fintech::{
-    perf_capture_baseline_observability, perf_capture_intraday_risk_probe,
-    perf_capture_post_mutation_observability, perf_capture_trade_correction_probe,
-    perf_correct_trade_correction, perf_emit_trade_correction_audit, perf_open_analysis_branch,
-    perf_stress_intraday_risk, setup_intraday_risk_perf_world,
-    setup_trade_correction_perf_world,
+    CustomInvariantScopePlanner, CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion,
+    CustomInvariantVerdict, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
+    InvariantGroup, InvariantGroupSet,
 };
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -95,7 +92,9 @@ impl MockBridgeRuntime {
             development_profile,
             source_versions: vec![1; bounded],
             bridge_versions: (0..bounded).map(|index| 100 + index as u64 * 10).collect(),
-            target_versions: (0..bounded).map(|index| 1_000 + index as u64 * 100).collect(),
+            target_versions: (0..bounded)
+                .map(|index| 1_000 + index as u64 * 100)
+                .collect(),
             observation: MockBridgeObservation::default(),
             history_entries: 0,
             has_latest_flow: false,
@@ -129,7 +128,8 @@ impl MockBridgeRuntime {
             self.bridge_versions[index] += 10;
             self.target_versions[index] += 100;
             affected_targets.insert(index);
-            affected_targets.insert((index + self.target_versions.len() - 1) % self.target_versions.len());
+            affected_targets
+                .insert((index + self.target_versions.len() - 1) % self.target_versions.len());
         }
 
         let affected_target_count = affected_targets.len() as u64;
@@ -141,7 +141,11 @@ impl MockBridgeRuntime {
         } else {
             nodes_recomputed
         };
-        let tasks_pruned_before_execution = if self.development_profile { 0 } else { bounded / 2 };
+        let tasks_pruned_before_execution = if self.development_profile {
+            0
+        } else {
+            bounded / 2
+        };
         let suppressed_downstream_propagations = if self.development_profile {
             0
         } else {
@@ -164,7 +168,10 @@ fn diagnostic_artifact_kind_count(
     artifacts: &[crate::facade::diagnostics::RelationalDiagnosticArtifact],
     kind: DiagnosticsArtifactKind,
 ) -> usize {
-    artifacts.iter().filter(|artifact| artifact.kind == kind).count()
+    artifacts
+        .iter()
+        .filter(|artifact| artifact.kind == kind)
+        .count()
 }
 
 fn diagnostic_artifact_scope_count(
@@ -191,7 +198,10 @@ fn diagnostic_entry_code_count(
 fn diagnostic_entry_count(
     artifacts: &[crate::facade::diagnostics::RelationalDiagnosticArtifact],
 ) -> usize {
-    artifacts.iter().map(|artifact| artifact.entries.len()).sum()
+    artifacts
+        .iter()
+        .map(|artifact| artifact.entries.len())
+        .sum()
 }
 
 fn runtime_execution_lane_code(profile: RelationalRuntimeProfile) -> u64 {
@@ -449,7 +459,7 @@ fn fresh_diagnostics_metrics(
     runtime: &RelationalRuntime,
     diagnostics_start: usize,
 ) -> (usize, usize) {
-    let publication = runtime.publication_access();
+    let publication = runtime.publication();
     let diagnostics = publication.diagnostic_artifacts();
     let fresh_artifacts = &diagnostics[diagnostics_start..];
     let detailed_trace_entries = fresh_artifacts
@@ -464,10 +474,11 @@ fn fresh_diagnostics_metrics(
 
 fn dense_patch_record_count(runtime: &RelationalRuntime) -> usize {
     runtime
-        .publication_access()
+        .publication()
         .latest_patch()
         .map(|patch| {
-            patch.records
+            patch
+                .records
                 .iter()
                 .filter(|record| {
                     matches!(
@@ -487,7 +498,7 @@ fn entity_name_index_packet(
     value: &str,
 ) -> PlannedQueryPacket {
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(snapshot)
         .expect("query plan context");
     PlannedQueryPacket {
@@ -521,6 +532,7 @@ struct RocketshipSeedOutcome {
     relation_count: usize,
     entity_commit_micros: u128,
     relation_commit_micros: u128,
+    relation_commit_phase_timing: crate::transactions::data::CommitPhaseTiming,
 }
 
 #[derive(Debug)]
@@ -533,6 +545,7 @@ struct RocketshipPseudoRealisticSeedOutcome {
     subsystem_count: usize,
     entity_commit_micros: u128,
     relation_commit_micros: u128,
+    relation_commit_phase_timing: crate::transactions::data::CommitPhaseTiming,
 }
 
 #[derive(Clone, Copy)]
@@ -699,6 +712,7 @@ fn seed_rocketship_world(
     }
     let relation_count = relation_specs.len();
     let mut relation_commit_micros = 0u128;
+    let mut relation_commit_phase_timing = crate::transactions::data::CommitPhaseTiming::default();
     for (chunk_index, relation_chunk) in relation_specs
         .chunks(ROCKETSHIP_RELATION_SEED_BATCH_SIZE)
         .enumerate()
@@ -712,10 +726,45 @@ fn seed_rocketship_world(
                 batch = batch.push(intent);
             }
             txn.push_batch(batch);
-            txn.commit()
-                .expect("rocketship relation seed commit chunk")
+            txn.commit().expect("rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();
+        relation_commit_phase_timing.draft_preparation_micros +=
+            outcome.execution.phase_timing.draft_preparation_micros;
+        relation_commit_phase_timing.draft_bulk_admission_micros +=
+            outcome.execution.phase_timing.draft_bulk_admission_micros;
+        relation_commit_phase_timing.draft_merge_plan_micros +=
+            outcome.execution.phase_timing.draft_merge_plan_micros;
+        relation_commit_phase_timing.draft_structural_summary_micros += outcome
+            .execution
+            .phase_timing
+            .draft_structural_summary_micros;
+        relation_commit_phase_timing.draft_working_state_clone_micros += outcome
+            .execution
+            .phase_timing
+            .draft_working_state_clone_micros;
+        relation_commit_phase_timing.working_state_preparation_micros += outcome
+            .execution
+            .phase_timing
+            .working_state_preparation_micros;
+        relation_commit_phase_timing.invariant_pre_check_micros +=
+            outcome.execution.phase_timing.invariant_pre_check_micros;
+        relation_commit_phase_timing.authoritative_mutation_micros +=
+            outcome.execution.phase_timing.authoritative_mutation_micros;
+        relation_commit_phase_timing.history_resolution_micros +=
+            outcome.execution.phase_timing.history_resolution_micros;
+        relation_commit_phase_timing.invariant_post_check_micros +=
+            outcome.execution.phase_timing.invariant_post_check_micros;
+        relation_commit_phase_timing.artifact_assembly_micros +=
+            outcome.execution.phase_timing.artifact_assembly_micros;
+        relation_commit_phase_timing.durable_append_micros +=
+            outcome.execution.phase_timing.durable_append_micros;
+        relation_commit_phase_timing.publication_micros +=
+            outcome.execution.phase_timing.publication_micros;
+        relation_commit_phase_timing.publication_storage_commit_micros += outcome
+            .execution
+            .phase_timing
+            .publication_storage_commit_micros;
         assert_eq!(
             changed_relations(&outcome).len(),
             relation_chunk.len(),
@@ -728,6 +777,7 @@ fn seed_rocketship_world(
         relation_count,
         entity_commit_micros,
         relation_commit_micros,
+        relation_commit_phase_timing,
     }
 }
 
@@ -736,7 +786,10 @@ fn seed_pseudorealistic_rocketship_world(
     node_count: usize,
     query_target_count: usize,
 ) -> RocketshipPseudoRealisticSeedOutcome {
-    let total_weight: usize = ROCKETSHIP_SUBSYSTEM_LAYOUTS.iter().map(|layout| layout.weight).sum();
+    let total_weight: usize = ROCKETSHIP_SUBSYSTEM_LAYOUTS
+        .iter()
+        .map(|layout| layout.weight)
+        .sum();
     let mut assigned = 0usize;
     let mut subsystem_ranges = Vec::with_capacity(ROCKETSHIP_SUBSYSTEM_LAYOUTS.len());
 
@@ -799,8 +852,7 @@ fn seed_pseudorealistic_rocketship_world(
         node_count,
         "pseudorealistic rocketship should seed all entities"
     );
-    let entities =
-        rebuild_pseudorealistic_entity_order(runtime, &subsystem_ranges, node_count);
+    let entities = rebuild_pseudorealistic_entity_order(runtime, &subsystem_ranges, node_count);
 
     let mut relation_specs = Vec::new();
     let mut mixed_query_targets = Vec::new();
@@ -847,7 +899,9 @@ fn seed_pseudorealistic_rocketship_world(
         mixed_query_targets.push(RecordRef::Entity(subsystem_entities[midpoint]));
         traversal_seeds.push(subsystem_entities[midpoint]);
         if subsystem_entities.len() > 64 {
-            mixed_query_targets.push(RecordRef::Entity(subsystem_entities[subsystem_entities.len() / 4]));
+            mixed_query_targets.push(RecordRef::Entity(
+                subsystem_entities[subsystem_entities.len() / 4],
+            ));
             mixed_query_targets.push(RecordRef::Entity(
                 subsystem_entities[(subsystem_entities.len() * 3) / 4],
             ));
@@ -860,7 +914,9 @@ fn seed_pseudorealistic_rocketship_world(
         let left_entities = &entities[left_start..left_end];
         let right_entities = &entities[right_start..right_end];
         let interface_stride = (left_entities.len().min(right_entities.len()) / 96).max(1);
-        for interface_index in (0..left_entities.len().min(right_entities.len())).step_by(interface_stride) {
+        for interface_index in
+            (0..left_entities.len().min(right_entities.len())).step_by(interface_stride)
+        {
             relation_specs.push(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId(401 + (interface_index % 32) as u32),
                 kind_id: KindId(2),
@@ -893,7 +949,9 @@ fn seed_pseudorealistic_rocketship_world(
         client_key: InternedString::Raw("rocket.control.guidance-avionics".to_string()),
         source: guidance_anchor,
         target: avionics_anchor,
-        payload: Some(RecordPayload::StructuredJson(json!({"edge_type": "control"}))),
+        payload: Some(RecordPayload::StructuredJson(
+            json!({"edge_type": "control"}),
+        )),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(502),
@@ -901,7 +959,9 @@ fn seed_pseudorealistic_rocketship_world(
         client_key: InternedString::Raw("rocket.control.avionics-engine".to_string()),
         source: avionics_anchor,
         target: engine_anchor,
-        payload: Some(RecordPayload::StructuredJson(json!({"edge_type": "control"}))),
+        payload: Some(RecordPayload::StructuredJson(
+            json!({"edge_type": "control"}),
+        )),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(503),
@@ -917,11 +977,14 @@ fn seed_pseudorealistic_rocketship_world(
         client_key: InternedString::Raw("rocket.control.avionics-fin".to_string()),
         source: avionics_anchor,
         target: fin_anchor,
-        payload: Some(RecordPayload::StructuredJson(json!({"edge_type": "control"}))),
+        payload: Some(RecordPayload::StructuredJson(
+            json!({"edge_type": "control"}),
+        )),
     });
 
     let relation_count = relation_specs.len();
     let mut relation_commit_micros = 0u128;
+    let mut relation_commit_phase_timing = crate::transactions::data::CommitPhaseTiming::default();
     for (chunk_index, relation_chunk) in relation_specs
         .chunks(ROCKETSHIP_RELATION_SEED_BATCH_SIZE)
         .enumerate()
@@ -929,8 +992,9 @@ fn seed_pseudorealistic_rocketship_world(
         let relation_commit_started_at = Instant::now();
         let outcome = {
             let mut txn = runtime.begin_transaction(TransactionOptions::default());
-            let mut batch =
-                WorkerIntentBatch::new(format!("rocketship-pseudorealistic-relations-bulk-{chunk_index}"));
+            let mut batch = WorkerIntentBatch::new(format!(
+                "rocketship-pseudorealistic-relations-bulk-{chunk_index}"
+            ));
             for intent in bulk_relation_create_intents(relation_chunk) {
                 batch = batch.push(intent);
             }
@@ -939,11 +1003,48 @@ fn seed_pseudorealistic_rocketship_world(
                 .expect("pseudorealistic rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();
+        relation_commit_phase_timing.draft_preparation_micros +=
+            outcome.execution.phase_timing.draft_preparation_micros;
+        relation_commit_phase_timing.draft_bulk_admission_micros +=
+            outcome.execution.phase_timing.draft_bulk_admission_micros;
+        relation_commit_phase_timing.draft_merge_plan_micros +=
+            outcome.execution.phase_timing.draft_merge_plan_micros;
+        relation_commit_phase_timing.draft_structural_summary_micros += outcome
+            .execution
+            .phase_timing
+            .draft_structural_summary_micros;
+        relation_commit_phase_timing.draft_working_state_clone_micros += outcome
+            .execution
+            .phase_timing
+            .draft_working_state_clone_micros;
+        relation_commit_phase_timing.working_state_preparation_micros += outcome
+            .execution
+            .phase_timing
+            .working_state_preparation_micros;
+        relation_commit_phase_timing.invariant_pre_check_micros +=
+            outcome.execution.phase_timing.invariant_pre_check_micros;
+        relation_commit_phase_timing.authoritative_mutation_micros +=
+            outcome.execution.phase_timing.authoritative_mutation_micros;
+        relation_commit_phase_timing.history_resolution_micros +=
+            outcome.execution.phase_timing.history_resolution_micros;
+        relation_commit_phase_timing.invariant_post_check_micros +=
+            outcome.execution.phase_timing.invariant_post_check_micros;
+        relation_commit_phase_timing.artifact_assembly_micros +=
+            outcome.execution.phase_timing.artifact_assembly_micros;
+        relation_commit_phase_timing.durable_append_micros +=
+            outcome.execution.phase_timing.durable_append_micros;
+        relation_commit_phase_timing.publication_micros +=
+            outcome.execution.phase_timing.publication_micros;
+        relation_commit_phase_timing.publication_storage_commit_micros += outcome
+            .execution
+            .phase_timing
+            .publication_storage_commit_micros;
         assert_eq!(changed_relations(&outcome).len(), relation_chunk.len());
     }
 
     mixed_query_targets.truncate(query_target_count.max(ROCKETSHIP_SUBSYSTEM_LAYOUTS.len()));
-    let hot_update_target = entities[subsystem_ranges[9].0 + ((subsystem_ranges[9].1 - subsystem_ranges[9].0) / 2)];
+    let hot_update_target =
+        entities[subsystem_ranges[9].0 + ((subsystem_ranges[9].1 - subsystem_ranges[9].0) / 2)];
 
     RocketshipPseudoRealisticSeedOutcome {
         entities,
@@ -954,6 +1055,7 @@ fn seed_pseudorealistic_rocketship_world(
         subsystem_count: ROCKETSHIP_SUBSYSTEM_LAYOUTS.len(),
         entity_commit_micros,
         relation_commit_micros,
+        relation_commit_phase_timing,
     }
 }
 
@@ -968,7 +1070,7 @@ fn rebuild_pseudorealistic_entity_order(
         .collect::<BTreeMap<_, _>>();
     let snapshot = runtime.visibility_authority().snapshot();
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&snapshot)
         .expect("pseudorealistic entity snapshot");
     let mut ordered = vec![None; node_count];
@@ -1001,15 +1103,16 @@ fn rebuild_pseudorealistic_entity_order(
     }
 
     let released = runtime.visibility_authority().release_snapshot(&snapshot);
-    assert!(released, "pseudorealistic entity reorder snapshot should release");
+    assert!(
+        released,
+        "pseudorealistic entity reorder snapshot should release"
+    );
 
     ordered
         .into_iter()
         .enumerate()
         .map(|(index, entity)| {
-            entity.unwrap_or_else(|| {
-                panic!("missing pseudorealistic entity ordering slot {index}")
-            })
+            entity.unwrap_or_else(|| panic!("missing pseudorealistic entity ordering slot {index}"))
         })
         .collect()
 }
@@ -1021,7 +1124,10 @@ fn bulk_relation_create_intents(
         (PartitionId, KindId),
         (
             Vec<InternedString>,
-            Vec<(crate::facade::identity::EntityId, crate::facade::identity::EntityId)>,
+            Vec<(
+                crate::facade::identity::EntityId,
+                crate::facade::identity::EntityId,
+            )>,
             Vec<Option<RecordPayload>>,
         ),
     > = BTreeMap::new();
@@ -1037,17 +1143,19 @@ fn bulk_relation_create_intents(
 
     by_partition
         .into_iter()
-        .map(|((partition_id, kind_id), (client_keys, endpoints, payloads))| {
-            MutationIntent::Create(CreateIntent::BulkRelations(
-                crate::transactions::data::BulkRelationCreateIntent {
-                    partition_id,
-                    kind_id,
-                    client_keys,
-                    endpoints,
-                    payloads,
-                },
-            ))
-        })
+        .map(
+            |((partition_id, kind_id), (client_keys, endpoints, payloads))| {
+                MutationIntent::Create(CreateIntent::BulkRelations(
+                    crate::transactions::data::BulkRelationCreateIntent {
+                        partition_id,
+                        kind_id,
+                        client_keys,
+                        endpoints,
+                        payloads,
+                    },
+                ))
+            },
+        )
         .collect()
 }
 
@@ -1081,7 +1189,6 @@ fn bulk_entity_create_intents(
         })
         .collect()
 }
-
 
 fn commit_measurement(
     runtime: &mut RelationalRuntime,
@@ -1121,26 +1228,30 @@ fn commit_measurement(
 fn perf_harness_measurement_matrix() {
     let suite = "harness_measurement_matrix";
 
-    let samples = capture_perf_samples(suite, "post_measurement_metrics_do_not_pollute_elapsed", || {
-        let started_at = Instant::now();
-        measurement_from(started_at, || {
-            let metrics_started_at = Instant::now();
-            let payload = (0..20_000u64)
-                .map(|index| {
-                    json!({
-                        "id": index,
-                        "label": format!("measurement-audit-{index}"),
-                        "value": index % 97,
+    let samples = capture_perf_samples(
+        suite,
+        "post_measurement_metrics_do_not_pollute_elapsed",
+        || {
+            let started_at = Instant::now();
+            measurement_from(started_at, || {
+                let metrics_started_at = Instant::now();
+                let payload = (0..20_000u64)
+                    .map(|index| {
+                        json!({
+                            "id": index,
+                            "label": format!("measurement-audit-{index}"),
+                            "value": index % 97,
+                        })
                     })
+                    .collect::<Vec<_>>();
+                let payload_build_micros = metrics_started_at.elapsed().as_micros();
+                json!({
+                    "payload_build_micros": payload_build_micros,
+                    "payload_item_count": payload.len(),
                 })
-                .collect::<Vec<_>>();
-            let payload_build_micros = metrics_started_at.elapsed().as_micros();
-            json!({
-                "payload_build_micros": payload_build_micros,
-                "payload_item_count": payload.len(),
             })
-        })
-    });
+        },
+    );
     emit_metric_summaries(
         suite,
         "post_measurement_metrics_do_not_pollute_elapsed",
@@ -1177,21 +1288,37 @@ fn perf_commit_delta_matrix() {
     assert!(narrow_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
-    assert_budget(&narrow_samples, "single-partition commits should remain sparse and clone-free", |metrics| {
-        counter_u64(metrics, "full_state_clones") == 0
-            && counter_u64(metrics, "snapshot_pin_full_rebuilds") == 0
-            && counter_u64(metrics, "partitions_touched_by_commit") == 1
-            && metric_u64(metrics, "packet_count") <= 4
-    });
+    assert_budget(
+        &narrow_samples,
+        "single-partition commits should remain sparse and clone-free",
+        |metrics| {
+            counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "snapshot_pin_full_rebuilds") == 0
+                && counter_u64(metrics, "partitions_touched_by_commit") == 1
+                && metric_u64(metrics, "packet_count") <= 4
+        },
+    );
 
     let cross_partition_samples =
         capture_perf_samples(suite, "cross_partition_relation_burst", || {
             let mut runtime = runtime_with_test_schema();
             let sources = (0..24)
-                .map(|index| create_entity_in_partition(&mut runtime, &format!("src-{index}"), PartitionId(1)))
+                .map(|index| {
+                    create_entity_in_partition(
+                        &mut runtime,
+                        &format!("src-{index}"),
+                        PartitionId(1),
+                    )
+                })
                 .collect::<Vec<_>>();
             let targets = (0..24)
-                .map(|index| create_entity_in_partition(&mut runtime, &format!("dst-{index}"), PartitionId(7)))
+                .map(|index| {
+                    create_entity_in_partition(
+                        &mut runtime,
+                        &format!("dst-{index}"),
+                        PartitionId(7),
+                    )
+                })
                 .collect::<Vec<_>>();
 
             commit_measurement(&mut runtime, |runtime| {
@@ -1256,8 +1383,14 @@ fn perf_commit_delta_matrix() {
                 "artifact_assembly_micros",
                 &["phase_timing", "artifact_assembly_micros"],
             ),
-            ("durable_append_micros", &["phase_timing", "durable_append_micros"]),
-            ("publication_micros", &["phase_timing", "publication_micros"]),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_micros",
+                &["phase_timing", "publication_micros"],
+            ),
         ],
     );
     assert!(persisted_single_create_samples
@@ -1301,7 +1434,10 @@ fn perf_durability_append_matrix() {
             let elapsed_micros = started_at.elapsed().as_micros();
 
             let store = runtime.durable_store().expect("durable store after append");
-            let latest_segment = store.segments.last().expect("segment manifest after append");
+            let latest_segment = store
+                .segments
+                .last()
+                .expect("segment manifest after append");
             PerfMeasurement {
                 elapsed_micros,
                 metrics: json!({
@@ -1349,7 +1485,10 @@ fn perf_durability_append_matrix() {
             let elapsed_micros = started_at.elapsed().as_micros();
 
             let store = runtime.durable_store().expect("durable store after append");
-            let latest_segment = store.segments.last().expect("segment manifest after append");
+            let latest_segment = store
+                .segments
+                .last()
+                .expect("segment manifest after append");
             PerfMeasurement {
                 elapsed_micros,
                 metrics: json!({
@@ -1400,19 +1539,18 @@ fn perf_query_packet_matrix() {
                 .rev()
                 .collect::<Vec<_>>();
             let snapshot = runtime.visibility_authority().snapshot();
-            let packet =
-                explicit_query_packet(&runtime, &snapshot, "explicit-targets", targets);
+            let packet = explicit_query_packet(&runtime, &snapshot, "explicit-targets", targets);
 
             runtime.performance_access().reset_counters();
             let planning_started_at = Instant::now();
             let planned = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("planned explicit query");
             let planning_micros = planning_started_at.elapsed().as_micros();
             let execution_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(planned)
                 .expect("explicit target query outcome");
             let execution_micros = execution_started_at.elapsed().as_micros();
@@ -1462,78 +1600,88 @@ fn perf_query_packet_matrix() {
         },
     );
 
-    let kind_scan_samples = capture_perf_samples(suite, "entity_kind_scan_partition_matrix", || {
-        let mut runtime = runtime_with_test_schema_execution_model(
-            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
-        );
-        for index in 0..128 {
-            let partition_id = match index % 4 {
-                0 => PartitionId(1),
-                1 => PartitionId(3),
-                2 => PartitionId(5),
-                _ => PartitionId(7),
+    let kind_scan_samples =
+        capture_perf_samples(suite, "entity_kind_scan_partition_matrix", || {
+            let mut runtime = runtime_with_test_schema_execution_model(
+                crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+            );
+            for index in 0..128 {
+                let partition_id = match index % 4 {
+                    0 => PartitionId(1),
+                    1 => PartitionId(3),
+                    2 => PartitionId(5),
+                    _ => PartitionId(7),
+                };
+                let _ = create_entity_in_partition(
+                    &mut runtime,
+                    &format!("scan-{index}"),
+                    partition_id,
+                );
+            }
+            let snapshot = runtime.visibility_authority().snapshot();
+            let context = runtime
+                .read_truth()
+                .query_plan_context(&snapshot)
+                .expect("query plan context");
+            let packet = PlannedQueryPacket {
+                label: "entity-kind-scan".to_string(),
+                context_id: context,
+                scope: QueryScope::EntityKindScan {
+                    kind_id: KindId(1),
+                    partition_scope: Some(Arc::from([
+                        PartitionId(1),
+                        PartitionId(3),
+                        PartitionId(5),
+                        PartitionId(7),
+                    ])),
+                },
+                locality: QueryLocalityClass::PartitionBounded {
+                    partitions: Arc::from([
+                        PartitionId(1),
+                        PartitionId(3),
+                        PartitionId(5),
+                        PartitionId(7),
+                    ]),
+                },
+                ordering: QueryOrderingContract::CanonicalEntityIdOrder,
+                fallback: QueryFallbackContract::StorageOnly,
+                execution_shape: QueryExecutionShape::BulkPacketized,
+                reduction: ReductionDiscipline::DeterministicMerge,
+                plan_key: DeterministicQueryPlanKey(20_001),
+                target_count_hint: 0,
             };
-            let _ = create_entity_in_partition(&mut runtime, &format!("scan-{index}"), partition_id);
-        }
-        let snapshot = runtime.visibility_authority().snapshot();
-        let context = runtime
-            .visibility_reads()
-            .query_plan_context(&snapshot)
-            .expect("query plan context");
-        let packet = PlannedQueryPacket {
-            label: "entity-kind-scan".to_string(),
-            context_id: context,
-            scope: QueryScope::EntityKindScan {
-                kind_id: KindId(1),
-                partition_scope: Some(Arc::from([
-                    PartitionId(1),
-                    PartitionId(3),
-                    PartitionId(5),
-                    PartitionId(7),
-                ])),
-            },
-            locality: QueryLocalityClass::PartitionBounded {
-                partitions: Arc::from([PartitionId(1), PartitionId(3), PartitionId(5), PartitionId(7)]),
-            },
-            ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-            fallback: QueryFallbackContract::StorageOnly,
-            execution_shape: QueryExecutionShape::BulkPacketized,
-            reduction: ReductionDiscipline::DeterministicMerge,
-            plan_key: DeterministicQueryPlanKey(20_001),
-            target_count_hint: 0,
-        };
 
-        runtime.performance_access().reset_counters();
-        let started_at = Instant::now();
-        let outcome = runtime
-            .visibility_reads()
-            .execute_query_plan(
-                runtime
-                    .visibility_reads()
-                    .plan_query_packet(&snapshot, packet)
-                    .expect("planned query packet"),
-            )
-            .expect("entity kind scan outcome");
-        let elapsed_micros = started_at.elapsed().as_micros();
-        let counters = runtime.performance_access().counters();
+            runtime.performance_access().reset_counters();
+            let started_at = Instant::now();
+            let outcome = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, packet)
+                        .expect("planned query packet"),
+                )
+                .expect("entity kind scan outcome");
+            let elapsed_micros = started_at.elapsed().as_micros();
+            let counters = runtime.performance_access().counters();
 
-        PerfMeasurement {
-            elapsed_micros,
-            metrics: json!({
-                "result_entities": outcome.result.entities.len(),
-                "phase_timing": {
-                    "planning_micros": 0,
-                    "execution_micros": elapsed_micros,
-                },
-                "shape_metrics": {
-                    "packet_count": outcome.complexity.packet_count,
-                    "scope_unit_count": counters.query_scope_unit_count,
-                },
-                "complexity": outcome.complexity,
-                "counters": counters,
-            }),
-        }
-    });
+            PerfMeasurement {
+                elapsed_micros,
+                metrics: json!({
+                    "result_entities": outcome.result.entities.len(),
+                    "phase_timing": {
+                        "planning_micros": 0,
+                        "execution_micros": elapsed_micros,
+                    },
+                    "shape_metrics": {
+                        "packet_count": outcome.complexity.packet_count,
+                        "scope_unit_count": counters.query_scope_unit_count,
+                    },
+                    "complexity": outcome.complexity,
+                    "counters": counters,
+                }),
+            }
+        });
     emit_metric_summaries(
         suite,
         "entity_kind_scan_partition_matrix",
@@ -1592,7 +1740,7 @@ fn perf_query_packet_matrix() {
             }
             let snapshot = runtime.visibility_authority().snapshot();
             let context = runtime
-                .visibility_reads()
+                .read_truth()
                 .query_plan_context(&snapshot)
                 .expect("query plan context");
             let packet = PlannedQueryPacket {
@@ -1615,13 +1763,13 @@ fn perf_query_packet_matrix() {
             runtime.performance_access().reset_counters();
             let planning_started_at = Instant::now();
             let planned = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("planned traversal packet");
             let planning_micros = planning_started_at.elapsed().as_micros();
             let execution_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(planned)
                 .expect("connectivity traversal outcome");
             let execution_micros = execution_started_at.elapsed().as_micros();
@@ -1694,7 +1842,7 @@ fn perf_snapshot_materialization_matrix() {
         runtime.performance_access().reset_counters();
         let started_at = Instant::now();
         let read = runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&snapshot)
             .expect("snapshot read");
         let elapsed_micros = started_at.elapsed().as_micros();
@@ -1746,7 +1894,7 @@ fn perf_snapshot_materialization_matrix() {
             runtime.performance_access().reset_counters();
             let started_at = Instant::now();
             let read = runtime
-                .visibility_reads()
+                .read_truth()
                 .read_version(pinned_snapshot.version_id);
             let elapsed_micros = started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
@@ -1789,7 +1937,7 @@ fn perf_snapshot_materialization_matrix() {
             runtime.performance_access().reset_counters();
             let started_at = Instant::now();
             let projected = runtime
-                .visibility_reads()
+                .read_truth()
                 .project_snapshot(&snapshot)
                 .expect("projection snapshot")
                 .entities::<EntityIdentityProjection>();
@@ -1842,10 +1990,10 @@ fn perf_retention_reclaim_matrix() {
 
             runtime.performance_access().reset_counters();
             let inspect_started_at = Instant::now();
-            let plan = runtime.retention_authority().inspect_plan();
+            let plan = runtime.retention().inspect_plan();
             let inspect_plan_micros = inspect_started_at.elapsed().as_micros();
             let pass_started_at = Instant::now();
-            let pass = runtime.retention_authority().run_pass();
+            let pass = runtime.retention().run_pass();
             let run_pass_micros = pass_started_at.elapsed().as_micros();
             let elapsed_micros = inspect_plan_micros + run_pass_micros;
             let counters = runtime.performance_access().counters();
@@ -1870,7 +2018,10 @@ fn perf_retention_reclaim_matrix() {
         "snapshot_release_to_reclaimable_entity",
         &snapshot_pin_samples,
         &[
-            ("inspect_plan_micros", &["phase_timing", "inspect_plan_micros"]),
+            (
+                "inspect_plan_micros",
+                &["phase_timing", "inspect_plan_micros"],
+            ),
             ("run_pass_micros", &["phase_timing", "run_pass_micros"]),
         ],
     );
@@ -1898,9 +2049,11 @@ fn perf_retention_reclaim_matrix() {
             let deleted = {
                 let mut txn = runtime.begin_transaction(TransactionOptions::default());
                 txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
-                    MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
-                        relation_id: relation,
-                    })),
+                    MutationIntent::Relation(RelationMutationIntent::Delete(
+                        DeleteRelationIntent {
+                            relation_id: relation,
+                        },
+                    )),
                 ));
                 txn.commit().expect("delete relation")
             };
@@ -1917,7 +2070,7 @@ fn perf_retention_reclaim_matrix() {
 
             runtime.performance_access().reset_counters();
             let inspect_started_at = Instant::now();
-            let pinned = runtime.retention_authority().inspect_plan();
+            let pinned = runtime.retention().inspect_plan();
             let inspect_pinned_micros = inspect_started_at.elapsed().as_micros();
             let release_started_at = Instant::now();
             assert!(runtime
@@ -1925,7 +2078,7 @@ fn perf_retention_reclaim_matrix() {
                 .release_version_replay_retention(created.version_id));
             let release_replay_pin_micros = release_started_at.elapsed().as_micros();
             let inspect_released_started_at = Instant::now();
-            let released = runtime.retention_authority().inspect_plan();
+            let released = runtime.retention().inspect_plan();
             let inspect_released_micros = inspect_released_started_at.elapsed().as_micros();
             let elapsed_micros =
                 inspect_pinned_micros + release_replay_pin_micros + inspect_released_micros;
@@ -1953,12 +2106,18 @@ fn perf_retention_reclaim_matrix() {
         "replay_pin_release_deleted_relation",
         &replay_pin_samples,
         &[
-            ("inspect_pinned_micros", &["phase_timing", "inspect_pinned_micros"]),
+            (
+                "inspect_pinned_micros",
+                &["phase_timing", "inspect_pinned_micros"],
+            ),
             (
                 "release_replay_pin_micros",
                 &["phase_timing", "release_replay_pin_micros"],
             ),
-            ("inspect_released_micros", &["phase_timing", "inspect_released_micros"]),
+            (
+                "inspect_released_micros",
+                &["phase_timing", "inspect_released_micros"],
+            ),
         ],
     );
     assert!(replay_pin_samples
@@ -1972,7 +2131,10 @@ fn perf_retention_reclaim_matrix() {
                 && metrics["pinned_replay_relations"].as_u64().unwrap_or(0) >= 1
                 && metrics["pinned_reclaimable_relations"].as_u64() == Some(0)
                 && metrics["released_replay_relations"].as_u64() == Some(0)
-                && metrics["released_branch_pinned_relations"].as_u64().unwrap_or(0) >= 1
+                && metrics["released_branch_pinned_relations"]
+                    .as_u64()
+                    .unwrap_or(0)
+                    >= 1
                 && metrics["released_reclaimable_relations"].as_u64() == Some(0)
         },
     );
@@ -1983,8 +2145,10 @@ fn perf_retention_reclaim_matrix() {
 fn perf_replay_recovery_matrix() {
     let suite = "replay_recovery_matrix";
 
-    let durable_replay_samples =
-        capture_perf_samples(suite, "durable_replay_lineage_basis", || {
+    let durable_replay_samples = capture_perf_samples(
+        suite,
+        "durable_replay_lineage_basis",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             let first = create_entity_outcome(&mut runtime, "source");
             let second = create_entity_outcome(&mut runtime, "target");
@@ -2014,7 +2178,9 @@ fn perf_replay_recovery_matrix() {
 
             runtime.performance_access().reset_counters();
             let replay_started_at = Instant::now();
-            let outcome = runtime.replay_authority().replay_commit(RelationalReplayRequest {
+            let outcome = runtime
+                .replay_authority()
+                .replay_commit(RelationalReplayRequest {
                     commit_id: promoted_commit_id,
                     branch_id: BranchId("main".to_string()),
                     execution_mode: ReplayExecutionMode::SerialDeterministic,
@@ -2040,12 +2206,16 @@ fn perf_replay_recovery_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "durable_replay_lineage_basis",
         &durable_replay_samples,
-        &[("replay_commit_micros", &["phase_timing", "replay_commit_micros"])],
+        &[(
+            "replay_commit_micros",
+            &["phase_timing", "replay_commit_micros"],
+        )],
     );
     assert!(durable_replay_samples
         .iter()
@@ -2057,8 +2227,7 @@ fn perf_replay_recovery_matrix() {
             counter_u64(metrics, "full_state_clones") == 0
                 && metrics["failure"].is_null()
                 && metrics["mismatch_count"].as_u64() == Some(0)
-                && metrics["lineage_authority_basis"].as_str()
-                    == Some("DurableLogCanonical")
+                && metrics["lineage_authority_basis"].as_str() == Some("DurableLogCanonical")
                 && counter_u64(metrics, "replay_lineage_authority_lookup_requests") == 1
         },
     );
@@ -2078,7 +2247,10 @@ fn perf_replay_recovery_matrix() {
                 .for_record(changed_entities(&second)[0])
                 .expect("second lineage")
                 .lineage_id;
-            runtime.durability_authority().checkpoint().expect("checkpoint");
+            runtime
+                .durability_authority()
+                .checkpoint()
+                .expect("checkpoint");
             let candidate = runtime.lineage_authority().record_correspondence_candidate(
                 BranchId("main".to_string()),
                 vec![first_lineage],
@@ -2089,11 +2261,9 @@ fn perf_replay_recovery_matrix() {
                 .lineage_authority()
                 .promote_correspondence(candidate.candidate_id, second.commit.clone())
                 .expect("promote correspondence");
-            let promoted_commit_id = promoted
-                .promoted_commit_id()
-                .expect("promotion commit id");
+            let promoted_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
 
-            let recovery_plan = runtime.durability_access().recovery_plan(
+            let recovery_plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
             let mut recovered = persisted_runtime_with_test_schema();
@@ -2106,12 +2276,14 @@ fn perf_replay_recovery_matrix() {
                 .expect("recover plan");
             let recovery_micros = recovery_started_at.elapsed().as_micros();
             let replay_started_at = Instant::now();
-            let replay = recovered.replay_authority().replay_commit(RelationalReplayRequest {
-                commit_id: promoted_commit_id,
-                branch_id: BranchId("main".to_string()),
-                execution_mode: ReplayExecutionMode::SerialDeterministic,
-                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-            });
+            let replay = recovered
+                .replay_authority()
+                .replay_commit(RelationalReplayRequest {
+                    commit_id: promoted_commit_id,
+                    branch_id: BranchId("main".to_string()),
+                    execution_mode: ReplayExecutionMode::SerialDeterministic,
+                    verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+                });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
             let elapsed_micros = recovery_micros + replay_commit_micros;
             let counters = recovered.performance_access().counters();
@@ -2139,7 +2311,10 @@ fn perf_replay_recovery_matrix() {
         &checkpoint_recovery_samples,
         &[
             ("recovery_micros", &["phase_timing", "recovery_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
         ],
     );
     assert!(checkpoint_recovery_samples
@@ -2166,10 +2341,9 @@ fn perf_invariant_materialization_matrix() {
 
     let custom_surface_samples =
         capture_perf_samples(suite, "custom_structural_surface_commit_wave", || {
-            let mut runtime =
-                runtime_with_test_schema_profile_and_custom_invariant(
-                    RelationalRuntimeProfile::CertificationCore,
-                );
+            let mut runtime = runtime_with_test_schema_profile_and_custom_invariant(
+                RelationalRuntimeProfile::CertificationCore,
+            );
             let entities = (0..12)
                 .map(|index| {
                     create_entity_in_partition(
@@ -2261,10 +2435,13 @@ fn perf_invariant_materialization_matrix() {
 fn perf_geometry_kernel_matrix() {
     let suite = "geometry_kernel_matrix";
 
-    let topology_identity_samples =
-        capture_perf_samples(suite, "topology_identity_survival_recovery_round_trip", || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let topology_identity_samples = capture_perf_samples(
+        suite,
+        "topology_identity_survival_recovery_round_trip",
+        || {
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             let created = create_entity_outcome(&mut runtime, "topology-source");
             let entity = changed_entities(&created)[0];
             let start_lineage = runtime
@@ -2304,11 +2481,12 @@ fn perf_geometry_kernel_matrix() {
                 .expect("geometry topology checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             let recover_started_at = Instant::now();
             recovered
                 .durability_authority()
@@ -2318,15 +2496,14 @@ fn perf_geometry_kernel_matrix() {
 
             recovered.performance_access().reset_counters();
             let recovered_resolution_started_at = Instant::now();
-            let recovered_resolution =
-                recovered
-                    .lineage_access()
-                    .resolve_historical_lineage(HistoricalResolutionRequest {
-                        branch_id: BranchId("main".to_string()),
-                        lineage_id: start_lineage,
-                        boundedness_basis:
-                            HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-                    });
+            let recovered_resolution = recovered.lineage_access().resolve_historical_lineage(
+                HistoricalResolutionRequest {
+                    branch_id: BranchId("main".to_string()),
+                    lineage_id: start_lineage,
+                    boundedness_basis:
+                        HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+                },
+            );
             let recovered_lineage_resolution_micros =
                 recovered_resolution_started_at.elapsed().as_micros();
             let recovered_counters = recovered.performance_access().counters();
@@ -2353,7 +2530,8 @@ fn perf_geometry_kernel_matrix() {
                     "recovered_counters": recovered_counters
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "topology_identity_survival_recovery_round_trip",
@@ -2383,17 +2561,16 @@ fn perf_geometry_kernel_matrix() {
                 && metrics["resolved_lineage_count"].as_u64() == Some(1)
                 && metrics["checkpoint_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["recover_micros"].as_u64().unwrap_or(0) > 0
-                && metrics["counters"]["lineage_historical_resolution_requests"].as_u64()
-                    == Some(1)
-                && metrics["recovered_counters"]["lineage_historical_resolution_requests"]
-                    .as_u64()
+                && metrics["counters"]["lineage_historical_resolution_requests"].as_u64() == Some(1)
+                && metrics["recovered_counters"]["lineage_historical_resolution_requests"].as_u64()
                     == Some(1)
         },
     );
 
     let topology_bridge_samples =
         capture_perf_samples(suite, "topology_bridge_connectivity_wave", || {
-            let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut runtime =
+                runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
@@ -2436,9 +2613,8 @@ fn perf_geometry_kernel_matrix() {
             let bridge_commit_micros = bridge_started_at.elapsed().as_micros();
 
             let connectivity_started_at = Instant::now();
-            let summary = runtime
-                .inspection_access()
-                .connectivity_summary(&ConnectivityInspectionRequest {
+            let summary = runtime.inspect_what_happened().connectivity_summary(
+                &ConnectivityInspectionRequest {
                     scope: InspectionScope::Current,
                     partition_scope: None,
                     relation_kind_scope: Some(vec![KindId(2)]),
@@ -2450,7 +2626,8 @@ fn perf_geometry_kernel_matrix() {
                         max_components: 8,
                         max_work_units: 256,
                     },
-                });
+                },
+            );
             let connectivity_summary_micros = connectivity_started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
 
@@ -2513,7 +2690,7 @@ fn perf_geometry_kernel_matrix() {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
@@ -2556,9 +2733,8 @@ fn perf_geometry_kernel_matrix() {
             let bridge_commit_micros = bridge_started_at.elapsed().as_micros();
 
             let connectivity_started_at = Instant::now();
-            let summary = runtime
-                .inspection_access()
-                .connectivity_summary(&ConnectivityInspectionRequest {
+            let summary = runtime.inspect_what_happened().connectivity_summary(
+                &ConnectivityInspectionRequest {
                     scope: InspectionScope::Current,
                     partition_scope: None,
                     relation_kind_scope: Some(vec![KindId(2)]),
@@ -2570,7 +2746,8 @@ fn perf_geometry_kernel_matrix() {
                         max_components: 8,
                         max_work_units: 256,
                     },
-                });
+                },
+            );
             let connectivity_summary_micros = connectivity_started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =
@@ -2642,7 +2819,7 @@ fn perf_geometry_kernel_matrix() {
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let mut cluster_a = Vec::new();
             let mut cluster_b = Vec::new();
             for index in 0..6 {
@@ -2685,9 +2862,8 @@ fn perf_geometry_kernel_matrix() {
             let bridge_commit_micros = bridge_started_at.elapsed().as_micros();
 
             let connectivity_started_at = Instant::now();
-            let summary = runtime
-                .inspection_access()
-                .connectivity_summary(&ConnectivityInspectionRequest {
+            let summary = runtime.inspect_what_happened().connectivity_summary(
+                &ConnectivityInspectionRequest {
                     scope: InspectionScope::Current,
                     partition_scope: None,
                     relation_kind_scope: Some(vec![KindId(2)]),
@@ -2699,7 +2875,8 @@ fn perf_geometry_kernel_matrix() {
                         max_components: 8,
                         max_work_units: 256,
                     },
-                });
+                },
+            );
             let connectivity_summary_micros = connectivity_started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =
@@ -2853,10 +3030,10 @@ fn perf_cad_topology_matrix() {
             );
             let explicit_started_at = Instant::now();
             let explicit_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, explicit_packet)
                         .expect("planned cad explicit packet"),
                 )
@@ -2864,9 +3041,8 @@ fn perf_cad_topology_matrix() {
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
 
             let connectivity_started_at = Instant::now();
-            let summary = runtime
-                .inspection_access()
-                .connectivity_summary(&ConnectivityInspectionRequest {
+            let summary = runtime.inspect_what_happened().connectivity_summary(
+                &ConnectivityInspectionRequest {
                     scope: InspectionScope::Current,
                     partition_scope: None,
                     relation_kind_scope: Some(vec![KindId(2)]),
@@ -2878,7 +3054,8 @@ fn perf_cad_topology_matrix() {
                         max_components: 8,
                         max_work_units: 256,
                     },
-                });
+                },
+            );
             let connectivity_summary_micros = connectivity_started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
 
@@ -2941,111 +3118,106 @@ fn perf_cad_topology_matrix() {
 fn perf_chip_simulator_matrix() {
     let suite = "chip_simulator_matrix";
 
-    let fanout_compile_samples =
-        capture_perf_samples(suite, "dense_fanout_compile_wave", || {
-            let mut runtime =
-                runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
-            let source = create_entity_in_partition(&mut runtime, "net-driver", PartitionId(7));
-            let targets = (0..24)
-                .map(|index| {
-                    let partition_id = match index % 4 {
-                        0 => PartitionId(11),
-                        1 => PartitionId(13),
-                        2 => PartitionId(17),
-                        _ => PartitionId(19),
-                    };
-                    create_entity_in_partition(
-                        &mut runtime,
-                        &format!("net-sink-{index}"),
-                        partition_id,
-                    )
-                })
-                .collect::<Vec<_>>();
+    let fanout_compile_samples = capture_perf_samples(suite, "dense_fanout_compile_wave", || {
+        let mut runtime =
+            runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+        let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+        let source = create_entity_in_partition(&mut runtime, "net-driver", PartitionId(7));
+        let targets = (0..24)
+            .map(|index| {
+                let partition_id = match index % 4 {
+                    0 => PartitionId(11),
+                    1 => PartitionId(13),
+                    2 => PartitionId(17),
+                    _ => PartitionId(19),
+                };
+                create_entity_in_partition(&mut runtime, &format!("net-sink-{index}"), partition_id)
+            })
+            .collect::<Vec<_>>();
 
-            runtime.performance_access().reset_counters();
-            let commit_started_at = Instant::now();
-            let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
-                let mut batch = WorkerIntentBatch::new("chip-fanout-wave");
-                for (index, target) in targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
-                        crate::transactions::data::RelationSpec {
-                            partition_id: PartitionId(29),
-                            kind_id: KindId(2),
-                            client_key: InternedString::Raw(format!("chip-fanout-{index}")),
-                            source,
-                            target: *target,
-                            payload: Some(RecordPayload::StructuredJson(json!({
-                                "channel": index,
-                                "kind": "fanout"
-                            }))),
-                        },
-                    )));
-                }
-                txn.push_batch(batch);
-                txn.commit().expect("chip fanout relation burst commit")
-            };
-            let commit_micros = commit_started_at.elapsed().as_micros();
-            let commit = runtime
-                .history_access()
-                .latest_commit()
-                .expect("chip fanout commit")
-                .clone();
-
-            let compile_started_at = Instant::now();
-            let artifact = runtime
-                .simulation_authority()
-                .compile_execution_artifact(
-                    commit.commit_id,
-                    vec![
-                        PartitionId(7),
-                        PartitionId(11),
-                        PartitionId(13),
-                        PartitionId(17),
-                        PartitionId(19),
-                        PartitionId(29),
-                    ],
-                )
-                .expect("chip fanout compiled artifact");
-            let compile_micros = compile_started_at.elapsed().as_micros();
-
-            let adjacency_started_at = Instant::now();
-            let outgoing_relations = runtime
-                .storage_access()
-                .outgoing_relations_for_entity(source, commit.version_id);
-            let adjacency_micros = adjacency_started_at.elapsed().as_micros();
-
-            let counters = runtime.performance_access().counters();
-            let (diagnostic_artifact_count, detailed_trace_entries) =
-                fresh_diagnostics_metrics(&runtime, diagnostics_start);
-
-            PerfMeasurement {
-                elapsed_micros: commit_micros + compile_micros + adjacency_micros,
-                metrics: json!({
-                    "commit_micros": commit_micros,
-                    "compile_micros": compile_micros,
-                    "adjacency_micros": adjacency_micros,
-                    "changed_records": commit_outcome.changed_records.len(),
-                    "dense_patch_record_count": dense_patch_record_count(&runtime),
-                    "outgoing_relation_count": outgoing_relations.len(),
-                    "diagnostic_artifact_count": diagnostic_artifact_count,
-                    "detailed_trace_entries": detailed_trace_entries,
-                    "profile_boundary": profile_boundary_metrics(
-                        &runtime,
-                        RelationalRuntimeProfile::ChipSimulation,
-                    ),
-                    "adjacency_backend": format!("{:?}", runtime.config().storage.adjacency_policy.backend),
-                    "compiled_artifact_compatibility": format!(
-                        "{:?}",
-                        runtime
-                            .simulation_access()
-                            .compiled_artifact_compatibility(artifact.artifact_id)
-                    ),
-                    "counters": counters,
-                }),
+        runtime.performance_access().reset_counters();
+        let commit_started_at = Instant::now();
+        let commit_outcome = {
+            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            let mut batch = WorkerIntentBatch::new("chip-fanout-wave");
+            for (index, target) in targets.iter().enumerate() {
+                batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
+                    crate::transactions::data::RelationSpec {
+                        partition_id: PartitionId(29),
+                        kind_id: KindId(2),
+                        client_key: InternedString::Raw(format!("chip-fanout-{index}")),
+                        source,
+                        target: *target,
+                        payload: Some(RecordPayload::StructuredJson(json!({
+                            "channel": index,
+                            "kind": "fanout"
+                        }))),
+                    },
+                )));
             }
-        });
+            txn.push_batch(batch);
+            txn.commit().expect("chip fanout relation burst commit")
+        };
+        let commit_micros = commit_started_at.elapsed().as_micros();
+        let commit = runtime
+            .history()
+            .latest_commit()
+            .expect("chip fanout commit")
+            .clone();
+
+        let compile_started_at = Instant::now();
+        let artifact = runtime
+            .compiled_artifacts_authority()
+            .compile_execution_artifact(
+                commit.commit_id,
+                vec![
+                    PartitionId(7),
+                    PartitionId(11),
+                    PartitionId(13),
+                    PartitionId(17),
+                    PartitionId(19),
+                    PartitionId(29),
+                ],
+            )
+            .expect("chip fanout compiled artifact");
+        let compile_micros = compile_started_at.elapsed().as_micros();
+
+        let adjacency_started_at = Instant::now();
+        let outgoing_relations = runtime
+            .storage_access()
+            .outgoing_relations_for_entity(source, commit.version_id);
+        let adjacency_micros = adjacency_started_at.elapsed().as_micros();
+
+        let counters = runtime.performance_access().counters();
+        let (diagnostic_artifact_count, detailed_trace_entries) =
+            fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+        PerfMeasurement {
+            elapsed_micros: commit_micros + compile_micros + adjacency_micros,
+            metrics: json!({
+                "commit_micros": commit_micros,
+                "compile_micros": compile_micros,
+                "adjacency_micros": adjacency_micros,
+                "changed_records": commit_outcome.changed_records.len(),
+                "dense_patch_record_count": dense_patch_record_count(&runtime),
+                "outgoing_relation_count": outgoing_relations.len(),
+                "diagnostic_artifact_count": diagnostic_artifact_count,
+                "detailed_trace_entries": detailed_trace_entries,
+                "profile_boundary": profile_boundary_metrics(
+                    &runtime,
+                    RelationalRuntimeProfile::ChipSimulation,
+                ),
+                "adjacency_backend": format!("{:?}", runtime.config().storage.adjacency_policy.backend),
+                "compiled_artifact_compatibility": format!(
+                    "{:?}",
+                    runtime
+                        .compiled_artifacts()
+                        .compiled_artifact_compatibility(artifact.artifact_id)
+                ),
+                "counters": counters,
+            }),
+        }
+    });
     emit_metric_summaries(
         suite,
         "dense_fanout_compile_wave",
@@ -3084,7 +3256,10 @@ fn perf_chip_simulator_matrix() {
                 && metrics["dense_patch_record_count"].as_u64() == Some(24)
                 && metrics["outgoing_relation_count"].as_u64() == Some(24)
                 && metrics["adjacency_backend"].as_str()
-                    == Some(&format!("{:?}", AdjacencyBackend::CompressedFanoutAdjacency))
+                    == Some(&format!(
+                        "{:?}",
+                        AdjacencyBackend::CompressedFanoutAdjacency
+                    ))
                 && metrics["compiled_artifact_compatibility"].as_str()
                     == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
@@ -3097,13 +3272,19 @@ fn perf_chip_simulator_matrix() {
         },
     );
 
-    let rich_fanout_compile_samples =
-        capture_perf_samples(suite, "dense_fanout_compile_wave_rich_diagnostics", || {
+    let rich_fanout_compile_samples = capture_perf_samples(
+        suite,
+        "dense_fanout_compile_wave_rich_diagnostics",
+        || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            apply_perf_diagnostics_policy(&mut runtime, PerfDiagnosticsPolicy::ChipRichCertification);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
-            let source = create_entity_in_partition(&mut runtime, "rich-net-driver", PartitionId(7));
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::ChipRichCertification,
+            );
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let source =
+                create_entity_in_partition(&mut runtime, "rich-net-driver", PartitionId(7));
             let targets = (0..24)
                 .map(|index| {
                     let partition_id = match index % 4 {
@@ -3146,14 +3327,14 @@ fn perf_chip_simulator_matrix() {
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
             let commit = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("chip fanout rich commit")
                 .clone();
 
             let compile_started_at = Instant::now();
             let artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     commit.commit_id,
                     vec![
@@ -3197,13 +3378,14 @@ fn perf_chip_simulator_matrix() {
                     "compiled_artifact_compatibility": format!(
                         "{:?}",
                         runtime
-                            .simulation_access()
+                            .compiled_artifacts()
                             .compiled_artifact_compatibility(artifact.artifact_id)
                     ),
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "dense_fanout_compile_wave_rich_diagnostics",
@@ -3259,9 +3441,11 @@ fn perf_chip_simulator_matrix() {
         suite,
         "checkpoint_window_recover_compile_round_trip",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            let source = create_entity_in_partition(&mut runtime, "persisted-driver", PartitionId(7));
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
+            let source =
+                create_entity_in_partition(&mut runtime, "persisted-driver", PartitionId(7));
             let targets = (0..12)
                 .map(|index| {
                     let partition_id = match index % 3 {
@@ -3293,11 +3477,12 @@ fn perf_chip_simulator_matrix() {
                 .expect("chip checkpoint window");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             let recover_started_at = Instant::now();
             recovered
                 .durability_authority()
@@ -3306,13 +3491,13 @@ fn perf_chip_simulator_matrix() {
             let recover_micros = recover_started_at.elapsed().as_micros();
 
             let recovered_commit = recovered
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("recovered chip commit")
                 .clone();
             let compile_started_at = Instant::now();
             let artifact = recovered
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     recovered_commit.commit_id,
                     vec![
@@ -3333,21 +3518,24 @@ fn perf_chip_simulator_matrix() {
             let adjacency_micros = adjacency_started_at.elapsed().as_micros();
 
             PerfMeasurement {
-                elapsed_micros: checkpoint_micros + recover_micros + compile_micros + adjacency_micros,
+                elapsed_micros: checkpoint_micros
+                    + recover_micros
+                    + compile_micros
+                    + adjacency_micros,
                 metrics: json!({
                     "checkpoint_micros": checkpoint_micros,
                     "recover_micros": recover_micros,
                     "compile_micros": compile_micros,
                     "adjacency_micros": adjacency_micros,
                     "recovered_segment_count": recovered
-                        .durability_access()
+                        .durability()
                         .durable_log()
                         .len(),
                     "outgoing_relation_count": outgoing_relations.len(),
                     "compiled_artifact_compatibility": format!(
                         "{:?}",
                         recovered
-                            .simulation_access()
+                            .compiled_artifacts()
                             .compiled_artifact_compatibility(artifact.artifact_id)
                     ),
                     "counters": recovered.performance_access().counters(),
@@ -3389,8 +3577,9 @@ fn perf_chip_simulator_matrix() {
             let feature_branch = BranchId("feature".to_string());
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
-            let source = create_entity_in_partition(&mut runtime, "rollback-driver", PartitionId(7));
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let source =
+                create_entity_in_partition(&mut runtime, "rollback-driver", PartitionId(7));
             let stable_targets = (0..8)
                 .map(|index| {
                     let partition_id = match index % 4 {
@@ -3442,22 +3631,19 @@ fn perf_chip_simulator_matrix() {
             let savepoint = txn.create_savepoint();
             let mut transient_batch = WorkerIntentBatch::new("chip-transient-fanout");
             for (index, target) in transient_targets.iter().enumerate() {
-                transient_batch =
-                    transient_batch.push(MutationIntent::Create(CreateIntent::Relation(
-                        crate::transactions::data::RelationSpec {
-                            partition_id: PartitionId(43),
-                            kind_id: KindId(2),
-                            client_key: InternedString::Raw(format!(
-                                "rollback-transient-edge-{index}"
-                            )),
-                            source,
-                            target: *target,
-                            payload: Some(RecordPayload::StructuredJson(json!({
-                                "channel": index,
-                                "kind": "transient"
-                            }))),
-                        },
-                    )));
+                transient_batch = transient_batch.push(MutationIntent::Create(
+                    CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                        partition_id: PartitionId(43),
+                        kind_id: KindId(2),
+                        client_key: InternedString::Raw(format!("rollback-transient-edge-{index}")),
+                        source,
+                        target: *target,
+                        payload: Some(RecordPayload::StructuredJson(json!({
+                            "channel": index,
+                            "kind": "transient"
+                        }))),
+                    }),
+                ));
             }
             txn.push_batch(transient_batch);
 
@@ -3467,30 +3653,28 @@ fn perf_chip_simulator_matrix() {
                 .expect("chip savepoint rollback");
             let rollback_micros = rollback_started_at.elapsed().as_micros();
 
-            txn.push_batch(
-                WorkerIntentBatch::new("chip-committed-step").push(MutationIntent::Entity(
-                    EntityMutationIntent::Update(UpdateEntityIntent {
-                        entity_id: source,
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "rollback-driver",
-                            "step": 1,
-                            "branch": "feature"
-                        })),
-                    }),
-                )),
-            );
+            txn.push_batch(WorkerIntentBatch::new("chip-committed-step").push(
+                MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id: source,
+                    payload: RecordPayload::StructuredJson(json!({
+                        "name": "rollback-driver",
+                        "step": 1,
+                        "branch": "feature"
+                    })),
+                })),
+            ));
             let commit_started_at = Instant::now();
             let commit_outcome = txn.commit().expect("chip branch step commit");
             let commit_micros = commit_started_at.elapsed().as_micros();
 
             let feature_commit = runtime
-                .history_access()
+                .history()
                 .branch_head(&feature_branch)
                 .expect("feature branch head")
                 .clone();
             let compile_started_at = Instant::now();
             let artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     feature_commit.commit_id,
                     vec![
@@ -3530,7 +3714,7 @@ fn perf_chip_simulator_matrix() {
                     "compiled_artifact_compatibility": format!(
                         "{:?}",
                         runtime
-                            .simulation_access()
+                            .compiled_artifacts()
                             .compiled_artifact_compatibility(artifact.artifact_id)
                     ),
                     "counters": runtime.performance_access().counters(),
@@ -3571,6 +3755,188 @@ fn perf_chip_simulator_matrix() {
                     == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && counter_u64(metrics, "full_state_clones") == 0
+        },
+    );
+
+    let flat_step_batch_samples = capture_perf_samples(
+        suite,
+        "flat_entity_step_batch_compile_window",
+        || {
+            let mut runtime =
+                runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
+            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+
+            let _source =
+                create_entity_in_partition(&mut runtime, "chip-batch-driver", PartitionId(7));
+            let mut partition_targets = BTreeMap::new();
+            for partition_offset in 0..8u32 {
+                let partition_id = PartitionId(11 + partition_offset * 2);
+                let targets = (0..8)
+                    .map(|index| {
+                        create_entity_in_partition(
+                            &mut runtime,
+                            &format!("chip-batch-sink-{}-{index}", partition_id.0),
+                            partition_id,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                partition_targets.insert(partition_id, targets);
+            }
+            let compile_partitions = std::iter::once(PartitionId(7))
+                .chain(partition_targets.keys().copied())
+                .collect::<Vec<_>>();
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
+                for (partition_id, targets) in &partition_targets {
+                    for (index, entity) in targets.iter().enumerate().take(4) {
+                        batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                            UpdateEntityIntent {
+                                entity_id: *entity,
+                                payload: RecordPayload::StructuredJson(json!({
+                                    "partition": partition_id.0,
+                                    "lane": "global-step",
+                                    "step": index,
+                                })),
+                            },
+                        )));
+                    }
+                }
+                txn.push_batch(batch);
+                txn.commit().expect("chip flat entity step batch commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+            let phase_timing = update.execution.phase_timing.clone();
+            let commit = runtime
+                .history()
+                .latest_commit()
+                .expect("chip flat batch latest commit")
+                .clone();
+
+            let compile_started_at = Instant::now();
+            let artifact = runtime
+                .compiled_artifacts_authority()
+                .compile_execution_artifact(commit.commit_id, compile_partitions)
+                .expect("chip flat batch compiled artifact");
+            let compile_micros = compile_started_at.elapsed().as_micros();
+
+            let sample_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(1).copied())
+                .map(RecordRef::Entity)
+                .collect::<Vec<_>>();
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "chip-flat-batch-explicit",
+                sample_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("planned chip flat batch explicit query"),
+                )
+                .expect("chip flat batch explicit outcome");
+            let explicit_query_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            let counters = runtime.performance_access().counters();
+            let (diagnostic_artifact_count, detailed_trace_entries) =
+                fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+            measurement_with_elapsed(
+                update_micros + compile_micros + explicit_query_micros,
+                || {
+                    json!({
+                        "batch_target_count": 32,
+                        "batch_partition_count": partition_targets.len(),
+                        "update_micros": update_micros,
+                        "compile_micros": compile_micros,
+                        "explicit_query_micros": explicit_query_micros,
+                        "hot_changed_records": update.changed_records.len(),
+                        "explicit_result_entities": explicit.result.entities.len(),
+                        "diagnostic_artifact_count": diagnostic_artifact_count,
+                        "detailed_trace_entries": detailed_trace_entries,
+                        "compiled_artifact_compatibility": format!(
+                            "{:?}",
+                            runtime
+                                .compiled_artifacts()
+                                .compiled_artifact_compatibility(artifact.artifact_id)
+                        ),
+                        "phase_timing": {
+                            "draft_preparation_micros": phase_timing.draft_preparation_micros,
+                            "draft_working_state_clone_micros": phase_timing.draft_working_state_clone_micros,
+                            "publication_storage_commit_micros": phase_timing.publication_storage_commit_micros,
+                        },
+                        "counters": counters,
+                    })
+                },
+            )
+        },
+    );
+    emit_metric_summaries(
+        suite,
+        "flat_entity_step_batch_compile_window",
+        &flat_step_batch_samples,
+        &[
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            ("update_micros", &["update_micros"]),
+            ("compile_micros", &["compile_micros"]),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            (
+                "draft_preparation_micros",
+                &["phase_timing", "draft_preparation_micros"],
+            ),
+            (
+                "draft_working_state_clone_micros",
+                &["phase_timing", "draft_working_state_clone_micros"],
+            ),
+            (
+                "publication_storage_commit_micros",
+                &["phase_timing", "publication_storage_commit_micros"],
+            ),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert!(flat_step_batch_samples
+        .iter()
+        .all(|sample| sample.elapsed_micros > 0));
+    assert_budget(
+        &flat_step_batch_samples,
+        "chip flat entity step batches should stay on the widened sparse AoSoA path while remaining compile-ready",
+        |metrics| {
+            metrics["batch_target_count"].as_u64() == Some(32)
+                && metrics["batch_partition_count"].as_u64() == Some(8)
+                && metrics["hot_changed_records"].as_u64() == Some(32)
+                && metrics["explicit_result_entities"].as_u64() == Some(8)
+                && metrics["compiled_artifact_compatibility"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
+                && metrics["detailed_trace_entries"].as_u64() == Some(0)
+                && counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == 32
+                && counter_u64(metrics, "partitions_touched_by_commit") >= 8
+                && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized") == 32
+                && counter_u64(metrics, "aosoa_entity_chunks_published") >= 8
+                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
         },
     );
 
@@ -3616,21 +3982,17 @@ fn perf_chip_simulator_matrix() {
             runtime.performance_access().reset_counters();
             for step in 0..ITERATIONS {
                 let update_started_at = Instant::now();
-                let _ = update_entity(
-                    &mut runtime,
-                    source,
-                    &format!("event-driver-step-{step}"),
-                );
+                let _ = update_entity(&mut runtime, source, &format!("event-driver-step-{step}"));
                 total_update_micros += update_started_at.elapsed().as_micros();
 
                 let commit = runtime
-                    .history_access()
+                    .history()
                     .latest_commit()
                     .expect("chip event-wave commit")
                     .clone();
                 let compile_started_at = Instant::now();
                 let artifact = runtime
-                    .simulation_authority()
+                    .compiled_artifacts_authority()
                     .compile_execution_artifact(
                         commit.commit_id,
                         vec![
@@ -3656,7 +4018,7 @@ fn perf_chip_simulator_matrix() {
                     max_outgoing_relation_count.max(outgoing_relations.len());
                 assert_eq!(
                     runtime
-                        .simulation_access()
+                        .compiled_artifacts()
                         .compiled_artifact_compatibility(artifact.artifact_id),
                     CompiledArtifactCompatibility::Compatible
                 );
@@ -3684,7 +4046,10 @@ fn perf_chip_simulator_matrix() {
             ("average_compile_micros", &["average_compile_micros"]),
             ("average_adjacency_micros", &["average_adjacency_micros"]),
             ("max_compile_micros", &["max_compile_micros"]),
-            ("max_outgoing_relation_count", &["max_outgoing_relation_count"]),
+            (
+                "max_outgoing_relation_count",
+                &["max_outgoing_relation_count"],
+            ),
         ],
     );
     assert!(event_wave_churn_samples
@@ -3702,14 +4067,13 @@ fn perf_chip_simulator_matrix() {
         },
     );
 
-    let event_wave_rich_diagnostics_samples = capture_perf_samples(
-        suite,
-        "event_wave_compile_churn_rich_diagnostics",
-        || {
+    let event_wave_rich_diagnostics_samples =
+        capture_perf_samples(suite, "event_wave_compile_churn_rich_diagnostics", || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
-            let source = create_entity_in_partition(&mut runtime, "event-driver-rich", PartitionId(7));
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let source =
+                create_entity_in_partition(&mut runtime, "event-driver-rich", PartitionId(7));
             let sinks = (0..16)
                 .map(|index| {
                     let partition_id = match index % 4 {
@@ -3753,13 +4117,13 @@ fn perf_chip_simulator_matrix() {
                 total_update_micros += update_started_at.elapsed().as_micros();
 
                 let commit = runtime
-                    .history_access()
+                    .history()
                     .latest_commit()
                     .expect("chip event-wave rich commit")
                     .clone();
                 let compile_started_at = Instant::now();
                 let artifact = runtime
-                    .simulation_authority()
+                    .compiled_artifacts_authority()
                     .compile_execution_artifact(
                         commit.commit_id,
                         vec![
@@ -3785,7 +4149,7 @@ fn perf_chip_simulator_matrix() {
                     max_outgoing_relation_count.max(outgoing_relations.len());
                 assert_eq!(
                     runtime
-                        .simulation_access()
+                        .compiled_artifacts()
                         .compiled_artifact_compatibility(artifact.artifact_id),
                     CompiledArtifactCompatibility::Compatible
                 );
@@ -3807,8 +4171,7 @@ fn perf_chip_simulator_matrix() {
                     "counters": runtime.performance_access().counters(),
                 }),
             }
-        },
-    );
+        });
     emit_metric_summaries(
         suite,
         "event_wave_compile_churn_rich_diagnostics",
@@ -3818,7 +4181,10 @@ fn perf_chip_simulator_matrix() {
             ("average_compile_micros", &["average_compile_micros"]),
             ("average_adjacency_micros", &["average_adjacency_micros"]),
             ("max_compile_micros", &["max_compile_micros"]),
-            ("max_outgoing_relation_count", &["max_outgoing_relation_count"]),
+            (
+                "max_outgoing_relation_count",
+                &["max_outgoing_relation_count"],
+            ),
             ("diagnostic_artifact_count", &["diagnostic_artifact_count"]),
             ("detailed_trace_entries", &["detailed_trace_entries"]),
         ],
@@ -3857,10 +4223,14 @@ fn perf_rocketship_scale_matrix() {
                 ROCKETSHIP_CHUNK_SIZE,
                 ROCKETSHIP_CHUNK_SIZE,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 2;
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded = seed_rocketship_world(&mut runtime, node_count);
 
             runtime.performance_access().reset_counters();
@@ -3886,13 +4256,13 @@ fn perf_rocketship_scale_matrix() {
 
             let hot_query_plan_started_at = Instant::now();
             let planned = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("planned rocketship explicit query");
             let hot_query_planning_micros = hot_query_plan_started_at.elapsed().as_micros();
             let hot_query_execution_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(planned)
                 .expect("rocketship explicit query outcome");
             let hot_query_execution_micros = hot_query_execution_started_at.elapsed().as_micros();
@@ -3911,6 +4281,21 @@ fn perf_rocketship_scale_matrix() {
                     "resident_relation_count": seeded.relation_count,
                     "bootstrap_entity_commit_micros": seeded.entity_commit_micros,
                     "bootstrap_relation_commit_micros": seeded.relation_commit_micros,
+                    "bootstrap_relation_phase_timing": {
+                        "draft_preparation_micros": seeded.relation_commit_phase_timing.draft_preparation_micros,
+                        "draft_bulk_admission_micros": seeded.relation_commit_phase_timing.draft_bulk_admission_micros,
+                        "draft_merge_plan_micros": seeded.relation_commit_phase_timing.draft_merge_plan_micros,
+                        "draft_structural_summary_micros": seeded.relation_commit_phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": seeded.relation_commit_phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": seeded.relation_commit_phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": seeded.relation_commit_phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": seeded.relation_commit_phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": seeded.relation_commit_phase_timing.invariant_post_check_micros,
+                        "artifact_assembly_micros": seeded.relation_commit_phase_timing.artifact_assembly_micros,
+                        "durable_append_micros": seeded.relation_commit_phase_timing.durable_append_micros,
+                        "publication_micros": seeded.relation_commit_phase_timing.publication_micros,
+                        "publication_storage_commit_micros": seeded.relation_commit_phase_timing.publication_storage_commit_micros,
+                    },
                     "hot_update_micros": hot_update_micros,
                     "hot_query_planning_micros": hot_query_planning_micros,
                     "hot_query_execution_micros": hot_query_execution_micros,
@@ -3995,7 +4380,10 @@ fn perf_rocketship_scale_matrix() {
                 &["phase_timing", "publication_post_commit_consumer_micros"],
             ),
             ("hot_query_planning_micros", &["hot_query_planning_micros"]),
-            ("hot_query_execution_micros", &["hot_query_execution_micros"]),
+            (
+                "hot_query_execution_micros",
+                &["hot_query_execution_micros"],
+            ),
             ("query_target_count", &["query_target_count"]),
             ("query_result_entities", &["query_result_entities"]),
             ("diagnostic_artifact_count", &["diagnostic_artifact_count"]),
@@ -4054,8 +4442,12 @@ fn perf_rocketship_scale_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryRichCertification,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 2;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded = seed_rocketship_world(&mut runtime, node_count);
 
             runtime.performance_access().reset_counters();
@@ -4082,13 +4474,13 @@ fn perf_rocketship_scale_matrix() {
 
             let hot_query_plan_started_at = Instant::now();
             let planned = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("planned rocketship explicit rich query");
             let hot_query_planning_micros = hot_query_plan_started_at.elapsed().as_micros();
             let hot_query_execution_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(planned)
                 .expect("rocketship explicit rich query outcome");
             let hot_query_execution_micros = hot_query_execution_started_at.elapsed().as_micros();
@@ -4187,7 +4579,10 @@ fn perf_rocketship_scale_matrix() {
                 &["phase_timing", "publication_post_commit_consumer_micros"],
             ),
             ("hot_query_planning_micros", &["hot_query_planning_micros"]),
-            ("hot_query_execution_micros", &["hot_query_execution_micros"]),
+            (
+                "hot_query_execution_micros",
+                &["hot_query_execution_micros"],
+            ),
             ("query_target_count", &["query_target_count"]),
             ("query_result_entities", &["query_result_entities"]),
             ("diagnostic_artifact_count", &["diagnostic_artifact_count"]),
@@ -4246,8 +4641,12 @@ fn perf_rocketship_scale_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 2;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
 
@@ -4269,20 +4668,20 @@ fn perf_rocketship_scale_matrix() {
             );
             let explicit_plan_started_at = Instant::now();
             let explicit_plan = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, explicit_packet)
                 .expect("planned pseudorealistic explicit query");
             let explicit_query_planning_micros = explicit_plan_started_at.elapsed().as_micros();
             let explicit_execution_started_at = Instant::now();
             let explicit_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(explicit_plan)
                 .expect("pseudorealistic explicit query outcome");
             let explicit_query_execution_micros =
                 explicit_execution_started_at.elapsed().as_micros();
 
             let traversal_context = runtime
-                .visibility_reads()
+                .read_truth()
                 .query_plan_context(&snapshot)
                 .expect("pseudorealistic traversal context");
             let traversal_packet = PlannedQueryPacket {
@@ -4303,17 +4702,16 @@ fn perf_rocketship_scale_matrix() {
             };
             let traversal_plan_started_at = Instant::now();
             let traversal_plan = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, traversal_packet)
                 .expect("planned pseudorealistic traversal query");
             let traversal_planning_micros = traversal_plan_started_at.elapsed().as_micros();
             let traversal_execution_started_at = Instant::now();
             let traversal_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(traversal_plan)
                 .expect("pseudorealistic traversal outcome");
-            let traversal_execution_micros =
-                traversal_execution_started_at.elapsed().as_micros();
+            let traversal_execution_micros = traversal_execution_started_at.elapsed().as_micros();
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
@@ -4332,6 +4730,21 @@ fn perf_rocketship_scale_matrix() {
                     "subsystem_count": seeded.subsystem_count,
                     "bootstrap_entity_commit_micros": seeded.entity_commit_micros,
                     "bootstrap_relation_commit_micros": seeded.relation_commit_micros,
+                    "bootstrap_relation_phase_timing": {
+                        "draft_preparation_micros": seeded.relation_commit_phase_timing.draft_preparation_micros,
+                        "draft_bulk_admission_micros": seeded.relation_commit_phase_timing.draft_bulk_admission_micros,
+                        "draft_merge_plan_micros": seeded.relation_commit_phase_timing.draft_merge_plan_micros,
+                        "draft_structural_summary_micros": seeded.relation_commit_phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": seeded.relation_commit_phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": seeded.relation_commit_phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": seeded.relation_commit_phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": seeded.relation_commit_phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": seeded.relation_commit_phase_timing.invariant_post_check_micros,
+                        "artifact_assembly_micros": seeded.relation_commit_phase_timing.artifact_assembly_micros,
+                        "durable_append_micros": seeded.relation_commit_phase_timing.durable_append_micros,
+                        "publication_micros": seeded.relation_commit_phase_timing.publication_micros,
+                        "publication_storage_commit_micros": seeded.relation_commit_phase_timing.publication_storage_commit_micros,
+                    },
                     "hot_update_micros": hot_update_micros,
                     "explicit_query_planning_micros": explicit_query_planning_micros,
                     "explicit_query_execution_micros": explicit_query_execution_micros,
@@ -4380,7 +4793,10 @@ fn perf_rocketship_scale_matrix() {
                 &["explicit_query_execution_micros"],
             ),
             ("traversal_planning_micros", &["traversal_planning_micros"]),
-            ("traversal_execution_micros", &["traversal_execution_micros"]),
+            (
+                "traversal_execution_micros",
+                &["traversal_execution_micros"],
+            ),
             ("mixed_query_target_count", &["mixed_query_target_count"]),
             (
                 "explicit_query_result_entities",
@@ -4388,7 +4804,10 @@ fn perf_rocketship_scale_matrix() {
             ),
             ("traversal_seed_count", &["traversal_seed_count"]),
             ("traversal_result_entities", &["traversal_result_entities"]),
-            ("traversal_result_relations", &["traversal_result_relations"]),
+            (
+                "traversal_result_relations",
+                &["traversal_result_relations"],
+            ),
             (
                 "profile_execution_lane_code",
                 &["profile_boundary", "execution_lane_code"],
@@ -4449,8 +4868,12 @@ fn perf_rocketship_scale_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 2;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
 
@@ -4466,7 +4889,7 @@ fn perf_rocketship_scale_matrix() {
 
             let snapshot = runtime.visibility_authority().snapshot();
             let context = runtime
-                .visibility_reads()
+                .read_truth()
                 .query_plan_context(&snapshot)
                 .expect("rocketship propagation context");
             let propagation_seeds = vec![
@@ -4493,13 +4916,13 @@ fn perf_rocketship_scale_matrix() {
             };
             let propagation_plan_started_at = Instant::now();
             let propagation_plan = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, propagation_packet)
                 .expect("planned rocketship propagation query");
             let propagation_planning_micros = propagation_plan_started_at.elapsed().as_micros();
             let propagation_execution_started_at = Instant::now();
             let propagation_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(propagation_plan)
                 .expect("rocketship propagation outcome");
             let propagation_execution_micros =
@@ -4519,10 +4942,10 @@ fn perf_rocketship_scale_matrix() {
             );
             let explicit_started_at = Instant::now();
             let explicit_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, explicit_packet)
                         .expect("planned rocketship propagation explicit query"),
                 )
@@ -4679,6 +5102,955 @@ fn perf_rocketship_scale_matrix() {
         },
     );
 
+    let flat_batch_wave_samples = capture_perf_samples(
+        suite,
+        "hundred_k_nodes_pseudorealistic_flat_entity_batch_wave",
+        || {
+            let mut runtime = runtime_with_test_schema_profile_and_chunks(
+                RelationalRuntimeProfile::GeometryKernel,
+                ROCKETSHIP_CHUNK_SIZE,
+                ROCKETSHIP_CHUNK_SIZE,
+            );
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::GeometryOperationalHotPath,
+            );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let seeded =
+                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+
+            let mut partition_targets = BTreeMap::new();
+            for entity in &seeded.entities {
+                let targets = partition_targets
+                    .entry(entity.partition_id)
+                    .or_insert_with(Vec::new);
+                if targets.len() < 8 {
+                    targets.push(*entity);
+                }
+                if partition_targets.len() >= 8
+                    && partition_targets.values().all(|targets| targets.len() >= 8)
+                {
+                    break;
+                }
+            }
+            let batch_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(8).copied())
+                .collect::<Vec<_>>();
+            assert!(
+                batch_targets.len() >= 64,
+                "rocketship flat batch wave should gather a broad multi-partition entity batch"
+            );
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch = WorkerIntentBatch::new("rocketship-flat-entity-batch-wave");
+                for (index, entity) in batch_targets.iter().enumerate() {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                        UpdateEntityIntent {
+                            entity_id: *entity,
+                            payload: RecordPayload::StructuredJson(json!({
+                                "section": "batch-wave",
+                                "tag": format!("rocket.batch.{index}"),
+                                "partition": entity.partition_id.0,
+                            })),
+                        },
+                    )));
+                }
+                txn.push_batch(batch);
+                txn.commit()
+                    .expect("rocketship flat entity batch wave commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+            let phase_timing = update.execution.phase_timing.clone();
+
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_targets = batch_targets
+                .iter()
+                .take(16)
+                .copied()
+                .map(RecordRef::Entity)
+                .collect::<Vec<_>>();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "rocketship-flat-entity-batch-explicit",
+                explicit_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("planned rocketship flat batch explicit query"),
+                )
+                .expect("rocketship flat batch explicit outcome");
+            let explicit_query_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            let counters = runtime.performance_access().counters();
+            let (diagnostic_artifact_count, detailed_trace_entries) =
+                fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+            measurement_with_elapsed(update_micros + explicit_query_micros, || {
+                json!({
+                    "resident_node_count": seeded.entities.len(),
+                    "resident_relation_count": seeded.relation_count,
+                    "subsystem_count": seeded.subsystem_count,
+                    "batch_target_count": batch_targets.len(),
+                    "batch_partition_count": partition_targets.len(),
+                    "update_micros": update_micros,
+                    "explicit_query_micros": explicit_query_micros,
+                    "hot_changed_records": update.changed_records.len(),
+                    "explicit_result_entities": explicit.result.entities.len(),
+                    "diagnostic_artifact_count": diagnostic_artifact_count,
+                    "detailed_trace_entries": detailed_trace_entries,
+                    "phase_timing": {
+                        "draft_preparation_micros": phase_timing.draft_preparation_micros,
+                        "draft_intent_normalization_micros": phase_timing.draft_intent_normalization_micros,
+                        "draft_merge_plan_micros": phase_timing.draft_merge_plan_micros,
+                        "draft_intent_validation_micros": phase_timing.draft_intent_validation_micros,
+                        "draft_intent_sort_micros": phase_timing.draft_intent_sort_micros,
+                        "draft_conflict_detection_micros": phase_timing.draft_conflict_detection_micros,
+                        "draft_structural_summary_micros": phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": phase_timing.invariant_post_check_micros,
+                        "durable_append_micros": phase_timing.durable_append_micros,
+                        "publication_micros": phase_timing.publication_micros,
+                        "publication_storage_commit_micros": phase_timing.publication_storage_commit_micros,
+                    },
+                    "counters": counters,
+                })
+            })
+        },
+    );
+    emit_metric_summaries(
+        suite,
+        "hundred_k_nodes_pseudorealistic_flat_entity_batch_wave",
+        &flat_batch_wave_samples,
+        &[
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            ("update_micros", &["update_micros"]),
+            (
+                "draft_preparation_micros",
+                &["phase_timing", "draft_preparation_micros"],
+            ),
+            (
+                "draft_intent_normalization_micros",
+                &["phase_timing", "draft_intent_normalization_micros"],
+            ),
+            (
+                "draft_merge_plan_micros",
+                &["phase_timing", "draft_merge_plan_micros"],
+            ),
+            (
+                "draft_intent_validation_micros",
+                &["phase_timing", "draft_intent_validation_micros"],
+            ),
+            (
+                "draft_intent_sort_micros",
+                &["phase_timing", "draft_intent_sort_micros"],
+            ),
+            (
+                "draft_conflict_detection_micros",
+                &["phase_timing", "draft_conflict_detection_micros"],
+            ),
+            (
+                "draft_structural_summary_micros",
+                &["phase_timing", "draft_structural_summary_micros"],
+            ),
+            (
+                "draft_working_state_clone_micros",
+                &["phase_timing", "draft_working_state_clone_micros"],
+            ),
+            (
+                "invariant_pre_check_micros",
+                &["phase_timing", "invariant_pre_check_micros"],
+            ),
+            (
+                "authoritative_mutation_micros",
+                &["phase_timing", "authoritative_mutation_micros"],
+            ),
+            (
+                "history_resolution_micros",
+                &["phase_timing", "history_resolution_micros"],
+            ),
+            (
+                "invariant_post_check_micros",
+                &["phase_timing", "invariant_post_check_micros"],
+            ),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_storage_commit_micros",
+                &["phase_timing", "publication_storage_commit_micros"],
+            ),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert!(flat_batch_wave_samples
+        .iter()
+        .all(|sample| sample.elapsed_micros > 0));
+    assert_budget(
+        &flat_batch_wave_samples,
+        "pseudorealistic rocketship flat entity batches should stay on the widened sparse AoSoA path across multiple touched partitions",
+        |metrics| {
+            let batch_target_count = metrics["batch_target_count"].as_u64().unwrap_or(0);
+            let batch_partition_count = metrics["batch_partition_count"].as_u64().unwrap_or(0);
+            metrics["resident_node_count"].as_u64() == Some(node_count as u64)
+                && metrics["resident_relation_count"].as_u64().unwrap_or(0) >= node_count as u64
+                && metrics["subsystem_count"].as_u64() == Some(12)
+                && batch_target_count >= 64
+                && batch_partition_count >= 8
+                && metrics["hot_changed_records"].as_u64() == Some(batch_target_count)
+                && metrics["explicit_result_entities"].as_u64() == Some(16)
+                && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
+                && metrics["detailed_trace_entries"].as_u64() == Some(0)
+                && counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == batch_target_count
+                && counter_u64(metrics, "partitions_touched_by_commit") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
+                    == batch_target_count
+                && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+        },
+    );
+
+    let varied_flat_batch_wave_samples = capture_perf_samples(
+        suite,
+        "hundred_k_nodes_pseudorealistic_varied_locality_batch_wave",
+        || {
+            let mut runtime = runtime_with_test_schema_profile_and_chunks(
+                RelationalRuntimeProfile::GeometryKernel,
+                ROCKETSHIP_CHUNK_SIZE,
+                ROCKETSHIP_CHUNK_SIZE,
+            );
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::GeometryOperationalHotPath,
+            );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let seeded =
+                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+
+            let mut selected_partitions = Vec::new();
+            for entity in seeded.entities.iter().step_by(257) {
+                if !selected_partitions.contains(&entity.partition_id) {
+                    selected_partitions.push(entity.partition_id);
+                }
+                if selected_partitions.len() >= 8 {
+                    break;
+                }
+            }
+            assert!(
+                selected_partitions.len() >= 8,
+                "rocketship varied batch wave should discover a bounded multi-partition spread"
+            );
+
+            let mut partition_targets = BTreeMap::new();
+            for entity in seeded.entities.iter() {
+                if !selected_partitions.contains(&entity.partition_id) {
+                    continue;
+                }
+                let targets = partition_targets
+                    .entry(entity.partition_id)
+                    .or_insert_with(Vec::new);
+                if targets.len() < 8 {
+                    targets.push(*entity);
+                }
+                if partition_targets.len() == selected_partitions.len()
+                    && partition_targets.values().all(|targets| targets.len() >= 8)
+                {
+                    break;
+                }
+            }
+            let batch_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(8).copied())
+                .collect::<Vec<_>>();
+            assert!(
+                batch_targets.len() >= 64,
+                "rocketship varied batch wave should gather a varied-locality entity batch within a bounded partition spread"
+            );
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch = WorkerIntentBatch::new("rocketship-varied-locality-batch-wave");
+                for (index, entity) in batch_targets.iter().enumerate() {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                        UpdateEntityIntent {
+                            entity_id: *entity,
+                            payload: RecordPayload::StructuredJson(json!({
+                                "section": "varied-batch-wave",
+                                "tag": format!("rocket.varied.{index}"),
+                                "partition": entity.partition_id.0,
+                            })),
+                        },
+                    )));
+                }
+                txn.push_batch(batch);
+                txn.commit()
+                    .expect("rocketship varied locality batch wave commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+            let phase_timing = update.execution.phase_timing.clone();
+
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_targets = batch_targets
+                .iter()
+                .step_by(3)
+                .take(16)
+                .copied()
+                .map(RecordRef::Entity)
+                .collect::<Vec<_>>();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "rocketship-varied-batch-explicit",
+                explicit_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("planned rocketship varied batch explicit query"),
+                )
+                .expect("rocketship varied batch explicit outcome");
+            let explicit_query_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            let counters = runtime.performance_access().counters();
+            let (diagnostic_artifact_count, detailed_trace_entries) =
+                fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+            measurement_with_elapsed(update_micros + explicit_query_micros, || {
+                json!({
+                    "resident_node_count": seeded.entities.len(),
+                    "resident_relation_count": seeded.relation_count,
+                    "subsystem_count": seeded.subsystem_count,
+                    "batch_target_count": batch_targets.len(),
+                    "batch_partition_count": partition_targets.len(),
+                    "update_micros": update_micros,
+                    "explicit_query_micros": explicit_query_micros,
+                    "hot_changed_records": update.changed_records.len(),
+                    "explicit_result_entities": explicit.result.entities.len(),
+                    "diagnostic_artifact_count": diagnostic_artifact_count,
+                    "detailed_trace_entries": detailed_trace_entries,
+                    "phase_timing": {
+                        "draft_preparation_micros": phase_timing.draft_preparation_micros,
+                        "draft_merge_plan_micros": phase_timing.draft_merge_plan_micros,
+                        "draft_structural_summary_micros": phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": phase_timing.invariant_post_check_micros,
+                        "durable_append_micros": phase_timing.durable_append_micros,
+                        "publication_micros": phase_timing.publication_micros,
+                        "publication_storage_commit_micros": phase_timing.publication_storage_commit_micros,
+                    },
+                    "counters": counters,
+                })
+            })
+        },
+    );
+    emit_metric_summaries(
+        suite,
+        "hundred_k_nodes_pseudorealistic_varied_locality_batch_wave",
+        &varied_flat_batch_wave_samples,
+        &[
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            ("update_micros", &["update_micros"]),
+            (
+                "draft_preparation_micros",
+                &["phase_timing", "draft_preparation_micros"],
+            ),
+            (
+                "draft_merge_plan_micros",
+                &["phase_timing", "draft_merge_plan_micros"],
+            ),
+            (
+                "draft_structural_summary_micros",
+                &["phase_timing", "draft_structural_summary_micros"],
+            ),
+            (
+                "draft_working_state_clone_micros",
+                &["phase_timing", "draft_working_state_clone_micros"],
+            ),
+            (
+                "invariant_pre_check_micros",
+                &["phase_timing", "invariant_pre_check_micros"],
+            ),
+            (
+                "authoritative_mutation_micros",
+                &["phase_timing", "authoritative_mutation_micros"],
+            ),
+            (
+                "history_resolution_micros",
+                &["phase_timing", "history_resolution_micros"],
+            ),
+            (
+                "invariant_post_check_micros",
+                &["phase_timing", "invariant_post_check_micros"],
+            ),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_storage_commit_micros",
+                &["phase_timing", "publication_storage_commit_micros"],
+            ),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert!(varied_flat_batch_wave_samples
+        .iter()
+        .all(|sample| sample.elapsed_micros > 0));
+    assert_budget(
+        &varied_flat_batch_wave_samples,
+        "pseudorealistic rocketship varied-locality batches should stay on the widened sparse AoSoA path across broader partition spread",
+        |metrics| {
+            let batch_target_count = metrics["batch_target_count"].as_u64().unwrap_or(0);
+            let batch_partition_count = metrics["batch_partition_count"].as_u64().unwrap_or(0);
+            metrics["resident_node_count"].as_u64() == Some(node_count as u64)
+                && metrics["resident_relation_count"].as_u64().unwrap_or(0) >= node_count as u64
+                && metrics["subsystem_count"].as_u64() == Some(12)
+                && batch_target_count >= 64
+                && batch_partition_count == 8
+                && metrics["hot_changed_records"].as_u64() == Some(batch_target_count)
+                && metrics["explicit_result_entities"].as_u64() == Some(16)
+                && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
+                && metrics["detailed_trace_entries"].as_u64() == Some(0)
+                && counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == batch_target_count
+                && counter_u64(metrics, "partitions_touched_by_commit") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
+                    == batch_target_count
+                && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+        },
+    );
+
+    let larger_flat_batch_wave_samples = capture_perf_samples(
+        suite,
+        "hundred_k_nodes_pseudorealistic_large_flat_entity_batch_wave",
+        || {
+            let mut runtime = runtime_with_test_schema_profile_and_chunks(
+                RelationalRuntimeProfile::GeometryKernel,
+                ROCKETSHIP_CHUNK_SIZE,
+                ROCKETSHIP_CHUNK_SIZE,
+            );
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::GeometryOperationalHotPath,
+            );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let seeded =
+                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+
+            let mut partition_targets = BTreeMap::new();
+            for entity in &seeded.entities {
+                let targets = partition_targets
+                    .entry(entity.partition_id)
+                    .or_insert_with(Vec::new);
+                if targets.len() < 16 {
+                    targets.push(*entity);
+                }
+                if partition_targets.len() >= 8
+                    && partition_targets
+                        .values()
+                        .all(|targets| targets.len() >= 16)
+                {
+                    break;
+                }
+            }
+            let batch_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(16).copied())
+                .collect::<Vec<_>>();
+            assert!(
+                batch_targets.len() >= 128,
+                "rocketship large flat batch wave should gather a larger bounded multi-partition entity batch"
+            );
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch = WorkerIntentBatch::new("rocketship-large-flat-entity-batch-wave");
+                for (index, entity) in batch_targets.iter().enumerate() {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                        UpdateEntityIntent {
+                            entity_id: *entity,
+                            payload: RecordPayload::StructuredJson(json!({
+                                "section": "large-batch-wave",
+                                "tag": format!("rocket.large_batch.{index}"),
+                                "partition": entity.partition_id.0,
+                            })),
+                        },
+                    )));
+                }
+                txn.push_batch(batch);
+                txn.commit()
+                    .expect("rocketship large flat entity batch wave commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+            let phase_timing = update.execution.phase_timing.clone();
+
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_targets = batch_targets
+                .iter()
+                .step_by(4)
+                .take(16)
+                .copied()
+                .map(RecordRef::Entity)
+                .collect::<Vec<_>>();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "rocketship-large-flat-entity-batch-explicit",
+                explicit_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("planned rocketship large flat batch explicit query"),
+                )
+                .expect("rocketship large flat batch explicit outcome");
+            let explicit_query_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            let counters = runtime.performance_access().counters();
+            let (diagnostic_artifact_count, detailed_trace_entries) =
+                fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+            measurement_with_elapsed(update_micros + explicit_query_micros, || {
+                json!({
+                    "resident_node_count": seeded.entities.len(),
+                    "resident_relation_count": seeded.relation_count,
+                    "subsystem_count": seeded.subsystem_count,
+                    "batch_target_count": batch_targets.len(),
+                    "batch_partition_count": partition_targets.len(),
+                    "update_micros": update_micros,
+                    "explicit_query_micros": explicit_query_micros,
+                    "hot_changed_records": update.changed_records.len(),
+                    "explicit_result_entities": explicit.result.entities.len(),
+                    "diagnostic_artifact_count": diagnostic_artifact_count,
+                    "detailed_trace_entries": detailed_trace_entries,
+                    "phase_timing": {
+                        "draft_preparation_micros": phase_timing.draft_preparation_micros,
+                        "draft_merge_plan_micros": phase_timing.draft_merge_plan_micros,
+                        "draft_structural_summary_micros": phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": phase_timing.invariant_post_check_micros,
+                        "durable_append_micros": phase_timing.durable_append_micros,
+                        "publication_micros": phase_timing.publication_micros,
+                        "publication_storage_commit_micros": phase_timing.publication_storage_commit_micros,
+                    },
+                    "counters": counters,
+                })
+            })
+        },
+    );
+    emit_metric_summaries(
+        suite,
+        "hundred_k_nodes_pseudorealistic_large_flat_entity_batch_wave",
+        &larger_flat_batch_wave_samples,
+        &[
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            ("update_micros", &["update_micros"]),
+            (
+                "draft_preparation_micros",
+                &["phase_timing", "draft_preparation_micros"],
+            ),
+            (
+                "draft_merge_plan_micros",
+                &["phase_timing", "draft_merge_plan_micros"],
+            ),
+            (
+                "draft_structural_summary_micros",
+                &["phase_timing", "draft_structural_summary_micros"],
+            ),
+            (
+                "draft_working_state_clone_micros",
+                &["phase_timing", "draft_working_state_clone_micros"],
+            ),
+            (
+                "invariant_pre_check_micros",
+                &["phase_timing", "invariant_pre_check_micros"],
+            ),
+            (
+                "authoritative_mutation_micros",
+                &["phase_timing", "authoritative_mutation_micros"],
+            ),
+            (
+                "history_resolution_micros",
+                &["phase_timing", "history_resolution_micros"],
+            ),
+            (
+                "invariant_post_check_micros",
+                &["phase_timing", "invariant_post_check_micros"],
+            ),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_storage_commit_micros",
+                &["phase_timing", "publication_storage_commit_micros"],
+            ),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert!(larger_flat_batch_wave_samples
+        .iter()
+        .all(|sample| sample.elapsed_micros > 0));
+    assert_budget(
+        &larger_flat_batch_wave_samples,
+        "pseudorealistic rocketship large flat entity batches should stay on the widened sparse AoSoA path when the bounded batch doubles in width",
+        |metrics| {
+            let batch_target_count = metrics["batch_target_count"].as_u64().unwrap_or(0);
+            let batch_partition_count = metrics["batch_partition_count"].as_u64().unwrap_or(0);
+            metrics["resident_node_count"].as_u64() == Some(node_count as u64)
+                && metrics["resident_relation_count"].as_u64().unwrap_or(0) >= node_count as u64
+                && metrics["subsystem_count"].as_u64() == Some(12)
+                && batch_target_count >= 128
+                && batch_partition_count >= 8
+                && metrics["hot_changed_records"].as_u64() == Some(batch_target_count)
+                && metrics["explicit_result_entities"].as_u64() == Some(16)
+                && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
+                && metrics["detailed_trace_entries"].as_u64() == Some(0)
+                && counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == batch_target_count
+                && counter_u64(metrics, "partitions_touched_by_commit") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
+                    == batch_target_count
+                && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+        },
+    );
+
+    let mixed_entity_relation_batch_wave_samples = capture_perf_samples(
+        suite,
+        "hundred_k_nodes_pseudorealistic_mixed_entity_relation_batch_wave",
+        || {
+            let mut runtime = runtime_with_test_schema_profile_and_chunks(
+                RelationalRuntimeProfile::GeometryKernel,
+                ROCKETSHIP_CHUNK_SIZE,
+                ROCKETSHIP_CHUNK_SIZE,
+            );
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::GeometryOperationalHotPath,
+            );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
+            let seeded =
+                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+
+            let mut partition_targets = BTreeMap::new();
+            for entity in &seeded.entities {
+                let targets = partition_targets
+                    .entry(entity.partition_id)
+                    .or_insert_with(Vec::new);
+                if targets.len() < 8 {
+                    targets.push(*entity);
+                }
+                if partition_targets.len() >= 8
+                    && partition_targets.values().all(|targets| targets.len() >= 8)
+                {
+                    break;
+                }
+            }
+            let batch_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(8).copied())
+                .collect::<Vec<_>>();
+            assert!(
+                batch_targets.len() >= 64,
+                "rocketship mixed entity-plus-relation batch wave should gather a broad multi-partition entity batch"
+            );
+
+            let relation_specs = partition_targets
+                .values()
+                .enumerate()
+                .flat_map(|(partition_index, targets)| {
+                    targets
+                        .windows(2)
+                        .take(2)
+                        .enumerate()
+                        .map(
+                            move |(edge_index, pair)| crate::transactions::data::RelationSpec {
+                                partition_id: PartitionId(601 + partition_index as u32),
+                                kind_id: KindId(2),
+                                client_key: InternedString::Raw(format!(
+                                    "rocket.batch.local.{}.{}",
+                                    partition_index, edge_index
+                                )),
+                                source: pair[0],
+                                target: pair[1],
+                                payload: Some(RecordPayload::StructuredJson(json!({
+                                    "edge_type": "batch-local",
+                                    "partition": partition_index,
+                                    "edge": edge_index,
+                                }))),
+                            },
+                        )
+                })
+                .collect::<Vec<_>>();
+            assert!(
+                relation_specs.len() >= 16,
+                "rocketship mixed entity-plus-relation batch wave should add a bounded local relation wave"
+            );
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch =
+                    WorkerIntentBatch::new("rocketship-mixed-entity-relation-batch-wave");
+                for (index, entity) in batch_targets.iter().enumerate() {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                        UpdateEntityIntent {
+                            entity_id: *entity,
+                            payload: RecordPayload::StructuredJson(json!({
+                                "section": "mixed-batch-wave",
+                                "tag": format!("rocket.mixed_batch.{index}"),
+                                "partition": entity.partition_id.0,
+                            })),
+                        },
+                    )));
+                }
+                for intent in bulk_relation_create_intents(&relation_specs) {
+                    batch = batch.push(intent);
+                }
+                txn.push_batch(batch);
+                txn.commit()
+                    .expect("rocketship mixed entity plus relation batch wave commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+            let phase_timing = update.execution.phase_timing.clone();
+
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_targets = batch_targets
+                .iter()
+                .step_by(3)
+                .take(16)
+                .copied()
+                .map(RecordRef::Entity)
+                .collect::<Vec<_>>();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "rocketship-mixed-batch-explicit",
+                explicit_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("planned rocketship mixed batch explicit query"),
+                )
+                .expect("rocketship mixed batch explicit outcome");
+            let explicit_query_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            let counters = runtime.performance_access().counters();
+            let (diagnostic_artifact_count, detailed_trace_entries) =
+                fresh_diagnostics_metrics(&runtime, diagnostics_start);
+
+            measurement_with_elapsed(update_micros + explicit_query_micros, || {
+                json!({
+                    "resident_node_count": seeded.entities.len(),
+                    "resident_relation_count": seeded.relation_count,
+                    "subsystem_count": seeded.subsystem_count,
+                    "batch_target_count": batch_targets.len(),
+                    "batch_partition_count": partition_targets.len(),
+                    "created_relation_count": relation_specs.len(),
+                    "update_micros": update_micros,
+                    "explicit_query_micros": explicit_query_micros,
+                    "hot_changed_records": update.changed_records.len(),
+                    "explicit_result_entities": explicit.result.entities.len(),
+                    "diagnostic_artifact_count": diagnostic_artifact_count,
+                    "detailed_trace_entries": detailed_trace_entries,
+                    "phase_timing": {
+                        "draft_preparation_micros": phase_timing.draft_preparation_micros,
+                        "draft_merge_plan_micros": phase_timing.draft_merge_plan_micros,
+                        "draft_structural_summary_micros": phase_timing.draft_structural_summary_micros,
+                        "draft_working_state_clone_micros": phase_timing.draft_working_state_clone_micros,
+                        "invariant_pre_check_micros": phase_timing.invariant_pre_check_micros,
+                        "authoritative_mutation_micros": phase_timing.authoritative_mutation_micros,
+                        "history_resolution_micros": phase_timing.history_resolution_micros,
+                        "invariant_post_check_micros": phase_timing.invariant_post_check_micros,
+                        "durable_append_micros": phase_timing.durable_append_micros,
+                        "publication_micros": phase_timing.publication_micros,
+                        "publication_storage_commit_micros": phase_timing.publication_storage_commit_micros,
+                    },
+                    "counters": counters,
+                })
+            })
+        },
+    );
+    emit_metric_summaries(
+        suite,
+        "hundred_k_nodes_pseudorealistic_mixed_entity_relation_batch_wave",
+        &mixed_entity_relation_batch_wave_samples,
+        &[
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            ("created_relation_count", &["created_relation_count"]),
+            ("update_micros", &["update_micros"]),
+            (
+                "draft_preparation_micros",
+                &["phase_timing", "draft_preparation_micros"],
+            ),
+            (
+                "draft_merge_plan_micros",
+                &["phase_timing", "draft_merge_plan_micros"],
+            ),
+            (
+                "draft_structural_summary_micros",
+                &["phase_timing", "draft_structural_summary_micros"],
+            ),
+            (
+                "draft_working_state_clone_micros",
+                &["phase_timing", "draft_working_state_clone_micros"],
+            ),
+            (
+                "invariant_pre_check_micros",
+                &["phase_timing", "invariant_pre_check_micros"],
+            ),
+            (
+                "authoritative_mutation_micros",
+                &["phase_timing", "authoritative_mutation_micros"],
+            ),
+            (
+                "history_resolution_micros",
+                &["phase_timing", "history_resolution_micros"],
+            ),
+            (
+                "invariant_post_check_micros",
+                &["phase_timing", "invariant_post_check_micros"],
+            ),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_storage_commit_micros",
+                &["phase_timing", "publication_storage_commit_micros"],
+            ),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert!(mixed_entity_relation_batch_wave_samples
+        .iter()
+        .all(|sample| sample.elapsed_micros > 0));
+    assert_budget(
+        &mixed_entity_relation_batch_wave_samples,
+        "pseudorealistic rocketship mixed entity plus relation batches should stay bounded and preserve semantic purity when the commit leaves the pure flat-entity fast path",
+        |metrics| {
+            let batch_target_count = metrics["batch_target_count"].as_u64().unwrap_or(0);
+            let batch_partition_count = metrics["batch_partition_count"].as_u64().unwrap_or(0);
+            let created_relation_count = metrics["created_relation_count"].as_u64().unwrap_or(0);
+            metrics["resident_node_count"].as_u64() == Some(node_count as u64)
+                && metrics["resident_relation_count"].as_u64().unwrap_or(0) >= node_count as u64
+                && metrics["subsystem_count"].as_u64() == Some(12)
+                && batch_target_count >= 64
+                && batch_partition_count >= 8
+                && created_relation_count >= 16
+                && metrics["hot_changed_records"].as_u64().unwrap_or(0)
+                    >= batch_target_count + created_relation_count
+                && metrics["explicit_result_entities"].as_u64() == Some(16)
+                && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
+                && metrics["detailed_trace_entries"].as_u64() == Some(0)
+                && counter_u64(metrics, "full_state_clones") == 0
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == batch_target_count
+                && counter_u64(metrics, "relation_slots_touched_by_commit")
+                    >= created_relation_count
+                && counter_u64(metrics, "partitions_touched_by_commit") >= batch_partition_count
+        },
+    );
+
     let rich_propagation_wave_samples = capture_perf_samples(
         suite,
         "hundred_k_nodes_geometry_profile_propagation_wave",
@@ -4692,8 +6064,12 @@ fn perf_rocketship_scale_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryRichCertification,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 2;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 2;
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
 
@@ -4708,7 +6084,7 @@ fn perf_rocketship_scale_matrix() {
 
             let snapshot = runtime.visibility_authority().snapshot();
             let context = runtime
-                .visibility_reads()
+                .read_truth()
                 .query_plan_context(&snapshot)
                 .expect("rocketship rich propagation context");
             let propagation_seeds = vec![
@@ -4735,13 +6111,13 @@ fn perf_rocketship_scale_matrix() {
             };
             let propagation_plan_started_at = Instant::now();
             let propagation_plan = runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, propagation_packet)
                 .expect("planned rocketship rich propagation query");
             let propagation_planning_micros = propagation_plan_started_at.elapsed().as_micros();
             let propagation_execution_started_at = Instant::now();
             let propagation_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(propagation_plan)
                 .expect("rocketship rich propagation outcome");
             let propagation_execution_micros =
@@ -4761,10 +6137,10 @@ fn perf_rocketship_scale_matrix() {
             );
             let explicit_started_at = Instant::now();
             let explicit_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, explicit_packet)
                         .expect("planned rocketship rich propagation explicit query"),
                 )
@@ -4927,37 +6303,41 @@ fn perf_sustained_load_matrix() {
                 );
                 let query_started_at = Instant::now();
                 let query_outcome = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, packet)
                             .expect("planned sustained explicit query"),
                     )
                     .expect("sustained explicit query outcome");
                 total_query_micros += query_started_at.elapsed().as_micros();
-                max_query_packets_per_iteration = max_query_packets_per_iteration
-                    .max(query_outcome.complexity.packet_count);
-                let scope_units = runtime.performance_access().counters().query_scope_unit_count;
+                max_query_packets_per_iteration =
+                    max_query_packets_per_iteration.max(query_outcome.complexity.packet_count);
+                let scope_units = runtime
+                    .performance_access()
+                    .counters()
+                    .query_scope_unit_count;
                 max_query_scope_units_per_iteration = max_query_scope_units_per_iteration
                     .max(scope_units.saturating_sub(previous_scope_units));
                 previous_scope_units = scope_units;
             }
 
             let latest_version = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("latest sustained commit")
                 .version_id;
             let final_entity_count = runtime
-                .visibility_reads()
+                .read_truth()
                 .project_version(latest_version)
                 .all_entity_records()
                 .len();
             let counters = runtime.performance_access().counters();
 
             let elapsed_micros = total_commit_micros + total_query_micros;
-            measurement_with_elapsed(elapsed_micros, || json!({
+            measurement_with_elapsed(elapsed_micros, || {
+                json!({
                     "iterations": ITERATIONS,
                     "average_commit_micros": total_commit_micros / ITERATIONS as u128,
                     "average_query_micros": total_query_micros / ITERATIONS as u128,
@@ -4965,7 +6345,8 @@ fn perf_sustained_load_matrix() {
                     "max_query_scope_units_per_iteration": max_query_scope_units_per_iteration,
                     "final_entity_count": final_entity_count,
                     "counters": counters,
-                }))
+                })
+            })
         });
     emit_metric_summaries(
         suite,
@@ -5026,12 +6407,14 @@ fn perf_sustained_load_matrix() {
 
             for commit_id in commit_ids.iter().rev().take(REPLAY_WINDOW) {
                 let replay_started_at = Instant::now();
-                let outcome = runtime.replay_authority().replay_commit(RelationalReplayRequest {
-                    commit_id: *commit_id,
-                    branch_id: BranchId("main".to_string()),
-                    execution_mode: ReplayExecutionMode::SerialDeterministic,
-                    verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-                });
+                let outcome = runtime
+                    .replay_authority()
+                    .replay_commit(RelationalReplayRequest {
+                        commit_id: *commit_id,
+                        branch_id: BranchId("main".to_string()),
+                        execution_mode: ReplayExecutionMode::SerialDeterministic,
+                        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+                    });
                 let replay_micros = replay_started_at.elapsed().as_micros();
                 assert!(
                     outcome.failure.is_none(),
@@ -5046,7 +6429,8 @@ fn perf_sustained_load_matrix() {
                 replayed_commit_count += 1;
             }
 
-            measurement_with_elapsed(total_replay_micros, || json!({
+            measurement_with_elapsed(total_replay_micros, || {
+                json!({
                     "history_depth": HISTORY_DEPTH,
                     "replay_window": REPLAY_WINDOW,
                     "average_replay_micros": total_replay_micros / REPLAY_WINDOW as u128,
@@ -5056,7 +6440,8 @@ fn perf_sustained_load_matrix() {
                     "total_reconstructed_commit_closure": total_reconstructed_commit_closure,
                     "total_mismatch_count": total_mismatch_count,
                     "counters": runtime.performance_access().counters(),
-                }))
+                })
+            })
         });
     emit_metric_summaries(
         suite,
@@ -5106,7 +6491,8 @@ fn perf_sustained_load_matrix() {
 
             runtime.performance_access().reset_counters();
             for index in 0..ITERATIONS {
-                let created = create_entity_outcome(&mut runtime, &format!("retention-drift-{index}"));
+                let created =
+                    create_entity_outcome(&mut runtime, &format!("retention-drift-{index}"));
                 let entity = changed_entities(&created)[0];
                 let deleted = delete_entity(&mut runtime, entity);
                 assert!(runtime
@@ -5117,21 +6503,21 @@ fn perf_sustained_load_matrix() {
                     .release_snapshot(&deleted.snapshot));
 
                 let inspect_started_at = Instant::now();
-                let plan = runtime.retention_authority().inspect_plan();
+                let plan = runtime.retention().inspect_plan();
                 total_inspect_micros += inspect_started_at.elapsed().as_micros();
-                max_reclaimable_entities =
-                    max_reclaimable_entities.max(plan.reclaimable_entities);
+                max_reclaimable_entities = max_reclaimable_entities.max(plan.reclaimable_entities);
 
                 let run_pass_started_at = Instant::now();
-                let pass = runtime.retention_authority().run_pass();
+                let pass = runtime.retention().run_pass();
                 total_run_pass_micros += run_pass_started_at.elapsed().as_micros();
                 total_entity_reclaimable += pass.entity_reclaimable;
                 total_entity_reclaimed += pass.entity_reclaimed;
             }
 
-            let trailing_plan = runtime.retention_authority().inspect_plan();
+            let trailing_plan = runtime.retention().inspect_plan();
             let elapsed_micros = total_inspect_micros + total_run_pass_micros;
-            measurement_with_elapsed(elapsed_micros, || json!({
+            measurement_with_elapsed(elapsed_micros, || {
+                json!({
                     "iterations": ITERATIONS,
                     "average_inspect_micros": total_inspect_micros / ITERATIONS as u128,
                     "average_run_pass_micros": total_run_pass_micros / ITERATIONS as u128,
@@ -5140,7 +6526,8 @@ fn perf_sustained_load_matrix() {
                     "max_reclaimable_entities": max_reclaimable_entities,
                     "trailing_reclaimable_entities": trailing_plan.reclaimable_entities,
                     "counters": runtime.performance_access().counters(),
-                }))
+                })
+            })
         });
     emit_metric_summaries(
         suite,
@@ -5170,8 +6557,10 @@ fn perf_sustained_load_matrix() {
         },
     );
 
-    let mixed_topology_churn_samples =
-        capture_perf_samples(suite, "mixed_topology_query_churn_stability", || {
+    let mixed_topology_churn_samples = capture_perf_samples(
+        suite,
+        "mixed_topology_query_churn_stability",
+        || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let entities = (0..24)
@@ -5237,10 +6626,10 @@ fn perf_sustained_load_matrix() {
                 );
                 let explicit_started_at = Instant::now();
                 let _ = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, explicit_packet)
                             .expect("planned mixed topology explicit query"),
                     )
@@ -5248,7 +6637,7 @@ fn perf_sustained_load_matrix() {
                 total_explicit_query_micros += explicit_started_at.elapsed().as_micros();
 
                 let context = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("mixed topology query plan context");
                 let traversal_packet = PlannedQueryPacket {
@@ -5272,10 +6661,10 @@ fn perf_sustained_load_matrix() {
                 };
                 let traversal_started_at = Instant::now();
                 let _ = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, traversal_packet)
                             .expect("planned mixed topology traversal query"),
                     )
@@ -5283,11 +6672,8 @@ fn perf_sustained_load_matrix() {
                 total_traversal_micros += traversal_started_at.elapsed().as_micros();
 
                 let counters = runtime.performance_access().counters();
-                max_packets_per_iteration = max_packets_per_iteration.max(
-                    counters
-                        .query_packet_count
-                        .saturating_sub(previous_packets),
-                );
+                max_packets_per_iteration = max_packets_per_iteration
+                    .max(counters.query_packet_count.saturating_sub(previous_packets));
                 max_scope_units_per_iteration = max_scope_units_per_iteration.max(
                     counters
                         .query_scope_unit_count
@@ -5299,7 +6685,8 @@ fn perf_sustained_load_matrix() {
 
             let elapsed_micros =
                 total_update_micros + total_explicit_query_micros + total_traversal_micros;
-            measurement_with_elapsed(elapsed_micros, || json!({
+            measurement_with_elapsed(elapsed_micros, || {
+                json!({
                     "iterations": ITERATIONS,
                     "average_update_micros": total_update_micros / ITERATIONS as u128,
                     "average_explicit_query_micros": total_explicit_query_micros / ITERATIONS as u128,
@@ -5307,8 +6694,10 @@ fn perf_sustained_load_matrix() {
                     "max_packets_per_iteration": max_packets_per_iteration,
                     "max_scope_units_per_iteration": max_scope_units_per_iteration,
                     "counters": runtime.performance_access().counters(),
-                }))
-        });
+                })
+            })
+        },
+    );
     emit_metric_summaries(
         suite,
         "mixed_topology_query_churn_stability",
@@ -5356,14 +6745,16 @@ fn perf_sustained_load_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit =
-                rocketship_endurance_node_count * 2;
-            let seeded =
-                seed_pseudorealistic_rocketship_world(
-                    &mut runtime,
-                    rocketship_endurance_node_count,
-                    query_target_count,
-                );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = rocketship_endurance_node_count * 2;
+            let seeded = seed_pseudorealistic_rocketship_world(
+                &mut runtime,
+                rocketship_endurance_node_count,
+                query_target_count,
+            );
 
             const ITERATIONS: usize = 256;
             const WINDOW: usize = 32;
@@ -5403,10 +6794,10 @@ fn perf_sustained_load_matrix() {
                     );
                     let query_started_at = Instant::now();
                     let _ = runtime
-                        .visibility_reads()
+                        .read_truth()
                         .execute_query_plan(
                             runtime
-                                .visibility_reads()
+                                .read_truth()
                                 .plan_query_packet(&snapshot, packet)
                                 .expect("planned rocketship endurance explicit query"),
                         )
@@ -5416,12 +6807,8 @@ fn perf_sustained_load_matrix() {
                 }
             }
 
-            let first_window_average_update_micros = update_samples
-                .iter()
-                .take(WINDOW)
-                .copied()
-                .sum::<u128>()
-                / WINDOW as u128;
+            let first_window_average_update_micros =
+                update_samples.iter().take(WINDOW).copied().sum::<u128>() / WINDOW as u128;
             let last_window_average_update_micros = update_samples
                 .iter()
                 .rev()
@@ -5487,10 +6874,11 @@ fn perf_sustained_load_matrix() {
         },
     );
 
-    let rocketship_propagation_endurance_samples =
-        capture_perf_samples(suite, "rocketship_propagation_endurance", || {
-            let query_target_count =
-                rocketship_query_target_count(rocketship_endurance_node_count);
+    let rocketship_propagation_endurance_samples = capture_perf_samples(
+        suite,
+        "rocketship_propagation_endurance",
+        || {
+            let query_target_count = rocketship_query_target_count(rocketship_endurance_node_count);
             let mut runtime = runtime_with_test_schema_profile_and_chunks(
                 RelationalRuntimeProfile::GeometryKernel,
                 ROCKETSHIP_CHUNK_SIZE,
@@ -5500,14 +6888,16 @@ fn perf_sustained_load_matrix() {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit =
-                rocketship_endurance_node_count * 2;
-            let seeded =
-                seed_pseudorealistic_rocketship_world(
-                    &mut runtime,
-                    rocketship_endurance_node_count,
-                    query_target_count,
-                );
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = rocketship_endurance_node_count * 2;
+            let seeded = seed_pseudorealistic_rocketship_world(
+                &mut runtime,
+                rocketship_endurance_node_count,
+                query_target_count,
+            );
 
             const ITERATIONS: usize = 96;
             const WINDOW: usize = 16;
@@ -5534,7 +6924,7 @@ fn perf_sustained_load_matrix() {
 
                 let snapshot = runtime.visibility_authority().snapshot();
                 let context = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("rocketship endurance propagation context");
                 let propagation_seeds = vec![
@@ -5561,10 +6951,10 @@ fn perf_sustained_load_matrix() {
                 };
                 let propagation_started_at = Instant::now();
                 let _ = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, propagation_packet)
                             .expect("planned rocketship endurance propagation query"),
                     )
@@ -5588,10 +6978,10 @@ fn perf_sustained_load_matrix() {
                 );
                 let explicit_started_at = Instant::now();
                 let _ = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, explicit_packet)
                             .expect("planned rocketship endurance explicit broad query"),
                     )
@@ -5604,11 +6994,8 @@ fn perf_sustained_load_matrix() {
                 cycle_samples.push(cycle_micros);
 
                 let counters = runtime.performance_access().counters();
-                max_packets_per_iteration = max_packets_per_iteration.max(
-                    counters
-                        .query_packet_count
-                        .saturating_sub(previous_packets),
-                );
+                max_packets_per_iteration = max_packets_per_iteration
+                    .max(counters.query_packet_count.saturating_sub(previous_packets));
                 max_scope_units_per_iteration = max_scope_units_per_iteration.max(
                     counters
                         .query_scope_unit_count
@@ -5618,12 +7005,8 @@ fn perf_sustained_load_matrix() {
                 previous_scope_units = counters.query_scope_unit_count;
             }
 
-            let first_window_average_cycle_micros = cycle_samples
-                .iter()
-                .take(WINDOW)
-                .copied()
-                .sum::<u128>()
-                / WINDOW as u128;
+            let first_window_average_cycle_micros =
+                cycle_samples.iter().take(WINDOW).copied().sum::<u128>() / WINDOW as u128;
             let last_window_average_cycle_micros = cycle_samples
                 .iter()
                 .rev()
@@ -5648,7 +7031,8 @@ fn perf_sustained_load_matrix() {
                     "counters": runtime.performance_access().counters(),
                 })
             })
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "rocketship_propagation_endurance",
@@ -5658,8 +7042,14 @@ fn perf_sustained_load_matrix() {
             ("resident_node_count", &["resident_node_count"]),
             ("resident_relation_count", &["resident_relation_count"]),
             ("average_update_micros", &["average_update_micros"]),
-            ("average_propagation_micros", &["average_propagation_micros"]),
-            ("average_explicit_query_micros", &["average_explicit_query_micros"]),
+            (
+                "average_propagation_micros",
+                &["average_propagation_micros"],
+            ),
+            (
+                "average_explicit_query_micros",
+                &["average_explicit_query_micros"],
+            ),
             (
                 "first_window_average_cycle_micros",
                 &["first_window_average_cycle_micros"],
@@ -5771,13 +7161,13 @@ fn perf_sustained_load_matrix() {
                 total_update_micros += update_micros;
 
                 let commit = runtime
-                    .history_access()
+                    .history()
                     .latest_commit()
                     .expect("chip global step commit")
                     .clone();
                 let compile_started_at = Instant::now();
                 let artifact = runtime
-                    .simulation_authority()
+                    .compiled_artifacts_authority()
                     .compile_execution_artifact(
                         commit.commit_id,
                         vec![
@@ -5814,7 +7204,7 @@ fn perf_sustained_load_matrix() {
                     max_outgoing_relation_count.max(outgoing_relations.len());
                 assert_eq!(
                     runtime
-                        .simulation_access()
+                        .compiled_artifacts()
                         .compiled_artifact_compatibility(artifact.artifact_id),
                     CompiledArtifactCompatibility::Compatible
                 );
@@ -5822,12 +7212,8 @@ fn perf_sustained_load_matrix() {
                 cycle_samples.push(update_micros + compile_micros + adjacency_micros);
             }
 
-            let first_window_average_cycle_micros = cycle_samples
-                .iter()
-                .take(WINDOW)
-                .copied()
-                .sum::<u128>()
-                / WINDOW as u128;
+            let first_window_average_cycle_micros =
+                cycle_samples.iter().take(WINDOW).copied().sum::<u128>() / WINDOW as u128;
             let last_window_average_cycle_micros = cycle_samples
                 .iter()
                 .rev()
@@ -5871,7 +7257,10 @@ fn perf_sustained_load_matrix() {
                 &["last_window_average_cycle_micros"],
             ),
             ("max_compile_micros", &["max_compile_micros"]),
-            ("max_outgoing_relation_count", &["max_outgoing_relation_count"]),
+            (
+                "max_outgoing_relation_count",
+                &["max_outgoing_relation_count"],
+            ),
         ],
     );
     assert_budget(
@@ -5914,13 +7303,13 @@ fn perf_inspection_budget_matrix() {
 
             let graph_started_at = Instant::now();
             let graph = runtime
-                .inspection_access()
+                .inspect_what_happened()
                 .graph_summary(&current_graph_request(None, None, true));
             let graph_micros = graph_started_at.elapsed().as_micros();
 
             let kind_started_at = Instant::now();
             let kind = runtime
-                .inspection_access()
+                .inspect_what_happened()
                 .kind_summary(&KindInspectionRequest {
                     scope: InspectionScope::Current,
                     partition_scope: Some(vec![PartitionId(7)]),
@@ -5930,14 +7319,15 @@ fn perf_inspection_budget_matrix() {
             let kind_micros = kind_started_at.elapsed().as_micros();
 
             let connectivity_started_at = Instant::now();
-            let connectivity = runtime
-                .inspection_access()
-                .connectivity_summary(&connectivity_request(
-                    InspectionScope::Current,
-                    None,
-                    None,
-                    false,
-                ));
+            let connectivity =
+                runtime
+                    .inspect_what_happened()
+                    .connectivity_summary(&connectivity_request(
+                        InspectionScope::Current,
+                        None,
+                        None,
+                        false,
+                    ));
             let connectivity_micros = connectivity_started_at.elapsed().as_micros();
 
             PerfMeasurement {
@@ -5967,7 +7357,10 @@ fn perf_inspection_budget_matrix() {
             ("kind_micros", &["kind_micros"]),
             ("connectivity_micros", &["connectivity_micros"]),
             ("graph_entity_count", &["graph_entity_count"]),
-            ("connectivity_component_count", &["connectivity_component_count"]),
+            (
+                "connectivity_component_count",
+                &["connectivity_component_count"],
+            ),
         ],
     );
     assert!(graph_kind_connectivity_samples
@@ -5993,15 +7386,20 @@ fn perf_inspection_budget_matrix() {
         },
     );
 
-    let structural_identity_samples =
-        capture_perf_samples(suite, "structural_identity_historical_window", || {
+    let structural_identity_samples = capture_perf_samples(
+        suite,
+        "structural_identity_historical_window",
+        || {
             let mut runtime = runtime_with_test_schema();
             let created = create_entity_outcome(&mut runtime, "alpha");
             let entity = changed_entities(&created)[0];
             let _other = create_entity(&mut runtime, "beta");
             assert!(runtime.set_entity_structural_identity_for_test(
                 entity,
-                Some(crate::facade::identity::StructuralFingerprint::new(Symbol(31), 700)),
+                Some(crate::facade::identity::StructuralFingerprint::new(
+                    Symbol(31),
+                    700
+                )),
                 Some(crate::facade::identity::LineageId(77)),
             ));
             let _updated = update_entity(&mut runtime, entity, "alpha-updated");
@@ -6010,19 +7408,19 @@ fn perf_inspection_budget_matrix() {
 
             let direct_started_at = Instant::now();
             let direct = runtime
-                .inspection_access()
+                .inspect_what_happened()
                 .structural_identity(InspectionScope::Current, RecordRef::Entity(entity))
                 .expect("structural identity evidence");
             let direct_micros = direct_started_at.elapsed().as_micros();
 
             let query_started_at = Instant::now();
-            let query = runtime
-                .inspection_access()
-                .query_structural_identity(&StructuralIdentityQueryRequest {
+            let query = runtime.inspect_what_happened().query_structural_identity(
+                &StructuralIdentityQueryRequest {
                     scope: InspectionScope::Current,
                     partition_scope: None,
                     fingerprint_family: Symbol(31),
-                });
+                },
+            );
             let query_micros = query_started_at.elapsed().as_micros();
 
             let historical_started_at = Instant::now();
@@ -6051,7 +7449,8 @@ fn perf_inspection_budget_matrix() {
                     "counters": runtime.performance_access().counters(),
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "structural_identity_historical_window",
@@ -6081,55 +7480,54 @@ fn perf_inspection_budget_matrix() {
         },
     );
 
-    let retention_commit_samples =
-        capture_perf_samples(suite, "retention_commit_window", || {
-            let mut runtime = runtime_with_test_schema();
-            let left = create_entity(&mut runtime, "left");
-            let right = create_entity(&mut runtime, "right");
-            let _relation = create_relation(&mut runtime, left, right, "rel");
-            let latest_commit = runtime
-                .history_access()
-                .latest_commit()
-                .map(|commit| commit.commit_id)
-                .expect("latest commit");
+    let retention_commit_samples = capture_perf_samples(suite, "retention_commit_window", || {
+        let mut runtime = runtime_with_test_schema();
+        let left = create_entity(&mut runtime, "left");
+        let right = create_entity(&mut runtime, "right");
+        let _relation = create_relation(&mut runtime, left, right, "rel");
+        let latest_commit = runtime
+            .history()
+            .latest_commit()
+            .map(|commit| commit.commit_id)
+            .expect("latest commit");
 
-            runtime.performance_access().reset_counters();
+        runtime.performance_access().reset_counters();
 
-            let retention_started_at = Instant::now();
-            let retention = runtime
-                .inspection_access()
-                .retention_summary(&default_retention_request());
-            let retention_micros = retention_started_at.elapsed().as_micros();
+        let retention_started_at = Instant::now();
+        let retention = runtime
+            .inspect_what_happened()
+            .retention_summary(&default_retention_request());
+        let retention_micros = retention_started_at.elapsed().as_micros();
 
-            let commit_started_at = Instant::now();
-            let commit = runtime
-                .inspection_access()
-                .inspect_commit(latest_commit)
-                .expect("commit inspection");
-            let commit_micros = commit_started_at.elapsed().as_micros();
+        let commit_started_at = Instant::now();
+        let commit = runtime
+            .inspect_what_happened()
+            .inspect_commit(latest_commit)
+            .expect("commit inspection");
+        let commit_micros = commit_started_at.elapsed().as_micros();
 
-            let recent_started_at = Instant::now();
-            let recent = runtime
-                .inspection_access()
-                .inspect_recent_commits(&RecentCommitInspectionRequest {
-                    branch_id: Some(BranchId("main".to_string())),
-                    limit: 3,
-                });
-            let recent_micros = recent_started_at.elapsed().as_micros();
+        let recent_started_at = Instant::now();
+        let recent = runtime.inspect_what_happened().inspect_recent_commits(
+            &RecentCommitInspectionRequest {
+                branch_id: Some(BranchId("main".to_string())),
+                limit: 3,
+            },
+        );
+        let recent_micros = recent_started_at.elapsed().as_micros();
 
-            PerfMeasurement {
-                elapsed_micros: retention_micros + commit_micros + recent_micros,
-                metrics: json!({
-                    "retention_micros": retention_micros,
-                    "commit_micros": commit_micros,
-                    "recent_micros": recent_micros,
-                    "retention_availability": format!("{:?}", retention.availability),
-                    "commit_changed_records": commit.changed_records.len(),
-                    "recent_commit_count": recent.commits.len(),
-                    "counters": runtime.performance_access().counters(),
-                }),
-            }
-        });
+        PerfMeasurement {
+            elapsed_micros: retention_micros + commit_micros + recent_micros,
+            metrics: json!({
+                "retention_micros": retention_micros,
+                "commit_micros": commit_micros,
+                "recent_micros": recent_micros,
+                "retention_availability": format!("{:?}", retention.availability),
+                "commit_changed_records": commit.changed_records.len(),
+                "recent_commit_count": recent.commits.len(),
+                "counters": runtime.performance_access().counters(),
+            }),
+        }
+    });
     emit_metric_summaries(
         suite,
         "retention_commit_window",
@@ -6197,7 +7595,7 @@ fn perf_index_parity_matrix() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(
                             &alpha.snapshot,
                             entity_name_index_packet(
@@ -6246,7 +7644,10 @@ fn perf_index_parity_matrix() {
             metric_u64(metrics, "entity_result_count") == 1
                 && metric_u64(metrics, "relation_result_count") == 0
                 && metrics["parity_digest_present"].as_bool() == Some(true)
-                && metrics["access_path"].as_str().unwrap_or("").contains("DerivedIndexGeneration")
+                && metrics["access_path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .contains("DerivedIndexGeneration")
                 && counter_u64(metrics, "query_index_attempt_count") == 1
                 && counter_u64(metrics, "query_index_path_count") == 1
                 && counter_u64(metrics, "query_index_parity_verification_count") == 1
@@ -6290,7 +7691,7 @@ fn perf_index_parity_matrix() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(
                             &alpha.snapshot,
                             entity_name_index_packet(
@@ -6337,7 +7738,10 @@ fn perf_index_parity_matrix() {
                     .as_str()
                     .unwrap_or("")
                     .contains("DerivedIndexRejectedStorageFallback")
-                && metrics["access_path"].as_str().unwrap_or("").contains("CorruptPayload")
+                && metrics["access_path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .contains("CorruptPayload")
                 && counter_u64(metrics, "query_index_attempt_count") == 1
                 && counter_u64(metrics, "query_index_path_count") == 0
                 && counter_u64(metrics, "query_index_rejection_count") == 1
@@ -6371,7 +7775,7 @@ fn perf_index_parity_matrix() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(
                             &alpha.snapshot,
                             entity_name_index_packet(
@@ -6398,7 +7802,7 @@ fn perf_index_parity_matrix() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     recovered
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(
                             &recovered_snapshot,
                             entity_name_index_packet(
@@ -6449,7 +7853,10 @@ fn perf_index_parity_matrix() {
             metric_u64(metrics, "entity_result_count") == 1
                 && metrics["result_digest_match"].as_bool() == Some(true)
                 && metrics["parity_digest_match"].as_bool() == Some(true)
-                && metrics["access_path"].as_str().unwrap_or("").contains("DerivedIndexGeneration")
+                && metrics["access_path"]
+                    .as_str()
+                    .unwrap_or("")
+                    .contains("DerivedIndexGeneration")
                 && counter_u64(metrics, "query_index_attempt_count") == 1
                 && counter_u64(metrics, "query_index_path_count") == 1
                 && counter_u64(metrics, "query_index_parity_verification_count") == 1
@@ -6475,7 +7882,7 @@ fn perf_mixed_load_matrix() {
 
             let serial_snapshot_name = {
                 let read = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .read_snapshot(&explicit_snapshot)
                     .expect("snapshot read");
                 read_entity_name(read.get_entity(entity).expect("snapshot entity"))
@@ -6483,14 +7890,14 @@ fn perf_mixed_load_matrix() {
                     .to_string()
             };
             let serial_version_name = {
-                let read = runtime.visibility_reads().read_version(created_version_id);
+                let read = runtime.read_truth().read_version(created_version_id);
                 read_entity_name(read.get_entity(entity).expect("version entity"))
                     .expect("version name")
                     .to_string()
             };
             let serial_latest_name = {
                 let read = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .read_snapshot(&updated.snapshot)
                     .expect("latest read");
                 read_entity_name(read.get_entity(entity).expect("latest entity"))
@@ -6509,24 +7916,30 @@ fn perf_mixed_load_matrix() {
                     let published_snapshot = updated.snapshot.clone();
                     readers.push(scope.spawn(move || {
                         let snapshot_read = runtime
-                            .visibility_reads()
+                            .read_truth()
                             .read_snapshot(&explicit_snapshot)
                             .expect("thread snapshot read");
-                        let version_read = runtime.visibility_reads().read_version(created_version_id);
+                        let version_read = runtime.read_truth().read_version(created_version_id);
                         let latest_read = runtime
-                            .visibility_reads()
+                            .read_truth()
                             .read_snapshot(&published_snapshot)
                             .expect("thread latest read");
                         (
-                            read_entity_name(snapshot_read.get_entity(entity).expect("snapshot entity"))
-                                .expect("snapshot name")
-                                .to_string(),
-                            read_entity_name(version_read.get_entity(entity).expect("version entity"))
-                                .expect("version name")
-                                .to_string(),
-                            read_entity_name(latest_read.get_entity(entity).expect("latest entity"))
-                                .expect("latest name")
-                                .to_string(),
+                            read_entity_name(
+                                snapshot_read.get_entity(entity).expect("snapshot entity"),
+                            )
+                            .expect("snapshot name")
+                            .to_string(),
+                            read_entity_name(
+                                version_read.get_entity(entity).expect("version entity"),
+                            )
+                            .expect("version name")
+                            .to_string(),
+                            read_entity_name(
+                                latest_read.get_entity(entity).expect("latest entity"),
+                            )
+                            .expect("latest name")
+                            .to_string(),
                         )
                     }));
                 }
@@ -6618,7 +8031,7 @@ fn perf_mixed_load_matrix() {
 
             let snapshot = commit.snapshot.clone();
             let context = runtime
-                .visibility_reads()
+                .read_truth()
                 .query_plan_context(&snapshot)
                 .expect("query plan context");
             let packet = PlannedQueryPacket {
@@ -6641,7 +8054,7 @@ fn perf_mixed_load_matrix() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet.clone())
                         .expect("baseline relation plan"),
                     FallbackParityMode::CertificationParity,
@@ -6663,7 +8076,7 @@ fn perf_mixed_load_matrix() {
                             .index_access()
                             .execute_query_plan_with_fallback_parity(
                                 runtime
-                                    .visibility_reads()
+                                    .read_truth()
                                     .plan_query_packet(&snapshot, packet)
                                     .expect("thread relation plan"),
                                 FallbackParityMode::CertificationParity,
@@ -6730,7 +8143,8 @@ fn perf_workflow_matrix() {
     let trade_correction_samples =
         capture_perf_samples(suite, "trade_correction_analysis_round_trip", || {
             let mut runtime = persisted_runtime_with_test_schema();
-            let account = create_entity_in_partition(&mut runtime, "portfolio-account", PartitionId(10));
+            let account =
+                create_entity_in_partition(&mut runtime, "portfolio-account", PartitionId(10));
             create_branch_from_main(&mut runtime, "analysis");
 
             runtime.performance_access().reset_counters();
@@ -6740,24 +8154,26 @@ fn perf_workflow_matrix() {
                     target_branch: Some(BranchId("analysis".to_string())),
                     ..TransactionOptions::default()
                 });
-                txn.push_batch(
-                    WorkerIntentBatch::new("correct-trade").push(MutationIntent::Create(
-                        CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                txn.push_batch(WorkerIntentBatch::new("correct-trade").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
                             partition_id: PartitionId(10),
                             kind_id: KindId(1),
-                            client_key: InternedString::Raw("analysis-trade-correction".to_string()),
+                            client_key: InternedString::Raw(
+                                "analysis-trade-correction".to_string(),
+                            ),
                             payload: RecordPayload::StructuredJson(json!({
                                 "entity_type": "trade",
                                 "case": "trade-correction",
                                 "status": "corrected",
                                 "account": "portfolio-account",
                             })),
-                        }),
+                        },
                     )),
-                );
-                txn.push_batch(
-                    WorkerIntentBatch::new("refresh-risk").push(MutationIntent::Create(
-                        CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                ));
+                txn.push_batch(WorkerIntentBatch::new("refresh-risk").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
                             partition_id: PartitionId(30),
                             kind_id: KindId(1),
                             client_key: InternedString::Raw("analysis-risk-refresh".to_string()),
@@ -6767,9 +8183,9 @@ fn perf_workflow_matrix() {
                                 "status": "refreshed",
                                 "severity": "medium",
                             })),
-                        }),
+                        },
                     )),
-                );
+                ));
                 txn.push_batch(
                     WorkerIntentBatch::new("emit-audit").push(MutationIntent::Create(
                         CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -6819,10 +8235,10 @@ fn perf_workflow_matrix() {
             );
             let query_started_at = Instant::now();
             let query_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet)
                         .expect("planned workflow query"),
                 )
@@ -6857,9 +8273,18 @@ fn perf_workflow_matrix() {
         "trade_correction_analysis_round_trip",
         &trade_correction_samples,
         &[
-            ("analysis_commit_micros", &["phase_timing", "analysis_commit_micros"]),
-            ("merge_execute_micros", &["phase_timing", "merge_execute_micros"]),
-            ("query_round_trip_micros", &["phase_timing", "query_round_trip_micros"]),
+            (
+                "analysis_commit_micros",
+                &["phase_timing", "analysis_commit_micros"],
+            ),
+            (
+                "merge_execute_micros",
+                &["phase_timing", "merge_execute_micros"],
+            ),
+            (
+                "query_round_trip_micros",
+                &["phase_timing", "query_round_trip_micros"],
+            ),
             (
                 "profile_execution_lane_code",
                 &["profile_boundary", "execution_lane_code"],
@@ -6944,8 +8369,14 @@ fn perf_workflow_matrix() {
         "fintech_intraday_risk_branch_round_trip",
         &fintech_intraday_risk_samples,
         &[
-            ("stress_commit_micros", &["phase_timing", "stress_commit_micros"]),
-            ("query_probe_micros", &["phase_timing", "query_probe_micros"]),
+            (
+                "stress_commit_micros",
+                &["phase_timing", "stress_commit_micros"],
+            ),
+            (
+                "query_probe_micros",
+                &["phase_timing", "query_probe_micros"],
+            ),
             ("packet_count", &["shape_metrics", "packet_count"]),
             ("scope_unit_count", &["shape_metrics", "scope_unit_count"]),
             ("diagnostic_artifact_delta", &["diagnostic_artifact_delta"]),
@@ -7045,8 +8476,14 @@ fn perf_workflow_matrix() {
                 "correction_commit_micros",
                 &["phase_timing", "correction_commit_micros"],
             ),
-            ("audit_commit_micros", &["phase_timing", "audit_commit_micros"]),
-            ("query_probe_micros", &["phase_timing", "query_probe_micros"]),
+            (
+                "audit_commit_micros",
+                &["phase_timing", "audit_commit_micros"],
+            ),
+            (
+                "query_probe_micros",
+                &["phase_timing", "query_probe_micros"],
+            ),
             ("packet_count", &["shape_metrics", "packet_count"]),
             ("scope_unit_count", &["shape_metrics", "scope_unit_count"]),
             ("diagnostic_artifact_delta", &["diagnostic_artifact_delta"]),
@@ -7087,8 +8524,10 @@ fn perf_workflow_matrix() {
         },
     );
 
-    let replay_recovery_samples =
-        capture_perf_samples(suite, "persisted_recovery_replay_round_trip", || {
+    let replay_recovery_samples = capture_perf_samples(
+        suite,
+        "persisted_recovery_replay_round_trip",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             let source_created = create_entity_outcome(&mut runtime, "recovery-source");
             let target_created = create_entity_outcome(&mut runtime, "recovery-target");
@@ -7125,12 +8564,10 @@ fn perf_workflow_matrix() {
                 .expect("promote workflow correspondence");
             let post_checkpoint_commit_micros =
                 post_checkpoint_commit_started_at.elapsed().as_micros();
-            let recovery_plan = runtime.durability_access().recovery_plan(
+            let recovery_plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let tail_commit_id = promotion
-                .promoted_commit_id()
-                .expect("promoted commit id");
+            let tail_commit_id = promotion.promoted_commit_id().expect("promoted commit id");
 
             let mut recovered = persisted_runtime_with_test_schema();
             recovered.performance_access().reset_counters();
@@ -7142,12 +8579,15 @@ fn perf_workflow_matrix() {
             let recover_micros = recover_started_at.elapsed().as_micros();
 
             let replay_started_at = Instant::now();
-            let replay_outcome = recovered.replay_authority().replay_commit(RelationalReplayRequest {
-                commit_id: tail_commit_id,
-                branch_id: BranchId("main".to_string()),
-                execution_mode: ReplayExecutionMode::SerialDeterministic,
-                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-            });
+            let replay_outcome =
+                recovered
+                    .replay_authority()
+                    .replay_commit(RelationalReplayRequest {
+                        commit_id: tail_commit_id,
+                        branch_id: BranchId("main".to_string()),
+                        execution_mode: ReplayExecutionMode::SerialDeterministic,
+                        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+                    });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
 
             let recovered_snapshot = recovered.visibility_authority().snapshot();
@@ -7155,17 +8595,14 @@ fn perf_workflow_matrix() {
                 &recovered,
                 &recovered_snapshot,
                 "recovery-round-trip-query",
-                vec![
-                    RecordRef::Entity(source),
-                    RecordRef::Entity(target),
-                ],
+                vec![RecordRef::Entity(source), RecordRef::Entity(target)],
             );
             let query_started_at = Instant::now();
             let query_outcome = recovered
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     recovered
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&recovered_snapshot, recovered_packet)
                         .expect("planned recovered workflow query"),
                 )
@@ -7203,7 +8640,8 @@ fn perf_workflow_matrix() {
                     "counters": counters,
                 })
             })
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "persisted_recovery_replay_round_trip",
@@ -7215,7 +8653,10 @@ fn perf_workflow_matrix() {
                 &["phase_timing", "post_checkpoint_commit_micros"],
             ),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
             (
                 "post_recovery_query_micros",
                 &["phase_timing", "post_recovery_query_micros"],
@@ -7259,7 +8700,8 @@ fn perf_workflow_matrix() {
     let retention_samples =
         capture_perf_samples(suite, "retention_release_reclaim_round_trip", || {
             let mut runtime = runtime_with_test_schema();
-            let survivor = create_entity_in_partition(&mut runtime, "retention-survivor", PartitionId(10));
+            let survivor =
+                create_entity_in_partition(&mut runtime, "retention-survivor", PartitionId(10));
             let deleted_created = create_entity_outcome(&mut runtime, "retention-deleted");
             let created_snapshot = runtime.visibility_authority().snapshot();
             let deleted_entity = changed_entities(&deleted_created)[0];
@@ -7275,10 +8717,10 @@ fn perf_workflow_matrix() {
 
             runtime.performance_access().reset_counters();
             let inspect_started_at = Instant::now();
-            let inspect_plan = runtime.retention_authority().inspect_plan();
+            let inspect_plan = runtime.retention().inspect_plan();
             let inspect_plan_micros = inspect_started_at.elapsed().as_micros();
             let reclaim_started_at = Instant::now();
-            let reclaim_pass = runtime.retention_authority().run_pass();
+            let reclaim_pass = runtime.retention().run_pass();
             let run_pass_micros = reclaim_started_at.elapsed().as_micros();
 
             let snapshot = runtime.visibility_authority().snapshot();
@@ -7286,14 +8728,17 @@ fn perf_workflow_matrix() {
                 &runtime,
                 &snapshot,
                 "retention-reclaim-round-trip",
-                vec![RecordRef::Entity(survivor), RecordRef::Entity(deleted_entity)],
+                vec![
+                    RecordRef::Entity(survivor),
+                    RecordRef::Entity(deleted_entity),
+                ],
             );
             let query_started_at = Instant::now();
             let query_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet)
                         .expect("planned retention workflow query"),
                 )
@@ -7330,7 +8775,10 @@ fn perf_workflow_matrix() {
         "retention_release_reclaim_round_trip",
         &retention_samples,
         &[
-            ("inspect_plan_micros", &["phase_timing", "inspect_plan_micros"]),
+            (
+                "inspect_plan_micros",
+                &["phase_timing", "inspect_plan_micros"],
+            ),
             ("run_pass_micros", &["phase_timing", "run_pass_micros"]),
             (
                 "post_reclaim_query_micros",
@@ -7385,7 +8833,7 @@ fn perf_profile_matrix() {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
@@ -7406,10 +8854,10 @@ fn perf_profile_matrix() {
             let packet = explicit_query_packet(&runtime, &snapshot, "profile-core-query", targets);
             let query_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet)
                         .expect("planned certification-core profile query"),
                 )
@@ -7417,7 +8865,7 @@ fn perf_profile_matrix() {
             let query_micros = query_started_at.elapsed().as_micros();
             let elapsed_micros = commit_micros + query_micros;
             let counters = runtime.performance_access().counters();
-            let publication = runtime.publication_access();
+            let publication = runtime.publication();
             let diagnostics = publication.diagnostic_artifacts();
             let fresh_artifacts = &diagnostics[diagnostics_start..];
             let detailed_trace_entries = fresh_artifacts
@@ -7502,7 +8950,7 @@ fn perf_profile_matrix() {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
@@ -7524,10 +8972,10 @@ fn perf_profile_matrix() {
                 explicit_query_packet(&runtime, &snapshot, "profile-geometry-query", targets);
             let query_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet)
                         .expect("planned geometry-kernel profile query"),
                 )
@@ -7535,7 +8983,7 @@ fn perf_profile_matrix() {
             let query_micros = query_started_at.elapsed().as_micros();
             let elapsed_micros = commit_micros + query_micros;
             let counters = runtime.performance_access().counters();
-            let publication = runtime.publication_access();
+            let publication = runtime.publication();
             let diagnostics = publication.diagnostic_artifacts();
             let fresh_artifacts = &diagnostics[diagnostics_start..];
             let detailed_trace_entries = fresh_artifacts
@@ -7622,7 +9070,7 @@ fn perf_profile_matrix() {
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
@@ -7631,7 +9079,8 @@ fn perf_profile_matrix() {
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-zero-{index}")));
                 }
-                txn.commit().expect("zero-diagnostics certification-core commit")
+                txn.commit()
+                    .expect("zero-diagnostics certification-core commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
 
@@ -7640,14 +9089,13 @@ fn perf_profile_matrix() {
                 .into_iter()
                 .map(RecordRef::Entity)
                 .collect::<Vec<_>>();
-            let packet =
-                explicit_query_packet(&runtime, &snapshot, "profile-zero-query", targets);
+            let packet = explicit_query_packet(&runtime, &snapshot, "profile-zero-query", targets);
             let query_started_at = Instant::now();
             let outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet)
                         .expect("planned zero-diagnostics profile query"),
                 )
@@ -7655,7 +9103,7 @@ fn perf_profile_matrix() {
             let query_micros = query_started_at.elapsed().as_micros();
             let elapsed_micros = commit_micros + query_micros;
             let counters = runtime.performance_access().counters();
-            let publication = runtime.publication_access();
+            let publication = runtime.publication();
             let diagnostics = publication.diagnostic_artifacts();
             let fresh_artifacts = &diagnostics[diagnostics_start..];
             let detailed_trace_entries = fresh_artifacts
@@ -7744,8 +9192,9 @@ fn perf_hot_cold_path_matrix() {
         suite,
         "geometry_hot_commit_vs_replay_reconstruction",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
 
@@ -7782,14 +9231,17 @@ fn perf_hot_cold_path_matrix() {
                 &runtime,
                 &snapshot,
                 "hot-cold-geometry-hot-query",
-                vec![RecordRef::Entity(source_entity), RecordRef::Entity(middle_entity)],
+                vec![
+                    RecordRef::Entity(source_entity),
+                    RecordRef::Entity(middle_entity),
+                ],
             );
             let hot_query_started_at = Instant::now();
             let hot_query = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, hot_packet)
                         .expect("planned hot geometry query"),
                 )
@@ -7803,11 +9255,12 @@ fn perf_hot_cold_path_matrix() {
                 .expect("geometry hot/cold checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
@@ -7832,14 +9285,17 @@ fn perf_hot_cold_path_matrix() {
                 &recovered,
                 &recovered_snapshot,
                 "hot-cold-geometry-cold-query",
-                vec![RecordRef::Entity(source_entity), RecordRef::Entity(middle_entity)],
+                vec![
+                    RecordRef::Entity(source_entity),
+                    RecordRef::Entity(middle_entity),
+                ],
             );
             let cold_query_started_at = Instant::now();
             let cold_query = recovered
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     recovered
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&recovered_snapshot, cold_packet)
                         .expect("planned cold geometry query"),
                 )
@@ -7882,7 +9338,10 @@ fn perf_hot_cold_path_matrix() {
             ("hot_query_micros", &["phase_timing", "hot_query_micros"]),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
             ("cold_query_micros", &["phase_timing", "cold_query_micros"]),
         ],
     );
@@ -7910,12 +9369,14 @@ fn perf_hot_cold_path_matrix() {
         suite,
         "chip_hot_compile_vs_recovery_compile",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
 
-            let source = create_entity_in_partition(&mut runtime, "chip-hot-cold-source", PartitionId(7));
+            let source =
+                create_entity_in_partition(&mut runtime, "chip-hot-cold-source", PartitionId(7));
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
@@ -7944,16 +9405,21 @@ fn perf_hot_cold_path_matrix() {
             let hot_commit = update_entity(&mut runtime, source, "chip-hot-cold-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("chip hot/cold latest commit")
                 .clone();
             let hot_compile_started_at = Instant::now();
             let hot_artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     latest_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("hot chip compiled artifact");
             let hot_compile_micros = hot_compile_started_at.elapsed().as_micros();
@@ -7965,11 +9431,12 @@ fn perf_hot_cold_path_matrix() {
                 .expect("chip hot/cold checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
@@ -7990,16 +9457,21 @@ fn perf_hot_cold_path_matrix() {
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
 
             let recovered_commit = recovered
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("recovered chip latest commit")
                 .clone();
             let cold_compile_started_at = Instant::now();
             let cold_artifact = recovered
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     recovered_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("cold chip compiled artifact");
             let cold_compile_micros = cold_compile_started_at.elapsed().as_micros();
@@ -8017,11 +9489,11 @@ fn perf_hot_cold_path_matrix() {
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "hot_compatibility": format!(
                         "{:?}",
-                        runtime.simulation_access().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
                     ),
                     "cold_compatibility": format!(
                         "{:?}",
-                        recovered.simulation_access().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
                     ),
                     "phase_timing": {
                         "hot_commit_micros": hot_commit_micros,
@@ -8043,11 +9515,20 @@ fn perf_hot_cold_path_matrix() {
         &chip_hot_vs_recovery_samples,
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
-            ("hot_compile_micros", &["phase_timing", "hot_compile_micros"]),
+            (
+                "hot_compile_micros",
+                &["phase_timing", "hot_compile_micros"],
+            ),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
-            ("cold_compile_micros", &["phase_timing", "cold_compile_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
+            (
+                "cold_compile_micros",
+                &["phase_timing", "cold_compile_micros"],
+            ),
         ],
     );
     assert!(chip_hot_vs_recovery_samples
@@ -8076,9 +9557,10 @@ fn perf_hot_cold_path_matrix() {
         suite,
         "geometry_rich_publication_hot_vs_replay_truth",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             let source = create_entity_outcome(&mut runtime, "hot-cold-geometry-rich-source");
             let middle = create_entity_outcome(&mut runtime, "hot-cold-geometry-rich-middle");
@@ -8114,14 +9596,17 @@ fn perf_hot_cold_path_matrix() {
                 &runtime,
                 &snapshot,
                 "hot-cold-geometry-rich-hot-query",
-                vec![RecordRef::Entity(source_entity), RecordRef::Entity(middle_entity)],
+                vec![
+                    RecordRef::Entity(source_entity),
+                    RecordRef::Entity(middle_entity),
+                ],
             );
             let hot_query_started_at = Instant::now();
             let hot_query = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, hot_packet)
                         .expect("planned hot rich geometry query"),
                 )
@@ -8137,11 +9622,12 @@ fn perf_hot_cold_path_matrix() {
                 .expect("geometry rich hot/cold checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             recovered.performance_access().reset_counters();
             let recover_started_at = Instant::now();
             recovered
@@ -8166,14 +9652,17 @@ fn perf_hot_cold_path_matrix() {
                 &recovered,
                 &recovered_snapshot,
                 "hot-cold-geometry-rich-cold-query",
-                vec![RecordRef::Entity(source_entity), RecordRef::Entity(middle_entity)],
+                vec![
+                    RecordRef::Entity(source_entity),
+                    RecordRef::Entity(middle_entity),
+                ],
             );
             let cold_query_started_at = Instant::now();
             let cold_query = recovered
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     recovered
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&recovered_snapshot, cold_packet)
                         .expect("planned cold rich geometry query"),
                 )
@@ -8219,15 +9708,33 @@ fn perf_hot_cold_path_matrix() {
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
             ("hot_query_micros", &["phase_timing", "hot_query_micros"]),
-            ("artifact_assembly_micros", &["phase_timing", "artifact_assembly_micros"]),
-            ("durable_append_micros", &["phase_timing", "durable_append_micros"]),
-            ("publication_micros", &["phase_timing", "publication_micros"]),
+            (
+                "artifact_assembly_micros",
+                &["phase_timing", "artifact_assembly_micros"],
+            ),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_micros",
+                &["phase_timing", "publication_micros"],
+            ),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
             ("cold_query_micros", &["phase_timing", "cold_query_micros"]),
-            ("hot_diagnostic_artifact_count", &["hot_diagnostic_artifact_count"]),
-            ("hot_detailed_trace_entries", &["hot_detailed_trace_entries"]),
+            (
+                "hot_diagnostic_artifact_count",
+                &["hot_diagnostic_artifact_count"],
+            ),
+            (
+                "hot_detailed_trace_entries",
+                &["hot_detailed_trace_entries"],
+            ),
         ],
     );
     assert!(geometry_rich_publication_samples
@@ -8257,12 +9764,20 @@ fn perf_hot_cold_path_matrix() {
         suite,
         "chip_rich_compile_hot_vs_recovery_compile",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            apply_perf_diagnostics_policy(&mut runtime, PerfDiagnosticsPolicy::ChipRichCertification);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::ChipRichCertification,
+            );
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let source = create_entity_in_partition(&mut runtime, "chip-rich-hot-cold-source", PartitionId(7));
+            let source = create_entity_in_partition(
+                &mut runtime,
+                "chip-rich-hot-cold-source",
+                PartitionId(7),
+            );
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
@@ -8291,16 +9806,21 @@ fn perf_hot_cold_path_matrix() {
             let hot_commit = update_entity(&mut runtime, source, "chip-rich-hot-cold-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("chip rich hot/cold latest commit")
                 .clone();
             let hot_compile_started_at = Instant::now();
             let hot_artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     latest_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("hot rich chip compiled artifact");
             let hot_compile_micros = hot_compile_started_at.elapsed().as_micros();
@@ -8314,11 +9834,12 @@ fn perf_hot_cold_path_matrix() {
                 .expect("chip rich hot/cold checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             apply_perf_diagnostics_policy(
                 &mut recovered,
                 PerfDiagnosticsPolicy::ChipRichCertification,
@@ -8343,16 +9864,21 @@ fn perf_hot_cold_path_matrix() {
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
 
             let recovered_commit = recovered
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("recovered rich chip latest commit")
                 .clone();
             let cold_compile_started_at = Instant::now();
             let cold_artifact = recovered
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     recovered_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("cold rich chip compiled artifact");
             let cold_compile_micros = cold_compile_started_at.elapsed().as_micros();
@@ -8372,11 +9898,11 @@ fn perf_hot_cold_path_matrix() {
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "hot_compatibility": format!(
                         "{:?}",
-                        runtime.simulation_access().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
                     ),
                     "cold_compatibility": format!(
                         "{:?}",
-                        recovered.simulation_access().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
                     ),
                     "phase_timing": {
                         "hot_commit_micros": hot_commit_micros,
@@ -8398,13 +9924,28 @@ fn perf_hot_cold_path_matrix() {
         &chip_rich_compile_samples,
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
-            ("hot_compile_micros", &["phase_timing", "hot_compile_micros"]),
+            (
+                "hot_compile_micros",
+                &["phase_timing", "hot_compile_micros"],
+            ),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
-            ("cold_compile_micros", &["phase_timing", "cold_compile_micros"]),
-            ("hot_diagnostic_artifact_count", &["hot_diagnostic_artifact_count"]),
-            ("hot_detailed_trace_entries", &["hot_detailed_trace_entries"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
+            (
+                "cold_compile_micros",
+                &["phase_timing", "cold_compile_micros"],
+            ),
+            (
+                "hot_diagnostic_artifact_count",
+                &["hot_diagnostic_artifact_count"],
+            ),
+            (
+                "hot_detailed_trace_entries",
+                &["hot_detailed_trace_entries"],
+            ),
         ],
     );
     assert!(chip_rich_compile_samples
@@ -8441,9 +9982,10 @@ fn perf_artifact_recoverability_matrix() {
         suite,
         "geometry_diagnostics_summary_vs_trace_recoverability",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             let source = create_entity_outcome(&mut runtime, "recover-geometry-source");
             let middle = create_entity_outcome(&mut runtime, "recover-geometry-middle");
@@ -8472,11 +10014,11 @@ fn perf_artifact_recoverability_matrix() {
             );
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let hot_bundle = runtime
-                .publication_access()
+                .publication()
                 .latest_bundle()
                 .expect("geometry hot publication bundle")
                 .clone();
-            let hot_artifacts = runtime.publication_access().diagnostics_since(diagnostics_start);
+            let hot_artifacts = runtime.publication().diagnostics_since(diagnostics_start);
 
             let checkpoint_started_at = Instant::now();
             runtime
@@ -8485,11 +10027,12 @@ fn perf_artifact_recoverability_matrix() {
                 .expect("geometry recoverability checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             let recover_started_at = Instant::now();
             recovered
                 .durability_authority()
@@ -8508,7 +10051,7 @@ fn perf_artifact_recoverability_matrix() {
                 });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
             let recovered_envelope = recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(hot_commit.commit.commit_id)
                 .cloned()
                 .expect("recovered canonical geometry envelope");
@@ -8569,7 +10112,10 @@ fn perf_artifact_recoverability_matrix() {
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
             ("hot_summary_entry_count", &["hot_summary_entry_count"]),
             ("hot_total_artifacts", &["hot_total_artifacts"]),
             ("hot_total_entries", &["hot_total_entries"]),
@@ -8605,14 +10151,16 @@ fn perf_artifact_recoverability_matrix() {
         suite,
         "chip_compiled_artifact_recoverability",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             apply_perf_diagnostics_policy(
                 &mut runtime,
                 PerfDiagnosticsPolicy::ChipOperationalHotPath,
             );
 
-            let source = create_entity_in_partition(&mut runtime, "recover-chip-source", PartitionId(7));
+            let source =
+                create_entity_in_partition(&mut runtime, "recover-chip-source", PartitionId(7));
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
@@ -8640,16 +10188,21 @@ fn perf_artifact_recoverability_matrix() {
             let hot_commit = update_entity(&mut runtime, source, "recover-chip-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("recoverability latest commit")
                 .clone();
             let hot_compile_started_at = Instant::now();
             let hot_artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     latest_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("hot recoverable compiled artifact");
             let hot_compile_micros = hot_compile_started_at.elapsed().as_micros();
@@ -8661,11 +10214,12 @@ fn perf_artifact_recoverability_matrix() {
                 .expect("chip recoverability checkpoint");
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             let recover_started_at = Instant::now();
             recovered
                 .durability_authority()
@@ -8684,16 +10238,21 @@ fn perf_artifact_recoverability_matrix() {
                 });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
             let recovered_commit = recovered
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("recovered chip latest commit")
                 .clone();
             let cold_compile_started_at = Instant::now();
             let cold_artifact = recovered
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     recovered_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("cold recoverable compiled artifact");
             let cold_compile_micros = cold_compile_started_at.elapsed().as_micros();
@@ -8712,11 +10271,11 @@ fn perf_artifact_recoverability_matrix() {
                     "cold_partition_count": cold_artifact.partition_ids.len(),
                     "hot_compatibility": format!(
                         "{:?}",
-                        runtime.simulation_access().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
                     ),
                     "cold_compatibility": format!(
                         "{:?}",
-                        recovered.simulation_access().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
                     ),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "replay_mismatch_count": replay.mismatches.len(),
@@ -8738,13 +10297,25 @@ fn perf_artifact_recoverability_matrix() {
         &chip_recoverability_samples,
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
-            ("hot_compile_micros", &["phase_timing", "hot_compile_micros"]),
+            (
+                "hot_compile_micros",
+                &["phase_timing", "hot_compile_micros"],
+            ),
             ("checkpoint_micros", &["phase_timing", "checkpoint_micros"]),
             ("recover_micros", &["phase_timing", "recover_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
-            ("cold_compile_micros", &["phase_timing", "cold_compile_micros"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
+            (
+                "cold_compile_micros",
+                &["phase_timing", "cold_compile_micros"],
+            ),
             ("hot_compiled_record_count", &["hot_compiled_record_count"]),
-            ("cold_compiled_record_count", &["cold_compiled_record_count"]),
+            (
+                "cold_compiled_record_count",
+                &["cold_compiled_record_count"],
+            ),
         ],
     );
     assert_budget(
@@ -8779,10 +10350,14 @@ fn perf_geometry_artifact_decomposition_matrix() {
                 ROCKETSHIP_CHUNK_SIZE,
                 ROCKETSHIP_CHUNK_SIZE,
             );
-            runtime.config.publication.policy.max_patch_records_per_commit = node_count * 4;
+            runtime
+                .config
+                .publication
+                .policy
+                .max_patch_records_per_commit = node_count * 4;
             runtime.config.publication.policy.patch_surface_policy =
                 PatchSurfacePolicy::DensePatchSurface;
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
 
@@ -8803,10 +10378,10 @@ fn perf_geometry_artifact_decomposition_matrix() {
                 .collect::<Vec<_>>();
             let explicit_started_at = Instant::now();
             let explicit_outcome = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(
                             &snapshot,
                             explicit_query_packet(
@@ -8821,7 +10396,7 @@ fn perf_geometry_artifact_decomposition_matrix() {
                 .expect("artifact decomposition explicit query");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
 
-            let diagnostics = runtime.publication_access().diagnostics_since(diagnostics_start);
+            let diagnostics = runtime.publication().diagnostics_since(diagnostics_start);
             let distinct_scopes = diagnostics
                 .iter()
                 .map(|artifact| format!("{:?}", artifact.scope))
@@ -8896,7 +10471,10 @@ fn perf_geometry_artifact_decomposition_matrix() {
             ("hot_update_micros", &["hot_update_micros"]),
             ("explicit_query_micros", &["explicit_query_micros"]),
             ("artifact_count_total", &["artifact_count_total"]),
-            ("artifact_entry_count_total", &["artifact_entry_count_total"]),
+            (
+                "artifact_entry_count_total",
+                &["artifact_entry_count_total"],
+            ),
             (
                 "artifact_kind_minimal_summary_count",
                 &["artifact_kind_minimal_summary_count"],
@@ -8939,12 +10517,16 @@ fn perf_runtime_bridge_mock_matrix() {
         let samples = capture_perf_samples(suite, case, || {
             let mut relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            relational.config.diagnostics.profile.detailed_traces_enabled = development_profile;
-            relational.config.diagnostics.profile.max_entries_per_artifact = if development_profile {
-                256
-            } else {
-                0
-            };
+            relational
+                .config
+                .diagnostics
+                .profile
+                .detailed_traces_enabled = development_profile;
+            relational
+                .config
+                .diagnostics
+                .profile
+                .max_entries_per_artifact = if development_profile { 256 } else { 0 };
 
             let source = create_entity_outcome(&mut relational, "merged-geometry-source");
             let middle = create_entity_outcome(&mut relational, "merged-geometry-middle");
@@ -8979,7 +10561,7 @@ fn perf_runtime_bridge_mock_matrix() {
             let traversal_packet = PlannedQueryPacket {
                 label: "merged-relational-signal-traversal".to_string(),
                 context_id: relational
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("merged query plan context"),
                 scope: QueryScope::ConnectivityTraversal {
@@ -8997,10 +10579,10 @@ fn perf_runtime_bridge_mock_matrix() {
             };
             let relational_query_started_at = Instant::now();
             let traversal = relational
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     relational
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, traversal_packet)
                         .expect("merged traversal plan"),
                 )
@@ -9051,8 +10633,14 @@ fn perf_runtime_bridge_mock_matrix() {
             case,
             &samples,
             &[
-                ("relational_commit_micros", &["phase_timing", "relational_commit_micros"]),
-                ("relational_query_micros", &["phase_timing", "relational_query_micros"]),
+                (
+                    "relational_commit_micros",
+                    &["phase_timing", "relational_commit_micros"],
+                ),
+                (
+                    "relational_query_micros",
+                    &["phase_timing", "relational_query_micros"],
+                ),
                 ("bridge_micros", &["phase_timing", "bridge_micros"]),
                 ("affected_bridge_sources", &["affected_bridge_sources"]),
                 ("bridge_nodes_evaluated", &["bridge_nodes_evaluated"]),
@@ -9078,18 +10666,28 @@ fn perf_runtime_bridge_mock_matrix() {
     }
 
     for (case, development_profile) in [
-        ("geometry_commit_bridge_wave_medium_region_operational", false),
-        ("geometry_commit_bridge_wave_medium_region_development", true),
+        (
+            "geometry_commit_bridge_wave_medium_region_operational",
+            false,
+        ),
+        (
+            "geometry_commit_bridge_wave_medium_region_development",
+            true,
+        ),
     ] {
         let samples = capture_perf_samples(suite, case, || {
             let mut relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            relational.config.diagnostics.profile.detailed_traces_enabled = development_profile;
-            relational.config.diagnostics.profile.max_entries_per_artifact = if development_profile {
-                256
-            } else {
-                0
-            };
+            relational
+                .config
+                .diagnostics
+                .profile
+                .detailed_traces_enabled = development_profile;
+            relational
+                .config
+                .diagnostics
+                .profile
+                .max_entries_per_artifact = if development_profile { 256 } else { 0 };
 
             let entities = seed_bridge_region_world(&mut relational, "bridge-medium", 24, 4);
             let updated = entities[10];
@@ -9104,7 +10702,7 @@ fn perf_runtime_bridge_mock_matrix() {
             let traversal_packet = PlannedQueryPacket {
                 label: "bridge-medium-traversal".to_string(),
                 context_id: relational
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("bridge medium query plan context"),
                 scope: QueryScope::ConnectivityTraversal {
@@ -9122,10 +10720,10 @@ fn perf_runtime_bridge_mock_matrix() {
             };
             let relational_query_started_at = Instant::now();
             let traversal = relational
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     relational
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, traversal_packet)
                         .expect("bridge medium traversal plan"),
                 )
@@ -9173,8 +10771,14 @@ fn perf_runtime_bridge_mock_matrix() {
             case,
             &samples,
             &[
-                ("relational_commit_micros", &["phase_timing", "relational_commit_micros"]),
-                ("relational_query_micros", &["phase_timing", "relational_query_micros"]),
+                (
+                    "relational_commit_micros",
+                    &["phase_timing", "relational_commit_micros"],
+                ),
+                (
+                    "relational_query_micros",
+                    &["phase_timing", "relational_query_micros"],
+                ),
                 ("bridge_micros", &["phase_timing", "bridge_micros"]),
                 ("resident_entities", &["resident_entities"]),
                 ("affected_bridge_sources", &["affected_bridge_sources"]),
@@ -9200,8 +10804,10 @@ fn perf_runtime_bridge_mock_matrix() {
         );
     }
 
-    let mixed_locality_samples =
-        capture_perf_samples(suite, "geometry_commit_bridge_wave_mixed_locality_operational", || {
+    let mixed_locality_samples = capture_perf_samples(
+        suite,
+        "geometry_commit_bridge_wave_mixed_locality_operational",
+        || {
             let mut relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let entities = seed_bridge_region_world(&mut relational, "bridge-mixed", 20, 5);
@@ -9223,7 +10829,7 @@ fn perf_runtime_bridge_mock_matrix() {
             let traversal_packet = PlannedQueryPacket {
                 label: "bridge-mixed-traversal".to_string(),
                 context_id: relational
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("bridge mixed query plan context"),
                 scope: QueryScope::ConnectivityTraversal {
@@ -9241,10 +10847,10 @@ fn perf_runtime_bridge_mock_matrix() {
             };
             let relational_query_started_at = Instant::now();
             let traversal = relational
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     relational
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, traversal_packet)
                         .expect("bridge mixed traversal plan"),
                 )
@@ -9253,13 +10859,18 @@ fn perf_runtime_bridge_mock_matrix() {
                 .iter()
                 .map(|name| {
                     relational
-                        .visibility_reads()
+                        .read_truth()
                         .execute_query_plan(
                             relational
-                                .visibility_reads()
+                                .read_truth()
                                 .plan_query_packet(
                                     &snapshot,
-                                    entity_name_index_packet(&relational, &snapshot, "bridge-mixed-explicit", name),
+                                    entity_name_index_packet(
+                                        &relational,
+                                        &snapshot,
+                                        "bridge-mixed-explicit",
+                                        name,
+                                    ),
                                 )
                                 .expect("bridge mixed explicit plan"),
                         )
@@ -9304,14 +10915,21 @@ fn perf_runtime_bridge_mock_matrix() {
                     },
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "geometry_commit_bridge_wave_mixed_locality_operational",
         &mixed_locality_samples,
         &[
-            ("relational_commit_micros", &["phase_timing", "relational_commit_micros"]),
-            ("relational_query_micros", &["phase_timing", "relational_query_micros"]),
+            (
+                "relational_commit_micros",
+                &["phase_timing", "relational_commit_micros"],
+            ),
+            (
+                "relational_query_micros",
+                &["phase_timing", "relational_query_micros"],
+            ),
             ("bridge_micros", &["phase_timing", "bridge_micros"]),
             ("traversal_result_entities", &["traversal_result_entities"]),
             ("explicit_result_entities", &["explicit_result_entities"]),
@@ -9374,7 +10992,7 @@ fn perf_game_engine_matrix() {
             let propagation_packet = PlannedQueryPacket {
                 label: "scene-local-propagation".to_string(),
                 context_id: runtime
-                    .visibility_reads()
+                    .read_truth()
                     .query_plan_context(&snapshot)
                     .expect("scene local query context"),
                 scope: QueryScope::ConnectivityTraversal {
@@ -9392,10 +11010,10 @@ fn perf_game_engine_matrix() {
             };
             let propagation_started_at = Instant::now();
             let propagation = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, propagation_packet)
                         .expect("scene local propagation plan"),
                 )
@@ -9410,10 +11028,10 @@ fn perf_game_engine_matrix() {
             );
             let explicit_started_at = Instant::now();
             let explicit = runtime
-                .visibility_reads()
+                .read_truth()
                 .execute_query_plan(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, explicit_packet)
                         .expect("scene local explicit plan"),
                 )
@@ -9421,9 +11039,10 @@ fn perf_game_engine_matrix() {
             let explicit_micros = explicit_started_at.elapsed().as_micros();
             assert!(runtime.visibility_authority().release_snapshot(&snapshot));
 
-            let affected_sources = (propagation.result.entities.len() + explicit.result.entities.len())
-                .min(bridge_runtime.source_versions.len())
-                .max(4);
+            let affected_sources = (propagation.result.entities.len()
+                + explicit.result.entities.len())
+            .min(bridge_runtime.source_versions.len())
+            .max(4);
             let bridge_before = bridge_runtime.observe();
             let bridge_started_at = Instant::now();
             bridge_runtime.apply_changes(affected_sources);
@@ -9463,7 +11082,10 @@ fn perf_game_engine_matrix() {
             ("propagation_micros", &["propagation_micros"]),
             ("explicit_query_micros", &["explicit_query_micros"]),
             ("bridge_micros", &["bridge_micros"]),
-            ("propagation_result_entities", &["propagation_result_entities"]),
+            (
+                "propagation_result_entities",
+                &["propagation_result_entities"],
+            ),
             ("explicit_result_entities", &["explicit_result_entities"]),
             ("affected_bridge_sources", &["affected_bridge_sources"]),
             ("bridge_tasks_scheduled", &["bridge_tasks_scheduled"]),
@@ -9486,8 +11108,144 @@ fn perf_game_engine_matrix() {
         },
     );
 
-    let mixed_frame_churn_samples =
-        capture_perf_samples(suite, "mixed_read_write_frame_churn_window", || {
+    let flat_batch_wave_samples =
+        capture_perf_samples(suite, "flat_entity_batch_region_wave", || {
+            let mut runtime =
+                runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
+            apply_perf_diagnostics_policy(
+                &mut runtime,
+                PerfDiagnosticsPolicy::GeometryOperationalHotPath,
+            );
+            let seeded = seed_game_engine_frame_world(&mut runtime, "scene-batch", 8, 24);
+
+            let mut partition_targets = BTreeMap::new();
+            for entity in &seeded.entities {
+                let targets = partition_targets
+                    .entry(entity.partition_id)
+                    .or_insert_with(Vec::new);
+                if targets.len() < 8 {
+                    targets.push(*entity);
+                }
+                if partition_targets.len() >= 4
+                    && partition_targets.values().all(|targets| targets.len() >= 6)
+                {
+                    break;
+                }
+            }
+            let batch_targets = partition_targets
+                .values()
+                .flat_map(|targets| targets.iter().take(6).copied())
+                .collect::<Vec<_>>();
+            assert!(
+                batch_targets.len() >= 24,
+                "batch wave should gather a multi-partition entity batch"
+            );
+
+            runtime.performance_access().reset_counters();
+            let update_started_at = Instant::now();
+            let update = {
+                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut batch = WorkerIntentBatch::new("scene-batch-flat-entity-wave");
+                for (index, entity) in batch_targets.iter().enumerate() {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
+                        UpdateEntityIntent {
+                            entity_id: *entity,
+                            payload: RecordPayload::StructuredJson(json!({
+                                "name": format!("scene-batch-updated-{index}"),
+                                "phase": "batch-wave",
+                                "partition": entity.partition_id.0,
+                            })),
+                        },
+                    )));
+                }
+                txn.push_batch(batch);
+                txn.commit().expect("scene batch flat entity wave commit")
+            };
+            let update_micros = update_started_at.elapsed().as_micros();
+
+            let snapshot = runtime.visibility_authority().snapshot();
+            let explicit_targets = batch_targets
+                .iter()
+                .take(12)
+                .map(|entity| RecordRef::Entity(*entity))
+                .collect::<Vec<_>>();
+            let explicit_packet = explicit_query_packet(
+                &runtime,
+                &snapshot,
+                "scene-batch-explicit",
+                explicit_targets,
+            );
+            let explicit_started_at = Instant::now();
+            let explicit = runtime
+                .read_truth()
+                .execute_query_plan(
+                    runtime
+                        .read_truth()
+                        .plan_query_packet(&snapshot, explicit_packet)
+                        .expect("scene batch explicit plan"),
+                )
+                .expect("scene batch explicit outcome");
+            let explicit_micros = explicit_started_at.elapsed().as_micros();
+            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+
+            measurement_with_elapsed(update_micros + explicit_micros, || {
+                json!({
+                    "region_count": seeded.region_count,
+                    "resident_entities": seeded.entities.len(),
+                    "resident_relations": seeded.relation_count,
+                    "batch_target_count": batch_targets.len(),
+                    "batch_partition_count": partition_targets.len(),
+                    "changed_records": update.changed_records.len(),
+                    "update_micros": update_micros,
+                    "explicit_query_micros": explicit_micros,
+                    "explicit_result_entities": explicit.result.entities.len(),
+                    "counters": runtime.performance_access().counters(),
+                })
+            })
+        });
+    emit_metric_summaries(
+        suite,
+        "flat_entity_batch_region_wave",
+        &flat_batch_wave_samples,
+        &[
+            ("update_micros", &["update_micros"]),
+            ("explicit_query_micros", &["explicit_query_micros"]),
+            ("batch_target_count", &["batch_target_count"]),
+            ("batch_partition_count", &["batch_partition_count"]),
+            (
+                "aosoa_entity_chunk_slots_materialized",
+                &["counters", "aosoa_entity_chunk_slots_materialized"],
+            ),
+            (
+                "aosoa_entity_chunks_published",
+                &["counters", "aosoa_entity_chunks_published"],
+            ),
+        ],
+    );
+    assert_budget(
+        &flat_batch_wave_samples,
+        "game-engine flat entity batches should stay on the sparse AoSoA path across a few touched partitions",
+        |metrics| {
+            let batch_target_count = metrics["batch_target_count"].as_u64().unwrap_or(0);
+            let batch_partition_count = metrics["batch_partition_count"].as_u64().unwrap_or(0);
+            metrics["region_count"].as_u64() == Some(8)
+                && batch_target_count >= 24
+                && batch_partition_count >= 4
+                && metrics["changed_records"].as_u64() == Some(batch_target_count)
+                && counter_u64(metrics, "entity_slots_touched_by_commit") == batch_target_count
+                && counter_u64(metrics, "partitions_touched_by_commit") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
+                    == batch_target_count
+                && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
+                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "full_state_clones") == 0
+        },
+    );
+
+    let mixed_frame_churn_samples = capture_perf_samples(
+        suite,
+        "mixed_read_write_frame_churn_window",
+        || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
             apply_perf_diagnostics_policy(
@@ -9522,7 +11280,7 @@ fn perf_game_engine_matrix() {
                 let propagation_packet = PlannedQueryPacket {
                     label: "scene-frame-propagation".to_string(),
                     context_id: runtime
-                        .visibility_reads()
+                        .read_truth()
                         .query_plan_context(&snapshot)
                         .expect("scene frame query context"),
                     scope: QueryScope::ConnectivityTraversal {
@@ -9543,10 +11301,10 @@ fn perf_game_engine_matrix() {
                 };
                 let propagation_started_at = Instant::now();
                 let propagation = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, propagation_packet)
                             .expect("scene frame propagation plan"),
                     )
@@ -9570,10 +11328,10 @@ fn perf_game_engine_matrix() {
                 );
                 let explicit_started_at = Instant::now();
                 let explicit = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, explicit_packet)
                             .expect("scene frame explicit plan"),
                     )
@@ -9582,10 +11340,10 @@ fn perf_game_engine_matrix() {
                 total_explicit_query_micros += explicit_micros;
                 assert!(runtime.visibility_authority().release_snapshot(&snapshot));
 
-                let affected_sources =
-                    (propagation.result.entities.len() + explicit.result.entities.len())
-                        .min(bridge_runtime.source_versions.len())
-                        .max(4);
+                let affected_sources = (propagation.result.entities.len()
+                    + explicit.result.entities.len())
+                .min(bridge_runtime.source_versions.len())
+                .max(4);
                 let bridge_before = bridge_runtime.observe();
                 let bridge_started_at = Instant::now();
                 bridge_runtime.apply_changes(affected_sources);
@@ -9593,17 +11351,14 @@ fn perf_game_engine_matrix() {
                 total_bridge_micros += bridge_micros;
                 let bridge_after = bridge_runtime.observe();
                 max_bridge_tasks_scheduled = max_bridge_tasks_scheduled.max(
-                    bridge_after.planner.tasks_scheduled
-                        - bridge_before.planner.tasks_scheduled,
+                    bridge_after.planner.tasks_scheduled - bridge_before.planner.tasks_scheduled,
                 );
 
-                cycle_samples.push(
-                    update_micros + propagation_micros + explicit_micros + bridge_micros,
-                );
+                cycle_samples
+                    .push(update_micros + propagation_micros + explicit_micros + bridge_micros);
                 let counters = runtime.performance_access().counters();
-                max_packets_per_iteration = max_packets_per_iteration.max(
-                    counters.query_packet_count.saturating_sub(previous_packets),
-                );
+                max_packets_per_iteration = max_packets_per_iteration
+                    .max(counters.query_packet_count.saturating_sub(previous_packets));
                 max_scope_units_per_iteration = max_scope_units_per_iteration.max(
                     counters
                         .query_scope_unit_count
@@ -9613,12 +11368,8 @@ fn perf_game_engine_matrix() {
                 previous_scope_units = counters.query_scope_unit_count;
             }
 
-            let first_window_average_cycle_micros = cycle_samples
-                .iter()
-                .take(WINDOW)
-                .copied()
-                .sum::<u128>()
-                / WINDOW as u128;
+            let first_window_average_cycle_micros =
+                cycle_samples.iter().take(WINDOW).copied().sum::<u128>() / WINDOW as u128;
             let last_window_average_cycle_micros = cycle_samples
                 .iter()
                 .rev()
@@ -9648,7 +11399,8 @@ fn perf_game_engine_matrix() {
                     "counters": runtime.performance_access().counters(),
                 })
             })
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "mixed_read_write_frame_churn_window",
@@ -9656,8 +11408,14 @@ fn perf_game_engine_matrix() {
         &[
             ("iterations", &["iterations"]),
             ("average_update_micros", &["average_update_micros"]),
-            ("average_propagation_micros", &["average_propagation_micros"]),
-            ("average_explicit_query_micros", &["average_explicit_query_micros"]),
+            (
+                "average_propagation_micros",
+                &["average_propagation_micros"],
+            ),
+            (
+                "average_explicit_query_micros",
+                &["average_explicit_query_micros"],
+            ),
             ("average_bridge_micros", &["average_bridge_micros"]),
             (
                 "first_window_average_cycle_micros",
@@ -9668,8 +11426,14 @@ fn perf_game_engine_matrix() {
                 &["last_window_average_cycle_micros"],
             ),
             ("max_packets_per_iteration", &["max_packets_per_iteration"]),
-            ("max_scope_units_per_iteration", &["max_scope_units_per_iteration"]),
-            ("max_bridge_tasks_scheduled", &["max_bridge_tasks_scheduled"]),
+            (
+                "max_scope_units_per_iteration",
+                &["max_scope_units_per_iteration"],
+            ),
+            (
+                "max_bridge_tasks_scheduled",
+                &["max_bridge_tasks_scheduled"],
+            ),
         ],
     );
     assert_budget(
@@ -9700,13 +11464,12 @@ fn perf_game_engine_matrix() {
 fn perf_recoverability_policy_matrix() {
     let suite = "recoverability_policy_matrix";
 
-    let geometry_policy_samples = capture_perf_samples(
-        suite,
-        "geometry_hot_truth_vs_deferred_trace_policy",
-        || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let diagnostics_start = runtime.publication_access().diagnostic_artifacts().len();
+    let geometry_policy_samples =
+        capture_perf_samples(suite, "geometry_hot_truth_vs_deferred_trace_policy", || {
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
+            let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             let source = create_entity_outcome(&mut runtime, "policy-geometry-source");
             let middle = create_entity_outcome(&mut runtime, "policy-geometry-middle");
@@ -9721,21 +11484,22 @@ fn perf_recoverability_policy_matrix() {
             let hot_commit = update_entity(&mut runtime, middle_entity, "policy-middle-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let hot_bundle = runtime
-                .publication_access()
+                .publication()
                 .latest_bundle()
                 .expect("policy geometry latest bundle")
                 .clone();
-            let hot_artifacts = runtime.publication_access().diagnostics_since(diagnostics_start);
+            let hot_artifacts = runtime.publication().diagnostics_since(diagnostics_start);
 
             runtime
                 .durability_authority()
                 .checkpoint()
                 .expect("policy geometry checkpoint");
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::GeometryKernel,
+            );
             recovered
                 .durability_authority()
                 .recover(plan)
@@ -9751,7 +11515,7 @@ fn perf_recoverability_policy_matrix() {
                 });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
             let recovered_envelope = recovered
-                .replay_access()
+                .replay()
                 .canonical_commit_envelope(hot_commit.commit.commit_id)
                 .cloned()
                 .expect("policy recovered geometry envelope");
@@ -9776,16 +11540,21 @@ fn perf_recoverability_policy_matrix() {
                     },
                 }),
             }
-        },
-    );
+        });
     emit_metric_summaries(
         suite,
         "geometry_hot_truth_vs_deferred_trace_policy",
         &geometry_policy_samples,
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
-            ("must_be_hot_changed_records", &["must_be_hot_changed_records"]),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
+            (
+                "must_be_hot_changed_records",
+                &["must_be_hot_changed_records"],
+            ),
             (
                 "reconstructable_summary_entries",
                 &["reconstructable_summary_entries"],
@@ -9810,12 +11579,14 @@ fn perf_recoverability_policy_matrix() {
         suite,
         "chip_compile_reconstructable_policy",
         || {
-            let mut runtime =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut runtime = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             runtime.config.diagnostics.profile.detailed_traces_enabled = false;
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
 
-            let source = create_entity_in_partition(&mut runtime, "policy-chip-source", PartitionId(7));
+            let source =
+                create_entity_in_partition(&mut runtime, "policy-chip-source", PartitionId(7));
             let sinks = (0..4)
                 .map(|index| {
                     create_entity_in_partition(
@@ -9839,16 +11610,23 @@ fn perf_recoverability_policy_matrix() {
             let hot_commit = update_entity(&mut runtime, source, "policy-chip-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("policy chip latest commit")
                 .clone();
             let hot_compile_started_at = Instant::now();
             let hot_artifact = runtime
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     latest_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(13), PartitionId(14), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(13),
+                        PartitionId(14),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("policy hot chip compile");
             let hot_compile_micros = hot_compile_started_at.elapsed().as_micros();
@@ -9857,11 +11635,12 @@ fn perf_recoverability_policy_matrix() {
                 .durability_authority()
                 .checkpoint()
                 .expect("policy chip checkpoint");
-            let plan = runtime.durability_access().recovery_plan(
+            let plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let mut recovered =
-                persisted_runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+            let mut recovered = persisted_runtime_with_test_schema_profile(
+                RelationalRuntimeProfile::ChipSimulation,
+            );
             recovered
                 .durability_authority()
                 .recover(plan)
@@ -9877,16 +11656,23 @@ fn perf_recoverability_policy_matrix() {
                 });
             let replay_commit_micros = replay_started_at.elapsed().as_micros();
             let recovered_commit = recovered
-                .history_access()
+                .history()
                 .latest_commit()
                 .expect("policy recovered chip latest commit")
                 .clone();
             let cold_compile_started_at = Instant::now();
             let cold_artifact = recovered
-                .simulation_authority()
+                .compiled_artifacts_authority()
                 .compile_execution_artifact(
                     recovered_commit.commit_id,
-                    vec![PartitionId(7), PartitionId(11), PartitionId(12), PartitionId(13), PartitionId(14), PartitionId(19)],
+                    vec![
+                        PartitionId(7),
+                        PartitionId(11),
+                        PartitionId(12),
+                        PartitionId(13),
+                        PartitionId(14),
+                        PartitionId(19),
+                    ],
                 )
                 .expect("policy cold chip compile");
             let cold_compile_micros = cold_compile_started_at.elapsed().as_micros();
@@ -9902,11 +11688,11 @@ fn perf_recoverability_policy_matrix() {
                     "hot_compiled_record_count": hot_artifact.compiled_record_count,
                     "hot_compatibility": format!(
                         "{:?}",
-                        runtime.simulation_access().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
                     ),
                     "cold_compatibility": format!(
                         "{:?}",
-                        recovered.simulation_access().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
                     ),
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
@@ -9926,10 +11712,22 @@ fn perf_recoverability_policy_matrix() {
         &chip_policy_samples,
         &[
             ("hot_commit_micros", &["phase_timing", "hot_commit_micros"]),
-            ("hot_compile_micros", &["phase_timing", "hot_compile_micros"]),
-            ("replay_commit_micros", &["phase_timing", "replay_commit_micros"]),
-            ("cold_compile_micros", &["phase_timing", "cold_compile_micros"]),
-            ("must_be_hot_changed_records", &["must_be_hot_changed_records"]),
+            (
+                "hot_compile_micros",
+                &["phase_timing", "hot_compile_micros"],
+            ),
+            (
+                "replay_commit_micros",
+                &["phase_timing", "replay_commit_micros"],
+            ),
+            (
+                "cold_compile_micros",
+                &["phase_timing", "cold_compile_micros"],
+            ),
+            (
+                "must_be_hot_changed_records",
+                &["must_be_hot_changed_records"],
+            ),
             (
                 "reconstructable_compiled_record_count",
                 &["reconstructable_compiled_record_count"],
@@ -9973,7 +11771,7 @@ fn perf_merge_lineage_matrix() {
             runtime.performance_access().reset_counters();
             let started_at = Instant::now();
             let artifact = runtime
-                .merge_access()
+                .merge()
                 .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(
                     BranchId("main".to_string()),
                     BranchId("feature".to_string()),
@@ -10011,8 +11809,10 @@ fn perf_merge_lineage_matrix() {
         },
     );
 
-    let merge_execution_samples =
-        capture_perf_samples(suite, "merge_execution_feature_adoption", || {
+    let merge_execution_samples = capture_perf_samples(
+        suite,
+        "merge_execution_feature_adoption",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
@@ -10020,18 +11820,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -10060,7 +11860,8 @@ fn perf_merge_lineage_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     assert!(merge_execution_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
@@ -10072,14 +11873,18 @@ fn perf_merge_lineage_matrix() {
                 && counter_u64(metrics, "merge_execution_records_admitted")
                     == metrics["executed_record_count"].as_u64().unwrap_or(0)
                 && counter_u64(metrics, "merge_execution_mutation_intents_emitted")
-                    == metrics["emitted_mutation_intent_count"].as_u64().unwrap_or(0)
+                    == metrics["emitted_mutation_intent_count"]
+                        .as_u64()
+                        .unwrap_or(0)
                 && metrics["adopted_source_record_count"].as_u64() == Some(1)
                 && metrics["changed_entities"].as_u64() == Some(1)
         },
     );
 
-    let merge_execution_zero_diag_samples =
-        capture_perf_samples(suite, "merge_execution_feature_adoption_zero_diagnostics_budget", || {
+    let merge_execution_zero_diag_samples = capture_perf_samples(
+        suite,
+        "merge_execution_feature_adoption_zero_diagnostics_budget",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
             create_entity(&mut runtime, "main-anchor");
@@ -10088,18 +11893,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -10126,7 +11931,7 @@ fn perf_merge_lineage_matrix() {
                     "adopted_source_record_count": outcome.structural_summary.adopted_source_record_count,
                     "changed_entities": changed_entities(&outcome.commit).len(),
                     "diagnostic_artifact_entries": runtime
-                        .publication_access()
+                        .publication()
                         .diagnostics()
                         .artifacts()
                         .iter()
@@ -10141,7 +11946,8 @@ fn perf_merge_lineage_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     assert!(merge_execution_zero_diag_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
@@ -10160,8 +11966,10 @@ fn perf_merge_lineage_matrix() {
         },
     );
 
-    let merge_prepare_execute_split_samples =
-        capture_perf_samples(suite, "merge_prepare_vs_execute_feature_adoption", || {
+    let merge_prepare_execute_split_samples = capture_perf_samples(
+        suite,
+        "merge_prepare_vs_execute_feature_adoption",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
@@ -10169,18 +11977,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             runtime.performance_access().reset_counters();
@@ -10213,7 +12021,8 @@ fn perf_merge_lineage_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     assert!(merge_prepare_execute_split_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
@@ -10227,13 +12036,17 @@ fn perf_merge_lineage_matrix() {
                 && counter_u64(metrics, "merge_execution_records_admitted")
                     == metrics["executed_record_count"].as_u64().unwrap_or(0)
                 && counter_u64(metrics, "merge_execution_mutation_intents_emitted")
-                    == metrics["emitted_mutation_intent_count"].as_u64().unwrap_or(0)
+                    == metrics["emitted_mutation_intent_count"]
+                        .as_u64()
+                        .unwrap_or(0)
                 && metrics["changed_entities"].as_u64() == Some(1)
         },
     );
 
-    let merge_vs_commit_floor_samples =
-        capture_perf_samples(suite, "merge_execution_vs_persisted_commit_floor", || {
+    let merge_vs_commit_floor_samples = capture_perf_samples(
+        suite,
+        "merge_execution_vs_persisted_commit_floor",
+        || {
             let mut merge_runtime = persisted_runtime_with_test_schema();
             create_entity(&mut merge_runtime, "main-anchor");
             create_branch_from_main(&mut merge_runtime, "feature");
@@ -10241,18 +12054,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = merge_runtime
@@ -10297,7 +12110,8 @@ fn perf_merge_lineage_matrix() {
                     "control_counters": control_counters,
                 }),
             }
-        });
+        },
+    );
     assert!(merge_vs_commit_floor_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
@@ -10320,8 +12134,10 @@ fn perf_merge_lineage_matrix() {
         },
     );
 
-    let merge_verify_execute_split_samples =
-        capture_perf_samples(suite, "merge_verify_vs_execute_feature_adoption", || {
+    let merge_verify_execute_split_samples = capture_perf_samples(
+        suite,
+        "merge_verify_vs_execute_feature_adoption",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
@@ -10329,18 +12145,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -10354,7 +12170,7 @@ fn perf_merge_lineage_matrix() {
             runtime.performance_access().reset_counters();
             let verify_started_at = Instant::now();
             runtime
-                .merge_access()
+                .merge()
                 .verify_prepared_merge_execution(&prepared)
                 .expect("verify prepared merge");
             let verify_elapsed_micros = verify_started_at.elapsed().as_micros();
@@ -10380,7 +12196,8 @@ fn perf_merge_lineage_matrix() {
                     "execute_counters": execute_counters,
                 }),
             }
-        });
+        },
+    );
     assert!(merge_verify_execute_split_samples
         .iter()
         .all(|sample| sample.elapsed_micros > 0));
@@ -10408,8 +12225,10 @@ fn perf_merge_lineage_matrix() {
         },
     );
 
-    let merge_phase_timing_samples =
-        capture_perf_samples(suite, "merge_execute_phase_timing_feature_adoption", || {
+    let merge_phase_timing_samples = capture_perf_samples(
+        suite,
+        "merge_execute_phase_timing_feature_adoption",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
@@ -10417,18 +12236,18 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(
-                WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-                    CreateIntent::Entity(crate::transactions::data::EntitySpec {
+            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
+                MutationIntent::Create(CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
                         client_key: InternedString::Raw("feature-only".to_string()),
                         payload: RecordPayload::StructuredJson(json!({
                             "name": "feature-only"
                         })),
-                    }),
+                    },
                 )),
-            );
+            ));
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -10466,7 +12285,8 @@ fn perf_merge_lineage_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "merge_execute_phase_timing_feature_adoption",
@@ -10488,8 +12308,14 @@ fn perf_merge_lineage_matrix() {
                 "artifact_assembly_micros",
                 &["phase_timing", "artifact_assembly_micros"],
             ),
-            ("durable_append_micros", &["phase_timing", "durable_append_micros"]),
-            ("publication_micros", &["phase_timing", "publication_micros"]),
+            (
+                "durable_append_micros",
+                &["phase_timing", "durable_append_micros"],
+            ),
+            (
+                "publication_micros",
+                &["phase_timing", "publication_micros"],
+            ),
         ],
     );
     assert!(merge_phase_timing_samples
@@ -10545,8 +12371,7 @@ fn perf_merge_lineage_matrix() {
                     .divergence_between_branches(LineageDivergenceRequest {
                         left_branch: BranchId("main".to_string()),
                         right_branch: BranchId("feature".to_string()),
-                        traversal_basis:
-                            LineageDivergenceTraversalBasis::FullBranchGraphComparison,
+                        traversal_basis: LineageDivergenceTraversalBasis::FullBranchGraphComparison,
                     });
             let resolution =
                 runtime

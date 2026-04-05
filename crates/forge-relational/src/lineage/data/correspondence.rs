@@ -86,6 +86,7 @@ pub struct CorrespondenceResolution {
 }
 
 impl CorrespondenceResolution {
+    #[cfg(test)]
     pub(crate) fn promoted(
         candidate_id: CorrespondenceCandidateId,
         promoted_event_id: u64,
@@ -100,6 +101,7 @@ impl CorrespondenceResolution {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn rejected(
         candidate_id: CorrespondenceCandidateId,
         rejection_class: CorrespondencePromotionRejectionClass,
@@ -110,6 +112,7 @@ impl CorrespondenceResolution {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn execution_failed(
         candidate_id: CorrespondenceCandidateId,
         promoted_event_id: u64,
@@ -184,6 +187,7 @@ impl CorrespondenceResolution {
 pub struct CorrespondencePromotionOutcome(CorrespondenceResolution);
 
 impl CorrespondencePromotionOutcome {
+    #[cfg(test)]
     pub(crate) fn rejected(
         candidate_id: CorrespondenceCandidateId,
         rejection_class: CorrespondencePromotionRejectionClass,

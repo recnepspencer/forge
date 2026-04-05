@@ -92,7 +92,7 @@ pub(crate) fn retained_record_inspection(
     version_id: crate::facade::identity::VersionId,
     target: RecordRef,
 ) -> crate::facade::inspection::HistoricalRecordInspection {
-    runtime.inspection_access().inspect_historical_record(
+    runtime.inspect_what_happened().inspect_historical_record(
         branch_id,
         version_id,
         target,
@@ -106,7 +106,7 @@ pub(crate) fn reconstructed_record_inspection(
     version_id: crate::facade::identity::VersionId,
     target: RecordRef,
 ) -> crate::facade::inspection::HistoricalRecordInspection {
-    runtime.inspection_access().inspect_historical_record(
+    runtime.inspect_what_happened().inspect_historical_record(
         branch_id,
         version_id,
         target,
@@ -119,7 +119,7 @@ pub(crate) fn recent_commit_window(
     branch_id: &BranchId,
     limit: usize,
 ) -> crate::facade::inspection::RecentCommitInspectionWindow {
-    runtime.inspection_access().inspect_recent_commits(
+    runtime.inspect_what_happened().inspect_recent_commits(
         &crate::facade::inspection::RecentCommitInspectionRequest {
             branch_id: Some(branch_id.clone()),
             limit: limit as u64,

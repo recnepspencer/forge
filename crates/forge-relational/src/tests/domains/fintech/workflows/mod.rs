@@ -150,7 +150,7 @@ fn fintech_snapshot_release_preserves_historical_visibility_and_invalidates_hand
         assert!(release_snapshot_handle(&mut world, &baseline_snapshot));
         assert!(world
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&baseline_snapshot)
             .is_none());
         read_version_probe(
@@ -205,7 +205,7 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
 
     let main_read = world
         .runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&baseline_snapshot)
         .unwrap();
     let analysis_read = world.read_latest();
@@ -218,10 +218,10 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
     assert_eq!(
         world
             .runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
-        world.runtime.history_access().latest_commit().cloned()
+        world.runtime.history().latest_commit().cloned()
     );
     let post_probe = capture_case_truth_probe(
         &world,
@@ -266,10 +266,10 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
     assert_eq!(
         world
             .runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
-        world.runtime.history_access().latest_commit().cloned()
+        world.runtime.history().latest_commit().cloned()
     );
     assert_intraday_risk_case_transition(&baseline_probe, &post_probe);
     assert!(compare_case_truth(&post_probe, &post_replay_probe).is_empty());
@@ -304,10 +304,10 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
     assert_eq!(
         world
             .runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("analysis".to_string()))
             .cloned(),
-        world.runtime.history_access().latest_commit().cloned()
+        world.runtime.history().latest_commit().cloned()
     );
     assert_settlement_repair_case_transition(&baseline_probe, &post_probe);
 }

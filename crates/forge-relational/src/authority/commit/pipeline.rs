@@ -29,9 +29,8 @@ use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
-    CreateIntent, EntityMutationIntent, LoweredCommitPlan, MergeCommitMutationPlan,
-    MutationIntent, RelationMutationIntent, TransactionCommitError, TransactionId,
-    TransactionOptions,
+    CreateIntent, EntityMutationIntent, LoweredCommitPlan, MergeCommitMutationPlan, MutationIntent,
+    RelationMutationIntent, TransactionCommitError, TransactionId, TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
 use crate::validation::engine::InvariantExecutionResult;
@@ -304,14 +303,18 @@ impl AuthoritativeCommitContext {
             )),
             prepared_scope: None,
             merge_execution_accounting: None,
-            bulk_mutation_telemetry: lowered_plan
-                .bulk_mutation_batch()
-                .map(|batch| BulkMutationPlanTelemetry {
+            bulk_mutation_telemetry: lowered_plan.bulk_mutation_batch().map(|batch| {
+                BulkMutationPlanTelemetry {
                     locality: batch.planned().locality.clone(),
-                    normalized_client_key_count: batch.planned().naming.normalized_client_keys.len(),
+                    normalized_client_key_count: batch
+                        .planned()
+                        .naming
+                        .normalized_client_keys
+                        .len(),
                     lineage_transition_count: batch.planned().lineage.transitions.len(),
                     provenance_record_count: batch.planned().provenance.worker_batch_names.len(),
-                }),
+                }
+            }),
             prevalidated_commit_boundary: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
@@ -345,15 +348,18 @@ impl AuthoritativeCommitContext {
                 phase_timing: CommitPhaseTiming::default(),
             }),
             merge_execution_accounting: None,
-            bulk_mutation_telemetry: validated_plan
-                .lowered_plan()
-                .bulk_mutation_batch()
-                .map(|batch| BulkMutationPlanTelemetry {
+            bulk_mutation_telemetry: validated_plan.lowered_plan().bulk_mutation_batch().map(
+                |batch| BulkMutationPlanTelemetry {
                     locality: batch.planned().locality.clone(),
-                    normalized_client_key_count: batch.planned().naming.normalized_client_keys.len(),
+                    normalized_client_key_count: batch
+                        .planned()
+                        .naming
+                        .normalized_client_keys
+                        .len(),
                     lineage_transition_count: batch.planned().lineage.transitions.len(),
                     provenance_record_count: batch.planned().provenance.worker_batch_names.len(),
-                }),
+                },
+            ),
             prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
             validated_against_commit_id: validated_plan.validated_against_commit_id(),
             validated_against_version_id: Some(validated_plan.validated_against_version_id()),
@@ -408,7 +414,7 @@ pub(crate) fn execute_authoritative_commit(
         strategy_commit_artifacts,
     } = context;
     let mut commit_log = CommitLog::new();
-    let diagnostics_start = runtime.publication_access().diagnostics().artifacts().len();
+    let diagnostics_start = runtime.publication().diagnostics().artifacts().len();
     let complexity_before = runtime
         .services
         .instrumentation
@@ -429,7 +435,7 @@ pub(crate) fn execute_authoritative_commit(
         .clone()
         .unwrap_or_else(|| crate::history::data::BranchId("main".to_string()));
     let validation_basis_branch_head = runtime
-        .history_access()
+        .history()
         .branch_head(&validation_basis_branch)
         .cloned();
     if let Some(validated_version_id) = validated_against_version_id {
@@ -736,7 +742,8 @@ pub(crate) fn execute_authoritative_commit(
     phase_timing.publication_micros = elapsed_micros(phase_started);
     phase_timing.publication_storage_commit_micros = publication_phase_timing.storage_commit_micros;
     phase_timing.publication_index_refresh_micros = publication_phase_timing.index_refresh_micros;
-    phase_timing.publication_history_publish_micros = publication_phase_timing.history_publish_micros;
+    phase_timing.publication_history_publish_micros =
+        publication_phase_timing.history_publish_micros;
     phase_timing.publication_visibility_pin_micros = publication_phase_timing.visibility_pin_micros;
     phase_timing.publication_retention_trim_micros = publication_phase_timing.retention_trim_micros;
     phase_timing.publication_compaction_micros = publication_phase_timing.compaction_micros;
@@ -759,9 +766,7 @@ pub(crate) fn execute_authoritative_commit(
         .lock()
         .expect("complexity counter lock poisoned")
         .clone();
-    let diagnostics = runtime
-        .publication_access()
-        .diagnostics_since(diagnostics_start);
+    let diagnostics = runtime.publication().diagnostics_since(diagnostics_start);
     let commit_summary = commit_log.summary().clone();
     let schema_summary = CommitSchemaSummary {
         transition: canonical_commit_envelope
@@ -842,6 +847,24 @@ fn complexity_delta(
         relation_slots_cloned: after
             .relation_slots_cloned
             .saturating_sub(before.relation_slots_cloned),
+        aosoa_entity_chunks_staged: after
+            .aosoa_entity_chunks_staged
+            .saturating_sub(before.aosoa_entity_chunks_staged),
+        aosoa_entity_chunk_slots_materialized: after
+            .aosoa_entity_chunk_slots_materialized
+            .saturating_sub(before.aosoa_entity_chunk_slots_materialized),
+        aosoa_entity_chunks_published: after
+            .aosoa_entity_chunks_published
+            .saturating_sub(before.aosoa_entity_chunks_published),
+        aosoa_entity_slot_fallback_merges: after
+            .aosoa_entity_slot_fallback_merges
+            .saturating_sub(before.aosoa_entity_slot_fallback_merges),
+        aosoa_prepare_fallback_count: after
+            .aosoa_prepare_fallback_count
+            .saturating_sub(before.aosoa_prepare_fallback_count),
+        aosoa_publish_fallback_count: after
+            .aosoa_publish_fallback_count
+            .saturating_sub(before.aosoa_publish_fallback_count),
         commit_topology_flags: after.commit_topology_flags,
         partitions_touched_by_commit: after
             .partitions_touched_by_commit

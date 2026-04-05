@@ -147,7 +147,7 @@ fn collect_subscriber_patches_from_request(
 
     loop {
         let batch = runtime
-            .publication_access()
+            .publication()
             .read_subscriber_stream(request.clone())
             .unwrap();
 

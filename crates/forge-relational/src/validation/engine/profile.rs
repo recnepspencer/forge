@@ -8,15 +8,18 @@ pub(crate) enum InvariantRequestProfile {
     MutationSensitive,
     SnapshotPublication,
     CertificationBoundary,
+    #[cfg(test)]
     HarnessAudit,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HarnessAuditMode {
     Disabled,
     Full,
 }
 
+#[cfg(test)]
 impl HarnessAuditMode {
     pub(crate) const fn request_profile(self) -> Option<InvariantRequestProfile> {
         match self {
@@ -33,6 +36,7 @@ impl InvariantRequestProfile {
             Self::MutationSensitive => InvariantExecutionPoint::MutationSensitive,
             Self::SnapshotPublication => InvariantExecutionPoint::SnapshotPublication,
             Self::CertificationBoundary => InvariantExecutionPoint::CertificationBoundary,
+            #[cfg(test)]
             Self::HarnessAudit => InvariantExecutionPoint::HarnessAudit,
         }
     }
@@ -56,18 +60,21 @@ impl InvariantRequestProfile {
             Self::CertificationBoundary => InvariantGroupSet::of(InvariantGroup::VersionVisibility)
                 .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
                 .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
+            #[cfg(test)]
             Self::HarnessAudit => InvariantGroupSet::all(),
         }
     }
 
     pub(crate) const fn supports_observation(self, observation: InvariantObservationKind) -> bool {
         match self {
-            Self::CommitBoundary | Self::HarnessAudit => {
+            Self::CommitBoundary => {
                 matches!(observation, InvariantObservationKind::Committed)
             }
             Self::MutationSensitive | Self::SnapshotPublication | Self::CertificationBoundary => {
                 true
             }
+            #[cfg(test)]
+            Self::HarnessAudit => matches!(observation, InvariantObservationKind::Committed),
         }
     }
 }

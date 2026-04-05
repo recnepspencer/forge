@@ -25,14 +25,14 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let bulk_read = bulk_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&bulk_outcome.snapshot)
         .unwrap();
     let singular_read = singular_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(
             &singular_runtime
-                .publication_access()
+                .publication()
                 .latest_bundle()
                 .unwrap()
                 .snapshot,
@@ -83,7 +83,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         )));
         let outcome = txn.commit().unwrap();
         let read = runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&outcome.snapshot)
             .unwrap();
         let names = read
@@ -114,7 +114,7 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
     let relation =
         create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
     let snapshot = runtime.visibility_authority().snapshot();
-    let read = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
     let relation_record = read.get_relation(relation).unwrap();
 
     assert_eq!(relation.partition_id, PartitionId(29));

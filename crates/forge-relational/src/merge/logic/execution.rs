@@ -94,7 +94,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         let target_head = self
             .runtime
-            .history_access()
+            .history()
             .branch_head(&binding.target_branch)
             .cloned();
         self.runtime
@@ -110,7 +110,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         let source_head = self
             .runtime
-            .history_access()
+            .history()
             .branch_head(&binding.source_branch)
             .cloned();
         self.runtime
@@ -126,7 +126,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         let merge_base = self
             .runtime
-            .history_access()
+            .history()
             .latest_common_ancestor_between_branches(
                 &binding.target_branch,
                 &binding.source_branch,

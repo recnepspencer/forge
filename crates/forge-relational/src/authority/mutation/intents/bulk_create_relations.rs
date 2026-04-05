@@ -32,51 +32,45 @@ pub(super) fn apply(
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let mut outcome = MutationOutcome::bulk_relations_created(intent.partition_id, intent.kind_id);
-    let staged_rows = stage_bulk_relation_rows(intent, workspace)?;
+    let mut outcome = MutationOutcome::with_capacity(intent.endpoints.len(), 1);
+    outcome.record_event(
+        crate::authority::mutation::outcomes::MutationEvent::BulkRelationsCreated {
+            partition_id: intent.partition_id,
+            kind_id: intent.kind_id,
+            count: 0,
+        },
+    );
     workspace.with_context(|context| {
         reserve_bulk_relation_capacity(context.state, intent.partition_id, intent.endpoints.len());
     });
-    for (source, target, payload) in staged_rows {
-        let spec = RelationSpec {
-            partition_id: intent.partition_id,
-            kind_id: intent.kind_id,
-            client_key: InternedString::from("bulk"),
-            source,
-            target,
-            payload,
-        };
-        let relation_id = workspace.with_context(|context| {
-            let relation_id = allocate_relation(context.state, version_id, &spec);
-            context.state.mark_relation_slot_touched(
-                relation_id.partition_id,
-                relation_id.local_slot.0 as usize,
-            );
-            relation_id
-        });
-        outcome.record_change(RecordMutation::RelationCreated {
-            relation_id,
-            kind_id: intent.kind_id,
-            source: spec.source,
-            target: spec.target,
-            payload: spec.payload.clone(),
-        });
-    }
+    for_each_staged_bulk_relation_row(intent, workspace, &mut outcome, version_id)?;
     outcome.set_last_event_count(intent.endpoints.len());
     Ok(outcome)
 }
 
-fn stage_bulk_relation_rows(
+fn for_each_staged_bulk_relation_row(
     intent: &BulkRelationCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Result<
-    Vec<(
-        crate::identity::data::EntityId,
-        crate::identity::data::EntityId,
-        Option<crate::payloads::data::RecordPayload>,
-    )>,
-    CommitConflict,
-> {
+    outcome: &mut MutationOutcome,
+    version_id: crate::identity::data::VersionId,
+) -> Result<(), CommitConflict> {
+    if intent.endpoints.len() <= TARGET_PREPARATION_ITEMS_PER_PACKET {
+        workspace.record_preparation_strategy(
+            1,
+            intent.endpoints.len(),
+            intent.endpoints.len(),
+            1,
+            strategy_for_parallel_packets(workspace.execution_model(), 1),
+        );
+        for (offset, (source, target)) in intent.endpoints.iter().copied().enumerate() {
+            let payload = intent.payloads.get(offset).cloned().unwrap_or(None);
+            apply_staged_relation_row(
+                intent, workspace, outcome, version_id, source, target, payload,
+            )?;
+        }
+        return Ok(());
+    }
+
     let packet_count = coarse_preparation_packet_count(
         intent.endpoints.len(),
         TARGET_PREPARATION_ITEMS_PER_PACKET,
@@ -127,15 +121,16 @@ fn stage_bulk_relation_rows(
         });
     }
 
-    stage_import_packets(workspace, packets)
-        .into_iter()
-        .map(|row| match row {
+    for row in stage_import_packets(workspace, packets) {
+        match row {
             ImportStagedRow::Relation {
                 source,
                 target,
                 payload,
-            } => Ok((source, target, payload)),
-            ImportStagedRow::Entity { .. } => Err(CommitConflict::new(
+            } => apply_staged_relation_row(
+                intent, workspace, outcome, version_id, source, target, payload,
+            )?,
+            ImportStagedRow::Entity { .. } => return Err(CommitConflict::new(
                 crate::transactions::data::ConflictClass::MutationStateInconsistency {
                     detail:
                         "bulk relation staging produced an entity row in the relation import lane"
@@ -147,8 +142,44 @@ fn stage_bulk_relation_rows(
                     }),
                 },
             )),
-        })
-        .collect()
+        }
+    }
+    Ok(())
+}
+
+fn apply_staged_relation_row(
+    intent: &BulkRelationCreateIntent,
+    workspace: &mut MutationWorkspace<'_>,
+    outcome: &mut MutationOutcome,
+    version_id: crate::identity::data::VersionId,
+    source: crate::identity::data::EntityId,
+    target: crate::identity::data::EntityId,
+    payload: Option<crate::payloads::data::RecordPayload>,
+) -> Result<(), CommitConflict> {
+    let spec = RelationSpec {
+        partition_id: intent.partition_id,
+        kind_id: intent.kind_id,
+        client_key: InternedString::from("bulk"),
+        source,
+        target,
+        payload,
+    };
+    let relation_id = workspace.with_context(|context| {
+        let relation_id = allocate_relation(context.state, version_id, &spec);
+        context.state.mark_relation_slot_touched(
+            relation_id.partition_id,
+            relation_id.local_slot.0 as usize,
+        );
+        relation_id
+    });
+    outcome.record_change(RecordMutation::RelationCreated {
+        relation_id,
+        kind_id: intent.kind_id,
+        source: spec.source,
+        target: spec.target,
+        payload: spec.payload.clone(),
+    });
+    Ok(())
 }
 
 fn stage_import_packets(
@@ -173,21 +204,26 @@ fn stage_import_packets(
         1,
         strategy,
     );
+    if packets.len() == 1 {
+        return packets.into_iter().next().unwrap().rows;
+    }
 
-    let staged_streams = match strategy.selected_mode {
-        PreparationStrategySelection::StagedParallel => packets
-            .par_iter()
-            .map(import_packet_stream)
-            .collect::<Vec<_>>(),
-        PreparationStrategySelection::Serial => packets
-            .into_iter()
-            .map(|packet| import_packet_stream(&packet))
-            .collect::<Vec<_>>(),
-    };
-    canonical_merge_streams(staged_streams)
+    match strategy.selected_mode {
+        // Packets are emitted in canonical packet-index order and relation rows are already
+        // ordered within each packet, so the serial path can flatten directly.
+        PreparationStrategySelection::Serial => {
+            packets.into_iter().flat_map(|packet| packet.rows).collect()
+        }
+        PreparationStrategySelection::StagedParallel => canonical_merge_streams(
+            packets
+                .par_iter()
+                .map(import_packet_stream)
+                .collect::<Vec<_>>(),
+        )
         .into_iter()
         .map(|(_, row)| row)
-        .collect()
+        .collect(),
+    }
 }
 
 fn import_packet_stream(

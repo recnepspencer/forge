@@ -64,11 +64,11 @@ fn subscriber_stream_resume_uses_checkpoint_type_and_batches_without_duplication
     let _third = create_entity_outcome(&mut runtime, "c");
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(2))
         .unwrap();
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             first_batch.next_checkpoint.clone().unwrap(),
             2,
@@ -101,7 +101,7 @@ fn subscriber_stream_propagates_declared_contract_identity_into_checkpoints() {
     };
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(2).with_subscriber_contract(contract.clone()),
         )
@@ -137,7 +137,7 @@ fn subscriber_stream_without_schema_boundaries_reports_unchanged_continuity() {
     let _second = create_entity_outcome(&mut runtime, "b");
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(2))
         .unwrap();
 
@@ -185,7 +185,7 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
     txn.commit().unwrap();
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
         .unwrap();
 
@@ -242,7 +242,7 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
     };
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(10).with_subscriber_contract(contract),
         )
@@ -284,7 +284,7 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
         ..SubscriberContractDeclaration::default()
     };
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(10).with_subscriber_contract(contract),
         )
@@ -342,7 +342,7 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
     };
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(10).with_subscriber_contract(contract),
         )
@@ -393,7 +393,7 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     txn.commit().unwrap();
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
         .unwrap();
     let checkpoint = first_batch.next_checkpoint.clone().unwrap();
@@ -422,7 +422,7 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     second_txn.commit().unwrap();
 
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 10))
         .unwrap();
 
@@ -472,7 +472,7 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
     txn.commit().unwrap();
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
         .unwrap_err();
 
@@ -537,7 +537,7 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
         ..SubscriberContractDeclaration::default()
     };
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(10).with_subscriber_contract(contract),
         )
@@ -570,7 +570,7 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
     };
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(1).with_subscriber_contract(contract.clone()),
         )
@@ -610,7 +610,7 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
     upgrade_txn.commit().unwrap();
 
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::resume_after(checkpoint, 10)
                 .with_subscriber_contract(contract),
@@ -668,7 +668,7 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     first_transition.commit().unwrap();
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
         .unwrap();
     let checkpoint = first_batch.next_checkpoint.unwrap();
@@ -696,7 +696,7 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     second_transition.commit().unwrap();
 
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 10))
         .unwrap();
 
@@ -737,7 +737,7 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
     };
 
     let first_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::from_head(1).with_subscriber_contract(contract.clone()),
         )
@@ -777,7 +777,7 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
     upgrade_txn.commit().unwrap();
 
     let resumed = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::resume_after(checkpoint, 1).with_subscriber_contract(contract),
         )

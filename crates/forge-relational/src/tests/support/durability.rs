@@ -20,7 +20,7 @@ where
     F: FnOnce() -> RelationalRuntime,
 {
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = recovered_factory();

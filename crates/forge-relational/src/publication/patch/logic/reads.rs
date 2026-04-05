@@ -14,7 +14,7 @@ pub(crate) fn read_patch_stream(
         });
     }
 
-    let latest_position = runtime.history_access().latest_patch_stream_position();
+    let latest_position = runtime.history().latest_patch_stream_position();
     let latest_commit_id = runtime
         .publication
         .latest_bundle
@@ -22,14 +22,14 @@ pub(crate) fn read_patch_stream(
         .map(|bundle| bundle.commit.commit_id)
         .or_else(|| {
             runtime
-                .history_access()
+                .history()
                 .latest_commit()
                 .map(|commit| commit.commit_id)
         });
 
     if let Some(after_position) = request.after_position {
         if !runtime
-            .history_access()
+            .history()
             .contains_patch_stream_position(after_position)
         {
             return Err(PatchStreamReadError {
@@ -40,7 +40,7 @@ pub(crate) fn read_patch_stream(
     }
 
     let patches = runtime
-        .history_access()
+        .history()
         .patches_after(request.after_position, request.max_commits);
 
     Ok(PatchStreamBatch {

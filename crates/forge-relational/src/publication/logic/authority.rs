@@ -72,7 +72,7 @@ pub struct PublicationAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn publication_authority(&mut self) -> PublicationAuthority<'_> {
+    pub(crate) fn publication_authority(&mut self) -> PublicationAuthority<'_> {
         PublicationAuthority::new(self)
     }
 }
@@ -86,7 +86,13 @@ impl<'runtime> PublicationAuthority<'runtime> {
         &mut self,
         artifact: crate::diagnostics::data::RelationalDiagnosticArtifact,
     ) {
-        if let Some(filtered) = self.runtime.config.diagnostics.profile.filter_artifact(artifact) {
+        if let Some(filtered) = self
+            .runtime
+            .config
+            .diagnostics
+            .profile
+            .filter_artifact(artifact)
+        {
             self.runtime.publication.diagnostics.push(filtered);
         }
     }
@@ -188,15 +194,13 @@ impl<'runtime> PublicationAuthority<'runtime> {
     ) -> SnapshotId {
         let PublicationArtifacts { bundle } = artifacts;
         let snapshot_id = bundle.snapshot.snapshot_id;
-        self.runtime
-            .visibility
-            .insert_published_handle(
-                snapshot_id,
-                crate::logic::runtime::SnapshotHandleBinding {
-                    version_id,
-                    read_policy: bundle.snapshot.read_policy,
-                },
-            );
+        self.runtime.visibility.insert_published_handle(
+            snapshot_id,
+            crate::logic::runtime::SnapshotHandleBinding {
+                version_id,
+                read_policy: bundle.snapshot.read_policy,
+            },
+        );
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.replace_latest_bundle(bundle);
         self.prune_published_snapshot_handles_if_needed();
@@ -219,12 +223,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         const PACKET_COUNT: usize = 2;
         self.runtime
             .performance_access()
-            .count_post_commit_consumer_shape(
-                PACKET_COUNT,
-                PACKET_COUNT,
-                1,
-                1,
-            );
+            .count_post_commit_consumer_shape(PACKET_COUNT, PACKET_COUNT, 1, 1);
 
         let should_parallelize =
             matches!(
@@ -268,7 +267,11 @@ impl<'runtime> PublicationAuthority<'runtime> {
             );
 
             if prune_count != 0 {
-                for snapshot_id in self.runtime.visibility.oldest_published_snapshot_ids(prune_count) {
+                for snapshot_id in self
+                    .runtime
+                    .visibility
+                    .oldest_published_snapshot_ids(prune_count)
+                {
                     let _ = self.runtime.visibility.remove_published_handle(snapshot_id);
                 }
             }

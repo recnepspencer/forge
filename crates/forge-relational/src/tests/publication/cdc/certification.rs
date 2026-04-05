@@ -134,14 +134,14 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
     }
 
     let pinned_batch = pinned_runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             baseline_checkpoint,
             8,
         ))
         .unwrap();
     let unpinned_batch = unpinned_runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1)),
             8,
@@ -154,11 +154,11 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
 
     let latest_snapshot = pinned_runtime.visibility_authority().snapshot();
     let pinned_snapshot_read = pinned_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&pinned_snapshot)
         .unwrap();
     let pinned_latest_read = pinned_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&latest_snapshot)
         .unwrap();
 
@@ -179,7 +179,7 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
         Some("right-rewrite-47")
     );
 
-    let retention = pinned_runtime.retention_authority().inspect_plan();
+    let retention = pinned_runtime.retention().inspect_plan();
     assert!(retention.snapshot_pinned_entities >= 2);
     assert!(pinned_runtime
         .visibility_authority()
@@ -296,7 +296,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         .all(|record| !patch_detail_contains(record, "abandoned")));
 
     let patch_batch = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(2)),
             max_commits: 32,
@@ -305,7 +305,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
     assert_eq!(subscriber, patch_batch.patches);
 
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let names = read
@@ -347,7 +347,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
         .remove_commit_envelope_for_test(crate::history::data::CommitId(3)));
 
     let durable_mid = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(mid_checkpoint, 2))
         .unwrap();
     assert_eq!(
@@ -362,7 +362,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
     );
     assert_eq!(durable_mid_stitched, expected_mid);
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
@@ -371,7 +371,7 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
         .recover(recovery_plan)
         .unwrap();
     let recovered_patch_batch = recovered
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(PatchStreamPosition(3)),
             max_commits: 32,
@@ -402,7 +402,7 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
 
     runtime.performance_access().reset_counters();
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(16))
         .unwrap();
     let counters = runtime.performance_access().counters();
@@ -467,14 +467,14 @@ fn diff_cdc_truth_parity_test() {
 
     runtime.performance_access().reset_counters();
     let live_batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             baseline_checkpoint.clone(),
             64,
         ))
         .unwrap();
     let live_patch_batch = runtime
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(baseline.patch_position()),
             max_commits: 64,
@@ -513,14 +513,14 @@ fn diff_cdc_truth_parity_test() {
     });
 
     let recovered_batch = recovered
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             baseline_checkpoint,
             64,
         ))
         .unwrap();
     let recovered_patch_batch = recovered
-        .publication_access()
+        .publication()
         .read_patch_stream(PatchStreamRequest {
             after_position: Some(baseline.patch_position()),
             max_commits: 64,
@@ -598,11 +598,7 @@ fn cdc_certification_explicit_dependency_graph_resume_is_exact() {
     let _dependency =
         create_relation_in_partition(&mut runtime, source, target, "depends-on", PartitionId(29));
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
@@ -650,7 +646,7 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
             &full_from_head,
         );
 
-        let recovery_plan = world.runtime.durability_access().recovery_plan(
+        let recovery_plan = world.runtime.durability().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
         );
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
@@ -700,11 +696,7 @@ fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
     let entity = create_entity_in_partition(&mut runtime, "rewrite-storm-0", PartitionId(7));
     let profile = CertificationPressureProfile::RewriteStorm;
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
@@ -750,7 +742,7 @@ fn cdc_certification_restart_loops_do_not_leak_resume_state_across_sessions() {
         for cycle in 0..1024 {
             let batch = world
                 .runtime
-                .publication_access()
+                .publication()
                 .read_subscriber_stream(SubscriberResumeRequest::resume_after(
                     session_checkpoint.clone(),
                     (cycle % 3) + 1,
@@ -786,7 +778,7 @@ fn cdc_certification_retention_truncation_recovers_exact_suffix_from_old_checkpo
         .unwrap_or_else(|| world.baseline_checkpoint.clone());
 
     for _ in 0..16 {
-        let _ = world.runtime.retention_authority().run_pass();
+        let _ = world.runtime.retention().run_pass();
     }
 
     let resumed = collect_subscriber_patches(&world.runtime, old_checkpoint.clone(), 3);
@@ -939,7 +931,7 @@ proptest! {
         );
 
         world.runtime.durability_authority().checkpoint().unwrap();
-        let recovery_plan = world.runtime.durability_access().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
+        let recovery_plan = world.runtime.durability().recovery_plan(crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification);
         let mut recovered = build_property_runtime(RuntimeHarnessMode::Persisted);
         recovered.durability_authority().recover(recovery_plan).unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);

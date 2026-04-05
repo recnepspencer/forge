@@ -7,9 +7,9 @@ use crate::facade::runtime::RelationalRuntime;
 pub(crate) fn drop_latest_parent_envelope_for_replay(
     runtime: &mut RelationalRuntime,
 ) -> Option<u64> {
-    let latest = runtime.history_access().latest_commit()?.commit_id;
+    let latest = runtime.history().latest_commit()?.commit_id;
     let chain = runtime
-        .history_access()
+        .history()
         .ancestor_closure_by_commit_id_order(latest);
     let parent = *chain.get(1)?;
     runtime
@@ -21,7 +21,7 @@ pub(crate) fn drop_latest_parent_envelope_for_replay(
 pub(crate) fn replay_latest_commit_on_wrong_branch(
     runtime: &mut RelationalRuntime,
 ) -> Option<RelationalReplayOutcome> {
-    let latest = runtime.history_access().latest_commit()?.commit_id;
+    let latest = runtime.history().latest_commit()?.commit_id;
     Some(
         runtime
             .replay_authority()

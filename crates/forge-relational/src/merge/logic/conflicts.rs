@@ -38,19 +38,16 @@ impl<'runtime> MergeAccess<'runtime> {
     ) -> Result<ConflictClassifiedMergePlan, MergePlanningError> {
         let target_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(identity_plan.target_head.version_id);
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let base_envelope = history
             .commit_envelope(identity_plan.merge_base.commit_id)
             .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
                 commit_id: identity_plan.merge_base.commit_id,
             })?;
         let base_version_id = base_envelope.commit.version_id;
-        let base_view = self
-            .runtime
-            .visibility_reads()
-            .read_version(base_version_id);
+        let base_view = self.runtime.read_truth().read_version(base_version_id);
         let source_records_by_ref = identity_plan
             .source_records
             .iter()
@@ -322,7 +319,7 @@ fn strategy_descriptors_for_delta(
     let Some(delta) = delta else {
         return Vec::new();
     };
-    let history = runtime.history_access();
+    let history = runtime.history();
     let mut dedup = BTreeMap::<
         ([u8; 32], [u8; 32], Vec<String>),
         crate::commit_strategies::data::StrategyMergeDescriptor,

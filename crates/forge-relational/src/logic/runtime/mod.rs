@@ -1,19 +1,20 @@
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 
+mod guided;
 mod session;
 mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
 pub use crate::durability::data::RecoveryOutcome;
-#[allow(unused_imports)]
 pub use crate::performance::data::{
-    ComplexityContract, ComplexityStatus, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
+    ComplexityContract, ComplexityStatus, RuntimeComplexityCounters,
 };
 pub use crate::replay::data::{RelationalReplayRecord, ReplaySchemaVersion};
 pub use crate::simulation::data::{
     CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
     TopologyFreezeMode,
 };
+pub use crate::simulation::logic::{SimulationAccess, SimulationAuthority};
 #[allow(unused_imports)]
 pub use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
@@ -36,10 +37,14 @@ pub use crate::validation::data::{
     StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
     SupportedExecutionPoints, TouchedStructuralSet,
 };
+#[cfg(test)]
 pub use crate::validation::engine::HarnessAuditMode;
+pub use crate::validation::logic::InvariantAccess;
 pub use crate::visibility::materialization::read_records::{
     EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView,
+    VisibilityReadContext,
 };
+pub use crate::visibility::retention::VisibilityRetentionAuthority;
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub use state::RelationalRuntime;

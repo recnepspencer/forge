@@ -244,7 +244,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                 let commit = session
                     .world
                     .runtime
-                    .history_access()
+                    .history()
                     .branch_head(&branch)
                     .cloned()
                     .ok_or_else(|| format!("branch `{branch_alias}` has no head commit"))?;
@@ -263,7 +263,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                 let commit_id = session
                     .world
                     .runtime
-                    .history_access()
+                    .history()
                     .latest_commit()
                     .ok_or_else(|| "latest commit unavailable for replay capture".to_string())?
                     .commit_id;

@@ -29,14 +29,14 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
     let checkpoint =
         checkpoint_for_schema_version(baseline_pinned.patch_position(), SchemaVersionId(1));
     let pinned_cdc = pinned_runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             checkpoint.clone(),
             16,
         ))
         .unwrap();
     let unpinned_cdc = unpinned_runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 16))
         .unwrap();
 
@@ -44,11 +44,11 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
     assert_eq!(pinned_cdc.recovery_decision, unpinned_cdc.recovery_decision);
 
     let pinned_snapshot_read = pinned_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&pinned_snapshot)
         .unwrap();
     let pinned_latest_read = pinned_runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&pinned_latest.snapshot)
         .unwrap();
 
@@ -61,12 +61,12 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
         Some("rewrite-4")
     );
 
-    let retention = pinned_runtime.retention_authority().inspect_plan();
+    let retention = pinned_runtime.retention().inspect_plan();
     assert!(retention.snapshot_pinned_entities >= 1);
 
     assert!(pinned_runtime
         .visibility_authority()
         .release_snapshot(&pinned_snapshot));
-    let released = pinned_runtime.retention_authority().inspect_plan();
+    let released = pinned_runtime.retention().inspect_plan();
     assert_eq!(released.snapshot_pinned_entities, 0);
 }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::identity::data::{KindId, PartitionId, RecordId, VersionId};
 use crate::payloads::data::RecordPayload;
@@ -205,6 +205,85 @@ impl<K: RecordKind> RecordArena<K> {
         (slot, 1, false)
     }
 
+    pub(crate) fn sparse_clone_slots_for_overlay(
+        &self,
+        touched_slots: &std::collections::BTreeSet<usize>,
+    ) -> Self
+    where
+        K::Extra: Clone,
+        K::Meta: Clone,
+    {
+        let slot_count = self.slot_count();
+        let mut clone = Self::with_capacity(slot_count);
+        clone.partition_ids.clone_from(&self.partition_ids);
+        clone.generations.clone_from(&self.generations);
+        clone.lifecycle.clone_from(&self.lifecycle);
+        clone.kind_ids.clone_from(&self.kind_ids);
+        clone.created_at.clone_from(&self.created_at);
+        clone.retired_at.clone_from(&self.retired_at);
+        clone.branch_pins.clone_from(&self.branch_pins);
+        clone.replay_pins.clone_from(&self.replay_pins);
+        clone.snapshot_pins.clone_from(&self.snapshot_pins);
+        clone.live_bitset = self.live_bitset.clone();
+        clone.reclaimable_bitset = self.reclaimable_bitset.clone();
+        clone.free_list = self.free_list.clone();
+
+        clone.payloads.resize(slot_count, None);
+        clone.payload_history.resize_with(slot_count, Vec::new);
+        clone.metadata_history.resize_with(slot_count, Vec::new);
+        clone.extra.resize_with(slot_count, K::empty_extra);
+        clone.aspect_versions.resize_with(slot_count, BTreeMap::new);
+        clone
+            .diagnostics_enrichment
+            .resize_with(slot_count, BTreeMap::new);
+
+        for &slot in touched_slots {
+            if slot >= slot_count {
+                continue;
+            }
+            clone.payloads[slot] = self.payloads[slot].clone();
+            clone.payload_history[slot] = self.payload_history[slot].clone();
+            clone.metadata_history[slot] = self.metadata_history[slot].clone();
+            clone.extra[slot] = self.extra[slot].clone();
+            clone.aspect_versions[slot] = self.aspect_versions[slot].clone();
+            clone.diagnostics_enrichment[slot] = self.diagnostics_enrichment[slot].clone();
+        }
+
+        clone
+    }
+
+    pub(crate) fn sparse_shape_clone_for_overlay(&self) -> Self
+    where
+        K::Extra: Clone,
+        K::Meta: Clone,
+    {
+        let slot_count = self.slot_count();
+        let mut clone = Self::with_capacity(slot_count);
+        clone.partition_ids.clone_from(&self.partition_ids);
+        clone.generations.clone_from(&self.generations);
+        clone.lifecycle.clone_from(&self.lifecycle);
+        clone.kind_ids.clone_from(&self.kind_ids);
+        clone.created_at.clone_from(&self.created_at);
+        clone.retired_at.clone_from(&self.retired_at);
+        clone.branch_pins.clone_from(&self.branch_pins);
+        clone.replay_pins.clone_from(&self.replay_pins);
+        clone.snapshot_pins.clone_from(&self.snapshot_pins);
+        clone.live_bitset = self.live_bitset.clone();
+        clone.reclaimable_bitset = self.reclaimable_bitset.clone();
+        clone.free_list = self.free_list.clone();
+
+        clone.payloads.resize(slot_count, None);
+        clone.payload_history.resize_with(slot_count, Vec::new);
+        clone.metadata_history.resize_with(slot_count, Vec::new);
+        clone.extra.resize_with(slot_count, K::empty_extra);
+        clone.aspect_versions.resize_with(slot_count, BTreeMap::new);
+        clone
+            .diagnostics_enrichment
+            .resize_with(slot_count, BTreeMap::new);
+
+        clone
+    }
+
     pub(crate) fn reset_slot(&mut self, slot: usize) {
         self.kind_ids[slot] = None;
         self.payloads[slot] = None;
@@ -286,6 +365,19 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
+    pub(crate) fn increment_named_pins_bulk(&mut self, slots: &BTreeSet<usize>, class: PinClass) {
+        let pins = match class {
+            PinClass::Branch => &mut self.branch_pins,
+            PinClass::Replay => &mut self.replay_pins,
+        };
+        for &slot in slots {
+            let Some(pin_count) = pins.get_mut(slot) else {
+                continue;
+            };
+            *pin_count = pin_count.saturating_add(1);
+        }
+    }
+
     pub(crate) fn set_lifecycle_for_slot(
         &mut self,
         slot: usize,
@@ -339,6 +431,40 @@ impl<K: RecordKind> RecordArena<K> {
         }
     }
 
+    pub(crate) fn merge_slot_chunks_from_owned(
+        &mut self,
+        overlay: &mut Self,
+        touched_slots: &std::collections::BTreeSet<usize>,
+        chunk_width: usize,
+        sync_free_list: bool,
+    ) -> usize
+    where
+        K::Extra: Clone,
+        K::Meta: Clone,
+    {
+        if touched_slots.is_empty() {
+            return 0;
+        }
+
+        let chunk_width = chunk_width.max(1);
+        let mut chunk_count = 0usize;
+        let mut current_chunk = None;
+        for &slot in touched_slots {
+            let chunk_index = slot / chunk_width;
+            if current_chunk != Some(chunk_index) {
+                current_chunk = Some(chunk_index);
+                chunk_count += 1;
+            }
+            self.move_slot_from_overlay(overlay, slot);
+        }
+
+        if sync_free_list {
+            self.free_list = std::mem::take(&mut overlay.free_list);
+        }
+
+        chunk_count
+    }
+
     fn move_slot_from_overlay(&mut self, overlay: &mut Self, slot: usize)
     where
         K::Extra: Clone,
@@ -351,7 +477,8 @@ impl<K: RecordKind> RecordArena<K> {
             self.lifecycle.push(overlay.lifecycle[next]);
             self.kind_ids.push(overlay.kind_ids[next]);
             self.payloads.push(overlay.payloads[next].clone());
-            self.payload_history.push(overlay.payload_history[next].clone());
+            self.payload_history
+                .push(overlay.payload_history[next].clone());
             self.metadata_history
                 .push(overlay.metadata_history[next].clone());
             self.created_at.push(overlay.created_at[next]);
@@ -364,11 +491,16 @@ impl<K: RecordKind> RecordArena<K> {
             self.branch_pins.push(overlay.branch_pins[next]);
             self.replay_pins.push(overlay.replay_pins[next]);
             self.snapshot_pins.push(overlay.snapshot_pins[next]);
-            self.live_bitset
-                .set(next, overlay.live_bitset.count_ones_in_range(next, next + 1) == 1);
+            self.live_bitset.set(
+                next,
+                overlay.live_bitset.count_ones_in_range(next, next + 1) == 1,
+            );
             self.reclaimable_bitset.set(
                 next,
-                overlay.reclaimable_bitset.count_ones_in_range(next, next + 1) == 1,
+                overlay
+                    .reclaimable_bitset
+                    .count_ones_in_range(next, next + 1)
+                    == 1,
             );
         }
 
@@ -388,11 +520,16 @@ impl<K: RecordKind> RecordArena<K> {
         self.branch_pins[slot] = overlay.branch_pins[slot];
         self.replay_pins[slot] = overlay.replay_pins[slot];
         self.snapshot_pins[slot] = overlay.snapshot_pins[slot];
-        self.live_bitset
-            .set(slot, overlay.live_bitset.count_ones_in_range(slot, slot + 1) == 1);
+        self.live_bitset.set(
+            slot,
+            overlay.live_bitset.count_ones_in_range(slot, slot + 1) == 1,
+        );
         self.reclaimable_bitset.set(
             slot,
-            overlay.reclaimable_bitset.count_ones_in_range(slot, slot + 1) == 1,
+            overlay
+                .reclaimable_bitset
+                .count_ones_in_range(slot, slot + 1)
+                == 1,
         );
     }
 }
@@ -421,4 +558,62 @@ pub(crate) fn lifecycle_counts(lifecycle: &[RecordLifecycleState]) -> LifecycleC
         }
     }
     counts
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use crate::identity::data::{KindId, PartitionId, VersionId};
+    use crate::payloads::data::RecordPayload;
+
+    use super::{EntityArena, EntityRecordKind, RecordKind, SlotInit};
+
+    #[test]
+    fn chunked_owned_slot_merge_preserves_untouched_truth() {
+        let partition_id = PartitionId(1);
+        let mut base = EntityArena::with_capacity(2);
+        let _ = base.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(1),
+            payload: Some(RecordPayload::StructuredJson(
+                serde_json::json!({"name":"left"}),
+            )),
+            version_id: VersionId(1),
+            extra: EntityRecordKind::empty_extra(),
+        });
+        let _ = base.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(1),
+            payload: Some(RecordPayload::StructuredJson(
+                serde_json::json!({"name":"right"}),
+            )),
+            version_id: VersionId(1),
+            extra: EntityRecordKind::empty_extra(),
+        });
+
+        let mut overlay = base.sparse_clone_slots_for_overlay(&BTreeSet::from([1usize]));
+        overlay.apply_payload_update(
+            1,
+            RecordPayload::StructuredJson(serde_json::json!({"name":"right-updated"})),
+            VersionId(2),
+        );
+
+        let published_chunks =
+            base.merge_slot_chunks_from_owned(&mut overlay, &BTreeSet::from([1usize]), 128, false);
+
+        assert_eq!(published_chunks, 1);
+        assert_eq!(
+            base.get_slot(0).and_then(|slot| slot.payload().cloned()),
+            Some(RecordPayload::StructuredJson(
+                serde_json::json!({"name":"left"})
+            ))
+        );
+        assert_eq!(
+            base.get_slot(1).and_then(|slot| slot.payload().cloned()),
+            Some(RecordPayload::StructuredJson(
+                serde_json::json!({"name":"right-updated"})
+            ))
+        );
+    }
 }

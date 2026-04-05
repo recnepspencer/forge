@@ -1,5 +1,8 @@
+#[cfg(test)]
 mod aspect_history;
+#[cfg(test)]
 mod divergence;
+#[cfg(test)]
 mod graph;
 mod records;
 mod resolution;
@@ -11,7 +14,7 @@ pub struct LineageAccess<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn lineage_access(&self) -> LineageAccess<'_> {
+    pub(crate) fn lineage_access(&self) -> LineageAccess<'_> {
         LineageAccess::new(self)
     }
 }

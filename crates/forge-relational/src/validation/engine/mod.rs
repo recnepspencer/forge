@@ -13,6 +13,7 @@ pub(crate) mod state_view;
 pub(crate) use engine::InvariantEngine;
 pub(crate) use observation::InvariantObservation;
 pub use observation::InvariantObservationKind;
+#[cfg(test)]
 pub use profile::HarnessAuditMode;
 pub(crate) use profile::InvariantRequestProfile;
 pub(crate) use request::{InvariantExecutionRequest, PreparedRelationIntegrityScopes};

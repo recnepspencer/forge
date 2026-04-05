@@ -16,7 +16,7 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
     let updated = update_entity(&mut runtime, entity, "after");
     let serial_snapshot_name = {
         let read = runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&explicit_snapshot)
             .unwrap();
         read_entity_name(read.get_entity(entity).unwrap())
@@ -24,14 +24,14 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
             .to_string()
     };
     let serial_version_name = {
-        let read = runtime.visibility_reads().read_version(created_version_id);
+        let read = runtime.read_truth().read_version(created_version_id);
         read_entity_name(read.get_entity(entity).unwrap())
             .unwrap()
             .to_string()
     };
     let serial_latest_name = {
         let read = runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&updated.snapshot)
             .unwrap();
         read_entity_name(read.get_entity(entity).unwrap())
@@ -49,12 +49,12 @@ fn concurrent_snapshot_and_version_reads_match_serial_truth() {
             let created_version_id = created_version_id;
             snapshot_threads.push(scope.spawn(move || {
                 let snapshot_read = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .read_snapshot(&explicit_snapshot)
                     .unwrap();
-                let version_read = runtime.visibility_reads().read_version(created_version_id);
+                let version_read = runtime.read_truth().read_version(created_version_id);
                 let latest_read = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .read_snapshot(&published_snapshot)
                     .unwrap();
                 (
@@ -103,14 +103,14 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
             let created_version_id = created_version_id;
             readers.push(scope.spawn(move || {
                 let snapshot_diag = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .inspect_snapshot_read_path(&explicit_snapshot)
                     .expect("explicit snapshot diagnostics");
                 let published_diag = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .inspect_snapshot_read_path(&published_snapshot)
                     .expect("published snapshot diagnostics");
-                let historical = runtime.visibility_reads().read_version(created_version_id);
+                let historical = runtime.read_truth().read_version(created_version_id);
                 let historical_name = read_entity_name(historical.get_entity(entity).unwrap())
                     .unwrap()
                     .to_string();
@@ -170,7 +170,7 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
     }
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -189,10 +189,10 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
         target_count_hint: seeds.len(),
     };
     let baseline = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("baseline query plan"),
         )
@@ -220,10 +220,10 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
             let expected = baseline.clone();
             readers.push(scope.spawn(move || {
                 let result = runtime
-                    .visibility_reads()
+                    .read_truth()
                     .execute_query_plan(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, packet)
                             .expect("thread query plan"),
                     )
@@ -279,7 +279,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
 
     let snapshot = commit.snapshot.clone();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -302,7 +302,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("baseline plan"),
             FallbackParityMode::CertificationParity,
@@ -322,7 +322,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
                     .index_access()
                     .execute_query_plan_with_fallback_parity(
                         runtime
-                            .visibility_reads()
+                            .read_truth()
                             .plan_query_packet(&snapshot, packet)
                             .expect("thread plan"),
                         FallbackParityMode::CertificationParity,

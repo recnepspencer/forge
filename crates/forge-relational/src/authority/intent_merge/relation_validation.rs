@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::capabilities::{SchemaSource, StorageRead};
 use crate::identity::data::VersionId;
@@ -80,7 +80,11 @@ fn validate_bulk_relation_creation(
     schema_registry
         .resolve_relation(kind_id)
         .map_err(schema_error_to_commit_conflict)?;
+    let relation_registration = schema_registry
+        .relation_registration(kind_id)
+        .map_err(schema_error_to_commit_conflict)?;
     let mut seen_batch_keys = BTreeSet::new();
+    let mut targets_by_source = BTreeMap::new();
     for (source, target) in endpoints {
         let identity = RelationIdentity {
             partition_id,
@@ -95,21 +99,34 @@ fn validate_bulk_relation_creation(
                 },
             ));
         }
-        let spec = RelationSpec {
+        validate_relation_creation_primitives(
+            state,
+            relation_registration.cross_context_policy,
+            default_cross_context_policy,
+            *source,
+            *target,
+        )?;
+        targets_by_source
+            .entry(*source)
+            .or_insert_with(BTreeSet::new)
+            .insert(*target);
+    }
+
+    for (source, targets) in targets_by_source {
+        if existing_relation_targets_for_source(
+            state,
+            instrumentation,
             partition_id,
             kind_id,
-            client_key: crate::symbols::data::InternedString::from("bulk"),
-            source: *source,
-            target: *target,
-            payload: None,
-        };
-        validate_relation_creation(
-            state,
-            schema_source,
-            default_cross_context_policy,
-            instrumentation,
-            &spec,
-        )?;
+            source,
+            &targets,
+        ) {
+            return Err(CommitConflict::new(
+                ConflictClass::DuplicateRelationIdentity {
+                    detail: "duplicate relation identity".to_string(),
+                },
+            ));
+        }
     }
     Ok(())
 }
@@ -128,8 +145,39 @@ fn validate_relation_creation(
     let relation_registration = schema_registry
         .relation_registration(spec.kind_id)
         .map_err(schema_error_to_commit_conflict)?;
-    if spec.source.partition_id != spec.target.partition_id {
-        let effective_cross_context_policy = match relation_registration.cross_context_policy {
+    validate_relation_creation_primitives(
+        state,
+        relation_registration.cross_context_policy,
+        default_cross_context_policy,
+        spec.source,
+        spec.target,
+    )?;
+    if existing_relation_targets_for_source(
+        state,
+        instrumentation,
+        spec.partition_id,
+        spec.kind_id,
+        spec.source,
+        &BTreeSet::from([spec.target]),
+    ) {
+        return Err(CommitConflict::new(
+            ConflictClass::DuplicateRelationIdentity {
+                detail: "duplicate relation identity".to_string(),
+            },
+        ));
+    }
+    Ok(())
+}
+
+fn validate_relation_creation_primitives(
+    state: &impl StorageRead,
+    relation_cross_context_policy: crate::config::data::CrossContextPolicy,
+    default_cross_context_policy: crate::config::data::CrossContextPolicy,
+    source: crate::identity::data::EntityId,
+    target: crate::identity::data::EntityId,
+) -> Result<(), CommitConflict> {
+    if source.partition_id != target.partition_id {
+        let effective_cross_context_policy = match relation_cross_context_policy {
             crate::config::data::CrossContextPolicy::SchemaControlled => {
                 default_cross_context_policy
             }
@@ -146,25 +194,34 @@ fn validate_relation_creation(
             ));
         }
     }
-    if !entity_exists_in_state(state, spec.source) || !entity_exists_in_state(state, spec.target) {
+    if !entity_exists_in_state(state, source) || !entity_exists_in_state(state, target) {
         return Err(CommitConflict::new(
             ConflictClass::InvalidRelationEndpoint {
                 detail: "relation endpoints must be live entities".to_string(),
             },
         ));
     }
-    let Some(source_partition) = state.get_partition(spec.source.partition_id) else {
-        return Ok(());
+    Ok(())
+}
+
+fn existing_relation_targets_for_source(
+    state: &impl StorageRead,
+    instrumentation: &RuntimeInstrumentation,
+    partition_id: crate::identity::data::PartitionId,
+    kind_id: crate::identity::data::KindId,
+    source: crate::identity::data::EntityId,
+    targets: &BTreeSet<crate::identity::data::EntityId>,
+) -> bool {
+    let Some(source_partition) = state.get_partition(source.partition_id) else {
+        return false;
     };
-    let Some(outgoing_relations) = source_partition
-        .adjacency
-        .get(spec.source.local_slot.0 as usize)
+    let Some(outgoing_relations) = source_partition.adjacency.get(source.local_slot.0 as usize)
     else {
-        return Ok(());
+        return false;
     };
     for relation_id in outgoing_relations.as_slice().iter().copied() {
         instrumentation.count(|counters| counters.relation_identity_candidates_scanned += 1);
-        if relation_id.partition_id != spec.partition_id {
+        if relation_id.partition_id != partition_id {
             continue;
         }
         let Some(relation_partition) = state.get_partition(relation_id.partition_id) else {
@@ -173,18 +230,123 @@ fn validate_relation_creation(
         let Some(relation_slot) = relation_partition.relation_arena.get(&relation_id) else {
             continue;
         };
+        if relation_slot.kind_id() != Some(kind_id) {
+            continue;
+        }
         let Some(endpoints) = relation_slot.extra().as_ref() else {
             continue;
         };
-        let same_kind = relation_slot.kind_id() == Some(spec.kind_id);
-        let same_endpoints = endpoints.source == spec.source && endpoints.target == spec.target;
-        if same_kind && same_endpoints {
-            return Err(CommitConflict::new(
-                ConflictClass::DuplicateRelationIdentity {
-                    detail: "duplicate relation identity".to_string(),
-                },
-            ));
+        if endpoints.source == source && targets.contains(&endpoints.target) {
+            return true;
         }
     }
-    Ok(())
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
+    use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+    use crate::logic::runtime::RuntimeInstrumentation;
+    use crate::storage::logic::state::{
+        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, WorkingState,
+    };
+    use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
+
+    use super::existing_relation_targets_for_source;
+
+    #[test]
+    fn existing_relation_targets_scans_shared_source_once_for_batched_targets() {
+        let adjacency_policy = AdjacencyPolicy {
+            backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
+            small_degree_inline_capacity: 4,
+        };
+        let partition_id = PartitionId(1);
+        let mut entity_arena = EntityArena::with_capacity(3);
+        let (source_slot, source_generation, _) = entity_arena.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(1),
+            payload: None,
+            version_id: VersionId(1),
+            extra: EntityRecordKind::empty_extra(),
+        });
+        let (left_slot, left_generation, _) = entity_arena.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(1),
+            payload: None,
+            version_id: VersionId(1),
+            extra: EntityRecordKind::empty_extra(),
+        });
+        let (right_slot, right_generation, _) = entity_arena.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(1),
+            payload: None,
+            version_id: VersionId(1),
+            extra: EntityRecordKind::empty_extra(),
+        });
+        let source = EntityId::new(partition_id, source_slot as u64, source_generation);
+        let left = EntityId::new(partition_id, left_slot as u64, left_generation);
+        let right = EntityId::new(partition_id, right_slot as u64, right_generation);
+
+        let mut relation_arena = RelationArena::with_capacity(1);
+        let (relation_slot, relation_generation, _) = relation_arena.push_slot(SlotInit {
+            partition_id,
+            kind_id: KindId(9),
+            payload: None,
+            version_id: VersionId(1),
+            extra: Some(RelationEndpoints {
+                source,
+                target: left,
+            }),
+        });
+        let relation_id = RelationId::new(partition_id, relation_slot as u64, relation_generation);
+        let mut adjacency = vec![AdjacencySet::new(&adjacency_policy); 3];
+        adjacency[source_slot].insert(relation_id);
+
+        let mut partitions = BTreeMap::new();
+        partitions.insert(
+            partition_id,
+            PartitionState {
+                partition_id,
+                adjacency_policy,
+                relation_overlay_is_sparse: false,
+                entity_arena,
+                relation_arena,
+                adjacency,
+                reverse_adjacency: vec![
+                    AdjacencySet::new(&AdjacencyPolicy {
+                        backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
+                        small_degree_inline_capacity: 4,
+                    });
+                    3
+                ],
+            },
+        );
+        let state = WorkingState::new(
+            partitions,
+            AdjacencyPolicy {
+                backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
+                small_degree_inline_capacity: 4,
+            },
+        );
+        let instrumentation = RuntimeInstrumentation::new();
+        let found = existing_relation_targets_for_source(
+            &state,
+            &instrumentation,
+            partition_id,
+            KindId(9),
+            source,
+            &BTreeSet::from([left, right]),
+        );
+        let counters = instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned")
+            .clone();
+
+        assert!(found);
+        assert_eq!(counters.relation_identity_candidates_scanned, 1);
+    }
 }

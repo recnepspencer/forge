@@ -129,11 +129,7 @@ impl<'runtime> IndexAccess<'runtime> {
                 .performance_access()
                 .count_query_index_attempt();
         }
-        let storage_execution = || {
-            self.runtime
-                .visibility_reads()
-                .execute_query_plan(plan.clone())
-        };
+        let storage_execution = || self.runtime.read_truth().execute_query_plan(plan.clone());
         let (execution, access_path) = match self.admissible_access_path(&plan) {
             QueryAccessPath::DerivedIndexGeneration { generation_id } => {
                 let index_execution =
@@ -546,15 +542,11 @@ impl<'runtime> IndexAccess<'runtime> {
                     {
                         continue;
                     }
-                    let Some(record) = self
-                        .runtime
-                        .visibility_reads()
-                        .entity_record_for_id_at_version(
-                            &state,
-                            entity_id,
-                            plan.snapshot.version_id,
-                        )
-                    else {
+                    let Some(record) = self.runtime.read_truth().entity_record_for_id_at_version(
+                        &state,
+                        entity_id,
+                        plan.snapshot.version_id,
+                    ) else {
                         continue;
                     };
                     if payload_field_key(&record.payload, field).as_deref() == Some(value.as_str())
@@ -659,15 +651,11 @@ impl<'runtime> IndexAccess<'runtime> {
                     {
                         continue;
                     }
-                    let Some(record) = self
-                        .runtime
-                        .visibility_reads()
-                        .entity_record_for_id_at_version(
-                            &state,
-                            entity_id,
-                            plan.snapshot.version_id,
-                        )
-                    else {
+                    let Some(record) = self.runtime.read_truth().entity_record_for_id_at_version(
+                        &state,
+                        entity_id,
+                        plan.snapshot.version_id,
+                    ) else {
                         continue;
                     };
                     if payload_field_key(&record.payload, field)
@@ -762,15 +750,11 @@ impl<'runtime> IndexAccess<'runtime> {
                     {
                         continue;
                     }
-                    let Some(record) = self
-                        .runtime
-                        .visibility_reads()
-                        .relation_record_for_id_at_version(
-                            &state,
-                            relation_id,
-                            plan.snapshot.version_id,
-                        )
-                    else {
+                    let Some(record) = self.runtime.read_truth().relation_record_for_id_at_version(
+                        &state,
+                        relation_id,
+                        plan.snapshot.version_id,
+                    ) else {
                         continue;
                     };
                     if payload_field_key_optional(&record.payload, field).as_deref()
@@ -876,15 +860,11 @@ impl<'runtime> IndexAccess<'runtime> {
                     {
                         continue;
                     }
-                    let Some(record) = self
-                        .runtime
-                        .visibility_reads()
-                        .relation_record_for_id_at_version(
-                            &state,
-                            relation_id,
-                            plan.snapshot.version_id,
-                        )
-                    else {
+                    let Some(record) = self.runtime.read_truth().relation_record_for_id_at_version(
+                        &state,
+                        relation_id,
+                        plan.snapshot.version_id,
+                    ) else {
                         continue;
                     };
                     if payload_field_key_optional(&record.payload, field)

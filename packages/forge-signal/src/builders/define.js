@@ -8,6 +8,46 @@ function readIdFrom(value) {
   throw new Error("Recipe reads must be signal ids or signal handles.");
 }
 
+function normalizePartitionSubscription(scope) {
+  if (!scope || typeof scope !== "object" || typeof scope.partition !== "string") {
+    throw new Error("Partition subscription requires a partition string.");
+  }
+  return {
+    partition: scope.partition,
+    detail: scope.detail ?? null,
+    matchMode: scope.matchMode ?? (scope.detail ? "PartitionAndDetail" : "WholePartition"),
+  };
+}
+
+function normalizeRecipeReadScope(scope) {
+  if (!scope || typeof scope !== "object") {
+    throw new Error("Recipe read scope must be an object.");
+  }
+  return {
+    partition: typeof scope.partition === "string" ? scope.partition : null,
+    partitionFrom: scope.partitionFrom ?? null,
+    detail: scope.detail ?? null,
+    matchMode: scope.matchMode ?? null,
+  };
+}
+
+function recipeReadFrom(value) {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value && typeof value.kind === "string" && value.kind === "signal" && typeof value.id === "string") {
+    return {
+      kind: "signal",
+      id: value.id,
+      scope: value.scope ? normalizePartitionSubscription(value.scope) : null,
+    };
+  }
+  if (value && typeof value.id === "string") {
+    return value.id;
+  }
+  throw new Error("Recipe reads must be signal ids, handles, or scoped signal read specs.");
+}
+
 function familyIdFrom(value) {
   if (typeof value === "string") {
     return value;
@@ -24,17 +64,25 @@ function recipeFamilyReadFrom(value) {
   }
   if (value && typeof value.kind === "string") {
     if (value.kind === "signal" && typeof value.id === "string") {
-      return { kind: "signal", id: value.id };
+      return {
+        kind: "signal",
+        id: value.id,
+        scope: value.scope ? normalizeRecipeReadScope(value.scope) : null,
+      };
     }
     if (value.kind === "keyed" && typeof value.familyId === "string") {
-      return { kind: "keyed", familyId: value.familyId };
+      return {
+        kind: "keyed",
+        familyId: value.familyId,
+        scope: value.scope ? normalizeRecipeReadScope(value.scope) : null,
+      };
     }
   }
   if (value && typeof value.id === "string") {
-    return { kind: "signal", id: value.id };
+    return { kind: "signal", id: value.id, scope: null };
   }
   if (value && typeof value.familyId === "string") {
-    return { kind: "keyed", familyId: value.familyId };
+    return { kind: "keyed", familyId: value.familyId, scope: null };
   }
   throw new Error("Recipe family reads must be signal ids, signal handles, or keyed family handles.");
 }
@@ -60,7 +108,7 @@ export class RecipeBuilder {
   }
 
   reads(...reads) {
-    this.spec.reads = reads.flat().map(readIdFrom);
+    this.spec.reads = reads.flat().map(recipeReadFrom);
     return this;
   }
 
@@ -177,6 +225,18 @@ export const keyed = {
     return { kind: "keyed", familyId: familyIdFrom(family) };
   },
   signal(read) {
-    return { kind: "signal", id: readIdFrom(read) };
+    return { kind: "signal", id: readIdFrom(read), scope: null };
   }
+};
+
+export const partition = {
+  whole(partition) {
+    return { partition, detail: null, matchMode: "WholePartition" };
+  },
+  detail(partition, detail) {
+    return { partition, detail, matchMode: "PartitionAndDetail" };
+  },
+  currentKey(detail = null, matchMode = null) {
+    return { partitionFrom: "key", detail, matchMode };
+  },
 };

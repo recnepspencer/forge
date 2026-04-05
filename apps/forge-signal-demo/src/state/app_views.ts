@@ -48,7 +48,7 @@ export function useReviewView() {
   const walkthroughOpen = useDemoSignal(demoState.controls.walkthroughOpen);
   const walkthroughIndex = useDemoSignal(demoState.controls.walkthroughIndex);
   const reviewPolicyLane = useDemoSignal(demoState.controls.reviewPolicyLane);
-  const reviewManualChoice = useDemoSignal(demoState.controls.reviewManualChoice);
+  const reviewManualSelections = useDemoSignal(demoState.controls.reviewManualSelections);
 
   return {
     mergePlan,
@@ -57,7 +57,7 @@ export function useReviewView() {
     walkthroughOpen,
     walkthroughIndex,
     reviewPolicyLane,
-    reviewManualChoice,
+    reviewManualSelections,
   };
 }
 

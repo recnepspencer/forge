@@ -34,7 +34,7 @@ pub(crate) fn execute_subscriber_stream(
         )
     });
     let latest_commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id);
 

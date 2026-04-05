@@ -1,6 +1,8 @@
 use crate::identity::data::PartitionId;
 use crate::logic::runtime::PartitionAccess;
-use crate::transactions::data::{ExistingRecordTarget, MergedCommitPlan};
+use crate::transactions::data::{
+    EntityMutationIntent, ExistingRecordTarget, MergedCommitPlan, MutationIntent,
+};
 
 pub(super) fn touched_partitions_for_plan_set(
     current_state: &impl PartitionAccess,
@@ -9,9 +11,17 @@ pub(super) fn touched_partitions_for_plan_set(
     let mut touched = std::collections::BTreeSet::new();
     for intent in &plan.merged_intents {
         intent.seed_touched_partitions(&mut touched);
+        let widen_entity_adjacency_scope = matches!(
+            intent,
+            MutationIntent::Entity(EntityMutationIntent::Delete(_))
+                | MutationIntent::Entity(EntityMutationIntent::Replace(_))
+        );
         if let Some(target) = intent.existing_record_target() {
             match target {
                 ExistingRecordTarget::Entity(entity_id) => {
+                    if !widen_entity_adjacency_scope {
+                        continue;
+                    }
                     if let Some(partition) = current_state.get_partition(entity_id.partition_id) {
                         let slot = entity_id.local_slot.0 as usize;
                         if let Some(adjacency) = partition.adjacency.get(slot) {
@@ -69,11 +79,13 @@ mod tests {
 
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+    use crate::payloads::data::RecordPayload;
     use crate::storage::logic::state::{
         AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, WorkingState,
     };
     use crate::transactions::data::{
         DeleteEntityIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, TransactionId,
+        UpdateEntityIntent,
     };
 
     use super::touched_partitions_for_plan_set;
@@ -112,6 +124,7 @@ mod tests {
             PartitionState {
                 partition_id: source_partition_id,
                 adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
                 adjacency: vec![source_adjacency],
@@ -123,6 +136,7 @@ mod tests {
             PartitionState {
                 partition_id: relation_partition_id,
                 adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(0),
                 relation_arena,
                 adjacency: Vec::new(),
@@ -134,6 +148,7 @@ mod tests {
             PartitionState {
                 partition_id: target_partition_id,
                 adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
                 adjacency: vec![AdjacencySet::new(&adjacency_policy)],
@@ -156,5 +171,89 @@ mod tests {
         assert!(touched.contains(&source_partition_id));
         assert!(touched.contains(&relation_partition_id));
         assert!(touched.contains(&target_partition_id));
+    }
+
+    #[test]
+    fn update_entity_does_not_widen_scope_through_existing_adjacency() {
+        let adjacency_policy = AdjacencyPolicy {
+            backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
+            small_degree_inline_capacity: 4,
+        };
+        let source_partition_id = PartitionId(1);
+        let relation_partition_id = PartitionId(2);
+        let target_partition_id = PartitionId(3);
+        let source_entity_id = EntityId::new(source_partition_id, 0, 1);
+        let target_entity_id = EntityId::new(target_partition_id, 0, 1);
+
+        let mut relation_arena = RelationArena::with_capacity(1);
+        let (slot, generation, _) = relation_arena.push_slot(crate::storage::substrate::SlotInit {
+            partition_id: relation_partition_id,
+            kind_id: KindId(9),
+            payload: None,
+            version_id: VersionId(1),
+            extra: Some(RelationEndpoints {
+                source: source_entity_id,
+                target: target_entity_id,
+            }),
+        });
+        let relation_id = RelationId::new(relation_partition_id, slot as u64, generation);
+
+        let mut source_adjacency = AdjacencySet::new(&adjacency_policy);
+        source_adjacency.insert(relation_id);
+
+        let mut partitions = BTreeMap::new();
+        partitions.insert(
+            source_partition_id,
+            PartitionState {
+                partition_id: source_partition_id,
+                adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
+                entity_arena: EntityArena::with_capacity(1),
+                relation_arena: RelationArena::with_capacity(0),
+                adjacency: vec![source_adjacency],
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+            },
+        );
+        partitions.insert(
+            relation_partition_id,
+            PartitionState {
+                partition_id: relation_partition_id,
+                adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
+                entity_arena: EntityArena::with_capacity(0),
+                relation_arena,
+                adjacency: Vec::new(),
+                reverse_adjacency: Vec::new(),
+            },
+        );
+        partitions.insert(
+            target_partition_id,
+            PartitionState {
+                partition_id: target_partition_id,
+                adjacency_policy: adjacency_policy.clone(),
+                relation_overlay_is_sparse: false,
+                entity_arena: EntityArena::with_capacity(1),
+                relation_arena: RelationArena::with_capacity(0),
+                adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+            },
+        );
+
+        let state = WorkingState::new(partitions, adjacency_policy);
+        let plan = MergedCommitPlan {
+            transaction_id: TransactionId(1),
+            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Update(
+                UpdateEntityIntent {
+                    entity_id: source_entity_id,
+                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"patched"})),
+                },
+            ))],
+        };
+
+        let touched = touched_partitions_for_plan_set(&state, &plan);
+
+        assert!(touched.contains(&source_partition_id));
+        assert!(!touched.contains(&relation_partition_id));
+        assert!(!touched.contains(&target_partition_id));
     }
 }

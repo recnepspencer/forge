@@ -1,11 +1,16 @@
+#[cfg(test)]
 use std::collections::BTreeSet;
 
+#[cfg(test)]
 use crate::history::data::BranchId;
-use crate::identity::data::{EntityId, LineageId};
-use crate::lineage::data::{
-    CorrespondenceCandidate, LineageDecisionRecord, LineageEventRecord, LineageNode,
-};
+use crate::identity::data::EntityId;
+#[cfg(test)]
+use crate::identity::data::LineageId;
+#[cfg(test)]
+use crate::lineage::data::LineageEventRecord;
+use crate::lineage::data::{CorrespondenceCandidate, LineageDecisionRecord, LineageNode};
 use crate::lineage::logic::access::LineageAccess;
+#[cfg(test)]
 use crate::visibility::cache_state::cached_state_for_version;
 
 impl<'runtime> LineageAccess<'runtime> {
@@ -24,6 +29,7 @@ impl<'runtime> LineageAccess<'runtime> {
         self.runtime.lineage.nodes.values().cloned().collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn branch_events_snapshot(
         &self,
         branch_id: &crate::history::data::BranchId,
@@ -35,16 +41,14 @@ impl<'runtime> LineageAccess<'runtime> {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn branch_nodes_snapshot(&self, branch_id: &BranchId) -> Vec<LineageNode> {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let Some(head) = history.branch_head(branch_id) else {
             return Vec::new();
         };
         let cache_hit = cached_state_for_version(self.runtime, head.version_id).is_some();
-        let read_view = self
-            .runtime
-            .visibility_reads()
-            .read_version(head.version_id);
+        let read_view = self.runtime.read_truth().read_version(head.version_id);
         self.runtime
             .performance_access()
             .count_lineage_graph_snapshot_visibility_cache(cache_hit);

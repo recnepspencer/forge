@@ -1,11 +1,18 @@
+#[cfg(test)]
 mod candidate_recording;
+#[cfg(test)]
 mod candidate_validation;
 mod commit_finalization;
 mod event_emission;
+#[cfg(test)]
 mod phase_types;
+#[cfg(test)]
 mod promotion;
+#[cfg(test)]
 mod promotion_commit;
+#[cfg(test)]
 mod promotion_execution;
+#[cfg(test)]
 mod promotion_planning;
 
 use crate::logic::runtime::RelationalRuntime;
@@ -15,7 +22,7 @@ pub struct LineageAuthority<'runtime> {
 }
 
 impl RelationalRuntime {
-    pub fn lineage_authority(&mut self) -> LineageAuthority<'_> {
+    pub(crate) fn lineage_authority(&mut self) -> LineageAuthority<'_> {
         LineageAuthority::new(self)
     }
 }

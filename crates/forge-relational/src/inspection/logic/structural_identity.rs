@@ -20,14 +20,11 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self.scope_version_id(&scope);
         match target {
             RecordRef::Entity(entity_id) => {
-                let read = self
-                    .runtime
-                    .visibility_reads()
-                    .entity_record_for_id_at_version(
-                        &self.runtime.storage_access().current_state(),
-                        entity_id,
-                        version_id,
-                    )?;
+                let read = self.runtime.read_truth().entity_record_for_id_at_version(
+                    &self.runtime.storage_access().current_state(),
+                    entity_id,
+                    version_id,
+                )?;
                 let extra = self
                     .runtime
                     .storage_access()
@@ -60,7 +57,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             RecordRef::Relation(relation_id) => {
                 let read = self
                     .runtime
-                    .visibility_reads()
+                    .read_truth()
                     .relation_record_for_id_at_version(
                         &self.runtime.storage_access().current_state(),
                         relation_id,

@@ -57,7 +57,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
             index_ids: vec![index.index_id],
         });
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&main_outcome.snapshot)
         .expect("query plan context");
     let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
@@ -67,7 +67,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
     );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&main_outcome.snapshot, planned)
         .expect("query plan");
     let fallback = runtime
@@ -123,7 +123,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
         });
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
@@ -133,7 +133,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
     );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, planned)
         .expect("query plan");
     let fallback = runtime
@@ -234,7 +234,7 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let mut planned = crate::facade::query::PlannedQueryPacket::explicit_targets(
@@ -244,7 +244,7 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
     );
     planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, planned)
         .expect("query plan");
 
@@ -289,7 +289,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -309,11 +309,11 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let storage = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan.clone())
         .expect("storage outcome");
     let indexed = runtime
@@ -363,7 +363,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -383,11 +383,11 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let storage = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan.clone())
         .expect("storage outcome");
     let indexed = runtime
@@ -447,7 +447,7 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -470,7 +470,7 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -515,7 +515,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -538,7 +538,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("original plan"),
             FallbackParityMode::CertificationParity,
@@ -549,7 +549,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&recovered_snapshot)
         .expect("recovered context");
     let mut recovered_packet = packet;
@@ -558,7 +558,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         .index_access()
         .execute_query_plan_with_fallback_parity(
             recovered
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&recovered_snapshot, recovered_packet)
                 .expect("recovered plan"),
             FallbackParityMode::CertificationParity,
@@ -599,7 +599,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let generation_id = build.generations[0].generation_id;
@@ -633,7 +633,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, sampled_packet.clone())
                 .expect("sampled plan"),
             FallbackParityMode::SampledParity,
@@ -643,7 +643,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, sampled_packet)
                 .expect("sampled plan repeat"),
             FallbackParityMode::SampledParity,
@@ -653,7 +653,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, unsampled_packet)
                 .expect("unsampled plan"),
             FallbackParityMode::SampledParity,
@@ -695,7 +695,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
             branch_scoped: false,
         });
         let latest_commit_id = runtime
-            .history_access()
+            .history()
             .latest_commit()
             .expect("latest commit")
             .commit_id;
@@ -710,7 +710,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
 
         let snapshot = runtime.visibility_authority().snapshot();
         let context = runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&snapshot)
             .expect("query plan context");
         let packet = crate::facade::query::PlannedQueryPacket {
@@ -735,7 +735,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
                 .index_access()
                 .execute_query_plan_with_fallback_parity(
                     runtime
-                        .visibility_reads()
+                        .read_truth()
                         .plan_query_packet(&snapshot, packet.clone())
                         .expect("query plan"),
                     FallbackParityMode::ProductionAdmissibility,
@@ -768,7 +768,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         branch_scoped: false,
     });
     let latest_commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .expect("latest commit")
         .commit_id;
@@ -783,7 +783,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -803,11 +803,11 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         target_count_hint: 2,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let storage = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan.clone())
         .expect("storage outcome");
     let indexed = runtime
@@ -868,7 +868,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         branch_scoped: false,
     });
     let latest_commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .expect("latest commit")
         .commit_id;
@@ -883,7 +883,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -903,11 +903,11 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         target_count_hint: 2,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let storage = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan.clone())
         .expect("storage outcome");
     let indexed = runtime
@@ -1000,7 +1000,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     assert!(build.failed_indexes.is_empty());
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&main_relation.snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1023,7 +1023,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&main_relation.snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -1060,7 +1060,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
         PartitionId(11),
     );
     let commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .expect("latest commit")
         .commit_id;
@@ -1083,7 +1083,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1105,11 +1105,11 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let storage = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(plan.clone())
         .expect("storage outcome");
     let indexed = runtime
@@ -1162,7 +1162,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
     assert!(build.failed_indexes.is_empty());
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&main_outcome.snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1182,7 +1182,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&main_outcome.snapshot, packet)
         .expect("query plan");
     let outcome = runtime
@@ -1222,7 +1222,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let success_packet = crate::facade::query::PlannedQueryPacket {
@@ -1245,7 +1245,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, success_packet)
                 .expect("success plan"),
             FallbackParityMode::CertificationParity,
@@ -1271,7 +1271,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, rejection_packet)
                 .expect("rejection plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -1327,7 +1327,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
 
     let snapshot = main_alpha.snapshot.clone();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1347,7 +1347,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&snapshot, packet)
         .expect("query plan");
     let outcome = runtime
@@ -1377,7 +1377,7 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
     });
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&outcome.snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1397,7 +1397,7 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
         target_count_hint: 0,
     };
     let plan = runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(&outcome.snapshot, packet)
         .expect("query plan");
     let result = runtime
@@ -1443,7 +1443,7 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_payload() 
         .status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
 
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&alpha.snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1466,7 +1466,7 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_payload() 
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&alpha.snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -1504,7 +1504,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
 
     let snapshot = alpha.snapshot.clone();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = crate::facade::query::PlannedQueryPacket {
@@ -1527,7 +1527,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("original plan"),
             FallbackParityMode::CertificationParity,
@@ -1538,7 +1538,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&recovered_snapshot)
         .expect("recovered context");
     let mut recovered_packet = packet;
@@ -1547,7 +1547,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         .index_access()
         .execute_query_plan_with_fallback_parity(
             recovered
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&recovered_snapshot, recovered_packet)
                 .expect("recovered plan"),
             FallbackParityMode::CertificationParity,
@@ -1600,11 +1600,11 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         build_runtime(RelationalExecutionModel::StagedParallelPreparation);
 
     let serial_context = serial_runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&serial_snapshot)
         .expect("serial context");
     let staged_context = staged_runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&staged_snapshot)
         .expect("staged context");
 
@@ -1612,7 +1612,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         .index_access()
         .execute_query_plan_with_fallback_parity(
             serial_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(
                     &serial_snapshot,
                     crate::facade::query::PlannedQueryPacket {
@@ -1642,7 +1642,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         .index_access()
         .execute_query_plan_with_fallback_parity(
             staged_runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(
                     &staged_snapshot,
                     crate::facade::query::PlannedQueryPacket {

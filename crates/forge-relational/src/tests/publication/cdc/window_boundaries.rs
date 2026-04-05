@@ -25,7 +25,7 @@ fn subscriber_cdc_resume_windows_preserve_order_across_interleaved_partitions() 
     let _ = create_entity_in_partition(&mut runtime, "churn-2", PartitionId(31));
 
     let full = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             baseline_checkpoint.clone(),
             64,

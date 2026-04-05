@@ -31,7 +31,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             },
             HistoricalInspectionMode::RetainedOnly
             | HistoricalInspectionMode::AllowCanonicalReconstruction => {
-                let read_view = self.runtime.visibility_reads().read_version(version_id);
+                let read_view = self.runtime.read_truth().read_version(version_id);
                 let availability = if direct_available {
                     InspectionAvailability::Direct
                 } else {
@@ -114,23 +114,21 @@ impl<'runtime> InspectionAccess<'runtime> {
         };
         let aspect_history_observation = match record_observation.target {
             RecordRef::Entity(entity_id) => Some(HistoricalAspectObservation {
-                query_result: self
-                    .runtime
-                    .history_access()
-                    .entity_aspect_history_with_trace(branch_id, entity_id, None::<&AspectFilter>),
+                query_result: self.runtime.history().entity_aspect_history_with_trace(
+                    branch_id,
+                    entity_id,
+                    None::<&AspectFilter>,
+                ),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,
             }),
             RecordRef::Relation(relation_id) => Some(HistoricalAspectObservation {
-                query_result: self
-                    .runtime
-                    .history_access()
-                    .relation_aspect_history_with_trace(
-                        branch_id,
-                        relation_id,
-                        None::<&AspectFilter>,
-                    ),
+                query_result: self.runtime.history().relation_aspect_history_with_trace(
+                    branch_id,
+                    relation_id,
+                    None::<&AspectFilter>,
+                ),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,

@@ -253,7 +253,7 @@ fn complexity_budget_lineage_finalization_and_publication_report_artifact_width(
         .lineage_authority()
         .promote_correspondence(candidate.candidate_id, target.commit.clone())
         .unwrap();
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(
             promotion

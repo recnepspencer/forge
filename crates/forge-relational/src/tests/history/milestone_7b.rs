@@ -41,7 +41,7 @@ fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
     );
 
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(
             BranchId("main".to_string()),
             BranchId("feature".to_string()),
@@ -56,7 +56,7 @@ fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
     let (_recovery, recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_artifact = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(
             BranchId("main".to_string()),
             BranchId("feature".to_string()),
@@ -157,7 +157,7 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
             BranchId("feature".to_string()),
         );
         let artifact = runtime
-            .merge_access()
+            .merge()
             .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 BranchId("feature".to_string()),

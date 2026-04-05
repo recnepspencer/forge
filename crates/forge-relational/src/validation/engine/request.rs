@@ -188,7 +188,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             match prepare_relation_integrity_scopes(
                 merged_plan,
                 observation.partition_access(),
-                runtime.performance_access(),
+                &runtime.performance_access(),
                 &runtime.config.execution.relation_integrity_scope_budget,
             ) {
                 Ok(scopes) => (scopes, None),
@@ -324,7 +324,7 @@ fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
 fn prepare_relation_integrity_scopes(
     merged_plan: Option<&MergedCommitPlan>,
     partitions: &dyn PartitionAccess,
-    performance: crate::performance::logic::PerformanceAccess<'_>,
+    performance: &crate::performance::logic::PerformanceAccess<'_>,
     budget: &RelationIntegrityScopeBudget,
 ) -> Result<Option<PreparedRelationIntegrityScopes>, PreparedRelationIntegrityScopeBudgetExceeded> {
     let Some(merged_plan) = merged_plan else {
@@ -332,6 +332,8 @@ fn prepare_relation_integrity_scopes(
     };
     let mut scopes = BTreeMap::<KindId, PreparedRelationIntegrityScope>::new();
     let mut touched_entities = BTreeSet::new();
+    let mut touched_relation_sources = BTreeSet::new();
+    let mut touched_relation_targets = BTreeSet::new();
     let mut deleted_entities = BTreeSet::new();
     let mut deleted_relations = BTreeSet::new();
     let empty_scanned_relations = BTreeSet::new();
@@ -353,6 +355,8 @@ fn prepare_relation_integrity_scopes(
                 planned_edge_count += 1;
                 touched_entities.insert(spec.source);
                 touched_entities.insert(spec.target);
+                touched_relation_sources.insert(spec.source);
+                touched_relation_targets.insert(spec.target);
                 ensure_relation_integrity_scope_budget(
                     budget,
                     scope_budget_snapshot(
@@ -377,6 +381,8 @@ fn prepare_relation_integrity_scopes(
                     planned_edge_count += 1;
                     touched_entities.insert(*source);
                     touched_entities.insert(*target);
+                    touched_relation_sources.insert(*source);
+                    touched_relation_targets.insert(*target);
                     ensure_relation_integrity_scope_budget(
                         budget,
                         scope_budget_snapshot(
@@ -401,6 +407,8 @@ fn prepare_relation_integrity_scopes(
                 crate::transactions::data::EntityMutationIntent::Delete(spec),
             ) => {
                 touched_entities.insert(spec.entity_id);
+                touched_relation_sources.insert(spec.entity_id);
+                touched_relation_targets.insert(spec.entity_id);
                 deleted_entities.insert(spec.entity_id);
                 ensure_relation_integrity_scope_budget(
                     budget,
@@ -417,6 +425,8 @@ fn prepare_relation_integrity_scopes(
                 crate::transactions::data::EntityMutationIntent::Replace(spec),
             ) => {
                 touched_entities.insert(spec.entity_id);
+                touched_relation_sources.insert(spec.entity_id);
+                touched_relation_targets.insert(spec.entity_id);
                 deleted_entities.insert(spec.entity_id);
                 ensure_relation_integrity_scope_budget(
                     budget,
@@ -434,63 +444,44 @@ fn prepare_relation_integrity_scopes(
     }
 
     let mut scanned_relations = BTreeSet::new();
-    for &entity_id in &touched_entities {
+    let relation_scan_entities = touched_relation_sources
+        .union(&touched_relation_targets)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    for entity_id in relation_scan_entities {
         let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
             continue;
         };
         let slot = entity_id.local_slot.0 as usize;
-        let outgoing = partition
-            .adjacency
-            .get(slot)
-            .map(|set| set.as_slice())
-            .into_iter()
-            .flatten();
+        let outgoing = partition.adjacency.get(slot).map(|set| set.as_slice());
+        scan_relation_integrity_ids(
+            outgoing.into_iter().flatten().copied(),
+            partitions,
+            &performance,
+            budget,
+            &touched_entities,
+            &deleted_entities,
+            &deleted_relations,
+            planned_edge_count,
+            &mut scanned_relations,
+            &mut scopes,
+        )?;
         let incoming = partition
             .reverse_adjacency
             .get(slot)
-            .map(|set| set.as_slice())
-            .into_iter()
-            .flatten();
-        for relation_id in outgoing.chain(incoming).copied() {
-            if !scanned_relations.insert(relation_id) || deleted_relations.contains(&relation_id) {
-                continue;
-            }
-            ensure_relation_integrity_scope_budget(
-                budget,
-                scope_budget_snapshot(
-                    &scopes,
-                    &touched_entities,
-                    &deleted_entities,
-                    &scanned_relations,
-                    planned_edge_count,
-                ),
-            )?;
-            let Some(relation_partition) = partitions.get_partition(relation_id.partition_id)
-            else {
-                continue;
-            };
-            let Some(slot) = relation_partition.relation_arena.get(&relation_id) else {
-                continue;
-            };
-            let Some(kind_id) = slot.kind_id() else {
-                continue;
-            };
-            let Some(endpoints) = slot.extra().as_ref() else {
-                continue;
-            };
-            if slot.lifecycle() != crate::storage::data::RecordLifecycleState::Live {
-                continue;
-            }
-            let scope = scopes.entry(kind_id).or_default();
-            scope.increment_counts(endpoints.source, endpoints.target);
-            performance.count_relation_uniqueness_candidates(1);
-            if deleted_entities.contains(&endpoints.source) {
-                scope.deleted_entities.insert(endpoints.source);
-            }
-            if deleted_entities.contains(&endpoints.target) {
-                scope.deleted_entities.insert(endpoints.target);
-            }
-        }
+            .map(|set| set.as_slice());
+        scan_relation_integrity_ids(
+            incoming.into_iter().flatten().copied(),
+            partitions,
+            &performance,
+            budget,
+            &touched_entities,
+            &deleted_entities,
+            &deleted_relations,
+            planned_edge_count,
+            &mut scanned_relations,
+            &mut scopes,
+        )?;
     }
 
     for scope in scopes.values_mut() {
@@ -509,6 +500,60 @@ fn prepare_relation_integrity_scopes(
 
     scopes.retain(|_, scope| !scope.is_empty());
     Ok((!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes)))
+}
+
+fn scan_relation_integrity_ids(
+    relation_ids: impl IntoIterator<Item = RelationId>,
+    partitions: &dyn PartitionAccess,
+    performance: &crate::performance::logic::PerformanceAccess<'_>,
+    budget: &RelationIntegrityScopeBudget,
+    touched_entities: &BTreeSet<EntityId>,
+    deleted_entities: &BTreeSet<EntityId>,
+    deleted_relations: &BTreeSet<RelationId>,
+    planned_edge_count: usize,
+    scanned_relations: &mut BTreeSet<RelationId>,
+    scopes: &mut BTreeMap<KindId, PreparedRelationIntegrityScope>,
+) -> Result<(), PreparedRelationIntegrityScopeBudgetExceeded> {
+    for relation_id in relation_ids {
+        if !scanned_relations.insert(relation_id) || deleted_relations.contains(&relation_id) {
+            continue;
+        }
+        ensure_relation_integrity_scope_budget(
+            budget,
+            scope_budget_snapshot(
+                scopes,
+                touched_entities,
+                deleted_entities,
+                scanned_relations,
+                planned_edge_count,
+            ),
+        )?;
+        let Some(relation_partition) = partitions.get_partition(relation_id.partition_id) else {
+            continue;
+        };
+        let Some(slot) = relation_partition.relation_arena.get(&relation_id) else {
+            continue;
+        };
+        let Some(kind_id) = slot.kind_id() else {
+            continue;
+        };
+        let Some(endpoints) = slot.extra().as_ref() else {
+            continue;
+        };
+        if slot.lifecycle() != crate::storage::data::RecordLifecycleState::Live {
+            continue;
+        }
+        let scope = scopes.entry(kind_id).or_default();
+        scope.increment_counts(endpoints.source, endpoints.target);
+        performance.count_relation_uniqueness_candidates(1);
+        if deleted_entities.contains(&endpoints.source) {
+            scope.deleted_entities.insert(endpoints.source);
+        }
+        if deleted_entities.contains(&endpoints.target) {
+            scope.deleted_entities.insert(endpoints.target);
+        }
+    }
+    Ok(())
 }
 
 fn scope_budget_snapshot(

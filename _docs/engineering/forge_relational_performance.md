@@ -17,6 +17,7 @@ Primary supporting documents:
 - [forge_relational_coverage_and_api_inventory.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_coverage_and_api_inventory.md)
 - [forge_relational_pre_hardening_scope.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_pre_hardening_scope.md)
 - [forge_relational_performance_baseline.jsonl](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_performance_baseline.jsonl)
+- [forge_relational_aosoa_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_aosoa_plan.md)
 - [VISION.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/OG/VISION.md)
 
 ## Non-Goals
@@ -436,6 +437,10 @@ Decide, from evidence, whether hybrid AoSoA or another chunk-local execution lay
 - the majority of current cost disappears after policy and profile hardening
 - merged waves stay narrow and proportional
 - hot operational paths move into credible target ranges without layout surgery
+
+### Phase 6 Output
+
+The concrete rollout and non-target boundaries for the current recommendation are captured in [forge_relational_aosoa_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/engineering/forge_relational_aosoa_plan.md).
 
 ## Implementation Order
 

@@ -134,7 +134,12 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .visibility
             .published_snapshot_binding(handle.snapshot_id)?;
         let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
-            build_visibility_state(self.runtime, version_id, handle.snapshot_id, binding.read_policy)
+            build_visibility_state(
+                self.runtime,
+                version_id,
+                handle.snapshot_id,
+                binding.read_policy,
+            )
         });
         let read_view = read_view_from_snapshot_state(self.runtime, &state);
         Some(SnapshotInspectionSummary {
@@ -170,15 +175,14 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             .runtime
             .visibility
             .published_snapshot_binding(handle.snapshot_id)?;
-        let state = reconstruct_state(self.runtime, handle.version_id, true)
-            .unwrap_or_else(|| {
-                build_visibility_state(
-                    self.runtime,
-                    handle.version_id,
-                    handle.snapshot_id,
-                    binding.read_policy,
-                )
-            });
+        let state = reconstruct_state(self.runtime, handle.version_id, true).unwrap_or_else(|| {
+            build_visibility_state(
+                self.runtime,
+                handle.version_id,
+                handle.snapshot_id,
+                binding.read_policy,
+            )
+        });
         let mut read_view = read_view_from_snapshot_state(self.runtime, &state);
         read_view.snapshot = handle.clone();
         Some(read_view)
@@ -372,9 +376,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         plan: SnapshotPinnedQueryPlan,
     ) -> Option<QueryExecutionOutcome> {
         let packets = match &plan.packet.scope {
-            QueryScope::ExplicitTargets { targets } => {
-                packetized_explicit_target_work(targets)
-            }
+            QueryScope::ExplicitTargets { targets } => packetized_explicit_target_work(targets),
             _ => return None,
         };
         let packet_count = packets.len();
@@ -401,8 +403,9 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 .count_query_parallel_profitable();
         }
 
-        let fragments = if let Some((active_version_id, _read_policy)) =
-            self.runtime.active_snapshot_binding(plan.snapshot.snapshot_id)
+        let fragments = if let Some((active_version_id, _read_policy)) = self
+            .runtime
+            .active_snapshot_binding(plan.snapshot.snapshot_id)
         {
             let snapshot_state = reconstruct_state(
                 self.runtime,
@@ -423,8 +426,8 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             let version_id = self
                 .runtime
                 .published_snapshot_version(plan.snapshot.snapshot_id)?;
-            let snapshot_state = reconstruct_state(self.runtime, version_id, true)
-                .unwrap_or_else(|| {
+            let snapshot_state =
+                reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
                     build_visibility_state(
                         self.runtime,
                         version_id,
@@ -824,7 +827,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let residency = residency_for_version(self.runtime, version_id);
         let cached = cached_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
-        let protected = is_protected(&residency);
+        let protected = is_protected_for_runtime(self.runtime, &residency);
         let recent_candidate =
             self.runtime.visibility_cache_enabled() && recent_window > 0 && !protected;
 
@@ -861,14 +864,14 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             let recent_candidate = !self.runtime.protect_active_snapshots()
                 && self.runtime.visibility_cache_enabled()
                 && recent_window > 0
-                && !is_protected(&residency);
+                && !is_protected_for_runtime(self.runtime, &residency);
             let mut entries = Vec::new();
             if !cached {
                 entries.push(snapshot_miss_entry(false));
             }
             entries.push(snapshot_decision_entry(
                 cached,
-                is_protected(&residency),
+                is_protected_for_runtime(self.runtime, &residency),
                 recent_candidate,
                 false,
             ));
@@ -890,7 +893,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let recent_window = self.runtime.recent_visibility_window();
         let recent_candidate = self.runtime.visibility_cache_enabled()
             && recent_window > 0
-            && !is_protected(&residency);
+            && !is_protected_for_runtime(self.runtime, &residency);
         let mut entries = vec![RelationalDiagnosticsEntry {
             code: DiagnosticCode::PublishedSnapshotHandleRead,
             message: "snapshot read will resolve through a published handle".to_string(),
@@ -904,7 +907,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
         entries.push(snapshot_decision_entry(
             cached,
-            is_protected(&residency),
+            is_protected_for_runtime(self.runtime, &residency),
             recent_candidate,
             true,
         ));
@@ -1181,7 +1184,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     )> {
         if let Some(envelope) = self
             .runtime
-            .history_access()
+            .history()
             .commit_envelope_for_version(version_id)
         {
             return Some((
@@ -1194,7 +1197,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
 
         if version_id == self.runtime.current_version_id()
-            && self.runtime.history_access().latest_commit().is_none()
+            && self.runtime.history().latest_commit().is_none()
         {
             return Some((
                 self.runtime.primary_schema_version_id(),
@@ -1549,7 +1552,9 @@ fn packetized_explicit_target_work(
     packets
 }
 
-fn packetized_traversal_query_work(packet: &PlannedQueryPacket) -> Option<Vec<PacketizedQueryWork>> {
+fn packetized_traversal_query_work(
+    packet: &PlannedQueryPacket,
+) -> Option<Vec<PacketizedQueryWork>> {
     match &packet.scope {
         QueryScope::OutgoingNeighborhood {
             seeds,
@@ -1595,10 +1600,8 @@ fn packetized_traversal_seed_work(
         return Vec::new();
     }
 
-    let packet_count = coarse_preparation_packet_count(
-        canonical_seeds.len(),
-        TARGET_TRAVERSAL_SEEDS_PER_PACKET,
-    );
+    let packet_count =
+        coarse_preparation_packet_count(canonical_seeds.len(), TARGET_TRAVERSAL_SEEDS_PER_PACKET);
     if packet_count <= 1 {
         return vec![build(canonical_seeds)];
     }
@@ -1830,37 +1833,47 @@ fn execute_explicit_query_fragment_from_state(
         match target {
             crate::transactions::data::RecordRef::Entity(entity_id) => {
                 touched_partitions.insert(entity_id.partition_id);
-                let Some(pins) = snapshot_state.pinned_partitions.get(&entity_id.partition_id) else {
+                let Some(pins) = snapshot_state
+                    .pinned_partitions
+                    .get(&entity_id.partition_id)
+                else {
                     continue;
                 };
-                if pins
-                    .entity_slots
-                    .count_ones_in_range(entity_id.local_slot.0 as usize, entity_id.local_slot.0 as usize + 1)
-                    == 0
+                if pins.entity_slots.count_ones_in_range(
+                    entity_id.local_slot.0 as usize,
+                    entity_id.local_slot.0 as usize + 1,
+                ) == 0
                 {
                     continue;
                 }
-                if let Some(record) =
-                    read_context.entity_record_for_id_at_version(current_state, *entity_id, version_id)
-                {
+                if let Some(record) = read_context.entity_record_for_id_at_version(
+                    current_state,
+                    *entity_id,
+                    version_id,
+                ) {
                     entities.push(record);
                 }
             }
             crate::transactions::data::RecordRef::Relation(relation_id) => {
                 touched_partitions.insert(relation_id.partition_id);
-                let Some(pins) = snapshot_state.pinned_partitions.get(&relation_id.partition_id) else {
+                let Some(pins) = snapshot_state
+                    .pinned_partitions
+                    .get(&relation_id.partition_id)
+                else {
                     continue;
                 };
-                if pins
-                    .relation_slots
-                    .count_ones_in_range(relation_id.local_slot.0 as usize, relation_id.local_slot.0 as usize + 1)
-                    == 0
+                if pins.relation_slots.count_ones_in_range(
+                    relation_id.local_slot.0 as usize,
+                    relation_id.local_slot.0 as usize + 1,
+                ) == 0
                 {
                     continue;
                 }
-                if let Some(record) = read_context
-                    .relation_record_for_id_at_version(current_state, *relation_id, version_id)
-                {
+                if let Some(record) = read_context.relation_record_for_id_at_version(
+                    current_state,
+                    *relation_id,
+                    version_id,
+                ) {
                     relations.push(if pins
                         .retained_relation_slots
                         .count_ones_in_range(relation_id.local_slot.0 as usize, relation_id.local_slot.0 as usize + 1)
@@ -2245,11 +2258,10 @@ fn traversal_fragment(
     }
 
     while let Some((entity_id, depth, root_seed, via_relation)) = scratch.frontier.pop_front() {
-        let Some(entity_record) = runtime.visibility_reads().entity_record_for_id_at_version(
-            state,
-            entity_id,
-            version_id,
-        ) else {
+        let Some(entity_record) = runtime
+            .read_truth()
+            .entity_record_for_id_at_version(state, entity_id, version_id)
+        else {
             continue;
         };
         entity_visit_keys.push(crate::query::data::TraversalEntityVisitKey {
@@ -2279,14 +2291,11 @@ fn traversal_fragment(
         }
 
         for relation_id in relation_ids {
-            let Some(relation_record) = runtime
-                .visibility_reads()
-                .relation_record_for_id_at_version(
-                    state,
-                    relation_id,
-                    version_id,
-                )
-            else {
+            let Some(relation_record) = runtime.read_truth().relation_record_for_id_at_version(
+                state,
+                relation_id,
+                version_id,
+            ) else {
                 continue;
             };
             if scratch
@@ -2367,9 +2376,10 @@ fn relation_ids_for_traversal(
     };
     relation_ids.sort();
     relation_ids.retain(|relation_id| {
-        let Some(relation_record) = runtime
-            .visibility_reads()
-            .relation_record_for_id_at_version(state, *relation_id, version_id)
+        let Some(relation_record) =
+            runtime
+                .read_truth()
+                .relation_record_for_id_at_version(state, *relation_id, version_id)
         else {
             return false;
         };
@@ -2531,7 +2541,10 @@ fn snapshot_miss_entry(published_handle: bool) -> RelationalDiagnosticsEntry {
 }
 
 fn is_protected(residency: &VisibilityResidency) -> bool {
-    residency.branch_head_refs > 0
-        || residency.replay_refs > 0
-        || residency.active_snapshot_refs > 0
+    residency.branch_head_refs > 0 || residency.replay_refs > 0
+}
+
+fn is_protected_for_runtime(runtime: &RelationalRuntime, residency: &VisibilityResidency) -> bool {
+    is_protected(residency)
+        || (runtime.protect_active_snapshots() && residency.active_snapshot_refs > 0)
 }

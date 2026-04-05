@@ -1,4 +1,4 @@
-use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
+use crate::identity::data::{EntityId, KindId, RelationId};
 use crate::payloads::data::RecordPayload;
 
 use super::{MutationEvent, RecordMutation};
@@ -10,12 +10,19 @@ pub(crate) struct MutationOutcome {
 }
 
 impl MutationOutcome {
+    pub(crate) fn with_capacity(change_count: usize, event_count: usize) -> Self {
+        Self {
+            changes: Vec::with_capacity(change_count),
+            events: Vec::with_capacity(event_count),
+        }
+    }
+
     pub(crate) fn entity_created(
         entity_id: EntityId,
         kind_id: KindId,
         payload: RecordPayload,
     ) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
             kind_id,
@@ -25,23 +32,13 @@ impl MutationOutcome {
         outcome
     }
 
-    pub(crate) fn bulk_entities_created(partition_id: PartitionId, kind_id: KindId) -> Self {
-        let mut outcome = Self::default();
-        outcome.record_event(MutationEvent::BulkEntitiesCreated {
-            partition_id,
-            kind_id,
-            count: 0,
-        });
-        outcome
-    }
-
     pub(crate) fn entity_updated(
         entity_id: EntityId,
         kind_id: KindId,
         old_payload: RecordPayload,
         new_payload: RecordPayload,
     ) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityUpdated {
             entity_id,
             kind_id,
@@ -53,7 +50,7 @@ impl MutationOutcome {
     }
 
     pub(crate) fn entity_deleted(entity_id: EntityId) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(0, 1);
         outcome.record_event(MutationEvent::EntityDeleted { entity_id });
         outcome
     }
@@ -64,7 +61,7 @@ impl MutationOutcome {
         kind_id: KindId,
         payload: RecordPayload,
     ) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id: replacement_entity_id,
             kind_id,
@@ -85,7 +82,7 @@ impl MutationOutcome {
         kind_id: KindId,
         payload: Option<RecordPayload>,
     ) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::RelationCreated {
             relation_id,
             kind_id,
@@ -102,18 +99,8 @@ impl MutationOutcome {
         outcome
     }
 
-    pub(crate) fn bulk_relations_created(partition_id: PartitionId, kind_id: KindId) -> Self {
-        let mut outcome = Self::default();
-        outcome.record_event(MutationEvent::BulkRelationsCreated {
-            partition_id,
-            kind_id,
-            count: 0,
-        });
-        outcome
-    }
-
     pub(crate) fn relation_deleted(relation_id: RelationId) -> Self {
-        let mut outcome = Self::default();
+        let mut outcome = Self::with_capacity(0, 1);
         outcome.record_event(MutationEvent::RelationDeleted { relation_id });
         outcome
     }

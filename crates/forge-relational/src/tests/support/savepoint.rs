@@ -27,7 +27,7 @@ pub(crate) fn assert_subscriber_stream_omits_detail(
     needle: &str,
 ) {
     let subscriber = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 8))
         .unwrap();
     assert!(subscriber

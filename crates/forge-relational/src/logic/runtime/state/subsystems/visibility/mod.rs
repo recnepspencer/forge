@@ -139,8 +139,11 @@ impl VisibilitySubsystem {
         self.cache.cached_version_count()
     }
 
-    pub(crate) fn protected_visibility_version_count(&self) -> usize {
-        self.cache.protected_version_count()
+    pub(crate) fn protected_visibility_version_count(
+        &self,
+        protect_active_snapshots: bool,
+    ) -> usize {
+        self.cache.protected_version_count(protect_active_snapshots)
     }
 
     pub(crate) fn recent_visibility_cache_count(&self) -> usize {

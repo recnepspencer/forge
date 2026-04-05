@@ -38,8 +38,8 @@ impl RelationalRuntimeConfig {
         let diagnostics_match = self.diagnostics.profile == diagnostics;
         let checkpoint_match = self.durability.policy.checkpoints.compact_after_checkpoint
             == boundary.prefers_checkpoint_compaction;
-        let log_match =
-            self.durability.policy.log.compact_after_checkpoint == boundary.prefers_checkpoint_compaction;
+        let log_match = self.durability.policy.log.compact_after_checkpoint
+            == boundary.prefers_checkpoint_compaction;
         let compiled_lane_match = match boundary.allows_compiled_lane {
             true => self.execution.compiled_lane_policy != super::CompiledLanePolicy::Disabled,
             false => self.execution.compiled_lane_policy == super::CompiledLanePolicy::Disabled,

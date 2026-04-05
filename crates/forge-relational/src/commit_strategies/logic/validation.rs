@@ -17,8 +17,7 @@ pub(crate) fn validate_lowered_plan(
         .target_branch
         .clone()
         .unwrap_or_else(|| crate::history::data::BranchId("main".to_string()));
-    let validated_against_branch_head =
-        runtime.history_access().branch_head(&basis_branch).cloned();
+    let validated_against_branch_head = runtime.history().branch_head(&basis_branch).cloned();
     let validated_against_commit_id = validated_against_branch_head
         .as_ref()
         .map(|commit| commit.commit_id);

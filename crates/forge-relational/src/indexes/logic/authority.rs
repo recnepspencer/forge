@@ -123,7 +123,7 @@ impl<'runtime> IndexAuthority<'runtime> {
         }
 
         let schema_version = self.runtime.primary_schema_version_id();
-        let projection = self.runtime.visibility_reads().project_version(version_id);
+        let projection = self.runtime.read_truth().project_version(version_id);
         let packets = plan_index_packets(&definitions);
         let results = execute_index_packets(&projection, &packets, strategy.selected_mode);
 

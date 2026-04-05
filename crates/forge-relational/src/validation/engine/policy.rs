@@ -19,7 +19,7 @@ pub(crate) fn derive_invariant_context(runtime: &RelationalRuntime) -> Invariant
     let entity_count = runtime.storage_access().entity_slot_count();
     let relation_count = runtime.storage_access().relation_slot_count();
     let total_records = entity_count + relation_count;
-    let version_depth = runtime.history_access().commit_count();
+    let version_depth = runtime.history().commit_count();
     let snapshot_pressure = runtime.visibility.active_snapshot_count() > 10;
 
     let scale = match total_records {

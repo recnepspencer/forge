@@ -21,7 +21,7 @@ pub(super) fn materialize_planning_artifact(
     plan: LoweredMergePlan,
 ) -> MergePlanningArtifactCore {
     let target_view = runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(plan.target_head.version_id);
     let schema_snapshot = merge_schema_snapshot(
         &runtime.config().schema.registry,
@@ -452,7 +452,7 @@ pub(crate) fn merge_schema_snapshot_for_execution_ready(
     source_records: &[crate::merge::data::VisibleMergeRecord],
     target_touched_records: &[crate::merge::data::BranchTouchedRecordDelta],
 ) -> MergeSchemaSnapshotDigestBasis {
-    let target_view = runtime.visibility_reads().read_version(target_version_id);
+    let target_view = runtime.read_truth().read_version(target_version_id);
     merge_schema_snapshot(
         &runtime.config().schema.registry,
         source_records,

@@ -84,7 +84,9 @@ impl SnapshotHandles {
     }
 
     pub(crate) fn published_version(&self, snapshot_id: SnapshotId) -> Option<VersionId> {
-        self.published.get(&snapshot_id).map(|binding| binding.version_id)
+        self.published
+            .get(&snapshot_id)
+            .map(|binding| binding.version_id)
     }
 
     pub(crate) fn published_binding(

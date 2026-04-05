@@ -34,7 +34,7 @@ pub(crate) fn build_visibility_state(
         read_policy,
     };
     let current_state = runtime.storage_access().current_state();
-    let reader = runtime.visibility_reads();
+    let reader = runtime.read_truth();
     let entity_partitions = reader.visible_entity_slots_from_state(&current_state, version_id);
     let relation_partitions = reader.visible_relation_slots_from_state(&current_state, version_id);
     let mut pinned_partitions = BTreeMap::new();
@@ -85,7 +85,7 @@ pub(crate) fn read_view_from_snapshot_state(
     state: &SnapshotState,
 ) -> RelationalReadView {
     let current_state = runtime.storage_access().current_state();
-    let reader = runtime.visibility_reads();
+    let reader = runtime.read_truth();
     let mut entities = Vec::with_capacity(state.pinned_entity_count);
     let mut relations = Vec::with_capacity(state.pinned_relation_count);
     for (partition_id, pins) in &state.pinned_partitions {
@@ -135,7 +135,7 @@ fn retained_relation_slots_for_version(
     relation_slots: &DenseSlotBitSet,
     version_id: crate::identity::data::VersionId,
 ) -> DenseSlotBitSet {
-    let reader = runtime.visibility_reads();
+    let reader = runtime.read_truth();
     let mut retained = DenseSlotBitSet::with_capacity(relation_slots.words().len() * 64);
     for slot in relation_slots.iter_set_slots() {
         let relation_id = crate::identity::data::RelationId::new(partition_id, slot as u64, 0);

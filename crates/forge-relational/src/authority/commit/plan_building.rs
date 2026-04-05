@@ -9,6 +9,14 @@ use crate::logic::runtime::PartitionAccess;
 use crate::symbols::data::SymbolPolicy;
 use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent};
 use crate::transactions::logic::RelationalTransaction;
+use std::time::Instant;
+
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct MergedPlanPreparationTiming {
+    pub(crate) validation_micros: u64,
+    pub(crate) sort_micros: u64,
+    pub(crate) conflict_detection_micros: u64,
+}
 
 impl<'a> RelationalTransaction<'a> {
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
@@ -24,14 +32,24 @@ impl<'a> RelationalTransaction<'a> {
     pub(crate) fn build_merged_plan_for_state(
         &self,
         current_state: &impl PartitionAccess,
-        mut intents: Vec<MutationIntent>,
+        intents: Vec<MutationIntent>,
     ) -> Result<MergedCommitPlan, CommitConflict> {
-        let history = self.runtime.history_access();
+        self.build_merged_plan_for_state_with_timing(current_state, intents)
+            .map(|(plan, _)| plan)
+    }
+
+    pub(crate) fn build_merged_plan_for_state_with_timing(
+        &self,
+        current_state: &impl PartitionAccess,
+        mut intents: Vec<MutationIntent>,
+    ) -> Result<(MergedCommitPlan, MergedPlanPreparationTiming), CommitConflict> {
+        let history = self.runtime.history();
         let branch_basis_version_id = self
             .options
             .target_branch
             .as_ref()
             .and_then(|branch_id| history.branch_head(branch_id).map(|head| head.version_id));
+        let validation_started = Instant::now();
         for intent in &intents {
             validate_intent(
                 self.runtime,
@@ -43,12 +61,21 @@ impl<'a> RelationalTransaction<'a> {
                 intent,
             )?;
         }
+        let sort_started = Instant::now();
         intents.sort_by_key(canonical_intent_key);
+        let conflict_started = Instant::now();
         detect_conflicting_updates(&intents)?;
-        Ok(MergedCommitPlan {
-            transaction_id: self.transaction_id,
-            merged_intents: intents,
-        })
+        Ok((
+            MergedCommitPlan {
+                transaction_id: self.transaction_id,
+                merged_intents: intents,
+            },
+            MergedPlanPreparationTiming {
+                validation_micros: validation_started.elapsed().as_micros() as u64,
+                sort_micros: sort_started.elapsed().as_micros() as u64,
+                conflict_detection_micros: conflict_started.elapsed().as_micros() as u64,
+            },
+        ))
     }
 
     pub(crate) fn normalized_intents_for_merge(&mut self) -> Vec<MutationIntent> {
@@ -69,10 +96,10 @@ impl<'a> RelationalTransaction<'a> {
         let mut merge_bases = Vec::new();
         let target_head = self
             .runtime
-            .history_access()
+            .history()
             .branch_head(target_branch)
             .map(|head| head.commit_id);
-        if let Some(head) = self.runtime.history_access().branch_head(target_branch) {
+        if let Some(head) = self.runtime.history().branch_head(target_branch) {
             parents.push(head.commit_id);
         }
         for merge_branch in self
@@ -85,7 +112,7 @@ impl<'a> RelationalTransaction<'a> {
             if &merge_branch == target_branch {
                 continue;
             }
-            let history = self.runtime.history_access();
+            let history = self.runtime.history();
             let Some(head) = history.branch_head(&merge_branch) else {
                 return Err(CommitConflict::new(ConflictClass::InvalidMergeParent {
                     detail: format!("requested additional branch {:?} has no head", merge_branch),
@@ -104,7 +131,7 @@ impl<'a> RelationalTransaction<'a> {
                     }
                     let Some(merge_base) = self
                         .runtime
-                        .history_access()
+                        .history()
                         .max_commit_id_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict::new(ConflictClass::MissingMergeBase {
@@ -143,14 +170,24 @@ impl<'a> RelationalTransaction<'a> {
         if raw_values.is_empty() {
             return;
         }
+        let mut new_snapshot_entries = Vec::new();
         for raw in raw_values {
-            interner.intern(&raw);
+            if !interner.contains(&raw) {
+                let symbol = interner.intern(&raw);
+                new_snapshot_entries.push((symbol, raw));
+            }
         }
 
         for intent in intents {
             intent.normalize_client_keys(interner, symbol_policy);
         }
-        self.runtime.config.identity.symbol_table = interner.snapshot();
+        if !new_snapshot_entries.is_empty() {
+            self.runtime
+                .config
+                .identity
+                .symbol_table
+                .merge_new_entries(new_snapshot_entries);
+        }
     }
 }
 

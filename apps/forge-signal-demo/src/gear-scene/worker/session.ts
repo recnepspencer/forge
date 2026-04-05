@@ -10,7 +10,7 @@ import type {
   SceneState,
 } from "../core/types";
 import type { RenderUpdate } from "../core/types";
-import type { BranchSummary, MergeReviewSnapshot, WorkerSnapshot } from "./protocol";
+import type { BranchSummary, MergeReviewSnapshot, ReviewManualSelections, WorkerSnapshot } from "./protocol";
 import {
   displayBranchSetSnapshot,
   primaryNodeForLabel,
@@ -55,9 +55,10 @@ export type SessionState = {
   commitCounter: number;
   branchHeads: Map<string, string>;
   inspect: BranchInspect | null;
-  inspectNodeId: string;
+  inspectNodeId: string | null;
   mergeReview: MergeReviewSnapshot | null;
   scenario: ScenarioState | null;
+  reviewManualSelections: ReviewManualSelections;
 };
 
 const DEFAULT_TIMELINE_STATE: SceneState = {
@@ -207,9 +208,19 @@ export function createSessionFromInitialRender(
     commitCounter: 0,
     branchHeads: new Map(),
     inspect: null,
-    inspectNodeId: "hudModel",
+    inspectNodeId: null,
     mergeReview: null,
     scenario: null,
+    reviewManualSelections: {
+      teeth: "source",
+      outerRadius: "source",
+      innerRadius: "source",
+      thickness: "source",
+      lightIntensity: "source",
+      lightPosition: "source",
+      rotation: "source",
+      camera: "source",
+    },
   };
 }
 

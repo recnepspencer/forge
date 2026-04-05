@@ -3,6 +3,11 @@ name = "forge-relational"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
+description = "A standalone truth runtime for transactional, inspectable, replayable graph state."
+readme = "README.md"
+repository = "https://github.com/recnepspencer/forge"
+keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
+categories = ["data-structures", "database-implementations", "science"]
 
 [dependencies]
 forge-harness.workspace = true

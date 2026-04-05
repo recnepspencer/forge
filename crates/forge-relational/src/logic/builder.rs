@@ -22,6 +22,199 @@ pub struct RelationalRuntimeBuilder {
     commit_strategy_executors: Vec<CommitStrategyExecutionRegistration>,
 }
 
+pub struct RuntimeSetup<'a> {
+    builder: &'a mut RelationalRuntimeBuilder,
+}
+
+impl<'a> RuntimeSetup<'a> {
+    pub fn runtime_name(&mut self, runtime_name: impl Into<String>) -> &mut Self {
+        self.builder.overrides.execution.runtime_name = Some(runtime_name.into());
+        self
+    }
+
+    pub fn execution_model(
+        &mut self,
+        execution_model: crate::logic::planning::RelationalExecutionModel,
+    ) -> &mut Self {
+        self.builder.overrides.execution.execution_model = Some(execution_model);
+        self
+    }
+
+    pub fn planning(&mut self, planning: crate::logic::planning::PlanningContract) -> &mut Self {
+        self.builder.overrides.execution.planning = Some(planning);
+        self
+    }
+
+    pub fn commit_authority(
+        &mut self,
+        commit_authority: crate::logic::commit::CommitAuthorityContract,
+    ) -> &mut Self {
+        self.builder.overrides.execution.commit_authority = Some(commit_authority);
+        self
+    }
+
+    pub fn diagnostics(&mut self, diagnostics: RelationalDiagnosticsProfile) -> &mut Self {
+        self.builder.overrides.diagnostics.profile = Some(diagnostics);
+        self
+    }
+
+    pub fn compiled_lane_policy(&mut self, compiled_lane_policy: CompiledLanePolicy) -> &mut Self {
+        self.builder.overrides.execution.compiled_lane_policy = Some(compiled_lane_policy);
+        self
+    }
+
+    pub fn relation_integrity_scope_budget(
+        &mut self,
+        relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+    ) -> &mut Self {
+        self.builder
+            .overrides
+            .execution
+            .relation_integrity_scope_budget = Some(relation_integrity_scope_budget);
+        self
+    }
+}
+
+pub struct SchemaSetup<'a> {
+    builder: &'a mut RelationalRuntimeBuilder,
+}
+
+impl<'a> SchemaSetup<'a> {
+    pub fn schema_registry(&mut self, schema_registry: RelationalSchemaRegistry) -> &mut Self {
+        self.builder.overrides.schema.registry = Some(schema_registry);
+        self
+    }
+
+    pub fn invariant_catalog(&mut self, invariant_catalog: InvariantCatalog) -> &mut Self {
+        self.builder.overrides.schema.invariant_catalog = Some(invariant_catalog);
+        self
+    }
+
+    pub fn custom_invariant(&mut self, custom_invariant: CustomInvariantRegistration) -> &mut Self {
+        self.builder.custom_invariants.push(custom_invariant);
+        self
+    }
+}
+
+pub struct StorageSetup<'a> {
+    builder: &'a mut RelationalRuntimeBuilder,
+}
+
+impl<'a> StorageSetup<'a> {
+    pub fn entity_capacity(&mut self, capacity: usize) -> &mut Self {
+        self.builder.overrides.storage.initial_entity_capacity = Some(capacity);
+        self
+    }
+
+    pub fn relation_capacity(&mut self, capacity: usize) -> &mut Self {
+        self.builder.overrides.storage.initial_relation_capacity = Some(capacity);
+        self
+    }
+
+    pub fn mvcc(&mut self, mvcc: MvccConfig) -> &mut Self {
+        self.builder.overrides.storage.mvcc = Some(mvcc);
+        self
+    }
+
+    pub fn storage_layout(&mut self, storage_layout: StorageLayoutConfig) -> &mut Self {
+        self.builder.overrides.storage.layout = Some(storage_layout);
+        self
+    }
+
+    pub fn payload_policy(&mut self, payload_policy: PayloadPolicy) -> &mut Self {
+        self.builder.overrides.storage.payload_policy = Some(payload_policy);
+        self
+    }
+
+    pub fn adjacency_policy(&mut self, adjacency_policy: AdjacencyPolicy) -> &mut Self {
+        self.builder.overrides.storage.adjacency_policy = Some(adjacency_policy);
+        self
+    }
+
+    pub fn cross_context_policy(&mut self, cross_context_policy: CrossContextPolicy) -> &mut Self {
+        self.builder.overrides.storage.cross_context_policy = Some(cross_context_policy);
+        self
+    }
+
+    pub fn cascade_delete_policy(
+        &mut self,
+        cascade_delete_policy: CascadeDeletePolicy,
+    ) -> &mut Self {
+        self.builder.overrides.storage.cascade_delete_policy = Some(cascade_delete_policy);
+        self
+    }
+
+    pub fn visibility_cache_policy(
+        &mut self,
+        visibility_cache_policy: VisibilityCachePolicy,
+    ) -> &mut Self {
+        self.builder.overrides.visibility.cache_policy = Some(visibility_cache_policy);
+        self
+    }
+
+    pub fn symbol_policy(&mut self, symbol_policy: SymbolPolicy) -> &mut Self {
+        self.builder.overrides.identity.symbol_policy = Some(symbol_policy);
+        self
+    }
+
+    pub fn publication(&mut self, publication: PublicationConfig) -> &mut Self {
+        self.builder.overrides.publication.policy = Some(publication);
+        self
+    }
+}
+
+pub struct DurabilitySetup<'a> {
+    builder: &'a mut RelationalRuntimeBuilder,
+}
+
+impl<'a> DurabilitySetup<'a> {
+    pub fn durability_mode(&mut self, durability_mode: DurabilityMode) -> &mut Self {
+        self.builder.overrides.durability.mode = Some(durability_mode);
+        self
+    }
+
+    pub fn durable_log_policy(&mut self, durable_log_policy: DurableLogPolicy) -> &mut Self {
+        self.builder.overrides.durability.log = Some(durable_log_policy);
+        self
+    }
+
+    pub fn durability_policy(&mut self, durability_policy: DurabilityPolicy) -> &mut Self {
+        self.builder.overrides.durability.policy = Some(durability_policy);
+        self
+    }
+
+    pub fn durable_store_layout(&mut self, durable_store_layout: DurableStoreLayout) -> &mut Self {
+        self.builder.overrides.durability.store_layout = Some(durable_store_layout);
+        self
+    }
+}
+
+pub struct StrategySetup<'a> {
+    builder: &'a mut RelationalRuntimeBuilder,
+}
+
+impl<'a> StrategySetup<'a> {
+    pub fn commit_strategy(&mut self, commit_strategy: CommitStrategyRegistration) -> &mut Self {
+        self.builder
+            .overrides
+            .commit_strategies
+            .registrations
+            .get_or_insert_with(Vec::new)
+            .push(commit_strategy);
+        self
+    }
+
+    pub fn commit_strategy_executor(
+        &mut self,
+        commit_strategy_executor: CommitStrategyExecutionRegistration,
+    ) -> &mut Self {
+        self.builder
+            .commit_strategy_executors
+            .push(commit_strategy_executor);
+        self
+    }
+}
+
 impl Default for RelationalRuntimeBuilder {
     fn default() -> Self {
         Self {
@@ -40,6 +233,36 @@ impl RelationalRuntimeBuilder {
 
     pub fn profile(mut self, profile: RelationalRuntimeProfile) -> Self {
         self.profile = profile;
+        self
+    }
+
+    pub fn runtime_setup(mut self, configure: impl FnOnce(&mut RuntimeSetup<'_>)) -> Self {
+        let mut setup = RuntimeSetup { builder: &mut self };
+        configure(&mut setup);
+        self
+    }
+
+    pub fn schema_setup(mut self, configure: impl FnOnce(&mut SchemaSetup<'_>)) -> Self {
+        let mut setup = SchemaSetup { builder: &mut self };
+        configure(&mut setup);
+        self
+    }
+
+    pub fn storage_setup(mut self, configure: impl FnOnce(&mut StorageSetup<'_>)) -> Self {
+        let mut setup = StorageSetup { builder: &mut self };
+        configure(&mut setup);
+        self
+    }
+
+    pub fn durability_setup(mut self, configure: impl FnOnce(&mut DurabilitySetup<'_>)) -> Self {
+        let mut setup = DurabilitySetup { builder: &mut self };
+        configure(&mut setup);
+        self
+    }
+
+    pub fn strategy_setup(mut self, configure: impl FnOnce(&mut StrategySetup<'_>)) -> Self {
+        let mut setup = StrategySetup { builder: &mut self };
+        configure(&mut setup);
         self
     }
 
@@ -221,6 +444,9 @@ mod tests {
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
         StrategyRequestCanonicalization, StrategyTraversalBasis,
     };
+    use crate::diagnostics::data::RelationalDiagnosticsProfile;
+    use crate::durability::data::DurabilityMode;
+    use crate::schema::data::RelationalSchemaRegistry;
     use crate::validation::data::{
         CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
         CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
@@ -426,6 +652,41 @@ mod tests {
         assert_eq!(
             canonical.canonical_input().canonicalization(),
             StrategyRequestCanonicalization::JsonStableObjectOrderV1
+        );
+    }
+
+    #[test]
+    fn builder_grouped_setup_sections_apply_overrides() {
+        let runtime = RelationalRuntimeBuilder::new()
+            .runtime_setup(|runtime| {
+                runtime
+                    .runtime_name("grouped-runtime")
+                    .execution_model(
+                        crate::logic::planning::RelationalExecutionModel::SerialAuthority,
+                    )
+                    .diagnostics(RelationalDiagnosticsProfile::geometry_operational_hot_path());
+            })
+            .schema_setup(|schema| {
+                schema.schema_registry(RelationalSchemaRegistry::new());
+            })
+            .storage_setup(|storage| {
+                storage.entity_capacity(42).relation_capacity(24);
+            })
+            .durability_setup(|durability| {
+                durability.durability_mode(DurabilityMode::InMemoryCanonical);
+            })
+            .build();
+
+        assert_eq!(runtime.config().execution.runtime_name, "grouped-runtime");
+        assert_eq!(runtime.config().storage.initial_entity_capacity, 42);
+        assert_eq!(runtime.config().storage.initial_relation_capacity, 24);
+        assert_eq!(
+            runtime.config().durability.policy.mode,
+            DurabilityMode::InMemoryCanonical
+        );
+        assert_eq!(
+            runtime.config().diagnostics.profile,
+            RelationalDiagnosticsProfile::geometry_operational_hot_path()
         );
     }
 }

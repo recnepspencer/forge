@@ -37,7 +37,7 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
     assert_subscriber_stream_omits_detail(&runtime, checkpoint, "abandoned");
 
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let names = read
@@ -65,11 +65,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         .unwrap()
         .lineage_id;
     let checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
@@ -161,9 +157,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
 
     let direct_history =
         runtime
-            .history_access()
+            .history()
             .entity_aspect_history(&BranchId("main".to_string()), anchor, None);
-    let direct_traced = runtime.history_access().entity_aspect_history_with_trace(
+    let direct_traced = runtime.history().entity_aspect_history_with_trace(
         &BranchId("main".to_string()),
         anchor,
         None,
@@ -196,7 +192,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     );
 
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let entity_names = read
@@ -210,7 +206,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     assert!(entity_names.contains(&"surviving-final-anchor"));
     assert!(!entity_names.iter().any(|name| name.contains("abandoned")));
     assert_eq!(read.relations().len(), 1);
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(outcome.commit.commit_id)
         .unwrap();
@@ -262,11 +258,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
     let checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
@@ -304,7 +296,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
     assert_subscriber_stream_omits_detail(&runtime, checkpoint, "illegal");
 
     assert!(!runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .artifacts()
         .iter()
@@ -354,11 +346,7 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
     let relation_outcome = create_relation_outcome(&mut runtime, source, target, "live");
     let relation = changed_relations(&relation_outcome)[0];
     let checkpoint = checkpoint_for_schema_version(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         SchemaVersionId(1),
     );
 
@@ -385,13 +373,13 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
     assert_subscriber_stream_omits_detail(&runtime, checkpoint, "RetainedDanglingForAudit");
 
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
     let relation = read.get_relation(relation).unwrap();
     assert_eq!(relation.lifecycle, RecordLifecycleState::Live);
     assert!(!runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .artifacts()
         .iter()

@@ -131,9 +131,9 @@ pub(super) fn capture_aspect_truth_bundle(
 ) -> AspectTruthBundle {
     AspectTruthBundle {
         visible_truth: VisibleTruthSummary::capture(runtime),
-        latest_patch: runtime.publication_access().latest_patch().cloned(),
-        latest_replay: runtime.publication_access().latest_replay().cloned(),
-        diagnostics: runtime.publication_access().diagnostics().clone(),
+        latest_patch: runtime.publication().latest_patch().cloned(),
+        latest_replay: runtime.publication().latest_replay().cloned(),
+        diagnostics: runtime.publication().diagnostics().clone(),
         entity_history_digests: entity_ids
             .iter()
             .map(|entity_id| {
@@ -171,7 +171,7 @@ pub(super) fn planned_explicit_query(
     targets: Vec<RecordRef>,
 ) -> crate::query::data::SnapshotPinnedQueryPlan {
     runtime
-        .visibility_reads()
+        .read_truth()
         .plan_query_packet(
             snapshot,
             explicit_query_packet(runtime, snapshot, label, targets),
@@ -186,7 +186,7 @@ pub(super) fn explicit_query_packet(
     targets: Vec<RecordRef>,
 ) -> PlannedQueryPacket {
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(snapshot)
         .expect("query plan context");
     PlannedQueryPacket::explicit_targets(label, context, targets)
@@ -199,7 +199,7 @@ pub(super) fn execute_explicit_query(
     targets: Vec<RecordRef>,
 ) -> crate::query::data::QueryExecutionOutcome {
     runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(planned_explicit_query(runtime, snapshot, label, targets))
         .expect("query execution outcome")
 }
@@ -232,12 +232,12 @@ pub(super) fn assert_recovered_commit_truth_matches(
     lineage_ids: &[LineageId],
 ) {
     let original_envelope = original_runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(commit_id)
         .cloned()
         .unwrap();
     let recovered_envelope = recovered_runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(commit_id)
         .cloned()
         .unwrap();
@@ -269,9 +269,9 @@ pub(super) fn capture_inspection_truth_bundle(
     entity_id: crate::facade::identity::EntityId,
     historical_version: crate::facade::identity::VersionId,
 ) -> InspectionTruthBundle {
-    let inspection = runtime.inspection_access();
+    let inspection = runtime.inspect_what_happened();
     let latest_commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id)
         .expect("latest commit");

@@ -540,8 +540,12 @@ pub struct CommitOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CommitPhaseTiming {
     pub draft_preparation_micros: u64,
+    pub draft_intent_normalization_micros: u64,
     pub draft_bulk_admission_micros: u64,
     pub draft_merge_plan_micros: u64,
+    pub draft_intent_validation_micros: u64,
+    pub draft_intent_sort_micros: u64,
+    pub draft_conflict_detection_micros: u64,
     pub draft_structural_summary_micros: u64,
     pub draft_working_state_clone_micros: u64,
     pub working_state_preparation_micros: u64,

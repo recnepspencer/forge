@@ -137,14 +137,14 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .map(|target| parse_target(target))
             .collect::<Result<Vec<_>, _>>()?;
         let context = runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(&snapshot)
             .ok_or_else(|| RelationalHarnessError("query plan context unavailable".to_string()))?;
         let result = runtime
-            .visibility_reads()
+            .read_truth()
             .execute_query_plan(
                 runtime
-                    .visibility_reads()
+                    .read_truth()
                     .plan_query_packet(
                         &snapshot,
                         PlannedQueryPacket::explicit_targets("execute", context, parsed_targets),
@@ -186,12 +186,12 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             extensions: BTreeMap::from([
                 (
                     "relational_patch".to_string(),
-                    serde_json::to_value(runtime.publication_access().latest_patch())
+                    serde_json::to_value(runtime.publication().latest_patch())
                         .unwrap_or_else(|_| json!(null)),
                 ),
                 (
                     "relational_replay".to_string(),
-                    serde_json::to_value(runtime.publication_access().latest_replay())
+                    serde_json::to_value(runtime.publication().latest_replay())
                         .unwrap_or_else(|_| json!(null)),
                 ),
             ]),
@@ -209,7 +209,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let mut clone = runtime.fork();
         let snapshot = clone.visibility_authority().snapshot();
-        let read_view = clone.visibility_reads().read_version(snapshot.version_id);
+        let read_view = clone.read_truth().read_version(snapshot.version_id);
         let observations = resolve_targets(request)
             .into_iter()
             .map(|target| {
@@ -285,7 +285,7 @@ impl DiagnosticsHarnessAdapter for RelationalHarnessAdapter {
                 "execution_mode": format!("{:?}", profile.execution_mode),
                 "runtime_execution_model": format!("{:?}", runtime.config().execution.execution_model),
                 "performance_counters": runtime.performance_access().counters(),
-                "artifacts": runtime.publication_access().diagnostic_artifacts()
+                "artifacts": runtime.publication().diagnostic_artifacts()
             }))
             .unwrap_or_else(|_| json!({})),
             extensions: BTreeMap::new(),
@@ -301,7 +301,7 @@ impl ReplayHarnessAdapter for RelationalHarnessAdapter {
         replay: &ReplayRequest<Self::TargetId>,
     ) -> Result<ReplayRecord<Self::TargetId>, Self::Error> {
         let latest_replay = runtime
-            .publication_access()
+            .publication()
             .latest_replay()
             .cloned()
             .ok_or_else(|| RelationalHarnessError("no replay artifact available".to_string()))?;

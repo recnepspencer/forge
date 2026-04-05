@@ -57,7 +57,7 @@ fn authoritative_parent_ids(
     commit_id: crate::facade::history::CommitId,
 ) -> Vec<u64> {
     runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(commit_id)
         .unwrap()
         .commit
@@ -73,7 +73,7 @@ fn commit_closure_ids(
     commit_id: crate::facade::history::CommitId,
 ) -> Vec<u64> {
     runtime
-        .history_access()
+        .history()
         .ancestor_closure_by_commit_id_order(commit_id)
         .into_iter()
         .map(|commit| commit.0)
@@ -89,7 +89,7 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
 
     let pre_merge_common_ancestor = runtime
-        .history_access()
+        .history()
         .latest_common_ancestor_between_branches(
             &BranchId("main".to_string()),
             &BranchId("feature".to_string()),
@@ -114,7 +114,7 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
 
     let (_recovery, recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
-    let post_merge_inspection = recovered.history_access().inspect_merge(
+    let post_merge_inspection = recovered.history().inspect_merge(
         &BranchId("feature".to_string()),
         &BranchId("main".to_string()),
     );
@@ -146,7 +146,7 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
     let ancestry_query_matrix = AncestryQueryMatrix {
         pre_merge_common_ancestor_commit_id: pre_merge_common_ancestor,
         post_merge_common_ancestor_commit_id: recovered
-            .history_access()
+            .history()
             .latest_common_ancestor_between_branches(
                 &BranchId("main".to_string()),
                 &BranchId("feature".to_string()),
@@ -174,7 +174,7 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
     };
 
     let publication_diagnostics = runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
         .iter()
@@ -338,7 +338,7 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
     runtime.performance_access().reset_counters();
 
     let _ = runtime
-        .history_access()
+        .history()
         .ancestor_closure_by_commit_id_order(merge.commit.commit_id);
     let replay = runtime
         .replay_authority()
@@ -357,7 +357,7 @@ fn merge_ready_history_shape_reports_counter_breadth_explicitly() {
     assert!(runtime_counters.merge_history_replay_planning_nodes_visited >= 4);
     assert!(runtime_counters.merge_history_replay_parent_checks >= 4);
 
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();

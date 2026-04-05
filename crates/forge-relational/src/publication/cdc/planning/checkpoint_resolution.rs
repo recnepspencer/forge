@@ -37,9 +37,9 @@ pub(crate) fn latest_available_checkpoint(
 pub(crate) fn latest_available_checkpoint_basis(
     runtime: &RelationalRuntime,
 ) -> Option<SubscriberCheckpointBasis> {
-    let latest_position = runtime.history_access().latest_patch_stream_position()?;
+    let latest_position = runtime.history().latest_patch_stream_position()?;
     let commit_id = *runtime.history.patch_stream_index.get(&latest_position)?;
-    let history = runtime.history_access();
+    let history = runtime.history();
     let envelope = history.commit_envelope(commit_id)?;
     Some(SubscriberCheckpointBasis::new(
         latest_position,
@@ -89,7 +89,7 @@ pub(crate) fn resolve_checkpoint(
         .get(&checkpoint.position())
         .copied()
     {
-        let history = runtime.history_access();
+        let history = runtime.history();
         let Some(envelope) = history.commit_envelope(commit_id) else {
             let detail = format!(
                 "subscriber checkpoint {} has no retained canonical envelope coverage",
@@ -160,7 +160,7 @@ pub(crate) fn durable_checkpoint_envelope(
 pub(crate) fn durable_envelopes(
     runtime: &RelationalRuntime,
 ) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
-    let recovery_plan = runtime.durability_access().recovery_plan(
+    let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut envelopes = recovery_plan
@@ -177,7 +177,7 @@ pub(crate) fn checkpoint_basis_from_patch_position(
     position: PatchStreamPosition,
 ) -> Option<SubscriberCheckpointBasis> {
     let commit_id = *runtime.history.patch_stream_index.get(&position)?;
-    let history = runtime.history_access();
+    let history = runtime.history();
     let envelope = history.commit_envelope(commit_id)?;
     Some(SubscriberCheckpointBasis::new(
         position,

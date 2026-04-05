@@ -19,7 +19,7 @@ pub(crate) fn assemble_effect(
 ) -> Result<MutationEffect, crate::transactions::data::CommitConflict> {
     let patch_surface_policy = workspace.patch_surface_policy();
     let version_id = workspace.version_id();
-    let mut effect = MutationEffect::default();
+    let mut effect = MutationEffect::with_capacity(outcome.changes.len(), outcome.events.len());
 
     for change in outcome.changes {
         let canonical_delta = canonical_delta_for_mutation(&change, workspace)

@@ -38,7 +38,7 @@ pub(crate) fn plan_subscriber_recovery(
 
     let preloaded_durable_envelopes = request.checkpoint().and_then(|checkpoint| {
         (!runtime
-            .history_access()
+            .history()
             .contains_patch_stream_position(checkpoint.position()))
         .then(|| durable_envelopes(runtime))
     });
@@ -60,7 +60,7 @@ pub(crate) fn plan_subscriber_recovery(
         envelopes
     } else {
         runtime
-            .history_access()
+            .history()
             .envelopes_after(start_after_position, usize::MAX)
     };
     if let Some(checkpoint) = request.checkpoint() {

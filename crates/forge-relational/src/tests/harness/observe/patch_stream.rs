@@ -20,7 +20,7 @@ pub(crate) fn collect_patch_stream_after(
 
     loop {
         let batch = runtime
-            .publication_access()
+            .publication()
             .read_patch_stream(PatchStreamRequest {
                 after_position: after,
                 max_commits: window_size,

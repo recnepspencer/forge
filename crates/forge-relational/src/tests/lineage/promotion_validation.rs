@@ -108,7 +108,7 @@ fn lineage_promotion_validation_rejects_stale_commit_anchor() {
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .map(|head| head.commit_id),
         Some(latest.commit.commit_id)
@@ -148,7 +148,7 @@ fn lineage_promotion_validation_resolves_anchor_truth_from_history_not_caller_sh
         .promote_correspondence(candidate.candidate_id, forged_anchor)
         .unwrap();
     let promoted_commit = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .cloned()
         .expect("promoted commit");

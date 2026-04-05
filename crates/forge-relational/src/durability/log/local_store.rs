@@ -1,6 +1,5 @@
 use std::fs;
 use std::io::Read;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -124,7 +123,9 @@ pub(crate) fn load_or_initialize_store(
     ensure_store_dirs(&layout)?;
     let manifest = manifest_path(&layout);
     if manifest.exists() {
-        return refresh_store_segments_from_disk(read_json::<DurableStoreManifestFile>(&manifest)?.store);
+        return refresh_store_segments_from_disk(
+            read_json::<DurableStoreManifestFile>(&manifest)?.store,
+        );
     }
     let store = DurableStore {
         layout: layout.clone(),
@@ -140,7 +141,9 @@ pub(crate) fn load_or_initialize_store(
     refresh_store_segments_from_disk(store)
 }
 
-fn refresh_store_segments_from_disk(mut store: DurableStore) -> Result<DurableStore, DurabilityError> {
+fn refresh_store_segments_from_disk(
+    mut store: DurableStore,
+) -> Result<DurableStore, DurabilityError> {
     let segments_dir = store.layout.root_path.join("segments");
     let mut refreshed_segments = fs::read_dir(&segments_dir)
         .map_err(io_error)?
@@ -168,9 +171,14 @@ fn refresh_store_segments_from_disk(mut store: DurableStore) -> Result<DurableSt
                         DurableIntegrityStatus::Verified,
                     ),
                     Err(_) => (
-                        existing.as_ref().and_then(|segment| segment.first_commit_id),
+                        existing
+                            .as_ref()
+                            .and_then(|segment| segment.first_commit_id),
                         existing.as_ref().and_then(|segment| segment.last_commit_id),
-                        existing.as_ref().map(|segment| segment.commit_count).unwrap_or(0),
+                        existing
+                            .as_ref()
+                            .map(|segment| segment.commit_count)
+                            .unwrap_or(0),
                         DurableIntegrityStatus::Corrupt,
                     ),
                 };
@@ -245,21 +253,13 @@ pub(crate) fn append_segment_entry(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(io_error)?;
     }
-    let mut file = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(path)
-        .map_err(io_error)?;
-    let bytes = serde_json::to_vec(envelope).map_err(|error| {
-        DurabilityError::new(
-            RecoveryFailureClass::DurableIoFailure,
-            format!("failed to serialize {}: {error}", path.display()),
-        )
-    })?;
-    file.write_all(&bytes).map_err(io_error)?;
-    file.write_all(b"\n").map_err(io_error)?;
-    file.flush().map_err(io_error)?;
-    Ok(())
+    let mut entries = if path.exists() {
+        read_segment_entries(path)?
+    } else {
+        Vec::new()
+    };
+    entries.push(envelope.clone());
+    write_json(path, &DurableSegmentFile { entries })
 }
 
 pub(crate) fn segment_uses_legacy_wrapper(path: &Path) -> Result<bool, DurabilityError> {

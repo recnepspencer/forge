@@ -54,9 +54,7 @@ pub(crate) fn perf_capture_baseline_observability(world: &FintechWorld) -> Obser
     probes::capture_observability_probe(world, probes::ProbeStage::Baseline)
 }
 
-pub(crate) fn perf_capture_post_mutation_observability(
-    world: &FintechWorld,
-) -> ObservabilityProbe {
+pub(crate) fn perf_capture_post_mutation_observability(world: &FintechWorld) -> ObservabilityProbe {
     probes::capture_observability_probe(world, probes::ProbeStage::PostMutation)
 }
 

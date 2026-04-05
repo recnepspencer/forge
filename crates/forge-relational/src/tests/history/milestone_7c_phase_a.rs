@@ -41,7 +41,7 @@ fn prepare_merge_execution_admits_fully_ready_source_only_addition() {
     };
 
     let prepared = runtime
-        .merge_access()
+        .merge()
         .prepare_merge_execution(request.clone())
         .expect("merge execution should prepare");
 
@@ -73,7 +73,7 @@ fn prepare_merge_execution_rejects_blocked_merge_plans() {
     );
 
     let error = runtime
-        .merge_access()
+        .merge()
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
             source_branch: BranchId("feature".to_string()),
@@ -139,7 +139,7 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
     );
 
     let error = runtime
-        .merge_access()
+        .merge()
         .prepare_merge_execution(MergeExecutionRequest {
             target_branch: BranchId("main".to_string()),
             source_branch: BranchId("feature".to_string()),
@@ -181,7 +181,7 @@ fn runtime_prepare_merge_execution_matches_merge_access_surface() {
         .prepare_merge_execution(request.clone())
         .expect("runtime merge prepare");
     let via_access = runtime
-        .merge_access()
+        .merge()
         .prepare_merge_execution(request.clone())
         .expect("merge access prepare");
 
@@ -209,7 +209,7 @@ fn verify_prepared_merge_execution_accepts_fresh_prepared_merge() {
         .expect("prepared merge");
 
     runtime
-        .merge_access()
+        .merge()
         .verify_prepared_merge_execution(&prepared)
         .expect("fresh prepared merge should verify");
 }
@@ -234,10 +234,7 @@ fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
         .expect("prepared merge");
     let forked = runtime.fork();
 
-    match forked
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match forked.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::RuntimeInstanceMismatch { .. }) => {}
         other => panic!("expected runtime instance mismatch, got {other:?}"),
     }
@@ -264,10 +261,7 @@ fn verify_prepared_merge_execution_rejects_target_head_drift() {
 
     create_entity(&mut runtime, "main-advance");
 
-    match runtime
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
             assert_eq!(branch, BranchId("main".to_string()));
         }
@@ -300,10 +294,7 @@ fn verify_prepared_merge_execution_rejects_source_head_drift() {
         BranchId("feature".to_string()),
     );
 
-    match runtime
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
             assert_eq!(branch, BranchId("feature".to_string()));
         }
@@ -357,10 +348,7 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
         .unwrap();
     runtime.config.schema.registry = drifted_registry;
 
-    match runtime
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::SchemaSemanticDrift { .. }) => {}
         other => panic!("expected schema drift rejection, got {other:?}"),
     }
@@ -388,10 +376,7 @@ fn verify_prepared_merge_execution_rejects_merge_base_drift() {
         .authority_binding_mut_for_test()
         .merge_base_commit_id = crate::facade::history::CommitId(999_999);
 
-    match runtime
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::MergeBaseDrift { .. }) => {}
         other => panic!("expected merge-base drift rejection, got {other:?}"),
     }
@@ -418,7 +403,7 @@ fn verify_prepared_merge_execution_does_not_increment_planning_counters() {
     let before = runtime.performance_access().counters();
 
     runtime
-        .merge_access()
+        .merge()
         .verify_prepared_merge_execution(&prepared)
         .expect("verification should succeed");
 
@@ -478,7 +463,7 @@ fn verify_prepared_merge_execution_reports_verification_counters_without_plannin
     runtime.performance_access().reset_counters();
 
     runtime
-        .merge_access()
+        .merge()
         .verify_prepared_merge_execution(&prepared)
         .expect("verification should succeed");
 
@@ -721,7 +706,7 @@ fn compile_execution_ready_merge_plan_rejects_missing_source_record() {
     prepared.execution_ready_plan_mut_for_test().source_records = Arc::from([]);
 
     match runtime
-        .merge_access()
+        .merge()
         .compile_execution_ready_merge_plan_for_test(prepared.execution_ready_plan())
     {
         Err(MergeExecutionCompilationError::MissingSourceRecord { .. }) => {}
@@ -749,10 +734,7 @@ fn verify_prepared_merge_execution_rejects_corrupted_compiled_plan() {
         .expect("prepared merge");
     prepared.bound_executable_plan_mut_for_test().record_plans = Arc::from([]);
 
-    match runtime
-        .merge_access()
-        .verify_prepared_merge_execution(&prepared)
-    {
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::Compilation(
             MergeExecutionCompilationError::PreparedAuthorityBindingMismatch { .. },
         )) => {}

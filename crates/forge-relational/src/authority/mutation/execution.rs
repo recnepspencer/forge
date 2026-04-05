@@ -33,7 +33,9 @@ pub(crate) fn apply_plan_to_working_state(
         apply_plan.version_id,
         branch_local_delete_allowance,
     );
-    let mut effect = MutationEffect::default();
+    let (expected_change_count, expected_event_count) =
+        estimated_mutation_effect_shape(&apply_plan.merged_intents);
+    let mut effect = MutationEffect::with_capacity(expected_change_count, expected_event_count);
 
     for intent in &apply_plan.merged_intents {
         let child = dispatch_intent(intent, &mut workspace)?;
@@ -44,4 +46,40 @@ pub(crate) fn apply_plan_to_working_state(
         effect,
         preparation_telemetry: workspace.preparation_telemetry(),
     })
+}
+
+fn estimated_mutation_effect_shape(
+    intents: &[crate::transactions::data::MutationIntent],
+) -> (usize, usize) {
+    use crate::transactions::data::{
+        CreateIntent, EntityMutationIntent, MutationIntent, RelationMutationIntent,
+    };
+
+    let mut change_count = 0usize;
+    let mut event_count = 0usize;
+
+    for intent in intents {
+        match intent {
+            MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
+                change_count += spec.payloads.len();
+                event_count += 1;
+            }
+            MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
+                change_count += spec.endpoints.len();
+                event_count += 1;
+            }
+            MutationIntent::Create(CreateIntent::Entity(_))
+            | MutationIntent::Create(CreateIntent::Relation(_))
+            | MutationIntent::Entity(EntityMutationIntent::Update(_))
+            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+            | MutationIntent::Entity(EntityMutationIntent::Delete(_))
+            | MutationIntent::Entity(EntityMutationIntent::Replace(_))
+            | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
+                change_count += 1;
+                event_count += 1;
+            }
+        }
+    }
+
+    (change_count, event_count)
 }

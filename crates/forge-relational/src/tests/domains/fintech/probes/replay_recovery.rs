@@ -29,7 +29,7 @@ pub(crate) fn capture_replay_probe(
 ) -> ReplayProbe {
     let latest = world
         .runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id);
     let replay = latest.map(|commit_id| {
@@ -72,11 +72,11 @@ pub(crate) fn capture_recovery_probe(
 ) -> RecoveryProbe {
     RecoveryProbe {
         latest_commit_id: runtime
-            .history_access()
+            .history()
             .latest_commit()
             .map(|commit| commit.commit_id.0),
         branch_heads: runtime
-            .history_access()
+            .history()
             .branches()
             .into_iter()
             .filter_map(|head| {

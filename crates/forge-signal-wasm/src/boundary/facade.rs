@@ -1,4 +1,5 @@
 use forge_signal::facade::history::RuntimeSnapshot;
+use forge_signal::facade::ChangedRegion;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
@@ -129,6 +130,16 @@ impl SignalApp {
         to_js(&value).map_err(JsValue::from)
     }
 
+    pub fn read_many(&self, ids: JsValue) -> Result<JsValue, JsValue> {
+        let ids: Vec<String> = from_js(ids)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_values(ids)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
     pub fn read_keyed(&self, family_id: String, key: String) -> Result<JsValue, JsValue> {
         let value = self
             .core
@@ -163,12 +174,131 @@ impl SignalApp {
         to_js(&values).map_err(JsValue::from)
     }
 
+    pub fn read_keyed_many_packed_fields(
+        &self,
+        family_id: String,
+        keys: JsValue,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let keys: Vec<String> = from_js(keys)?;
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_values_packed_fields(&family_id, keys, fields)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_grid_packed_fields(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_grid_packed_fields(&family_id, columns, rows, fields)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_rect_packed_fields(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+        row: u32,
+        start_column: u32,
+        width: u32,
+        height: u32,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_rect_packed_fields(
+                &family_id,
+                columns,
+                rows,
+                row,
+                start_column,
+                width,
+                height,
+                fields,
+            )
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn prewarm_keyed_grid(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .prewarm_keyed_grid(&family_id, columns, rows)
+            .map_err(JsValue::from)
+    }
+
+    pub fn seed_keyed_grid_coords(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .seed_keyed_grid_coords(&family_id, columns, rows)
+            .map_err(JsValue::from)
+    }
+
+    pub fn take_debug_events(&self) -> Result<JsValue, JsValue> {
+        let events = self.core.borrow_mut().take_debug_events();
+        to_js(&events).map_err(JsValue::from)
+    }
+
     pub fn set_keyed_many(&self, family_id: String, values: JsValue) -> Result<JsValue, JsValue> {
         let values: Vec<KeyedSetValue> = from_js(values)?;
         let summary = self
             .core
             .borrow_mut()
             .set_keyed_values(&family_id, values)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn mark_changed_with_regions(
+        &self,
+        id: String,
+        changed_regions: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let changed_regions: Vec<ChangedRegion> = from_js(changed_regions)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .mark_changed_with_regions(&id, changed_regions)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn mark_keyed_changed_with_regions(
+        &self,
+        family_id: String,
+        key: String,
+        changed_regions: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let changed_regions: Vec<ChangedRegion> = from_js(changed_regions)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .mark_keyed_changed_with_regions(&family_id, &key, changed_regions)
             .map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }
@@ -293,6 +423,16 @@ impl SignalRuntime {
         to_js(&value).map_err(JsValue::from)
     }
 
+    pub fn read_many(&self, ids: JsValue) -> Result<JsValue, JsValue> {
+        let ids: Vec<String> = from_js(ids)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_values(ids)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
     pub fn read_keyed(&self, family_id: String, key: String) -> Result<JsValue, JsValue> {
         let value = self
             .core
@@ -327,12 +467,131 @@ impl SignalRuntime {
         to_js(&values).map_err(JsValue::from)
     }
 
+    pub fn read_keyed_many_packed_fields(
+        &self,
+        family_id: String,
+        keys: JsValue,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let keys: Vec<String> = from_js(keys)?;
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_values_packed_fields(&family_id, keys, fields)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_grid_packed_fields(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_grid_packed_fields(&family_id, columns, rows, fields)
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn read_keyed_rect_packed_fields(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+        row: u32,
+        start_column: u32,
+        width: u32,
+        height: u32,
+        fields: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let fields: Vec<String> = from_js(fields)?;
+        let values = self
+            .core
+            .borrow_mut()
+            .read_keyed_rect_packed_fields(
+                &family_id,
+                columns,
+                rows,
+                row,
+                start_column,
+                width,
+                height,
+                fields,
+            )
+            .map_err(JsValue::from)?;
+        to_js(&values).map_err(JsValue::from)
+    }
+
+    pub fn prewarm_keyed_grid(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .prewarm_keyed_grid(&family_id, columns, rows)
+            .map_err(JsValue::from)
+    }
+
+    pub fn seed_keyed_grid_coords(
+        &self,
+        family_id: String,
+        columns: u32,
+        rows: u32,
+    ) -> Result<(), JsValue> {
+        self.core
+            .borrow_mut()
+            .seed_keyed_grid_coords(&family_id, columns, rows)
+            .map_err(JsValue::from)
+    }
+
+    pub fn take_debug_events(&self) -> Result<JsValue, JsValue> {
+        let events = self.core.borrow_mut().take_debug_events();
+        to_js(&events).map_err(JsValue::from)
+    }
+
     pub fn set_keyed_many(&self, family_id: String, values: JsValue) -> Result<JsValue, JsValue> {
         let values: Vec<KeyedSetValue> = from_js(values)?;
         let summary = self
             .core
             .borrow_mut()
             .set_keyed_values(&family_id, values)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn mark_changed_with_regions(
+        &self,
+        id: String,
+        changed_regions: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let changed_regions: Vec<ChangedRegion> = from_js(changed_regions)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .mark_changed_with_regions(&id, changed_regions)
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn mark_keyed_changed_with_regions(
+        &self,
+        family_id: String,
+        key: String,
+        changed_regions: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let changed_regions: Vec<ChangedRegion> = from_js(changed_regions)?;
+        let summary = self
+            .core
+            .borrow_mut()
+            .mark_keyed_changed_with_regions(&family_id, &key, changed_regions)
             .map_err(JsValue::from)?;
         to_js(&summary).map_err(JsValue::from)
     }

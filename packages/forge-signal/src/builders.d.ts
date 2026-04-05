@@ -5,9 +5,12 @@ import type {
   ExprInput,
   KeyedRecipeFamilySpec,
   KeyedSourceFamilySpec,
+  PartitionSubscription,
   RecipeFamilyReadSpec,
+  RecipeReadSpec,
   RuntimePolicy,
   RuntimePolicyPreset,
+  RecipeReadScopeSpec,
   SignalPrimitive,
   SignalValue,
   SourceSpec,
@@ -38,7 +41,7 @@ export class SourceBuilder<T = SignalValue> {
 
 export class RecipeBuilder<T = SignalValue> {
   constructor(id: string);
-  reads(...reads: Array<string | SignalHandle<any> | SourceHandle<any> | RecipeHandle<any>>): this;
+  reads(...reads: Array<RecipeReadSpec | string | SignalHandle<any> | SourceHandle<any> | RecipeHandle<any>>): this;
   expr(expr: Expr<T>): this;
   when(expr: ExprInput<boolean>): this;
   identityExact(): this;
@@ -150,6 +153,12 @@ export const keyed: {
       | SourceHandle<any>
       | RecipeHandle<any>
   ): RecipeFamilyReadSpec;
+};
+
+export const partition: {
+  whole(partition: string): PartitionSubscription;
+  detail(partition: string, detail: string): PartitionSubscription;
+  currentKey(detail?: string, matchMode?: RecipeReadScopeSpec["matchMode"]): RecipeReadScopeSpec;
 };
 
 export const tx: {

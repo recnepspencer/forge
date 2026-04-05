@@ -20,7 +20,7 @@ pub(crate) fn entity_exists_in_version_basis(
     entity_id: EntityId,
 ) -> bool {
     runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
         .is_some()
@@ -32,7 +32,7 @@ pub(crate) fn relation_exists_in_version_basis(
     relation_id: RelationId,
 ) -> bool {
     runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(version_id)
         .get_relation(relation_id)
         .is_some()

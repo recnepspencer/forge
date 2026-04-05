@@ -87,6 +87,19 @@ export class SignalApp {
     return this._read(id);
   }
 
+  readMany<T = unknown>(ids: string[]): T[] {
+    if (typeof this.inner.read_many === "function") {
+      try {
+        return this.inner.read_many(ids).map(decodeSignalValue) as T[];
+      } catch (error) {
+        if (!isMissingWasmExportError(error, "read_many")) {
+          throw error;
+        }
+      }
+    }
+    return ids.map((id) => this._read(id)) as T[];
+  }
+
   handle<T = unknown>(id: string): SourceHandle<T> | RecipeHandle<T> {
     return new SourceHandle<T>(this, id);
   }
@@ -99,8 +112,143 @@ export class SignalApp {
     return this._setKeyed(familyId, key, value);
   }
 
+  markChangedWithRegions(id: string, changedRegions: Array<{ partition: string; detail?: string | null }>) {
+    const result = this.inner.mark_changed_with_regions(id, changedRegions);
+    this._flushWatchers();
+    return result;
+  }
+
+  markKeyedChangedWithRegions(
+    familyId: string,
+    key: string,
+    changedRegions: Array<{ partition: string; detail?: string | null }>,
+  ) {
+    const result = this.inner.mark_keyed_changed_with_regions(familyId, key, changedRegions);
+    this._flushWatchers();
+    return result;
+  }
+
   readKeyedMany<T = unknown>(familyId: string, keys: string[]): T[] {
     return this._readKeyedMany(familyId, keys);
+  }
+
+  readKeyedManyPackedFields(
+    familyId: string,
+    keys: string[],
+    fields: string[],
+  ): Float32Array {
+    if (typeof this.inner.read_keyed_many_packed_fields === "function") {
+      return Float32Array.from(this.inner.read_keyed_many_packed_fields(familyId, keys, fields));
+    }
+    const values = this._readKeyedMany<Record<string, unknown>>(familyId, keys);
+    const packed = new Float32Array(values.length * fields.length);
+    for (let valueIndex = 0; valueIndex < values.length; valueIndex += 1) {
+      const value = values[valueIndex] ?? {};
+      for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex += 1) {
+        const field = fields[fieldIndex];
+        const entry = Number((value as Record<string, unknown>)[field] ?? 0);
+        packed[valueIndex * fields.length + fieldIndex] = Number.isFinite(entry) ? entry : 0;
+      }
+    }
+    return packed;
+  }
+
+  readKeyedManyPackedFieldsInto(
+    familyId: string,
+    keys: string[],
+    fields: string[],
+    target: Float32Array,
+    targetOffset = 0,
+  ): Float32Array {
+    const packed = this.readKeyedManyPackedFields(familyId, keys, fields);
+    target.set(packed, targetOffset);
+    return target;
+  }
+
+  readKeyedGridPackedFields(
+    familyId: string,
+    columns: number,
+    rows: number,
+    fields: string[],
+  ): Float32Array {
+    if (typeof this.inner.read_keyed_grid_packed_fields === "function") {
+      try {
+        return Float32Array.from(
+          this.inner.read_keyed_grid_packed_fields(familyId, columns, rows, fields),
+        );
+      } catch (error) {
+        if (!isMissingWasmExportError(error)) {
+          throw error;
+        }
+      }
+    }
+    return this.readKeyedManyPackedFields(familyId, buildFallbackTileKeys(columns, rows), fields);
+  }
+
+  readKeyedRectPackedFields(
+    familyId: string,
+    columns: number,
+    rows: number,
+    row: number,
+    startColumn: number,
+    width: number,
+    height: number,
+    fields: string[],
+  ): Float32Array {
+    if (typeof this.inner.read_keyed_rect_packed_fields === "function") {
+      try {
+        return Float32Array.from(
+          this.inner.read_keyed_rect_packed_fields(
+            familyId,
+            columns,
+            rows,
+            row,
+            startColumn,
+            width,
+            height,
+            fields,
+          ),
+        );
+      } catch (error) {
+        if (!isMissingWasmExportError(error)) {
+          throw error;
+        }
+      }
+    }
+    return this.readKeyedManyPackedFields(
+      familyId,
+      buildFallbackTileRectKeys(columns, row, startColumn, width, height),
+      fields,
+    );
+  }
+
+  prewarmKeyedGrid(familyId: string, columns: number, rows: number) {
+    if (typeof this.inner.prewarm_keyed_grid === "function") {
+      this.inner.prewarm_keyed_grid(familyId, columns, rows);
+    }
+  }
+
+  seedKeyedGridCoords(familyId: string, columns: number, rows: number) {
+    if (typeof this.inner.seed_keyed_grid_coords === "function") {
+      try {
+        this.inner.seed_keyed_grid_coords(familyId, columns, rows);
+        return;
+      } catch (error) {
+        if (!isMissingWasmExportError(error, "seed_keyed_grid_coords")) {
+          throw error;
+        }
+      }
+    }
+    this.setKeyedMany(
+      familyId,
+      buildFallbackTileKeys(columns, rows).map((key, index) => ({
+        key,
+        value: {
+          column: index % columns,
+          row: Math.floor(index / columns),
+        },
+      })),
+    );
   }
 
   setKeyedMany<T = unknown>(familyId: string, values: Array<{ key: string; value: T }>) {
@@ -256,4 +404,42 @@ export class SignalApp {
       listener();
     }
   }
+}
+
+function buildFallbackTileKeys(columns: number, rows: number): string[] {
+  const keys: string[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      keys.push(`tile-${column}-${row}`);
+    }
+  }
+  return keys;
+}
+
+function buildFallbackTileRectKeys(
+  columns: number,
+  row: number,
+  startColumn: number,
+  width: number,
+  height: number,
+): string[] {
+  const keys: string[] = [];
+  for (let rowOffset = 0; rowOffset < height; rowOffset += 1) {
+    const currentRow = row + rowOffset;
+    for (let columnOffset = 0; columnOffset < width; columnOffset += 1) {
+      const currentColumn = startColumn + columnOffset;
+      keys.push(`tile-${currentColumn}-${currentRow}`);
+    }
+  }
+  return keys;
+}
+
+function isMissingWasmExportError(error: unknown, exportName?: string): boolean {
+  if (!(error instanceof TypeError)) {
+    return false;
+  }
+  if (exportName) {
+    return new RegExp(`wasm\\..*${exportName}.*is not a function`).test(error.message);
+  }
+  return /wasm\..*(read_keyed_(grid|rect)_packed_fields|seed_keyed_grid_coords).*is not a function/.test(error.message);
 }

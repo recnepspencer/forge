@@ -402,17 +402,26 @@ function motionHighlightsFor(source: SceneState, target: SceneState) {
 }
 
 function lanePolicyFamily(preview: NonNullable<MergeReviewSnapshot["previews"]>[number]) {
-  if (preview.id === "strict") {
-    return "Conflict policy override";
-  }
   if (preview.id === "perAspect") {
     return "Isolation policy override";
+  }
+  if (preview.id === "rulebook") {
+    return "Custom rulebook";
+  }
+  if (preview.id === "manual") {
+    return "Manual gear resolution";
   }
   return "Executed merge stack";
 }
 
 function lanePolicyLabel(preview: NonNullable<MergeReviewSnapshot["previews"]>[number]) {
   if (!preview.plan) {
+    if (preview.id === "rulebook") {
+      return "demo.policy.higher-values-win";
+    }
+    if (preview.id === "manual") {
+      return "Choose the winning branch for each property";
+    }
     return preview.label;
   }
   if (preview.id === "perAspect") {

@@ -1,8 +1,7 @@
-import { tx, type SignalApp } from "@forge/signal";
-
 import type { WorkerSnapshot } from "../gear-scene/worker/protocol";
 import { SHELL_SIGNAL_BINDINGS, type DemoShellSignalKey } from "./shell_signal_schema";
 import { normalizeWorkerSnapshot } from "./shell_signal_normalization";
+import type { ShellStoreApp } from "./shell_signal_store";
 
 function computeSuppressionPercent(summary: { nodesEvaluated: number } | null, graphNodes: number): string {
   if (!summary || graphNodes === 0) return "0.0";
@@ -136,8 +135,8 @@ function sameScenario(left: WorkerSnapshot["scenario"], right: WorkerSnapshot["s
 }
 
 function queueSetIfChanged<T>(
-  app: SignalApp,
-  ops: ReturnType<typeof tx.set>[],
+  app: ShellStoreApp,
+  ops: Array<{ kind: "set"; id: string; value: unknown }>,
   key: DemoShellSignalKey,
   next: T,
   equal: (left: T, right: T) => boolean = Object.is,
@@ -145,11 +144,11 @@ function queueSetIfChanged<T>(
   const signalId = SHELL_SIGNAL_BINDINGS[key].id;
   const current = app.read<T>(signalId);
   if (!equal(current, next)) {
-    ops.push(tx.set(signalId, next));
+    ops.push({ kind: "set", id: signalId, value: next });
   }
 }
 
-export function applySnapshotToShellSignals(app: SignalApp, snapshot: WorkerSnapshot) {
+export function applySnapshotToShellSignals(app: ShellStoreApp, snapshot: WorkerSnapshot) {
   const normalized = normalizeWorkerSnapshot(snapshot);
   const activeBranch =
     normalized.branches.find((branch) => branch.id === normalized.activeBranchId)
@@ -157,7 +156,7 @@ export function applySnapshotToShellSignals(app: SignalApp, snapshot: WorkerSnap
     ?? null;
   const hasFeatureBranch = normalized.branches.some((branch) => branch.name === "what-if");
   const suppressionPercent = computeSuppressionPercent(normalized.latestSummary, normalized.graphNodes);
-  const ops: ReturnType<typeof tx.set>[] = [];
+  const ops: Array<{ kind: "set"; id: string; value: unknown }> = [];
 
   queueSetIfChanged(app, ops, "graphNodes", normalized.graphNodes);
   queueSetIfChanged(app, ops, "branches", normalized.branches, sameBranches);

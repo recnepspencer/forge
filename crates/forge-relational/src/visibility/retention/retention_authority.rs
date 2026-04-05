@@ -172,7 +172,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .retention_fence_version(published_version);
         let oldest_branch_head_version = self
             .runtime
-            .history_access()
+            .history()
             .branch_head_versions()
             .into_iter()
             .min()
@@ -388,7 +388,7 @@ fn trim_live_history<K: RecordKind>(
 }
 
 impl RelationalRuntime {
-    pub fn retention_authority(&mut self) -> VisibilityRetentionAuthority<'_> {
+    pub(crate) fn retention_authority(&mut self) -> VisibilityRetentionAuthority<'_> {
         VisibilityRetentionAuthority::new(self)
     }
 }

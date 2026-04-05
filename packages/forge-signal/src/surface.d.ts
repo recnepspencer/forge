@@ -12,6 +12,7 @@ import type {
   HealthSummary,
   KeyedRecipeFamilySpec,
   KeyedSourceFamilySpec,
+  ChangedRegion,
   LineageSummary,
   MergePlanReport,
   MergePlanProofEnvelope,
@@ -99,10 +100,34 @@ export class SignalApp {
   batch<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
   handle<T = SignalValue>(id: string): SignalHandle<T>;
   read<T = SignalValue>(id: string): T;
+  readMany<T = SignalValue>(ids: string[]): T[];
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
+  readKeyedManyPackedFields(familyId: string, keys: string[], fields: string[]): Float32Array;
+  readKeyedManyPackedFieldsInto(
+    familyId: string,
+    keys: string[],
+    fields: string[],
+    target: Float32Array,
+    targetOffset?: number
+  ): Float32Array;
+  readKeyedGridPackedFields(familyId: string, columns: number, rows: number, fields: string[]): Float32Array;
+  readKeyedRectPackedFields(
+    familyId: string,
+    columns: number,
+    rows: number,
+    row: number,
+    startColumn: number,
+    width: number,
+    height: number,
+    fields: string[]
+  ): Float32Array;
+  prewarmKeyedGrid(familyId: string, columns: number, rows: number): void;
+  seedKeyedGridCoords(familyId: string, columns: number, rows: number): void;
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  markChangedWithRegions(id: string, changedRegions: ChangedRegion[]): RunSummary;
+  markKeyedChangedWithRegions(familyId: string, key: string, changedRegions: ChangedRegion[]): RunSummary;
   subscribe(listener: () => void): () => void;
   watch<T = SignalValue>(
     id: string,
@@ -135,10 +160,34 @@ export class SignalRuntime {
   transaction<T = SignalValue>(ops: Array<TransactionOp<T>>): RunSummary;
   handle<T = SignalValue>(id: string): SignalHandle<T>;
   read<T = SignalValue>(id: string): T;
+  readMany<T = SignalValue>(ids: string[]): T[];
   readKeyed<T = SignalValue>(familyId: string, key: string): T;
   setKeyed<T = SignalValue>(familyId: string, key: string, value: T): RunSummary;
   readKeyedMany<T = SignalValue>(familyId: string, keys: string[]): T[];
+  readKeyedManyPackedFields(familyId: string, keys: string[], fields: string[]): Float32Array;
+  readKeyedManyPackedFieldsInto(
+    familyId: string,
+    keys: string[],
+    fields: string[],
+    target: Float32Array,
+    targetOffset?: number
+  ): Float32Array;
+  readKeyedGridPackedFields(familyId: string, columns: number, rows: number, fields: string[]): Float32Array;
+  readKeyedRectPackedFields(
+    familyId: string,
+    columns: number,
+    rows: number,
+    row: number,
+    startColumn: number,
+    width: number,
+    height: number,
+    fields: string[]
+  ): Float32Array;
+  prewarmKeyedGrid(familyId: string, columns: number, rows: number): void;
+  seedKeyedGridCoords(familyId: string, columns: number, rows: number): void;
   setKeyedMany<T = SignalValue>(familyId: string, values: Array<{ key: string; value: T }>): RunSummary;
+  markChangedWithRegions(id: string, changedRegions: ChangedRegion[]): RunSummary;
+  markKeyedChangedWithRegions(familyId: string, key: string, changedRegions: ChangedRegion[]): RunSummary;
   subscribe(listener: () => void): () => void;
   watch<T = SignalValue>(
     id: string,

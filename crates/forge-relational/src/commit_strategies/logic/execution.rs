@@ -165,12 +165,11 @@ pub(crate) fn bind_execution<'runtime>(
             snapshot_id: snapshot.snapshot_id,
         });
     }
-    let visibility = runtime
-        .visibility_reads()
-        .project_snapshot(snapshot)
-        .ok_or(StrategyExecutionError::UnknownSnapshot {
+    let visibility = runtime.read_truth().project_snapshot(snapshot).ok_or(
+        StrategyExecutionError::UnknownSnapshot {
             snapshot_id: snapshot.snapshot_id,
-        })?;
+        },
+    )?;
     Ok(BoundStrategyExecution {
         request,
         executor: Arc::clone(&binding.executor),

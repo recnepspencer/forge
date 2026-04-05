@@ -107,7 +107,7 @@ impl FintechWorld {
 
     pub(super) fn latest_snapshot(&self) -> SnapshotHandle {
         self.runtime
-            .publication_access()
+            .publication()
             .latest_bundle()
             .unwrap()
             .snapshot
@@ -116,7 +116,7 @@ impl FintechWorld {
 
     pub(super) fn read_latest(&self) -> RelationalReadView {
         self.runtime
-            .visibility_reads()
+            .read_truth()
             .read_snapshot(&self.latest_snapshot())
             .unwrap()
     }
@@ -127,10 +127,10 @@ impl FintechWorld {
         packet: PlannedQueryPacket,
     ) -> crate::query::data::CanonicalQueryResult {
         self.runtime
-            .visibility_reads()
+            .read_truth()
             .execute_query_plan(
                 self.runtime
-                    .visibility_reads()
+                    .read_truth()
                     .plan_query_packet(snapshot, packet)
                     .expect("planned fintech query"),
             )
@@ -146,7 +146,7 @@ impl FintechWorld {
     ) -> PlannedQueryPacket {
         let context = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .query_plan_context(snapshot)
             .expect("query plan context");
         PlannedQueryPacket::explicit_targets(label, context, targets)

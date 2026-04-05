@@ -25,7 +25,7 @@ fn complexity_budget_merge_planning_reports_request_shaped_work() {
 
     runtime.performance_access().reset_counters();
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(
             BranchId("main".to_string()),
             BranchId("feature".to_string()),

@@ -1,8 +1,10 @@
 use crate::history::data::CommitReference;
 use crate::identity::data::LineageId;
+#[cfg(test)]
+use crate::lineage::data::PublishedLineageArtifact;
 use crate::lineage::data::{
     CorrespondenceCandidateId, LineageDecisionKind, LineageDecisionRecord, LineageEventKind,
-    LineageEventRecord, PublishedLineageArtifact,
+    LineageEventRecord,
 };
 use crate::lineage::logic::authority::LineageAuthority;
 
@@ -13,6 +15,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         event_id
     }
 
+    #[cfg(test)]
     pub(super) fn next_correspondence_candidate_id(&mut self) -> CorrespondenceCandidateId {
         let candidate_id = CorrespondenceCandidateId(self.runtime.lineage.next_candidate_id);
         self.runtime.lineage.next_candidate_id += 1;
@@ -48,6 +51,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn record_published_lineage_events(&mut self, artifact: &PublishedLineageArtifact) {
         let existing_event_ids = self
             .runtime

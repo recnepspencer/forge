@@ -29,7 +29,7 @@ impl<'runtime> MergeAccess<'runtime> {
         &self,
         conflict_plan: ConflictClassifiedMergePlan,
     ) -> CausallyAnnotatedMergePlan {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let source_touch_index = touched_record_latest_commit_index(&conflict_plan.source_delta);
         let target_touch_index = touched_record_latest_commit_index(&conflict_plan.target_delta);
         let relevant_commit_ids = source_touch_index

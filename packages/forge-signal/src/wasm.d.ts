@@ -17,7 +17,24 @@ declare module "@forge/signal/wasm" {
     read_keyed(familyId: string, key: string): unknown;
     set_keyed(familyId: string, key: string, value: unknown): unknown;
     read_keyed_many(familyId: string, keys: unknown): unknown;
+    read_keyed_many_packed_fields(familyId: string, keys: unknown, fields: unknown): Float32Array;
+    read_keyed_grid_packed_fields(familyId: string, columns: number, rows: number, fields: unknown): unknown;
+    read_keyed_rect_packed_fields(
+      familyId: string,
+      columns: number,
+      rows: number,
+      row: number,
+      startColumn: number,
+      width: number,
+      height: number,
+      fields: unknown,
+    ): unknown;
+    prewarm_keyed_grid(familyId: string, columns: number, rows: number): void;
+    seed_keyed_grid_coords(familyId: string, columns: number, rows: number): void;
+    take_debug_events(): unknown;
     set_keyed_many(familyId: string, values: unknown): unknown;
+    mark_changed_with_regions(id: string, changedRegions: unknown): unknown;
+    mark_keyed_changed_with_regions(familyId: string, key: string, changedRegions: unknown): unknown;
     diagnostics(): unknown;
     history(): unknown;
     specialist(): unknown;
@@ -43,7 +60,24 @@ declare module "@forge/signal/wasm" {
     read_keyed(familyId: string, key: string): unknown;
     set_keyed(familyId: string, key: string, value: unknown): unknown;
     read_keyed_many(familyId: string, keys: unknown): unknown;
+    read_keyed_many_packed_fields(familyId: string, keys: unknown, fields: unknown): Float32Array;
+    read_keyed_grid_packed_fields(familyId: string, columns: number, rows: number, fields: unknown): unknown;
+    read_keyed_rect_packed_fields(
+      familyId: string,
+      columns: number,
+      rows: number,
+      row: number,
+      startColumn: number,
+      width: number,
+      height: number,
+      fields: unknown,
+    ): unknown;
+    prewarm_keyed_grid(familyId: string, columns: number, rows: number): void;
+    seed_keyed_grid_coords(familyId: string, columns: number, rows: number): void;
+    take_debug_events(): unknown;
     set_keyed_many(familyId: string, values: unknown): unknown;
+    mark_changed_with_regions(id: string, changedRegions: unknown): unknown;
+    mark_keyed_changed_with_regions(familyId: string, key: string, changedRegions: unknown): unknown;
     clear_keyed_family_cache(familyId: string): void;
     diagnostics(): unknown;
     history(): unknown;

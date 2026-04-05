@@ -7,7 +7,7 @@ import type {
   MergeResult,
   ScenarioState,
 } from "../gear-scene/core/types";
-import type { WorkerSnapshot } from "../gear-scene/worker/protocol";
+import type { ReviewManualSelections, WorkerSnapshot } from "../gear-scene/worker/protocol";
 
 export function createEmptySnapshot(): WorkerSnapshot {
   return {
@@ -54,7 +54,7 @@ export type DemoShellSignals = {
   walkthroughOpen: boolean;
   walkthroughIndex: number;
   reviewPolicyLane: string;
-  reviewManualChoice: "source" | "target";
+  reviewManualSelections: ReviewManualSelections;
 };
 
 export type DemoShellSignalKey = keyof DemoShellSignals;
@@ -86,7 +86,19 @@ export const SHELL_SIGNAL_BINDINGS: Record<
   walkthroughOpen: { id: "uiWalkthroughOpen", initial: false },
   walkthroughIndex: { id: "uiWalkthroughIndex", initial: 0 },
   reviewPolicyLane: { id: "uiReviewPolicyLane", initial: "current" },
-  reviewManualChoice: { id: "uiReviewManualChoice", initial: "source" as "source" | "target" },
+  reviewManualSelections: {
+    id: "uiReviewManualSelections",
+    initial: {
+      teeth: "source",
+      outerRadius: "source",
+      innerRadius: "source",
+      thickness: "source",
+      lightIntensity: "source",
+      lightPosition: "source",
+      rotation: "source",
+      camera: "source",
+    } as ReviewManualSelections,
+  },
 };
 
 export const SHELL_SIGNAL_KEYS = Object.keys(SHELL_SIGNAL_BINDINGS) as DemoShellSignalKey[];

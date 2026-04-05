@@ -9,6 +9,7 @@ NOISY_CASES = {
     ("commit_delta_matrix", "single_partition_create_burst"),
     ("commit_delta_matrix", "persisted_single_entity_create"),
     ("commit_delta_matrix", "cross_partition_relation_burst"),
+    ("chip_simulator_matrix", "flat_entity_step_batch_compile_window"),
     ("query_packet_matrix", "connectivity_traversal_cross_partition"),
     ("query_packet_matrix", "explicit_targets_cross_partition"),
     ("replay_recovery_matrix", "durable_replay_lineage_basis"),
@@ -35,6 +36,8 @@ IO_BURSTY_CASES = {
     ("durability_append_matrix", "append_canonical_envelope_fresh_store"),
     ("durability_append_matrix", "append_canonical_envelope_existing_segment"),
     ("replay_recovery_matrix", "durable_replay_lineage_basis"),
+    ("rocketship_scale_matrix", "hundred_k_nodes_pseudorealistic_large_flat_entity_batch_wave"),
+    ("rocketship_scale_matrix", "hundred_k_nodes_pseudorealistic_mixed_entity_relation_batch_wave"),
 }
 
 VOLATILE_CASES = {

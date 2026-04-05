@@ -20,6 +20,12 @@ pub struct RuntimeComplexityCounters {
     pub partitions_cloned: usize,
     pub entity_slots_cloned: usize,
     pub relation_slots_cloned: usize,
+    pub aosoa_entity_chunks_staged: usize,
+    pub aosoa_entity_chunk_slots_materialized: usize,
+    pub aosoa_entity_chunks_published: usize,
+    pub aosoa_entity_slot_fallback_merges: usize,
+    pub aosoa_prepare_fallback_count: usize,
+    pub aosoa_publish_fallback_count: usize,
     pub commit_topology_flags: u32,
     pub partitions_touched_by_commit: usize,
     pub entity_slots_touched_by_commit: usize,
@@ -213,6 +219,7 @@ pub struct RuntimeComplexityCounters {
     pub descriptor_version_mismatches_encountered: usize,
 }
 
+#[cfg(test)]
 pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
         id: "runtime.partition_local_commit",

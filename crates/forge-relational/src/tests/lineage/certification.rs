@@ -58,7 +58,7 @@ fn lineage_correspondence_hardening_tracks_advisory_promotion_and_rejection_arti
             && decision.candidate_id == Some(invalid.candidate_id)
     }));
     let promotion_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
-    let replay = runtime.replay_access();
+    let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(promotion_commit_id)
         .unwrap();

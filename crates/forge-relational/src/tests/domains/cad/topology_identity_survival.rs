@@ -52,7 +52,7 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
     assert_lineage_history_origin_invariants(&history.entries, start_lineage);
 
     runtime.durability_authority().checkpoint().unwrap();
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();

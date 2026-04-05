@@ -36,5 +36,9 @@ export function registerShellSignals(app: SignalApp) {
   app.source(define.source<boolean>("uiWalkthroughOpen").initial(false));
   app.source(define.source<number>("uiWalkthroughIndex").initial(0));
   app.source(define.source<string>("uiReviewPolicyLane").initial("current"));
-  app.source(define.source<"source" | "target">("uiReviewManualChoice").initial("source"));
+  app.source(define.source<{ topology: "source" | "target"; lighting: "source" | "target"; motion: "source" | "target" }>("uiReviewManualSelections").initial({
+    topology: "source",
+    lighting: "source",
+    motion: "source",
+  }));
 }

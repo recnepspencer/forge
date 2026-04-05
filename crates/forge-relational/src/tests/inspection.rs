@@ -26,10 +26,10 @@ fn graph_summary_is_scope_explicit_and_canonical() {
     let _relation = create_relation(&mut runtime, left, right, "rel");
 
     let summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&current_graph_request(None, None, true));
     let kind_summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .kind_summary(&KindInspectionRequest {
             scope: InspectionScope::Current,
             partition_scope: None,
@@ -72,14 +72,14 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
     let version_id = runtime.current_version_id();
 
     let current_graph = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&current_graph_request(
             Some(vec![crate::facade::identity::PartitionId(7)]),
             Some(vec![crate::facade::identity::KindId(2)]),
             true,
         ));
     let version_graph = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&version_graph_request(
             version_id,
             Some(vec![crate::facade::identity::PartitionId(7)]),
@@ -87,7 +87,7 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
             true,
         ));
     let snapshot_graph = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&snapshot_graph_request(
             InspectionScope::Snapshot(snapshot.clone()),
             Some(vec![crate::facade::identity::PartitionId(7)]),
@@ -96,7 +96,7 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
         ));
     let current_connectivity =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .connectivity_summary(&connectivity_request(
                 InspectionScope::Current,
                 Some(vec![crate::facade::identity::PartitionId(7)]),
@@ -105,7 +105,7 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
             ));
     let version_connectivity =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .connectivity_summary(&connectivity_request(
                 InspectionScope::Version(version_id),
                 Some(vec![crate::facade::identity::PartitionId(7)]),
@@ -114,7 +114,7 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
             ));
     let snapshot_connectivity =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .connectivity_summary(&connectivity_request(
                 InspectionScope::Snapshot(snapshot),
                 Some(vec![crate::facade::identity::PartitionId(7)]),
@@ -122,10 +122,10 @@ fn current_graph_surfaces_match_version_and_snapshot_scopes_for_same_truth() {
                 true,
             ));
     let neighbors_current = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .neighbors(InspectionScope::Current, left_a);
     let neighbors_version = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .neighbors(InspectionScope::Version(version_id), left_a);
 
     assert_eq!(current_graph.entity_count, version_graph.entity_count);
@@ -176,7 +176,7 @@ fn snapshot_graph_summary_fails_closed_when_snapshot_handle_is_unavailable() {
         .release_snapshot(&created.snapshot));
 
     let summary = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&snapshot_graph_request(
             InspectionScope::Snapshot(created.snapshot.clone()),
             None,
@@ -204,7 +204,7 @@ fn connectivity_summary_refuses_oversized_budget_with_explicit_degradation() {
     let right = create_entity(&mut runtime, "right");
     let _relation = create_relation(&mut runtime, left, right, "rel");
 
-    let summary = runtime.inspection_access().connectivity_summary(
+    let summary = runtime.inspect_what_happened().connectivity_summary(
         &crate::facade::inspection::ConnectivityInspectionRequest {
             scope: InspectionScope::Current,
             partition_scope: None,
@@ -235,7 +235,7 @@ fn retention_summary_refuses_work_budget_with_explicit_degradation() {
     let entity = create_entity(&mut runtime, "retained");
     let _relation = create_relation(&mut runtime, entity, entity, "loop");
 
-    let summary = runtime.inspection_access().retention_summary(
+    let summary = runtime.inspect_what_happened().retention_summary(
         &crate::facade::inspection::RetentionInspectionRequest {
             max_entity_slots_scanned: 32,
             max_relation_slots_scanned: 32,
@@ -287,7 +287,7 @@ fn structural_identity_comparison_only_uses_fingerprint_truth() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "alpha");
 
-    let comparison = runtime.inspection_access().compare_structural_identity(
+    let comparison = runtime.inspect_what_happened().compare_structural_identity(
         InspectionScope::Current,
         crate::facade::transactions::RecordRef::Entity(entity),
         crate::facade::transactions::RecordRef::Entity(entity),
@@ -310,7 +310,7 @@ fn structural_identity_evidence_exposes_declared_fingerprint_and_lineage_for_ent
     ));
 
     let entity_evidence = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Current,
             crate::facade::transactions::RecordRef::Entity(entity),
@@ -326,7 +326,7 @@ fn structural_identity_evidence_exposes_declared_fingerprint_and_lineage_for_ent
 
     let relation = create_relation(&mut runtime, entity, entity, "self");
     let relation_evidence = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Current,
             crate::facade::transactions::RecordRef::Relation(relation),
@@ -366,7 +366,7 @@ fn structural_identity_comparison_distinguishes_equal_mismatch_and_family_mismat
         Some(LineageId(3)),
     ));
 
-    let equal = runtime.inspection_access().compare_structural_identity(
+    let equal = runtime.inspect_what_happened().compare_structural_identity(
         InspectionScope::Current,
         crate::facade::transactions::RecordRef::Entity(left),
         crate::facade::transactions::RecordRef::Entity(right),
@@ -381,7 +381,7 @@ fn structural_identity_comparison_distinguishes_equal_mismatch_and_family_mismat
         Some(StructuralFingerprint::new(Symbol(21), 999)),
         Some(LineageId(2)),
     ));
-    let mismatch = runtime.inspection_access().compare_structural_identity(
+    let mismatch = runtime.inspect_what_happened().compare_structural_identity(
         InspectionScope::Current,
         crate::facade::transactions::RecordRef::Entity(left),
         crate::facade::transactions::RecordRef::Entity(right),
@@ -391,7 +391,7 @@ fn structural_identity_comparison_distinguishes_equal_mismatch_and_family_mismat
         StructuralIdentityComparisonVerdict::NotEqualByFingerprint
     );
 
-    let family_mismatch = runtime.inspection_access().compare_structural_identity(
+    let family_mismatch = runtime.inspect_what_happened().compare_structural_identity(
         InspectionScope::Current,
         crate::facade::transactions::RecordRef::Entity(left),
         crate::facade::transactions::RecordRef::Entity(other_family),
@@ -426,14 +426,13 @@ fn structural_identity_query_is_family_scoped_and_entity_only() {
         Some(LineageId(12)),
     ));
 
-    let queried =
-        runtime
-            .inspection_access()
-            .query_structural_identity(&StructuralIdentityQueryRequest {
-                scope: InspectionScope::Current,
-                partition_scope: None,
-                fingerprint_family: Symbol(31),
-            });
+    let queried = runtime.inspect_what_happened().query_structural_identity(
+        &StructuralIdentityQueryRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            fingerprint_family: Symbol(31),
+        },
+    );
 
     assert_eq!(queried.len(), 2);
     assert!(queried.iter().all(|evidence| evidence.record_class
@@ -466,14 +465,14 @@ fn structural_identity_historical_scope_does_not_leak_reused_slot_sidecars() {
     assert_eq!(original_entity.local_slot, replacement_entity.local_slot);
 
     let historical = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Version(original.version_id),
             crate::facade::transactions::RecordRef::Entity(original_entity),
         )
         .expect("historical structural identity");
     let current = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Current,
             crate::facade::transactions::RecordRef::Entity(replacement_entity),
@@ -512,42 +511,40 @@ fn structural_identity_recovery_preserves_current_evidence_and_queries() {
     ));
     runtime.durability_authority().checkpoint().unwrap();
     let expected_left = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Current,
             crate::facade::transactions::RecordRef::Entity(left),
         )
         .expect("expected left evidence");
-    let expected_query =
-        runtime
-            .inspection_access()
-            .query_structural_identity(&StructuralIdentityQueryRequest {
-                scope: InspectionScope::Current,
-                partition_scope: None,
-                fingerprint_family: Symbol(51),
-            });
+    let expected_query = runtime.inspect_what_happened().query_structural_identity(
+        &StructuralIdentityQueryRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            fingerprint_family: Symbol(51),
+        },
+    );
 
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
     recovered.durability_authority().recover(plan).unwrap();
 
     let actual_left = recovered
-        .inspection_access()
+        .inspect_what_happened()
         .structural_identity(
             InspectionScope::Current,
             crate::facade::transactions::RecordRef::Entity(left),
         )
         .expect("actual left evidence");
-    let actual_query =
-        recovered
-            .inspection_access()
-            .query_structural_identity(&StructuralIdentityQueryRequest {
-                scope: InspectionScope::Current,
-                partition_scope: None,
-                fingerprint_family: Symbol(51),
-            });
+    let actual_query = recovered.inspect_what_happened().query_structural_identity(
+        &StructuralIdentityQueryRequest {
+            scope: InspectionScope::Current,
+            partition_scope: None,
+            fingerprint_family: Symbol(51),
+        },
+    );
 
     assert_eq!(expected_left, actual_left);
     assert_eq!(expected_query, actual_query);
@@ -567,7 +564,7 @@ fn inspection_truth_bundle_recovery_parity_holds_for_current_and_historical_surf
         entity,
         created.version_id,
     );
-    let plan = runtime.durability_access().recovery_plan(
+    let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
@@ -587,7 +584,7 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity(&mut runtime, "staged");
     let commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id)
         .unwrap_or(CommitId(0));
@@ -604,7 +601,7 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
     );
 
     let commit = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_commit(commit_id)
         .expect("commit inspection");
     assert!(commit
@@ -618,7 +615,7 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
     assert!(staging.touched_records.is_empty());
 
     let neighbors: NeighborInspectionResult = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .neighbors(InspectionScope::Current, created);
     assert!(neighbors.outgoing_relation_ids.is_empty());
     assert!(neighbors.incoming_relation_ids.is_empty());
@@ -636,7 +633,7 @@ fn historical_record_inspection_preserves_requested_branch_context() {
         )
         .expect("feature branch");
 
-    let inspection = runtime.inspection_access().inspect_historical_record(
+    let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("feature".to_string()),
         runtime.current_version_id(),
         crate::facade::transactions::RecordRef::Entity(created),
@@ -665,16 +662,16 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "commit-inspection");
     let commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id)
         .expect("latest commit");
 
     let inspection = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_commit(commit_id)
         .expect("commit inspection");
-    let history = runtime.history_access();
+    let history = runtime.history();
     let envelope = history.commit_envelope(commit_id).expect("commit envelope");
 
     assert_eq!(inspection.origin, InspectionOrigin::CanonicalCommitStorage);
@@ -747,7 +744,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
         vec![BranchId("feature".to_string())],
     );
     let merge_commit_id = merge.commit.commit_id;
-    let history = runtime.history_access();
+    let history = runtime.history();
     let envelope = history
         .commit_envelope(merge_commit_id)
         .expect("merge commit envelope");
@@ -757,7 +754,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
     );
 
     let inspection = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_commit(merge_commit_id)
         .expect("merge commit inspection");
 
@@ -811,7 +808,7 @@ fn historical_open_fails_closed_without_retained_state_and_reconstructs_canonica
         .release_snapshot(&later.snapshot));
 
     let retained_only = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .open_historical_view(created.version_id, HistoricalInspectionMode::RetainedOnly);
     assert!(retained_only.view.is_none());
     assert_eq!(
@@ -819,7 +816,7 @@ fn historical_open_fails_closed_without_retained_state_and_reconstructs_canonica
         InspectionAvailability::UnavailableByRetention
     );
 
-    let reconstructed = runtime.inspection_access().inspect_historical_record(
+    let reconstructed = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         created.version_id,
         crate::facade::transactions::RecordRef::Entity(changed_entities(&created)[0]),
@@ -849,7 +846,7 @@ fn historical_record_inspection_keeps_subresults_separate_when_retained_only_blo
         .visibility_authority()
         .release_snapshot(&created.snapshot));
 
-    let inspection = runtime.inspection_access().inspect_historical_record(
+    let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         created.version_id,
         crate::facade::transactions::RecordRef::Entity(entity),
@@ -914,25 +911,25 @@ fn historical_inspection_matrix_keeps_entity_and_relation_subresults_honest_acro
         .visibility_authority()
         .release_snapshot(&relation_outcome.snapshot));
 
-    let entity_retained = runtime.inspection_access().inspect_historical_record(
+    let entity_retained = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         entity_version,
         crate::facade::transactions::RecordRef::Entity(source),
         HistoricalInspectionMode::RetainedOnly,
     );
-    let relation_retained = runtime.inspection_access().inspect_historical_record(
+    let relation_retained = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         relation_outcome.version_id,
         crate::facade::transactions::RecordRef::Relation(relation),
         HistoricalInspectionMode::RetainedOnly,
     );
-    let entity_reconstructed = runtime.inspection_access().inspect_historical_record(
+    let entity_reconstructed = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         entity_version,
         crate::facade::transactions::RecordRef::Entity(source),
         HistoricalInspectionMode::AllowCanonicalReconstruction,
     );
-    let relation_reconstructed = runtime.inspection_access().inspect_historical_record(
+    let relation_reconstructed = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         relation_outcome.version_id,
         crate::facade::transactions::RecordRef::Relation(relation),
@@ -997,7 +994,7 @@ fn historical_relation_inspection_keeps_direct_commit_history_when_retained_only
         .visibility_authority()
         .release_snapshot(&relation_outcome.snapshot));
 
-    let inspection = runtime.inspection_access().inspect_historical_record(
+    let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         relation_outcome.version_id,
         crate::facade::transactions::RecordRef::Relation(relation),
@@ -1049,7 +1046,7 @@ fn historical_relation_inspection_reconstructs_record_truth_without_inventing_li
         .visibility_authority()
         .release_snapshot(&relation_outcome.snapshot));
 
-    let inspection = runtime.inspection_access().inspect_historical_record(
+    let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         relation_outcome.version_id,
         crate::facade::transactions::RecordRef::Relation(relation),
@@ -1091,14 +1088,14 @@ fn historical_relation_inspection_reconstructs_record_truth_without_inventing_li
 fn transaction_inspection_never_projects_hypothetical_committed_truth() {
     let mut runtime = runtime_with_test_schema();
     let baseline = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&current_graph_request(None, None, true));
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(batch_create("pending"));
     let staging = txn.inspect_staging();
     let during_staging = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .graph_summary(&current_graph_request(None, None, true));
 
     assert_eq!(staging.batch_count, 1);
@@ -1146,7 +1143,7 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     let committed = txn.commit().expect("commit surviving staged work");
     let committed_entity = changed_entities(&committed)[0];
     let commit_inspection = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_commit(committed.commit.commit_id)
         .expect("commit inspection");
 
@@ -1166,12 +1163,12 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "replace-target");
     let baseline_latest_commit = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id);
     let baseline_window =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .inspect_recent_commits(&RecentCommitInspectionRequest {
                 branch_id: Some(BranchId("main".to_string())),
                 limit: 8,
@@ -1205,12 +1202,12 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
     );
 
     let latest_commit_during_staging = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .map(|commit| commit.commit_id);
     let window_during_staging =
         runtime
-            .inspection_access()
+            .inspect_what_happened()
             .inspect_recent_commits(&RecentCommitInspectionRequest {
                 branch_id: Some(BranchId("main".to_string())),
                 limit: 8,
@@ -1294,7 +1291,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
         .release_snapshot(&feature_update.snapshot));
 
     let retained_only = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .open_historical_view(created.version_id, HistoricalInspectionMode::RetainedOnly);
     assert!(retained_only.view.is_none());
     assert_eq!(
@@ -1389,7 +1386,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
     };
 
     let feature_head = runtime
-        .inspection_access()
+        .inspect_what_happened()
         .inspect_branch_head(&BranchId("feature".to_string()))
         .expect("feature branch head");
     let feature_window = recent_commit_window(&runtime, &BranchId("feature".to_string()), 8);

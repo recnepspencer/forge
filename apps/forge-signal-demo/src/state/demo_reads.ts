@@ -36,5 +36,5 @@ export const demoReads = {
   walkthroughOpen: signalSlice("walkthroughOpen"),
   walkthroughIndex: signalSlice("walkthroughIndex"),
   reviewPolicyLane: signalSlice("reviewPolicyLane"),
-  reviewManualChoice: signalSlice("reviewManualChoice"),
+  reviewManualSelections: signalSlice("reviewManualSelections"),
 };

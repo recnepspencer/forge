@@ -209,7 +209,7 @@ pub(crate) fn resolve_schema_continuity(
             )
         })?;
     let previous_head = {
-        let history = runtime.history_access();
+        let history = runtime.history();
         history.branch_head(branch_id).cloned()
     };
     let Some(previous_head) = previous_head else {
@@ -231,7 +231,7 @@ pub(crate) fn resolve_schema_continuity(
         ));
     };
     let previous_envelope = {
-        let history = runtime.history_access();
+        let history = runtime.history();
         history.commit_envelope(previous_head.commit_id).cloned()
     };
     let Some(previous_envelope) = previous_envelope.as_ref() else {

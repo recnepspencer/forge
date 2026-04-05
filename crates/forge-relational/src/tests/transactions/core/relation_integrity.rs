@@ -196,7 +196,7 @@ fn relation_integrity_certification_boundary_rejects_zero_edge_entity_for_minimu
     let mut runtime = publication_source_min_one_runtime();
     let _orphan = create_entity(&mut runtime, "orphan");
 
-    let result = runtime.invariant_access().certification_state();
+    let result = runtime.validation().certification_state();
     let failure = result
         .summary()
         .publication_failure()
@@ -222,7 +222,7 @@ fn relation_integrity_certification_boundary_rejects_observed_pair_below_paralle
     let target = create_entity(&mut runtime, "target");
     create_relation(&mut runtime, source, target, "single");
 
-    let result = runtime.invariant_access().certification_state();
+    let result = runtime.validation().certification_state();
     let failure = result
         .summary()
         .publication_failure()
@@ -266,11 +266,11 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         )
         .unwrap();
     let main_head_before = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .cloned();
     let feature_head_before = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("feature".to_string()))
         .cloned();
     let main_digest_before = relation_aspect_history_digest_on_branch(
@@ -285,11 +285,7 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         changed_relations(&accepted)[0],
         None,
     );
-    let latest_patch_before = runtime
-        .publication_access()
-        .latest_patch()
-        .unwrap()
-        .position;
+    let latest_patch_before = runtime.publication().latest_patch().unwrap().position;
 
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(BranchId("feature".to_string())),
@@ -319,14 +315,12 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
     }
 
     assert_eq!(
-        runtime
-            .history_access()
-            .branch_head(&BranchId("main".to_string())),
+        runtime.history().branch_head(&BranchId("main".to_string())),
         main_head_before.as_ref()
     );
     assert_eq!(
         runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("feature".to_string())),
         feature_head_before.as_ref()
     );
@@ -349,15 +343,11 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         feature_digest_before
     );
     assert_eq!(
-        runtime
-            .publication_access()
-            .latest_patch()
-            .unwrap()
-            .position,
+        runtime.publication().latest_patch().unwrap().position,
         latest_patch_before
     );
     assert_eq!(
-        runtime.publication_access().latest_bundle().unwrap().commit,
+        runtime.publication().latest_bundle().unwrap().commit,
         accepted.commit
     );
 }
@@ -871,7 +861,7 @@ fn relation_integrity_commit_boundary_allows_relation_deletion_in_same_commit_un
 
     let deleted = delete_entity(&mut runtime, source);
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&deleted.snapshot)
         .unwrap();
 
@@ -889,7 +879,7 @@ fn relation_integrity_commit_boundary_allows_relation_retirement_when_policy_ret
 
     let deleted = delete_entity(&mut runtime, source);
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&deleted.snapshot)
         .unwrap();
     let relation = read.get_relation(relation).unwrap();
@@ -943,7 +933,7 @@ fn relation_integrity_commit_boundary_allows_opposite_endpoint_delete_after_rela
     delete_entity(&mut runtime, source);
     let deleted_target = delete_entity(&mut runtime, target);
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&deleted_target.snapshot)
         .unwrap();
     let relation = read.get_relation(relation).unwrap();
@@ -992,22 +982,22 @@ fn relation_integrity_endpoint_deletion_history_stays_branch_local_under_diverge
         None,
     );
     let main_head_version = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("main".to_string()))
         .unwrap()
         .version_id;
     let feature_head_version = runtime
-        .history_access()
+        .history()
         .branch_head(&BranchId("feature".to_string()))
         .unwrap()
         .version_id;
-    let main_inspection = runtime.inspection_access().inspect_historical_record(
+    let main_inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
         main_head_version,
         RecordRef::Relation(relation),
         crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
     );
-    let feature_inspection = runtime.inspection_access().inspect_historical_record(
+    let feature_inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("feature".to_string()),
         feature_head_version,
         RecordRef::Relation(relation),
@@ -1032,7 +1022,7 @@ fn relation_integrity_endpoint_deletion_history_stays_branch_local_under_diverge
         Some(BranchId("feature".to_string()))
     );
     let main_read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&main_delete.snapshot)
         .unwrap();
     assert_eq!(

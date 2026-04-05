@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -44,10 +44,36 @@ pub struct SymbolTableSnapshot {
     pub entries: Vec<(Symbol, String)>,
 }
 
+impl SymbolTableSnapshot {
+    pub fn merge_new_entries(&mut self, mut new_entries: Vec<(Symbol, String)>) {
+        if new_entries.is_empty() {
+            return;
+        }
+
+        new_entries.sort_by(|left, right| left.1.cmp(&right.1));
+        let existing = std::mem::take(&mut self.entries);
+        let mut existing = existing.into_iter().peekable();
+        let mut incoming = new_entries.into_iter().peekable();
+        let mut merged = Vec::new();
+
+        while let (Some(current), Some(next)) = (existing.peek(), incoming.peek()) {
+            if current.1 <= next.1 {
+                merged.push(existing.next().expect("peeked existing entry"));
+            } else {
+                merged.push(incoming.next().expect("peeked incoming entry"));
+            }
+        }
+
+        merged.extend(existing);
+        merged.extend(incoming);
+        self.entries = merged;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StringInterner {
     next_symbol: u32,
-    by_value: BTreeMap<String, Symbol>,
+    by_value: HashMap<String, Symbol>,
     by_symbol: BTreeMap<Symbol, String>,
 }
 
@@ -55,13 +81,17 @@ impl Default for StringInterner {
     fn default() -> Self {
         Self {
             next_symbol: 1,
-            by_value: BTreeMap::new(),
+            by_value: HashMap::new(),
             by_symbol: BTreeMap::new(),
         }
     }
 }
 
 impl StringInterner {
+    pub fn contains(&self, value: &str) -> bool {
+        self.by_value.contains_key(value)
+    }
+
     pub fn intern(&mut self, value: &str) -> Symbol {
         if let Some(symbol) = self.by_value.get(value) {
             return *symbol;
@@ -85,11 +115,12 @@ impl StringInterner {
     }
 
     pub fn snapshot(&self) -> SymbolTableSnapshot {
-        let entries = self
+        let mut entries = self
             .by_value
             .iter()
             .map(|(value, symbol)| (*symbol, value.clone()))
-            .collect();
+            .collect::<Vec<_>>();
+        entries.sort_by(|left, right| left.1.cmp(&right.1));
         SymbolTableSnapshot { entries }
     }
 
@@ -153,5 +184,29 @@ mod tests {
         assert_eq!(restored.resolve(beta), Some("beta"));
         assert_eq!(restored.resolve(alpha), Some("alpha"));
         assert_eq!(restored.resolve(Symbol(9999)), None);
+    }
+
+    #[test]
+    fn snapshot_merge_new_entries_preserves_order_without_recloning_existing_entries() {
+        let mut snapshot = super::SymbolTableSnapshot {
+            entries: vec![
+                (Symbol(2), "beta".to_string()),
+                (Symbol(4), "delta".to_string()),
+            ],
+        };
+
+        snapshot.merge_new_entries(vec![
+            (Symbol(1), "alpha".to_string()),
+            (Symbol(3), "charlie".to_string()),
+        ]);
+
+        assert_eq!(
+            snapshot
+                .entries
+                .iter()
+                .map(|(_, value)| value.as_str())
+                .collect::<Vec<_>>(),
+            vec!["alpha", "beta", "charlie", "delta"]
+        );
     }
 }

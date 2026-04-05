@@ -64,7 +64,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
 
     let live_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("live merge envelope");
@@ -88,7 +88,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
     let (_recovery, mut recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -129,7 +129,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
     );
 
     let live_execution_artifact = runtime
-        .publication_access()
+        .publication()
         .diagnostics()
         .artifacts()
         .iter()
@@ -181,7 +181,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -224,7 +224,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
     });
     let recovered_artifact = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -269,7 +269,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -321,7 +321,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     );
 
     let live_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("live merge envelope");
@@ -329,7 +329,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
     });
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(live_commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -371,7 +371,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -411,7 +411,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         serde_json::json!(18)
     );
     let live_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .cloned()
         .expect("live merge envelope");
@@ -420,7 +420,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
     });
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(live_commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -473,7 +473,7 @@ fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_a
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -517,12 +517,12 @@ fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_a
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet)
     });
     let live_envelope = runtime
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(live_commit_id)
         .cloned()
         .expect("live merge envelope");
     let recovered_envelope = recovered
-        .replay_access()
+        .replay()
         .canonical_commit_envelope(live_commit_id)
         .cloned()
         .expect("recovered merge envelope");
@@ -570,7 +570,7 @@ fn deleted_on_both_sides_prepared_merge_rejects_target_head_drift() {
         other => panic!("expected target stale-head rejection, got {other:?}"),
     }
 
-    let diagnostics = runtime.publication_access().diagnostics();
+    let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics
         .artifacts()
         .iter()
@@ -621,7 +621,7 @@ fn non_executable_deletion_denial_is_stable_across_recovery() {
     delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -647,7 +647,7 @@ fn non_executable_deletion_denial_is_stable_across_recovery() {
     let (_recovery, recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
     let recovered_artifact = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -719,7 +719,7 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -766,7 +766,7 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
         persisted_runtime_with_topology_identity_registry(store_path.clone())
     });
     let recovered_artifact = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -898,7 +898,7 @@ fn topology_region_conflict_detection_reports_bounded_neighborhood_counters() {
 
     runtime.performance_access().reset_counters();
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -1010,7 +1010,7 @@ fn topology_region_conflict_denial_is_stable_across_recovery() {
     );
 
     let live_artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -1064,7 +1064,7 @@ fn topology_region_conflict_denial_is_stable_across_recovery() {
         persisted_runtime_with_topology_identity_registry(store_path.clone())
     });
     let recovered_artifact = recovered
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -1140,7 +1140,7 @@ fn disjoint_rewire_neighborhoods_do_not_escalate_to_topology_region_conflict() {
 
     runtime.performance_access().reset_counters();
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -1254,7 +1254,7 @@ fn unrelated_relation_additions_do_not_inflate_topology_region_detection_counter
 
     runtime.performance_access().reset_counters();
     let artifact = runtime
-        .merge_access()
+        .merge()
         .inspect_planning_scope(
             MergeExecutionRequest {
                 target_branch: BranchId("main".to_string()),
@@ -1516,12 +1516,12 @@ fn read_entity_json_field(
     field: &str,
 ) -> serde_json::Value {
     let version_id = runtime
-        .history_access()
+        .history()
         .branch_head(branch)
         .expect("branch head")
         .version_id;
     runtime
-        .visibility_reads()
+        .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
         .and_then(|entity| entity.payload.as_json())

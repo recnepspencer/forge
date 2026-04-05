@@ -12,7 +12,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         self.runtime.services.instrumentation.count(|counters| {
             counters.inspection_commit_reads += 1;
         });
-        let history_access = self.runtime.history_access();
+        let history_access = self.runtime.history();
         let envelope = history_access.commit_envelope(commit_id)?;
         Some(CommitInspection {
             commit: envelope.commit.clone(),
@@ -47,11 +47,11 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         request: &RecentCommitInspectionRequest,
     ) -> RecentCommitInspectionWindow {
-        let history_access = self.runtime.history_access();
+        let history_access = self.runtime.history();
         let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
         let commits = self
             .runtime
-            .history_access()
+            .history()
             .recent_commit_ids(request.branch_id.as_ref(), limit)
             .into_iter()
             .filter_map(|commit_id| self.inspect_commit(commit_id))
@@ -69,7 +69,7 @@ impl<'runtime> InspectionAccess<'runtime> {
     }
 
     pub fn inspect_branch_head(&self, branch_id: &BranchId) -> Option<CommitInspection> {
-        let history = self.runtime.history_access();
+        let history = self.runtime.history();
         let head = history.branch_head(branch_id)?;
         self.inspect_commit(head.commit_id)
     }

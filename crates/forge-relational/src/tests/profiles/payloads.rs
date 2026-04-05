@@ -23,7 +23,7 @@ fn opaque_payloads_round_trip_through_commit_and_read() {
     );
     let outcome = txn.commit().unwrap();
     let read = runtime
-        .visibility_reads()
+        .read_truth()
         .read_snapshot(&outcome.snapshot)
         .unwrap();
 
@@ -67,6 +67,29 @@ fn symbol_policy_skips_symbol_table_snapshot_refresh_when_no_raw_keys_are_presen
 }
 
 #[test]
+fn symbol_policy_incrementally_merges_new_snapshot_entries_in_sorted_order() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .symbol_policy(SymbolPolicy::RequireInterned)
+        .build();
+
+    let _ = create_entity(&mut runtime, "beta");
+    let _ = create_entity(&mut runtime, "alpha");
+
+    assert_eq!(
+        runtime
+            .config()
+            .identity
+            .symbol_table
+            .entries
+            .iter()
+            .map(|(_, value)| value.as_str())
+            .collect::<Vec<_>>(),
+        vec!["alpha", "beta"]
+    );
+}
+
+#[test]
 fn structured_json_payloads_are_canonicalized_in_patch_output() {
     let mut left_runtime = runtime_with_test_schema();
     let mut right_runtime = runtime_with_test_schema();
@@ -98,7 +121,7 @@ fn structured_json_payloads_are_canonicalized_in_patch_output() {
     right_txn.commit().unwrap();
 
     assert_eq!(
-        left_runtime.publication_access().latest_patch(),
-        right_runtime.publication_access().latest_patch()
+        left_runtime.publication().latest_patch(),
+        right_runtime.publication().latest_patch()
     );
 }

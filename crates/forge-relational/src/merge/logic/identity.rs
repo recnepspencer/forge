@@ -36,11 +36,11 @@ impl<'runtime> MergeAccess<'runtime> {
     ) -> IdentityScopedMergePlan {
         let target_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(history_plan.target_head.version_id);
         let source_view = self
             .runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(history_plan.source_head.version_id);
 
         let ancestry = MergeAncestrySummary {

@@ -96,7 +96,7 @@ impl<'runtime> LineageAuthority<'runtime> {
         }
         if self
             .runtime
-            .history_access()
+            .history()
             .branch_head(&commit.branch_id)
             .map(|head| head.commit_id)
             != Some(commit.commit_id)

@@ -258,7 +258,7 @@ export function normalizeRecipeSpec(spec: any) {
   const normalized = materializeSpec(spec);
   return {
     id: normalized.id,
-    reads: normalized.reads ?? [],
+    reads: (normalized.reads ?? []).map(normalizeRecipeRead),
     expr: normalizeExpr(normalized.expr),
     when: normalizeCondition(normalized.when),
     identity: normalizeIdentity(normalized.identity),
@@ -289,17 +289,70 @@ function normalizeRecipeFamilyRead(read: any) {
     throw new Error("Recipe family reads must be declared explicitly.");
   }
   if (read.kind === "signal" && typeof read.id === "string") {
-    return { kind: "signal", id: read.id };
+    return {
+      kind: "signal",
+      id: read.id,
+      scope: read.scope ? normalizeRecipeReadScope(read.scope) : undefined,
+    };
   }
   if (read.kind === "keyed" && typeof read.familyId === "string") {
-    return { kind: "keyed", familyId: read.familyId };
+    return {
+      kind: "keyed",
+      familyId: read.familyId,
+      scope: read.scope ? normalizeRecipeReadScope(read.scope) : undefined,
+    };
   }
   throw new Error("Invalid recipe family read.");
+}
+
+function normalizeRecipeRead(read: any) {
+  if (typeof read === "string") {
+    return read;
+  }
+  if (read && typeof read === "object" && read.kind === "signal" && typeof read.id === "string") {
+    return {
+      kind: "signal",
+      id: read.id,
+      scope: read.scope ? normalizePartitionSubscription(read.scope) : undefined,
+    };
+  }
+  throw new Error("Invalid recipe read.");
+}
+
+function normalizePartitionSubscription(scope: any) {
+  if (!scope || typeof scope !== "object" || typeof scope.partition !== "string") {
+    throw new Error("Partition subscription requires a partition string.");
+  }
+  return {
+    partition: scope.partition,
+    detail: scope.detail ?? null,
+    matchMode: scope.matchMode ?? (scope.detail ? "PartitionAndDetail" : "WholePartition"),
+  };
+}
+
+function normalizeRecipeReadScope(scope: any) {
+  if (!scope || typeof scope !== "object") {
+    throw new Error("Recipe read scope must be an object.");
+  }
+  return {
+    partition: typeof scope.partition === "string" ? scope.partition : undefined,
+    partitionFrom: typeof scope.partitionFrom === "string" ? scope.partitionFrom : undefined,
+    detail: scope.detail ?? null,
+    matchMode: scope.matchMode ?? undefined,
+  };
 }
 
 export function normalizeTransactionOp(op: any) {
   if (op.kind === "set") {
     return { kind: "set", id: op.id, value: encodeSignalValue(op.value as SignalValue) };
+  }
+  if (op.kind === "setWithRegions") {
+    return {
+      kind: "setWithRegions",
+      id: op.id,
+      value: encodeSignalValue(op.value as SignalValue),
+      changedRegions: op.changedRegions ?? [],
+    };
   }
   if (op.kind === "setPackedGridRgba") {
     return {
@@ -317,6 +370,16 @@ export function normalizeTransactionOp(op: any) {
       values: op.values.map(({ key, value }: { key: string; value: SignalValue }) => ({
         key,
         value: encodeSignalValue(value),
+      })),
+    };
+  }
+  if (op.kind === "setManyWithRegions") {
+    return {
+      kind: "setManyWithRegions",
+      values: op.values.map(({ id, value, changedRegions }: { id: string; value: SignalValue; changedRegions: Array<{ partition: string; detail?: string | null }> }) => ({
+        id,
+        value: encodeSignalValue(value),
+        changedRegions: changedRegions ?? [],
       })),
     };
   }

@@ -9,6 +9,7 @@ use crate::visibility::cache_state::{
     protect_branch_head_version,
 };
 use crate::visibility::snapshot_states::build_partition_pins_for_version;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) struct VisibilityPinAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -122,21 +123,37 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         changed_records: &[crate::transactions::data::RecordRef],
     ) {
         if old_version.is_none() {
+            let mut entity_slots =
+                BTreeMap::<crate::identity::data::PartitionId, BTreeSet<usize>>::new();
+            let mut relation_slots =
+                BTreeMap::<crate::identity::data::PartitionId, BTreeSet<usize>>::new();
             for record in changed_records {
                 match record {
                     crate::transactions::data::RecordRef::Entity(entity_id) => {
-                        self.pin_branch_entity(*entity_id);
+                        entity_slots
+                            .entry(entity_id.partition_id)
+                            .or_default()
+                            .insert(entity_id.local_slot.0 as usize);
                     }
                     crate::transactions::data::RecordRef::Relation(relation_id) => {
-                        self.pin_branch_relation(*relation_id);
+                        relation_slots
+                            .entry(relation_id.partition_id)
+                            .or_default()
+                            .insert(relation_id.local_slot.0 as usize);
                     }
                 }
             }
+            self.runtime
+                .storage_authority()
+                .increment_named_pins_bulk::<EntityRecordKind>(&entity_slots, PinClass::Branch);
+            self.runtime
+                .storage_authority()
+                .increment_named_pins_bulk::<RelationRecordKind>(&relation_slots, PinClass::Branch);
             return;
         }
 
         let current_state = self.runtime.storage_access().current_state();
-        let reader = self.runtime.visibility_reads();
+        let reader = self.runtime.read_truth();
         let mut entity_actions = Vec::new();
         let mut relation_actions = Vec::new();
         for record in changed_records {
@@ -202,7 +219,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         self.runtime
             .storage_authority()
             .clear_named_pins(PinClass::Branch);
-        let head_versions = self.runtime.history_access().branch_head_versions();
+        let head_versions = self.runtime.history().branch_head_versions();
         for version_id in head_versions {
             self.pin_branch_version(version_id);
         }
@@ -220,7 +237,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             evict_cache_if_needed(self.runtime);
             return;
         }
-        let head_versions = self.runtime.history_access().branch_head_versions();
+        let head_versions = self.runtime.history().branch_head_versions();
         for version_id in head_versions {
             protect_branch_head_version(self.runtime, version_id);
             self.runtime.services.instrumentation.count(|counters| {
@@ -314,6 +331,79 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
 
     fn unpin_replay_relation(&mut self, relation_id: crate::identity::data::RelationId) {
         adjust_relation_pin(self.runtime, relation_id, SubstratePinClass::Replay, -1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
+    use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+    use crate::logic::builder::RelationalRuntimeBuilder;
+    use crate::storage::logic::state::PartitionState;
+    use crate::storage::substrate::{
+        EntityArena, EntityExtra, RelationArena, RelationEndpoints, RelationExtra, SlotInit,
+    };
+    use crate::transactions::data::RecordRef;
+
+    #[test]
+    fn initial_branch_head_bulk_pin_advancement_sets_branch_pins_for_changed_records() {
+        let mut runtime = RelationalRuntimeBuilder::new().build();
+        let partition_id = PartitionId(7);
+        runtime.partitions.insert(
+            partition_id,
+            PartitionState {
+                partition_id,
+                adjacency_policy: AdjacencyPolicy {
+                    backend: AdjacencyBackend::CompressedFanoutAdjacency,
+                    small_degree_inline_capacity: 8,
+                },
+                relation_overlay_is_sparse: false,
+                entity_arena: EntityArena::with_capacity(1),
+                relation_arena: RelationArena::with_capacity(1),
+                adjacency: Vec::new(),
+                reverse_adjacency: Vec::new(),
+            },
+        );
+        let partition = runtime.partitions.get_mut(&partition_id).unwrap();
+        partition
+            .entity_arena
+            .push_slot(SlotInit::<EntityRecordKind> {
+                partition_id,
+                kind_id: KindId(1),
+                payload: None,
+                version_id: VersionId(1),
+                extra: EntityExtra::default(),
+            });
+        let entity_id = EntityId::new(partition_id, 0, 1);
+        partition
+            .relation_arena
+            .push_slot(SlotInit::<RelationRecordKind> {
+                partition_id,
+                kind_id: KindId(2),
+                payload: None,
+                version_id: VersionId(1),
+                extra: RelationExtra::from(Some(RelationEndpoints {
+                    source: entity_id,
+                    target: entity_id,
+                })),
+            });
+
+        let relation_id = RelationId::new(partition_id, 0, 1);
+        runtime
+            .visibility_pins()
+            .advance_branch_pins_for_changed_records(
+                None,
+                VersionId(2),
+                &[
+                    RecordRef::Entity(entity_id),
+                    RecordRef::Relation(relation_id),
+                ],
+            );
+
+        let partition = runtime.partitions.get(&partition_id).unwrap();
+        assert_eq!(partition.entity_arena.branch_pin_count(0), Some(1));
+        assert_eq!(partition.relation_arena.branch_pin_count(0), Some(1));
     }
 }
 

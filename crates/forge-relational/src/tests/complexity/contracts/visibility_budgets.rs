@@ -46,6 +46,36 @@ fn complexity_budget_snapshot_pin_maintenance_is_incremental() {
 }
 
 #[test]
+fn complexity_budget_duplicate_active_snapshots_share_one_pin_lease_per_version() {
+    let mut runtime = runtime_with_test_schema();
+    for index in 0..6 {
+        let _ = create_entity(&mut runtime, &format!("e{index}"));
+    }
+
+    runtime.performance_access().reset_counters();
+    let first = runtime.visibility_authority().snapshot();
+    let first_open = runtime.performance_access().counters();
+    assert!(first_open.snapshot_pin_adjustments > 0);
+    assert_eq!(first_open.visibility_cache_snapshot_promotions, 1);
+
+    runtime.performance_access().reset_counters();
+    let second = runtime.visibility_authority().snapshot();
+    let second_open = runtime.performance_access().counters();
+    assert_eq!(second_open.snapshot_pin_adjustments, 0);
+    assert_eq!(second_open.visibility_cache_snapshot_promotions, 0);
+
+    runtime.performance_access().reset_counters();
+    assert!(runtime.visibility_authority().release_snapshot(&first));
+    let first_release = runtime.performance_access().counters();
+    assert_eq!(first_release.snapshot_pin_adjustments, 0);
+
+    runtime.performance_access().reset_counters();
+    assert!(runtime.visibility_authority().release_snapshot(&second));
+    let second_release = runtime.performance_access().counters();
+    assert!(second_release.snapshot_pin_adjustments > 0);
+}
+
+#[test]
 fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
     let mut runtime = runtime_with_test_schema();
     let left = create_entity(&mut runtime, "left");
@@ -77,7 +107,7 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let current_version = create_entity_outcome(&mut runtime, "later").version_id;
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_snapshot(&snapshot).unwrap();
+    let _ = runtime.read_truth().read_snapshot(&snapshot).unwrap();
     let snapshot_counters = runtime.performance_access().counters();
 
     assert_eq!(snapshot_counters.visibility_entity_slot_scans, 0);
@@ -86,7 +116,7 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     assert!(snapshot_counters.visible_relation_records_materialized >= 1);
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_version(historical_version);
+    let _ = runtime.read_truth().read_version(historical_version);
     let current_version_counters = runtime.performance_access().counters();
 
     assert_eq!(current_version_counters.visibility_entity_slot_scans, 0);
@@ -95,7 +125,7 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     assert!(current_version_counters.visible_relation_records_materialized >= 1);
 
     runtime.performance_access().reset_counters();
-    let _ = runtime.visibility_reads().read_version(current_version);
+    let _ = runtime.read_truth().read_version(current_version);
     let historical_version_counters = runtime.performance_access().counters();
 
     assert_eq!(historical_version_counters.visibility_entity_slot_scans, 0);
@@ -135,7 +165,7 @@ fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version
 
     runtime.performance_access().reset_counters();
     let results = runtime
-        .invariant_access()
+        .validation()
         .snapshot_publication_state()
         .into_results();
     let counters = runtime.performance_access().counters();
@@ -180,7 +210,7 @@ fn complexity_budget_bidirectional_adjacency_avoids_relation_scans() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
     let relation = create_relation(&mut runtime, source, target, "r0");
-    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
+    let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     runtime.performance_access().reset_counters();
     let outgoing = runtime
@@ -201,13 +231,13 @@ fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_boun
     let mut runtime = runtime_with_test_schema();
     let _left_a = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let _left_b = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
-    let historical_version = runtime.history_access().latest_commit().unwrap().version_id;
+    let historical_version = runtime.history().latest_commit().unwrap().version_id;
     let _right_a = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let _right_b = create_entity_in_partition(&mut runtime, "right-b", PartitionId(11));
 
     runtime.performance_access().reset_counters();
     let records = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(historical_version)
         .entity_records_in(PartitionId(7), KindId(1));
     let counters = runtime.performance_access().counters();
@@ -230,7 +260,7 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
         "left-r0",
         PartitionId(7),
     );
-    let historical_version = runtime.history_access().latest_commit().unwrap().version_id;
+    let historical_version = runtime.history().latest_commit().unwrap().version_id;
     let _right_relation = create_relation_in_partition(
         &mut runtime,
         right_source,
@@ -241,7 +271,7 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
 
     runtime.performance_access().reset_counters();
     let records = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(historical_version)
         .relation_records_in(PartitionId(7), KindId(2));
     let counters = runtime.performance_access().counters();
@@ -273,7 +303,7 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -298,7 +328,7 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -340,7 +370,7 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -365,7 +395,7 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -403,7 +433,7 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -429,7 +459,7 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
             .index_access()
             .execute_query_plan_with_fallback_parity(
                 runtime
-                    .visibility_reads()
+                    .read_truth()
                     .plan_query_packet(&snapshot, packet.clone())
                     .expect("query plan"),
                 FallbackParityMode::ProductionAdmissibility,
@@ -457,7 +487,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
         branch_scoped: false,
     });
     let latest_commit_id = runtime
-        .history_access()
+        .history()
         .latest_commit()
         .expect("latest commit")
         .commit_id;
@@ -472,7 +502,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
-        .visibility_reads()
+        .read_truth()
         .query_plan_context(&snapshot)
         .expect("query plan context");
     let packet = PlannedQueryPacket {
@@ -497,7 +527,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
         .index_access()
         .execute_query_plan_with_fallback_parity(
             runtime
-                .visibility_reads()
+                .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
             FallbackParityMode::ProductionAdmissibility,
@@ -523,7 +553,7 @@ fn complexity_budget_query_packetization_reports_parallel_shape_for_cross_partit
 
     runtime.performance_access().reset_counters();
     let _ = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(planned_explicit_query(
             &runtime,
             &snapshot,
@@ -556,7 +586,7 @@ fn complexity_budget_query_packetization_reports_serial_shape_for_narrow_reads()
 
     runtime.performance_access().reset_counters();
     let _ = runtime
-        .visibility_reads()
+        .read_truth()
         .execute_query_plan(planned_explicit_query(
             &runtime,
             &snapshot,

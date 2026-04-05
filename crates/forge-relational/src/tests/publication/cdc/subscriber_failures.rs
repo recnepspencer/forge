@@ -11,7 +11,7 @@ use crate::tests::support::*;
 fn subscriber_stream_rejects_zero_batch_size() {
     let runtime = runtime_with_test_schema();
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(0))
         .unwrap_err();
 
@@ -26,7 +26,7 @@ fn subscriber_stream_rejects_schema_incompatible_checkpoint() {
     let mismatched_checkpoint =
         checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(99));
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(
             mismatched_checkpoint,
             1,
@@ -45,7 +45,7 @@ fn subscriber_stream_rejects_checkpoint_without_history_or_durable_coverage() {
     let missing_checkpoint =
         checkpoint_for_schema_version(PatchStreamPosition(42), SchemaVersionId(1));
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(missing_checkpoint, 1))
         .unwrap_err();
 
@@ -65,7 +65,7 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_contract_identity() {
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(1))
         .unwrap();
     let checkpoint = batch.next_checkpoint.unwrap();
@@ -75,7 +75,7 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_contract_identity() {
     };
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(
             SubscriberResumeRequest::resume_after(checkpoint, 1)
                 .with_subscriber_contract(requested_contract),
@@ -93,7 +93,7 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
     let mut runtime = runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "anchor");
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(1))
         .unwrap();
     let checkpoint = batch
@@ -158,7 +158,7 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
     txn.commit().unwrap();
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 10))
         .unwrap_err();
 
@@ -189,7 +189,7 @@ fn subscriber_stream_rejects_checkpoint_with_inconsistent_continuation_summary()
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(1))
         .unwrap();
     let checkpoint = batch
@@ -200,7 +200,11 @@ fn subscriber_stream_rejects_checkpoint_with_inconsistent_continuation_summary()
             batch
                 .latest_available_checkpoint
                 .as_ref()
-                .map(|checkpoint| checkpoint.normalized_continuation_proof().clone())
+                .map(
+                    |checkpoint: &crate::publication::cdc::data::SubscriberCheckpoint| {
+                        checkpoint.normalized_continuation_proof().clone()
+                    },
+                )
                 .unwrap_or_default(),
             SubscriberContinuationSummary::new(
                 "default.subscriber.contract".to_string(),
@@ -214,7 +218,7 @@ fn subscriber_stream_rejects_checkpoint_with_inconsistent_continuation_summary()
         );
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 1))
         .unwrap_err();
 
@@ -253,7 +257,7 @@ fn subscriber_stream_rejects_durable_only_checkpoint_with_descriptor_version_mis
         );
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(checkpoint, 1))
         .unwrap_err();
 
@@ -308,7 +312,7 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
     let _ = txn.commit().unwrap();
 
     let batch = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::from_head(2))
         .unwrap();
     let forged = batch
@@ -322,7 +326,7 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
         );
 
     let error = runtime
-        .publication_access()
+        .publication()
         .read_subscriber_stream(SubscriberResumeRequest::resume_after(forged, 1))
         .unwrap_err();
 

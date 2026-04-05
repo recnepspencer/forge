@@ -681,7 +681,7 @@ mod tests {
         };
 
         let current = runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(runtime.current_version_id());
         assert_eq!(
             read_entity_name(current.get_entity(entity).expect("committed entity")),
@@ -779,7 +779,7 @@ mod tests {
                 .expect("validated replacement strategy commit executed")
         };
         let current = runtime
-            .visibility_reads()
+            .read_truth()
             .read_version(runtime.current_version_id());
         let replacement_record = changed_entities(&commit)
             .into_iter()
@@ -951,7 +951,7 @@ mod tests {
         }
 
         let planning = runtime
-            .merge_access()
+            .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 feature_branch,
@@ -1099,7 +1099,7 @@ mod tests {
         }
 
         let lowered = runtime
-            .merge_access()
+            .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 feature_branch,
@@ -1255,7 +1255,7 @@ mod tests {
         }
 
         let planning = runtime
-            .merge_access()
+            .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 feature_branch,
@@ -1362,7 +1362,7 @@ mod tests {
         }
 
         let planning = runtime
-            .merge_access()
+            .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 BranchId("main".to_string()),
                 feature_branch,
@@ -1400,10 +1400,10 @@ mod tests {
         let entity = crate::tests::support::create_entity(&mut runtime, "before");
         let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
         let branch_head_before = runtime
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned();
-        let mut recovery_plan = runtime.durability_access().recovery_plan(
+        let mut recovery_plan = runtime.durability().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
         );
         recovery_plan.commit_strategy_executors = Default::default();
@@ -1414,7 +1414,7 @@ mod tests {
             .recover(recovery_plan)
             .expect("recovery without strategy executor");
         let branch_head_after_recovery = recovered
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned();
 
@@ -1437,7 +1437,7 @@ mod tests {
         }));
         assert_eq!(
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
             branch_head_after_recovery
@@ -1451,7 +1451,7 @@ mod tests {
         let mut runtime = persisted_intent_runtime(root_path.clone(), true);
         let entity = crate::tests::support::create_entity(&mut runtime, "before");
         let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
-        let mut recovery_plan = runtime.durability_access().recovery_plan(
+        let mut recovery_plan = runtime.durability().recovery_plan(
             crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
         );
 
@@ -1463,7 +1463,7 @@ mod tests {
             .recover(recovery_plan)
             .expect("recovery with hostile failing executor");
         let branch_head_before_replay = recovered
-            .history_access()
+            .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned();
 
@@ -1486,7 +1486,7 @@ mod tests {
         }));
         assert_eq!(
             recovered
-                .history_access()
+                .history()
                 .branch_head(&BranchId("main".to_string()))
                 .cloned(),
             branch_head_before_replay

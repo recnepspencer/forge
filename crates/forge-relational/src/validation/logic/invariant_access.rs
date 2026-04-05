@@ -2,14 +2,16 @@ use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::InvariantCostClass;
 use crate::validation::data::InvariantGroupSet;
+#[cfg(test)]
+use crate::validation::engine::HarnessAuditMode;
 use crate::validation::engine::{
-    HarnessAuditMode, InvariantEngine, InvariantExecutionDisposition, InvariantExecutionMetadata,
+    InvariantEngine, InvariantExecutionDisposition, InvariantExecutionMetadata,
     InvariantExecutionRequest, InvariantExecutionResult, InvariantObservation,
     InvariantObservationKind, InvariantRequestProfile,
 };
 
 impl RelationalRuntime {
-    pub fn invariant_access(&self) -> InvariantAccess<'_> {
+    pub(crate) fn invariant_access(&self) -> InvariantAccess<'_> {
         InvariantAccess::new(self)
     }
 }
@@ -23,6 +25,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         Self { runtime }
     }
 
+    #[cfg(test)]
     pub fn harness_audit(&self, mode: HarnessAuditMode) -> InvariantExecutionResult {
         mode.request_profile().map_or_else(
             || {

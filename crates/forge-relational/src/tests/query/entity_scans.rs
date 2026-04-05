@@ -40,10 +40,10 @@ fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let _right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
-    let version_id = runtime.history_access().latest_commit().unwrap().version_id;
+    let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     let scoped = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(version_id)
         .entities_in::<NamedEntityProjection>(PartitionId(7));
 
@@ -67,11 +67,11 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let reversed_a = create_entity_in_partition(&mut reversed, "a", PartitionId(3));
 
     let ordered_records = ordered
-        .visibility_reads()
+        .read_truth()
         .project_version(ordered.current_version_id())
         .entities_in::<NamedEntityProjection>(PartitionId(3));
     let reversed_records = reversed
-        .visibility_reads()
+        .read_truth()
         .project_version(reversed.current_version_id())
         .entities_in::<NamedEntityProjection>(PartitionId(3));
 
@@ -91,7 +91,7 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     );
     assert_eq!(
         ordered
-            .visibility_reads()
+            .read_truth()
             .project_version(ordered.current_version_id())
             .entities_in::<NamedEntityProjection>(PartitionId(3))
             .iter()
@@ -113,13 +113,13 @@ fn entity_kind_scans_preserve_historical_partition_visibility() {
         create_entity_outcome_on_branch(&mut runtime, "base", BranchId("main".to_string()));
     let main_entity = changed_entities(&baseline)[0];
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(17));
-    let historical_version = runtime.history_access().latest_commit().unwrap().version_id;
+    let historical_version = runtime.history().latest_commit().unwrap().version_id;
     let _other_partition = create_entity_in_partition(&mut runtime, "other", PartitionId(23));
     let _update = update_entity(&mut runtime, main_entity, "base-updated");
     let _later_left = create_entity_in_partition(&mut runtime, "left-later", PartitionId(17));
 
     let historical = runtime
-        .visibility_reads()
+        .read_truth()
         .project_version(historical_version)
         .entities_in::<NamedEntityProjection>(PartitionId(17));
 

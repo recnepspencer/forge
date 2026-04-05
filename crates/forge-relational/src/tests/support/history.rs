@@ -42,7 +42,7 @@ pub(crate) fn entity_aspect_history_digest_on_branch(
     filter: Option<&AspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     runtime
-        .history_access()
+        .history()
         .entity_aspect_history_with_trace(branch_id, entity_id, filter)
         .aspect_history_digest()
 }
@@ -67,7 +67,7 @@ pub(crate) fn relation_aspect_history_digest_on_branch(
     filter: Option<&AspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     runtime
-        .history_access()
+        .history()
         .relation_aspect_history_with_trace(branch_id, relation_id, filter)
         .aspect_history_digest()
 }

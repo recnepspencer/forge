@@ -1,7 +1,7 @@
 import { useCallback, useMemo, type CSSProperties } from "react";
 
 import type { SceneState } from "../gear-scene/core/types";
-import type { WorkerSnapshot } from "../gear-scene/worker/protocol";
+import type { ReviewManualSelections, WorkerSnapshot } from "../gear-scene/worker/protocol";
 import {
   buildMergeDecisionSteps,
   describeMergeOutcome,
@@ -46,14 +46,24 @@ function ReviewFrameStage({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (!frame) return;
       try {
-        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        if (aspectKind === "topology") {
+          const sourceWidth = frame.width;
+          const sourceHeight = frame.height;
+          const cropWidth = sourceWidth * 0.42;
+          const cropHeight = sourceHeight * 0.62;
+          const sx = (sourceWidth - cropWidth) / 2;
+          const sy = sourceHeight * 0.2;
+          ctx.drawImage(frame, sx, sy, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+        } else {
+          ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        }
       } catch (error) {
         if (!(error instanceof DOMException) || error.name !== "InvalidStateError") {
           throw error;
         }
       }
     },
-    [frame, frameVersion],
+    [aspectKind, frame, frameVersion],
   );
 
   return (
@@ -68,11 +78,11 @@ function ReviewFrameStage({
         </div>
         {emphasis ? <span className="review-stage__emphasis">{emphasis}</span> : null}
       </div>
-      <div className="review-stage__viewport">
+      <div className={`review-stage__viewport review-stage__viewport--${aspectKind}`}>
         <canvas ref={drawCanvas} className="review-stage__canvas" width={640} height={360} />
         <div className="review-stage__wash" />
         <div className="review-stage__edge" />
-        <ReviewAspectOverlay state={state} aspectKind={aspectKind} />
+        {aspectKind === "topology" ? null : <ReviewAspectOverlay state={state} aspectKind={aspectKind} />}
         <div className="review-stage__focus review-stage__focus--ring" />
         <div className="review-stage__focus review-stage__focus--beam" />
         <div className="review-stage__focus review-stage__focus--orbit" />
@@ -113,19 +123,26 @@ function ReviewAspectOverlay({
     return null;
   }
 
+  const isTopologyPrimary = aspectKind === "topology";
   const gearCx = 190;
-  const gearCy = 164;
-  const outer = 44 + state.gear.outerRadius * 120;
-  const inner = 12 + state.gear.innerRadius * 68;
+  const gearCy = isTopologyPrimary ? 124 : 164;
+  const outer = isTopologyPrimary
+    ? 74 + state.gear.outerRadius * 78
+    : 44 + state.gear.outerRadius * 120;
+  const inner = isTopologyPrimary
+    ? 20 + state.gear.innerRadius * 54
+    : 12 + state.gear.innerRadius * 68;
+  const toothRoot = inner + (outer - inner) * 0.62;
   const toothCount = Math.max(6, Math.min(24, state.gear.teeth));
-  const teeth = Array.from({ length: toothCount }, (_, index) => {
-    const angle = (Math.PI * 2 * index) / toothCount;
-    const x1 = gearCx + Math.cos(angle) * (outer + 6);
-    const y1 = gearCy + Math.sin(angle) * (outer + 6);
-    const x2 = gearCx + Math.cos(angle) * (outer + 18);
-    const y2 = gearCy + Math.sin(angle) * (outer + 18);
-    return `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-  }).join(" ");
+  const gearPath = buildGearPath({
+    cx: gearCx,
+    cy: gearCy,
+    outerRadius: outer,
+    rootRadius: toothRoot,
+    innerRadius: inner,
+    teeth: toothCount,
+    rotation: state.gear.rotation,
+  });
 
   const lightX = 310 + state.light.x * 18;
   const lightY = 84 - state.light.y * 10;
@@ -137,10 +154,8 @@ function ReviewAspectOverlay({
     <svg className="review-stage__diagram" viewBox="0 0 380 220" aria-hidden="true">
       {(aspectKind === "topology" || aspectKind === "mixed") ? (
         <g className="review-stage__diagram-layer review-stage__diagram-layer--topology">
-          <path d={teeth} className="review-stage__diagram-teeth" />
-          <circle cx={gearCx} cy={gearCy} r={outer} className="review-stage__diagram-outer" />
-          <circle cx={gearCx} cy={gearCy} r={inner} className="review-stage__diagram-inner" />
-          <text x={gearCx} y={gearCy + outer + 34} textAnchor="middle" className="review-stage__diagram-label">
+          <path d={gearPath} className="review-stage__diagram-gear" />
+          <text x={gearCx} y={gearCy + outer + (isTopologyPrimary ? 18 : 34)} textAnchor="middle" className="review-stage__diagram-label">
             {state.gear.teeth} teeth
           </text>
         </g>
@@ -173,10 +188,49 @@ function ReviewAspectOverlay({
   );
 }
 
+function buildGearPath({
+  cx,
+  cy,
+  outerRadius,
+  rootRadius,
+  innerRadius,
+  teeth,
+  rotation,
+}: {
+  cx: number;
+  cy: number;
+  outerRadius: number;
+  rootRadius: number;
+  innerRadius: number;
+  teeth: number;
+  rotation: number;
+}) {
+  const points: string[] = [];
+  const totalSteps = teeth * 2;
+  for (let index = 0; index < totalSteps; index += 1) {
+    const angle = rotation + (Math.PI * 2 * index) / totalSteps;
+    const radius = index % 2 === 0 ? outerRadius : rootRadius;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    points.push(`${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
+  }
+
+  const holeStartX = cx + innerRadius;
+  const holeStartY = cy;
+  return [
+    ...points,
+    "Z",
+    `M ${holeStartX.toFixed(1)} ${holeStartY.toFixed(1)}`,
+    `A ${innerRadius.toFixed(1)} ${innerRadius.toFixed(1)} 0 1 0 ${(cx - innerRadius).toFixed(1)} ${cy.toFixed(1)}`,
+    `A ${innerRadius.toFixed(1)} ${innerRadius.toFixed(1)} 0 1 0 ${holeStartX.toFixed(1)} ${holeStartY.toFixed(1)}`,
+    "Z",
+  ].join(" ");
+}
+
 function DecisionModal({
   mergeReview,
   reviewPolicyLane,
-  reviewManualChoice,
+  reviewManualSelections,
   items,
   index,
   frameVersion,
@@ -185,11 +239,11 @@ function DecisionModal({
   onNext,
   onPrev,
   onSetReviewPolicyLane,
-  onSetReviewManualChoice,
+  onSetReviewManualSelections,
 }: {
   mergeReview: NonNullable<WorkerSnapshot["mergeReview"]>;
   reviewPolicyLane: string;
-  reviewManualChoice: "source" | "target";
+  reviewManualSelections: ReviewManualSelections;
   items: ReturnType<typeof buildMergeDecisionSteps>;
   index: number;
   frameVersion: number;
@@ -198,7 +252,7 @@ function DecisionModal({
   onNext: () => void;
   onPrev: () => void;
   onSetReviewPolicyLane: (lane: string) => void;
-  onSetReviewManualChoice: (choice: "source" | "target") => void;
+  onSetReviewManualSelections: (selections: ReviewManualSelections) => void;
 }) {
   const item = items[index];
   if (!item) {
@@ -208,12 +262,8 @@ function DecisionModal({
   const activeLane = item.lanes.find((lane) => lane.id === reviewPolicyLane) ?? item.lanes[0];
   const sourceFrame = getReviewFrame(mergeReview.sourceFrameId);
   const targetFrame = getReviewFrame(mergeReview.targetFrameId);
-  const resultFrame = activeLane.manual
-    ? reviewManualChoice === "source" ? sourceFrame : targetFrame
-    : activeLane.frameId ? getReviewFrame(activeLane.frameId) : null;
-  const resultMetrics = activeLane.manual
-    ? reviewManualChoice === "source" ? item.sourceMetrics : item.targetMetrics
-    : metricsForAspect(activeLane.resultState, item.aspectKind);
+  const resultFrame = activeLane.frameId ? getReviewFrame(activeLane.frameId) : null;
+  const resultMetrics = metricsForAspect(activeLane.resultState, item.aspectKind);
 
   return (
     <div className="walkthrough-overlay" role="dialog" aria-modal="true" aria-label="Merge review">
@@ -289,34 +339,53 @@ function DecisionModal({
             eyebrow={activeLane.policyFamily}
             title={activeLane.policyLabel}
             accent={activeLane.accent}
-            state={activeLane.manual ? (reviewManualChoice === "source" ? mergeReview.source.state : mergeReview.target.state) : activeLane.resultState}
+            state={activeLane.resultState}
             frame={resultFrame}
             frameVersion={frameVersion}
             aspectKind={item.aspectKind}
             metrics={resultMetrics}
-            emphasis={activeLane.manual ? `${reviewManualChoice === "source" ? mergeReview.source.name : mergeReview.target.name} wins` : activeLane.actionLabel}
+            emphasis={activeLane.manual ? "Aspect picks applied" : activeLane.actionLabel}
             visualMode={activeLane.visualMode}
           />
         </div>
 
         {activeLane.manual ? (
           <div className="review-modal__manual-choice">
-            <button
-              type="button"
-              className={`review-modal__manual-btn ${reviewManualChoice === "source" ? "review-modal__manual-btn--active" : ""}`}
-              onClick={() => onSetReviewManualChoice("source")}
-            >
-              <span>{mergeReview.source.name}</span>
-              <small>Source wins</small>
-            </button>
-            <button
-              type="button"
-              className={`review-modal__manual-btn ${reviewManualChoice === "target" ? "review-modal__manual-btn--active" : ""}`}
-              onClick={() => onSetReviewManualChoice("target")}
-            >
-              <span>{mergeReview.target.name}</span>
-              <small>Target wins</small>
-            </button>
+            {([
+              ["teeth", "Teeth"],
+              ["outerRadius", "Outer radius"],
+              ["innerRadius", "Inner radius"],
+              ["thickness", "Thickness"],
+              ["lightIntensity", "Light intensity"],
+              ["lightPosition", "Light position"],
+              ["rotation", "Rotation"],
+              ["camera", "Camera"],
+            ] as const).map(([aspectKey, label]) => {
+              const winner = reviewManualSelections[aspectKey];
+              return (
+                <div key={aspectKey} className="review-modal__manual-row">
+                  <span className="review-modal__manual-label">{label}</span>
+                  <div className="review-modal__manual-picks">
+                    <button
+                      type="button"
+                      className={`review-modal__manual-btn ${winner === "source" ? "review-modal__manual-btn--active" : ""}`}
+                      onClick={() => onSetReviewManualSelections({ ...reviewManualSelections, [aspectKey]: "source" })}
+                    >
+                      <span>{mergeReview.source.name}</span>
+                      <small>Use {mergeReview.source.name.toLowerCase()} {label.toLowerCase()}</small>
+                    </button>
+                    <button
+                      type="button"
+                      className={`review-modal__manual-btn ${winner === "target" ? "review-modal__manual-btn--active" : ""}`}
+                      onClick={() => onSetReviewManualSelections({ ...reviewManualSelections, [aspectKey]: "target" })}
+                    >
+                      <span>{mergeReview.target.name}</span>
+                      <small>Use {mergeReview.target.name.toLowerCase()} {label.toLowerCase()}</small>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : null}
 
@@ -352,7 +421,7 @@ export function MergeProofPanel({
   walkthroughOpen,
   walkthroughIndex,
   reviewPolicyLane,
-  reviewManualChoice,
+  reviewManualSelections,
   frameVersion,
   getReviewFrame,
   onOpenWalkthrough,
@@ -360,7 +429,7 @@ export function MergeProofPanel({
   onNextWalkthrough,
   onPrevWalkthrough,
   onSetReviewPolicyLane,
-  onSetReviewManualChoice,
+  onSetReviewManualSelections,
 }: {
   mergePlan: WorkerSnapshot["mergePlan"];
   mergeResult: WorkerSnapshot["mergeResult"];
@@ -368,7 +437,7 @@ export function MergeProofPanel({
   walkthroughOpen: boolean;
   walkthroughIndex: number;
   reviewPolicyLane: string;
-  reviewManualChoice: "source" | "target";
+  reviewManualSelections: ReviewManualSelections;
   frameVersion: number;
   getReviewFrame: (frameId: string) => ImageBitmap | null;
   onOpenWalkthrough: () => void;
@@ -376,7 +445,7 @@ export function MergeProofPanel({
   onNextWalkthrough: (maxIndex: number) => void;
   onPrevWalkthrough: () => void;
   onSetReviewPolicyLane: (lane: string) => void;
-  onSetReviewManualChoice: (choice: "source" | "target") => void;
+  onSetReviewManualSelections: (selections: ReviewManualSelections) => void;
 }) {
   const semantics = mergeResult?.semantics ?? mergePlan?.semantics ?? null;
   const walkthroughItems = useMemo(
@@ -391,6 +460,7 @@ export function MergeProofPanel({
   const currentLane = walkthroughItems[0]?.lanes.find((lane) => lane.id === reviewPolicyLane)
     ?? walkthroughItems[0]?.lanes[0]
     ?? null;
+  const reviewCount = walkthroughItems.length;
 
   return (
     <>
@@ -399,47 +469,20 @@ export function MergeProofPanel({
           <div className="merge-proof__title">Merge Review</div>
           <div className="merge-proof__summary">{describeMergeOutcome(mergePlan, mergeResult)}</div>
 
-          {mergeReview ? (
-            <div className="merge-hero-strip">
-              <ReviewFrameStage
-                stageRole="source"
-                eyebrow="Source branch edits"
-                title={mergeReview.source.name}
-                accent="#75d9ff"
-                state={mergeReview.source.state}
-                frame={getReviewFrame(mergeReview.sourceFrameId)}
-                frameVersion={frameVersion}
-                aspectKind={walkthroughItems[0]?.aspectKind ?? "mixed"}
-                metrics={walkthroughItems[0]?.sourceMetrics ?? []}
-                highlights={walkthroughItems[0]?.sourceHighlights ?? []}
-              />
-              <ReviewFrameStage
-                stageRole="target"
-                eyebrow="Target branch edits"
-                title={mergeReview.target.name}
-                accent="#ffb679"
-                state={mergeReview.target.state}
-                frame={getReviewFrame(mergeReview.targetFrameId)}
-                frameVersion={frameVersion}
-                aspectKind={walkthroughItems[0]?.aspectKind ?? "mixed"}
-                metrics={walkthroughItems[0]?.targetMetrics ?? []}
-                highlights={walkthroughItems[0]?.targetHighlights ?? []}
-              />
-              <ReviewFrameStage
-                stageRole="result"
-                eyebrow={currentLane?.policyFamily ?? "Executed merge stack"}
-                title={currentLane?.policyLabel ?? "Merged"}
-                accent={currentLane?.accent ?? "#d1ff5a"}
-                state={currentLane?.resultState ?? mergeReview.merged.state}
-                frame={getReviewFrame(currentLane?.frameId ?? mergeReview.mergedFrameId)}
-                frameVersion={frameVersion}
-                aspectKind={walkthroughItems[0]?.aspectKind ?? "mixed"}
-                metrics={metricsForAspect(currentLane?.resultState ?? null, walkthroughItems[0]?.aspectKind ?? "mixed")}
-                emphasis={currentLane?.visualMode === "manual-review" ? "Decision stops here" : "Merged world"}
-                visualMode={currentLane?.visualMode ?? "rendered"}
-              />
+          <div className="merge-proof__launch-strip">
+            <div className="merge-proof__launch-stat">
+              <span className="merge-proof__launch-label">Review steps</span>
+              <strong>{reviewCount || 0}</strong>
             </div>
-          ) : null}
+            <div className="merge-proof__launch-stat">
+              <span className="merge-proof__launch-label">Primary lane</span>
+              <strong>{currentLane?.policyFamily ?? "Executed merge stack"}</strong>
+            </div>
+            <div className="merge-proof__launch-stat">
+              <span className="merge-proof__launch-label">Current outcome</span>
+              <strong>{currentLane?.actionLabel ?? "Merged"}</strong>
+            </div>
+          </div>
 
           <div className="merge-proof__actions">
             <button className="btn btn--primary" type="button" onClick={onOpenWalkthrough} disabled={walkthroughItems.length === 0}>
@@ -490,7 +533,7 @@ export function MergeProofPanel({
         <DecisionModal
           mergeReview={mergeReview}
           reviewPolicyLane={reviewPolicyLane}
-          reviewManualChoice={reviewManualChoice}
+          reviewManualSelections={reviewManualSelections}
           items={walkthroughItems}
           index={walkthroughIndex}
           frameVersion={frameVersion}
@@ -499,7 +542,7 @@ export function MergeProofPanel({
           onNext={() => onNextWalkthrough(walkthroughItems.length - 1)}
           onPrev={onPrevWalkthrough}
           onSetReviewPolicyLane={onSetReviewPolicyLane}
-          onSetReviewManualChoice={onSetReviewManualChoice}
+          onSetReviewManualSelections={onSetReviewManualSelections}
         />
       ) : null}
     </>

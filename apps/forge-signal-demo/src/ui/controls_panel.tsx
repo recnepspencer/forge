@@ -19,6 +19,9 @@ export function ControlsPanel({
         <span className="panel__eyebrow">Controls</span>
         <span className="panel__chevron">{controlsOpen ? "v" : ">"}</span>
       </button>
+      <p className="panel__hint panel__hint--tight">
+        Shape the active gear here, then branch it into the arena once the silhouette feels worth reviewing.
+      </p>
       {controlsOpen && activeBranch && (
         <div key={activeBranch.id} className="sliders">
           <Slider label="Teeth" value={activeBranch.state.gear.teeth} min={8} max={32} step={1} fmt={(v) => `${v}`} onChange={(v) => onPatch({ gear: { teeth: Math.round(v) } }, "teeth")} />

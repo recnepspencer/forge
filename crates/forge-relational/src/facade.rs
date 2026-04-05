@@ -8,9 +8,9 @@ pub mod config {
         CommitStrategiesConfig, CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry,
         ConfigValueSource, CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy,
         DurableLogPolicy, DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy,
-        PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
-        RetentionBackend, RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy,
-        SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
+        PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend,
+        RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy, SnapshotReleasePolicy,
+        StorageLayoutConfig, VisibilityCachePolicy,
     };
 }
 
@@ -89,6 +89,7 @@ pub mod history {
         LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
         RequestedAspectSet, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
+    pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
 }
 
 pub mod identity {
@@ -185,21 +186,25 @@ pub mod runtime {
     pub use crate::logic::builder::RelationalRuntimeBuilder;
     pub use crate::logic::commit::CommitAuthorityContract;
     pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
+    #[cfg(test)]
+    pub use crate::logic::runtime::HarnessAuditMode;
     pub use crate::logic::runtime::{
         ChunkVisibilitySummary, ChunkedStorageSummary, CompiledArtifactCompatibility,
         CompiledArtifactError, CompiledExecutionArtifact, ComplexityContract, ComplexityStatus,
-        EntityReadRecord, EntityRecordProjection, HarnessAuditMode, InvariantCatalog,
+        EntityReadRecord, EntityRecordProjection, InvariantAccess, InvariantCatalog,
         InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
         InvariantExecutionPoint, InvariantFailureEffect, InvariantRegistration, InvariantRule,
         PartitionStorageStats, RelationReadRecord, RelationRecordProjection, RelationalReadView,
         RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
-        RuntimeComplexityCounters, SnapshotGuard, StorageStats, TopologyFreezeMode,
-        VisibilityProjectionView,
+        RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
+        StorageStats, TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
+        VisibilityRetentionAuthority,
     };
     pub use crate::presentation::api::RelationalRuntimeApi;
     pub use crate::presentation::contracts::{
         ImmutableReadContract, RelationalBoundaryContract, SerializedAuthorityContract,
     };
+    pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
 }
 
 pub mod payloads {
@@ -208,6 +213,7 @@ pub mod payloads {
     };
 }
 
+#[cfg(test)]
 pub mod harness {
     pub use crate::presentation::harness::{
         default_harness_expectations, FixtureEntity, FixtureRelation, RelationalFixture,
@@ -321,12 +327,12 @@ pub mod transactions {
         CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
         CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
         CommitTraceEvent, ConflictClass, CreateIntent, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
+        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntitySpec,
         LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
         MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
         NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
         PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
-        RelationMutationIntent, RelationScope, ReplaceEntityIntent, RollbackEffect,
+        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
         RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
         TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
     };
