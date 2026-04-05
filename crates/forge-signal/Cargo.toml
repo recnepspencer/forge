@@ -4,6 +4,10 @@ edition.workspace = true
 version.workspace = true
 license.workspace = true
 description = "Generic deterministic reactive computation runtime"
+readme = "README.md"
+repository = "https://github.com/recnepspencer/forge"
+keywords = ["incremental", "runtime", "reactive", "diagnostics", "replay"]
+categories = ["data-structures", "caching", "science"]
 
 [features]
 default = ["profile-standard"]
@@ -13,7 +17,6 @@ profile-standard = []
 profile-extended = []
 
 [dependencies]
-forge-harness.workspace = true
 tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }
 smallvec = { workspace = true, features = ["serde"] }
@@ -22,6 +25,7 @@ serde_json = { workspace = true }
 sha2 = "0.10"
 
 [dev-dependencies]
+forge-harness.workspace = true
 stats_alloc = "0.1"
 trybuild = "1"
 

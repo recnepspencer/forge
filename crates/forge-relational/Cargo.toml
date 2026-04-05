@@ -10,7 +10,6 @@ keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
 categories = ["data-structures", "database-implementations", "science"]
 
 [dependencies]
-forge-harness.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 rayon.workspace = true
@@ -18,6 +17,7 @@ smallvec.workspace = true
 sha2 = "0.10"
 
 [dev-dependencies]
+forge-harness.workspace = true
 proptest = "1"
 trybuild = "1"
 

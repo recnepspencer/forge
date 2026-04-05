@@ -46,7 +46,7 @@ creates a wrong mental model.
 Example:
 
 - a digest struct getter is not a separate DX product decision
-- `runtime.history_access()` absolutely is
+- `runtime.history()` absolutely is
 
 ---
 
@@ -91,33 +91,27 @@ Owner:
 | `commit_strategy_registry` | `Contained` | `Contain` | Good read surface for strategy introspection, but not central runtime memory. |
 | `commit_strategies` | `Guided` | `Keep` | This is the right public entry into strategy execution. |
 | `commit_strategies_authority` | `Contained` | `Contain` | Real authority surface. Keep public, but clearly specialist. |
-| `history_access` | `Guided` | `Keep` | This is the right read door into history. |
+| `snapshots` | `Guided` | `Keep` | This is the right controlled-view door for current or pinned truth. |
+| `read_truth` | `Primary` | `Keep` | This is the primary current-truth read lane now. |
+| `validation` | `Contained` | `Keep` | Real public validation lane and the right name for it. |
+| `compiled_artifacts` | `Contained` | `Keep` | Real read-side compiled-artifact lane. |
+| `compiled_artifacts_authority` | `Contained` | `Contain` | Real authority side of the compiled-artifact lane. |
+| `retention` | `Contained` | `Keep` | Real retention lane and the right public name for it. |
+| `history` | `Guided` | `Keep` | This is the right read door into history. |
 | `history_authority` | `Contained` | `Contain` | Real authority, but should stay out of the main runtime path. |
-| `inspection_access` | `Contained` | `Condense` | Keep public, but teach it around question-shaped inspection jobs. |
+| `inspect_what_happened` | `Contained` | `Keep` | Good question-shaped inspection door and a much clearer top-level name. |
 | `index_access` | `Contained` | `Contain` | Keep public as subsystem access, not main product memory. |
 | `index_authority` | `Contained` | `Contain` | Same. Real authority, specialist lane. |
-| `publication_access` | `Contained` | `Keep` | This is the clean read entry for publication state. |
-| `replay_access` | `Contained` | `Keep` | Good read-side replay lane. |
+| `publication` | `Contained` | `Keep` | This is the clean read entry for publication state. |
+| `replay` | `Contained` | `Keep` | Good read-side replay lane. |
 | `replay_authority` | `Contained` | `Contain` | Keep public, but clearly specialist and authority-shaped. |
-| `durability_access` | `Contained` | `Keep` | Legit read lane for recovery and storage durability state. |
+| `durability` | `Contained` | `Keep` | Legit read lane for recovery and storage durability state. |
 | `durability_authority` | `Contained` | `Contain` | Keep public, clearly specialist. |
 | `storage_access` | `Contained` | `Contain` | Useful support lane. Keep available, not central. |
-| `merge_access` | `Contained` | `Keep` | Good specialist read/planning door. |
+| `merge` | `Contained` | `Keep` | Good specialist read/planning door. |
 | `prepare_merge_execution` | `Contained` | `Keep` | Strong top-level guided verb for merge execution prep. |
 | `execute_prepared_merge` | `Contained` | `Keep` | Strong top-level guided verb for merge execution. |
-| `performance_access` | `Contained` | `Contain` | Good support lane for contracts and counters. Not main path. |
-| `visibility_authority` | `Contained` | `Contain` | Snapshot authority is real and useful, but belongs in a contained lane. |
-| `retention_authority` | `Contained` | `Keep` | Keep public as the dedicated retention lane. It is no longer an orphan seam. |
-| `visibility_reads` | `Primary` | `Condense` | Keep public, but teach it as the current-truth read lane under the product direction `read_truth`. |
-| `simulation_access` | `Contained` | `Keep` | Keep public as the read side of the contained `compiled_artifacts` lane. |
-| `simulation_authority` | `Contained` | `Keep` | Keep public as the authority side of the contained `compiled_artifacts` lane. |
-| `invariant_access` | `Contained` | `Keep` | Keep public as the contained `validation` lane. |
 | `certify_current_state` | `Contained` | `Keep` | This is a good top-level authority verb and should stay public. |
-| `entity_aspect_declaration_trace` | `Contained` | `Contain` | Excellent power tool, but clearly specialist schema introspection. |
-| `relation_aspect_declaration_trace` | `Contained` | `Contain` | Same. |
-| `entity_aspect_plan_trace` | `Contained` | `Contain` | Same. |
-| `relation_aspect_plan_trace` | `Contained` | `Contain` | Same. |
-| `relation_integrity_plan` | `Contained` | `Contain` | Real architecture, but not first-use runtime memory. |
 
 ### Root Runtime Take
 
@@ -126,15 +120,16 @@ The biggest runtime cleanup was not deleting power.
 It was making a hard call on the seam methods that exposed public helper
 types without giving them a real facade lane.
 
-That lane-ownership call is now resolved:
+That lane-ownership call is now resolved in code:
 
-- `visibility_reads` belongs to the primary current-truth read lane
-- `invariant_access` belongs to the contained `validation` lane
-- `simulation_access` and `simulation_authority` belong to the contained
-  `compiled_artifacts` lane
-- `retention_authority` belongs to the contained `retention` lane
+- `read_truth()` is the primary current-truth read lane
+- `validation()` is the contained validation lane
+- `compiled_artifacts()` and `compiled_artifacts_authority()` are the contained
+  compiled-artifact lane
+- `retention()` is the contained retention lane
+- `snapshots()` is the controlled-view lane
 
-The remaining job is condensation and naming, not basic lane ownership.
+The remaining job is polish and consistency, not basic lane ownership.
 
 ---
 
@@ -510,14 +505,17 @@ calls are:
 1. Keep the clean top-level verbs visible.
 2. Contain the specialist authority and planning verbs, not by hiding them, but
    by giving them a clearly specialist lane.
-3. Fix the public seam methods that currently leak helper types not actually
-   integrated into the explicit facade story.
+3. Keep the remaining subsystem lanes explicit without letting helper naming
+   leak back into the published story.
 
 The clean keepers are things like:
 
 - `RelationalRuntimeApi::builder`
 - `RelationalRuntime::config`
-- `RelationalRuntime::history_access`
+- `RelationalRuntime::read_truth`
+- `RelationalRuntime::snapshots`
+- `RelationalRuntime::history`
+- `RelationalRuntime::publication`
 - `RelationalRuntime::commit_strategies`
 - `RelationalRuntime::prepare_merge_execution`
 - `RelationalRuntime::execute_prepared_merge`
@@ -540,9 +538,9 @@ The clearest remaining condensation targets are:
 
 - the flat `RelationalRuntimeBuilder` knob list
 - the write-truth split between transaction nouns and admission-phase detail
-- the read-truth split across current truth, query, inspection, and history
-- the operational readback split across inspection, publication, validation,
-  retention, and compiled artifacts
+- how current truth, snapshots, query, inspection, history, and publication are
+  taught as one coherent story
+- how the deep lanes stay explicit without feeling like random leftovers
 
 Those are now mostly workflow-shape problems, not "what lane does this belong
 to?" problems.

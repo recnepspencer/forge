@@ -172,6 +172,14 @@ Do not deprecate:
 
 ## Surface Posture Matrix
 
+Current reality note:
+
+- this started as a transition plan
+- the main guided aliases are now the live public surface
+- the old helper seams are no longer the package-grade story
+- this doc now records what survived publicly and what moved behind
+  `pub(crate)`
+
 ## Primary Runtime Story
 
 | Surface | Posture | Why |
@@ -180,59 +188,53 @@ Do not deprecate:
 | transaction flow (`begin_transaction`, `push_batch`, `commit`) | `Keep` | already the right primary write-truth shape |
 | `plan_bulk_mutation_batch(...)` | `Keep And Contain` | good guided advanced write helper |
 | `admit_*` trio | `Keep And Contain` | real power, but not primary story |
-| `visibility_reads()` | `Keep But Reword` | real lane, current name is formal; docs should teach `read_truth` |
+| `read_truth()` | `Keep` | this is now the real public current-truth lane |
 | `query` surface | `Keep` | already real and central |
 
 Compatibility call:
 
-- do not rename `visibility_reads()` yet
-- teach `read_truth` in docs first
-- revisit additive alias only if the docs-first shape still feels too leaky
+- keep `read_truth()` as the published lane
+- keep `visibility_reads()` hidden as an internal helper seam
 
 ## Operator Readback Story
 
 | Surface | Posture | Why |
 | --- | --- | --- |
-| `inspection_access()` | `Keep But Reword` | real lane; docs should teach "inspect what happened" |
-| `publication_access()` | `Keep But Reword` | real lane; docs should teach "what published" and publication diagnostics |
+| `inspect_what_happened()` | `Keep` | this is now the real public inspection lane |
+| `publication()` | `Keep` | this is now the real public publication lane |
 | publication diagnostics helpers | `Keep And Contain` | useful, but not first-memory nouns |
 | retention reads under inspection | `Keep` | already coherent as operator readback |
 
 Compatibility call:
 
-- do not force cute renames here yet
-- the current code names are acceptable
-- the docs just need to teach the jobs first
+- keep these names stable
+- keep the old helper seams hidden
 
 ## Contained Real Lanes
 
 | Surface | Posture | Why |
 | --- | --- | --- |
-| `invariant_access()` | `Keep But Reword` | real lane; docs should teach `validation` |
+| `validation()` | `Keep` | this is now the real public validation lane |
 | `certify_current_state()` | `Keep` | already good |
-| `simulation_access()` / `simulation_authority()` | `Keep But Reword` | real lane; docs should teach `compiled_artifacts` |
-| `retention_authority()` | `Keep But Reword` | real lane; docs should teach `retention` |
-| `durability_access()` / `durability_authority()` | `Keep But Reword` | real lane; docs should lead with recovery/checkpoint jobs |
+| `compiled_artifacts()` / `compiled_artifacts_authority()` | `Keep` | real compiled-artifact lane with the right public naming |
+| `retention()` | `Keep` | real retention lane with the right public naming |
+| `durability()` / `durability_authority()` | `Keep` | real durability lane; the read side now has the right public name |
 
 Compatibility call:
 
-- no immediate renames
-- no deprecations yet
-- if later code work adds aliases, do it in one guided-lane batch:
-  - `validation()`
-  - `compiled_artifacts()`
-  - `retention()`
-  - maybe `read_truth()`
+- keep these names stable
+- keep the old helper seams hidden
 
 ## Specialist Lanes
 
 | Surface | Posture | Why |
 | --- | --- | --- |
-| `history_access()` | `Keep` | already the right historical door |
-| `replay_access()` / `replay_authority()` | `Keep And Contain` | real and specialist |
-| `merge_access()` + merge verbs | `Keep And Contain` | real and specialist |
+| `history()` | `Keep` | this is now the right historical door |
+| `history_authority()` | `Keep And Contain` | real branch and replay-retention authority lane |
+| `replay()` / `replay_authority()` | `Keep And Contain` | real and specialist |
+| `merge()` + merge verbs | `Keep And Contain` | real and specialist |
 | `commit_strategies()` / authority | `Keep And Contain` | real pipeline surface |
-| indexes, storage, performance | `Keep And Contain` | real support lanes, not public center |
+| indexes and storage | `Keep And Contain` | real support lanes, not public center |
 
 Compatibility call:
 
@@ -262,11 +264,11 @@ Compatibility call:
 
 These are the concrete Phase 5 naming decisions.
 
-## 1. `visibility_reads()`
+## 1. `read_truth()`
 
 Current posture:
 
-- `Keep But Reword`
+- `Keep`
 
 Guided product story:
 
@@ -275,21 +277,18 @@ Guided product story:
 Why:
 
 - the lane is real
-- the current name is formal, not fake
-- docs can carry the better memory immediately
-- a premature code rename would create churn before we know whether we want a
-  wrapper, alias, or regrouped runtime lane
+- this is now the live public name
+- the old helper seam is hidden
 
 Later option:
 
-- add `read_truth()` as an alias if Phase 6 or bridge-facing code proves that
-  the formal name is still too leaky
+- none unless we redesign the whole runtime story again
 
-## 2. `invariant_access()`
+## 2. `validation()`
 
 Current posture:
 
-- `Keep But Reword`
+- `Keep`
 
 Guided product story:
 
@@ -298,18 +297,18 @@ Guided product story:
 Why:
 
 - lane is real
-- current name is okay internally but weaker publicly
-- docs-first wording is enough for now
+- this is now the live public name
+- the old helper seam is hidden
 
 Later option:
 
-- add `validation()` as an alias in a bundled guided-lane pass
+- none unless we redesign the whole runtime story again
 
-## 3. `simulation_access()` / `simulation_authority()`
+## 3. `compiled_artifacts()` / `compiled_artifacts_authority()`
 
 Current posture:
 
-- `Keep But Reword`
+- `Keep`
 
 Guided product story:
 
@@ -317,19 +316,18 @@ Guided product story:
 
 Why:
 
-- "simulation" undersells the job
-- but the lane is specialist enough that docs containment buys a lot already
+- this is now the live public name
+- the old helper seams are hidden
 
 Later option:
 
-- add compiled-artifact aliases if this lane becomes more central to bridge or
-  publish-facing workflows
+- none unless we redesign the whole runtime story again
 
-## 4. `retention_authority()`
+## 4. `retention()`
 
 Current posture:
 
-- `Keep But Reword`
+- `Keep`
 
 Guided product story:
 
@@ -337,19 +335,18 @@ Guided product story:
 
 Why:
 
-- current name is precise but clunky
-- docs can fix most of the usability problem immediately
+- this is now the live public name
+- the old helper seam is hidden
 
 Later option:
 
-- add `retention()` as a cleaner lane alias if we do a grouped runtime-lane
-  cleanup batch
+- none unless we redesign the whole runtime story again
 
-## 5. `inspection_access()` / `publication_access()`
+## 5. `inspect_what_happened()` / `publication()`
 
 Current posture:
 
-- `Keep But Reword`
+- `Keep`
 
 Guided product story:
 
@@ -358,12 +355,12 @@ Guided product story:
 
 Why:
 
-- these names are already good enough technically
-- the bigger problem is docs framing, not code naming
+- these are now the live public names
+- the old helper seams are hidden
 
 Decision:
 
-- do not rename
+- keep stable
 
 ---
 

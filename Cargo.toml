@@ -31,7 +31,7 @@ version = "0.1.0"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-forge-harness = { path = "crates/forge-harness" }
+forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
 # Internal crates — kernel
 forge-math = { path = "crates/forge-math" }
 forge-core = { path = "crates/forge-core" }
