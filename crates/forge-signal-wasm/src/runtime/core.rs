@@ -21,9 +21,8 @@ use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
 use forge_signal::facade::specialist::EvaluationOutput;
 use forge_signal::facade::specialist::EvaluationVerdict;
 use forge_signal::facade::{
-    Aspect, AspectVersion, ChangedRegion, DependencyEdge, EvaluationContext,
-    NodeEvaluationResult, NodeId, OutputChange, SignalError, SignalGraph,
-    SignalRuntime as NativeRuntime,
+    Aspect, AspectVersion, ChangedRegion, DependencyEdge, EvaluationContext, NodeEvaluationResult,
+    NodeId, OutputChange, SignalError, SignalGraph, SignalRuntime as NativeRuntime,
 };
 
 use crate::boundary::errors::ForgeSignalJsError;
@@ -429,10 +428,7 @@ impl RuntimeCore {
                         None => DependencyEdge::new(entry.node, DEFAULT_ASPECT),
                     })
                     .ok_or_else(|| {
-                        ForgeSignalJsError::invalid_input(format!(
-                            "unknown read `{}`",
-                            read.id()
-                        ))
+                        ForgeSignalJsError::invalid_input(format!("unknown read `{}`", read.id()))
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -541,12 +537,7 @@ impl RuntimeCore {
         key: &str,
         initial: Option<SignalValue>,
     ) -> Result<String, ForgeSignalJsError> {
-        self.ensure_source_key_with_stats(
-            family_id,
-            key,
-            initial,
-            &mut KeyedEnsureStats::default(),
-        )
+        self.ensure_source_key_with_stats(family_id, key, initial, &mut KeyedEnsureStats::default())
     }
 
     fn ensure_source_key_with_stats(
@@ -920,11 +911,7 @@ impl RuntimeCore {
         ));
         let extract_started_at = perf_now_ms();
         let mut read_stats = self.bulk_evaluate_targets(&targets.0)?;
-        let mut packed = Vec::with_capacity(checked_packed_capacity(
-            columns,
-            rows,
-            fields.len(),
-        )?);
+        let mut packed = Vec::with_capacity(checked_packed_capacity(columns, rows, fields.len())?);
         self.pack_fields_from_targets(&targets.0, &fields, &mut packed, &mut read_stats)?;
         wasm_debug(format!(
             "[forge-signal-wasm] packed-grid:extract family={family_id} elapsed_ms={:.1} runtime_read_ms={:.1} field_extract_ms={:.1} keys={} source_reads={} recipe_reads={} recipe_cold_reads={} fields_packed={}",
@@ -955,8 +942,15 @@ impl RuntimeCore {
             return Ok(Vec::new());
         }
         let ensure_started_at = perf_now_ms();
-        let targets =
-            self.ensure_keyed_rect_targets(family_id, columns, rows, row, start_column, width, height)?;
+        let targets = self.ensure_keyed_rect_targets(
+            family_id,
+            columns,
+            rows,
+            row,
+            start_column,
+            width,
+            height,
+        )?;
         wasm_debug(format!(
             "[forge-signal-wasm] packed-rect:ensure family={family_id} row={} start={} size={}x{} elapsed_ms={:.1} source_hits={} source_created={} recipe_hits={} recipe_created={}",
             row,
@@ -1197,7 +1191,8 @@ impl RuntimeCore {
             };
             let extract_started_at = perf_now_ms();
             for field in fields {
-                let Some((_, value)) = object.iter().find(|(candidate, _)| candidate == field) else {
+                let Some((_, value)) = object.iter().find(|(candidate, _)| candidate == field)
+                else {
                     return Err(ForgeSignalJsError::invalid_input(format!(
                         "target `{}` is missing numeric field `{field}`",
                         target.id
@@ -1304,10 +1299,7 @@ impl RuntimeCore {
         let clamped_width = width.min(columns.saturating_sub(start_column));
         let clamped_height = height.min(rows.saturating_sub(row));
         let mut stats = KeyedEnsureStats::default();
-        let mut targets = Vec::with_capacity(checked_grid_cells(
-            clamped_width,
-            clamped_height,
-        )?);
+        let mut targets = Vec::with_capacity(checked_grid_cells(clamped_width, clamped_height)?);
         for row_offset in 0..clamped_height {
             let current_row = row + row_offset;
             for column_offset in 0..clamped_width {
@@ -1444,9 +1436,10 @@ impl RuntimeCore {
                 let mut locked = store
                     .lock()
                     .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
-                let source = locked.sources.get_mut(id).ok_or_else(|| {
-                    SignalError::invalid_input(format!("unknown source `{id}`"))
-                })?;
+                let source = locked
+                    .sources
+                    .get_mut(id)
+                    .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
                 source.version = source.version.saturating_add(1);
             }
 
@@ -1677,7 +1670,8 @@ impl RuntimeCore {
 
     pub fn execution_history_now(
         &self,
-    ) -> Result<forge_signal::facade::diagnostics::ExecutionHistorySummary, ForgeSignalJsError> {
+    ) -> Result<forge_signal::facade::diagnostics::ExecutionHistorySummary, ForgeSignalJsError>
+    {
         Ok(self.runtime.diagnostics().history_now())
     }
 
@@ -1703,7 +1697,11 @@ impl RuntimeCore {
         &self,
     ) -> Result<Option<forge_signal::facade::adapters::FrontierExecutionSummary>, ForgeSignalJsError>
     {
-        Ok(self.runtime.diagnostics().latest_frontier_execution().cloned())
+        Ok(self
+            .runtime
+            .diagnostics()
+            .latest_frontier_execution()
+            .cloned())
     }
 
     pub fn latest_invalidation_trace_records(
@@ -1721,7 +1719,13 @@ impl RuntimeCore {
         &self,
     ) -> Result<Vec<forge_signal::facade::diagnostics::ExecutionHistorySummary>, ForgeSignalJsError>
     {
-        Ok(self.runtime.diagnostics().recent_history().iter().cloned().collect())
+        Ok(self
+            .runtime
+            .diagnostics()
+            .recent_history()
+            .iter()
+            .cloned()
+            .collect())
     }
 
     pub fn replay_for_id(&mut self, id: &str) -> Result<ReplaySummary, ForgeSignalJsError> {
@@ -2688,8 +2692,7 @@ fn evaluate_node(
             } else {
                 None
             }
-        })
-        else {
+        }) else {
             return Err(SignalError::invalid_input(format!(
                 "recipe `{id}` references unknown read `{}`",
                 read.id()
@@ -2697,11 +2700,8 @@ fn evaluate_node(
         };
         match read.scope() {
             Some(scope) => {
-                let _ = view.read_partitioned_aspect_version(
-                    read_node,
-                    DEFAULT_ASPECT,
-                    scope.clone(),
-                )?;
+                let _ =
+                    view.read_partitioned_aspect_version(read_node, DEFAULT_ASPECT, scope.clone())?;
             }
             None => {
                 let _ = view.read_aspect_version(read_node, DEFAULT_ASPECT)?;

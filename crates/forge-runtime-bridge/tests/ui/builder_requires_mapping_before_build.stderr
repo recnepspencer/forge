@@ -1,0 +1,8 @@
+error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder` in the current scope
+ --> tests/ui/builder_requires_mapping_before_build.rs:5:22
+  |
+5 |     let _ = _builder.build();
+  |                      ^^^^^ method not found in `RuntimeBridgeBuilder`
+  |
+  = note: the method was found for
+          - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::PresentMappingRegistrations>`

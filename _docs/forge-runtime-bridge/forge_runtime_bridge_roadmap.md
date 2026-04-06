@@ -98,6 +98,10 @@ This milestone is complete only when the bridge harness can prove:
 
 ## Milestone 2: Aspect Mapping and Fine-Grained Subscriptions
 
+Engineering spec: [milestone-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-2.md)
+Shipped closeout: [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-2-closeout.md)
+Envelope/planning hardening companion: [milestone-2-envelope-and-planning-hardening.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-2-envelope-and-planning-hardening.md)
+
 ### Goal
 
 Preserve truth-side precision across the bridge so derived execution can depend
@@ -127,6 +131,8 @@ This milestone is complete only when the bridge harness can prove:
 - aspect mapping behavior is replayable and explainable
 
 ## Milestone 3: Lineage-Aware Subscription Continuity
+
+Engineering spec: [milestone-3.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-3.md)
 
 ### Goal
 

@@ -1,0 +1,20 @@
+[package]
+name = "forge-runtime-bridge"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Bridge facade and routing boundary between forge-relational and forge-signal."
+repository = "https://github.com/recnepspencer/forge"
+keywords = ["bridge", "runtime", "invalidation", "snapshot", "facade"]
+categories = ["data-structures", "science"]
+
+[dependencies]
+forge-harness.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+
+[dev-dependencies]
+trybuild.workspace = true
+
+[lints]
+workspace = true

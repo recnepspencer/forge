@@ -50,6 +50,296 @@ pub mod commit_strategies {
     pub use crate::commit_strategies::{FrozenCommitStrategyRegistry, StrategyExecutionError};
 }
 
+pub mod bridge {
+    use std::collections::BTreeMap;
+    use std::sync::{Arc, RwLock};
+
+    use forge_runtime_bridge::facade::{
+        BridgeCommittedPatchItem, RawCommittedPatchEnvelope, RelationalBridgeSource,
+        RelationalBridgeSourceError, SnapshotReadPacket, SnapshotReadPacketResult,
+        SnapshotReadRecord, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
+        TruthSnapshotIdentity, TruthSnapshotReader,
+    };
+
+    use crate::history::data::CommitId;
+    use crate::publication::patch::data::{PatchRecord, RelationalPatchRecord};
+    use crate::symbols::data::InternedString;
+    use crate::transactions::data::RecordRef;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct PublicationBridgeSnapshot {
+        identity: TruthSnapshotIdentity,
+        read_result_identity: TruthSnapshotIdentity,
+        records: Vec<SnapshotReadRecord>,
+    }
+
+    impl PublicationBridgeSnapshot {
+        pub fn new(
+            identity: TruthSnapshotIdentity,
+            records: Vec<SnapshotReadRecord>,
+        ) -> Self {
+            Self {
+                read_result_identity: identity.clone(),
+                identity,
+                records,
+            }
+        }
+
+        pub fn with_read_result_identity(mut self, identity: TruthSnapshotIdentity) -> Self {
+            self.read_result_identity = identity;
+            self
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub struct PublicationBridgeCatalog {
+        state: Arc<RwLock<PublicationBridgeCatalogState>>,
+    }
+
+    #[derive(Debug, Default)]
+    struct PublicationBridgeCatalogState {
+        committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+        snapshots: BTreeMap<String, PublicationBridgeSnapshot>,
+    }
+
+    impl PublicationBridgeCatalog {
+        pub fn register_patch(
+            &self,
+            commit_id: CommitId,
+            branch_identity: impl Into<String>,
+            snapshot_identity: impl Into<String>,
+            patch: &RelationalPatchRecord,
+        ) {
+            let envelope = publication_patch_to_bridge_envelope(
+                commit_id,
+                branch_identity,
+                snapshot_identity,
+                patch,
+            );
+            self.state
+                .write()
+                .expect("publication bridge catalog lock poisoned")
+                .committed_patches
+                .insert(envelope.commit_identity().as_str().to_string(), envelope);
+        }
+
+        pub fn register_snapshot(&self, snapshot: PublicationBridgeSnapshot) {
+            self.state
+                .write()
+                .expect("publication bridge catalog lock poisoned")
+                .snapshots
+                .insert(snapshot.identity.as_str().to_string(), snapshot);
+        }
+    }
+
+    impl RelationalBridgeSource for PublicationBridgeCatalog {
+        fn load_committed_patch(
+            &self,
+            request: forge_runtime_bridge::facade::RelationalCommittedPatchRequest,
+        ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+            self.state
+                .read()
+                .expect("publication bridge catalog lock poisoned")
+                .committed_patches
+                .get(request.commit_identity())
+                .cloned()
+                .ok_or_else(|| {
+                    RelationalBridgeSourceError::new(format!(
+                        "no publication bridge patch registered for commit `{}`",
+                        request.commit_identity()
+                    ))
+                })
+        }
+
+        fn open_snapshot(
+            &self,
+            identity: &TruthSnapshotIdentity,
+        ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
+            let snapshot = self
+                .state
+                .read()
+                .expect("publication bridge catalog lock poisoned")
+                .snapshots
+                .get(identity.as_str())
+                .cloned()
+                .ok_or_else(|| {
+                    RelationalBridgeSourceError::new(format!(
+                        "no publication bridge snapshot registered for `{}`",
+                        identity.as_str()
+                    ))
+                })?;
+            Ok(Box::new(PublicationSnapshotReader { snapshot }))
+        }
+    }
+
+    pub fn publication_patch_to_bridge_envelope(
+        commit_id: CommitId,
+        branch_identity: impl Into<String>,
+        snapshot_identity: impl Into<String>,
+        patch: &RelationalPatchRecord,
+    ) -> RawCommittedPatchEnvelope {
+        let snapshot_identity = TruthSnapshotIdentity::new(snapshot_identity.into());
+        RawCommittedPatchEnvelope::new(
+            TruthCommitIdentity::new(format!("commit-{}", commit_id.0)),
+            TruthPatchIdentity::new(format!("patch-{}", patch.position.0)),
+            snapshot_identity,
+            TruthBranchIdentity::new(branch_identity.into()),
+            bridge_patch_items(&patch.canonicalized().records),
+        )
+    }
+
+    fn bridge_patch_items(records: &[PatchRecord]) -> Vec<BridgeCommittedPatchItem> {
+        let mut items = Vec::new();
+        for record in records {
+            let entity_identity = record_ref_identity(&record.target);
+            if record.aspects.is_empty() {
+                items.push(BridgeCommittedPatchItem::new(
+                    entity_identity.clone(),
+                    structural_change_label(record),
+                    "structural",
+                ));
+                continue;
+            }
+
+            for aspect in record.aspects.iter() {
+                items.push(BridgeCommittedPatchItem::new(
+                    entity_identity.clone(),
+                    aspect_key_label(aspect.0.clone()),
+                    structural_change_label(record),
+                ));
+            }
+        }
+        items
+    }
+
+    fn record_ref_identity(record: &RecordRef) -> String {
+        match record {
+            RecordRef::Entity(entity) => format!(
+                "entity:{}:{}:{}",
+                entity.partition_id.0, entity.local_slot.0, entity.generation.0
+            ),
+            RecordRef::Relation(relation) => format!(
+                "relation:{}:{}:{}",
+                relation.partition_id.0, relation.local_slot.0, relation.generation.0
+            ),
+        }
+    }
+
+    fn aspect_key_label(aspect: InternedString) -> String {
+        match aspect {
+            InternedString::Raw(value) => value,
+            InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
+        }
+    }
+
+    fn structural_change_label(record: &PatchRecord) -> &'static str {
+        match record.structural_change {
+            crate::publication::patch::data::RecordStructuralChange::Created => "created",
+            crate::publication::patch::data::RecordStructuralChange::Updated => "updated",
+            crate::publication::patch::data::RecordStructuralChange::Deleted => "deleted",
+            crate::publication::patch::data::RecordStructuralChange::RetainedForAudit => {
+                "retained_for_audit"
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    struct PublicationSnapshotReader {
+        snapshot: PublicationBridgeSnapshot,
+    }
+
+    impl TruthSnapshotReader for PublicationSnapshotReader {
+        fn snapshot_identity(&self) -> TruthSnapshotIdentity {
+            self.snapshot.identity.clone()
+        }
+
+        fn read_packet(
+            &self,
+            request: &SnapshotReadPacket,
+        ) -> Result<SnapshotReadPacketResult, forge_runtime_bridge::facade::BridgeSnapshotReadError>
+        {
+            let records_by_key = self
+                .snapshot
+                .records
+                .iter()
+                .map(|record| (record.request_key().to_string(), record.clone()))
+                .collect::<BTreeMap<_, _>>();
+            let records = request
+                .reads()
+                .iter()
+                .filter_map(|read| records_by_key.get(read.request_key()).cloned())
+                .collect::<Vec<_>>();
+            Ok(SnapshotReadPacketResult::new(
+                self.snapshot.read_result_identity.clone(),
+                records,
+            ))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::facade::history::CommitId;
+        use crate::facade::identity::{EntityId, PartitionId};
+        use crate::facade::publication::{
+            AspectKey, CanonicalAspectSet, PatchOrdering, PatchPublicationMode, PatchRecord,
+            PatchRecordKind, PatchStreamPosition, RecordStructuralChange, RelationalPatchRecord,
+        };
+        use crate::publication::patch::data::{PatchCompatibilityClass, PatchDetail};
+        use forge_runtime_bridge::facade::{RelationalCommittedPatchRequest, SnapshotReadRequest};
+
+        #[test]
+        fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
+            let catalog = PublicationBridgeCatalog::default();
+            catalog.register_patch(
+                CommitId(7),
+                "main",
+                "snapshot-a",
+                &RelationalPatchRecord {
+                    ordering: PatchOrdering::CanonicalCommitOrder,
+                    publication_mode: PatchPublicationMode::CommitNative,
+                    position: PatchStreamPosition(11),
+                    compatibility: PatchCompatibilityClass::StructuredCompatible,
+                    records: vec![PatchRecord {
+                        kind: PatchRecordKind::Updated,
+                        target: crate::transactions::data::RecordRef::Entity(EntityId::new(
+                            PartitionId::main(),
+                            4,
+                            1,
+                        )),
+                        structural_change: RecordStructuralChange::Updated,
+                        aspects: CanonicalAspectSet::new([AspectKey("profile.name".into())]),
+                        contains_degraded_precision: false,
+                        detail: PatchDetail::StructuredJson(serde_json::json!({"after": "alice"})),
+                    }],
+                },
+            );
+            catalog.register_snapshot(PublicationBridgeSnapshot::new(
+                TruthSnapshotIdentity::new("snapshot-a"),
+                vec![SnapshotReadRecord::new("entity:0:4:1:profile.name", b"alice".to_vec())],
+            ));
+
+            let envelope = catalog
+                .load_committed_patch(RelationalCommittedPatchRequest::new("commit-7"))
+                .expect("registered publication patch");
+            let reader = catalog
+                .open_snapshot(&TruthSnapshotIdentity::new("snapshot-a"))
+                .expect("registered publication snapshot");
+            let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::new(
+                "entity:0:4:1:profile.name",
+                "entity:0:4:1",
+                "profile.name",
+            )]);
+            let result = reader.read_packet(&packet).expect("snapshot packet read");
+
+            assert_eq!(envelope.patch_identity().as_str(), "patch-11");
+            assert_eq!(envelope.patch_items()[0].aspect_label(), "profile.name");
+            assert_eq!(result.snapshot_identity().as_str(), "snapshot-a");
+            assert_eq!(result.records().len(), 1);
+        }
+    }
+}
+
 pub mod diagnostics {
     pub use crate::diagnostics::data::{
         DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsDeliveryClass,

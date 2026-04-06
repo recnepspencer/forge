@@ -1,10 +1,12 @@
 # Milestone 1 Engineering Spec: Patch-To-Invalidation And Snapshot Evaluation
 
-> **Status:** Active engineering spec
+> **Status:** Closed engineering spec and shipped closeout reference
 >
 > **Roadmap parent:** [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 >
 > **Vision parent:** [forge_runtime_bridge_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md)
+>
+> **Shipped closeout:** [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-1-closeout.md)
 >
 > **Primary architectural driver:** establish the first real causal protocol boundary between `forge-relational` and `forge-signal`
 >

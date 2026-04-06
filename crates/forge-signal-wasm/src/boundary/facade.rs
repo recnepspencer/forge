@@ -664,11 +664,7 @@ impl SignalDiagnostics {
     }
 
     pub fn latest_failure(&self) -> Result<JsValue, JsValue> {
-        let failure = self
-            .core
-            .borrow()
-            .latest_failure()
-            .map_err(JsValue::from)?;
+        let failure = self.core.borrow().latest_failure().map_err(JsValue::from)?;
         to_js(&failure).map_err(JsValue::from)
     }
 
@@ -700,11 +696,7 @@ impl SignalDiagnostics {
     }
 
     pub fn recent_history(&self) -> Result<JsValue, JsValue> {
-        let history = self
-            .core
-            .borrow()
-            .recent_history()
-            .map_err(JsValue::from)?;
+        let history = self.core.borrow().recent_history().map_err(JsValue::from)?;
         to_js(&history).map_err(JsValue::from)
     }
 }

@@ -13,7 +13,26 @@ The implementation spec is binding. The governing documents are binding:
 - `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_standards.md`
 - `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\performance_guidelines.md`
 
+## Boundary of responsibility
+
+OpenClaw owns this final review pass and the decision to accept the milestone structurally.
+
+Do not tell Codex to "run architecture-closeout." Review the resulting structure yourself. Send Codex only the concrete cleanup findings or the closeout-writing request.
+
+These skills are for the orchestrator only. Codex must never be told they exist.
+
+## Prompt fidelity
+
+Both prompts in this skill are canonical.
+
+Preserve wording exactly.
+Do not paraphrase them into softer language.
+Do not add orchestration commentary.
+Do not mention the skill itself to Codex.
+
 ## Final architecture QA prompt
+
+Canonical prompt. Preserve wording exactly.
 
 ```text
 Perform a final architectural QA of the completed milestone.
@@ -32,6 +51,8 @@ Do not ask whether it merely works. Ask whether the structure is clean, honest, 
 ```
 
 ## Closeout prompt
+
+Canonical prompt. Preserve wording exactly.
 
 ```text
 Write the milestone closeout document.

@@ -79,14 +79,14 @@ pub struct RecipeFamilyReadScopeSpec {
 
 impl RecipeFamilyReadScopeSpec {
     pub fn resolve(&self, key: &str) -> Option<PartitionSubscription> {
-        let partition = self
-            .partition
-            .as_ref()
-            .cloned()
-            .or_else(|| match self.partition_from.as_deref() {
-                Some("key") => Some(key.to_owned()),
-                _ => None,
-            })?;
+        let partition =
+            self.partition
+                .as_ref()
+                .cloned()
+                .or_else(|| match self.partition_from.as_deref() {
+                    Some("key") => Some(key.to_owned()),
+                    _ => None,
+                })?;
 
         let detail = self.detail.clone();
         let match_mode = self.match_mode.unwrap_or({

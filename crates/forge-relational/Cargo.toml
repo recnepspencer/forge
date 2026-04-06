@@ -10,6 +10,7 @@ keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
 categories = ["data-structures", "database-implementations", "science"]
 
 [dependencies]
+forge-runtime-bridge.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 rayon.workspace = true

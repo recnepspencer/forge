@@ -1422,6 +1422,7 @@ name = "forge-relational"
 version = "0.1.0"
 dependencies = [
  "forge-harness",
+ "forge-runtime-bridge",
  "proptest",
  "rayon",
  "serde",
@@ -1434,6 +1435,16 @@ dependencies = [
 [[package]]
 name = "forge-repr"
 version = "0.1.0"
+
+[[package]]
+name = "forge-runtime-bridge"
+version = "0.1.0"
+dependencies = [
+ "forge-harness",
+ "serde_json",
+ "sha2",
+ "trybuild",
+]
 
 [[package]]
 name = "forge-schema"

@@ -13,6 +13,7 @@ members = [
     "crates/forge-repr",
     "crates/forge-schema",
     "crates/forge-spec",
+    "crates/forge-runtime-bridge",
     "crates/forge-signal",
     "crates/forge-signal-wasm",
     "crates/forge-spatial",
@@ -44,6 +45,7 @@ forge-io = { path = "crates/forge-io" }
 forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-spec = { path = "crates/forge-spec" }
+forge-runtime-bridge = { path = "crates/forge-runtime-bridge" }
 forge-signal = { path = "crates/forge-signal" }
 forge-signal-wasm = { path = "crates/forge-signal-wasm" }
 forge-spatial = { path = "crates/forge-spatial" }

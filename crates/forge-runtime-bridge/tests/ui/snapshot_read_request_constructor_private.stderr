@@ -1,0 +1,13 @@
+error[E0624]: associated function `for_coarse` is private
+ --> tests/ui/snapshot_read_request_constructor_private.rs:4:34
+  |
+4 |       let _ = SnapshotReadRequest::for_coarse("user", "profile");
+  |                                    ^^^^^^^^^^ private associated function
+  |
+ ::: src/snapshot/packet.rs
+  |
+  | /     pub(crate) fn for_coarse(
+  | |         entity_identity: impl Into<Arc<str>>,
+  | |         aspect_label: impl Into<Arc<str>>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
