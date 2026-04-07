@@ -104,6 +104,11 @@ impl BridgeRuntimePolicy {
         );
         self
     }
+
+    pub fn with_replay_artifacts(mut self, allow_replay_artifacts: bool) -> Self {
+        self.allow_replay_artifacts = allow_replay_artifacts;
+        self
+    }
 }
 
 impl Default for BridgeRuntimePolicy {

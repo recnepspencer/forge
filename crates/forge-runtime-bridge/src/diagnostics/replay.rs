@@ -5,7 +5,7 @@ use crate::routing::BridgeRouteOutcomeReference;
 
 use super::BridgeRouteRecord;
 
-pub const BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V2: &str = "forge-runtime-bridge.route-record.v2";
+pub const BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3: &str = "forge-runtime-bridge.route-record.v3";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeCanonicalRouteRecord {
@@ -16,7 +16,7 @@ pub struct BridgeCanonicalRouteRecord {
 impl BridgeCanonicalRouteRecord {
     pub(crate) fn from_route_record(route_record: BridgeRouteRecord) -> Self {
         Self {
-            schema_version: Arc::from(BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V2),
+            schema_version: Arc::from(BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3),
             route_record,
         }
     }
@@ -35,13 +35,13 @@ impl BridgeCanonicalRouteRecord {
     }
 
     pub(crate) fn decode(&self) -> Result<BridgeRouteRecord, BridgeReplayError> {
-        if self.schema_version() != BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V2 {
+        if self.schema_version() != BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3 {
             return Err(BridgeReplayError::new(
                 BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure,
                 format!(
                     "Bridge canonical route record schema `{}` is not supported; expected `{}`.",
                     self.schema_version(),
-                    BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V2
+                    BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3
                 ),
             )
             .with_context(BridgeErrorContext::default()));
@@ -63,6 +63,7 @@ impl BridgeReplayArtifact {
                 record.route_identity().clone(),
                 record.invalidation_identity().clone(),
                 crate::routing::BridgeRouteSourceSummary::new(
+                    record.source_branch().clone(),
                     record.source_commit().clone(),
                     record.source_patch().clone(),
                     record.source_snapshot().clone(),

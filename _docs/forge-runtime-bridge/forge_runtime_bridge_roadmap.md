@@ -165,6 +165,9 @@ This milestone is complete only when the bridge harness can prove:
 
 ## Milestone 4: Historical and Branch-Aware Evaluation
 
+Engineering spec: [milestone-4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-4.md)
+Shipped closeout: [milestone-4-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-4-closeout.md)
+
 ### Goal
 
 Allow derived computation to evaluate intentionally against retained historical
@@ -194,6 +197,8 @@ This milestone is complete only when the bridge harness can prove:
 - historical bridge evaluation remains replayable and diagnosable
 
 ## Milestone 5: Bridge Planning, Bulk Routing, and Parallel-Ready Scale Path
+
+Engineering spec: [milestone-5.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-5.md)
 
 ### Goal
 

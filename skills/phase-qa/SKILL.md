@@ -52,7 +52,7 @@ Evaluate the phase against:
 - `performance_guidelines.md`
 - the spirit of the system vision, not merely literal checkbox compliance
 
-Assume the bar is production-grade. Look for implementation gaps, architectural dishonesty, hidden complexity, semantic weakness, proof weakness, performance blindness, shallow tests, and anything that technically passes while violating the deeper intent.
+Assume the bar is aerospace production-grade. Look for implementation gaps, architectural dishonesty, hidden complexity, semantic weakness, proof weakness, performance blindness, shallow tests, and anything that technically passes while violating the deeper intent.
 
 Report findings first.
 

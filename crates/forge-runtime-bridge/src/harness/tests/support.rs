@@ -44,12 +44,22 @@ pub(super) fn committed_patch(
     snapshot: &str,
     surface: &str,
 ) -> RawCommittedPatchEnvelope {
+    committed_patch_on_branch("main", commit, patch, snapshot, surface)
+}
+
+pub(super) fn committed_patch_on_branch(
+    branch: &str,
+    commit: &str,
+    patch: &str,
+    snapshot: &str,
+    surface: &str,
+) -> RawCommittedPatchEnvelope {
     RawCommittedPatchEnvelope::new_with_metadata(
         BridgeProducerMetadata::bridge_harness_fixture(),
         TruthCommitIdentity::new(commit),
         TruthPatchIdentity::new(patch),
         TruthSnapshotIdentity::new(snapshot),
-        TruthBranchIdentity::new("main"),
+        TruthBranchIdentity::new(branch),
         vec![crate::facade::BridgeCommittedPatchItem::new(
             "user", "profile", surface,
         )],
@@ -110,7 +120,8 @@ where
     S: InvalidationSink,
 {
     let builder = RuntimeBridgeBuilder::new()
-        .with_relational_source(source)
+        .with_relational_source(source.clone())
+        .with_truth_branch_head_source(source)
         .with_signal_sink(sink);
     let mut mappings = mappings.into_iter();
     let first_mapping = mappings

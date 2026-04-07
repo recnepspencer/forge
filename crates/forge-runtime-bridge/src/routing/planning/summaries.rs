@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::input::envelope::{
-    BridgeCommittedPatchDigest, BridgeProducerMetadata, TruthCommitIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchDigest, BridgeProducerMetadata, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity,
 };
 use crate::snapshot::TruthSnapshotIdentity;
 
@@ -9,6 +10,7 @@ use super::BridgeRouteIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteSourceSummary {
+    source_branch: TruthBranchIdentity,
     source_commit: TruthCommitIdentity,
     source_patch: TruthPatchIdentity,
     source_snapshot: TruthSnapshotIdentity,
@@ -16,15 +18,21 @@ pub struct BridgeRouteSourceSummary {
 
 impl BridgeRouteSourceSummary {
     pub(crate) fn new(
+        source_branch: TruthBranchIdentity,
         source_commit: TruthCommitIdentity,
         source_patch: TruthPatchIdentity,
         source_snapshot: TruthSnapshotIdentity,
     ) -> Self {
         Self {
+            source_branch,
             source_commit,
             source_patch,
             source_snapshot,
         }
+    }
+
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        &self.source_branch
     }
 
     pub fn source_commit(&self) -> &TruthCommitIdentity {
@@ -195,6 +203,10 @@ impl BridgeRoutingSummary {
 
     pub fn source_snapshot(&self) -> &TruthSnapshotIdentity {
         self.source.source_snapshot()
+    }
+
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        self.source.source_branch()
     }
 
     pub fn producer_metadata(&self) -> &BridgeProducerMetadata {

@@ -27,8 +27,27 @@ pub use lowering::{
 };
 pub use outcome::BridgeRouteOutcomeReference;
 pub use planning::{
-    BridgeExecutionCounts, BridgePlannedRoute, BridgePlanningProvenance, BridgePlanningSummary,
-    BridgeRouteIdentity, BridgeRouteSourceSummary, BridgeRoutingSummary,
+    AdmittedBridgeExecutionPlan, AdmittedPreparationPartitionSet, BridgeAdmissionProfileIdentity,
+    BridgeBulkPlanningCounters, BridgeBulkPlanningSummary, BridgeBulkWorkloadPlan, BridgeBulkWorkloadRequest,
+    BridgeBulkDecisionLog, BridgeBulkDecisionRecord, BridgeBulkDecisionRecordKind,
+    BridgeBulkPlanningFailure, BridgeBulkPlanningFailureKind, BridgeBulkWorkloadSegment,
+    BridgeCanonicalBulkPlanRecord, BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
+    BridgeCanonicalPlanningIdentity, BridgeExecutionCounts, BridgeLocalityFootprint,
+    BridgeParallelAdmission, BridgeParallelAdmissionClass, BridgeParallelAdmissionReason,
+    BridgeParallelLegalityClass, BridgeParallelLegalityDecision, BridgeParallelLegalityReason,
+    BridgeParallelProfitabilityClass, BridgeParallelProfitabilityDecision,
+    BridgeParallelProfitabilityReason,
+    BridgePlannedRoute, BridgePlanningProvenance, BridgePlanningSummary,
+    BridgePreparationMode, BridgeRouteIdentity, BridgeRouteSourceSummary, BridgeRoutingSummary, BridgeWorkloadIdentity,
+    CanonicalBridgeWorkloadRequest, ContinuityPacketIdentity, ContinuityRemapPacket, DisjointPacketRegionSet,
+    FallbackAggregationPacket, FallbackPacketIdentity, NormalizedBridgeWorkloadSummary,
+    InvalidationReductionPacket, ParallelPreparationLegalityProof, PlannedBridgePacketSet,
+    ReducedBridgePublication, ReducedBridgeWorkloadArtifact, ReducedContinuityIdentity,
+    ReducedContinuityRemap, ReducedPublicationIdentity, ReducedTruthViewIdentity,
+    ReducedTruthViewMaterialization, ReductionPacketIdentity, RoutingPacketIdentity, TruthDeltaRoutingPacket,
+    TruthViewMaterializationPacket, TruthViewPacketIdentity,
 };
 pub use proof::BridgeRouteContractProof;
-pub use result::{BridgeRouteResult, BridgeRouteResultSummary};
+pub use result::{
+    BridgeBulkResultSummary, BridgeBulkWorkloadResult, BridgeRouteResult, BridgeRouteResultSummary,
+};

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::error::{BridgeRouteError, BridgeRouteErrorKind};
-use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
+use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity};
 use crate::routing::canonicalization::{
     digest_string, lowering_provenance_digest_basis, lowering_summary_digest_basis,
     subscription_slice_digest_basis,
@@ -22,6 +22,7 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BridgeLoweringPlan {
     route_identity: BridgeRouteIdentity,
+    source_branch: TruthBranchIdentity,
     source_commit: TruthCommitIdentity,
     source_patch: TruthPatchIdentity,
     source_snapshot: TruthSnapshotIdentity,
@@ -39,6 +40,7 @@ pub(crate) struct BridgeLoweringPlan {
 impl BridgeLoweringPlan {
     pub(crate) fn new(
         route_identity: BridgeRouteIdentity,
+        source_branch: TruthBranchIdentity,
         source_commit: TruthCommitIdentity,
         source_patch: TruthPatchIdentity,
         source_snapshot: TruthSnapshotIdentity,
@@ -81,6 +83,7 @@ impl BridgeLoweringPlan {
         let summary = BridgeLoweringPlanSummary::new(
             route_identity.clone(),
             BridgeRouteSourceSummary::new(
+                source_branch.clone(),
                 source_commit.clone(),
                 source_patch.clone(),
                 source_snapshot.clone(),
@@ -91,6 +94,7 @@ impl BridgeLoweringPlan {
 
         Self {
             route_identity,
+            source_branch,
             source_commit,
             source_patch,
             source_snapshot,
@@ -116,6 +120,10 @@ impl BridgeLoweringPlan {
 
     pub(crate) fn source_commit(&self) -> &TruthCommitIdentity {
         &self.source_commit
+    }
+
+    pub(crate) fn source_branch(&self) -> &TruthBranchIdentity {
+        &self.source_branch
     }
 
     pub(crate) fn source_patch(&self) -> &TruthPatchIdentity {

@@ -1,4 +1,7 @@
+mod continuity;
+mod bulk;
 mod explanation;
+mod history;
 mod records;
 mod replay;
 mod facade;
@@ -7,6 +10,19 @@ mod handle;
 mod sink;
 mod state;
 
+pub use continuity::{
+    BridgeCanonicalContinuityRecord, BridgeContinuityExplanation, BridgeContinuityReplaySummary,
+    BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1,
+};
+pub use bulk::BridgeBulkPlanExplanation;
+pub use history::{
+    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationDecisionLog,
+    BridgeHistoricalEvaluationCounters, BridgeHistoricalEvaluationExplanation,
+    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureRecord,
+    BridgeHistoricalEvaluationRecord, BridgeHistoricalEvaluationReplaySummary,
+    BridgeHistoricalMaterializationPath,
+    BRIDGE_CANONICAL_HISTORICAL_EVALUATION_RECORD_SCHEMA_V1,
+};
 pub use explanation::{BridgeRouteExplanation, BridgeRouteExplanationEntry};
 pub use records::{
     BridgeContractDiagnosticsRecord, BridgeFailureClass, BridgeFailureRecord,
@@ -15,7 +31,7 @@ pub use records::{
 };
 pub use replay::{
     BridgeCanonicalRouteRecord, BridgeReplayRecord, BridgeReplaySummary,
-    BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V2,
+    BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3,
 };
 pub use facade::BridgeDiagnosticsFacade;
 pub use handle::BridgeDiagnosticsHandle;

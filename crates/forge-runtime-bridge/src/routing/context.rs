@@ -4,8 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::clone_budget::CheapClone;
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct BridgeLineageContext;
+pub use crate::continuity::BridgeLineageContext;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeMappingContext {
@@ -32,7 +31,11 @@ impl BridgeMappingContext {
     }
 
     pub fn with_lineage_context(self, lineage_context: BridgeLineageContext) -> Self {
-        let canonical_basis = format!("{}|lineage:present", self.canonical_basis());
+        let canonical_basis = format!(
+            "{}|lineage:{}",
+            self.canonical_basis(),
+            lineage_context.authority_basis().digest()
+        );
         Self::from_parts(canonical_basis, Some(lineage_context))
     }
 

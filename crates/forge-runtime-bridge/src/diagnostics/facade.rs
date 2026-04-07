@@ -2,9 +2,16 @@ use std::sync::{Arc, RwLock};
 
 use crate::error::{BridgeDeliveryError, BridgeReplayError};
 use crate::policy::{BridgeDiagnosticsTier, BridgeRuntimePolicy};
+use crate::routing::BridgeCanonicalBulkPlanRecord;
 
+use super::bulk::BridgeBulkPlanExplanation;
+use super::continuity::{BridgeCanonicalContinuityRecord, BridgeContinuityExplanation};
 use super::failure_source::BridgeFailureSource;
 use super::handle::BridgeDiagnosticsHandle;
+use super::history::{
+    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationExplanation,
+    BridgeHistoricalEvaluationFailureRecord,
+};
 use super::records::{
     BridgeFailureClass, BridgeFailureRecord, BridgeRouteRecord,
 };
@@ -64,11 +71,67 @@ impl BridgeDiagnosticsFacade {
             .failure_records()
     }
 
+    pub fn bulk_records(&self) -> Vec<BridgeCanonicalBulkPlanRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .bulk_records()
+    }
+
+    pub fn continuity_records(&self) -> Vec<BridgeCanonicalContinuityRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .continuity_records()
+    }
+
+    pub fn historical_evaluation_records(&self) -> Vec<BridgeCanonicalHistoricalEvaluationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_records()
+    }
+
+    pub fn historical_evaluation_failures(&self) -> Vec<BridgeHistoricalEvaluationFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_failures()
+    }
+
     pub fn last_failure_record(&self) -> Option<BridgeFailureRecord> {
         self.state
             .read()
             .expect("bridge diagnostics lock poisoned")
             .last_failure_record()
+    }
+
+    pub fn last_canonical_continuity_record(&self) -> Option<BridgeCanonicalContinuityRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_continuity_record()
+    }
+
+    pub fn last_bulk_record(&self) -> Option<BridgeCanonicalBulkPlanRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_bulk_record()
+    }
+
+    pub fn last_historical_evaluation_record(&self) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_historical_record()
+    }
+
+    pub fn last_historical_evaluation_failure(&self) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_historical_failure()
     }
 
     pub fn last_route_record(&self) -> Option<BridgeRouteRecord> {
@@ -105,6 +168,56 @@ impl BridgeDiagnosticsFacade {
             .route_record_for_source_commit(source_commit)
     }
 
+    pub fn continuity_record_for_route_identity(
+        &self,
+        route_identity: &str,
+    ) -> Option<BridgeCanonicalContinuityRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .continuity_record_for_route_identity(route_identity)
+    }
+
+    pub fn bulk_record_for_workload_identity(
+        &self,
+        workload_identity: &str,
+    ) -> Option<BridgeCanonicalBulkPlanRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .bulk_record_for_workload_identity(workload_identity)
+    }
+
+    pub fn historical_record_for_record_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_record_for_record_identity(record_identity)
+    }
+
+    pub fn historical_record_for_decision_log_identity(
+        &self,
+        decision_log_identity: &str,
+    ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_record_for_decision_log_identity(decision_log_identity)
+    }
+
+    pub fn historical_failure_for_declaration_identity(
+        &self,
+        declaration_identity: &str,
+    ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_failure_for_declaration_identity(declaration_identity)
+    }
+
     pub fn replay_records(&self) -> Vec<BridgeReplayRecord> {
         if !self.config.replay_enabled {
             return Vec::new();
@@ -130,6 +243,44 @@ impl BridgeDiagnosticsFacade {
     pub fn explain_last_route_record(&self) -> Option<BridgeRouteExplanation> {
         self.last_route_record()
             .map(|record| BridgeRouteExplanation::from_route_record(&record))
+    }
+
+    pub fn explain_continuity_record(
+        &self,
+        record: &BridgeCanonicalContinuityRecord,
+    ) -> BridgeContinuityExplanation {
+        BridgeContinuityExplanation::from_canonical_record(record)
+    }
+
+    pub fn explain_last_continuity_record(&self) -> Option<BridgeContinuityExplanation> {
+        self.last_canonical_continuity_record()
+            .map(|record| BridgeContinuityExplanation::from_canonical_record(&record))
+    }
+
+    pub fn explain_bulk_record(
+        &self,
+        record: &BridgeCanonicalBulkPlanRecord,
+    ) -> BridgeBulkPlanExplanation {
+        BridgeBulkPlanExplanation::from_canonical_record(record)
+    }
+
+    pub fn explain_last_bulk_record(&self) -> Option<BridgeBulkPlanExplanation> {
+        self.last_bulk_record()
+            .map(|record| BridgeBulkPlanExplanation::from_canonical_record(&record))
+    }
+
+    pub fn explain_historical_evaluation_record(
+        &self,
+        record: &BridgeCanonicalHistoricalEvaluationRecord,
+    ) -> BridgeHistoricalEvaluationExplanation {
+        BridgeHistoricalEvaluationExplanation::from_canonical_record(record)
+    }
+
+    pub fn explain_last_historical_evaluation_record(
+        &self,
+    ) -> Option<BridgeHistoricalEvaluationExplanation> {
+        self.last_historical_evaluation_record()
+            .map(|record| BridgeHistoricalEvaluationExplanation::from_canonical_record(&record))
     }
 
     pub fn last_canonical_route_record(&self) -> Option<BridgeCanonicalRouteRecord> {
@@ -162,6 +313,56 @@ impl BridgeDiagnosticsFacade {
             .record_failure(record, self.config.failure_record_limit);
     }
 
+    pub(crate) fn record_continuity(&self, record: BridgeCanonicalContinuityRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_continuity(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_bulk(&self, record: BridgeCanonicalBulkPlanRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_bulk(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_historical_evaluation(
+        &self,
+        record: BridgeCanonicalHistoricalEvaluationRecord,
+    ) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_historical(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_historical_evaluation_failure(
+        &self,
+        record: BridgeHistoricalEvaluationFailureRecord,
+    ) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_historical_failure(record, self.config.route_record_limit);
+    }
+
     pub(crate) fn record_delivery_failure(
         &self,
         source: BridgeFailureSource,
@@ -192,6 +393,14 @@ impl BridgeDiagnosticsFacade {
 impl DiagnosticSink for BridgeDiagnosticsFacade {
     fn record_route(&self, record: BridgeRouteRecord) {
         BridgeDiagnosticsFacade::record_route(self, record);
+    }
+
+    fn record_historical_evaluation(&self, record: BridgeCanonicalHistoricalEvaluationRecord) {
+        BridgeDiagnosticsFacade::record_historical_evaluation(self, record);
+    }
+
+    fn record_historical_evaluation_failure(&self, record: BridgeHistoricalEvaluationFailureRecord) {
+        BridgeDiagnosticsFacade::record_historical_evaluation_failure(self, record);
     }
 
     fn record_delivery_failure(&self, source: BridgeFailureSource, error: &BridgeDeliveryError) {

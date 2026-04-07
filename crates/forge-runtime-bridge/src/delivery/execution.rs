@@ -2,8 +2,13 @@ use crate::diagnostics::BridgeRouteRecord;
 use crate::error::{BridgeDeliveryError, BridgeDeliveryErrorKind};
 use crate::facade::RuntimeBridge;
 use crate::routing::outcome::BridgeRouteOutcomeReference;
-use crate::routing::result::{BridgeRouteResult, BridgeRouteResultSummary};
-use crate::routing::{BridgeExecutionCounts, BridgePlannedRoute, BridgeRouteSourceSummary};
+use crate::routing::result::{
+    BridgeBulkResultSummary, BridgeBulkWorkloadResult, BridgeRouteResult, BridgeRouteResultSummary,
+};
+use crate::routing::{
+    BridgeBulkWorkloadPlan, BridgeExecutionCounts, BridgeParallelAdmissionClass, BridgePlannedRoute,
+    BridgeRouteSourceSummary,
+};
 use crate::snapshot::validate_snapshot_read_result_contract;
 
 use super::context::{delivery_context, reject_delivery};
@@ -16,6 +21,53 @@ pub(crate) fn deliver_planned_route(
 ) -> Result<BridgeRouteResult, BridgeDeliveryError> {
     let prepared = prepare_planned_route_for_delivery(route);
     deliver_prepared_route(runtime, prepared)
+}
+
+pub(crate) fn deliver_bulk_workload_plan(
+    runtime: &RuntimeBridge,
+    plan: BridgeBulkWorkloadPlan,
+) -> Result<BridgeBulkWorkloadResult, BridgeDeliveryError> {
+    if plan.planned_routes().is_empty() {
+        return Err(BridgeDeliveryError::new(
+            BridgeDeliveryErrorKind::BulkDeliveryRejected,
+            "Bridge bulk delivery requires at least one planned route.",
+        ));
+    }
+
+    let execution_plan = plan.execution_plan();
+    if matches!(
+        execution_plan.parallel_admission().class(),
+        BridgeParallelAdmissionClass::ParallelPreparationRejected
+    ) && !matches!(execution_plan.selected_mode(), crate::routing::BridgePreparationMode::Serial)
+    {
+        return Err(BridgeDeliveryError::new(
+            BridgeDeliveryErrorKind::BulkDeliveryRejected,
+            "Bridge bulk delivery refused a plan whose selected mode did not honor the rejected parallel-admission class.",
+        ));
+    }
+
+    let route_results = plan
+        .planned_routes()
+        .iter()
+        .cloned()
+        .map(|route| deliver_planned_route(runtime, route))
+        .collect::<Result<Vec<_>, _>>()?;
+    let delivered_target_count = route_results
+        .iter()
+        .map(|result| result.receipt().delivered_target_count())
+        .sum();
+    let summary = BridgeBulkResultSummary::new(
+        plan.workload_identity().clone(),
+        plan.canonical_planning_identity().clone(),
+        std::sync::Arc::from(execution_plan.digest().to_owned()),
+        std::sync::Arc::from(execution_plan.reduced_artifact().digest().to_owned()),
+        execution_plan.selected_mode(),
+        execution_plan.counters().clone(),
+        route_results.len(),
+        delivered_target_count,
+    );
+
+    Ok(BridgeBulkWorkloadResult::new(summary, route_results))
 }
 
 pub(crate) fn prepare_planned_route_for_delivery(
@@ -165,6 +217,7 @@ pub(crate) fn deliver_prepared_route(
             lowered.artifact().route_identity().clone(),
             lowered.artifact().invalidation_identity().clone(),
             BridgeRouteSourceSummary::new(
+                lowered.artifact().source_branch().clone(),
                 lowered.artifact().source_commit().clone(),
                 lowered.artifact().source_patch().clone(),
                 lowered.artifact().source_snapshot().clone(),
@@ -183,6 +236,7 @@ pub(crate) fn deliver_prepared_route(
     runtime.diagnostic_sink.record_route(BridgeRouteRecord::new(
         lowered.artifact().route_identity().clone(),
         lowered.artifact().invalidation_identity().clone(),
+        lowered.artifact().source_branch().clone(),
         lowered.artifact().source_commit().clone(),
         lowered.artifact().source_patch().clone(),
         lowered.artifact().source_snapshot().clone(),

@@ -4,6 +4,7 @@ mod counters;
 mod delivery;
 mod diagnostics;
 mod explanations;
+mod history;
 mod parity;
 mod planning;
 mod replay;

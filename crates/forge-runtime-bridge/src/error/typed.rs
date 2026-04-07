@@ -11,7 +11,7 @@ pub struct BridgeTypedError<K> {
 }
 
 impl<K: Copy> BridgeTypedError<K> {
-    pub(crate) fn new(kind: K, message: impl Into<Arc<str>>) -> Self {
+    pub fn new(kind: K, message: impl Into<Arc<str>>) -> Self {
         Self {
             kind,
             message: message.into(),

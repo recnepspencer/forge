@@ -4,11 +4,14 @@ use crate::routing::lowering::{
     BridgeInvalidationArtifact, BridgeInvalidationIdentity, BridgeSubscriptionSliceIdentity,
 };
 use crate::routing::outcome::BridgeRouteOutcomeReference;
-use crate::routing::planning::BridgeRoutingSummary;
-use crate::routing::planning::BridgeExecutionCounts;
+use crate::routing::planning::{
+    BridgeBulkPlanningCounters, BridgeCanonicalPlanningIdentity, BridgeExecutionCounts,
+    BridgePreparationMode, BridgeRoutingSummary, BridgeWorkloadIdentity,
+};
 use crate::routing::proof::BridgeRouteContractProof;
 use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
 use crate::snapshot::TruthSnapshotIdentity;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteResultSummary {
@@ -161,5 +164,99 @@ impl BridgeRouteResult {
 
     pub fn receipt(&self) -> &BridgeDeliveryReceipt {
         &self.receipt
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeBulkResultSummary {
+    workload_identity: BridgeWorkloadIdentity,
+    canonical_planning_identity: BridgeCanonicalPlanningIdentity,
+    execution_plan_digest: Arc<str>,
+    reduced_artifact_digest: Arc<str>,
+    selected_mode: BridgePreparationMode,
+    counters: BridgeBulkPlanningCounters,
+    delivered_route_count: usize,
+    delivered_target_count: usize,
+}
+
+impl BridgeBulkResultSummary {
+    pub(crate) fn new(
+        workload_identity: BridgeWorkloadIdentity,
+        canonical_planning_identity: BridgeCanonicalPlanningIdentity,
+        execution_plan_digest: Arc<str>,
+        reduced_artifact_digest: Arc<str>,
+        selected_mode: BridgePreparationMode,
+        counters: BridgeBulkPlanningCounters,
+        delivered_route_count: usize,
+        delivered_target_count: usize,
+    ) -> Self {
+        Self {
+            workload_identity,
+            canonical_planning_identity,
+            execution_plan_digest,
+            reduced_artifact_digest,
+            selected_mode,
+            counters,
+            delivered_route_count,
+            delivered_target_count,
+        }
+    }
+
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+
+    pub fn canonical_planning_identity(&self) -> &BridgeCanonicalPlanningIdentity {
+        &self.canonical_planning_identity
+    }
+
+    pub fn execution_plan_digest(&self) -> &str {
+        self.execution_plan_digest.as_ref()
+    }
+
+    pub fn reduced_artifact_digest(&self) -> &str {
+        self.reduced_artifact_digest.as_ref()
+    }
+
+    pub fn selected_mode(&self) -> BridgePreparationMode {
+        self.selected_mode
+    }
+
+    pub fn counters(&self) -> &BridgeBulkPlanningCounters {
+        &self.counters
+    }
+
+    pub fn delivered_route_count(&self) -> usize {
+        self.delivered_route_count
+    }
+
+    pub fn delivered_target_count(&self) -> usize {
+        self.delivered_target_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeBulkWorkloadResult {
+    summary: BridgeBulkResultSummary,
+    route_results: Arc<[BridgeRouteResult]>,
+}
+
+impl BridgeBulkWorkloadResult {
+    pub(crate) fn new(
+        summary: BridgeBulkResultSummary,
+        route_results: Vec<BridgeRouteResult>,
+    ) -> Self {
+        Self {
+            summary,
+            route_results: route_results.into(),
+        }
+    }
+
+    pub fn summary(&self) -> &BridgeBulkResultSummary {
+        &self.summary
+    }
+
+    pub fn route_results(&self) -> &[BridgeRouteResult] {
+        &self.route_results
     }
 }

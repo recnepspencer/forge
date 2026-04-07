@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
+use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity};
 use crate::routing::{
     BridgeInvalidationIdentity, BridgeInvalidationTarget, BridgeRouteContractProof,
     BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
@@ -26,6 +26,7 @@ impl BridgeRouteRecord {
     pub(crate) fn new(
         route_identity: BridgeRouteIdentity,
         invalidation_identity: BridgeInvalidationIdentity,
+        source_branch: TruthBranchIdentity,
         source_commit: TruthCommitIdentity,
         source_patch: TruthPatchIdentity,
         source_snapshot: TruthSnapshotIdentity,
@@ -37,7 +38,12 @@ impl BridgeRouteRecord {
         counters: BridgeRoutingCounters,
     ) -> Self {
         Self {
-            source: BridgeRouteSourceRecord::new(source_commit, source_patch, source_snapshot),
+            source: BridgeRouteSourceRecord::new(
+                source_branch,
+                source_commit,
+                source_patch,
+                source_snapshot,
+            ),
             routing: BridgeRoutingDiagnosticsRecord::new(route_identity, entries, counters),
             lowering: BridgeLoweringDiagnosticsRecord::new(
                 invalidation_identity,
@@ -59,6 +65,10 @@ impl BridgeRouteRecord {
 
     pub fn source_commit(&self) -> &TruthCommitIdentity {
         self.source.source_commit()
+    }
+
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        self.source.source_branch()
     }
 
     pub fn source_patch(&self) -> &TruthPatchIdentity {

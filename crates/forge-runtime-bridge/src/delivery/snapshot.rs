@@ -4,7 +4,7 @@ use crate::snapshot::{
     AdmittedSnapshotContext, BridgeSnapshotContext, SnapshotReadPacket, TruthSnapshotReader,
 };
 
-pub(super) fn open_planned_snapshot(
+pub(crate) fn open_planned_snapshot(
     runtime: &RuntimeBridge,
     snapshot_identity: &crate::snapshot::TruthSnapshotIdentity,
 ) -> Result<AdmittedSnapshotContext<Box<dyn TruthSnapshotReader>>, BridgeDeliveryError> {

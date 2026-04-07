@@ -144,6 +144,7 @@ pub(crate) fn replay_route_record(
         routing_summary.route_identity().clone(),
         artifact.invalidation_identity().clone(),
         BridgeRouteSourceSummary::new(
+            routing_summary.source_branch().clone(),
             routing_summary.source_commit().clone(),
             routing_summary.source_patch().clone(),
             routing_summary.source_snapshot().clone(),

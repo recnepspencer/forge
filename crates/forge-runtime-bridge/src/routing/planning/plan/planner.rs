@@ -72,6 +72,7 @@ pub(crate) fn plan_ingested_patch(
     );
 
     let source_summary = BridgeRouteSourceSummary::new(
+        envelope.branch_identity().clone(),
         envelope.commit_identity().clone(),
         envelope.patch_identity().clone(),
         envelope.snapshot_identity().clone(),
@@ -85,6 +86,7 @@ pub(crate) fn plan_ingested_patch(
     );
     let lowering_plan = BridgeLoweringPlan::new(
         route_identity.clone(),
+        envelope.branch_identity().clone(),
         envelope.commit_identity().clone(),
         envelope.patch_identity().clone(),
         envelope.snapshot_identity().clone(),
@@ -139,6 +141,7 @@ pub(crate) fn plan_ingested_patch(
         mapping_context.clone(),
         route_identity,
         BridgeRouteSourceSummary::new(
+            envelope.branch_identity().clone(),
             envelope.commit_identity().clone(),
             envelope.patch_identity().clone(),
             envelope.snapshot_identity().clone(),

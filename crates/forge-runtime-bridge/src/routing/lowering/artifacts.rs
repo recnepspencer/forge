@@ -1,4 +1,6 @@
-use crate::input::envelope::{BridgeProducerMetadata, TruthCommitIdentity, TruthPatchIdentity};
+use crate::input::envelope::{
+    BridgeProducerMetadata, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
+};
 use crate::routing::canonicalization::{digest_string, invalidation_digest_basis};
 use crate::routing::counters::BridgeRoutingCounters;
 use crate::routing::planning::BridgeRouteIdentity;
@@ -43,6 +45,10 @@ impl BridgeInvalidationArtifact {
 
     pub fn source_commit(&self) -> &TruthCommitIdentity {
         self.lowering_plan.plan().source_commit()
+    }
+
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        self.lowering_plan.plan().source_branch()
     }
 
     pub fn source_patch(&self) -> &TruthPatchIdentity {

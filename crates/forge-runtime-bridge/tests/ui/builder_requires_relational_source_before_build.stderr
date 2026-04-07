@@ -1,8 +1,9 @@
-error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder<forge_runtime_bridge::builder::MissingCommittedPatchSource, forge_runtime_bridge::builder::MissingSnapshotReadSource, forge_runtime_bridge::builder::MissingSignalSink, forge_runtime_bridge::builder::PresentMappingRegistrations>` in the current scope
+error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder<forge_runtime_bridge::builder::MissingCommittedPatchSource, forge_runtime_bridge::builder::MissingSnapshotReadSource, forge_runtime_bridge::builder::MissingSignalSink, forge_runtime_bridge::builder::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>` in the current scope
   --> tests/ui/builder_requires_relational_source_before_build.rs:21:21
    |
 21 |     let _ = builder.build();
-   |                     ^^^^^ method not found in `RuntimeBridgeBuilder<forge_runtime_bridge::builder::MissingCommittedPatchSource, forge_runtime_bridge::builder::MissingSnapshotReadSource, forge_runtime_bridge::builder::MissingSignalSink, forge_runtime_bridge::builder::PresentMappingRegistrations>`
+   |                     ^^^^^ method not found in `RuntimeBridgeBuilder<forge_runtime_bridge::builder::MissingCommittedPatchSource, forge_runtime_bridge::builder::MissingSnapshotReadSource, forge_runtime_bridge::builder::MissingSignalSink, forge_runtime_bridge::builder::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>`
    |
    = note: the method was found for
-           - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::PresentMappingRegistrations>`
+           - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>`
+           - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::PresentTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>`

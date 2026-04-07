@@ -2,14 +2,16 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use crate::adapter::{
-    CommittedPatchSource, InvalidationSink, RelationalBridgeSourceError, SignalBridgeSinkError,
-    SnapshotReadSource,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, CommittedPatchSource,
+    ContinuityLineageSource, InvalidationSink, RelationalBridgeSourceError, SignalBridgeSinkError,
+    SnapshotReadSource, TruthBranchHeadSource,
 };
 use crate::delivery::BridgeDeliveryReceipt;
 use crate::facade::{
-    BridgeAspectRegistration, BridgeMappingRegistration, BridgeRuntimePolicy, RawCommittedPatchEnvelope,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, TruthSnapshotIdentity,
-    TruthSnapshotReader,
+    BridgeAspectRegistration, BridgeLineageContext, BridgeLineageSourceError,
+    BridgeLineageSourceErrorKind, BridgeMappingRegistration, BridgeRuntimePolicy,
+    RawCommittedPatchEnvelope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,6 +55,8 @@ pub struct BridgeHarnessFixture {
     aspect_mappings: Vec<BridgeAspectRegistration>,
     committed_patches: Vec<RawCommittedPatchEnvelope>,
     snapshots: Vec<SnapshotFixture>,
+    lineage_context: Option<BridgeLineageContext>,
+    continuity_authorities: Vec<(String, BridgeHistoricalLineageAuthority)>,
 }
 
 impl BridgeHarnessFixture {
@@ -63,6 +67,8 @@ impl BridgeHarnessFixture {
             aspect_mappings: Vec::new(),
             committed_patches: Vec::new(),
             snapshots: Vec::new(),
+            lineage_context: None,
+            continuity_authorities: Vec::new(),
         }
     }
 
@@ -86,6 +92,21 @@ impl BridgeHarnessFixture {
         self
     }
 
+    pub fn with_lineage_context(mut self, lineage_context: BridgeLineageContext) -> Self {
+        self.lineage_context = Some(lineage_context);
+        self
+    }
+
+    pub fn with_continuity_authority(
+        mut self,
+        entity_identity: impl Into<String>,
+        authority: BridgeHistoricalLineageAuthority,
+    ) -> Self {
+        self.continuity_authorities
+            .push((entity_identity.into(), authority));
+        self
+    }
+
     pub fn policy(&self) -> BridgeRuntimePolicy {
         self.policy
     }
@@ -105,6 +126,14 @@ impl BridgeHarnessFixture {
     pub fn snapshots(&self) -> &[SnapshotFixture] {
         &self.snapshots
     }
+
+    pub fn lineage_context(&self) -> Option<&BridgeLineageContext> {
+        self.lineage_context.as_ref()
+    }
+
+    pub fn continuity_authorities(&self) -> &[(String, BridgeHistoricalLineageAuthority)] {
+        &self.continuity_authorities
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +144,9 @@ pub struct RecordedSignalDelivery {
 #[derive(Debug, Clone, Default)]
 struct InMemoryRelationalState {
     committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+    branch_heads: BTreeMap<String, String>,
     snapshots: BTreeMap<String, SnapshotFixture>,
+    continuity_authorities: BTreeMap<String, BridgeHistoricalLineageAuthority>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -129,7 +160,15 @@ impl InMemoryRelationalBridgeSource {
             .write()
             .expect("bridge source lock poisoned")
             .committed_patches
-            .insert(patch.commit_identity().as_str().to_string(), patch);
+            .insert(patch.commit_identity().as_str().to_string(), patch.clone());
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .branch_heads
+            .insert(
+                patch.branch_identity().as_str().to_string(),
+                patch.commit_identity().as_str().to_string(),
+            );
     }
 
     pub fn insert_snapshot(&self, snapshot: SnapshotFixture) {
@@ -138,6 +177,18 @@ impl InMemoryRelationalBridgeSource {
             .expect("bridge source lock poisoned")
             .snapshots
             .insert(snapshot.identity().as_str().to_string(), snapshot);
+    }
+
+    pub fn insert_continuity_authority(
+        &self,
+        entity_identity: impl Into<String>,
+        authority: BridgeHistoricalLineageAuthority,
+    ) {
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .continuity_authorities
+            .insert(entity_identity.into(), authority);
     }
 }
 
@@ -181,6 +232,58 @@ impl SnapshotReadSource for InMemoryRelationalBridgeSource {
                 ))
             })?;
         Ok(Box::new(InMemorySnapshotReader { snapshot }))
+    }
+}
+
+impl TruthBranchHeadSource for InMemoryRelationalBridgeSource {
+    fn load_branch_head_patch(
+        &self,
+        branch_identity: &crate::facade::TruthBranchIdentity,
+    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        let state = self.state.read().expect("bridge source lock poisoned");
+        let commit_identity = state
+            .branch_heads
+            .get(branch_identity.as_str())
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "no branch head registered for `{}`",
+                    branch_identity.as_str()
+                ))
+            })?;
+        state
+            .committed_patches
+            .get(commit_identity)
+            .cloned()
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "branch head `{}` for `{}` had no registered committed patch envelope",
+                    commit_identity,
+                    branch_identity.as_str()
+                ))
+            })
+    }
+}
+
+impl ContinuityLineageSource for InMemoryRelationalBridgeSource {
+    fn historical_lineage(
+        &self,
+        request: BridgeHistoricalLineageRequest,
+    ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
+        self.state
+            .read()
+            .expect("bridge source lock poisoned")
+            .continuity_authorities
+            .get(request.prior_slice().entity_identity())
+            .cloned()
+            .ok_or_else(|| {
+                BridgeLineageSourceError::new(
+                    BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                    format!(
+                        "no continuity lineage authority registered for `{}`",
+                        request.prior_slice().entity_identity()
+                    ),
+                )
+            })
     }
 }
 

@@ -1,0 +1,137 @@
+use std::sync::Arc;
+
+use crate::facade::{
+    BridgeDeliveryError, BridgeDeliveryErrorKind, BridgeHistoricalEvaluationCounters,
+    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureRecord,
+    BridgeHistoricalMaterializationPath, HistoricalEvaluationDeclaration, RuntimeBridge,
+};
+use crate::snapshot::{
+    BridgeTruthViewKind, PlannedTruthViewPacket,
+    TruthViewPolicyRejectionKind as PolicyRejectionKind,
+};
+
+pub(super) fn historical_materialization_path_for(
+    planned: &PlannedTruthViewPacket,
+) -> BridgeHistoricalMaterializationPath {
+    match planned.declaration().selector().view_kind() {
+        BridgeTruthViewKind::CommittedSnapshot | BridgeTruthViewKind::BranchSnapshot => {
+            BridgeHistoricalMaterializationPath::DirectSnapshotRead
+        }
+        BridgeTruthViewKind::HistoricalCommit | BridgeTruthViewKind::BranchCommit => {
+            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot
+        }
+        BridgeTruthViewKind::BranchHead => {
+            BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot
+        }
+    }
+}
+
+pub(super) fn historical_materialization_path_for_declaration(
+    declaration: &HistoricalEvaluationDeclaration,
+) -> BridgeHistoricalMaterializationPath {
+    match declaration.selector().view_kind() {
+        BridgeTruthViewKind::BranchHead => {
+            BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot
+        }
+        BridgeTruthViewKind::HistoricalCommit | BridgeTruthViewKind::BranchCommit => {
+            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot
+        }
+        BridgeTruthViewKind::CommittedSnapshot | BridgeTruthViewKind::BranchSnapshot => {
+            BridgeHistoricalMaterializationPath::DirectSnapshotRead
+        }
+    }
+}
+
+pub(super) fn historical_failure_class_for_policy_rejection(
+    kind: PolicyRejectionKind,
+) -> BridgeHistoricalEvaluationFailureClass {
+    match kind {
+        PolicyRejectionKind::UnsupportedTruthViewSelector => {
+            BridgeHistoricalEvaluationFailureClass::UnsupportedTruthViewSelector
+        }
+        PolicyRejectionKind::UnavailableTruthView => {
+            BridgeHistoricalEvaluationFailureClass::TruthViewUnavailable
+        }
+        PolicyRejectionKind::SourceCapabilityMismatch
+        | PolicyRejectionKind::UnresolvedPolicyConflict
+        | PolicyRejectionKind::ReplayNotPermitted => {
+            BridgeHistoricalEvaluationFailureClass::UnresolvedTruthViewPolicyConflict
+        }
+        PolicyRejectionKind::BranchMismatch => {
+            BridgeHistoricalEvaluationFailureClass::RejectedBranchMismatch
+        }
+    }
+}
+
+pub(super) fn historical_failure_class_for_delivery_error(
+    error: &BridgeDeliveryError,
+) -> BridgeHistoricalEvaluationFailureClass {
+    match error.kind() {
+        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
+            BridgeHistoricalEvaluationFailureClass::TruthViewUnavailable
+        }
+        BridgeDeliveryErrorKind::SnapshotIdentityMismatch => {
+            BridgeHistoricalEvaluationFailureClass::RejectedSnapshotMismatch
+        }
+        BridgeDeliveryErrorKind::BulkDeliveryRejected
+        | BridgeDeliveryErrorKind::InvalidFallbackAdmission
+        | BridgeDeliveryErrorKind::SnapshotReadFailure
+        | BridgeDeliveryErrorKind::SnapshotReadContractViolation
+        | BridgeDeliveryErrorKind::SignalSinkRejection => {
+            BridgeHistoricalEvaluationFailureClass::RejectedHistoricalResolutionFailure
+        }
+    }
+}
+
+pub(super) fn historical_failure_counters_for_policy_rejection(
+    declaration: &HistoricalEvaluationDeclaration,
+    kind: PolicyRejectionKind,
+) -> BridgeHistoricalEvaluationCounters {
+    let counters = BridgeHistoricalEvaluationCounters::from_successful_materialization(
+        declaration,
+        historical_materialization_path_for_declaration(declaration),
+    );
+    match kind {
+        PolicyRejectionKind::UnavailableTruthView => counters.with_unavailable_truth_view(),
+        PolicyRejectionKind::BranchMismatch => counters.with_branch_mismatch(),
+        _ => counters,
+    }
+}
+
+pub(super) fn historical_failure_counters_for_delivery_error(
+    declaration: &HistoricalEvaluationDeclaration,
+    error: &BridgeDeliveryError,
+) -> BridgeHistoricalEvaluationCounters {
+    let counters = BridgeHistoricalEvaluationCounters::from_successful_materialization(
+        declaration,
+        historical_materialization_path_for_declaration(declaration),
+    );
+    match error.kind() {
+        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => counters.with_unavailable_truth_view(),
+        BridgeDeliveryErrorKind::SnapshotIdentityMismatch => counters.with_snapshot_mismatch(),
+        _ => counters,
+    }
+}
+
+impl RuntimeBridge {
+    pub(super) fn record_historical_evaluation_failure(
+        &self,
+        declaration: &HistoricalEvaluationDeclaration,
+        failure_class: BridgeHistoricalEvaluationFailureClass,
+        detail: impl Into<Arc<str>>,
+        counters: BridgeHistoricalEvaluationCounters,
+    ) {
+        self.diagnostic_sink.record_historical_evaluation_failure(
+            BridgeHistoricalEvaluationFailureRecord::new(
+                declaration.declaration_identity().clone(),
+                declaration.selector().selector_identity().clone(),
+                declaration.selector().branch_identity().clone(),
+                declaration.selector().commit_identity().cloned(),
+                declaration.selector().snapshot_identity().cloned(),
+                failure_class,
+                detail,
+                counters,
+            ),
+        );
+    }
+}

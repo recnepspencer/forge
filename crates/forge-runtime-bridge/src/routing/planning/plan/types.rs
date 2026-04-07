@@ -3,13 +3,15 @@ use std::sync::Arc;
 use crate::clone_budget::clone_cheap;
 use crate::diagnostics::{BridgeFailureSource, BridgeRouteRecordEntry};
 use crate::input::envelope::{
-    BridgeCommittedPatchDigest, BridgeProducerMetadata, TruthCommitIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchDigest, BridgeProducerMetadata, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity,
 };
 use crate::routing::context::BridgeMappingContext;
 use crate::routing::counters::BridgeRoutingCounters;
 use crate::routing::lowering::{
     lower_validated_route, BridgeLoweringPlan, BridgeLoweringPlanSummary,
-    BridgeLoweringProvenance, BridgeLoweringSummary, ValidatedBridgeLoweringPlan,
+    BridgeLoweringProvenance, BridgeLoweringSummary, CanonicalSubscriptionSlices,
+    ValidatedBridgeLoweringPlan,
 };
 use crate::routing::proof::BridgeRouteContractProof;
 use crate::routing::scope::RouteScope;
@@ -21,7 +23,7 @@ use super::super::summaries::{
 };
 use super::super::BridgeRouteIdentity;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BridgePlanningArtifacts {
     planning_provenance: BridgePlanningProvenance,
     planning_summary: BridgePlanningSummary,
@@ -39,7 +41,7 @@ impl BridgePlanningArtifacts {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BridgePlannedExecution {
     routing_summary: BridgeRoutingSummary,
     read_packet: SnapshotReadPacket,
@@ -69,7 +71,7 @@ impl BridgePlannedExecution {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePlannedRoute {
     route_scope: RouteScope,
     mapping_context: BridgeMappingContext,
@@ -136,6 +138,10 @@ impl BridgePlannedRoute {
         self.source.source_commit()
     }
 
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        self.source.source_branch()
+    }
+
     pub fn source_patch(&self) -> &TruthPatchIdentity {
         self.source.source_patch()
     }
@@ -176,12 +182,20 @@ impl BridgePlannedRoute {
         self.execution.lowering_plan.summary()
     }
 
+    pub fn subscription_slices(&self) -> &CanonicalSubscriptionSlices {
+        self.execution.lowering_plan.subscription_slices()
+    }
+
     pub fn lowering_provenance(&self) -> &BridgeLoweringProvenance {
         self.execution.lowering_plan.provenance()
     }
 
     pub fn validated_lowering_summary(&self) -> &BridgeLoweringSummary {
         self.execution.validated_lowering_plan.summary()
+    }
+
+    pub fn route_record_entries(&self) -> &[BridgeRouteRecordEntry] {
+        &self.execution.route_record_entries
     }
 
     pub(crate) fn into_prepared_delivery(self) -> BridgePreparedDelivery {

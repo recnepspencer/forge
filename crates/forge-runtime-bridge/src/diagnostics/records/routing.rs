@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
+use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity};
 use crate::routing::{BridgeRouteIdentity, BridgeRoutingCounters};
 use crate::snapshot::TruthSnapshotIdentity;
 
@@ -8,6 +8,7 @@ use super::route_entry::BridgeRouteRecordEntry;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteSourceRecord {
+    source_branch: TruthBranchIdentity,
     source_commit: TruthCommitIdentity,
     source_patch: TruthPatchIdentity,
     source_snapshot: TruthSnapshotIdentity,
@@ -15,15 +16,21 @@ pub struct BridgeRouteSourceRecord {
 
 impl BridgeRouteSourceRecord {
     pub(crate) fn new(
+        source_branch: TruthBranchIdentity,
         source_commit: TruthCommitIdentity,
         source_patch: TruthPatchIdentity,
         source_snapshot: TruthSnapshotIdentity,
     ) -> Self {
         Self {
+            source_branch,
             source_commit,
             source_patch,
             source_snapshot,
         }
+    }
+
+    pub fn source_branch(&self) -> &TruthBranchIdentity {
+        &self.source_branch
     }
 
     pub fn source_commit(&self) -> &TruthCommitIdentity {

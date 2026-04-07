@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
+
 use crate::error::BridgeMessageError;
 use crate::mapping::SubscriptionSliceKind;
 use crate::snapshot::TruthSnapshotIdentity;
@@ -94,20 +96,62 @@ impl SnapshotReadRequest {
         }
     }
 
+    pub(crate) fn canonical_basis(&self) -> Arc<str> {
+        match &self.shape {
+            SnapshotReadShape::Coarse => Arc::from(format!(
+                "snapshot-read-request|key={}|entity={}|aspect={}|shape=coarse",
+                self.request_key(),
+                self.entity_identity(),
+                self.aspect_label(),
+            )),
+            SnapshotReadShape::SubscriptionSlice {
+                surface_label,
+                slice_kind,
+            } => Arc::from(format!(
+                "snapshot-read-request|key={}|entity={}|aspect={}|shape=subscription-slice|surface={}|slice-kind={}",
+                self.request_key(),
+                self.entity_identity(),
+                self.aspect_label(),
+                surface_label.as_ref(),
+                canonical_subscription_slice_kind_label(slice_kind),
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadPacket {
     reads: Vec<SnapshotReadRequest>,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
 }
 
 impl SnapshotReadPacket {
     pub(crate) fn new(reads: Vec<SnapshotReadRequest>) -> Self {
-        Self { reads }
+        let read_basis = reads
+            .iter()
+            .map(SnapshotReadRequest::canonical_basis)
+            .collect::<Vec<_>>()
+            .join("|");
+        let canonical_basis = Arc::<str>::from(format!(
+            "snapshot-read-packet|count={}|reads={read_basis}",
+            reads.len(),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+
+        Self {
+            reads,
+            canonical_basis,
+            digest: Arc::from(format!("snapshot-read-packet:sha256:{digest:x}")),
+        }
     }
 
     pub fn reads(&self) -> &[SnapshotReadRequest] {
         &self.reads
+    }
+
+    pub(crate) fn digest(&self) -> &str {
+        self.digest.as_ref()
     }
 }
 
@@ -268,6 +312,19 @@ mod tests {
             packet.reads()[1].slice_kind(),
             Some(&SubscriptionSliceKind::SignalField)
         );
+        assert!(packet.digest().starts_with("snapshot-read-packet:sha256:"));
+    }
+
+    #[test]
+    fn packet_digest_changes_when_declared_reads_change() {
+        let left = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "user-1", "profile",
+        )]);
+        let right = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "user-2", "profile",
+        )]);
+
+        assert_ne!(left.digest(), right.digest());
     }
 
     #[test]

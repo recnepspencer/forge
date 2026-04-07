@@ -1,0 +1,284 @@
+use std::sync::Arc;
+
+use sha2::{Digest, Sha256};
+
+use crate::identity::{
+    BridgeIdentity, HistoricalEvaluationDeclarationIdentityTag, TruthViewSelectorIdentityTag,
+};
+use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
+use crate::policy::BridgeDiagnosticsTier;
+use crate::snapshot::TruthSnapshotIdentity;
+
+pub type BridgeTruthViewSelectorIdentity = BridgeIdentity<TruthViewSelectorIdentityTag>;
+pub type HistoricalEvaluationDeclarationIdentity =
+    BridgeIdentity<HistoricalEvaluationDeclarationIdentityTag>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BridgeTruthViewKind {
+    CommittedSnapshot,
+    HistoricalCommit,
+    BranchHead,
+    BranchSnapshot,
+    BranchCommit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BridgeReplayMode {
+    Disabled,
+    Enabled,
+    Required,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BridgeDeliveryIntent {
+    PrepareOnly,
+    DeliverInvalidation,
+    PrepareSignalEvaluation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeTruthViewSelector {
+    selector_identity: BridgeTruthViewSelectorIdentity,
+    view_kind: BridgeTruthViewKind,
+    branch_identity: TruthBranchIdentity,
+    commit_identity: Option<TruthCommitIdentity>,
+    snapshot_identity: Option<TruthSnapshotIdentity>,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+}
+
+impl BridgeTruthViewSelector {
+    pub fn committed_snapshot(
+        branch_identity: TruthBranchIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
+        Self::new(
+            BridgeTruthViewKind::CommittedSnapshot,
+            branch_identity,
+            None,
+            Some(snapshot_identity),
+        )
+    }
+
+    pub fn historical_commit(
+        branch_identity: TruthBranchIdentity,
+        commit_identity: TruthCommitIdentity,
+    ) -> Self {
+        Self::new(
+            BridgeTruthViewKind::HistoricalCommit,
+            branch_identity,
+            Some(commit_identity),
+            None,
+        )
+    }
+
+    pub fn branch_head(branch_identity: TruthBranchIdentity) -> Self {
+        Self::new(BridgeTruthViewKind::BranchHead, branch_identity, None, None)
+    }
+
+    pub fn branch_snapshot(
+        branch_identity: TruthBranchIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
+        Self::new(
+            BridgeTruthViewKind::BranchSnapshot,
+            branch_identity,
+            None,
+            Some(snapshot_identity),
+        )
+    }
+
+    pub fn branch_commit(
+        branch_identity: TruthBranchIdentity,
+        commit_identity: TruthCommitIdentity,
+    ) -> Self {
+        Self::new(
+            BridgeTruthViewKind::BranchCommit,
+            branch_identity,
+            Some(commit_identity),
+            None,
+        )
+    }
+
+    fn new(
+        view_kind: BridgeTruthViewKind,
+        branch_identity: TruthBranchIdentity,
+        commit_identity: Option<TruthCommitIdentity>,
+        snapshot_identity: Option<TruthSnapshotIdentity>,
+    ) -> Self {
+        let canonical_basis = Arc::<str>::from(format!(
+            "truth-view-selector|kind:{view_kind:?}|branch:{}|commit:{}|snapshot:{}",
+            branch_identity.as_str(),
+            commit_identity
+                .as_ref()
+                .map(TruthCommitIdentity::as_str)
+                .unwrap_or("-"),
+            snapshot_identity
+                .as_ref()
+                .map(TruthSnapshotIdentity::as_str)
+                .unwrap_or("-"),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        let selector_identity =
+            BridgeTruthViewSelectorIdentity::new(format!("truth-view-selector:sha256:{digest:x}"));
+        Self {
+            selector_identity,
+            view_kind,
+            branch_identity,
+            commit_identity,
+            snapshot_identity,
+            canonical_basis,
+            digest: Arc::from(format!("truth-view-selector:sha256:{digest:x}")),
+        }
+    }
+
+    pub fn selector_identity(&self) -> &BridgeTruthViewSelectorIdentity {
+        &self.selector_identity
+    }
+
+    pub fn view_kind(&self) -> BridgeTruthViewKind {
+        self.view_kind
+    }
+
+    pub fn branch_identity(&self) -> &TruthBranchIdentity {
+        &self.branch_identity
+    }
+
+    pub fn commit_identity(&self) -> Option<&TruthCommitIdentity> {
+        self.commit_identity.as_ref()
+    }
+
+    pub fn snapshot_identity(&self) -> Option<&TruthSnapshotIdentity> {
+        self.snapshot_identity.as_ref()
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoricalEvaluationDeclaration {
+    declaration_identity: HistoricalEvaluationDeclarationIdentity,
+    selector: BridgeTruthViewSelector,
+    replay_mode: BridgeReplayMode,
+    diagnostics_mode: BridgeDiagnosticsTier,
+    delivery_intent: BridgeDeliveryIntent,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+}
+
+impl HistoricalEvaluationDeclaration {
+    pub fn new(
+        selector: BridgeTruthViewSelector,
+        replay_mode: BridgeReplayMode,
+        diagnostics_mode: BridgeDiagnosticsTier,
+        delivery_intent: BridgeDeliveryIntent,
+    ) -> Self {
+        let canonical_basis = Arc::<str>::from(format!(
+            "historical-evaluation-declaration|selector={}|replay:{replay_mode:?}|diagnostics:{diagnostics_mode:?}|delivery:{delivery_intent:?}",
+            selector.selector_identity().as_str(),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        let declaration_identity = HistoricalEvaluationDeclarationIdentity::new(format!(
+            "historical-evaluation-declaration:sha256:{digest:x}"
+        ));
+        Self {
+            declaration_identity,
+            selector,
+            replay_mode,
+            diagnostics_mode,
+            delivery_intent,
+            canonical_basis,
+            digest: Arc::from(format!(
+                "historical-evaluation-declaration:sha256:{digest:x}"
+            )),
+        }
+    }
+
+    pub fn declaration_identity(&self) -> &HistoricalEvaluationDeclarationIdentity {
+        &self.declaration_identity
+    }
+
+    pub fn selector(&self) -> &BridgeTruthViewSelector {
+        &self.selector
+    }
+
+    pub fn replay_mode(&self) -> BridgeReplayMode {
+        self.replay_mode
+    }
+
+    pub fn diagnostics_mode(&self) -> BridgeDiagnosticsTier {
+        self.diagnostics_mode
+    }
+
+    pub fn delivery_intent(&self) -> BridgeDeliveryIntent {
+        self.delivery_intent
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewKind, BridgeTruthViewSelector,
+        HistoricalEvaluationDeclaration,
+    };
+    use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
+    use crate::policy::BridgeDiagnosticsTier;
+    use crate::snapshot::TruthSnapshotIdentity;
+
+    #[test]
+    fn truth_view_selector_is_canonical_for_same_inputs() {
+        let left = BridgeTruthViewSelector::branch_snapshot(
+            TruthBranchIdentity::new("analysis"),
+            TruthSnapshotIdentity::new("snapshot-a"),
+        );
+        let right = BridgeTruthViewSelector::branch_snapshot(
+            TruthBranchIdentity::new("analysis"),
+            TruthSnapshotIdentity::new("snapshot-a"),
+        );
+
+        assert_eq!(left, right);
+        assert_eq!(left.view_kind(), BridgeTruthViewKind::BranchSnapshot);
+        assert!(left.canonical_basis().contains("branch:analysis"));
+    }
+
+    #[test]
+    fn declaration_identity_is_canonical_for_same_inputs() {
+        let left = HistoricalEvaluationDeclaration::new(
+            BridgeTruthViewSelector::historical_commit(
+                TruthBranchIdentity::new("main"),
+                TruthCommitIdentity::new("commit-a"),
+            ),
+            BridgeReplayMode::Required,
+            BridgeDiagnosticsTier::Exhaustive,
+            BridgeDeliveryIntent::PrepareSignalEvaluation,
+        );
+        let right = HistoricalEvaluationDeclaration::new(
+            BridgeTruthViewSelector::historical_commit(
+                TruthBranchIdentity::new("main"),
+                TruthCommitIdentity::new("commit-a"),
+            ),
+            BridgeReplayMode::Required,
+            BridgeDiagnosticsTier::Exhaustive,
+            BridgeDeliveryIntent::PrepareSignalEvaluation,
+        );
+
+        assert_eq!(left, right);
+        assert!(left
+            .canonical_basis()
+            .contains("replay:Required|diagnostics:Exhaustive|delivery:PrepareSignalEvaluation"));
+    }
+}
