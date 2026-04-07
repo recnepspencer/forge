@@ -8,9 +8,11 @@ use crate::engine::transaction::data::feature_event::KernelFeatureEvent;
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::KernelError;
-use forge_signal::facade::{
-    EventBus, EventSubscriber, SignalError, SubscriberContext, SubscriberContextError,
+use forge_signal::facade::SignalError;
+use forge_signal::facade::adapters::{
+    EventSubscriber, SubscriberContext, SubscriberContextError,
 };
+use forge_signal::facade::specialist::EventBus;
 
 pub(crate) use audit::AuditSubscriber;
 pub(crate) use decision_lifecycle::DecisionLifecycleSubscriber;

@@ -5,7 +5,8 @@ use crate::engine::transaction::data::feature_event::KernelFeatureEvent;
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::subscribers::register_feature_subscribers;
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventBus, EventFlushError, SubscriberRegistryError};
+use forge_signal::facade::runtime::CheckpointBarrier;
+use forge_signal::facade::specialist::{EventBus, EventFlushError, SubscriberRegistryError};
 
 /// Runtime context passed to feature event subscribers.
 pub(crate) struct FeatureEventRuntimeContext {
@@ -56,6 +57,7 @@ impl FeatureEventRuntime {
     ) -> Result<(), KernelError> {
         self.event_bus
             .flush(barrier, runtime_ctx)
+            .map(|_| ())
             .map_err(flush_error_to_kernel)
     }
 
@@ -88,7 +90,7 @@ fn flush_error_to_kernel(err: EventFlushError<KernelSubscriberDataId>) -> Kernel
 mod tests {
     use super::*;
     use crate::configuration::facade::KernelConfig;
-    use forge_signal::facade::SubscriberId;
+    use forge_signal::facade::adapters::SubscriberId;
 
     #[test]
     fn runtime_registration_is_deterministic() {

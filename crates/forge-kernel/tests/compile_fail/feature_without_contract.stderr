@@ -38,7 +38,15 @@ help: the trait `FeatureContract` is not implemented for `NakedFeature`
 11 | struct NakedFeature;
    | ^^^^^^^^^^^^^^^^^^^
 help: the following other types implement trait `FeatureContract`
-  --> src/operations/boolean/feature.rs
+  --> src/engine/macros.rs
+   |
+   |           impl $crate::engine::contract::FeatureContract for $feature_ty {
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |           |
+   |           `BooleanFeature`
+   |           `MakePrimitiveFeature`
+   |
+  ::: src/operations/boolean/feature.rs
    |
    | / crate::declare_feature!(BooleanFeature,
    | |     kind: "boolean",
@@ -47,7 +55,7 @@ help: the following other types implement trait `FeatureContract`
 ...  |
    | |     conditioning: crate::engine::facade::ConditioningMode::BinaryAnalysis,
    | | );
-   | |_^ `BooleanFeature`
+   | |_- in this macro invocation
    |
   ::: src/operations/primitives/contract.rs
    |
@@ -58,7 +66,7 @@ help: the following other types implement trait `FeatureContract`
 ...  |
    | |     conditioning: ConditioningMode::None,
    | | );
-   | |_^ `MakePrimitiveFeature`
+   | |_- in this macro invocation
 note: required by a bound in `forge_kernel::engine::facade::Feature`
   --> src/engine/contracts/feature_trait.rs
    |

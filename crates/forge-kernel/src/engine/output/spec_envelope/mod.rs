@@ -9,7 +9,7 @@ mod queries;
 mod signal;
 mod validation;
 
-use std::cell::{OnceCell, RefCell};
+use std::sync::{OnceLock, RwLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,31 +29,31 @@ pub struct SpecEnvelope {
     spec: SpecState,
     geometry: GeometryStore,
     #[serde(skip)]
-    projection: OnceCell<Result<ProjectedTopology, ProjectedTopologyError>>,
+    projection: OnceLock<Result<ProjectedTopology, ProjectedTopologyError>>,
     #[serde(skip)]
-    standard_fingerprint: OnceCell<Result<u128, KernelError>>,
+    standard_fingerprint: OnceLock<Result<u128, KernelError>>,
     #[serde(skip)]
-    full_fingerprint: OnceCell<Result<u128, KernelError>>,
+    full_fingerprint: OnceLock<Result<u128, KernelError>>,
     #[serde(skip)]
-    bodies: OnceCell<Result<Vec<ProjectedBodyId>, ProjectedTopologyError>>,
+    bodies: OnceLock<Result<Vec<ProjectedBodyId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    lumps: OnceCell<Result<Vec<ProjectedLumpId>, ProjectedTopologyError>>,
+    lumps: OnceLock<Result<Vec<ProjectedLumpId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    regions: OnceCell<Result<Vec<ProjectedRegionId>, ProjectedTopologyError>>,
+    regions: OnceLock<Result<Vec<ProjectedRegionId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    shells: OnceCell<Result<Vec<ProjectedShellId>, ProjectedTopologyError>>,
+    shells: OnceLock<Result<Vec<ProjectedShellId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    faces: OnceCell<Result<Vec<ProjectedFaceId>, ProjectedTopologyError>>,
+    faces: OnceLock<Result<Vec<ProjectedFaceId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    loops: OnceCell<Result<Vec<ProjectedLoopId>, ProjectedTopologyError>>,
+    loops: OnceLock<Result<Vec<ProjectedLoopId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    half_edges: OnceCell<Result<Vec<ProjectedHalfEdgeId>, ProjectedTopologyError>>,
+    half_edges: OnceLock<Result<Vec<ProjectedHalfEdgeId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    edges: OnceCell<Result<Vec<ProjectedEdgeId>, ProjectedTopologyError>>,
+    edges: OnceLock<Result<Vec<ProjectedEdgeId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    vertices: OnceCell<Result<Vec<ProjectedVertexId>, ProjectedTopologyError>>,
+    vertices: OnceLock<Result<Vec<ProjectedVertexId>, ProjectedTopologyError>>,
     #[serde(skip)]
-    signal: RefCell<SpecEnvelopeSignalState>,
+    signal: RwLock<SpecEnvelopeSignalState>,
 }
 
 impl Clone for SpecEnvelope {
@@ -67,19 +67,19 @@ impl SpecEnvelope {
         Self {
             spec,
             geometry,
-            projection: OnceCell::new(),
-            standard_fingerprint: OnceCell::new(),
-            full_fingerprint: OnceCell::new(),
-            bodies: OnceCell::new(),
-            lumps: OnceCell::new(),
-            regions: OnceCell::new(),
-            shells: OnceCell::new(),
-            faces: OnceCell::new(),
-            loops: OnceCell::new(),
-            half_edges: OnceCell::new(),
-            edges: OnceCell::new(),
-            vertices: OnceCell::new(),
-            signal: RefCell::new(SpecEnvelopeSignalState::new()),
+            projection: OnceLock::new(),
+            standard_fingerprint: OnceLock::new(),
+            full_fingerprint: OnceLock::new(),
+            bodies: OnceLock::new(),
+            lumps: OnceLock::new(),
+            regions: OnceLock::new(),
+            shells: OnceLock::new(),
+            faces: OnceLock::new(),
+            loops: OnceLock::new(),
+            half_edges: OnceLock::new(),
+            edges: OnceLock::new(),
+            vertices: OnceLock::new(),
+            signal: RwLock::new(SpecEnvelopeSignalState::new()),
         }
     }
 
@@ -96,9 +96,9 @@ impl SpecEnvelope {
     }
 
     pub fn geometry_mut(&mut self) -> &mut GeometryStore {
-        self.standard_fingerprint.take();
-        self.full_fingerprint.take();
-        self.signal = RefCell::new(SpecEnvelopeSignalState::new());
+        self.standard_fingerprint = OnceLock::new();
+        self.full_fingerprint = OnceLock::new();
+        self.signal = RwLock::new(SpecEnvelopeSignalState::new());
         &mut self.geometry
     }
 
@@ -116,7 +116,7 @@ impl SpecEnvelope {
 }
 
 fn projected_ids<'a, T, FCount, FId>(
-    cell: &'a OnceCell<Result<Vec<T>, ProjectedTopologyError>>,
+    cell: &'a OnceLock<Result<Vec<T>, ProjectedTopologyError>>,
     projection: Result<&ProjectedTopology, KernelError>,
     count: FCount,
     make_id: FId,

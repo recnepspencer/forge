@@ -368,12 +368,12 @@ fn signal_backed_projection_starts_on_demand_and_only_recomputes_when_read() {
 
     let after = envelope.debug_signal_telemetry();
     assert_eq!(
-        after.transaction_rollback_count,
-        before.transaction_rollback_count
+        after.transaction.transaction_rollback_count,
+        before.transaction.transaction_rollback_count
     );
     assert_eq!(
-        after.ondemand_deferred_count,
-        before.ondemand_deferred_count
+        after.evaluation.ondemand_deferred_count,
+        before.evaluation.ondemand_deferred_count
     );
 }
 
@@ -448,6 +448,6 @@ fn signal_backed_validation_checkpoint_and_fingerprint_share_projection_substrat
         envelope.debug_signal_node_state("full_fingerprint"),
         Some(NodeState::Clean)
     );
-    assert!(after_all.nodes_recomputed >= after_invariant.nodes_recomputed);
-    assert_eq!(after_all.transaction_rollback_count, 0);
+    assert!(after_all.evaluation.nodes_recomputed >= after_invariant.evaluation.nodes_recomputed);
+    assert_eq!(after_all.transaction.transaction_rollback_count, 0);
 }

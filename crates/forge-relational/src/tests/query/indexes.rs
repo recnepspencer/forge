@@ -684,6 +684,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
     let baseline_hint_count = crate::indexes::logic::index_query_scratch_hint_count();
     {
         let mut runtime = runtime_with_test_schema();
+        let runtime_id = runtime.runtime_instance_id();
         let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
         let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
         let index = runtime.index_authority().register(DerivedIndexDefinition {
@@ -730,6 +731,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
             target_count_hint: 0,
         };
 
+        runtime.performance_access().reset_counters();
         for _ in 0..2 {
             let _ = runtime
                 .index_access()
@@ -743,7 +745,10 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
                 .expect("query outcome");
         }
 
-        assert!(crate::indexes::logic::index_query_scratch_hint_count() >= baseline_hint_count + 1);
+        let counters = runtime.performance_access().counters();
+        assert!(counters.query_index_scratch_reuse_count > 0);
+        assert!(crate::indexes::logic::index_query_scratch_hint_exists(runtime_id));
+        assert!(crate::indexes::logic::index_query_scratch_hint_count() >= baseline_hint_count);
     }
 
     assert_eq!(

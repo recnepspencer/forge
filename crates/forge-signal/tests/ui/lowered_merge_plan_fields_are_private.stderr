@@ -12,5 +12,5 @@ help: you might have meant to use the `new` associated function
 4 -     let _plan = LoweredMergePlan {
 5 -         source_branch_id: unsafe { std::mem::zeroed() },
 6 -     };
-4 +     let _plan = LoweredMergePlan::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
+4 +     let _plan = LoweredMergePlan::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _);
   |

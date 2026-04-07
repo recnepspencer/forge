@@ -1,7 +1,7 @@
 use forge_core::{EntityKind, KernelError};
-use forge_signal::facade::{
-    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
-};
+use forge_signal::facade::SignalError;
+use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::runtime::CheckpointBarrier;
 
 use crate::transactions::data::mutation_journal::EntityKindCounts;
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};

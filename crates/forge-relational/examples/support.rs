@@ -43,6 +43,10 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
         .expect("demo schema registry")
 }
 
+fn main() {
+    // This example is a shared helper module for other examples.
+}
+
 pub fn create_entity(
     runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
     name: &str,

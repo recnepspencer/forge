@@ -6,9 +6,12 @@
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_signal::facade::{
-    EvaluationCondition, NodeEvaluationConfig, TierPolicy, VersionComparatorPolicy,
+use forge_signal::facade::EvaluationCondition;
+use forge_signal::facade::adapters::NodeEvaluationConfig;
+use forge_signal::facade::runtime::{
+    DependencyMode, DirtyPropagation, EvaluationTrigger, RuntimeTierPolicy as TierPolicy,
 };
+use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 
 /// Kernel-owned signal tiers for feature graph nodes.
 ///
@@ -82,9 +85,9 @@ impl FeatureSignalPolicy {
     pub fn core_tier_policy() -> TierPolicy<FeatureSignalTier> {
         TierPolicy::new(
             FeatureSignalTier::Core,
-            forge_signal::facade::DependencyMode::Static,
-            forge_signal::facade::DirtyPropagation::Immediate,
-            forge_signal::facade::EvaluationTrigger::LazyPull,
+            DependencyMode::Static,
+            DirtyPropagation::Immediate,
+            EvaluationTrigger::LazyPull,
         )
     }
 

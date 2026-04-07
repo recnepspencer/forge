@@ -216,6 +216,28 @@ The bridge defines:
 
 The bridge must not define its own lineage ontology.
 
+The bridge facade is the only public continuity surface.
+
+External consumers may depend on:
+
+- bridge continuity request types
+- bridge continuity result types
+- bridge continuity diagnostics and replay records
+
+External consumers may not depend on:
+
+- relational lineage graph internals
+- relational historical traversal helpers
+- internal bridge continuity classification modules
+- internal bridge lowering or diagnostics assembly modules
+
+If a future overhaul of `forge-relational` preserves the narrow bridge-owned
+lineage adapter contract, canonical continuity request basis, and returned
+continuity authority basis, the bridge should not need architectural surgery.
+If the bridge must be rewritten because consumers depended on relational
+internals rather than bridge continuity contracts, the facade boundary was too
+weak.
+
 ### 2. Continuity Must Be Classified, Not Assumed
 
 Each prior subscription slice considered for continuity must resolve to exactly
@@ -400,6 +422,31 @@ Operational truth for Milestone 3 is:
 
 Rich explanation remains derived and policy-shaped.
 
+### 11. Continuity Breadth And Complexity Must Be Declared
+
+Milestone 3 must make its normal-path breadth and complexity claims explicit.
+
+At minimum, the spec must preserve these structural expectations:
+
+- continuity planning scales with prior subscribed slice count plus planned
+  lineage packet width, not whole-branch history size on the normal path
+- continuity lowering scales with admitted successor-set width, not all visible
+  descendants in storage
+- rejection must occur before broad successor materialization when lineage
+  authority is absent or unsupported
+
+Forbidden normal-path costs:
+
+- full branch-history scans to discover successors for every prior slice
+- broad descendant enumeration before proving the continuity class is admitted
+- delivery-time re-traversal of lineage history because planning failed to carry
+  enough proof forward
+
+Milestone 3 should eventually register named complexity contracts and proof
+tests for continuity planning and lineage resolution. This milestone spec must
+at least make those boundaries explicit so later implementation cannot hide
+breadth under innocent-looking APIs.
+
 ## Target Runtime Model
 
 ### 1. Public Surface Growth
@@ -491,6 +538,30 @@ pub trait RelationalLineageBridgeAdapter {
 The returned truth must be authoritative enough for the bridge to lower
 continuity without inventing lineage semantics.
 
+### 3.1 Relational Evolution Tolerance
+
+Milestone 3 must assume `forge-relational` may evolve internally over time.
+
+The bridge should tolerate:
+
+- relational lineage storage rewrites
+- lineage graph indexing changes
+- historical traversal implementation changes
+- correspondence or merge-evidence internal representation changes
+
+The bridge should not depend on:
+
+- direct access to relational lineage storage layout
+- direct access to relational graph node internals
+- broad relational facade reach-through for convenience
+- relational helper APIs whose semantics are not part of the narrow bridge contract
+
+Required implication:
+
+- if relational evolves but still exports the same narrow bridge-owned lineage
+  adapter contract with the same canonical authority basis, bridge changes
+  should be local adapter maintenance rather than milestone-level redesign
+
 ### 4. Continuity Resolution Contract
 
 Representative shape:
@@ -542,6 +613,34 @@ Rules:
 - continuity outcomes remain replay-safe and diagnostics-tier-invariant
 - delivery consumes lowered continuity truth only
 - signal receives canonical remapped slice invalidation, not relational lineage internals
+
+### 6. Canonical Continuity Replay Record
+
+Milestone 3 should make replay authority as concrete as its routing authority.
+
+Representative shape:
+
+```rust
+pub struct BridgeCanonicalContinuityRecord {
+    route_identity: BridgeRouteIdentity,
+    continuity_request_digest: BridgeContinuityRequestDigest,
+    continuity_resolution_digest: BridgeContinuityResolutionDigest,
+    continuity_artifact_identity: BridgeContinuityIdentity,
+    source_snapshot: TruthSnapshotIdentity,
+    source_branch: TruthBranchIdentity,
+    counters: BridgeContinuityCounters,
+    schema_version: BridgeCanonicalContinuitySchemaVersion,
+}
+```
+
+Rules:
+
+- replay must proceed from canonical continuity records, not ad hoc in-memory
+  lineage state
+- continuity replay identity must be derived from canonical request and
+  resolution truth, not regenerated from whatever relational history currently
+  happens to exist
+- compatibility failures and replay mismatches must remain typed and explicit
 
 ## Phases
 

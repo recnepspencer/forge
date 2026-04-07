@@ -68,6 +68,14 @@ pub(crate) fn index_query_scratch_hint_count() -> usize {
         .len()
 }
 
+#[cfg(test)]
+pub(crate) fn index_query_scratch_hint_exists(runtime_id: u64) -> bool {
+    index_query_scratch_hints()
+        .lock()
+        .expect("index query scratch hints lock poisoned")
+        .contains_key(&runtime_id)
+}
+
 impl RelationalRuntime {
     pub fn index_access(&self) -> IndexAccess<'_> {
         IndexAccess::new(self)

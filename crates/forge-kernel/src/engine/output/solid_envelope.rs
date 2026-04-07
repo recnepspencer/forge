@@ -6,7 +6,7 @@
 //! Audit metadata (decisions, metrics, lineage) lives in the
 //! `OperationResult<SolidEnvelope>` envelope, not here.
 
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,15 +44,15 @@ pub struct SolidEnvelope {
     // ── Lazily-extracted handle caches ─────────────────────────────
     // Derived from `topology`; recomputed on deserialization.
     #[serde(skip)]
-    bodies: OnceCell<Vec<BodyId>>,
+    bodies: OnceLock<Vec<BodyId>>,
     #[serde(skip)]
-    shells: OnceCell<Vec<ShellId>>,
+    shells: OnceLock<Vec<ShellId>>,
     #[serde(skip)]
-    faces: OnceCell<Vec<FaceId>>,
+    faces: OnceLock<Vec<FaceId>>,
     #[serde(skip)]
-    vertices: OnceCell<Vec<VertexId>>,
+    vertices: OnceLock<Vec<VertexId>>,
     #[serde(skip)]
-    edges: OnceCell<Vec<EdgeId>>,
+    edges: OnceLock<Vec<EdgeId>>,
 }
 
 impl SolidEnvelope {
@@ -67,11 +67,11 @@ impl SolidEnvelope {
         Self {
             topology,
             geometry,
-            bodies: OnceCell::new(),
-            shells: OnceCell::new(),
-            faces: OnceCell::new(),
-            vertices: OnceCell::new(),
-            edges: OnceCell::new(),
+            bodies: OnceLock::new(),
+            shells: OnceLock::new(),
+            faces: OnceLock::new(),
+            vertices: OnceLock::new(),
+            edges: OnceLock::new(),
         }
     }
 

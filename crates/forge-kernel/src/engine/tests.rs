@@ -17,7 +17,8 @@ use forge_core::KernelError;
 use forge_core::PolicyKind;
 use forge_geom::facade::LocalCoordinateSpace;
 use forge_schema::{Command, EntityRef};
-use forge_signal::facade::{EvaluationCondition, NodeId, VersionComparatorPolicy};
+use forge_signal::facade::{EvaluationCondition, NodeId};
+use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
 
@@ -865,6 +866,10 @@ fn feature_tree_roundtrip_restores_runtime_policy_versions_and_skip_behavior() {
     let json = serde_json::to_string(&tree).expect("FeatureTree should serialize");
     let mut restored: FeatureTree<TestFeatureRegistry> =
         serde_json::from_str(&json).expect("FeatureTree should deserialize");
+    let topo_entry = restored
+        .get_graph()
+        .get_entry(topo_consumer)
+        .expect("topology consumer entry should exist after deserialize");
 
     assert_eq!(
         restored.signal_tier(topo_consumer),
@@ -970,8 +975,7 @@ fn feature_tree_failed_evaluation_rolls_back_graph_envelope_and_trace_visibility
         .get_graph()
         .get_entry(consumer)
         .expect("consumer entry should exist")
-        .get_trace_summary()
-        .cloned();
+        .trace_summary();
     let previous_version = tree
         .get_graph()
         .get_entry(consumer)
@@ -998,8 +1002,7 @@ fn feature_tree_failed_evaluation_rolls_back_graph_envelope_and_trace_visibility
         tree.get_graph()
             .get_entry(consumer)
             .expect("consumer entry should exist")
-            .get_trace_summary()
-            .cloned(),
+            .trace_summary(),
         previous_trace
     );
     assert_eq!(
@@ -1028,11 +1031,11 @@ fn feature_tree_replace_rewires_aspect_dependencies_without_duplicate_subscriber
         ))
         .expect("consumer should register");
 
-    let source_entry = tree
+    let source_subscribers = tree
         .get_graph()
-        .get_entry(source)
-        .expect("source entry should exist");
-    assert_eq!(source_entry.get_subscribers(), &[consumer]);
+        .subscribers_of(source)
+        .expect("source subscribers should exist");
+    assert_eq!(source_subscribers, &[consumer]);
 
     tree.replace_feature(
         consumer,
@@ -1040,21 +1043,18 @@ fn feature_tree_replace_rewires_aspect_dependencies_without_duplicate_subscriber
     )
     .expect("consumer replacement should succeed");
 
-    let source_entry = tree
+    let source_subscribers = tree
         .get_graph()
-        .get_entry(source)
-        .expect("source entry should exist");
-    assert_eq!(source_entry.get_subscribers(), &[consumer]);
+        .subscribers_of(source)
+        .expect("source subscribers should exist");
+    assert_eq!(source_subscribers, &[consumer]);
 
-    let consumer_entry = tree
+    let consumer_deps = tree
         .get_graph()
-        .get_entry(consumer)
-        .expect("consumer entry should exist");
-    assert_eq!(consumer_entry.get_dependencies().len(), 1);
-    assert_eq!(
-        consumer_entry.get_dependencies()[0].aspect(),
-        forge_signal::facade::Aspect::new(0)
-    );
+        .dependencies_of(consumer)
+        .expect("consumer dependencies should exist");
+    assert_eq!(consumer_deps.len(), 1);
+    assert_eq!(consumer_deps[0].aspect(), forge_signal::facade::Aspect::new(0));
 }
 
 // ── Tier 1: Feature Pipeline ─────────────────────────────────────────────

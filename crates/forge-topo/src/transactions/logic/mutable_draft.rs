@@ -27,7 +27,8 @@ use forge_core::{
     ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
     TopologyError,
 };
-use forge_signal::facade::{CheckpointBarrier, EventBus};
+use forge_signal::facade::runtime::CheckpointBarrier;
+use forge_signal::facade::specialist::EventBus;
 
 use crate::transactions::data::draft_configuration::DraftConfig;
 use crate::transactions::data::versioned_snapshot::TopologyState;

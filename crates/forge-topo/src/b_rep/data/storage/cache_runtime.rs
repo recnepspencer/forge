@@ -3,10 +3,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
-use forge_signal::facade::{
-    BatchedDirtySet, CheckpointBarrier, CheckpointEvaluator, CheckpointPolicy, CheckpointRuntime,
-    DomainImpact, EffectMapping, SignalError,
+use forge_signal::facade::adapters::{
+    BatchedDirtySet, CheckpointEvaluator, DomainImpact, EffectMapping,
 };
+use forge_signal::facade::runtime::{CheckpointBarrier, RuntimeCheckpointPolicy as CheckpointPolicy};
+use forge_signal::facade::specialist::CheckpointRuntime;
+use forge_signal::facade::SignalError;
 use smallvec::{smallvec, SmallVec};
 
 use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId};
@@ -216,11 +218,11 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                 } else {
                     let mut seeds = BTreeSet::new();
                     for target in &scoped_targets {
-                        let TopoCacheTarget::HalfEdge(he) = target else {
+                        let TopoCacheTarget::HalfEdge(he) = *target else {
                             continue;
                         };
-                        if *he != HalfEdgeId::DANGLING {
-                            seeds.insert(*he);
+                        if he != HalfEdgeId::DANGLING {
+                            seeds.insert(he);
                         }
                     }
                     for he in seeds {
@@ -240,11 +242,11 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                 } else {
                     let mut faces = BTreeSet::new();
                     for target in &scoped_targets {
-                        let TopoCacheTarget::Face(face) = target else {
+                        let TopoCacheTarget::Face(face) = *target else {
                             continue;
                         };
-                        if *face != FaceId::DANGLING {
-                            faces.insert(*face);
+                        if face != FaceId::DANGLING {
+                            faces.insert(face);
                         }
                     }
                     for face in faces {
@@ -266,11 +268,11 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                 } else {
                     let mut vertices = BTreeSet::new();
                     for target in &scoped_targets {
-                        let TopoCacheTarget::Vertex(vertex) = target else {
+                        let TopoCacheTarget::Vertex(vertex) = *target else {
                             continue;
                         };
-                        if *vertex != VertexId::DANGLING {
-                            vertices.insert(*vertex);
+                        if vertex != VertexId::DANGLING {
+                            vertices.insert(vertex);
                         }
                     }
                     for vertex in vertices {
@@ -290,11 +292,11 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                 } else {
                     let mut shells = BTreeSet::new();
                     for target in &scoped_targets {
-                        let TopoCacheTarget::Shell(shell) = target else {
+                        let TopoCacheTarget::Shell(shell) = *target else {
                             continue;
                         };
-                        if *shell != ShellId::DANGLING {
-                            shells.insert(*shell);
+                        if shell != ShellId::DANGLING {
+                            shells.insert(shell);
                         }
                     }
                     for shell in shells {

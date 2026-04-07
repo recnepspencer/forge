@@ -49,6 +49,10 @@ fn is_code_line(line: &str) -> bool {
     true
 }
 
+fn normalize_rel_path(rel_path: &str) -> String {
+    rel_path.replace('\\', "/")
+}
+
 /// Whether a file path should be exempt from architecture guards.
 fn is_exempt_path(rel_path: &str) -> bool {
     // Deprecated code being phased out
@@ -130,6 +134,7 @@ fn no_forge_math_linalg_bypass() {
             .strip_prefix(&kernel_src)
             .unwrap_or(file)
             .to_string_lossy();
+        let rel_path = normalize_rel_path(&rel_path);
 
         if is_exempt_path(&rel_path) {
             continue;
@@ -174,6 +179,7 @@ fn no_forge_math_predicates_bypass() {
             .strip_prefix(&kernel_src)
             .unwrap_or(file)
             .to_string_lossy();
+        let rel_path = normalize_rel_path(&rel_path);
 
         if is_exempt_path(&rel_path) {
             continue;
@@ -230,6 +236,7 @@ fn no_adhoc_float_math() {
             .strip_prefix(&kernel_src)
             .unwrap_or(file)
             .to_string_lossy();
+        let rel_path = normalize_rel_path(&rel_path);
 
         if is_exempt_path(&rel_path) {
             continue;
@@ -310,6 +317,7 @@ fn no_raw_signal_runtime_bypass_outside_feature_tree() {
             .strip_prefix(&kernel_src)
             .unwrap_or(file)
             .to_string_lossy();
+        let rel_path = normalize_rel_path(&rel_path);
 
         if is_exempt_path(&rel_path) || is_signal_contract_path_allowed(&rel_path) {
             continue;
@@ -419,6 +427,7 @@ fn raw_projected_topology_access_stays_inside_spec_envelope() {
             .strip_prefix(&kernel_src)
             .unwrap_or(file)
             .to_string_lossy();
+        let rel_path = normalize_rel_path(&rel_path);
 
         if is_exempt_path(&rel_path) || is_projection_contract_path_allowed(&rel_path) {
             continue;

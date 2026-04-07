@@ -8,9 +8,9 @@ use crate::engine::transaction::data::operation_outputs::{
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::KernelError;
-use forge_signal::facade::{
-    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
-};
+use forge_signal::facade::SignalError;
+use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::runtime::CheckpointBarrier;
 
 use super::{kernel_to_signal, stage_output_value};
 

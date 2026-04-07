@@ -1,0 +1,228 @@
+use crate::diagnostics::BridgeRouteRecord;
+use crate::error::{BridgeDeliveryError, BridgeDeliveryErrorKind};
+use crate::facade::RuntimeBridge;
+use crate::routing::outcome::BridgeRouteOutcomeReference;
+use crate::routing::result::{BridgeRouteResult, BridgeRouteResultSummary};
+use crate::routing::{BridgeExecutionCounts, BridgePlannedRoute, BridgeRouteSourceSummary};
+use crate::snapshot::validate_snapshot_read_result_contract;
+
+use super::context::{delivery_context, reject_delivery};
+use super::requests::{BridgePreparedDeliveryRequest, BridgeSignalEvaluationRequest};
+use super::snapshot::{first_snapshot_read_coordinate, open_planned_snapshot};
+
+pub(crate) fn deliver_planned_route(
+    runtime: &RuntimeBridge,
+    route: BridgePlannedRoute,
+) -> Result<BridgeRouteResult, BridgeDeliveryError> {
+    let prepared = prepare_planned_route_for_delivery(route);
+    deliver_prepared_route(runtime, prepared)
+}
+
+pub(crate) fn prepare_planned_route_for_delivery(
+    route: BridgePlannedRoute,
+) -> BridgePreparedDeliveryRequest {
+    BridgePreparedDeliveryRequest::new(route.into_prepared_delivery())
+}
+
+pub(crate) fn deliver_prepared_route(
+    runtime: &RuntimeBridge,
+    prepared: BridgePreparedDeliveryRequest,
+) -> Result<BridgeRouteResult, BridgeDeliveryError> {
+    let failure_base = prepared.failure_source();
+    let route_identity = prepared.routing_summary().route_identity().clone();
+    let lowering_plan = prepared.validated_lowering_plan().plan();
+    let mut counters = *prepared.counters();
+    let read_packet = prepared.read_packet();
+    let snapshot_reader = match super::snapshot::open_snapshot_reader(runtime, lowering_plan.source_snapshot()) {
+        Ok(snapshot_reader) => snapshot_reader,
+        Err(error) => {
+            let failure = BridgeDeliveryError::new(
+                BridgeDeliveryErrorKind::SnapshotAcquisitionFailure,
+                format!(
+                    "Bridge failed to open snapshot `{}`: {error}",
+                    lowering_plan.source_snapshot().as_str()
+                ),
+            )
+            .with_context(delivery_context(
+                route_identity.clone(),
+                lowering_plan.source_snapshot().clone(),
+            ));
+            return Err(reject_delivery(runtime, failure_base.clone(), failure));
+        }
+    };
+    let snapshot = match crate::snapshot::AdmittedSnapshotContext::admit_for(
+        crate::snapshot::BridgeSnapshotContext::bind(snapshot_reader),
+        lowering_plan.source_snapshot(),
+    ) {
+        Ok(snapshot) => snapshot,
+        Err(bound_snapshot_identity) => {
+            let counters = counters.with_snapshot_identity_mismatch();
+            let error = BridgeDeliveryError::new(
+                BridgeDeliveryErrorKind::SnapshotIdentityMismatch,
+                format!(
+                    "Snapshot reader bound `{}` but planned route required `{}`.",
+                    bound_snapshot_identity.as_str(),
+                    lowering_plan.source_snapshot().as_str()
+                ),
+            )
+            .with_context(delivery_context(
+                route_identity.clone(),
+                lowering_plan.source_snapshot().clone(),
+            ));
+            return Err(reject_delivery(
+                runtime,
+                failure_base.clone().with_counters(counters),
+                error,
+            ));
+        }
+    };
+    let read_result = snapshot.read_packet(read_packet).map_err(|error| {
+        BridgeDeliveryError::new(
+            BridgeDeliveryErrorKind::SnapshotReadFailure,
+            format!(
+                "Bridge failed to execute packetized snapshot reads for `{}`: {error}",
+                lowering_plan.source_snapshot().as_str()
+            ),
+        )
+        .with_context(delivery_context(
+            route_identity.clone(),
+            lowering_plan.source_snapshot().clone(),
+        ))
+    })?;
+    if read_result.snapshot_identity() != lowering_plan.source_snapshot() {
+        let counters = counters.with_snapshot_identity_mismatch();
+        let error = BridgeDeliveryError::new(
+            BridgeDeliveryErrorKind::SnapshotIdentityMismatch,
+            format!(
+                "Snapshot read returned `{}` but planned route required `{}`.",
+                read_result.snapshot_identity().as_str(),
+                lowering_plan.source_snapshot().as_str()
+            ),
+        )
+        .with_context(delivery_context(
+            route_identity.clone(),
+            lowering_plan.source_snapshot().clone(),
+        ));
+        return Err(reject_delivery(
+            runtime,
+            failure_base.clone().with_counters(counters),
+            error,
+        ));
+    }
+    counters = counters.with_validation_record_count(read_result.records().len());
+    let validated_reads = match validate_snapshot_read_result_contract(&read_packet, read_result) {
+        Ok(validated_reads) => validated_reads,
+        Err(error) => {
+            let failure = BridgeDeliveryError::new(
+                BridgeDeliveryErrorKind::SnapshotReadContractViolation,
+                format!(
+                    "Bridge snapshot read contract failed for `{}`: {error}",
+                    lowering_plan.source_snapshot().as_str()
+                ),
+            )
+            .with_context(
+                delivery_context(
+                    route_identity.clone(),
+                    lowering_plan.source_snapshot().clone(),
+                )
+                .with_snapshot_read(first_snapshot_read_coordinate(read_packet)),
+            );
+            return Err(reject_delivery(runtime, failure_base.clone(), failure));
+        }
+    };
+
+    let lowered = prepared.into_inner().into_lowered_execution(counters);
+    let lowered_failure_base = lowered.failure_source();
+    let delivery = crate::routing::BridgeSignalInvalidationDelivery::new(
+        lowered.artifact(),
+        lowered.contract_proof(),
+    );
+    let receipt = runtime
+        .signal_sink
+        .deliver_invalidation(delivery)
+        .map_err(|error| {
+            reject_delivery(
+                runtime,
+                lowered_failure_base.clone(),
+                BridgeDeliveryError::new(
+                    BridgeDeliveryErrorKind::SignalSinkRejection,
+                    format!("Signal bridge sink rejected invalidation delivery: {error}"),
+                )
+                .with_context(
+                    delivery_context(
+                        lowered.artifact().route_identity().clone(),
+                        lowered.artifact().source_snapshot().clone(),
+                    )
+                    .with_invalidation_identity(lowered.artifact().invalidation_identity().clone())
+                    .with_subscription_slice_identity(
+                        lowered.artifact().subscription_slice_identity().clone(),
+                    ),
+                ),
+            )
+        })?;
+    let result_summary = BridgeRouteResultSummary::new(
+        BridgeRouteOutcomeReference::new(
+            lowered.artifact().route_identity().clone(),
+            lowered.artifact().invalidation_identity().clone(),
+            BridgeRouteSourceSummary::new(
+                lowered.artifact().source_commit().clone(),
+                lowered.artifact().source_patch().clone(),
+                lowered.artifact().source_snapshot().clone(),
+            ),
+            lowered.artifact().subscription_slice_identity().clone(),
+        ),
+        lowered.contract_proof().clone(),
+        lowered.routing_summary().routing_entry_count(),
+        BridgeExecutionCounts::new(
+            lowered.artifact().invalidation_targets().targets().len(),
+            lowered.artifact().subscription_slices().len(),
+            validated_reads.records().len(),
+        ),
+        receipt.delivered_target_count(),
+    );
+    runtime.diagnostic_sink.record_route(BridgeRouteRecord::new(
+        lowered.artifact().route_identity().clone(),
+        lowered.artifact().invalidation_identity().clone(),
+        lowered.artifact().source_commit().clone(),
+        lowered.artifact().source_patch().clone(),
+        lowered.artifact().source_snapshot().clone(),
+        lowered.contract_proof().clone(),
+        lowered.artifact().subscription_slice_identity().clone(),
+        std::sync::Arc::clone(lowered.route_record_entries()),
+        std::sync::Arc::clone(lowered.artifact().subscription_slices().shared()),
+        std::sync::Arc::clone(lowered.artifact().invalidation_targets().shared()),
+        *lowered.counters(),
+    ));
+
+    Ok(BridgeRouteResult::new(
+        lowered.routing_summary().clone(),
+        result_summary,
+        *lowered.artifact().counters(),
+        lowered.artifact().clone(),
+        receipt,
+    ))
+}
+
+pub(crate) fn prepare_signal_evaluation(
+    runtime: &RuntimeBridge,
+    route: BridgePlannedRoute,
+) -> Result<BridgeSignalEvaluationRequest, BridgeDeliveryError> {
+    let prepared = prepare_planned_route_for_delivery(route);
+    let counters = *prepared.counters();
+    let read_packet = prepared.read_packet().clone();
+    let snapshot = open_planned_snapshot(
+        runtime,
+        prepared.validated_lowering_plan().plan().source_snapshot(),
+    )?;
+    let artifact = prepared
+        .into_inner()
+        .into_lowered_execution(counters)
+        .artifact()
+        .clone();
+
+    Ok(BridgeSignalEvaluationRequest::new(
+        artifact,
+        read_packet,
+        snapshot,
+    ))
+}

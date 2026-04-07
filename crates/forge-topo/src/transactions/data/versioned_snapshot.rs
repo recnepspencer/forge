@@ -167,7 +167,7 @@ impl TopologyState {
             mutation_journal: crate::transactions::data::mutation_journal::MutationJournal::new(),
             poisoned: false,
             rollback_applied: false,
-            event_bus: forge_signal::facade::EventBus::new(),
+            event_bus: forge_signal::facade::specialist::EventBus::new(),
             pending_operation_events: Vec::new(),
         };
 

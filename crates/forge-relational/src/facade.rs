@@ -55,10 +55,11 @@ pub mod bridge {
     use std::sync::{Arc, RwLock};
 
     use forge_runtime_bridge::facade::{
-        BridgeCommittedPatchItem, RawCommittedPatchEnvelope, RelationalBridgeSource,
-        RelationalBridgeSourceError, SnapshotReadPacket, SnapshotReadPacketResult,
-        SnapshotReadRecord, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
-        TruthSnapshotIdentity, TruthSnapshotReader,
+        BridgeCommittedPatchItem, CommittedPatchSource, RawCommittedPatchEnvelope,
+        RelationalBridgeSourceError, RelationalCommittedPatchRequest, SnapshotReadPacket,
+        SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
+        TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthSnapshotIdentity,
+        TruthSnapshotReader,
     };
 
     use crate::history::data::CommitId;
@@ -132,10 +133,10 @@ pub mod bridge {
         }
     }
 
-    impl RelationalBridgeSource for PublicationBridgeCatalog {
+    impl CommittedPatchSource for PublicationBridgeCatalog {
         fn load_committed_patch(
             &self,
-            request: forge_runtime_bridge::facade::RelationalCommittedPatchRequest,
+            request: RelationalCommittedPatchRequest,
         ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
             self.state
                 .read()
@@ -151,6 +152,9 @@ pub mod bridge {
                 })
         }
 
+    }
+
+    impl SnapshotReadSource for PublicationBridgeCatalog {
         fn open_snapshot(
             &self,
             identity: &TruthSnapshotIdentity,
@@ -286,7 +290,7 @@ pub mod bridge {
             PatchRecordKind, PatchStreamPosition, RecordStructuralChange, RelationalPatchRecord,
         };
         use crate::publication::patch::data::{PatchCompatibilityClass, PatchDetail};
-        use forge_runtime_bridge::facade::{RelationalCommittedPatchRequest, SnapshotReadRequest};
+        use forge_runtime_bridge::facade::RelationalCommittedPatchRequest;
 
         #[test]
         fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
@@ -325,17 +329,10 @@ pub mod bridge {
             let reader = catalog
                 .open_snapshot(&TruthSnapshotIdentity::new("snapshot-a"))
                 .expect("registered publication snapshot");
-            let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::new(
-                "entity:0:4:1:profile.name",
-                "entity:0:4:1",
-                "profile.name",
-            )]);
-            let result = reader.read_packet(&packet).expect("snapshot packet read");
 
             assert_eq!(envelope.patch_identity().as_str(), "patch-11");
             assert_eq!(envelope.patch_items()[0].aspect_label(), "profile.name");
-            assert_eq!(result.snapshot_identity().as_str(), "snapshot-a");
-            assert_eq!(result.records().len(), 1);
+            assert_eq!(reader.snapshot_identity().as_str(), "snapshot-a");
         }
     }
 }

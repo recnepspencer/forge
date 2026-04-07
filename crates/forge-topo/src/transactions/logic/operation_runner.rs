@@ -11,7 +11,8 @@ use crate::operations::operator::TopoOperator;
 use crate::provenance::OpSignature;
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::transactions::data::operation_outputs::OperationArtifacts;
-use forge_signal::facade::{CheckpointBarrier, EventBus};
+use forge_signal::facade::runtime::CheckpointBarrier;
+use forge_signal::facade::specialist::EventBus;
 
 use forge_core::{KernelError, LineageDelta, OperationMetrics, OperationResult};
 

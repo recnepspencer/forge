@@ -15,7 +15,8 @@ use std::collections::HashMap;
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, NodeId};
+use forge_signal::facade::NodeId;
+use forge_signal::facade::runtime::CheckpointBarrier;
 
 use super::super::contracts::contract::{ConditioningMode, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;

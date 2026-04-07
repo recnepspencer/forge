@@ -6,6 +6,7 @@ use crate::provenance::{
     RollbackContractVersion, RollbackLineageMode, RollbackStrategy,
 };
 use forge_core::{EntityKind, EntityRef};
+use forge_signal::facade::runtime::CheckpointBarrier;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
@@ -799,7 +800,7 @@ fn determinism_golden_pipeline_roundtrip_preserves_replay_hash_and_lineage_order
 fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
-    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
@@ -844,7 +845,7 @@ fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
 
         fn on_checkpoint(
             &mut self,
-            _barrier: forge_signal::facade::CheckpointBarrier,
+            _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
             _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
@@ -972,7 +973,7 @@ fn operation_result_artifacts_are_sourced_from_subscriber_outputs() {
 fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
-    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
 
     struct FailingSubscriber;
 
@@ -1001,7 +1002,7 @@ fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
 
         fn on_checkpoint(
             &mut self,
-            _barrier: forge_signal::facade::CheckpointBarrier,
+            _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
             _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
@@ -1042,7 +1043,7 @@ fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
 fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
-    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
@@ -1075,7 +1076,7 @@ fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
 
         fn on_checkpoint(
             &mut self,
-            _barrier: forge_signal::facade::CheckpointBarrier,
+            _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
             _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
@@ -1116,9 +1117,9 @@ fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
 #[test]
 fn topo_event_bus_rollback_honors_reverse_dependency_order() {
     use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
-    use forge_signal::facade::{
-        CheckpointBarrier, EventBus, EventSubscriber, SubscriberContext, SubscriberId,
-    };
+    use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
+    use forge_signal::facade::runtime::CheckpointBarrier;
+    use forge_signal::facade::specialist::EventBus;
     use std::sync::{Arc, Mutex};
 
     struct OrderedRollback {
@@ -1211,7 +1212,7 @@ fn topo_event_bus_rollback_honors_reverse_dependency_order() {
 fn rollback_failure_keeps_previous_committed_operation_outputs_intact() {
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::{MutationCounts, TopoOperationEvent, TopoSubscriberDataId};
-    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
 
     struct FailingSubscriber;
 
@@ -1240,7 +1241,7 @@ fn rollback_failure_keeps_previous_committed_operation_outputs_intact() {
 
         fn on_checkpoint(
             &mut self,
-            _barrier: forge_signal::facade::CheckpointBarrier,
+            _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
             _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {

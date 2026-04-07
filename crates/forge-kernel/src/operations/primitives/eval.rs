@@ -34,7 +34,7 @@ use crate::operations::shared_operations::facade::{
     stitch_twins, PlacementRegistry,
 };
 use forge_core::envelope::OperationResult;
-use forge_signal::facade::CheckpointBarrier;
+use forge_signal::facade::runtime::CheckpointBarrier;
 
 use crate::operations::shared_validators::facade::{
     validate_cell, validate_center_and_size, validate_coordinate, validate_dimension,

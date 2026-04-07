@@ -3,8 +3,8 @@ use super::core::RuntimeCore;
 use super::policy::{RuntimePolicyPreset, RuntimePolicySpec};
 use crate::expression::model::{Expr, IdentitySpec, SignalValue};
 use crate::recipe::model::{
-    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec, RecipeSpec,
-    SourceSpec, TransactionOp,
+    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec,
+    RecipeReadSpec, RecipeSpec, SourceSpec, TransactionOp,
 };
 
 fn number(value: f64) -> Expr {
@@ -47,9 +47,9 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
         .define_recipe(RecipeSpec {
             id: "gearTopologyModel".to_owned(),
             reads: vec![
-                "gearTeeth".to_owned(),
-                "gearThickness".to_owned(),
-                "gearInnerRadius".to_owned(),
+                RecipeReadSpec::LegacyId("gearTeeth".to_owned()),
+                RecipeReadSpec::LegacyId("gearThickness".to_owned()),
+                RecipeReadSpec::LegacyId("gearInnerRadius".to_owned()),
             ],
             expr: Expr::Object {
                 fields: vec![
@@ -80,7 +80,10 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
     runtime
         .define_recipe(RecipeSpec {
             id: "hudModel".to_owned(),
-            reads: vec!["gearTopologyModel".to_owned(), "lightIntensity".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("gearTopologyModel".to_owned()),
+                RecipeReadSpec::LegacyId("lightIntensity".to_owned()),
+            ],
             expr: Expr::Object {
                 fields: vec![
                     (
@@ -168,7 +171,10 @@ fn collection_and_object_operators_work_on_runtime_values() {
     runtime
         .define_recipe(RecipeSpec {
             id: "operators".to_owned(),
-            reads: vec!["items".to_owned(), "profile".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("items".to_owned()),
+                RecipeReadSpec::LegacyId("profile".to_owned()),
+            ],
             expr: Expr::Object {
                 fields: vec![
                     (
@@ -294,7 +300,10 @@ fn transaction_updates_recipe_values_and_versions() {
     runtime
         .define_recipe(RecipeSpec {
             id: "total".to_owned(),
-            reads: vec!["price".to_owned(), "tax".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("price".to_owned()),
+                RecipeReadSpec::LegacyId("tax".to_owned()),
+            ],
             expr: Expr::Sum {
                 args: vec![read("price"), read("tax")],
             },
@@ -339,7 +348,10 @@ fn snapshot_envelope_round_trip_restores_runtime_state() {
     runtime
         .define_recipe(RecipeSpec {
             id: "product".to_owned(),
-            reads: vec!["left".to_owned(), "right".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("left".to_owned()),
+                RecipeReadSpec::LegacyId("right".to_owned()),
+            ],
             expr: Expr::Multiply {
                 args: vec![read("left"), read("right")],
             },
@@ -381,7 +393,7 @@ fn exported_envelope_can_seed_a_fresh_runtime() {
     original
         .define_recipe(RecipeSpec {
             id: "plusOne".to_owned(),
-            reads: vec!["base".to_owned()],
+            reads: vec![RecipeReadSpec::LegacyId("base".to_owned())],
             expr: Expr::Sum {
                 args: vec![read("base"), number(1.0)],
             },
@@ -429,9 +441,11 @@ fn keyed_families_expand_and_recompute() {
             reads: vec![
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "price".to_owned(),
+                    scope: None,
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "tax".to_owned(),
+                    scope: None,
                 },
             ],
             expr: Expr::Sum {
@@ -474,9 +488,11 @@ fn keyed_families_can_mix_shared_and_keyed_reads() {
             reads: vec![
                 RecipeFamilyReadSpec::Signal {
                     id: "exposure".to_owned(),
+                    scope: None,
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "pixelBase".to_owned(),
+                    scope: None,
                 },
             ],
             expr: Expr::Sum {
@@ -621,7 +637,10 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
     runtime
         .define_recipe(RecipeSpec {
             id: "gearDimensionsModel".to_owned(),
-            reads: vec!["gearTeeth".to_owned(), "gearThickness".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("gearTeeth".to_owned()),
+                RecipeReadSpec::LegacyId("gearThickness".to_owned()),
+            ],
             expr: Expr::Object {
                 fields: vec![
                     (
@@ -733,7 +752,10 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
     runtime
         .define_recipe(RecipeSpec {
             id: "gearDimensionsModel".to_owned(),
-            reads: vec!["gearTeeth".to_owned(), "gearThickness".to_owned()],
+            reads: vec![
+                RecipeReadSpec::LegacyId("gearTeeth".to_owned()),
+                RecipeReadSpec::LegacyId("gearThickness".to_owned()),
+            ],
             expr: Expr::Object {
                 fields: vec![
                     (
@@ -931,9 +953,11 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
             reads: vec![
                 RecipeFamilyReadSpec::Signal {
                     id: "gearTeeth".to_owned(),
+                    scope: None,
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "gearToothIndex".to_owned(),
+                    scope: None,
                 },
             ],
             expr: Expr::Object {
@@ -1024,7 +1048,6 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
         .unwrap();
     assert_eq!(feature_tooth_again, feature_tooth);
 }
-
 #[test]
 fn branch_state_proof_is_versioned_and_stable_for_unchanged_branch_state() {
     let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
@@ -1296,3 +1319,4 @@ fn replay_artifact_proof_reports_typed_mismatch_classes() {
         .mismatch_classes
         .contains(&forge_signal::facade::adapters::ReplayMismatchClass::BranchStateDigestMismatch));
 }
+

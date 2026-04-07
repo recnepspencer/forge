@@ -4,10 +4,13 @@ use forge_core::KernelError;
 #[cfg(test)]
 use forge_signal::facade::NodeState;
 use forge_signal::facade::{
-    evaluate_in_txn_with_mode, Aspect, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    DependencyEdge, EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph,
-    SignalRuntime, TransactionOutcome,
+    Aspect, AspectVersion, DependencyEdge, EvaluationCondition, EvaluationContext, NodeId,
+    SignalError, SignalGraph, SignalRuntime, TransactionOutcome,
 };
+use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
+use forge_signal::facade::specialist::RunMode as EvaluationRequestMode;
+#[cfg(test)]
+use forge_signal::facade::adapters::RuntimeTelemetry;
 use forge_topo::projection::{
     compute_projected_topology_hash, validate_projected_topology_structural, ProjectedTopology,
     ProjectionBuilder,
@@ -131,7 +134,8 @@ impl SpecEnvelopeSignalState {
 
         let mut runtime = SignalRuntime::builder(graph)
             .with_tiers::<SpecEnvelopeSignalTier>()
-            .checkpoint_barrier(CheckpointBarrier::PerOperation)
+            .with_kernel_defaults()
+            .fallback_comparator(VersionComparatorPolicy::Exact)
             .build();
         runtime.set_node_tier(root, SpecEnvelopeSignalTier::Core);
         runtime.set_node_tier(projection, SpecEnvelopeSignalTier::Core);
@@ -201,7 +205,43 @@ impl SpecEnvelope {
     }
 
     fn ensure_signal_node(&self, node: SpecEnvelopeSignalNode) -> Result<(), KernelError> {
-        let mut signal = self.signal.borrow_mut();
+        let spec = &self.spec;
+        let projection_cache = &self.projection;
+        let standard_fingerprint_cache = &self.standard_fingerprint;
+        let full_fingerprint_cache = &self.full_fingerprint;
+
+        let projected_topology = || -> Result<&ProjectedTopology, SignalError> {
+            projection_cache
+                .get_or_init(|| ProjectionBuilder::build(spec))
+                .as_ref()
+                .map_err(|err| Self::kernel_to_signal(projected_topology_error_to_kernel_ref(err)))
+        };
+
+        let validate_projected_structure_now = || -> Result<(), SignalError> {
+            let projected = projected_topology()?;
+            validate_projected_topology_structural(projected).map_err(Self::kernel_to_signal)
+        };
+
+        let entity_count_now = || -> Result<usize, SignalError> {
+            let projection = projected_topology()?;
+            Ok(projection.face_count()
+                + projection.half_edge_count()
+                + projection.vertex_count()
+                + projection.loop_count())
+        };
+        let root_aspect_version = {
+            let spec_hash = spec.spec_hash();
+            let topology_version = ((spec_hash >> 64) as u64) ^ (spec_hash as u64);
+            AspectVersion::from_updates([
+                (TOPOLOGY_ASPECT, topology_version.max(1)),
+                (GEOMETRY_ASPECT, 0),
+            ])
+        };
+
+        let mut signal = self
+            .signal
+            .write()
+            .expect("spec envelope signal lock poisoned");
         let node_id = signal.node_id(node);
         let root_id = signal.root;
         let projection_id = signal.projection;
@@ -211,15 +251,14 @@ impl SpecEnvelope {
         let standard_fingerprint_id = signal.standard_fingerprint;
         let full_fingerprint_id = signal.full_fingerprint;
         let mut compute =
-            |id: NodeId, _graph: &SignalGraph| -> Result<AspectVersion, SignalError> {
+            |ctx: &mut EvaluationContext<'_, ()>| -> Result<AspectVersion, SignalError> {
+                let id = ctx.node();
                 if id == root_id {
-                    return Ok(self.root_aspect_version());
+                    return Ok(root_aspect_version);
                 }
 
                 if id == projection_id {
-                    let projection = self
-                        .projection
-                        .get_or_init(|| ProjectionBuilder::build(&self.spec));
+                    let projection = projection_cache.get_or_init(|| ProjectionBuilder::build(spec));
                     let projection = projection.as_ref().map_err(|err| {
                         Self::kernel_to_signal(projected_topology_error_to_kernel_ref(err))
                     })?;
@@ -233,9 +272,8 @@ impl SpecEnvelope {
                 }
 
                 if id == structure_validation_id || id == manifold_invariant_id {
-                    self.validate_projected_structure_now()
-                        .map_err(Self::kernel_to_signal)?;
-                    let projection = self.projected_topology().map_err(Self::kernel_to_signal)?;
+                    validate_projected_structure_now()?;
+                    let projection = projected_topology()?;
                     let projection_hash = compute_projected_topology_hash(projection);
                     let projection_version =
                         ((projection_hash >> 64) as u64) ^ (projection_hash as u64);
@@ -246,10 +284,8 @@ impl SpecEnvelope {
                 }
 
                 if id == post_feature_checkpoint_id {
-                    self.validate_projected_structure_now()
-                        .map_err(Self::kernel_to_signal)?;
-                    let total_entities =
-                        self.entity_count_now().map_err(Self::kernel_to_signal)? as u64;
+                    validate_projected_structure_now()?;
+                    let total_entities = entity_count_now()? as u64;
                     return Ok(AspectVersion::from_updates([(
                         TOPOLOGY_ASPECT,
                         total_entities.max(1),
@@ -257,9 +293,8 @@ impl SpecEnvelope {
                 }
 
                 if id == standard_fingerprint_id {
-                    let hash = self
-                        .standard_fingerprint
-                        .get_or_init(|| Ok(self.spec.spec_hash()))
+                    let hash = standard_fingerprint_cache
+                        .get_or_init(|| Ok(spec.spec_hash()))
                         .as_ref()
                         .map(|hash| *hash)
                         .map_err(Clone::clone)
@@ -272,10 +307,10 @@ impl SpecEnvelope {
                 }
 
                 if id == full_fingerprint_id {
-                    let hash = self
-                        .full_fingerprint
+                    let hash = full_fingerprint_cache
                         .get_or_init(|| {
-                            let projection = self.projected_topology()?;
+                            let projection =
+                                projected_topology().map_err(Self::signal_to_kernel)?;
                             Ok(compute_projected_topology_hash(projection))
                         })
                         .as_ref()
@@ -292,24 +327,21 @@ impl SpecEnvelope {
                 Err(SignalError::internal("unknown spec envelope signal node"))
             };
 
-        let mut txn = signal.runtime.begin();
-        let result = evaluate_in_txn_with_mode(
-            &mut txn,
-            node_id,
-            &mut compute,
-            DefaultComparatorResolver,
-            EvaluationRequestMode::ForceOnDemand,
-        );
+        let mut runtime_ctx = ();
+        let mut txn = signal.runtime.begin(&mut runtime_ctx);
+        let result = txn
+            .target(node_id)
+            .with_mode(EvaluationRequestMode::ForceOnDemand)
+            .read(&compute);
         if let Err(err) = result {
-            let mut runtime_ctx = ();
-            let _ = txn.rollback(&mut runtime_ctx);
+            let _ = txn.rollback();
             return Err(Self::signal_to_kernel(err));
         }
 
-        let mut runtime_ctx = ();
         match txn
-            .commit(&mut runtime_ctx)
+            .commit()
             .map_err(Self::signal_to_kernel)?
+            .outcome
         {
             TransactionOutcome::Committed => Ok(()),
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
@@ -424,13 +456,21 @@ impl SpecEnvelope {
     }
 
     #[cfg(test)]
-    pub(crate) fn debug_signal_telemetry(&self) -> forge_signal::facade::RuntimeTelemetry {
-        self.signal.borrow().runtime.telemetry().to_owned()
+    pub(crate) fn debug_signal_telemetry(&self) -> RuntimeTelemetry {
+        self.signal
+            .read()
+            .expect("spec envelope signal lock poisoned")
+            .runtime
+            .telemetry()
+            .to_owned()
     }
 
     #[cfg(test)]
     pub(crate) fn debug_signal_node_state(&self, node: &str) -> Option<NodeState> {
-        let signal = self.signal.borrow();
+        let signal = self
+            .signal
+            .read()
+            .expect("spec envelope signal lock poisoned");
         let id = match node {
             "root" => signal.root,
             "projection" => signal.projection,
