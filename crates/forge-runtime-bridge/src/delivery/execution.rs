@@ -35,16 +35,7 @@ pub(crate) fn deliver_bulk_workload_plan(
     }
 
     let execution_plan = plan.execution_plan();
-    if matches!(
-        execution_plan.parallel_admission().class(),
-        BridgeParallelAdmissionClass::ParallelPreparationRejected
-    ) && !matches!(execution_plan.selected_mode(), crate::routing::BridgePreparationMode::Serial)
-    {
-        return Err(BridgeDeliveryError::new(
-            BridgeDeliveryErrorKind::BulkDeliveryRejected,
-            "Bridge bulk delivery refused a plan whose selected mode did not honor the rejected parallel-admission class.",
-        ));
-    }
+    validate_bulk_delivery_mode(execution_plan, execution_plan.selected_mode())?;
 
     let route_results = plan
         .planned_routes()
@@ -68,6 +59,23 @@ pub(crate) fn deliver_bulk_workload_plan(
     );
 
     Ok(BridgeBulkWorkloadResult::new(summary, route_results))
+}
+
+pub(crate) fn validate_bulk_delivery_mode(
+    execution_plan: &crate::routing::AdmittedBridgeExecutionPlan,
+    selected_mode: crate::routing::BridgePreparationMode,
+) -> Result<(), BridgeDeliveryError> {
+    if matches!(
+        execution_plan.parallel_admission().class(),
+        BridgeParallelAdmissionClass::ParallelPreparationRejected
+    ) && !matches!(selected_mode, crate::routing::BridgePreparationMode::Serial)
+    {
+        return Err(BridgeDeliveryError::new(
+            BridgeDeliveryErrorKind::BulkDeliveryRejected,
+            "Bridge bulk delivery refused a plan whose selected mode did not honor the rejected parallel-admission class.",
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) fn prepare_planned_route_for_delivery(

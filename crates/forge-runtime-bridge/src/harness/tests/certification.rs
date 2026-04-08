@@ -301,7 +301,27 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
         plan.execution_plan().parallel_admission().reason(),
         BridgeParallelAdmissionReason::AdmittedOperational
     );
-    assert_eq!(plan.packet_set().counters().bulk_packet_count(), 4);
+    assert_eq!(plan.packet_set().counters().bulk_packet_count(), 6);
+    assert_eq!(plan.execution_plan().counters().bulk_routed_item_count(), 2);
+    assert_eq!(
+        plan.execution_plan().counters().bulk_normalized_workload_width(),
+        13
+    );
+    assert_eq!(plan.execution_plan().counters().bulk_packet_entry_count(), 6);
+    assert_eq!(plan.execution_plan().counters().bulk_reduction_input_count(), 4);
+    assert_eq!(plan.execution_plan().counters().bulk_reduction_output_count(), 4);
+    assert_eq!(
+        plan.execution_plan().counters().bulk_packet_queue_depth_peak(),
+        6
+    );
+    assert_eq!(
+        plan.execution_plan().counters().bulk_reducer_input_buffer_peak(),
+        4
+    );
+    assert_eq!(
+        plan.execution_plan().counters().bulk_replay_mismatch_count(),
+        0
+    );
     assert_eq!(
         plan.execution_plan().counters().bulk_parallel_legal_count(),
         1
@@ -349,7 +369,27 @@ fn bridge_bulk_certifies_exact_counters_for_serial_fallback_workload() {
         plan.execution_plan().parallel_admission().reason(),
         BridgeParallelAdmissionReason::SharedPublicationReductionTarget
     );
-    assert_eq!(plan.packet_set().counters().bulk_packet_count(), 4);
+    assert_eq!(plan.packet_set().counters().bulk_packet_count(), 5);
+    assert_eq!(plan.execution_plan().counters().bulk_routed_item_count(), 2);
+    assert_eq!(
+        plan.execution_plan().counters().bulk_normalized_workload_width(),
+        11
+    );
+    assert_eq!(plan.execution_plan().counters().bulk_packet_entry_count(), 6);
+    assert_eq!(plan.execution_plan().counters().bulk_reduction_input_count(), 3);
+    assert_eq!(plan.execution_plan().counters().bulk_reduction_output_count(), 3);
+    assert_eq!(
+        plan.execution_plan().counters().bulk_packet_queue_depth_peak(),
+        5
+    );
+    assert_eq!(
+        plan.execution_plan().counters().bulk_reducer_input_buffer_peak(),
+        3
+    );
+    assert_eq!(
+        plan.execution_plan().counters().bulk_replay_mismatch_count(),
+        0
+    );
     assert_eq!(
         plan.execution_plan().counters().bulk_parallel_legal_count(),
         1

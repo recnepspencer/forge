@@ -8,6 +8,7 @@ use crate::routing::{
     BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
     FineGrainedMatchStatus,
 };
+use crate::adapter::BridgeHistoricalLineageTopology;
 
 use super::{
     BridgeContinuityClass, BridgeContinuityCounters, BridgeContinuityOutcomeClass,
@@ -73,15 +74,11 @@ impl ResolvedLineageContinuitySet {
     ) -> Result<Self, BridgeContinuityError> {
         let mut entries = Vec::with_capacity(packet.entries().len());
         let mut counters = BridgeContinuityCounters::from_request_set(
-            packet.entries().len(),
-            packet.entries().len(),
+            packet.continuity_request_count(),
+            packet.continuity_prior_slice_count(),
         );
 
         for entry in packet.entries() {
-            let resolved_lineage_key_count = entry
-                .lineage_authority()
-                .canonical_resolved_lineage_keys()
-                .len();
             let successor_record_keys = entry
                 .lineage_authority()
                 .canonical_resolved_record_keys()
@@ -93,7 +90,7 @@ impl ResolvedLineageContinuitySet {
             let (outcome_class, successor_slices) =
                 classify_continuity(
                     entry.prior_slice(),
-                    resolved_lineage_key_count,
+                    entry.lineage_authority().topology(),
                     successor_record_keys.as_slice(),
                 );
             counters = match outcome_class {
@@ -187,20 +184,20 @@ impl ResolvedLineageContinuitySet {
 
 fn classify_continuity(
     prior_slice: &PriorSubscriptionSlice,
-    resolved_lineage_key_count: usize,
+    topology: BridgeHistoricalLineageTopology,
     successor_record_keys: &[&str],
 ) -> (BridgeContinuityOutcomeClass, Vec<BridgeSubscriptionSlice>) {
-    match successor_record_keys.len() {
-        0 if resolved_lineage_key_count == 0 => {
-            (BridgeContinuityOutcomeClass::RejectedNoAuthoritativeSuccessor, Vec::new())
-        }
-        0 => (BridgeContinuityOutcomeClass::RejectedUnsupportedContinuityClass, Vec::new()),
-        1 => (
-            if resolved_lineage_key_count > 1 {
-                BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
-            } else {
-                BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor
-            },
+    match topology {
+        BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor => (
+            BridgeContinuityOutcomeClass::RejectedNoAuthoritativeSuccessor,
+            Vec::new(),
+        ),
+        BridgeHistoricalLineageTopology::UnsupportedWithoutSuccessor => (
+            BridgeContinuityOutcomeClass::RejectedUnsupportedContinuityClass,
+            Vec::new(),
+        ),
+        BridgeHistoricalLineageTopology::SingleSuccessor => (
+            BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
             vec![successor_slice_from_record_key(
                 successor_record_keys[0],
                 prior_slice.aspect_label(),
@@ -209,7 +206,17 @@ fn classify_continuity(
                 prior_slice.match_status(),
             )],
         ),
-        _ if resolved_lineage_key_count == successor_record_keys.len() => (
+        BridgeHistoricalLineageTopology::MergeLikeSuccessor => (
+            BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor,
+            vec![successor_slice_from_record_key(
+                successor_record_keys[0],
+                prior_slice.aspect_label(),
+                prior_slice.surface_label(),
+                prior_slice.slice_kind(),
+                prior_slice.match_status(),
+            )],
+        ),
+        BridgeHistoricalLineageTopology::SplitSuccessors => (
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
             successor_record_keys
                 .iter()
@@ -224,7 +231,7 @@ fn classify_continuity(
                 })
                 .collect(),
         ),
-        _ => (
+        BridgeHistoricalLineageTopology::AmbiguousSuccessor => (
             BridgeContinuityOutcomeClass::RejectedAmbiguousSuccessor,
             Vec::new(),
         ),
@@ -277,7 +284,11 @@ mod tests {
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
         );
-        let (outcome, successor_slices) = classify_continuity(&prior_slice, 0, &[]);
+        let (outcome, successor_slices) = classify_continuity(
+            &prior_slice,
+            crate::adapter::BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor,
+            &[],
+        );
 
         assert_eq!(
             outcome,
@@ -296,7 +307,11 @@ mod tests {
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
         );
-        let (outcome, successor_slices) = classify_continuity(&prior_slice, 1, &[]);
+        let (outcome, successor_slices) = classify_continuity(
+            &prior_slice,
+            crate::adapter::BridgeHistoricalLineageTopology::UnsupportedWithoutSuccessor,
+            &[],
+        );
 
         assert_eq!(
             outcome,
@@ -315,8 +330,11 @@ mod tests {
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
         );
-        let (outcome, successor_slices) =
-            classify_continuity(&prior_slice, 2, &["entity:0:4:2"]);
+        let (outcome, successor_slices) = classify_continuity(
+            &prior_slice,
+            crate::adapter::BridgeHistoricalLineageTopology::MergeLikeSuccessor,
+            &["entity:0:4:2"],
+        );
 
         assert_eq!(
             outcome,
@@ -335,8 +353,11 @@ mod tests {
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
         );
-        let (outcome, successor_slices) =
-            classify_continuity(&prior_slice, 3, &["entity:0:4:2", "entity:0:5:2"]);
+        let (outcome, successor_slices) = classify_continuity(
+            &prior_slice,
+            crate::adapter::BridgeHistoricalLineageTopology::AmbiguousSuccessor,
+            &["entity:0:4:2", "entity:0:5:2"],
+        );
 
         assert_eq!(
             outcome,

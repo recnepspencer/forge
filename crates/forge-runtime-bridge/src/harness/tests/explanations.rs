@@ -265,6 +265,6 @@ fn bridge_bulk_explanation_retains_typed_parallel_fallback_failures() {
     assert_eq!(explanation.planning_failure_count(), 1);
     assert_eq!(
         explanation.planning_failures()[0].kind(),
-        crate::facade::BridgeBulkPlanningFailureKind::LegalButUnprofitableParallelFallback
+        crate::facade::BridgeBulkPlanningFailureKind::ParallelPreparationNotProfitable
     );
 }

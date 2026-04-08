@@ -29,7 +29,7 @@ impl RuntimeBridge {
                     historical_failure_counters_for_policy_rejection(&declaration, rejection.kind()),
                 );
                 return Err(BridgeDeliveryError::new(
-                    BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                    BridgeDeliveryErrorKind::HistoricalPolicyRejected,
                     format!(
                         "Historical evaluation declaration `{}` was rejected during truth-view policy resolution: {}",
                         rejection.declaration_identity().as_str(),
@@ -69,7 +69,7 @@ impl RuntimeBridge {
             BridgeTruthViewKind::HistoricalCommit | BridgeTruthViewKind::BranchCommit => {
                 let commit_identity = selector.commit_identity().ok_or_else(|| {
                     BridgeDeliveryError::new(
-                        BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                        BridgeDeliveryErrorKind::HistoricalSelectorMissingCommit,
                         format!(
                             "Truth-view selector `{}` did not carry a required commit identity.",
                             selector.selector_identity().as_str()
@@ -83,7 +83,7 @@ impl RuntimeBridge {
                     ))
                     .map_err(|error| {
                         BridgeDeliveryError::new(
-                            BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                            BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable,
                             format!(
                                 "Truth-view selector `{}` could not resolve committed envelope for `{}`: {error}",
                                 selector.selector_identity().as_str(),
@@ -96,7 +96,7 @@ impl RuntimeBridge {
             BridgeTruthViewKind::BranchHead => {
                 let source = self.truth_branch_head_source.as_ref().ok_or_else(|| {
                     BridgeDeliveryError::new(
-                        BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                        BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable,
                         format!(
                             "Truth-view selector `{}` requires a configured truth branch-head source.",
                             selector.selector_identity().as_str()
@@ -107,7 +107,7 @@ impl RuntimeBridge {
                     .load_branch_head_patch(selector.branch_identity())
                     .map_err(|error| {
                         BridgeDeliveryError::new(
-                            BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                            BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable,
                             format!(
                                 "Truth-view selector `{}` could not resolve branch head for `{}`: {error}",
                                 selector.selector_identity().as_str(),
@@ -127,7 +127,7 @@ impl RuntimeBridge {
     ) -> Result<BridgeTruthViewAuthorityBasis, BridgeDeliveryError> {
         if envelope.branch_identity() != selector.branch_identity() {
             return Err(BridgeDeliveryError::new(
-                BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                BridgeDeliveryErrorKind::HistoricalBranchMismatch,
                 format!(
                     "Truth-view selector `{}` targeted branch `{}` but resolved authority was on branch `{}`.",
                     selector.selector_identity().as_str(),
@@ -140,12 +140,26 @@ impl RuntimeBridge {
         if let Some(selector_commit_identity) = selector.commit_identity() {
             if envelope.commit_identity() != selector_commit_identity {
                 return Err(BridgeDeliveryError::new(
-                    BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                    BridgeDeliveryErrorKind::HistoricalCommitMismatch,
                     format!(
                         "Truth-view selector `{}` targeted commit `{}` but resolved authority bound commit `{}`.",
                         selector.selector_identity().as_str(),
                         selector_commit_identity.as_str(),
                         envelope.commit_identity().as_str()
+                    ),
+                ));
+            }
+        }
+
+        if let Some(selector_snapshot_identity) = selector.snapshot_identity() {
+            if envelope.snapshot_identity() != selector_snapshot_identity {
+                return Err(BridgeDeliveryError::new(
+                    BridgeDeliveryErrorKind::SnapshotIdentityMismatch,
+                    format!(
+                        "Truth-view selector `{}` targeted snapshot `{}` but resolved authority bound snapshot `{}`.",
+                        selector.selector_identity().as_str(),
+                        selector_snapshot_identity.as_str(),
+                        envelope.snapshot_identity().as_str()
                     ),
                 ));
             }

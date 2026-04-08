@@ -132,6 +132,50 @@ impl BridgeCanonicalContinuityRecord {
 pub type BridgeContinuityReplaySummary = BridgeContinuityArtifact;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeDeliveredContinuityResult {
+    artifact: BridgeContinuityArtifact,
+    canonical_record: BridgeCanonicalContinuityRecord,
+}
+
+impl BridgeDeliveredContinuityResult {
+    pub(crate) fn new(
+        artifact: BridgeContinuityArtifact,
+        canonical_record: BridgeCanonicalContinuityRecord,
+    ) -> Self {
+        Self {
+            artifact,
+            canonical_record,
+        }
+    }
+
+    pub fn artifact(&self) -> &BridgeContinuityArtifact {
+        &self.artifact
+    }
+
+    pub fn canonical_record(&self) -> &BridgeCanonicalContinuityRecord {
+        &self.canonical_record
+    }
+
+    pub fn continuity_identity(&self) -> &BridgeContinuityIdentity {
+        self.artifact.continuity_identity()
+    }
+
+    pub fn remapped_slices(&self) -> &CanonicalSubscriptionSlices {
+        self.artifact.remapped_slices()
+    }
+
+    pub fn remapped_subscription_slice_identity(
+        &self,
+    ) -> &crate::routing::BridgeSubscriptionSliceIdentity {
+        self.artifact.remapped_subscription_slice_identity()
+    }
+
+    pub fn counters(&self) -> &BridgeContinuityCounters {
+        self.artifact.counters()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeContinuityExplanation {
     route_identity: BridgeRouteIdentity,
     source_snapshot: TruthSnapshotIdentity,

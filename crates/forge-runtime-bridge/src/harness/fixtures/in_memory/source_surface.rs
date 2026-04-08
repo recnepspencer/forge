@@ -1,0 +1,179 @@
+#[derive(Debug, Clone, Default)]
+struct InMemoryRelationalState {
+    committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+    branch_heads: BTreeMap<String, String>,
+    snapshots: BTreeMap<String, SnapshotFixture>,
+    continuity_authorities: BTreeMap<String, BridgeHistoricalLineageAuthority>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct InMemoryRelationalBridgeSource {
+    state: Arc<RwLock<InMemoryRelationalState>>,
+}
+
+impl InMemoryRelationalBridgeSource {
+    pub fn insert_committed_patch(&self, patch: RawCommittedPatchEnvelope) {
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .committed_patches
+            .insert(patch.commit_identity().as_str().to_string(), patch.clone());
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .branch_heads
+            .insert(
+                patch.branch_identity().as_str().to_string(),
+                patch.commit_identity().as_str().to_string(),
+            );
+    }
+
+    pub fn insert_snapshot(&self, snapshot: SnapshotFixture) {
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .snapshots
+            .insert(snapshot.identity().as_str().to_string(), snapshot);
+    }
+
+    pub fn insert_continuity_authority(
+        &self,
+        entity_identity: impl Into<String>,
+        authority: BridgeHistoricalLineageAuthority,
+    ) {
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .continuity_authorities
+            .insert(entity_identity.into(), authority);
+    }
+}
+
+impl CommittedPatchSource for InMemoryRelationalBridgeSource {
+    fn load_committed_patch(
+        &self,
+        request: crate::adapter::RelationalCommittedPatchRequest,
+    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        self.state
+            .read()
+            .expect("bridge source lock poisoned")
+            .committed_patches
+            .get(request.commit_identity())
+            .cloned()
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "no committed patch registered for `{}`",
+                    request.commit_identity()
+                ))
+            })
+    }
+
+}
+
+impl SnapshotReadSource for InMemoryRelationalBridgeSource {
+    fn open_snapshot(
+        &self,
+        identity: &TruthSnapshotIdentity,
+    ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
+        let snapshot = self
+            .state
+            .read()
+            .expect("bridge source lock poisoned")
+            .snapshots
+            .get(identity.as_str())
+            .cloned()
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "no snapshot registered for `{}`",
+                    identity.as_str()
+                ))
+            })?;
+        Ok(Box::new(InMemorySnapshotReader { snapshot }))
+    }
+}
+
+impl TruthBranchHeadSource for InMemoryRelationalBridgeSource {
+    fn load_branch_head_patch(
+        &self,
+        branch_identity: &crate::facade::TruthBranchIdentity,
+    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        let state = self.state.read().expect("bridge source lock poisoned");
+        let commit_identity = state
+            .branch_heads
+            .get(branch_identity.as_str())
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "no branch head registered for `{}`",
+                    branch_identity.as_str()
+                ))
+            })?;
+        state
+            .committed_patches
+            .get(commit_identity)
+            .cloned()
+            .ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "branch head `{}` for `{}` had no registered committed patch envelope",
+                    commit_identity,
+                    branch_identity.as_str()
+                ))
+            })
+    }
+}
+
+impl ContinuityLineageSource for InMemoryRelationalBridgeSource {
+    fn historical_lineage(
+        &self,
+        request: BridgeHistoricalLineageRequest,
+    ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
+        self.state
+            .read()
+            .expect("bridge source lock poisoned")
+            .continuity_authorities
+            .get(request.prior_slice().entity_identity())
+            .cloned()
+            .ok_or_else(|| {
+                BridgeLineageSourceError::new(
+                    BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                    format!(
+                        "no continuity lineage authority registered for `{}`",
+                        request.prior_slice().entity_identity()
+                    ),
+                )
+            })
+    }
+}
+
+#[derive(Debug, Clone)]
+struct InMemorySnapshotReader {
+    snapshot: SnapshotFixture,
+}
+
+impl TruthSnapshotReader for InMemorySnapshotReader {
+    fn snapshot_identity(&self) -> TruthSnapshotIdentity {
+        self.snapshot.identity().clone()
+    }
+
+    fn read_packet(
+        &self,
+        request: &SnapshotReadPacket,
+    ) -> Result<SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError> {
+        let record_lookup = self
+            .snapshot
+            .records()
+            .iter()
+            .map(|record| (record.request_key().to_string(), record.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let records = request
+            .reads()
+            .iter()
+            .filter_map(|read| record_lookup.get(read.request_key()).cloned())
+            .collect::<Vec<_>>();
+        Ok(SnapshotReadPacketResult::new(
+            self.snapshot.read_result_identity().clone(),
+            records,
+        ))
+    }
+}
+
+use super::*;

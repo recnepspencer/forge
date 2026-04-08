@@ -40,8 +40,9 @@ impl BridgeTruthViewAuthorityBasis {
         snapshot_identity: Option<TruthSnapshotIdentity>,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "truth-view-authority|selector={}|branch={}|commit={}|snapshot={}",
+            "truth-view-authority|selector={}|selector-basis={}|branch={}|commit={}|snapshot={}",
             selector.selector_identity().as_str(),
+            selector.canonical_basis(),
             selector.branch_identity().as_str(),
             commit_identity
                 .as_ref()
@@ -101,8 +102,9 @@ impl PlannedTruthViewPacket {
         read_packet: SnapshotReadPacket,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "planned-truth-view-packet|declaration={}|policy={}|authority={}|read-packet={}",
+            "planned-truth-view-packet|declaration={}|validated-selectors={}|policy={}|authority={}|read-packet={}",
             declaration.declaration_identity().as_str(),
+            declaration.validated_selector_set().digest(),
             resolved_policy.digest(),
             authority_basis.digest(),
             read_packet.digest(),

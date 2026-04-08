@@ -26,6 +26,7 @@ mod mapping;
 mod policy;
 mod routing;
 mod snapshot;
+mod stream;
 
 #[cfg(test)]
 mod harness;

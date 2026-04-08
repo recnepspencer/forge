@@ -23,22 +23,22 @@ impl RuntimeBridge {
         let snapshot_identity: TruthSnapshotIdentity = match planned.authority_basis().snapshot_identity() {
             Some(snapshot_identity) => snapshot_identity.clone(),
             None => {
-                let rejection = BridgeTruthViewPolicyRejection::new(
-                    planned.declaration(),
-                    TruthViewPolicyRejectionKind::UnsupportedTruthViewSelector,
-                    "planned truth-view packet did not carry a snapshot identity; historical lookup materialization is not wired yet",
-                );
+            let rejection = BridgeTruthViewPolicyRejection::new(
+                planned.declaration(),
+                TruthViewPolicyRejectionKind::UnsupportedTruthViewSelector,
+                "planned truth-view packet did not carry a snapshot identity; historical lookup materialization is not wired yet",
+            );
                 self.record_historical_evaluation_failure(
                     planned.declaration(),
                     BridgeHistoricalEvaluationFailureClass::UnsupportedTruthViewSelector,
                     rejection.detail(),
-                    BridgeHistoricalEvaluationCounters::from_successful_materialization(
+                    BridgeHistoricalEvaluationCounters::from_failed_materialization(
                         planned.declaration(),
                         historical_materialization_path_for(&planned),
                     ),
                 );
                 return Err(BridgeDeliveryError::new(
-                    BridgeDeliveryErrorKind::InvalidFallbackAdmission,
+                    BridgeDeliveryErrorKind::HistoricalPolicyRejected,
                     format!(
                         "Truth-view materialization rejected declaration `{}`: {}",
                         rejection.declaration_identity().as_str(),
@@ -69,10 +69,12 @@ impl RuntimeBridge {
                 snapshot_identity.as_str()
             ),
         );
+        let materialization_path = historical_materialization_path_for(&planned);
 
         Ok(MaterializedTruthViewObservation::new(
             planned,
             snapshot_token,
+            materialization_path,
             admitted,
         ))
     }
@@ -82,7 +84,7 @@ impl RuntimeBridge {
         observation: &MaterializedTruthViewObservation,
     ) -> BridgeCanonicalHistoricalEvaluationRecord {
         let authority_basis = observation.authority_basis();
-        let materialization_path = historical_materialization_path_for(observation.planned());
+        let materialization_path = observation.materialization_path();
         let decision_log = BridgeHistoricalEvaluationDecisionLog::new(
             observation.planned().declaration().declaration_identity().clone(),
             observation
@@ -126,9 +128,6 @@ impl RuntimeBridge {
         &self,
         observation: &MaterializedTruthViewObservation,
     ) -> LoweredHistoricalEvaluationArtifact {
-        LoweredHistoricalEvaluationArtifact::lower(
-            observation,
-            historical_materialization_path_for(observation.planned()),
-        )
+        LoweredHistoricalEvaluationArtifact::lower(observation, observation.materialization_path())
     }
 }

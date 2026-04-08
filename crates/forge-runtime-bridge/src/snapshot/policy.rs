@@ -57,8 +57,9 @@ impl BridgeTruthViewPolicyRejection {
     ) -> Self {
         let detail = detail.into();
         let canonical_basis = Arc::<str>::from(format!(
-            "truth-view-policy-rejection|declaration={}|selector={}|branch={}|replay:{:?}|delivery:{:?}|kind:{kind:?}|detail:{}",
+            "truth-view-policy-rejection|declaration={}|validated-selectors={}|selector={}|branch={}|replay:{:?}|delivery:{:?}|kind:{kind:?}|detail:{}",
             declaration.declaration_identity().as_str(),
+            declaration.validated_selector_set().digest(),
             declaration.selector().selector_identity().as_str(),
             declaration.selector().branch_identity().as_str(),
             declaration.replay_mode(),
@@ -138,8 +139,9 @@ impl ResolvedTruthViewPolicy {
         replay_compatibility: TruthViewReplayCompatibility,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "resolved-truth-view-policy|declaration={}|selector={}|branch={}|retention:{retention_admission:?}|source:{source_capability:?}|replay-compatibility:{replay_compatibility:?}|replay-mode:{:?}|delivery:{:?}",
+            "resolved-truth-view-policy|declaration={}|validated-selectors={}|selector={}|branch={}|retention:{retention_admission:?}|source:{source_capability:?}|replay-compatibility:{replay_compatibility:?}|replay-mode:{:?}|delivery:{:?}",
             declaration.declaration_identity().as_str(),
+            declaration.validated_selector_set().digest(),
             declaration.selector().selector_identity().as_str(),
             declaration.selector().branch_identity().as_str(),
             declaration.replay_mode(),

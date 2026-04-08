@@ -4,6 +4,7 @@ mod explanation;
 mod history;
 mod records;
 mod replay;
+mod stream;
 mod facade;
 mod failure_source;
 mod handle;
@@ -12,6 +13,7 @@ mod state;
 
 pub use continuity::{
     BridgeCanonicalContinuityRecord, BridgeContinuityExplanation, BridgeContinuityReplaySummary,
+    BridgeDeliveredContinuityResult,
     BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1,
 };
 pub use bulk::BridgeBulkPlanExplanation;
@@ -32,6 +34,10 @@ pub use records::{
 pub use replay::{
     BridgeCanonicalRouteRecord, BridgeReplayRecord, BridgeReplaySummary,
     BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3,
+};
+pub use stream::{
+    BridgeStreamCheckpointExplanation, BridgeStreamReplayExplanation,
+    BridgeStreamResumeSummary,
 };
 pub use facade::BridgeDiagnosticsFacade;
 pub use handle::BridgeDiagnosticsHandle;

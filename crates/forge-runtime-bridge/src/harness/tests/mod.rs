@@ -9,4 +9,5 @@ mod parity;
 mod planning;
 mod replay;
 mod routing;
+mod stream;
 mod support;

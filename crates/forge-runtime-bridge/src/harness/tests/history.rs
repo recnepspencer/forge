@@ -239,7 +239,7 @@ fn bridge_harness_rejects_unavailable_historical_view_explicitly() {
             .last_historical_evaluation_failure()
             .expect("historical failure should be recorded")
             .failure_class(),
-        BridgeHistoricalEvaluationFailureClass::RejectedHistoricalResolutionFailure
+        BridgeHistoricalEvaluationFailureClass::TruthViewUnavailable
     );
 }
 

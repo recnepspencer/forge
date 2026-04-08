@@ -43,9 +43,10 @@ pub use planning::{
     FallbackAggregationPacket, FallbackPacketIdentity, NormalizedBridgeWorkloadSummary,
     InvalidationReductionPacket, ParallelPreparationLegalityProof, PlannedBridgePacketSet,
     ReducedBridgePublication, ReducedBridgeWorkloadArtifact, ReducedContinuityIdentity,
-    ReducedContinuityRemap, ReducedPublicationIdentity, ReducedTruthViewIdentity,
-    ReducedTruthViewMaterialization, ReductionPacketIdentity, RoutingPacketIdentity, TruthDeltaRoutingPacket,
-    TruthViewMaterializationPacket, TruthViewPacketIdentity,
+    ReducedContinuityRemap, ReducedFallbackAggregation, ReducedFallbackIdentity,
+    ReducedPublicationIdentity, ReducedRoutingTargetIdentity, ReducedTruthViewIdentity,
+    ReducedTruthViewMaterialization, ReductionPacketIdentity, RoutingPacketIdentity,
+    TruthDeltaRoutingPacket, TruthViewMaterializationPacket, TruthViewPacketIdentity,
 };
 pub use proof::BridgeRouteContractProof;
 pub use result::{

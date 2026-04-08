@@ -34,6 +34,11 @@ pub type BridgeRouteError = BridgeTypedError<BridgeRouteErrorKind>;
 pub enum BridgeDeliveryErrorKind {
     InvalidFallbackAdmission,
     BulkDeliveryRejected,
+    HistoricalPolicyRejected,
+    HistoricalTruthViewUnavailable,
+    HistoricalBranchMismatch,
+    HistoricalCommitMismatch,
+    HistoricalSelectorMissingCommit,
     SnapshotAcquisitionFailure,
     SnapshotReadFailure,
     SnapshotReadContractViolation,
@@ -63,6 +68,24 @@ pub enum BridgeReplayErrorKind {
 }
 
 pub type BridgeReplayError = BridgeTypedError<BridgeReplayErrorKind>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeStreamErrorKind {
+    UnsupportedConsumerShape,
+    UnsupportedResumeMode,
+    ProtocolVersionMismatch,
+    CheckpointContractMismatch,
+    CheckpointStreamMismatch,
+    CheckpointTruncated,
+    IllegalCoalescingBoundary,
+    NonIdempotentDuplicateObservation,
+    BackpressurePolicyViolation,
+    StreamReplayMismatch,
+    StreamDeliveryRejected,
+    InvalidStreamMaterial,
+}
+
+pub type BridgeStreamError = BridgeTypedError<BridgeStreamErrorKind>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeContinuityErrorKind {

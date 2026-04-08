@@ -67,13 +67,20 @@ pub(super) fn historical_failure_class_for_delivery_error(
     error: &BridgeDeliveryError,
 ) -> BridgeHistoricalEvaluationFailureClass {
     match error.kind() {
-        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
+        BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable
+        | BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
             BridgeHistoricalEvaluationFailureClass::TruthViewUnavailable
+        }
+        BridgeDeliveryErrorKind::HistoricalBranchMismatch => {
+            BridgeHistoricalEvaluationFailureClass::RejectedBranchMismatch
         }
         BridgeDeliveryErrorKind::SnapshotIdentityMismatch => {
             BridgeHistoricalEvaluationFailureClass::RejectedSnapshotMismatch
         }
         BridgeDeliveryErrorKind::BulkDeliveryRejected
+        | BridgeDeliveryErrorKind::HistoricalPolicyRejected
+        | BridgeDeliveryErrorKind::HistoricalCommitMismatch
+        | BridgeDeliveryErrorKind::HistoricalSelectorMissingCommit
         | BridgeDeliveryErrorKind::InvalidFallbackAdmission
         | BridgeDeliveryErrorKind::SnapshotReadFailure
         | BridgeDeliveryErrorKind::SnapshotReadContractViolation
@@ -87,7 +94,7 @@ pub(super) fn historical_failure_counters_for_policy_rejection(
     declaration: &HistoricalEvaluationDeclaration,
     kind: PolicyRejectionKind,
 ) -> BridgeHistoricalEvaluationCounters {
-    let counters = BridgeHistoricalEvaluationCounters::from_successful_materialization(
+    let counters = BridgeHistoricalEvaluationCounters::from_failed_materialization(
         declaration,
         historical_materialization_path_for_declaration(declaration),
     );
@@ -102,12 +109,16 @@ pub(super) fn historical_failure_counters_for_delivery_error(
     declaration: &HistoricalEvaluationDeclaration,
     error: &BridgeDeliveryError,
 ) -> BridgeHistoricalEvaluationCounters {
-    let counters = BridgeHistoricalEvaluationCounters::from_successful_materialization(
+    let counters = BridgeHistoricalEvaluationCounters::from_failed_materialization(
         declaration,
         historical_materialization_path_for_declaration(declaration),
     );
     match error.kind() {
-        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => counters.with_unavailable_truth_view(),
+        BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable
+        | BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
+            counters.with_unavailable_truth_view()
+        }
+        BridgeDeliveryErrorKind::HistoricalBranchMismatch => counters.with_branch_mismatch(),
         BridgeDeliveryErrorKind::SnapshotIdentityMismatch => counters.with_snapshot_mismatch(),
         _ => counters,
     }

@@ -249,6 +249,10 @@ becomes more capable here, not more authoritative.
 
 ## Milestone 6: Change Stream Protocol and Multi-Consumer Contracts
 
+Engineering spec: [milestone-6.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-6.md)
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 1-3: Change Stream Checkpoint Fracture Equivalence, Multi-Consumer Coalescing Parity, Backpressure And Retention Anchor Hostility
+
 ### Goal
 
 Turn bridge-side change consumption into a stable protocol surface rather than
@@ -276,8 +280,13 @@ This milestone is complete only when bridge harness scenarios can prove:
 - multi-consumer protocol behavior stays deterministic
 - checkpoint, resume, and coalescing behavior remain explicit and diagnosable
 - protocol errors are explicit and diagnosable
+- the Milestone 6 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 7: Reactive Source Protocol and Clean Host Surfaces
+
+Engineering spec: [milestone-7.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-7.md)
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 4-6: Multi-Host Source Parity, Source Capability Rejection Boundary, Builder Surface Swap Parity
 
 ### Goal
 
@@ -307,8 +316,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 - multiple host-shaped source implementations satisfy the same bridge contract
 - source-backed evaluation remains parity-safe across supported read modes
 - bridge setup remains explicit and comprehensible at construction sites
+- the Milestone 7 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 8: Structural-Identity-Aware Remapping
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 7-9: Structural Match Ambiguity Torture, Structural Reuse Without Identity Fusion, Branch Comparison Drift
 
 ### Goal
 
@@ -334,8 +347,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 
 - structural identity can assist remapping without overriding truth identity
 - ambiguous structural matches are explicit and replayable
+- the Milestone 8 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 9: Merge-Aware Bridge Semantics and Multi-Parent History Consumption
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 10-12: Merge Parent Order Determinism, Unsupported Merge Class Denial, Merge Replay And Explanation Parity
 
 ### Goal
 
@@ -368,8 +385,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 - bridge diagnostics can explain merge-influenced invalidation and continuity behavior
 - replayed bridge behavior over merge-bearing histories matches original behavior
 - unsupported merge classes fail explicitly with typed bridge diagnostics
+- the Milestone 9 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 10: Speculative Truth-Branch to Signal-Branch Coordination and Preview Flows
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 13-15: Speculative Discard Zero-Residue, Speculative Commit Boundary Clarity, Preview Lifecycle Leak Resistance
 
 ### Goal
 
@@ -400,8 +421,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 - discard paths leave no authoritative bridge residue
 - committed speculative flows become explainable and replayable
 - preview and authoritative flows cannot be confused accidentally
+- the Milestone 10 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 11: Cross-Runtime Policy Propagation and Clean Configuration Model
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 16-18: Policy Provenance Equivalence, Illegal Policy Combination Rejection, Ambient Policy Leak Resistance
 
 ### Goal
 
@@ -432,8 +457,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 - the same bridge flow can run under deterministic and optimized policy modes without ambiguity about what changed
 - policy propagation behavior is explicit, replayable, and diagnosable
 - bridge configuration remains comprehensible at construction and call sites
+- the Milestone 11 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 12: Bridge-Mediated Commit Strategies and Derived Writeback Contracts
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 19-21: Bridge Writeback Idempotence And Diff Truth, Strategy Failure Containment, Authority Bypass Rejection
 
 ### Goal
 
@@ -467,8 +496,12 @@ This milestone is complete only when bridge harness scenarios can prove:
 - failing or divergent bridge strategies do not corrupt authoritative truth
 - bridge writeback flows remain idempotent where the contract requires idempotence
 - strategy-bearing and non-strategy-bearing histories remain distinguishable and diagnosable
+- the Milestone 12 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 13: End-to-End Causality, Failure Taxonomy, and Bridge Certification
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 22-24: End-To-End Causality Bundle Equivalence, Failure Taxonomy Localization, Certification Matrix Sufficiency
 
 ### Goal
 
@@ -496,6 +529,7 @@ This milestone is complete only when the bridge harness can prove:
 - end-to-end causality survives original execution and replay
 - bridge failure classes are explicit and structured
 - certification artifacts are sufficient to diagnose routing, merge-aware, policy-aware, and historical-evaluation failures mechanically
+- the Milestone 13 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Completion Standard
 
@@ -511,6 +545,7 @@ The bridge roadmap is complete only when:
 ## Companion Documents
 
 - [_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md)
+- [_docs/forge-runtime-bridge/test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 - [_docs/forge-relational/forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 - [_docs/forge_signal/forge_signal_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge_signal/forge_signal_vision.md)
 - [_docs/forge_signal/forge_signals2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge_signal/forge_signals2.md)

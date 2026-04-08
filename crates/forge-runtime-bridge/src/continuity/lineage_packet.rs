@@ -45,6 +45,8 @@ pub struct BridgeHistoricalLineagePacket {
     prior_route_identity: BridgeRouteIdentity,
     authority_basis: BridgeContinuityAuthorityBasis,
     prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
+    continuity_request_count: usize,
+    continuity_prior_slice_count: usize,
     entries: Arc<[BridgeHistoricalLineagePacketEntry]>,
     digest: Arc<str>,
 }
@@ -71,6 +73,8 @@ impl BridgeHistoricalLineagePacket {
             prior_route_identity: requests.prior_route_identity().clone(),
             authority_basis: requests.authority_basis().clone(),
             prior_subscription_slice_identity: requests.prior_subscription_slice_identity().clone(),
+            continuity_request_count: requests.requests().len(),
+            continuity_prior_slice_count: requests.prior_slice_count(),
             entries: Arc::from(entries),
             digest: Arc::from(format!("historical-lineage-packet:sha256:{digest:x}")),
         }
@@ -86,6 +90,14 @@ impl BridgeHistoricalLineagePacket {
 
     pub fn prior_subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
         &self.prior_subscription_slice_identity
+    }
+
+    pub fn continuity_request_count(&self) -> usize {
+        self.continuity_request_count
+    }
+
+    pub fn continuity_prior_slice_count(&self) -> usize {
+        self.continuity_prior_slice_count
     }
 
     pub fn entries(&self) -> &[BridgeHistoricalLineagePacketEntry] {

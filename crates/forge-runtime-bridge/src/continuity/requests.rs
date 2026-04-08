@@ -23,7 +23,7 @@ pub struct PriorSubscriptionSlice {
 }
 
 impl PriorSubscriptionSlice {
-    pub fn from_parts(
+    pub(crate) fn from_parts(
         prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
         entity_identity: impl Into<Arc<str>>,
         aspect_label: impl Into<Arc<str>>,
@@ -90,6 +90,17 @@ impl PriorSubscriptionSlice {
             self.match_status(),
         )
     }
+
+    pub(crate) fn logical_dedup_basis(&self) -> String {
+        format!(
+            "prior-slice-logical|entity={}|aspect={}|surface={}|kind={:?}|match={:?}",
+            self.entity_identity(),
+            self.aspect_label(),
+            self.surface_label(),
+            self.slice_kind(),
+            self.match_status(),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,6 +143,7 @@ pub struct BridgePlannedContinuityRequestSet {
     prior_route_identity: BridgeRouteIdentity,
     authority_basis: BridgeContinuityAuthorityBasis,
     prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
+    prior_slice_count: usize,
     requests: Arc<[BridgePlannedContinuityRequest]>,
     digest: Arc<str>,
 }
@@ -172,21 +184,38 @@ impl BridgePlannedContinuityRequestSet {
         }
         let prior_route_identity = route_record.route_identity().clone();
         let prior_subscription_slice_identity = route_record.subscription_slice_identity().clone();
-        let requests = route_record
+        let prior_slice_count = route_record.subscription_slices().len();
+        let mut prior_slices = route_record
             .subscription_slices()
             .iter()
             .map(|slice| {
-                BridgePlannedContinuityRequest::new(
-                    prior_route_identity.clone(),
-                    PriorSubscriptionSlice::new(prior_subscription_slice_identity.clone(), slice),
-                )
+                PriorSubscriptionSlice::new(prior_subscription_slice_identity.clone(), slice)
             })
             .collect::<Vec<_>>();
+        prior_slices.sort_by(|left, right| {
+            left.logical_dedup_basis()
+                .cmp(&right.logical_dedup_basis())
+                .then_with(|| {
+                    left.prior_subscription_slice_identity()
+                        .as_str()
+                        .cmp(right.prior_subscription_slice_identity().as_str())
+                })
+        });
+        prior_slices.dedup_by(|left, right| left.logical_dedup_basis() == right.logical_dedup_basis());
+        let requests = prior_slices
+            .into_iter()
+            .map(|prior_slice| {
+                BridgePlannedContinuityRequest::new(prior_route_identity.clone(), prior_slice)
+            })
+            .collect::<Vec<_>>();
+        let mut requests = requests;
+        requests.sort_by(|left, right| left.request_key().cmp(right.request_key()));
         let canonical_basis = format!(
-            "planned-continuity-request-set|route={}|slice-set={}|authority={}|request-count={}|requests={}",
+            "planned-continuity-request-set|route={}|slice-set={}|authority={}|prior-slice-count={}|request-count={}|requests={}",
             prior_route_identity.as_str(),
             prior_subscription_slice_identity.as_str(),
             authority_basis.digest(),
+            prior_slice_count,
             requests.len(),
             requests
                 .iter()
@@ -200,6 +229,7 @@ impl BridgePlannedContinuityRequestSet {
             prior_route_identity,
             authority_basis,
             prior_subscription_slice_identity,
+            prior_slice_count,
             requests: Arc::from(requests),
             digest: Arc::from(format!("planned-continuity-set:sha256:{digest:x}")),
         })
@@ -215,6 +245,10 @@ impl BridgePlannedContinuityRequestSet {
 
     pub fn prior_subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
         &self.prior_subscription_slice_identity
+    }
+
+    pub fn prior_slice_count(&self) -> usize {
+        self.prior_slice_count
     }
 
     pub fn requests(&self) -> &[BridgePlannedContinuityRequest] {
@@ -269,6 +303,10 @@ impl BridgeEligibleContinuityRequestSet {
 
     pub fn prior_subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
         self.planned.prior_subscription_slice_identity()
+    }
+
+    pub fn prior_slice_count(&self) -> usize {
+        self.planned.prior_slice_count()
     }
 
     pub fn requests(&self) -> &[BridgePlannedContinuityRequest] {

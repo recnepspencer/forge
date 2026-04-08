@@ -60,6 +60,16 @@ pub trait ContinuityLineageSource: Send + Sync + 'static {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError>;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeHistoricalLineageTopology {
+    NoAuthoritativeSuccessor,
+    UnsupportedWithoutSuccessor,
+    SingleSuccessor,
+    MergeLikeSuccessor,
+    SplitSuccessors,
+    AmbiguousSuccessor,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalCommittedPatchRequest {
     commit_identity: Arc<str>,
@@ -124,6 +134,7 @@ pub struct BridgeHistoricalLineageAuthority {
     canonical_resolved_lineage_keys: Arc<[Arc<str>]>,
     canonical_resolved_record_keys: Arc<[Arc<str>]>,
     traversed_event_ids: Arc<[u64]>,
+    topology: BridgeHistoricalLineageTopology,
     lineage_digest: Arc<str>,
 }
 
@@ -182,6 +193,25 @@ impl BridgeHistoricalLineageAuthority {
             ));
         }
 
+        let topology = match (
+            canonical_resolved_lineage_keys.len(),
+            canonical_resolved_record_keys.len(),
+        ) {
+            (0, 0) => BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor,
+            (_, 0) => BridgeHistoricalLineageTopology::UnsupportedWithoutSuccessor,
+            (_, 1) if canonical_resolved_lineage_keys.len() > 1 => {
+                BridgeHistoricalLineageTopology::MergeLikeSuccessor
+            }
+            (_, 1) => BridgeHistoricalLineageTopology::SingleSuccessor,
+            (lineage_count, record_count) if lineage_count == record_count => {
+                // The lineage source is the authority boundary for split correspondence.
+                // Once canonicalized and validated here, downstream resolution consumes the
+                // preclassified topology instead of re-heuristically rediscovering it.
+                BridgeHistoricalLineageTopology::SplitSuccessors
+            }
+            _ => BridgeHistoricalLineageTopology::AmbiguousSuccessor,
+        };
+
         let canonical_basis = format!(
             "historical-lineage-authority|authority={}|branch={}|snapshot={}|lineage-count={}|lineages={}|record-count={}|records={}|event-count={}|events={}",
             authority_basis.digest(),
@@ -213,6 +243,7 @@ impl BridgeHistoricalLineageAuthority {
             canonical_resolved_lineage_keys: Arc::from(canonical_resolved_lineage_keys),
             canonical_resolved_record_keys: Arc::from(canonical_resolved_record_keys),
             traversed_event_ids: Arc::from(traversed_event_ids),
+            topology,
             lineage_digest: Arc::from(format!("historical-lineage-authority:sha256:{digest:x}")),
         })
     }
@@ -239,6 +270,10 @@ impl BridgeHistoricalLineageAuthority {
 
     pub fn traversed_event_ids(&self) -> &[u64] {
         &self.traversed_event_ids
+    }
+
+    pub fn topology(&self) -> BridgeHistoricalLineageTopology {
+        self.topology
     }
 
     pub fn lineage_digest(&self) -> &str {

@@ -1,0 +1,156 @@
+#[test]
+fn bridge_bulk_planning_rejects_empty_workloads() {
+    let source = InMemoryRelationalBridgeSource::default();
+    let runtime = build_runtime(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
+
+    let error = runtime
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![]))
+        .expect_err("empty bulk workload should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        crate::error::BridgeRouteErrorKind::EmptyBulkWorkloadRequest
+    );
+}
+
+#[test]
+fn bridge_bulk_planning_identity_is_stable_across_input_order() {
+    let left_source = InMemoryRelationalBridgeSource::default();
+    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    let left_runtime = build_runtime(
+        left_source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
+
+    let right_source = InMemoryRelationalBridgeSource::default();
+    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    let right_runtime = build_runtime(
+        right_source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
+
+    let left = left_runtime
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+        ]))
+        .expect("left bulk workload should plan");
+    let right = right_runtime
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+        ]))
+        .expect("right bulk workload should plan");
+
+    assert_eq!(left.workload_identity(), right.workload_identity());
+    assert_eq!(
+        left.canonical_planning_identity(),
+        right.canonical_planning_identity()
+    );
+    assert_eq!(
+        left.admission_profile_identity(),
+        right.admission_profile_identity()
+    );
+    assert_eq!(left.canonical_request().digest(), right.canonical_request().digest());
+    assert_eq!(
+        left.normalized_summary().digest(),
+        right.normalized_summary().digest()
+    );
+    assert_eq!(left.summary().digest(), right.summary().digest());
+    assert_eq!(
+        left.planned_routes()
+            .iter()
+            .map(|route| route.route_identity().as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            right.planned_routes()[0].route_identity().as_str(),
+            right.planned_routes()[1].route_identity().as_str(),
+        ]
+    );
+}
+
+#[test]
+fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile_identity() {
+    let standard_source = InMemoryRelationalBridgeSource::default();
+    standard_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    standard_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    let standard_runtime = crate::facade::RuntimeBridgeBuilder::new()
+        .with_policy(
+            BridgeRuntimePolicy::development()
+                .with_route_record_limit(128)
+                .with_failure_record_limit(128),
+        )
+        .with_relational_source(standard_source.clone())
+        .with_truth_branch_head_source(standard_source)
+        .with_signal_sink(RecordingSignalBridgeSink::default())
+        .register_mapping(registration())
+        .build()
+        .expect("standard runtime should build");
+
+    let exhaustive_source = InMemoryRelationalBridgeSource::default();
+    exhaustive_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    exhaustive_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    let exhaustive_runtime = crate::facade::RuntimeBridgeBuilder::new()
+        .with_policy(
+            BridgeRuntimePolicy::forensic()
+                .with_route_record_limit(128)
+                .with_failure_record_limit(128),
+        )
+        .with_relational_source(exhaustive_source.clone())
+        .with_truth_branch_head_source(exhaustive_source)
+        .with_signal_sink(RecordingSignalBridgeSink::default())
+        .register_mapping(registration())
+        .build()
+        .expect("exhaustive runtime should build");
+
+    let request = BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
+        BridgeRouteRequest::for_commit("commit-a"),
+    )]);
+    let standard = standard_runtime
+        .plan_bulk_workload(request.clone())
+        .expect("standard workload should plan");
+    let exhaustive = exhaustive_runtime
+        .plan_bulk_workload(request)
+        .expect("exhaustive workload should plan");
+
+    assert_eq!(
+        standard.canonical_planning_identity(),
+        exhaustive.canonical_planning_identity()
+    );
+    assert_eq!(standard.workload_identity(), exhaustive.workload_identity());
+    assert_eq!(
+        standard.canonical_request().digest(),
+        exhaustive.canonical_request().digest()
+    );
+    assert_eq!(
+        standard.normalized_summary().digest(),
+        exhaustive.normalized_summary().digest()
+    );
+    assert_ne!(
+        standard.admission_profile_identity(),
+        exhaustive.admission_profile_identity()
+    );
+    assert_eq!(
+        standard.planned_routes()[0].source_commit().as_str(),
+        exhaustive.planned_routes()[0].source_commit().as_str()
+    );
+    assert_eq!(BridgeDiagnosticsTier::Standard, standard_runtime.policy().diagnostics_tier());
+    assert_eq!(
+        BridgeDiagnosticsTier::Exhaustive,
+        exhaustive_runtime.policy().diagnostics_tier()
+    );
+}
+
+use super::*;

@@ -13,13 +13,13 @@ pub use context::{AdmittedSnapshotContext, BridgeSnapshotContext, TruthSnapshotR
 pub use declaration::{
     BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewKind, BridgeTruthViewSelector,
     BridgeTruthViewSelectorIdentity, HistoricalEvaluationDeclaration,
-    HistoricalEvaluationDeclarationIdentity,
+    HistoricalEvaluationDeclarationIdentity, ValidatedTruthViewSelectorSet,
 };
 pub use history::{
     LoweredHistoricalEvaluationArtifact, LoweredHistoricalEvaluationArtifactIdentity,
 };
 pub use materialization::{
-    MaterializedTruthViewObservation,
+    MaterializedTruthViewObservation, TruthViewObservationReader,
 };
 pub(crate) use packet::{canonical_subscription_slice_kind_label, validate_snapshot_read_result_contract};
 pub use packet::{

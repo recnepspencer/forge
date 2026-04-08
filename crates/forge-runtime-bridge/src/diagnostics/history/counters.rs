@@ -27,12 +27,50 @@ impl BridgeHistoricalEvaluationCounters {
         declaration: &HistoricalEvaluationDeclaration,
         materialization_path: BridgeHistoricalMaterializationPath,
     ) -> Self {
+        let mut counters = Self::base_for(declaration);
+        counters.planned_truth_view_packet_count = 1;
+        counters.resolved_truth_view_policy_count = 1;
+        counters.materialized_truth_view_count = 1;
+        counters.truth_view_decision_log_count = 1;
+        match materialization_path {
+            BridgeHistoricalMaterializationPath::DirectSnapshotRead => {
+                counters.direct_snapshot_materialization_count = 1;
+            }
+            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot => {
+                counters.commit_envelope_materialization_count = 1;
+            }
+            BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot => {
+                counters.branch_head_materialization_count = 1;
+            }
+        }
+        counters
+    }
+
+    pub(crate) fn from_failed_materialization(
+        declaration: &HistoricalEvaluationDeclaration,
+        materialization_path: BridgeHistoricalMaterializationPath,
+    ) -> Self {
+        let mut counters = Self::base_for(declaration);
+        counters.planned_truth_view_packet_count = 1;
+        counters.resolved_truth_view_policy_count = 1;
+        counters.truth_view_decision_log_count = 1;
+        match materialization_path {
+            BridgeHistoricalMaterializationPath::DirectSnapshotRead => {
+                counters.direct_snapshot_materialization_count = 1;
+            }
+            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot => {
+                counters.commit_envelope_materialization_count = 1;
+            }
+            BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot => {
+                counters.branch_head_materialization_count = 1;
+            }
+        }
+        counters
+    }
+
+    fn base_for(declaration: &HistoricalEvaluationDeclaration) -> Self {
         let mut counters = Self {
             truth_view_selector_count: 1,
-            planned_truth_view_packet_count: 1,
-            resolved_truth_view_policy_count: 1,
-            materialized_truth_view_count: 1,
-            truth_view_decision_log_count: 1,
             selector_width: 1,
             branch_width: 1,
             ..Self::default()
@@ -55,17 +93,6 @@ impl BridgeHistoricalEvaluationCounters {
                 counters.branch_local_evaluation_count = 1;
             }
             crate::snapshot::BridgeTruthViewKind::CommittedSnapshot => {}
-        }
-        match materialization_path {
-            BridgeHistoricalMaterializationPath::DirectSnapshotRead => {
-                counters.direct_snapshot_materialization_count = 1;
-            }
-            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot => {
-                counters.commit_envelope_materialization_count = 1;
-            }
-            BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot => {
-                counters.branch_head_materialization_count = 1;
-            }
         }
         counters
     }

@@ -162,9 +162,45 @@ impl BridgeTruthViewSelector {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidatedTruthViewSelectorSet {
+    selectors: Arc<[BridgeTruthViewSelector]>,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+}
+
+impl ValidatedTruthViewSelectorSet {
+    pub(crate) fn singleton(selector: BridgeTruthViewSelector) -> Self {
+        let canonical_basis =
+            Arc::<str>::from(format!("validated-truth-view-selector-set|selector={}", selector.canonical_basis()));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Self {
+            selectors: Arc::from(vec![selector]),
+            canonical_basis,
+            digest: Arc::from(format!("validated-truth-view-selector-set:sha256:{digest:x}")),
+        }
+    }
+
+    pub fn selectors(&self) -> &[BridgeTruthViewSelector] {
+        &self.selectors
+    }
+
+    pub fn first(&self) -> &BridgeTruthViewSelector {
+        &self.selectors[0]
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoricalEvaluationDeclaration {
     declaration_identity: HistoricalEvaluationDeclarationIdentity,
-    selector: BridgeTruthViewSelector,
+    validated_selector_set: ValidatedTruthViewSelectorSet,
     replay_mode: BridgeReplayMode,
     diagnostics_mode: BridgeDiagnosticsTier,
     delivery_intent: BridgeDeliveryIntent,
@@ -179,9 +215,10 @@ impl HistoricalEvaluationDeclaration {
         diagnostics_mode: BridgeDiagnosticsTier,
         delivery_intent: BridgeDeliveryIntent,
     ) -> Self {
+        let validated_selector_set = ValidatedTruthViewSelectorSet::singleton(selector);
         let canonical_basis = Arc::<str>::from(format!(
-            "historical-evaluation-declaration|selector={}|replay:{replay_mode:?}|diagnostics:{diagnostics_mode:?}|delivery:{delivery_intent:?}",
-            selector.selector_identity().as_str(),
+            "historical-evaluation-declaration|selectors={}|replay:{replay_mode:?}|delivery:{delivery_intent:?}",
+            validated_selector_set.canonical_basis(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         let declaration_identity = HistoricalEvaluationDeclarationIdentity::new(format!(
@@ -189,7 +226,7 @@ impl HistoricalEvaluationDeclaration {
         ));
         Self {
             declaration_identity,
-            selector,
+            validated_selector_set,
             replay_mode,
             diagnostics_mode,
             delivery_intent,
@@ -205,7 +242,11 @@ impl HistoricalEvaluationDeclaration {
     }
 
     pub fn selector(&self) -> &BridgeTruthViewSelector {
-        &self.selector
+        self.validated_selector_set.first()
+    }
+
+    pub fn validated_selector_set(&self) -> &ValidatedTruthViewSelectorSet {
+        &self.validated_selector_set
     }
 
     pub fn replay_mode(&self) -> BridgeReplayMode {
@@ -279,6 +320,29 @@ mod tests {
         assert_eq!(left, right);
         assert!(left
             .canonical_basis()
-            .contains("replay:Required|diagnostics:Exhaustive|delivery:PrepareSignalEvaluation"));
+            .contains("replay:Required|delivery:PrepareSignalEvaluation"));
+    }
+
+    #[test]
+    fn declaration_identity_is_invariant_across_diagnostics_tiers() {
+        let selector = BridgeTruthViewSelector::historical_commit(
+            TruthBranchIdentity::new("main"),
+            TruthCommitIdentity::new("commit-a"),
+        );
+        let left = HistoricalEvaluationDeclaration::new(
+            selector.clone(),
+            BridgeReplayMode::Required,
+            BridgeDiagnosticsTier::Standard,
+            BridgeDeliveryIntent::PrepareSignalEvaluation,
+        );
+        let right = HistoricalEvaluationDeclaration::new(
+            selector,
+            BridgeReplayMode::Required,
+            BridgeDiagnosticsTier::Exhaustive,
+            BridgeDeliveryIntent::PrepareSignalEvaluation,
+        );
+
+        assert_eq!(left.declaration_identity(), right.declaration_identity());
+        assert_eq!(left.digest(), right.digest());
     }
 }
