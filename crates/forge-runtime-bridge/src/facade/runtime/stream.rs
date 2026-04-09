@@ -35,7 +35,8 @@ impl RuntimeBridge {
             window,
             checkpoint_frontier_kind,
         );
-        self.diagnostics.record_stream_checkpoint(checkpoint.clone());
+        self.diagnostics
+            .record_stream_checkpoint(checkpoint.clone());
         checkpoint
     }
 
@@ -54,7 +55,8 @@ impl RuntimeBridge {
         window: &PlannedChangeStreamWindow,
         checkpoint: &ConsumerCheckpointToken,
     ) -> Result<CanonicalStreamReplayRecord, BridgeStreamError> {
-        let record = crate::stream::canonicalize_stream_replay_record(contract, window, checkpoint)?;
+        let record =
+            crate::stream::canonicalize_stream_replay_record(contract, window, checkpoint)?;
         self.diagnostics.record_stream_replay_record(record.clone());
         Ok(record)
     }

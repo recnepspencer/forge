@@ -1,14 +1,14 @@
 use crate::facade::BridgeRouteRequest;
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration,
 };
 use crate::facade::{
-    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    SnapshotReadPacket, TruthBranchIdentity, TruthCommitIdentity,
+    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
+    HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity, TruthCommitIdentity,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn bridge_counters_expose_digest_input_bytes() {

@@ -2,18 +2,18 @@ use std::sync::Arc;
 
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeDeliveryErrorKind, BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
-    BridgeLineageContext, BridgeLineageSourceError, BridgeRouteRequest, ContinuityLineageSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
-    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    SnapshotReadPacket,
+    BridgeDeliveryErrorKind, BridgeDeliveryIntent, BridgeHistoricalLineageAuthority,
+    BridgeHistoricalLineageRequest, BridgeLineageContext, BridgeLineageSourceError,
+    BridgeReplayMode, BridgeRouteRequest, BridgeTruthViewSelector, ContinuityLineageSource,
+    HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity, TruthCommitIdentity,
+    TruthSnapshotIdentity,
 };
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration, snapshot,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[derive(Debug, Clone, Default)]
 struct DiagnosticsContinuityLineageSource;
@@ -101,7 +101,10 @@ fn bridge_diagnostics_respect_failure_record_retention_budget() {
         let error = runtime
             .deliver_invalidation(route)
             .expect_err("bridge should fail delivery when the planned snapshot is absent");
-        assert_eq!(error.kind(), BridgeDeliveryErrorKind::SnapshotAcquisitionFailure);
+        assert_eq!(
+            error.kind(),
+            BridgeDeliveryErrorKind::SnapshotAcquisitionFailure
+        );
     }
 
     let failure_records = runtime.diagnostics().failure_records();
@@ -265,7 +268,9 @@ fn bridge_diagnostics_retain_queryable_historical_records_by_record_and_decision
         record.record_identity()
     );
     assert_eq!(
-        retained_by_decision_log.decision_log().decision_log_identity(),
+        retained_by_decision_log
+            .decision_log()
+            .decision_log_identity(),
         record.decision_log().decision_log_identity()
     );
     assert_eq!(handle.historical_evaluation_records().len(), 1);

@@ -5,6 +5,9 @@ pub(super) enum HarnessTarget {
         commit_identity: String,
     },
     Stream(super::stream::StreamHarnessTarget),
+    Source(super::source::SourceHarnessTarget),
+    Merge(super::merge::MergeHarnessTarget),
+    Structural(super::structural::StructuralHarnessTarget),
     HistoricalCommit {
         branch_identity: TruthBranchIdentity,
         commit_identity: TruthCommitIdentity,
@@ -32,6 +35,9 @@ pub(super) enum HarnessExecution {
         explanation: BridgeHistoricalEvaluationExplanation,
     },
     Stream(super::stream::StreamHarnessExecution),
+    Source(super::source::SourceHarnessExecution),
+    Merge(super::merge::MergeHarnessExecution),
+    Structural(super::structural::StructuralHarnessExecution),
 }
 
 impl HarnessExecution {
@@ -70,6 +76,9 @@ impl HarnessExecution {
                 "branch_width": record.counters().branch_width(),
             }),
             Self::Stream(execution) => execution.summary_json(),
+            Self::Source(execution) => execution.summary_json(),
+            Self::Merge(execution) => execution.summary_json(),
+            Self::Structural(execution) => execution.summary_json(),
         }
     }
 
@@ -155,6 +164,9 @@ impl HarnessExecution {
                 }),
             )]),
             Self::Stream(execution) => execution.extensions_json(runtime_bridge),
+            Self::Source(execution) => execution.extensions_json(runtime_bridge),
+            Self::Merge(execution) => execution.extensions_json(runtime_bridge),
+            Self::Structural(execution) => execution.extensions_json(runtime_bridge),
         }
     }
 }
@@ -189,6 +201,15 @@ pub(super) fn execute_historical_request(
 pub(super) fn parse_harness_target(target: &str) -> Result<HarnessTarget, BridgeHarnessError> {
     if let Some(stream_target) = super::stream::parse_stream_harness_target(target) {
         return stream_target.map(HarnessTarget::Stream);
+    }
+    if let Some(source_target) = super::source::parse_source_harness_target(target) {
+        return source_target.map(HarnessTarget::Source);
+    }
+    if let Some(merge_target) = super::merge::parse_merge_harness_target(target) {
+        return merge_target.map(HarnessTarget::Merge);
+    }
+    if let Some(structural_target) = super::structural::parse_structural_harness_target(target) {
+        return structural_target.map(HarnessTarget::Structural);
     }
 
     if let Some(rest) = target.strip_prefix("history-commit:") {

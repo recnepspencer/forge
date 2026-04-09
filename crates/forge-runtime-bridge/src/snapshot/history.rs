@@ -48,7 +48,11 @@ impl LoweredHistoricalEvaluationArtifact {
             artifact_identity: LoweredHistoricalEvaluationArtifactIdentity::new(format!(
                 "lowered-historical-evaluation-artifact:sha256:{digest:x}"
             )),
-            declaration_identity: observation.planned().declaration().declaration_identity().clone(),
+            declaration_identity: observation
+                .planned()
+                .declaration()
+                .declaration_identity()
+                .clone(),
             planned_packet_digest: Arc::from(observation.planned().digest()),
             authority_digest: Arc::from(authority_basis.digest()),
             branch_identity: authority_basis.branch_identity().clone(),
@@ -56,7 +60,9 @@ impl LoweredHistoricalEvaluationArtifact {
             snapshot_identity: observation.snapshot_identity().clone(),
             materialization_path,
             canonical_basis,
-            digest: Arc::from(format!("lowered-historical-evaluation-artifact:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "lowered-historical-evaluation-artifact:sha256:{digest:x}"
+            )),
         }
     }
 
@@ -64,7 +70,9 @@ impl LoweredHistoricalEvaluationArtifact {
         &self.artifact_identity
     }
 
-    pub fn declaration_identity(&self) -> &crate::snapshot::HistoricalEvaluationDeclarationIdentity {
+    pub fn declaration_identity(
+        &self,
+    ) -> &crate::snapshot::HistoricalEvaluationDeclarationIdentity {
         &self.declaration_identity
     }
 

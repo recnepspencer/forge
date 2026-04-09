@@ -44,14 +44,16 @@ pub(super) fn canonical_read_packet(
 
     let mut reads = deduped
         .into_iter()
-        .map(|(entity_identity, aspect_label, surface_label, slice_kind)| {
-            SnapshotReadRequest::for_subscription_slice(
-                entity_identity,
-                aspect_label,
-                surface_label,
-                slice_kind,
-            )
-        })
+        .map(
+            |(entity_identity, aspect_label, surface_label, slice_kind)| {
+                SnapshotReadRequest::for_subscription_slice(
+                    entity_identity,
+                    aspect_label,
+                    surface_label,
+                    slice_kind,
+                )
+            },
+        )
         .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
     SnapshotReadPacket::new(reads)
@@ -76,7 +78,9 @@ fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadP
     SnapshotReadPacket::new(reads)
 }
 
-pub(super) fn canonical_subscription_slices(entries: &[EligibleRouteEntry]) -> Vec<BridgeSubscriptionSlice> {
+pub(super) fn canonical_subscription_slices(
+    entries: &[EligibleRouteEntry],
+) -> Vec<BridgeSubscriptionSlice> {
     let mut deduped = BTreeSet::new();
     for entry in entries {
         match entry.fine_grained_match().status() {
@@ -104,7 +108,9 @@ pub(super) fn canonical_subscription_slices(entries: &[EligibleRouteEntry]) -> V
     slices
 }
 
-pub(super) fn canonical_route_record_entries(entries: &[EligibleRouteEntry]) -> Arc<[BridgeRouteRecordEntry]> {
+pub(super) fn canonical_route_record_entries(
+    entries: &[EligibleRouteEntry],
+) -> Arc<[BridgeRouteRecordEntry]> {
     Arc::from(
         entries
             .iter()

@@ -2,25 +2,51 @@ use super::*;
 
 impl BridgeDiagnosticsState {
     pub(crate) fn evict_route_indexes(&mut self, evicted: &Arc<BridgeRouteRecord>) {
-        evict_index_entry(&mut self.latest_route_by_route_identity, evicted.route_identity().as_str(), evicted);
+        evict_index_entry(
+            &mut self.latest_route_by_route_identity,
+            evicted.route_identity().as_str(),
+            evicted,
+        );
         evict_index_entry(
             &mut self.latest_route_by_invalidation_identity,
             evicted.invalidation_identity().as_str(),
             evicted,
         );
-        evict_index_entry(&mut self.latest_route_by_source_commit, evicted.source_commit().as_str(), evicted);
+        evict_index_entry(
+            &mut self.latest_route_by_source_commit,
+            evicted.source_commit().as_str(),
+            evicted,
+        );
     }
 
     pub(crate) fn evict_bulk_indexes(&mut self, evicted: &Arc<BridgeCanonicalBulkPlanRecord>) {
-        evict_index_entry(&mut self.latest_bulk_by_workload_identity, evicted.workload_identity().as_str(), evicted);
+        evict_index_entry(
+            &mut self.latest_bulk_by_workload_identity,
+            evicted.workload_identity().as_str(),
+            evicted,
+        );
     }
 
-    pub(crate) fn evict_continuity_indexes(&mut self, evicted: &Arc<BridgeCanonicalContinuityRecord>) {
-        evict_index_entry(&mut self.latest_continuity_by_route_identity, evicted.route_identity().as_str(), evicted);
+    pub(crate) fn evict_continuity_indexes(
+        &mut self,
+        evicted: &Arc<BridgeCanonicalContinuityRecord>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_continuity_by_route_identity,
+            evicted.route_identity().as_str(),
+            evicted,
+        );
     }
 
-    pub(crate) fn evict_historical_indexes(&mut self, evicted: &Arc<BridgeCanonicalHistoricalEvaluationRecord>) {
-        evict_index_entry(&mut self.latest_historical_by_record_identity, evicted.record_identity().as_str(), evicted);
+    pub(crate) fn evict_historical_indexes(
+        &mut self,
+        evicted: &Arc<BridgeCanonicalHistoricalEvaluationRecord>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_historical_by_record_identity,
+            evicted.record_identity().as_str(),
+            evicted,
+        );
         evict_index_entry(
             &mut self.latest_historical_by_decision_log_identity,
             evicted.decision_log().decision_log_identity().as_str(),
@@ -39,11 +65,62 @@ impl BridgeDiagnosticsState {
         );
     }
 
-    pub(crate) fn evict_stream_checkpoint_indexes(&mut self, evicted: &Arc<ConsumerCheckpointToken>) {
-        evict_index_entry(&mut self.latest_stream_checkpoint_by_identity, evicted.checkpoint_token_identity(), evicted);
+    pub(crate) fn evict_source_materialization_indexes(
+        &mut self,
+        evicted: &Arc<SourceMaterializationRecord>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_source_materialization_by_record_identity,
+            evicted.record_identity().as_str(),
+            evicted,
+        );
     }
 
-    pub(crate) fn evict_stream_replay_indexes(&mut self, evicted: &Arc<CanonicalStreamReplayRecord>) {
+    pub(crate) fn evict_source_failure_indexes(&mut self, evicted: &Arc<SourceFailureRecord>) {
+        evict_index_entry(
+            &mut self.latest_source_failure_by_declaration_identity,
+            evicted.declaration_identity().as_str(),
+            evicted,
+        );
+    }
+
+    pub(crate) fn evict_structural_remap_indexes(
+        &mut self,
+        evicted: &Arc<BridgeCanonicalStructuralRemapRecord>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_structural_remap_by_record_identity,
+            evicted.record_identity().as_str(),
+            evicted,
+        );
+    }
+
+    pub(crate) fn evict_structural_branch_comparison_indexes(
+        &mut self,
+        evicted: &Arc<BridgeCanonicalStructuralBranchComparisonRecord>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_structural_branch_comparison_by_record_identity,
+            evicted.record_identity().as_str(),
+            evicted,
+        );
+    }
+
+    pub(crate) fn evict_stream_checkpoint_indexes(
+        &mut self,
+        evicted: &Arc<ConsumerCheckpointToken>,
+    ) {
+        evict_index_entry(
+            &mut self.latest_stream_checkpoint_by_identity,
+            evicted.checkpoint_token_identity(),
+            evicted,
+        );
+    }
+
+    pub(crate) fn evict_stream_replay_indexes(
+        &mut self,
+        evicted: &Arc<CanonicalStreamReplayRecord>,
+    ) {
         evict_index_entry(
             &mut self.latest_stream_replay_by_identity,
             evicted.replay_record_identity().as_str(),
@@ -57,11 +134,7 @@ impl BridgeDiagnosticsState {
     }
 }
 
-fn evict_index_entry<T>(
-    index: &mut BTreeMap<String, Arc<T>>,
-    key: &str,
-    evicted: &Arc<T>,
-) {
+fn evict_index_entry<T>(index: &mut BTreeMap<String, Arc<T>>, key: &str, evicted: &Arc<T>) {
     let Some(latest) = index.get(key) else {
         return;
     };

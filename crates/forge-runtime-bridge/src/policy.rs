@@ -49,7 +49,9 @@ impl BridgeRuntimePolicy {
     pub fn operational() -> Self {
         Self {
             diagnostics_tier: BridgeDiagnosticsTier::Minimal,
-            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(BridgeDiagnosticsTier::Minimal),
+            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(
+                BridgeDiagnosticsTier::Minimal,
+            ),
             record_route_artifacts: true,
             allow_replay_artifacts: true,
         }
@@ -58,7 +60,9 @@ impl BridgeRuntimePolicy {
     pub fn development() -> Self {
         Self {
             diagnostics_tier: BridgeDiagnosticsTier::Standard,
-            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(BridgeDiagnosticsTier::Standard),
+            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(
+                BridgeDiagnosticsTier::Standard,
+            ),
             record_route_artifacts: true,
             allow_replay_artifacts: true,
         }
@@ -67,7 +71,9 @@ impl BridgeRuntimePolicy {
     pub fn forensic() -> Self {
         Self {
             diagnostics_tier: BridgeDiagnosticsTier::Exhaustive,
-            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(BridgeDiagnosticsTier::Exhaustive),
+            retention_budget: BridgeDiagnosticsRetentionBudget::for_tier(
+                BridgeDiagnosticsTier::Exhaustive,
+            ),
             record_route_artifacts: true,
             allow_replay_artifacts: true,
         }

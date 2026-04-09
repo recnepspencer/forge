@@ -98,7 +98,9 @@ impl BridgeDiagnosticsHandle {
             .historical_record_for_decision_log_identity(decision_log_identity)
     }
 
-    pub fn last_historical_evaluation_failure(&self) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+    pub fn last_historical_evaluation_failure(
+        &self,
+    ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.state
             .read()
             .expect("bridge diagnostics lock poisoned")

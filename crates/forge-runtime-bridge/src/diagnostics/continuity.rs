@@ -198,7 +198,9 @@ impl BridgeContinuityExplanation {
             continuity_request_digest: Arc::from(record.continuity_request_digest()),
             continuity_resolution_digest: Arc::from(record.continuity_resolution_digest()),
             continuity_artifact_identity: record.continuity_artifact_identity().clone(),
-            remapped_subscription_slice_identity: record.remapped_subscription_slice_identity().clone(),
+            remapped_subscription_slice_identity: record
+                .remapped_subscription_slice_identity()
+                .clone(),
             remapped_slices: record.remapped_slices().clone(),
             continuity_outcomes: record.continuity_outcomes().to_vec(),
             counters: *record.counters(),

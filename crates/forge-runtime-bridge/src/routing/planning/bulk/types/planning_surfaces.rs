@@ -37,14 +37,22 @@ impl BridgeBulkPlanningCounters {
         profitability_class: BridgeParallelProfitabilityClass,
         admission_class: BridgeParallelAdmissionClass,
     ) -> Self {
-        let parallel_legal =
-            matches!(legality_class, BridgeParallelLegalityClass::ParallelPreparationLegal);
-        let parallel_profitable =
-            matches!(profitability_class, BridgeParallelProfitabilityClass::Profitable);
-        let parallel_admitted =
-            matches!(admission_class, BridgeParallelAdmissionClass::ParallelPreparationAdmitted);
-        let parallel_rejected =
-            matches!(admission_class, BridgeParallelAdmissionClass::ParallelPreparationRejected);
+        let parallel_legal = matches!(
+            legality_class,
+            BridgeParallelLegalityClass::ParallelPreparationLegal
+        );
+        let parallel_profitable = matches!(
+            profitability_class,
+            BridgeParallelProfitabilityClass::Profitable
+        );
+        let parallel_admitted = matches!(
+            admission_class,
+            BridgeParallelAdmissionClass::ParallelPreparationAdmitted
+        );
+        let parallel_rejected = matches!(
+            admission_class,
+            BridgeParallelAdmissionClass::ParallelPreparationRejected
+        );
         Self {
             bulk_workload_count: 1,
             bulk_routed_item_count,
@@ -63,7 +71,9 @@ impl BridgeBulkPlanningCounters {
             bulk_parallel_profitable_count: usize::from(parallel_profitable),
             bulk_parallel_preparation_admitted_count: usize::from(parallel_admitted),
             bulk_parallel_preparation_rejected_count: usize::from(parallel_rejected),
-            bulk_parallel_fallback_to_serial_count: usize::from(parallel_legal && !parallel_profitable),
+            bulk_parallel_fallback_to_serial_count: usize::from(
+                parallel_legal && !parallel_profitable,
+            ),
         }
     }
 
@@ -86,21 +96,51 @@ impl BridgeBulkPlanningCounters {
         )
     }
 
-    pub fn bulk_workload_count(&self) -> usize { self.bulk_workload_count }
-    pub fn bulk_routed_item_count(&self) -> usize { self.bulk_routed_item_count }
-    pub fn bulk_normalized_workload_width(&self) -> usize { self.bulk_normalized_workload_width }
-    pub fn bulk_packet_count(&self) -> usize { self.bulk_packet_count }
-    pub fn bulk_packet_entry_count(&self) -> usize { self.bulk_packet_entry_count }
-    pub fn bulk_reduction_input_count(&self) -> usize { self.bulk_reduction_input_count }
-    pub fn bulk_reduction_output_count(&self) -> usize { self.bulk_reduction_output_count }
-    pub fn bulk_fallback_count(&self) -> usize { self.bulk_fallback_count }
-    pub fn bulk_packet_queue_depth_peak(&self) -> usize { self.bulk_packet_queue_depth_peak }
-    pub fn bulk_reducer_input_buffer_peak(&self) -> usize { self.bulk_reducer_input_buffer_peak }
-    pub fn bulk_replay_mismatch_count(&self) -> usize { self.bulk_replay_mismatch_count }
-    pub fn bulk_unsupported_path_count(&self) -> usize { self.bulk_unsupported_path_count }
-    pub fn bulk_serial_required_count(&self) -> usize { self.bulk_serial_required_count }
-    pub fn bulk_parallel_legal_count(&self) -> usize { self.bulk_parallel_legal_count }
-    pub fn bulk_parallel_profitable_count(&self) -> usize { self.bulk_parallel_profitable_count }
+    pub fn bulk_workload_count(&self) -> usize {
+        self.bulk_workload_count
+    }
+    pub fn bulk_routed_item_count(&self) -> usize {
+        self.bulk_routed_item_count
+    }
+    pub fn bulk_normalized_workload_width(&self) -> usize {
+        self.bulk_normalized_workload_width
+    }
+    pub fn bulk_packet_count(&self) -> usize {
+        self.bulk_packet_count
+    }
+    pub fn bulk_packet_entry_count(&self) -> usize {
+        self.bulk_packet_entry_count
+    }
+    pub fn bulk_reduction_input_count(&self) -> usize {
+        self.bulk_reduction_input_count
+    }
+    pub fn bulk_reduction_output_count(&self) -> usize {
+        self.bulk_reduction_output_count
+    }
+    pub fn bulk_fallback_count(&self) -> usize {
+        self.bulk_fallback_count
+    }
+    pub fn bulk_packet_queue_depth_peak(&self) -> usize {
+        self.bulk_packet_queue_depth_peak
+    }
+    pub fn bulk_reducer_input_buffer_peak(&self) -> usize {
+        self.bulk_reducer_input_buffer_peak
+    }
+    pub fn bulk_replay_mismatch_count(&self) -> usize {
+        self.bulk_replay_mismatch_count
+    }
+    pub fn bulk_unsupported_path_count(&self) -> usize {
+        self.bulk_unsupported_path_count
+    }
+    pub fn bulk_serial_required_count(&self) -> usize {
+        self.bulk_serial_required_count
+    }
+    pub fn bulk_parallel_legal_count(&self) -> usize {
+        self.bulk_parallel_legal_count
+    }
+    pub fn bulk_parallel_profitable_count(&self) -> usize {
+        self.bulk_parallel_profitable_count
+    }
     pub fn bulk_parallel_preparation_admitted_count(&self) -> usize {
         self.bulk_parallel_preparation_admitted_count
     }

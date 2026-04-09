@@ -2,15 +2,15 @@ use std::fmt;
 
 use forge_core::KernelError;
 #[cfg(test)]
+use forge_signal::facade::adapters::RuntimeTelemetry;
+use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
+use forge_signal::facade::specialist::RunMode as EvaluationRequestMode;
+#[cfg(test)]
 use forge_signal::facade::NodeState;
 use forge_signal::facade::{
     Aspect, AspectVersion, DependencyEdge, EvaluationCondition, EvaluationContext, NodeId,
     SignalError, SignalGraph, SignalRuntime, TransactionOutcome,
 };
-use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
-use forge_signal::facade::specialist::RunMode as EvaluationRequestMode;
-#[cfg(test)]
-use forge_signal::facade::adapters::RuntimeTelemetry;
 use forge_topo::projection::{
     compute_projected_topology_hash, validate_projected_topology_structural, ProjectedTopology,
     ProjectionBuilder,
@@ -258,7 +258,8 @@ impl SpecEnvelope {
                 }
 
                 if id == projection_id {
-                    let projection = projection_cache.get_or_init(|| ProjectionBuilder::build(spec));
+                    let projection =
+                        projection_cache.get_or_init(|| ProjectionBuilder::build(spec));
                     let projection = projection.as_ref().map_err(|err| {
                         Self::kernel_to_signal(projected_topology_error_to_kernel_ref(err))
                     })?;
@@ -338,11 +339,7 @@ impl SpecEnvelope {
             return Err(Self::signal_to_kernel(err));
         }
 
-        match txn
-            .commit()
-            .map_err(Self::signal_to_kernel)?
-            .outcome
-        {
+        match txn.commit().map_err(Self::signal_to_kernel)?.outcome {
             TransactionOutcome::Committed => Ok(()),
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 Err(KernelError::InternalError {

@@ -1,6 +1,8 @@
 use serde_json::json;
 
-pub(super) fn route_record_json(record: crate::diagnostics::BridgeRouteRecord) -> serde_json::Value {
+pub(super) fn route_record_json(
+    record: crate::diagnostics::BridgeRouteRecord,
+) -> serde_json::Value {
     json!({
         "route_identity": record.route_identity().as_str(),
         "invalidation_identity": record.invalidation_identity().as_str(),

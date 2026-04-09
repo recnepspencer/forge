@@ -1,9 +1,9 @@
 use crate::facade::BridgeRouteRequest;
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime, committed_patch_items, registration, snapshot, surface_fallback_registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {

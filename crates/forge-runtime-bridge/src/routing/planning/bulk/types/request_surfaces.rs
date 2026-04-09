@@ -134,15 +134,35 @@ impl CanonicalBridgeWorkloadRequest {
         }
     }
 
-    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity { &self.workload_identity }
-    pub fn route_members(&self) -> &[Arc<str>] { &self.route_members }
-    pub fn subscription_slice_members(&self) -> &[Arc<str>] { &self.subscription_slice_members }
-    pub fn continuity_members(&self) -> &[Arc<str>] { &self.continuity_members }
-    pub fn truth_view_members(&self) -> &[Arc<str>] { &self.truth_view_members }
-    pub fn commit_members(&self) -> &[Arc<str>] { &self.commit_members }
-    pub fn snapshot_members(&self) -> &[Arc<str>] { &self.snapshot_members }
-    pub fn branch_members(&self) -> &[Arc<str>] { &self.branch_members }
-    pub fn workload_segment_digests(&self) -> &[Arc<str>] { &self.workload_segment_digests }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+    pub fn route_members(&self) -> &[Arc<str>] {
+        &self.route_members
+    }
+    pub fn subscription_slice_members(&self) -> &[Arc<str>] {
+        &self.subscription_slice_members
+    }
+    pub fn continuity_members(&self) -> &[Arc<str>] {
+        &self.continuity_members
+    }
+    pub fn truth_view_members(&self) -> &[Arc<str>] {
+        &self.truth_view_members
+    }
+    pub fn commit_members(&self) -> &[Arc<str>] {
+        &self.commit_members
+    }
+    pub fn snapshot_members(&self) -> &[Arc<str>] {
+        &self.snapshot_members
+    }
+    pub fn branch_members(&self) -> &[Arc<str>] {
+        &self.branch_members
+    }
+    pub fn workload_segment_digests(&self) -> &[Arc<str>] {
+        &self.workload_segment_digests
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 use super::*;

@@ -32,7 +32,10 @@ impl ContinuityRemapPacket {
             packet_index,
         );
         Self {
-            packet_identity: ContinuityPacketIdentity::new(digest_string("continuity-packet", &basis)),
+            packet_identity: ContinuityPacketIdentity::new(digest_string(
+                "continuity-packet",
+                &basis,
+            )),
             workload_identity,
             originating_route_identity,
             continuity_authority_digest,
@@ -44,15 +47,33 @@ impl ContinuityRemapPacket {
         }
     }
 
-    pub fn packet_identity(&self) -> &ContinuityPacketIdentity { &self.packet_identity }
-    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity { &self.workload_identity }
-    pub fn originating_route_identity(&self) -> &str { self.originating_route_identity.as_ref() }
-    pub fn continuity_authority_digest(&self) -> &str { self.continuity_authority_digest.as_ref() }
-    pub fn branch_identity(&self) -> &str { self.branch_identity.as_ref() }
-    pub fn snapshot_identity(&self) -> &str { self.snapshot_identity.as_ref() }
-    pub fn prior_slice_count(&self) -> usize { self.prior_slice_count }
-    pub fn packet_index(&self) -> usize { self.packet_index }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn packet_identity(&self) -> &ContinuityPacketIdentity {
+        &self.packet_identity
+    }
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+    pub fn originating_route_identity(&self) -> &str {
+        self.originating_route_identity.as_ref()
+    }
+    pub fn continuity_authority_digest(&self) -> &str {
+        self.continuity_authority_digest.as_ref()
+    }
+    pub fn branch_identity(&self) -> &str {
+        self.branch_identity.as_ref()
+    }
+    pub fn snapshot_identity(&self) -> &str {
+        self.snapshot_identity.as_ref()
+    }
+    pub fn prior_slice_count(&self) -> usize {
+        self.prior_slice_count
+    }
+    pub fn packet_index(&self) -> usize {
+        self.packet_index
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,7 +110,10 @@ impl TruthViewMaterializationPacket {
             packet_index,
         );
         Self {
-            packet_identity: TruthViewPacketIdentity::new(digest_string("truth-view-packet", &basis)),
+            packet_identity: TruthViewPacketIdentity::new(digest_string(
+                "truth-view-packet",
+                &basis,
+            )),
             workload_identity,
             source_branch,
             source_commit,
@@ -101,15 +125,33 @@ impl TruthViewMaterializationPacket {
         }
     }
 
-    pub fn packet_identity(&self) -> &TruthViewPacketIdentity { &self.packet_identity }
-    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity { &self.workload_identity }
-    pub fn source_branch(&self) -> &str { self.source_branch.as_ref() }
-    pub fn source_commit(&self) -> &str { self.source_commit.as_ref() }
-    pub fn source_snapshot(&self) -> &str { self.source_snapshot.as_ref() }
-    pub fn planned_route_count(&self) -> usize { self.planned_route_count }
-    pub fn snapshot_read_count(&self) -> usize { self.snapshot_read_count }
-    pub fn packet_index(&self) -> usize { self.packet_index }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn packet_identity(&self) -> &TruthViewPacketIdentity {
+        &self.packet_identity
+    }
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+    pub fn source_branch(&self) -> &str {
+        self.source_branch.as_ref()
+    }
+    pub fn source_commit(&self) -> &str {
+        self.source_commit.as_ref()
+    }
+    pub fn source_snapshot(&self) -> &str {
+        self.source_snapshot.as_ref()
+    }
+    pub fn planned_route_count(&self) -> usize {
+        self.planned_route_count
+    }
+    pub fn snapshot_read_count(&self) -> usize {
+        self.snapshot_read_count
+    }
+    pub fn packet_index(&self) -> usize {
+        self.packet_index
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,13 +192,27 @@ impl FallbackAggregationPacket {
         }
     }
 
-    pub fn packet_identity(&self) -> &FallbackPacketIdentity { &self.packet_identity }
-    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity { &self.workload_identity }
-    pub fn originating_route_identity(&self) -> &str { self.originating_route_identity.as_ref() }
-    pub fn fallback_class(&self) -> &str { self.fallback_class.as_ref() }
-    pub fn bounded_scope_identity(&self) -> &str { self.bounded_scope_identity.as_ref() }
-    pub fn packet_index(&self) -> usize { self.packet_index }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn packet_identity(&self) -> &FallbackPacketIdentity {
+        &self.packet_identity
+    }
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+    pub fn originating_route_identity(&self) -> &str {
+        self.originating_route_identity.as_ref()
+    }
+    pub fn fallback_class(&self) -> &str {
+        self.fallback_class.as_ref()
+    }
+    pub fn bounded_scope_identity(&self) -> &str {
+        self.bounded_scope_identity.as_ref()
+    }
+    pub fn packet_index(&self) -> usize {
+        self.packet_index
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 use super::*;

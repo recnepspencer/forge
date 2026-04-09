@@ -9,7 +9,8 @@ impl RuntimeBridge {
         let packet = self.plan_historical_lineage_packet(&requests)?;
         let resolved = self.resolve_lineage_continuity(&packet)?;
         let artifact = self.lower_continuity_artifact(&resolved);
-        let canonical_record = self.canonicalize_continuity_record(route_record, &requests, &artifact);
+        let canonical_record =
+            self.canonicalize_continuity_record(route_record, &requests, &artifact);
 
         Ok(crate::diagnostics::BridgeDeliveredContinuityResult::new(
             artifact,
@@ -94,15 +95,15 @@ impl RuntimeBridge {
                 )
                 .with_context(replay_context.clone())
             })?;
-        let resolved = self
-            .resolve_lineage_continuity(&packet)
-            .map_err(|error| {
-                BridgeReplayError::new(
-                    BridgeReplayErrorKind::ContinuityResolutionMismatch,
-                    format!("Bridge continuity replay failed to resolve continuity canonically: {error}"),
-                )
-                .with_context(replay_context.clone())
-            })?;
+        let resolved = self.resolve_lineage_continuity(&packet).map_err(|error| {
+            BridgeReplayError::new(
+                BridgeReplayErrorKind::ContinuityResolutionMismatch,
+                format!(
+                    "Bridge continuity replay failed to resolve continuity canonically: {error}"
+                ),
+            )
+            .with_context(replay_context.clone())
+        })?;
         let artifact = self.lower_continuity_artifact(&resolved);
         if artifact.continuity_resolution_digest() != record.continuity_resolution_digest() {
             return Err(BridgeReplayError::new(
@@ -143,13 +144,16 @@ impl RuntimeBridge {
         truth_branch_head_source: Option<Arc<dyn TruthBranchHeadSource>>,
         continuity_lineage_source: Option<Arc<dyn ContinuityLineageSource>>,
         snapshot_reader_pool: Option<Arc<dyn SnapshotReaderPool>>,
+        source_registry: AdmittedSourceRegistry,
+        source_adapter: Option<Arc<dyn BridgeSourceAdapter>>,
+        structural_registry: AdmittedStructuralRegistry,
+        merge_registry: AdmittedMergeRegistry,
         diagnostic_sink: Option<Arc<dyn DiagnosticSink>>,
         mapping_registry: FrozenMappingRegistry,
         aspect_registry: FrozenAspectMappingRegistry,
     ) -> Self {
         let diagnostics = BridgeDiagnosticsFacade::new(policy);
-        let diagnostic_sink =
-            diagnostic_sink.unwrap_or_else(|| Arc::new(diagnostics.clone()));
+        let diagnostic_sink = diagnostic_sink.unwrap_or_else(|| Arc::new(diagnostics.clone()));
         Self {
             diagnostic_sink,
             diagnostics,
@@ -160,9 +164,12 @@ impl RuntimeBridge {
             signal_sink,
             truth_branch_head_source,
             continuity_lineage_source,
+            source_registry,
+            source_adapter,
+            structural_registry,
+            merge_registry,
             mapping_registry,
             aspect_registry,
         }
     }
 }
-

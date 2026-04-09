@@ -4,8 +4,8 @@ use crate::facade::{
     TruthPatchScope,
 };
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::super::support::registration;
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn ambiguous_slice_registration_fails_explicitly() {
@@ -41,5 +41,8 @@ fn ambiguous_slice_registration_fails_explicitly() {
         .build()
         .expect_err("ambiguous aspect registrations must fail at freeze time");
 
-    assert_eq!(error.kind(), BridgeBuildErrorKind::AmbiguousAspectRegistration);
+    assert_eq!(
+        error.kind(),
+        BridgeBuildErrorKind::AmbiguousAspectRegistration
+    );
 }

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::error::{BridgeStreamError, BridgeStreamErrorKind};
 use crate::facade::RuntimeBridge;
-use crate::routing::BridgeRouteResult;
 use crate::routing::canonicalization::digest_string;
+use crate::routing::BridgeRouteResult;
 
 use super::counters::StreamProtocolCounters;
 use super::declaration::diagnostics_policy_class_label;
@@ -172,7 +172,8 @@ pub(crate) fn deliver_change_stream_window(
         .iter()
         .map(|result| result.result_summary().delivered_target_count())
         .sum();
-    let summary = StreamWindowDeliverySummary::new(window, route_results.len(), delivered_target_count);
+    let summary =
+        StreamWindowDeliverySummary::new(window, route_results.len(), delivered_target_count);
 
     Ok(StreamWindowDeliveryResult::new(summary, route_results))
 }

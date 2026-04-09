@@ -1,8 +1,8 @@
 use crate::diagnostics::{BridgeFailureSource, BridgeReplaySummary, BridgeRouteRecord};
 use crate::error::{BridgeErrorContext, BridgeReplayError, BridgeReplayErrorKind};
 use crate::facade::{BridgeRouteRequest, RuntimeBridge};
-use crate::routing::outcome::BridgeRouteOutcomeReference;
 use crate::routing::counters::BridgeRoutingCounters;
+use crate::routing::outcome::BridgeRouteOutcomeReference;
 
 use super::BridgeRouteSourceSummary;
 
@@ -53,7 +53,10 @@ pub(crate) fn replay_route_record(
                 record.route_identity().as_str()
             ),
         )
-        .with_context(replay_context(record).with_invalidation_identity(record.invalidation_identity().clone()));
+        .with_context(
+            replay_context(record)
+                .with_invalidation_identity(record.invalidation_identity().clone()),
+        );
         return Err(reject_replay(runtime, record, replay_counters, error));
     }
     if source_digest != *record.source_digest() {
@@ -65,7 +68,10 @@ pub(crate) fn replay_route_record(
                 record.source_digest().as_str()
             ),
         )
-        .with_context(replay_context(record).with_invalidation_identity(record.invalidation_identity().clone()));
+        .with_context(
+            replay_context(record)
+                .with_invalidation_identity(record.invalidation_identity().clone()),
+        );
         return Err(reject_replay(runtime, record, replay_counters, error));
     }
 
@@ -82,7 +88,10 @@ pub(crate) fn replay_route_record(
                 record.invalidation_identity().as_str()
             ),
         )
-        .with_context(replay_context(record).with_invalidation_identity(record.invalidation_identity().clone()));
+        .with_context(
+            replay_context(record)
+                .with_invalidation_identity(record.invalidation_identity().clone()),
+        );
         return Err(reject_replay(runtime, record, replay_counters, error));
     }
     if artifact.subscription_slice_identity() != record.subscription_slice_identity() {

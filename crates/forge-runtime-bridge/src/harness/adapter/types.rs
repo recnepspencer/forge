@@ -10,11 +10,36 @@ pub enum BridgeHarnessMutation {
     PublishSnapshot(SnapshotFixture),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum SourceAdapterShape {
+    #[default]
+    Direct,
+    Wrapped,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum SourceBuilderLoadOrder {
+    #[default]
+    AdapterBeforeSources,
+    SourcesBeforeAdapter,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum SourceAdapterBehavior {
+    #[default]
+    Honest,
+    RejectOpenSnapshot,
+    DriftSnapshotIdentity,
+}
+
 #[derive(Debug, Clone)]
 pub struct BridgeHarnessSession {
     pub(crate) runtime: Option<crate::facade::RuntimeBridge>,
     pub(crate) source: InMemoryRelationalBridgeSource,
     pub(crate) sink: RecordingSignalBridgeSink,
+    pub(crate) source_adapter_shape: SourceAdapterShape,
+    pub(crate) source_builder_load_order: SourceBuilderLoadOrder,
+    pub(crate) source_adapter_behavior: SourceAdapterBehavior,
 }
 
 impl Default for BridgeHarnessSession {
@@ -23,6 +48,9 @@ impl Default for BridgeHarnessSession {
             runtime: None,
             source: InMemoryRelationalBridgeSource::default(),
             sink: RecordingSignalBridgeSink::default(),
+            source_adapter_shape: SourceAdapterShape::Direct,
+            source_builder_load_order: SourceBuilderLoadOrder::AdapterBeforeSources,
+            source_adapter_behavior: SourceAdapterBehavior::Honest,
         }
     }
 }

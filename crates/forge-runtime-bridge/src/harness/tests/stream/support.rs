@@ -4,7 +4,9 @@ use crate::harness::fixtures::BridgeHarnessFixture;
 
 use super::super::support::{committed_patch, registration, snapshot};
 
-pub(super) fn stream_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
+pub(super) fn stream_fixture(
+    name: &str,
+) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
     ScenarioPlan::new(
         name,
         BridgeHarnessFixture::new(vec![registration()])

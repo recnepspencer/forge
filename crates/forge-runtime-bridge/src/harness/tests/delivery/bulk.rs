@@ -24,7 +24,10 @@ fn bridge_bulk_delivery_keeps_preplanned_snapshots_after_newer_truth_arrives() {
         .deliver_bulk_workload_plan(plan)
         .expect("bridge should deliver the preplanned bulk workload");
 
-    assert_eq!(result.summary().selected_mode(), BridgePreparationMode::ParallelPreparation);
+    assert_eq!(
+        result.summary().selected_mode(),
+        BridgePreparationMode::ParallelPreparation
+    );
     assert_eq!(result.summary().delivered_route_count(), 2);
     assert_eq!(result.route_results().len(), 2);
     assert_eq!(
@@ -87,7 +90,10 @@ fn bridge_bulk_delivery_accepts_replayed_canonical_bulk_plan() {
         result.summary().reduced_artifact_digest(),
         planned.execution_plan().reduced_artifact().digest()
     );
-    assert_eq!(result.summary().counters(), planned.execution_plan().counters());
+    assert_eq!(
+        result.summary().counters(),
+        planned.execution_plan().counters()
+    );
     assert_eq!(result.summary().delivered_route_count(), 2);
     assert_eq!(result.summary().delivered_target_count(), 2);
     assert_eq!(sink.deliveries().len(), 2);
@@ -96,16 +102,36 @@ fn bridge_bulk_delivery_accepts_replayed_canonical_bulk_plan() {
 #[test]
 fn bridge_bulk_delivery_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let left_sink = RecordingSignalBridgeSink::default();
     let left_runtime = build_runtime(left_source, left_sink.clone(), vec![registration()]);
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let right_sink = RecordingSignalBridgeSink::default();
@@ -165,7 +191,8 @@ fn bridge_bulk_delivery_replay_matches_original_serial_fallback_path() {
     source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
     source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let original_sink = RecordingSignalBridgeSink::default();
-    let original_runtime = build_runtime(source.clone(), original_sink.clone(), vec![registration()]);
+    let original_runtime =
+        build_runtime(source.clone(), original_sink.clone(), vec![registration()]);
 
     let original_plan = original_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![

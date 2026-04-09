@@ -85,8 +85,12 @@ impl BridgeRouteRecordEntry {
 
     pub fn truth_surface_kind(&self) -> TruthDeltaSurfaceKind {
         match &self.match_detail {
-            FineGrainedMatchOutcome::Matched { truth_surface_kind, .. }
-            | FineGrainedMatchOutcome::FallbackAdmitted { truth_surface_kind, .. }
+            FineGrainedMatchOutcome::Matched {
+                truth_surface_kind, ..
+            }
+            | FineGrainedMatchOutcome::FallbackAdmitted {
+                truth_surface_kind, ..
+            }
             | FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { truth_surface_kind }
             | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { truth_surface_kind }
             | FineGrainedMatchOutcome::AmbiguousRegistration { truth_surface_kind } => {
@@ -121,9 +125,9 @@ impl BridgeRouteRecordEntry {
 
     pub fn slice_fallback_policy(&self) -> Option<SliceFallbackPolicy> {
         match &self.match_detail {
-            FineGrainedMatchOutcome::FallbackAdmitted { fallback_policy, .. } => {
-                Some(*fallback_policy)
-            }
+            FineGrainedMatchOutcome::FallbackAdmitted {
+                fallback_policy, ..
+            } => Some(*fallback_policy),
             FineGrainedMatchOutcome::Matched { .. } => Some(SliceFallbackPolicy::Disallow),
             FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. }
             | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { .. }

@@ -19,7 +19,10 @@ pub(crate) fn canonical_aspect_registration_order(
         .then_with(|| right_entity_exact.cmp(&left_entity_exact))
         .then_with(|| left.truth_surface_kind().cmp(&right.truth_surface_kind()))
         .then_with(|| left.truth_scope().cmp(right.truth_scope()))
-        .then_with(|| left.subscription_slice_kind().cmp(right.subscription_slice_kind()))
+        .then_with(|| {
+            left.subscription_slice_kind()
+                .cmp(right.subscription_slice_kind())
+        })
         .then_with(|| left.fallback_policy().cmp(&right.fallback_policy()))
         .then_with(|| left.registration_id().cmp(right.registration_id()))
 }

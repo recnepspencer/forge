@@ -57,13 +57,15 @@ pub(super) fn classify_parallel_profitability(
     locality_footprint: &BridgeLocalityFootprint,
 ) -> BridgeParallelProfitabilityDecision {
     let (class, reason) = match legality_decision.class() {
-        BridgeParallelLegalityClass::SerialOnly | BridgeParallelLegalityClass::ParallelPreparationIllegal => (
+        BridgeParallelLegalityClass::SerialOnly
+        | BridgeParallelLegalityClass::ParallelPreparationIllegal => (
             BridgeParallelProfitabilityClass::NotApplicable,
             BridgeParallelProfitabilityReason::SerialOnlyWorkload,
         ),
         BridgeParallelLegalityClass::ParallelPreparationLegal => {
             if packet_set.reduction_packets().len() != packet_set.routing_packets().len()
-                || locality_footprint.publication_scope_count() != packet_set.routing_packets().len()
+                || locality_footprint.publication_scope_count()
+                    != packet_set.routing_packets().len()
             {
                 (
                     BridgeParallelProfitabilityClass::Unprofitable,
@@ -102,7 +104,10 @@ fn classify_parallel_admission_components(
                     BridgeParallelAdmissionReason::SerialExecutor
                 }
             };
-            (BridgeParallelAdmissionClass::ParallelPreparationRejected, reason)
+            (
+                BridgeParallelAdmissionClass::ParallelPreparationRejected,
+                reason,
+            )
         }
         BridgeParallelLegalityClass::ParallelPreparationLegal => {
             match profitability_decision.class() {
@@ -199,9 +204,7 @@ pub(super) fn planning_failures(
         failures.push(BridgeBulkPlanningFailure::new(
             BridgeBulkPlanningFailureKind::PacketOverlapDetected,
             Arc::from("packet-overlap"),
-            Arc::from(
-                "parallel-admitted packet regions collapsed onto shared publication scopes",
-            ),
+            Arc::from("parallel-admitted packet regions collapsed onto shared publication scopes"),
         ));
     }
     if reduced_artifact.reduction_output_count() > reduced_artifact.reduction_input_count() {
@@ -217,9 +220,7 @@ pub(super) fn planning_failures(
         failures.push(BridgeBulkPlanningFailure::new(
             BridgeBulkPlanningFailureKind::ReductionIdentityConflict,
             Arc::from("reduction-identity"),
-            Arc::from(
-                "multiple reduced outputs claimed the same canonical reduction identity",
-            ),
+            Arc::from("multiple reduced outputs claimed the same canonical reduction identity"),
         ));
     }
     if counters.bulk_reducer_input_buffer_peak() > bulk_reducer_input_buffer_ceiling() {
@@ -239,9 +240,7 @@ pub(super) fn planning_failures(
     failures
 }
 
-fn reduction_identity_conflict_detected(
-    reduced_artifact: &ReducedBridgeWorkloadArtifact,
-) -> bool {
+fn reduction_identity_conflict_detected(reduced_artifact: &ReducedBridgeWorkloadArtifact) -> bool {
     has_duplicate_keys(
         reduced_artifact
             .reduced_publications()
@@ -282,7 +281,9 @@ pub(super) fn locality_footprint(packet_set: &PlannedBridgePacketSet) -> BridgeL
     for packet in packet_set.routing_packets() {
         branch_scopes.insert(Arc::<str>::from(packet.source_branch().to_owned()));
         snapshot_scopes.insert(Arc::<str>::from(packet.source_snapshot().to_owned()));
-        publication_scopes.insert(Arc::<str>::from(packet.subscription_slice_identity().to_owned()));
+        publication_scopes.insert(Arc::<str>::from(
+            packet.subscription_slice_identity().to_owned(),
+        ));
     }
     for packet in packet_set.truth_view_packets() {
         branch_scopes.insert(Arc::<str>::from(packet.source_branch().to_owned()));

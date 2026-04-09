@@ -1,11 +1,15 @@
-use crate::error::{BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind};
+use crate::error::{
+    BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind,
+};
 use crate::input::envelope::{BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem};
 use crate::mapping::{
-    BridgeMappingFallbackClass, BridgeMappingLookup, FrozenBridgeMappingRegistration,
-    FrozenAspectMappingRegistry, FrozenMappingRegistry,
+    BridgeMappingFallbackClass, BridgeMappingLookup, FrozenAspectMappingRegistry,
+    FrozenBridgeMappingRegistration, FrozenMappingRegistry,
 };
 use crate::routing::counters::BridgeRoutingCounters;
-use crate::routing::matching::{classify_truth_delta_surface, FineGrainedSurfaceMatch, FineGrainedMatchStatus};
+use crate::routing::matching::{
+    classify_truth_delta_surface, FineGrainedMatchStatus, FineGrainedSurfaceMatch,
+};
 use crate::routing::surfaces::{
     derive_normalized_truth_delta_surface_set, truth_delta_surface_count, TruthDeltaSurface,
 };
@@ -122,11 +126,13 @@ pub(crate) fn validate_route_request(
                         item.surface_label()
                     ),
                 )
-                .with_context(BridgeErrorContext::routing(BridgePatchCoordinate::new(
-                    item.entity_identity(),
-                    item.aspect_label(),
-                    item.surface_label(),
-                ))));
+                .with_context(BridgeErrorContext::routing(
+                    BridgePatchCoordinate::new(
+                        item.entity_identity(),
+                        item.aspect_label(),
+                        item.surface_label(),
+                    ),
+                )));
             }
         }
     }

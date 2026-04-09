@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+use crate::adapter::BridgeHistoricalLineageTopology;
 use crate::error::BridgeContinuityError;
 use crate::mapping::SubscriptionSliceKind;
 use crate::routing::{
     BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
     FineGrainedMatchStatus,
 };
-use crate::adapter::BridgeHistoricalLineageTopology;
 
 use super::{
     BridgeContinuityClass, BridgeContinuityCounters, BridgeContinuityOutcomeClass,
@@ -85,14 +85,14 @@ impl ResolvedLineageContinuitySet {
                 .iter()
                 .map(|key| key.as_ref())
                 .collect::<Vec<_>>();
-            counters = counters.with_lineage_resolution_candidate_count(successor_record_keys.len());
+            counters =
+                counters.with_lineage_resolution_candidate_count(successor_record_keys.len());
 
-            let (outcome_class, successor_slices) =
-                classify_continuity(
-                    entry.prior_slice(),
-                    entry.lineage_authority().topology(),
-                    successor_record_keys.as_slice(),
-                );
+            let (outcome_class, successor_slices) = classify_continuity(
+                entry.prior_slice(),
+                entry.lineage_authority().topology(),
+                successor_record_keys.as_slice(),
+            );
             counters = match outcome_class {
                 BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor => {
                     counters.with_single_successor()
@@ -114,7 +114,10 @@ impl ResolvedLineageContinuitySet {
             };
 
             entries.push(ResolvedLineageContinuity::new(
-                entry.prior_slice().prior_subscription_slice_identity().clone(),
+                entry
+                    .prior_slice()
+                    .prior_subscription_slice_identity()
+                    .clone(),
                 outcome_class,
                 successor_slices,
                 entry.lineage_authority().lineage_digest(),
@@ -267,12 +270,10 @@ fn successor_slice_canonical_basis(slice: &BridgeSubscriptionSlice) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::classify_continuity;
     use crate::continuity::PriorSubscriptionSlice;
     use crate::mapping::SubscriptionSliceKind;
-    use crate::routing::{
-        BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus,
-    };
-    use super::classify_continuity;
+    use crate::routing::{BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus};
 
     #[test]
     fn resolution_rejects_no_authoritative_successor_when_lineage_is_empty() {

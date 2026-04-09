@@ -200,9 +200,7 @@ pub(crate) fn delivery_intent_label(value: StreamDeliveryIntent) -> &'static str
     }
 }
 
-pub(crate) fn diagnostics_policy_class_label(
-    value: StreamDiagnosticsPolicyClass,
-) -> &'static str {
+pub(crate) fn diagnostics_policy_class_label(value: StreamDiagnosticsPolicyClass) -> &'static str {
     match value {
         StreamDiagnosticsPolicyClass::Minimal => "minimal",
         StreamDiagnosticsPolicyClass::Standard => "standard",
@@ -236,7 +234,9 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left.digest().starts_with("change-stream-declaration:sha256:"));
+        assert!(left
+            .digest()
+            .starts_with("change-stream-declaration:sha256:"));
     }
 
     #[test]
@@ -260,7 +260,10 @@ mod tests {
             StreamDiagnosticsPolicyClass::Exhaustive,
         );
 
-        assert_eq!(standard.declaration_identity(), exhaustive.declaration_identity());
+        assert_eq!(
+            standard.declaration_identity(),
+            exhaustive.declaration_identity()
+        );
         assert_eq!(standard.digest(), exhaustive.digest());
         assert_ne!(
             standard.diagnostics_policy_class(),

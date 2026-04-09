@@ -10,11 +10,9 @@ mod topology_hash;
 mod version;
 
 use forge_core::KernelError;
-use forge_signal::facade::SignalError;
-use forge_signal::facade::adapters::{
-    EventSubscriber, SubscriberContext, SubscriberContextError,
-};
+use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberContextError};
 use forge_signal::facade::specialist::EventBus;
+use forge_signal::facade::SignalError;
 
 pub(crate) use euler::EulerSubscriber;
 pub(crate) use invariant::InvariantSubscriber;

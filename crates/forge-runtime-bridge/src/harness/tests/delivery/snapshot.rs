@@ -13,13 +13,13 @@ fn bridge_snapshot_delivery_remains_stable_after_newer_truth_arrives() {
     .declare_observation("route")
     .compile();
     let mutation = MutationBatch::new("publish-newer-truth")
-        .push(BridgeHarnessMutation::PublishCommittedPatch(committed_patch(
-            "commit-b",
-            "patch-b",
+        .push(BridgeHarnessMutation::PublishCommittedPatch(
+            committed_patch("commit-b", "patch-b", "snapshot-b", "name"),
+        ))
+        .push(BridgeHarnessMutation::PublishSnapshot(snapshot(
             "snapshot-b",
-            "name",
-        )))
-        .push(BridgeHarnessMutation::PublishSnapshot(snapshot("snapshot-b", "bob")));
+            "bob",
+        )));
     let request = ExecutionRequest::target("deliver-commit-a", "commit-a".to_string());
     let profile = ExecutionProfile::development("development");
 
@@ -36,11 +36,7 @@ fn bridge_delivery_keeps_preplanned_snapshot_after_newer_truth_arrives_during_de
     source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
     source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let sink = RecordingSignalBridgeSink::default();
-    let runtime = build_runtime(
-        source.clone(),
-        sink.clone(),
-        vec![registration()],
-    );
+    let runtime = build_runtime(source.clone(), sink.clone(), vec![registration()]);
 
     let route = runtime
         .plan_committed_patch(BridgeRouteRequest::for_commit("commit-a"))
@@ -53,7 +49,10 @@ fn bridge_delivery_keeps_preplanned_snapshot_after_newer_truth_arrives_during_de
         .deliver_invalidation(route)
         .expect("bridge should deliver the preplanned route against its original snapshot");
 
-    assert_eq!(result.result_summary().snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        result.result_summary().snapshot_identity().as_str(),
+        "snapshot-a"
+    );
     assert_eq!(result.receipt().snapshot_identity().as_str(), "snapshot-a");
     let delivered = sink
         .last_delivery()
@@ -76,7 +75,10 @@ fn bridge_prepares_signal_evaluation_with_snapshot_context_without_sink_delivery
         .prepare_signal_evaluation(route)
         .expect("bridge should prepare signal evaluation");
 
-    assert_eq!(evaluation.snapshot().snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        evaluation.snapshot().snapshot_identity().as_str(),
+        "snapshot-a"
+    );
     assert!(sink.last_delivery().is_none());
 }
 
@@ -99,7 +101,10 @@ fn bridge_prepared_signal_evaluation_keeps_preplanned_snapshot_after_newer_truth
         .prepare_signal_evaluation(route)
         .expect("bridge should prepare signal evaluation");
 
-    assert_eq!(evaluation.snapshot().snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        evaluation.snapshot().snapshot_identity().as_str(),
+        "snapshot-a"
+    );
 }
 
 #[test]
@@ -140,7 +145,10 @@ fn bridge_snapshot_identity_mismatch_fails_explicitly() {
         .last_failure_record()
         .expect("bridge failure record");
     assert!(failure_record.detail().contains("Snapshot read returned"));
-    assert_eq!(failure_record.counters().snapshot_identity_mismatch_count(), 1);
+    assert_eq!(
+        failure_record.counters().snapshot_identity_mismatch_count(),
+        1
+    );
 }
 
 #[test]
@@ -165,7 +173,10 @@ fn bridge_snapshot_contract_rejects_missing_required_reads() {
         .deliver_invalidation(route)
         .expect_err("bridge should reject incomplete snapshot read results");
 
-    assert_eq!(error.kind(), BridgeDeliveryErrorKind::SnapshotReadContractViolation);
+    assert_eq!(
+        error.kind(),
+        BridgeDeliveryErrorKind::SnapshotReadContractViolation
+    );
     assert!(error.to_string().contains("returned 0 records"));
 }
 
@@ -190,7 +201,10 @@ fn bridge_delivery_fails_when_newer_truth_arrives_without_required_snapshot() {
         .deliver_invalidation(route)
         .expect_err("delivery should still require the original planned snapshot");
 
-    assert_eq!(error.kind(), BridgeDeliveryErrorKind::SnapshotAcquisitionFailure);
+    assert_eq!(
+        error.kind(),
+        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure
+    );
     assert!(error.to_string().contains("snapshot-a"));
 }
 
@@ -255,4 +269,3 @@ fn bridge_sink_rejection_records_failure_diagnostics_with_slice_identity() {
     );
     assert!(failure.invalidation_identity().is_some());
 }
-

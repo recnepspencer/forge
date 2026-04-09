@@ -1,17 +1,20 @@
 use std::sync::Arc;
 
 use crate::adapter::{
-    CommittedPatchSource, ContinuityLineageSource, InvalidationSink, SnapshotReadSource,
-    SnapshotReaderPool, TruthBranchHeadSource,
+    BridgeSourceAdapter, CommittedPatchSource, ContinuityLineageSource, InvalidationSink,
+    SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource,
 };
 use crate::diagnostics::DiagnosticSink;
-use crate::error::BridgeBuildError;
+use crate::error::{BridgeBuildError, BridgeBuildErrorKind};
 use crate::facade::RuntimeBridge;
 use crate::mapping::{
     BridgeAspectRegistration, BridgeMappingRegistration, FrozenAspectMappingRegistry,
     FrozenMappingRegistry,
 };
+use crate::merge::{AdmittedMergeRegistry, MergeHistoryDeclaration};
 use crate::policy::BridgeRuntimePolicy;
+use crate::source::{AdmittedSourceRegistry, SourceDeclaration};
+use crate::structural::{AdmittedStructuralRegistry, StructuralIdentityDeclaration};
 
 #[derive(Clone)]
 pub struct MissingCommittedPatchSource;
@@ -58,18 +61,38 @@ pub struct RuntimeBridgeBuilder<
     truth_branch_head_source: BranchHeadState,
     continuity_lineage_source: Option<Arc<dyn ContinuityLineageSource>>,
     snapshot_reader_pool: Option<Arc<dyn SnapshotReaderPool>>,
+    source_adapter_registrations: Vec<Arc<dyn BridgeSourceAdapter>>,
+    source_declarations: Vec<SourceDeclaration>,
+    structural_declarations: Vec<StructuralIdentityDeclaration>,
+    merge_declarations: Vec<MergeHistoryDeclaration>,
     diagnostic_sink: Option<Arc<dyn DiagnosticSink>>,
     mapping_registrations: MappingState,
     aspect_registrations: Vec<BridgeAspectRegistration>,
 }
 
-impl Default for RuntimeBridgeBuilder<MissingCommittedPatchSource, MissingSnapshotReadSource, MissingSignalSink, MissingTruthBranchHeadSource, MissingMappingRegistrations> {
+impl Default
+    for RuntimeBridgeBuilder<
+        MissingCommittedPatchSource,
+        MissingSnapshotReadSource,
+        MissingSignalSink,
+        MissingTruthBranchHeadSource,
+        MissingMappingRegistrations,
+    >
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RuntimeBridgeBuilder<MissingCommittedPatchSource, MissingSnapshotReadSource, MissingSignalSink, MissingTruthBranchHeadSource, MissingMappingRegistrations> {
+impl
+    RuntimeBridgeBuilder<
+        MissingCommittedPatchSource,
+        MissingSnapshotReadSource,
+        MissingSignalSink,
+        MissingTruthBranchHeadSource,
+        MissingMappingRegistrations,
+    >
+{
     pub fn new() -> Self {
         Self {
             policy: BridgeRuntimePolicy::default(),
@@ -79,6 +102,10 @@ impl RuntimeBridgeBuilder<MissingCommittedPatchSource, MissingSnapshotReadSource
             truth_branch_head_source: MissingTruthBranchHeadSource,
             continuity_lineage_source: None,
             snapshot_reader_pool: None,
+            source_adapter_registrations: Vec::new(),
+            source_declarations: Vec::new(),
+            structural_declarations: Vec::new(),
+            merge_declarations: Vec::new(),
             diagnostic_sink: None,
             mapping_registrations: MissingMappingRegistrations,
             aspect_registrations: Vec::new(),
@@ -87,12 +114,24 @@ impl RuntimeBridgeBuilder<MissingCommittedPatchSource, MissingSnapshotReadSource
 }
 
 impl<SnapshotState, SignalState, BranchHeadState, MappingState>
-    RuntimeBridgeBuilder<MissingCommittedPatchSource, SnapshotState, SignalState, BranchHeadState, MappingState>
+    RuntimeBridgeBuilder<
+        MissingCommittedPatchSource,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        MappingState,
+    >
 {
     pub fn with_committed_patch_source<S>(
         self,
         source: S,
-    ) -> RuntimeBridgeBuilder<PresentCommittedPatchSource, SnapshotState, SignalState, BranchHeadState, MappingState>
+    ) -> RuntimeBridgeBuilder<
+        PresentCommittedPatchSource,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        MappingState,
+    >
     where
         S: CommittedPatchSource,
     {
@@ -104,6 +143,10 @@ impl<SnapshotState, SignalState, BranchHeadState, MappingState>
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
@@ -112,12 +155,24 @@ impl<SnapshotState, SignalState, BranchHeadState, MappingState>
 }
 
 impl<PatchState, SignalState, BranchHeadState, MappingState>
-    RuntimeBridgeBuilder<PatchState, MissingSnapshotReadSource, SignalState, BranchHeadState, MappingState>
+    RuntimeBridgeBuilder<
+        PatchState,
+        MissingSnapshotReadSource,
+        SignalState,
+        BranchHeadState,
+        MappingState,
+    >
 {
     pub fn with_snapshot_read_source<S>(
         self,
         source: S,
-    ) -> RuntimeBridgeBuilder<PatchState, PresentSnapshotReadSource, SignalState, BranchHeadState, MappingState>
+    ) -> RuntimeBridgeBuilder<
+        PatchState,
+        PresentSnapshotReadSource,
+        SignalState,
+        BranchHeadState,
+        MappingState,
+    >
     where
         S: SnapshotReadSource,
     {
@@ -129,6 +184,10 @@ impl<PatchState, SignalState, BranchHeadState, MappingState>
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
@@ -167,6 +226,10 @@ impl<SignalState, MappingState>
             truth_branch_head_source: MissingTruthBranchHeadSource,
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
@@ -175,12 +238,24 @@ impl<SignalState, MappingState>
 }
 
 impl<PatchState, SnapshotState, BranchHeadState, MappingState>
-    RuntimeBridgeBuilder<PatchState, SnapshotState, MissingSignalSink, BranchHeadState, MappingState>
+    RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        MissingSignalSink,
+        BranchHeadState,
+        MappingState,
+    >
 {
     pub fn with_signal_sink<S>(
         self,
         sink: S,
-    ) -> RuntimeBridgeBuilder<PatchState, SnapshotState, PresentSignalSink, BranchHeadState, MappingState>
+    ) -> RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        PresentSignalSink,
+        BranchHeadState,
+        MappingState,
+    >
     where
         S: InvalidationSink,
     {
@@ -192,6 +267,10 @@ impl<PatchState, SnapshotState, BranchHeadState, MappingState>
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
@@ -215,6 +294,15 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
         self
     }
 
+    pub fn with_source_adapter<S>(mut self, source_adapter: S) -> Self
+    where
+        S: BridgeSourceAdapter,
+    {
+        self.source_adapter_registrations
+            .push(Arc::new(source_adapter));
+        self
+    }
+
     pub fn with_continuity_lineage_source<S>(mut self, source: S) -> Self
     where
         S: ContinuityLineageSource,
@@ -226,7 +314,13 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
     pub fn with_truth_branch_head_source<S>(
         self,
         source: S,
-    ) -> RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, PresentTruthBranchHeadSource, MappingState>
+    ) -> RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        SignalState,
+        PresentTruthBranchHeadSource,
+        MappingState,
+    >
     where
         S: TruthBranchHeadSource,
     {
@@ -238,6 +332,10 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
             truth_branch_head_source: PresentTruthBranchHeadSource(Arc::new(source)),
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
@@ -254,15 +352,42 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
         self.aspect_registrations.push(registration);
         self
     }
+
+    pub fn register_source(mut self, declaration: SourceDeclaration) -> Self {
+        self.source_declarations.push(declaration);
+        self
+    }
+
+    pub fn register_structural(mut self, declaration: StructuralIdentityDeclaration) -> Self {
+        self.structural_declarations.push(declaration);
+        self
+    }
+
+    pub fn register_merge(mut self, declaration: MergeHistoryDeclaration) -> Self {
+        self.merge_declarations.push(declaration);
+        self
+    }
 }
 
 impl<PatchState, SnapshotState, SignalState, BranchHeadState>
-    RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, BranchHeadState, MissingMappingRegistrations>
+    RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        MissingMappingRegistrations,
+    >
 {
     pub fn register_mapping(
         self,
         registration: BridgeMappingRegistration,
-    ) -> RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, BranchHeadState, PresentMappingRegistrations> {
+    ) -> RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        PresentMappingRegistrations,
+    > {
         RuntimeBridgeBuilder {
             policy: self.policy,
             committed_patch_source: self.committed_patch_source,
@@ -271,6 +396,10 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState>
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
             snapshot_reader_pool: self.snapshot_reader_pool,
+            source_adapter_registrations: self.source_adapter_registrations,
+            source_declarations: self.source_declarations,
+            structural_declarations: self.structural_declarations,
+            merge_declarations: self.merge_declarations,
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: PresentMappingRegistrations(vec![registration]),
             aspect_registrations: self.aspect_registrations,
@@ -279,7 +408,13 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState>
 }
 
 impl<PatchState, SnapshotState, SignalState, BranchHeadState>
-    RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, BranchHeadState, PresentMappingRegistrations>
+    RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        PresentMappingRegistrations,
+    >
 {
     pub fn register_mapping(mut self, registration: BridgeMappingRegistration) -> Self {
         self.mapping_registrations.0.push(registration);
@@ -287,16 +422,75 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState>
     }
 }
 
-impl RuntimeBridgeBuilder<
-    PresentCommittedPatchSource,
-    PresentSnapshotReadSource,
-    PresentSignalSink,
-    MissingTruthBranchHeadSource,
-    PresentMappingRegistrations,
-> {
+fn finalize_source_configuration(
+    source_declarations: Vec<SourceDeclaration>,
+    mut source_adapter_registrations: Vec<Arc<dyn BridgeSourceAdapter>>,
+) -> Result<(AdmittedSourceRegistry, Option<Arc<dyn BridgeSourceAdapter>>), BridgeBuildError> {
+    if source_adapter_registrations.len() > 1 {
+        return Err(BridgeBuildError::new(
+            BridgeBuildErrorKind::BuilderConfigurationConflict,
+            "Bridge builder registered more than one source adapter for the same runtime.",
+        ));
+    }
+
+    let source_registry = AdmittedSourceRegistry::freeze(source_declarations)?;
+    let source_adapter = source_adapter_registrations.pop();
+
+    if !source_registry.contracts().is_empty() && source_adapter.is_none() {
+        return Err(BridgeBuildError::new(
+            BridgeBuildErrorKind::MissingSourceAdapter,
+            "Bridge builder registered source declarations but no source adapter.",
+        ));
+    }
+
+    if let Some(adapter) = source_adapter.as_ref() {
+        let declared_capabilities = adapter.declared_capabilities();
+        let required_capabilities = source_registry.required_capabilities();
+        if !declared_capabilities.contains_all(&required_capabilities) {
+            return Err(BridgeBuildError::new(
+                BridgeBuildErrorKind::SourceCapabilityMismatch,
+                format!(
+                    "Bridge source adapter capabilities `{}` do not satisfy required source capabilities `{}`.",
+                    declared_capabilities.digest(),
+                    required_capabilities.digest()
+                ),
+            ));
+        }
+    }
+
+    Ok((source_registry, source_adapter))
+}
+
+fn finalize_structural_configuration(
+    structural_declarations: Vec<StructuralIdentityDeclaration>,
+) -> Result<AdmittedStructuralRegistry, BridgeBuildError> {
+    AdmittedStructuralRegistry::freeze(structural_declarations)
+}
+
+fn finalize_merge_configuration(
+    merge_declarations: Vec<MergeHistoryDeclaration>,
+) -> Result<AdmittedMergeRegistry, BridgeBuildError> {
+    AdmittedMergeRegistry::freeze(merge_declarations)
+}
+
+impl
+    RuntimeBridgeBuilder<
+        PresentCommittedPatchSource,
+        PresentSnapshotReadSource,
+        PresentSignalSink,
+        MissingTruthBranchHeadSource,
+        PresentMappingRegistrations,
+    >
+{
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let (source_registry, source_adapter) = finalize_source_configuration(
+            self.source_declarations,
+            self.source_adapter_registrations,
+        )?;
+        let structural_registry = finalize_structural_configuration(self.structural_declarations)?;
+        let merge_registry = finalize_merge_configuration(self.merge_declarations)?;
         Ok(RuntimeBridge::new(
             self.policy,
             self.committed_patch_source.0,
@@ -305,6 +499,10 @@ impl RuntimeBridgeBuilder<
             None,
             self.continuity_lineage_source,
             self.snapshot_reader_pool,
+            source_registry,
+            source_adapter,
+            structural_registry,
+            merge_registry,
             self.diagnostic_sink,
             mapping_registry,
             aspect_registry,
@@ -312,16 +510,24 @@ impl RuntimeBridgeBuilder<
     }
 }
 
-impl RuntimeBridgeBuilder<
-    PresentCommittedPatchSource,
-    PresentSnapshotReadSource,
-    PresentSignalSink,
-    PresentTruthBranchHeadSource,
-    PresentMappingRegistrations,
-> {
+impl
+    RuntimeBridgeBuilder<
+        PresentCommittedPatchSource,
+        PresentSnapshotReadSource,
+        PresentSignalSink,
+        PresentTruthBranchHeadSource,
+        PresentMappingRegistrations,
+    >
+{
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let (source_registry, source_adapter) = finalize_source_configuration(
+            self.source_declarations,
+            self.source_adapter_registrations,
+        )?;
+        let structural_registry = finalize_structural_configuration(self.structural_declarations)?;
+        let merge_registry = finalize_merge_configuration(self.merge_declarations)?;
         Ok(RuntimeBridge::new(
             self.policy,
             self.committed_patch_source.0,
@@ -330,6 +536,10 @@ impl RuntimeBridgeBuilder<
             Some(self.truth_branch_head_source.0),
             self.continuity_lineage_source,
             self.snapshot_reader_pool,
+            source_registry,
+            source_adapter,
+            structural_registry,
+            merge_registry,
             self.diagnostic_sink,
             mapping_registry,
             aspect_registry,

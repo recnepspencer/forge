@@ -203,6 +203,8 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left.canonical_basis().contains("read-packet=snapshot-read-packet:sha256:"));
+        assert!(left
+            .canonical_basis()
+            .contains("read-packet=snapshot-read-packet:sha256:"));
     }
 }

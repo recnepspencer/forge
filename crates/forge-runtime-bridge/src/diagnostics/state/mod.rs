@@ -2,13 +2,18 @@ use std::collections::{BTreeMap, VecDeque};
 use std::sync::Arc;
 
 use crate::routing::BridgeCanonicalBulkPlanRecord;
+use crate::source::{SourceFailureRecord, SourceMaterializationRecord};
 use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 
 use super::continuity::BridgeCanonicalContinuityRecord;
 use super::history::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationFailureRecord,
 };
+use super::merge::BridgeCanonicalMergeRecord;
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
+use super::structural::{
+    BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
+};
 
 mod config;
 mod evict;
@@ -22,17 +27,34 @@ pub(crate) struct BridgeDiagnosticsState {
     route_records: VecDeque<Arc<BridgeRouteRecord>>,
     bulk_records: VecDeque<Arc<BridgeCanonicalBulkPlanRecord>>,
     continuity_records: VecDeque<Arc<BridgeCanonicalContinuityRecord>>,
+    merge_records: VecDeque<Arc<BridgeCanonicalMergeRecord>>,
     historical_records: VecDeque<Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
     historical_failures: VecDeque<Arc<BridgeHistoricalEvaluationFailureRecord>>,
+    source_materialization_records: VecDeque<Arc<SourceMaterializationRecord>>,
+    source_failure_records: VecDeque<Arc<SourceFailureRecord>>,
+    structural_remap_records: VecDeque<Arc<BridgeCanonicalStructuralRemapRecord>>,
+    structural_branch_comparison_records:
+        VecDeque<Arc<BridgeCanonicalStructuralBranchComparisonRecord>>,
     stream_checkpoints: VecDeque<Arc<ConsumerCheckpointToken>>,
     stream_replay_records: VecDeque<Arc<CanonicalStreamReplayRecord>>,
     failure_records: VecDeque<Arc<BridgeFailureRecord>>,
     latest_route_by_route_identity: BTreeMap<String, Arc<BridgeRouteRecord>>,
     latest_bulk_by_workload_identity: BTreeMap<String, Arc<BridgeCanonicalBulkPlanRecord>>,
     latest_continuity_by_route_identity: BTreeMap<String, Arc<BridgeCanonicalContinuityRecord>>,
-    latest_historical_by_record_identity: BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
-    latest_historical_by_decision_log_identity: BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
-    latest_historical_failure_by_declaration_identity: BTreeMap<String, Arc<BridgeHistoricalEvaluationFailureRecord>>,
+    latest_merge_by_record_identity: BTreeMap<String, Arc<BridgeCanonicalMergeRecord>>,
+    latest_historical_by_record_identity:
+        BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
+    latest_historical_by_decision_log_identity:
+        BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
+    latest_historical_failure_by_declaration_identity:
+        BTreeMap<String, Arc<BridgeHistoricalEvaluationFailureRecord>>,
+    latest_source_materialization_by_record_identity:
+        BTreeMap<String, Arc<SourceMaterializationRecord>>,
+    latest_source_failure_by_declaration_identity: BTreeMap<String, Arc<SourceFailureRecord>>,
+    latest_structural_remap_by_record_identity:
+        BTreeMap<String, Arc<BridgeCanonicalStructuralRemapRecord>>,
+    latest_structural_branch_comparison_by_record_identity:
+        BTreeMap<String, Arc<BridgeCanonicalStructuralBranchComparisonRecord>>,
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,
     latest_stream_replay_by_checkpoint_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,

@@ -2,8 +2,11 @@ use super::*;
 
 mod debug;
 mod historical_and_replay;
+mod merge;
 mod routing_and_bulk;
+mod source;
 mod stream;
+mod structural;
 
 #[derive(Clone)]
 pub struct RuntimeBridge {
@@ -16,7 +19,43 @@ pub struct RuntimeBridge {
     pub(crate) signal_sink: Arc<dyn InvalidationSink>,
     pub(crate) truth_branch_head_source: Option<Arc<dyn TruthBranchHeadSource>>,
     pub(crate) continuity_lineage_source: Option<Arc<dyn ContinuityLineageSource>>,
+    pub(crate) source_registry: AdmittedSourceRegistry,
+    pub(crate) source_adapter: Option<Arc<dyn BridgeSourceAdapter>>,
+    pub(crate) structural_registry: AdmittedStructuralRegistry,
+    pub(crate) merge_registry: AdmittedMergeRegistry,
     pub(crate) mapping_registry: FrozenMappingRegistry,
     pub(crate) aspect_registry: FrozenAspectMappingRegistry,
 }
 
+impl std::fmt::Debug for RuntimeBridge {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RuntimeBridge")
+            .field("policy", &self.policy)
+            .field(
+                "has_truth_branch_head_source",
+                &self.truth_branch_head_source.is_some(),
+            )
+            .field(
+                "has_continuity_lineage_source",
+                &self.continuity_lineage_source.is_some(),
+            )
+            .field(
+                "has_snapshot_reader_pool",
+                &self.snapshot_reader_pool.is_some(),
+            )
+            .field("has_source_adapter", &self.source_adapter.is_some())
+            .field(
+                "source_contract_count",
+                &self.source_registry.contracts().len(),
+            )
+            .field(
+                "structural_contract_count",
+                &self.structural_registry.contracts().len(),
+            )
+            .field(
+                "merge_contract_count",
+                &self.merge_registry.contracts().len(),
+            )
+            .finish()
+    }
+}

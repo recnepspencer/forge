@@ -285,6 +285,7 @@ This milestone is complete only when bridge harness scenarios can prove:
 ## Milestone 7: Reactive Source Protocol and Clean Host Surfaces
 
 Engineering spec: [milestone-7.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-7.md)
+Shipped closeout: [milestone-7-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-7-closeout.md)
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 4-6: Multi-Host Source Parity, Source Capability Rejection Boundary, Builder Surface Swap Parity
 
@@ -388,6 +389,8 @@ This milestone is complete only when bridge harness scenarios can prove:
 - the Milestone 9 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 10: Speculative Truth-Branch to Signal-Branch Coordination and Preview Flows
+
+Engineering spec: [milestone-10.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-10.md)
 
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 13-15: Speculative Discard Zero-Residue, Speculative Commit Boundary Clarity, Preview Lifecycle Leak Resistance

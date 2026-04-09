@@ -34,7 +34,10 @@ fn replayed_bulk_plan_matches_original_canonical_artifact() {
         replayed.canonical_planning_identity(),
         planned.canonical_planning_identity()
     );
-    assert_eq!(replayed.packet_set().digest(), planned.packet_set().digest());
+    assert_eq!(
+        replayed.packet_set().digest(),
+        planned.packet_set().digest()
+    );
     assert_eq!(
         replayed.execution_plan().digest(),
         planned.execution_plan().digest()
@@ -53,9 +56,9 @@ fn bulk_replay_rejects_incompatible_canonical_plan_record_version() {
     );
 
     let planned = runtime
-        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
-            BridgeRouteRequest::for_commit("commit-a"),
-        )]))
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+        ]))
         .expect("bulk workload should plan before canonical bulk replay failure test");
     let canonical = runtime
         .canonicalize_bulk_workload_plan(&planned)
@@ -75,8 +78,18 @@ fn bulk_replay_rejects_incompatible_canonical_plan_record_version() {
 #[test]
 fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
     let original_source = InMemoryRelationalBridgeSource::default();
-    original_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    original_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    original_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    original_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     original_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     original_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let original_runtime = build_runtime(
@@ -103,7 +116,12 @@ fn bulk_replay_rejects_drift_after_restart_shaped_truth_change() {
             crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
         ],
     ));
-    restarted_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    restarted_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     restarted_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     restarted_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let restarted_runtime = build_runtime(

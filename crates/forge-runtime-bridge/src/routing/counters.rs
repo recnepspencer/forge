@@ -196,5 +196,4 @@ impl BridgeRoutingCounters {
         self.route_replay_mismatch_count += 1;
         self
     }
-
 }

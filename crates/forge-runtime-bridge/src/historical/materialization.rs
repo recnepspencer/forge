@@ -20,10 +20,13 @@ impl RuntimeBridge {
         &self,
         planned: PlannedTruthViewPacket,
     ) -> Result<MaterializedTruthViewObservation, BridgeDeliveryError> {
-        let snapshot_identity: TruthSnapshotIdentity = match planned.authority_basis().snapshot_identity() {
+        let snapshot_identity: TruthSnapshotIdentity = match planned
+            .authority_basis()
+            .snapshot_identity()
+        {
             Some(snapshot_identity) => snapshot_identity.clone(),
             None => {
-            let rejection = BridgeTruthViewPolicyRejection::new(
+                let rejection = BridgeTruthViewPolicyRejection::new(
                 planned.declaration(),
                 TruthViewPolicyRejectionKind::UnsupportedTruthViewSelector,
                 "planned truth-view packet did not carry a snapshot identity; historical lookup materialization is not wired yet",
@@ -86,7 +89,11 @@ impl RuntimeBridge {
         let authority_basis = observation.authority_basis();
         let materialization_path = observation.materialization_path();
         let decision_log = BridgeHistoricalEvaluationDecisionLog::new(
-            observation.planned().declaration().declaration_identity().clone(),
+            observation
+                .planned()
+                .declaration()
+                .declaration_identity()
+                .clone(),
             observation
                 .planned()
                 .declaration()
@@ -111,14 +118,13 @@ impl RuntimeBridge {
             observation.planned().declaration(),
             materialization_path,
         );
-        let record = BridgeCanonicalHistoricalEvaluationRecord::new(
-            BridgeHistoricalEvaluationRecord::new(
+        let record =
+            BridgeCanonicalHistoricalEvaluationRecord::new(BridgeHistoricalEvaluationRecord::new(
                 observation.planned().declaration().clone(),
                 observation.read_packet().clone(),
                 decision_log,
                 counters,
-            ),
-        );
+            ));
         self.diagnostic_sink
             .record_historical_evaluation(record.clone());
         record

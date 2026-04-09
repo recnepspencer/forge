@@ -62,9 +62,18 @@ pub(super) fn validate_registration_values(
 ) -> Result<(), BridgeBuildError> {
     for registration in registrations {
         validate_non_empty("mapping id", registration.mapping_id().as_str())?;
-        validate_selector("entity selector", registration.truth_scope().entity_selector())?;
-        validate_selector("aspect selector", registration.truth_scope().aspect_selector())?;
-        validate_selector("surface selector", registration.truth_scope().surface_selector())?;
+        validate_selector(
+            "entity selector",
+            registration.truth_scope().entity_selector(),
+        )?;
+        validate_selector(
+            "aspect selector",
+            registration.truth_scope().aspect_selector(),
+        )?;
+        validate_selector(
+            "surface selector",
+            registration.truth_scope().surface_selector(),
+        )?;
         validate_non_empty("signal scope", registration.signal_scope().as_str())?;
     }
 

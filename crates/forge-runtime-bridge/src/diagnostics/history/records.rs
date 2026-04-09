@@ -5,7 +5,8 @@ use sha2::{Digest, Sha256};
 use crate::diagnostics::history::BridgeHistoricalEvaluationCounters;
 use crate::error::{BridgeErrorContext, BridgeReplayError, BridgeReplayErrorKind};
 use crate::identity::{
-    BridgeIdentity, HistoricalEvaluationDecisionLogIdentityTag, HistoricalEvaluationRecordIdentityTag,
+    BridgeIdentity, HistoricalEvaluationDecisionLogIdentityTag,
+    HistoricalEvaluationRecordIdentityTag,
 };
 use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
 use crate::snapshot::{

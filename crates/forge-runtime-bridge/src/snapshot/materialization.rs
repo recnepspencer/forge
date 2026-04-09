@@ -71,8 +71,12 @@ impl MaterializedTruthViewObservation {
         self.planned.read_packet()
     }
 
-    pub fn read_planned_packet(&self) -> Result<ValidatedSnapshotReadPacketResult, BridgeSnapshotReadError> {
-        let read_result = self.snapshot_reader.read_packet(self.planned.read_packet())?;
+    pub fn read_planned_packet(
+        &self,
+    ) -> Result<ValidatedSnapshotReadPacketResult, BridgeSnapshotReadError> {
+        let read_result = self
+            .snapshot_reader
+            .read_packet(self.planned.read_packet())?;
         if read_result.snapshot_identity() != self.snapshot_reader.snapshot_identity() {
             return Err(BridgeSnapshotReadError::new(format!(
                 "Truth-view observation read returned `{}` but materialized snapshot authority was `{}`.",

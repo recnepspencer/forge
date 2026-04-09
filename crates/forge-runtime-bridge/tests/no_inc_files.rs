@@ -13,7 +13,11 @@ fn forge_runtime_bridge_disallows_inc_rs_files() {
         "forge-runtime-bridge should not contain `.inc.rs` files.\nOffenders:\n{}",
         offenders
             .iter()
-            .map(|path| path.strip_prefix(&crate_root).unwrap_or(path).display().to_string())
+            .map(|path| path
+                .strip_prefix(&crate_root)
+                .unwrap_or(path)
+                .display()
+                .to_string())
             .collect::<Vec<_>>()
             .join("\n")
     );

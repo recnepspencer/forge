@@ -17,9 +17,21 @@ impl BridgeDiagnosticsFacade {
         BridgeContinuityExplanation::from_canonical_record(record)
     }
 
+    pub fn explain_merge_record(
+        &self,
+        record: &BridgeCanonicalMergeRecord,
+    ) -> BridgeMergeExplanation {
+        BridgeMergeExplanation::from_canonical_record(record)
+    }
+
     pub fn explain_last_continuity_record(&self) -> Option<BridgeContinuityExplanation> {
         self.last_canonical_continuity_record()
             .map(|record| BridgeContinuityExplanation::from_canonical_record(&record))
+    }
+
+    pub fn explain_last_merge_record(&self) -> Option<BridgeMergeExplanation> {
+        self.last_merge_record()
+            .map(|record| BridgeMergeExplanation::from_canonical_record(&record))
     }
 
     pub fn explain_bulk_record(
@@ -46,6 +58,69 @@ impl BridgeDiagnosticsFacade {
     ) -> Option<BridgeHistoricalEvaluationExplanation> {
         self.last_historical_evaluation_record()
             .map(|record| BridgeHistoricalEvaluationExplanation::from_canonical_record(&record))
+    }
+
+    pub fn explain_source_materialization_record(
+        &self,
+        record: &crate::source::SourceMaterializationRecord,
+    ) -> crate::diagnostics::BridgeSourceMaterializationExplanation {
+        crate::diagnostics::BridgeSourceMaterializationExplanation::from_record(record)
+    }
+
+    pub fn explain_last_source_materialization_record(
+        &self,
+    ) -> Option<crate::diagnostics::BridgeSourceMaterializationExplanation> {
+        self.last_source_materialization_record().map(|record| {
+            crate::diagnostics::BridgeSourceMaterializationExplanation::from_record(&record)
+        })
+    }
+
+    pub fn explain_source_failure_record(
+        &self,
+        record: &crate::source::SourceFailureRecord,
+    ) -> crate::diagnostics::BridgeSourceFailureExplanation {
+        crate::diagnostics::BridgeSourceFailureExplanation::from_record(record)
+    }
+
+    pub fn explain_last_source_failure_record(
+        &self,
+    ) -> Option<crate::diagnostics::BridgeSourceFailureExplanation> {
+        self.last_source_failure_record()
+            .map(|record| crate::diagnostics::BridgeSourceFailureExplanation::from_record(&record))
+    }
+
+    pub fn explain_structural_remap_record(
+        &self,
+        record: &crate::diagnostics::BridgeCanonicalStructuralRemapRecord,
+    ) -> crate::diagnostics::BridgeStructuralRemapExplanation {
+        crate::diagnostics::BridgeStructuralRemapExplanation::from_canonical_record(record)
+    }
+
+    pub fn explain_last_structural_remap_record(
+        &self,
+    ) -> Option<crate::diagnostics::BridgeStructuralRemapExplanation> {
+        self.last_structural_remap_record().map(|record| {
+            crate::diagnostics::BridgeStructuralRemapExplanation::from_canonical_record(&record)
+        })
+    }
+
+    pub fn explain_structural_branch_comparison_record(
+        &self,
+        record: &crate::diagnostics::BridgeCanonicalStructuralBranchComparisonRecord,
+    ) -> crate::diagnostics::BridgeStructuralBranchComparisonExplanation {
+        crate::diagnostics::BridgeStructuralBranchComparisonExplanation::from_canonical_record(
+            record,
+        )
+    }
+
+    pub fn explain_last_structural_branch_comparison_record(
+        &self,
+    ) -> Option<crate::diagnostics::BridgeStructuralBranchComparisonExplanation> {
+        self.last_structural_branch_comparison_record().map(|record| {
+            crate::diagnostics::BridgeStructuralBranchComparisonExplanation::from_canonical_record(
+                &record,
+            )
+        })
     }
 
     pub fn explain_stream_checkpoint(
@@ -83,5 +158,4 @@ impl BridgeDiagnosticsFacade {
             state: Arc::clone(&self.state),
         }
     }
-
 }

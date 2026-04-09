@@ -13,19 +13,14 @@ pub struct InMemoryRelationalBridgeSource {
 
 impl InMemoryRelationalBridgeSource {
     pub fn insert_committed_patch(&self, patch: RawCommittedPatchEnvelope) {
-        self.state
-            .write()
-            .expect("bridge source lock poisoned")
+        let mut state = self.state.write().expect("bridge source lock poisoned");
+        state
             .committed_patches
             .insert(patch.commit_identity().as_str().to_string(), patch.clone());
-        self.state
-            .write()
-            .expect("bridge source lock poisoned")
-            .branch_heads
-            .insert(
-                patch.branch_identity().as_str().to_string(),
-                patch.commit_identity().as_str().to_string(),
-            );
+        state.branch_heads.insert(
+            patch.branch_identity().as_str().to_string(),
+            patch.commit_identity().as_str().to_string(),
+        );
     }
 
     pub fn insert_snapshot(&self, snapshot: SnapshotFixture) {
@@ -67,7 +62,6 @@ impl CommittedPatchSource for InMemoryRelationalBridgeSource {
                 ))
             })
     }
-
 }
 
 impl SnapshotReadSource for InMemoryRelationalBridgeSource {

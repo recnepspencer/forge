@@ -170,13 +170,17 @@ pub struct ValidatedTruthViewSelectorSet {
 
 impl ValidatedTruthViewSelectorSet {
     pub(crate) fn singleton(selector: BridgeTruthViewSelector) -> Self {
-        let canonical_basis =
-            Arc::<str>::from(format!("validated-truth-view-selector-set|selector={}", selector.canonical_basis()));
+        let canonical_basis = Arc::<str>::from(format!(
+            "validated-truth-view-selector-set|selector={}",
+            selector.canonical_basis()
+        ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             selectors: Arc::from(vec![selector]),
             canonical_basis,
-            digest: Arc::from(format!("validated-truth-view-selector-set:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "validated-truth-view-selector-set:sha256:{digest:x}"
+            )),
         }
     }
 

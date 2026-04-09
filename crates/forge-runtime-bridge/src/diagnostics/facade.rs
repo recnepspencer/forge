@@ -13,14 +13,16 @@ use super::history::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationExplanation,
     BridgeHistoricalEvaluationFailureRecord,
 };
-use super::records::{
-    BridgeFailureClass, BridgeFailureRecord, BridgeRouteRecord,
-};
+use super::merge::{BridgeCanonicalMergeRecord, BridgeMergeExplanation};
+use super::records::{BridgeFailureClass, BridgeFailureRecord, BridgeRouteRecord};
 use super::replay::{BridgeCanonicalRouteRecord, BridgeReplayRecord};
-use super::stream::{BridgeStreamCheckpointExplanation, BridgeStreamReplayExplanation};
 use super::sink::DiagnosticSink;
 use super::state::{BridgeDiagnosticsConfig, BridgeDiagnosticsState};
-use super::{BridgeRouteExplanation};
+use super::stream::{BridgeStreamCheckpointExplanation, BridgeStreamReplayExplanation};
+use super::structural::{
+    BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
+};
+use super::BridgeRouteExplanation;
 
 mod explain;
 mod query;
@@ -32,4 +34,3 @@ pub struct BridgeDiagnosticsFacade {
     config: Arc<BridgeDiagnosticsConfig>,
     state: Arc<RwLock<BridgeDiagnosticsState>>,
 }
-

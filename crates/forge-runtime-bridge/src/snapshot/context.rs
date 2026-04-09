@@ -90,8 +90,8 @@ impl<R: TruthSnapshotReader> AdmittedSnapshotContext<R> {
 #[cfg(test)]
 mod tests {
     use crate::snapshot::{
-        BridgeSnapshotContext, BridgeSnapshotReadError, SnapshotReadPacket, SnapshotReadPacketResult,
-        TruthSnapshotIdentity, TruthSnapshotReader,
+        BridgeSnapshotContext, BridgeSnapshotReadError, SnapshotReadPacket,
+        SnapshotReadPacketResult, TruthSnapshotIdentity, TruthSnapshotReader,
     };
 
     struct StaticReader;

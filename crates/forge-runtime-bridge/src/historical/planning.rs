@@ -26,7 +26,10 @@ impl RuntimeBridge {
                     &declaration,
                     historical_failure_class_for_policy_rejection(rejection.kind()),
                     rejection.detail(),
-                    historical_failure_counters_for_policy_rejection(&declaration, rejection.kind()),
+                    historical_failure_counters_for_policy_rejection(
+                        &declaration,
+                        rejection.kind(),
+                    ),
                 );
                 return Err(BridgeDeliveryError::new(
                     BridgeDeliveryErrorKind::HistoricalPolicyRejected,
@@ -38,7 +41,8 @@ impl RuntimeBridge {
                 ));
             }
         };
-        let authority_basis = match self.resolve_truth_view_authority_basis(declaration.selector()) {
+        let authority_basis = match self.resolve_truth_view_authority_basis(declaration.selector())
+        {
             Ok(authority_basis) => authority_basis,
             Err(error) => {
                 self.record_historical_evaluation_failure(

@@ -1,4 +1,6 @@
-use crate::error::{BridgeDeliveryError, BridgeDeliveryErrorKind, BridgeErrorContext, BridgeSnapshotReadCoordinate};
+use crate::error::{
+    BridgeDeliveryError, BridgeDeliveryErrorKind, BridgeErrorContext, BridgeSnapshotReadCoordinate,
+};
 use crate::facade::RuntimeBridge;
 use crate::snapshot::{
     AdmittedSnapshotContext, BridgeSnapshotContext, SnapshotReadPacket, TruthSnapshotReader,
@@ -11,7 +13,10 @@ pub(crate) fn open_planned_snapshot(
     let snapshot_reader = open_snapshot_reader(runtime, snapshot_identity).map_err(|error| {
         BridgeDeliveryError::new(
             BridgeDeliveryErrorKind::SnapshotAcquisitionFailure,
-            format!("Bridge failed to open snapshot `{}`: {error}", snapshot_identity.as_str()),
+            format!(
+                "Bridge failed to open snapshot `{}`: {error}",
+                snapshot_identity.as_str()
+            ),
         )
         .with_context(BridgeErrorContext::snapshot(snapshot_identity.clone()))
     })?;
@@ -55,7 +60,9 @@ pub(super) fn open_snapshot_reader(
         return Ok(Box::new(PooledTruthSnapshotReader::new(pool, reader)));
     }
 
-    runtime.snapshot_read_source.open_snapshot(snapshot_identity)
+    runtime
+        .snapshot_read_source
+        .open_snapshot(snapshot_identity)
 }
 
 struct PooledTruthSnapshotReader {
@@ -89,7 +96,8 @@ impl TruthSnapshotReader for PooledTruthSnapshotReader {
     fn read_packet(
         &self,
         request: &SnapshotReadPacket,
-    ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError> {
+    ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
+    {
         self.reader().read_packet(request)
     }
 }
@@ -107,13 +115,15 @@ pub(super) fn first_snapshot_read_coordinate(
 ) -> BridgeSnapshotReadCoordinate {
     let read = &packet.reads()[0];
     match (read.surface_label(), read.slice_kind()) {
-        (Some(surface_label), Some(slice_kind)) => BridgeSnapshotReadCoordinate::new_subscription_slice(
-            read.request_key(),
-            read.entity_identity(),
-            read.aspect_label(),
-            surface_label,
-            slice_kind.clone(),
-        ),
+        (Some(surface_label), Some(slice_kind)) => {
+            BridgeSnapshotReadCoordinate::new_subscription_slice(
+                read.request_key(),
+                read.entity_identity(),
+                read.aspect_label(),
+                surface_label,
+                slice_kind.clone(),
+            )
+        }
         _ => BridgeSnapshotReadCoordinate::new_coarse(
             read.request_key(),
             read.entity_identity(),

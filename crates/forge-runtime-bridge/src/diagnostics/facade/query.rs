@@ -1,4 +1,5 @@
 use super::*;
+use crate::source::{SourceFailureRecord, SourceMaterializationRecord};
 
 impl BridgeDiagnosticsFacade {
     pub(crate) fn new(policy: BridgeRuntimePolicy) -> Self {
@@ -59,6 +60,13 @@ impl BridgeDiagnosticsFacade {
             .continuity_records()
     }
 
+    pub fn merge_records(&self) -> Vec<BridgeCanonicalMergeRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .merge_records()
+    }
+
     pub fn historical_evaluation_records(&self) -> Vec<BridgeCanonicalHistoricalEvaluationRecord> {
         self.state
             .read()
@@ -71,6 +79,20 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .historical_failures()
+    }
+
+    pub fn source_materialization_records(&self) -> Vec<SourceMaterializationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .source_materialization_records()
+    }
+
+    pub fn source_failure_records(&self) -> Vec<SourceFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .source_failure_records()
     }
 
     pub fn stream_checkpoints(&self) -> Vec<ConsumerCheckpointToken> {
@@ -87,6 +109,22 @@ impl BridgeDiagnosticsFacade {
             .stream_replay_records()
     }
 
+    pub fn structural_remap_records(&self) -> Vec<BridgeCanonicalStructuralRemapRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .structural_remap_records()
+    }
+
+    pub fn structural_branch_comparison_records(
+        &self,
+    ) -> Vec<BridgeCanonicalStructuralBranchComparisonRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .structural_branch_comparison_records()
+    }
+
     pub fn last_failure_record(&self) -> Option<BridgeFailureRecord> {
         self.state
             .read()
@@ -101,6 +139,13 @@ impl BridgeDiagnosticsFacade {
             .last_continuity_record()
     }
 
+    pub fn last_merge_record(&self) -> Option<BridgeCanonicalMergeRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_merge_record()
+    }
+
     pub fn last_bulk_record(&self) -> Option<BridgeCanonicalBulkPlanRecord> {
         self.state
             .read()
@@ -108,18 +153,36 @@ impl BridgeDiagnosticsFacade {
             .last_bulk_record()
     }
 
-    pub fn last_historical_evaluation_record(&self) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
+    pub fn last_historical_evaluation_record(
+        &self,
+    ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
         self.state
             .read()
             .expect("bridge diagnostics lock poisoned")
             .last_historical_record()
     }
 
-    pub fn last_historical_evaluation_failure(&self) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+    pub fn last_historical_evaluation_failure(
+        &self,
+    ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.state
             .read()
             .expect("bridge diagnostics lock poisoned")
             .last_historical_failure()
+    }
+
+    pub fn last_source_materialization_record(&self) -> Option<SourceMaterializationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_source_materialization_record()
+    }
+
+    pub fn last_source_failure_record(&self) -> Option<SourceFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_source_failure_record()
     }
 
     pub fn last_stream_checkpoint(&self) -> Option<ConsumerCheckpointToken> {
@@ -134,6 +197,22 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .last_stream_replay_record()
+    }
+
+    pub fn last_structural_remap_record(&self) -> Option<BridgeCanonicalStructuralRemapRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_structural_remap_record()
+    }
+
+    pub fn last_structural_branch_comparison_record(
+        &self,
+    ) -> Option<BridgeCanonicalStructuralBranchComparisonRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_structural_branch_comparison_record()
     }
 
     pub fn last_route_record(&self) -> Option<BridgeRouteRecord> {
@@ -190,6 +269,16 @@ impl BridgeDiagnosticsFacade {
             .bulk_record_for_workload_identity(workload_identity)
     }
 
+    pub fn merge_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<BridgeCanonicalMergeRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .merge_record_for_identity(record_identity)
+    }
+
     pub fn historical_record_for_record_identity(
         &self,
         record_identity: &str,
@@ -218,6 +307,26 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .historical_failure_for_declaration_identity(declaration_identity)
+    }
+
+    pub fn source_materialization_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<SourceMaterializationRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .source_materialization_record_for_identity(record_identity)
+    }
+
+    pub fn source_failure_for_declaration_identity(
+        &self,
+        declaration_identity: &str,
+    ) -> Option<SourceFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .source_failure_for_declaration_identity(declaration_identity)
     }
 
     pub fn stream_checkpoint_for_identity(
@@ -250,6 +359,26 @@ impl BridgeDiagnosticsFacade {
             .stream_replay_record_for_checkpoint_identity(checkpoint_identity)
     }
 
+    pub fn structural_remap_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<BridgeCanonicalStructuralRemapRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .structural_remap_record_for_identity(record_identity)
+    }
+
+    pub fn structural_branch_comparison_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<BridgeCanonicalStructuralBranchComparisonRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .structural_branch_comparison_record_for_identity(record_identity)
+    }
+
     pub fn replay_records(&self) -> Vec<BridgeReplayRecord> {
         if !self.config.replay_enabled {
             return Vec::new();
@@ -267,5 +396,4 @@ impl BridgeDiagnosticsFacade {
             .map(BridgeCanonicalRouteRecord::from_route_record)
             .collect()
     }
-
 }

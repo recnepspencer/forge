@@ -6,8 +6,8 @@ use crate::routing::result::{
     BridgeBulkResultSummary, BridgeBulkWorkloadResult, BridgeRouteResult, BridgeRouteResultSummary,
 };
 use crate::routing::{
-    BridgeBulkWorkloadPlan, BridgeExecutionCounts, BridgeParallelAdmissionClass, BridgePlannedRoute,
-    BridgeRouteSourceSummary,
+    BridgeBulkWorkloadPlan, BridgeExecutionCounts, BridgeParallelAdmissionClass,
+    BridgePlannedRoute, BridgeRouteSourceSummary,
 };
 use crate::snapshot::validate_snapshot_read_result_contract;
 
@@ -93,23 +93,24 @@ pub(crate) fn deliver_prepared_route(
     let lowering_plan = prepared.validated_lowering_plan().plan();
     let mut counters = *prepared.counters();
     let read_packet = prepared.read_packet();
-    let snapshot_reader = match super::snapshot::open_snapshot_reader(runtime, lowering_plan.source_snapshot()) {
-        Ok(snapshot_reader) => snapshot_reader,
-        Err(error) => {
-            let failure = BridgeDeliveryError::new(
-                BridgeDeliveryErrorKind::SnapshotAcquisitionFailure,
-                format!(
-                    "Bridge failed to open snapshot `{}`: {error}",
-                    lowering_plan.source_snapshot().as_str()
-                ),
-            )
-            .with_context(delivery_context(
-                route_identity.clone(),
-                lowering_plan.source_snapshot().clone(),
-            ));
-            return Err(reject_delivery(runtime, failure_base.clone(), failure));
-        }
-    };
+    let snapshot_reader =
+        match super::snapshot::open_snapshot_reader(runtime, lowering_plan.source_snapshot()) {
+            Ok(snapshot_reader) => snapshot_reader,
+            Err(error) => {
+                let failure = BridgeDeliveryError::new(
+                    BridgeDeliveryErrorKind::SnapshotAcquisitionFailure,
+                    format!(
+                        "Bridge failed to open snapshot `{}`: {error}",
+                        lowering_plan.source_snapshot().as_str()
+                    ),
+                )
+                .with_context(delivery_context(
+                    route_identity.clone(),
+                    lowering_plan.source_snapshot().clone(),
+                ));
+                return Err(reject_delivery(runtime, failure_base.clone(), failure));
+            }
+        };
     let snapshot = match crate::snapshot::AdmittedSnapshotContext::admit_for(
         crate::snapshot::BridgeSnapshotContext::bind(snapshot_reader),
         lowering_plan.source_snapshot(),

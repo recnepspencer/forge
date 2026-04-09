@@ -3,7 +3,9 @@ use crate::facade::RuntimeBridge;
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
 use crate::routing::context::BridgeMappingContext;
 use crate::routing::counters::BridgeRoutingCounters;
-use crate::routing::eligibility::{validate_route_request, EligibleRouteEntry, EligibleRouteRequest};
+use crate::routing::eligibility::{
+    validate_route_request, EligibleRouteEntry, EligibleRouteRequest,
+};
 use crate::routing::scope::RouteScope;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

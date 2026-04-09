@@ -21,7 +21,10 @@ pub struct BridgeParallelLegalityDecision {
 }
 
 impl BridgeParallelLegalityDecision {
-    pub(crate) fn new(class: BridgeParallelLegalityClass, reason: BridgeParallelLegalityReason) -> Self {
+    pub(crate) fn new(
+        class: BridgeParallelLegalityClass,
+        reason: BridgeParallelLegalityReason,
+    ) -> Self {
         let basis = format!(
             "bridge-parallel-legality-decision|class={}|reason={}",
             super::super::planner::parallel_legality_class_label(class),
@@ -69,7 +72,10 @@ pub struct BridgeParallelProfitabilityDecision {
 }
 
 impl BridgeParallelProfitabilityDecision {
-    pub(crate) fn new(class: BridgeParallelProfitabilityClass, reason: BridgeParallelProfitabilityReason) -> Self {
+    pub(crate) fn new(
+        class: BridgeParallelProfitabilityClass,
+        reason: BridgeParallelProfitabilityReason,
+    ) -> Self {
         let basis = format!(
             "bridge-parallel-profitability-decision|class={}|reason={}",
             super::super::planner::parallel_profitability_class_label(class),
@@ -230,7 +236,10 @@ pub struct BridgeParallelAdmission {
 }
 
 impl BridgeParallelAdmission {
-    pub(crate) fn new(class: BridgeParallelAdmissionClass, reason: BridgeParallelAdmissionReason) -> Self {
+    pub(crate) fn new(
+        class: BridgeParallelAdmissionClass,
+        reason: BridgeParallelAdmissionReason,
+    ) -> Self {
         let basis = format!(
             "bridge-parallel-admission|class={}|reason={}",
             super::super::planner::parallel_admission_class_label(class),

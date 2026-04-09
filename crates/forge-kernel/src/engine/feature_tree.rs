@@ -18,19 +18,19 @@
 //! - `FeatureTree<R>` is generic over the feature registry `R`
 
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::fmt;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::adapters::TraceSummary;
+use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 use forge_signal::facade::{
     Aspect, AspectMask, AspectVersion, DependencyEdge, EvaluationContext, NodeId, SignalError,
     SignalGraph, SignalRuntime, TransactionOutcome,
 };
-use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 
 use super::contracts::feature_dependency::FeatureAspect;
 use super::contracts::feature_registry::FeatureRegistry;
@@ -342,11 +342,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         txn.mark_dirty(node_id, GEOMETRY_ASPECT)
             .map_err(Self::signal_to_kernel)?;
 
-        match txn
-            .commit()
-            .map_err(Self::signal_to_kernel)?
-            .outcome
-        {
+        match txn.commit().map_err(Self::signal_to_kernel)?.outcome {
             TransactionOutcome::Committed => {}
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 return Err(KernelError::InternalError {
@@ -377,11 +373,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         txn.mark_dirty(node_id, Self::signal_aspect(aspect))
             .map_err(Self::signal_to_kernel)?;
 
-        match txn
-            .commit()
-            .map_err(Self::signal_to_kernel)?
-            .outcome
-        {
+        match txn.commit().map_err(Self::signal_to_kernel)?.outcome {
             TransactionOutcome::Committed => Ok(()),
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 Err(KernelError::InternalError {
@@ -461,9 +453,9 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                         ctx.capture_dependency(dep_id, GEOMETRY_ASPECT);
                     }
                     let envelope = {
-                        let pending = pending_envelopes
-                            .lock()
-                            .map_err(|_| SignalError::internal("pending envelopes lock poisoned"))?;
+                        let pending = pending_envelopes.lock().map_err(|_| {
+                            SignalError::internal("pending envelopes lock poisoned")
+                        })?;
                         pending
                             .get(&dep_id)
                             .or_else(|| committed_envelopes.get(&dep_id))
@@ -482,7 +474,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 let envelope = feature
                     .execute_via_pipeline(input_map, session_config)
                     .map_err(Self::kernel_to_signal)?;
-    
+
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.
                 let hash = forge_topo::transactions::compute_arena_topology_hash(
@@ -501,18 +493,21 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     .lock()
                     .map_err(|_| SignalError::internal("pending traces lock poisoned"))?
                     .insert(id, summary);
-    
+
                 let prior_version = graph_ref.get_entry(id)?.get_aspect_version();
-                let next_version =
-                    Self::version_for_output(committed_envelopes.get(&id), &envelope, prior_version);
-    
+                let next_version = Self::version_for_output(
+                    committed_envelopes.get(&id),
+                    &envelope,
+                    prior_version,
+                );
+
                 pending_envelopes
                     .lock()
                     .map_err(|_| SignalError::internal("pending envelopes lock poisoned"))?
                     .insert(id, envelope);
-    
+
                 Ok(next_version)
-        };
+            };
 
         let mut runtime_ctx = ();
         let mut txn = self.runtime.begin(&mut runtime_ctx);
@@ -521,11 +516,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             return Err(Self::signal_to_kernel(err));
         }
 
-        match txn
-            .commit()
-            .map_err(Self::signal_to_kernel)?
-            .outcome
-        {
+        match txn.commit().map_err(Self::signal_to_kernel)?.outcome {
             TransactionOutcome::Committed => {}
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 return Err(KernelError::InternalError {
@@ -535,22 +526,24 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             }
         }
 
-        let pending_envelopes = pending_envelopes
-            .into_inner()
-            .map_err(|_| KernelError::InternalError {
-                message: "pending envelopes lock poisoned".to_string(),
-                context: None,
-            })?;
+        let pending_envelopes =
+            pending_envelopes
+                .into_inner()
+                .map_err(|_| KernelError::InternalError {
+                    message: "pending envelopes lock poisoned".to_string(),
+                    context: None,
+                })?;
         for (id, envelope) in pending_envelopes {
             self.envelopes.insert(id, envelope);
         }
 
-        let pending_traces = pending_traces.into_inner().map_err(|_| {
-            KernelError::InternalError {
-                message: "pending traces lock poisoned".to_string(),
-                context: None,
-            }
-        })?;
+        let pending_traces =
+            pending_traces
+                .into_inner()
+                .map_err(|_| KernelError::InternalError {
+                    message: "pending traces lock poisoned".to_string(),
+                    context: None,
+                })?;
         let mut graph = self.runtime.graph_mut();
         for (id, summary) in pending_traces {
             let _ = graph.set_trace_summary(id, Some(summary));

@@ -45,12 +45,12 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -69,7 +69,10 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
         .expect("historical lineage packet should plan");
 
     assert_eq!(requests.requests().len(), 1);
-    assert_eq!(requests.authority_basis().branch_identity().as_str(), "main");
+    assert_eq!(
+        requests.authority_basis().branch_identity().as_str(),
+        "main"
+    );
     assert_eq!(packet.entries().len(), 1);
     assert_eq!(
         packet.entries()[0]
@@ -105,12 +108,12 @@ fn bridge_continuity_planning_rejects_branch_mismatch_against_route_truth() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("analysis"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -148,12 +151,12 @@ fn bridge_historical_lineage_packet_rejects_mismatched_returned_authority_basis(
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -194,12 +197,12 @@ fn bridge_historical_lineage_packet_preserves_typed_unsupported_class_failure() 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -242,12 +245,12 @@ fn bridge_continuity_planning_deduplicates_prior_slices_before_lineage_resolutio
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime

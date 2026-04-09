@@ -126,6 +126,8 @@ impl RuntimeBridge {
             return Err(error);
         }
 
-        Ok(BridgeHistoricalEvaluationReplaySummary::from_record(&record))
+        Ok(BridgeHistoricalEvaluationReplaySummary::from_record(
+            &record,
+        ))
     }
 }

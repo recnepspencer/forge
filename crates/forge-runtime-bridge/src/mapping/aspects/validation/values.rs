@@ -8,7 +8,10 @@ pub(crate) fn validate_registration_values(
     registrations: &[BridgeAspectRegistration],
 ) -> Result<(), BridgeBuildError> {
     for registration in registrations {
-        validate_non_empty("aspect registration id", registration.registration_id().as_str())?;
+        validate_non_empty(
+            "aspect registration id",
+            registration.registration_id().as_str(),
+        )?;
         validate_selector(
             "aspect registration entity selector",
             registration.truth_scope().entity_selector(),

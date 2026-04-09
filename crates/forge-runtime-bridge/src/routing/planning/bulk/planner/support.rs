@@ -57,7 +57,10 @@ pub(super) fn admission_profile_digest_basis(runtime: &RuntimeBridge) -> String 
 }
 
 fn mapping_registry_digest(registry: &FrozenMappingRegistry) -> Arc<str> {
-    let mut basis = format!("mapping-registry|registration-count={}", registry.registrations().len());
+    let mut basis = format!(
+        "mapping-registry|registration-count={}",
+        registry.registrations().len()
+    );
     for registration in registry.registrations() {
         basis.push_str("|registration=");
         basis.push_str(registration.mapping_id().as_str());
@@ -147,7 +150,9 @@ fn packet_entry_count(packet_set: &PlannedBridgePacketSet) -> usize {
             packet_set
                 .routing_packets()
                 .iter()
-                .filter(|route| route.subscription_slice_identity() == packet.reduced_target_scope())
+                .filter(|route| {
+                    route.subscription_slice_identity() == packet.reduced_target_scope()
+                })
                 .count()
         })
         .sum::<usize>();

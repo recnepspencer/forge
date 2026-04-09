@@ -13,7 +13,8 @@ pub(super) fn plan_packet_set(
                 Arc::<str>::from(route.source_commit().as_str().to_owned()),
                 Arc::<str>::from(route.source_snapshot().as_str().to_owned()),
                 Arc::<str>::from(
-                    route.lowering_summary()
+                    route
+                        .lowering_summary()
                         .subscription_slice_identity()
                         .as_str()
                         .to_owned(),
@@ -23,10 +24,8 @@ pub(super) fn plan_packet_set(
             )
         })
         .collect::<Vec<_>>();
-    let mut truth_view_groups = std::collections::BTreeMap::<
-        (Arc<str>, Arc<str>, Arc<str>),
-        (usize, usize),
-    >::new();
+    let mut truth_view_groups =
+        std::collections::BTreeMap::<(Arc<str>, Arc<str>, Arc<str>), (usize, usize)>::new();
     for route in planned_routes {
         let key = (
             Arc::<str>::from(route.source_branch().as_str().to_owned()),
@@ -43,7 +42,10 @@ pub(super) fn plan_packet_set(
         .map(
             |(
                 packet_index,
-                ((source_branch, source_commit, source_snapshot), (planned_route_count, snapshot_read_count)),
+                (
+                    (source_branch, source_commit, source_snapshot),
+                    (planned_route_count, snapshot_read_count),
+                ),
             )| {
                 TruthViewMaterializationPacket::new(
                     workload_identity.clone(),
@@ -65,7 +67,13 @@ pub(super) fn plan_packet_set(
             Some((
                 Arc::<str>::from(route.route_identity().as_str().to_owned()),
                 Arc::<str>::from(lineage_context.authority_basis().digest().to_owned()),
-                Arc::<str>::from(lineage_context.authority_basis().branch_identity().as_str().to_owned()),
+                Arc::<str>::from(
+                    lineage_context
+                        .authority_basis()
+                        .branch_identity()
+                        .as_str()
+                        .to_owned(),
+                ),
                 Arc::<str>::from(
                     lineage_context
                         .authority_basis()
@@ -80,7 +88,13 @@ pub(super) fn plan_packet_set(
         .map(
             |(
                 packet_index,
-                (route_identity, continuity_authority_digest, branch_identity, snapshot_identity, prior_slice_count),
+                (
+                    route_identity,
+                    continuity_authority_digest,
+                    branch_identity,
+                    snapshot_identity,
+                    prior_slice_count,
+                ),
             )| {
                 ContinuityRemapPacket::new(
                     workload_identity.clone(),
@@ -112,15 +126,17 @@ pub(super) fn plan_packet_set(
                 .collect::<Vec<_>>()
         })
         .enumerate()
-        .map(|(packet_index, (route_identity, fallback_class, bounded_scope_identity))| {
-            FallbackAggregationPacket::new(
-                workload_identity.clone(),
-                route_identity,
-                fallback_class,
-                bounded_scope_identity,
-                packet_index,
-            )
-        })
+        .map(
+            |(packet_index, (route_identity, fallback_class, bounded_scope_identity))| {
+                FallbackAggregationPacket::new(
+                    workload_identity.clone(),
+                    route_identity,
+                    fallback_class,
+                    bounded_scope_identity,
+                    packet_index,
+                )
+            },
+        )
         .collect::<Vec<_>>();
 
     let mut reduction_groups = Vec::<(Arc<str>, Vec<&TruthDeltaRoutingPacket>)>::new();
@@ -174,10 +190,8 @@ pub(super) fn reduce_packet_set(
     packet_set: &PlannedBridgePacketSet,
     counters: BridgeBulkPlanningCounters,
 ) -> ReducedBridgeWorkloadArtifact {
-    let mut continuity_groups = std::collections::BTreeMap::<
-        (Arc<str>, Arc<str>, Arc<str>),
-        (usize, usize),
-    >::new();
+    let mut continuity_groups =
+        std::collections::BTreeMap::<(Arc<str>, Arc<str>, Arc<str>), (usize, usize)>::new();
     for packet in packet_set.continuity_packets() {
         let key = (
             Arc::<str>::from(packet.continuity_authority_digest().to_owned()),
@@ -240,7 +254,8 @@ pub(super) fn reduce_packet_set(
             )
         })
         .collect::<Vec<_>>();
-    let mut fallback_groups = std::collections::BTreeMap::<(Arc<str>, Arc<str>), Vec<Arc<str>>>::new();
+    let mut fallback_groups =
+        std::collections::BTreeMap::<(Arc<str>, Arc<str>), Vec<Arc<str>>>::new();
     for packet in packet_set.fallback_packets() {
         fallback_groups
             .entry((
@@ -248,28 +263,32 @@ pub(super) fn reduce_packet_set(
                 Arc::<str>::from(packet.bounded_scope_identity().to_owned()),
             ))
             .or_default()
-            .push(Arc::<str>::from(packet.originating_route_identity().to_owned()));
+            .push(Arc::<str>::from(
+                packet.originating_route_identity().to_owned(),
+            ));
     }
     let reduced_fallbacks = fallback_groups
         .into_iter()
-        .map(|((fallback_class, bounded_scope_identity), mut reduced_route_identities)| {
-            reduced_route_identities.sort();
-            let fallback_identity = ReducedFallbackIdentity::new(digest_string(
-                "reduced-fallback",
-                &format!(
-                    "reduced-fallback|workload={}|fallback-class={}|bounded-scope={}",
-                    workload_identity.as_str(),
+        .map(
+            |((fallback_class, bounded_scope_identity), mut reduced_route_identities)| {
+                reduced_route_identities.sort();
+                let fallback_identity = ReducedFallbackIdentity::new(digest_string(
+                    "reduced-fallback",
+                    &format!(
+                        "reduced-fallback|workload={}|fallback-class={}|bounded-scope={}",
+                        workload_identity.as_str(),
+                        fallback_class,
+                        bounded_scope_identity,
+                    ),
+                ));
+                ReducedFallbackAggregation::new(
+                    fallback_identity,
                     fallback_class,
                     bounded_scope_identity,
-                ),
-            ));
-            ReducedFallbackAggregation::new(
-                fallback_identity,
-                fallback_class,
-                bounded_scope_identity,
-                reduced_route_identities,
-            )
-        })
+                    reduced_route_identities,
+                )
+            },
+        )
         .collect::<Vec<_>>();
     let reduced_publications = packet_set
         .reduction_packets()

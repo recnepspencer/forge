@@ -9,12 +9,14 @@ use crate::facade::{
     TruthDeltaSurfaceKind, TruthSnapshotIdentity, BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
 };
 
-use crate::harness::adapter::BridgeHarnessAdapter;
-use crate::harness::fixtures::{BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, committed_patch_items,
     field_aspect_registration, field_aspect_registration_with_kind, field_slice_snapshot,
     registration, snapshot,
+};
+use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::fixtures::{
+    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -51,7 +53,6 @@ impl ContinuityLineageSource for ReplayDriftedSuccessorLineageSource {
     }
 }
 
-
-mod route;
-mod continuity;
 mod bulk;
+mod continuity;
+mod route;

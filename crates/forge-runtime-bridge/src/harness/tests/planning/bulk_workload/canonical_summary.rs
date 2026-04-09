@@ -18,9 +18,18 @@ fn bridge_bulk_canonical_workload_request_carries_canonical_member_sets() {
         ]))
         .expect("bulk workload should plan");
 
-    assert_eq!(planned.canonical_request().workload_identity(), planned.workload_identity());
+    assert_eq!(
+        planned.canonical_request().workload_identity(),
+        planned.workload_identity()
+    );
     assert_eq!(planned.canonical_request().route_members().len(), 2);
-    assert_eq!(planned.canonical_request().subscription_slice_members().len(), 2);
+    assert_eq!(
+        planned
+            .canonical_request()
+            .subscription_slice_members()
+            .len(),
+        2
+    );
     assert_eq!(planned.canonical_request().truth_view_members().len(), 2);
     assert_eq!(planned.canonical_request().commit_members().len(), 2);
     assert_eq!(planned.canonical_request().snapshot_members().len(), 2);
@@ -47,7 +56,10 @@ fn bridge_bulk_normalized_summary_derives_shared_workload_facts_once() {
         ]))
         .expect("bulk workload should plan");
 
-    assert_eq!(planned.normalized_summary().workload_identity(), planned.workload_identity());
+    assert_eq!(
+        planned.normalized_summary().workload_identity(),
+        planned.workload_identity()
+    );
     assert_eq!(planned.normalized_summary().route_count(), 2);
     assert_eq!(planned.normalized_summary().subscription_slice_count(), 2);
     assert_eq!(planned.normalized_summary().snapshot_read_count(), 2);
@@ -69,9 +81,9 @@ fn bridge_bulk_execution_plan_falls_back_to_serial_for_single_route_workload() {
     );
 
     let planned = runtime
-        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
-            BridgeRouteRequest::for_commit("commit-a"),
-        )]))
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+        ]))
         .expect("single-route bulk workload should plan");
 
     assert_eq!(
@@ -112,27 +124,40 @@ fn bridge_bulk_execution_plan_falls_back_to_serial_for_single_route_workload() {
         0
     );
     assert_eq!(
-        planned.execution_plan().reduced_artifact().reduction_input_count(),
+        planned
+            .execution_plan()
+            .reduced_artifact()
+            .reduction_input_count(),
         2
     );
     assert_eq!(
-        planned.execution_plan().reduced_artifact().reduction_output_count(),
-        2
-    );
-    assert!(
         planned
             .execution_plan()
-            .legality_proof()
-            .disjoint_packet_regions()
-            .regions()
-            .is_empty()
+            .reduced_artifact()
+            .reduction_output_count(),
+        2
     );
+    assert!(planned
+        .execution_plan()
+        .legality_proof()
+        .disjoint_packet_regions()
+        .regions()
+        .is_empty());
     assert_eq!(planned.packet_set().routing_packets().len(), 1);
     assert_eq!(planned.packet_set().truth_view_packets().len(), 1);
     assert_eq!(planned.packet_set().reduction_packets().len(), 1);
-    assert_eq!(planned.execution_plan().counters().bulk_serial_required_count(), 1);
     assert_eq!(
-        planned.execution_plan().counters().bulk_parallel_profitable_count(),
+        planned
+            .execution_plan()
+            .counters()
+            .bulk_serial_required_count(),
+        1
+    );
+    assert_eq!(
+        planned
+            .execution_plan()
+            .counters()
+            .bulk_parallel_profitable_count(),
         0
     );
     assert!(planned.execution_plan().planning_failures().is_empty());

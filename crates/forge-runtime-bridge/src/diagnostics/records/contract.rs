@@ -1,5 +1,5 @@
-use crate::routing::BridgeRouteContractProof;
 use crate::routing::context::BridgeMappingContext;
+use crate::routing::BridgeRouteContractProof;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeContractDiagnosticsRecord {

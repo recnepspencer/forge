@@ -17,8 +17,8 @@ use forge_core::KernelError;
 use forge_core::PolicyKind;
 use forge_geom::facade::LocalCoordinateSpace;
 use forge_schema::{Command, EntityRef};
-use forge_signal::facade::{EvaluationCondition, NodeId};
 use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
+use forge_signal::facade::{EvaluationCondition, NodeId};
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
 
@@ -1054,7 +1054,10 @@ fn feature_tree_replace_rewires_aspect_dependencies_without_duplicate_subscriber
         .dependencies_of(consumer)
         .expect("consumer dependencies should exist");
     assert_eq!(consumer_deps.len(), 1);
-    assert_eq!(consumer_deps[0].aspect(), forge_signal::facade::Aspect::new(0));
+    assert_eq!(
+        consumer_deps[0].aspect(),
+        forge_signal::facade::Aspect::new(0)
+    );
 }
 
 // ── Tier 1: Feature Pipeline ─────────────────────────────────────────────

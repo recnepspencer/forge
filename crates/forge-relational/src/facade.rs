@@ -63,10 +63,9 @@ pub mod bridge {
         BridgeCommittedPatchItem, BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
         BridgeLineageSourceError, BridgeLineageSourceErrorKind, CommittedPatchSource,
         ContinuityLineageSource, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
-        RelationalCommittedPatchRequest, SnapshotReadPacket,
-        SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchHeadSource,
-        TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthSnapshotIdentity,
-        TruthSnapshotReader,
+        RelationalCommittedPatchRequest, SnapshotReadPacket, SnapshotReadPacketResult,
+        SnapshotReadRecord, SnapshotReadSource, TruthBranchHeadSource, TruthBranchIdentity,
+        TruthCommitIdentity, TruthPatchIdentity, TruthSnapshotIdentity, TruthSnapshotReader,
     };
 
     use crate::history::data::CommitId;
@@ -99,10 +98,7 @@ pub mod bridge {
 
     #[cfg(test)]
     impl PublicationBridgeSnapshot {
-        pub fn new(
-            identity: TruthSnapshotIdentity,
-            records: Vec<SnapshotReadRecord>,
-        ) -> Self {
+        pub fn new(identity: TruthSnapshotIdentity, records: Vec<SnapshotReadRecord>) -> Self {
             Self {
                 read_result_identity: identity.clone(),
                 identity,
@@ -179,7 +175,6 @@ pub mod bridge {
                     ))
                 })
         }
-
     }
 
     impl CommittedPatchSource for RuntimeBridgeRelationalSource {
@@ -266,12 +261,16 @@ pub mod bridge {
             branch_identity: &TruthBranchIdentity,
         ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
             let branch_id = crate::history::data::BranchId(branch_identity.as_str().to_string());
-            let head = self.runtime.history().branch_head(&branch_id).ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "relational runtime has no branch head for `{}`",
-                    branch_identity.as_str()
-                ))
-            })?;
+            let head = self
+                .runtime
+                .history()
+                .branch_head(&branch_id)
+                .ok_or_else(|| {
+                    RelationalBridgeSourceError::new(format!(
+                        "relational runtime has no branch head for `{}`",
+                        branch_identity.as_str()
+                    ))
+                })?;
             let envelope = self.runtime.commit_envelope(head.commit_id).ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "relational runtime has no authoritative commit envelope for branch head `{}` on `{}`",
@@ -289,8 +288,13 @@ pub mod bridge {
             &self,
             request: BridgeHistoricalLineageRequest,
         ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
-            let branch_id =
-                crate::history::data::BranchId(request.authority_basis().branch_identity().as_str().to_string());
+            let branch_id = crate::history::data::BranchId(
+                request
+                    .authority_basis()
+                    .branch_identity()
+                    .as_str()
+                    .to_string(),
+            );
             let record = parse_bridge_record_identity(request.prior_slice().entity_identity())
                 .map_err(|error| {
                     BridgeLineageSourceError::new(
@@ -340,7 +344,10 @@ pub mod bridge {
                     error.to_string(),
                 )
             })?;
-            let projection = self.runtime.read_truth().project_version(snapshot_version_id);
+            let projection = self
+                .runtime
+                .read_truth()
+                .project_version(snapshot_version_id);
             let mut canonical_resolved_record_keys = resolution
                 .resolved
                 .iter()
@@ -401,9 +408,12 @@ pub mod bridge {
             let projection = self.runtime.read_truth().project_version(self.version_id);
             let mut records = Vec::with_capacity(request.reads().len());
             for read in request.reads() {
-                let record_ref = parse_bridge_record_identity(read.entity_identity()).map_err(|error| {
-                    forge_runtime_bridge::facade::BridgeSnapshotReadError::new(error.to_string())
-                })?;
+                let record_ref =
+                    parse_bridge_record_identity(read.entity_identity()).map_err(|error| {
+                        forge_runtime_bridge::facade::BridgeSnapshotReadError::new(
+                            error.to_string(),
+                        )
+                    })?;
                 let RecordRef::Entity(entity_id) = record_ref else {
                     return Err(forge_runtime_bridge::facade::BridgeSnapshotReadError::new(
                         "relational bridge snapshot reader currently supports entity record identities only",
@@ -465,12 +475,16 @@ pub mod bridge {
     }
 
     pub fn publication_bundle_to_bridge_envelope(
-        bundle: &crate::publication::bundle::PublicationBundle<crate::logic::runtime::RelationalReplayRecord>,
+        bundle: &crate::publication::bundle::PublicationBundle<
+            crate::logic::runtime::RelationalReplayRecord,
+        >,
     ) -> RawCommittedPatchEnvelope {
         publication_patch_to_bridge_envelope(
             bundle.commit.commit_id,
             bundle.commit.branch_id.0.clone(),
-            bridge_snapshot_identity_for_handle(&bundle.snapshot).as_str().to_string(),
+            bridge_snapshot_identity_for_handle(&bundle.snapshot)
+                .as_str()
+                .to_string(),
             &bundle.patch,
         )
     }
@@ -546,7 +560,9 @@ pub mod bridge {
         }
     }
 
-    fn parse_bridge_record_identity(identity: &str) -> Result<RecordRef, RelationalBridgeSourceError> {
+    fn parse_bridge_record_identity(
+        identity: &str,
+    ) -> Result<RecordRef, RelationalBridgeSourceError> {
         let mut parts = identity.split(':');
         let kind = parts
             .next()
@@ -576,7 +592,9 @@ pub mod bridge {
 
         Ok(match kind {
             "entity" => RecordRef::Entity(EntityId::new(partition_id, local_slot, generation)),
-            "relation" => RecordRef::Relation(RelationId::new(partition_id, local_slot, generation)),
+            "relation" => {
+                RecordRef::Relation(RelationId::new(partition_id, local_slot, generation))
+            }
             _ => {
                 return Err(RelationalBridgeSourceError::new(format!(
                     "unsupported bridge record kind `{kind}`"
@@ -616,9 +634,9 @@ pub mod bridge {
                 .parse::<u64>()
                 .map_err(|_| RelationalBridgeSourceError::new("invalid relational snapshot id"))?,
         );
-        let version_segment = parts
-            .next()
-            .ok_or_else(|| RelationalBridgeSourceError::new("missing relational version segment"))?;
+        let version_segment = parts.next().ok_or_else(|| {
+            RelationalBridgeSourceError::new("missing relational version segment")
+        })?;
         if version_segment != RELATIONAL_BRIDGE_SNAPSHOT_VERSION_SEGMENT {
             return Err(RelationalBridgeSourceError::new(format!(
                 "unsupported relational bridge snapshot version segment `{version_segment}`"
@@ -772,16 +790,18 @@ pub mod bridge {
         use super::*;
         use crate::facade::history::CommitId;
         use crate::facade::identity::{EntityId, PartitionId};
-        use crate::facade::transactions::{
-            EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-            WorkerIntentBatch,
-        };
         use crate::facade::publication::{
             AspectKey, CanonicalAspectSet, PatchOrdering, PatchPublicationMode, PatchRecord,
             PatchRecordKind, PatchStreamPosition, RecordStructuralChange, RelationalPatchRecord,
         };
+        use crate::facade::transactions::{
+            EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
+            WorkerIntentBatch,
+        };
         use crate::publication::patch::data::{PatchCompatibilityClass, PatchDetail};
-        use crate::tests::support::{changed_entities, create_entity_outcome, runtime_with_test_schema};
+        use crate::tests::support::{
+            changed_entities, create_entity_outcome, runtime_with_test_schema,
+        };
         use forge_runtime_bridge::facade::{
             BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeDeliveryReceipt,
             BridgeMappingId, BridgeMappingRegistration, BridgeRouteRequest, CoarseRoutingMode,
@@ -869,7 +889,10 @@ pub mod bridge {
             );
             catalog.register_snapshot(PublicationBridgeSnapshot::new(
                 TruthSnapshotIdentity::new("snapshot-a"),
-                vec![SnapshotReadRecord::new("entity:0:4:1:profile.name", b"alice".to_vec())],
+                vec![SnapshotReadRecord::new(
+                    "entity:0:4:1:profile.name",
+                    b"alice".to_vec(),
+                )],
             ));
 
             let envelope = catalog
@@ -975,8 +998,10 @@ pub mod bridge {
                 bundle.commit.commit_id,
                 bundle.commit.version_id,
             );
-            let expected_commit_identity =
-                RelationalCommittedPatchRequest::new(format!("commit-{}", bundle.commit.commit_id.0));
+            let expected_commit_identity = RelationalCommittedPatchRequest::new(format!(
+                "commit-{}",
+                bundle.commit.commit_id.0
+            ));
 
             let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
             let envelope = source
@@ -992,7 +1017,8 @@ pub mod bridge {
         }
 
         #[test]
-        fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical_snapshot_authority() {
+        fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical_snapshot_authority(
+        ) {
             let mut runtime = runtime_with_test_schema();
             create_entity_outcome(&mut runtime, "alice");
 
@@ -1009,7 +1035,9 @@ pub mod bridge {
 
             let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
             let envelope = source
-                .load_committed_patch(RelationalCommittedPatchRequest::new(commit_identity.clone()))
+                .load_committed_patch(RelationalCommittedPatchRequest::new(
+                    commit_identity.clone(),
+                ))
                 .expect("runtime bridge committed patch");
             let first_patch_item = envelope
                 .patch_items()
@@ -1057,8 +1085,14 @@ pub mod bridge {
                 .deliver_invalidation(route)
                 .expect("runtime-backed relational bridge delivery");
 
-            assert_eq!(result.result_summary().snapshot_identity(), &expected_snapshot_identity);
-            assert_eq!(result.receipt().snapshot_identity(), &expected_snapshot_identity);
+            assert_eq!(
+                result.result_summary().snapshot_identity(),
+                &expected_snapshot_identity
+            );
+            assert_eq!(
+                result.receipt().snapshot_identity(),
+                &expected_snapshot_identity
+            );
         }
 
         #[test]
@@ -1074,19 +1108,18 @@ pub mod bridge {
 
             let mut txn = runtime.begin_transaction(TransactionOptions::default());
             txn.push_batch(
-                WorkerIntentBatch::new("update")
-                    .push(MutationIntent::Create(
-                        crate::transactions::data::CreateIntent::Entity(
-                            crate::transactions::data::EntitySpec {
-                                partition_id: PartitionId::main(),
-                                kind_id: crate::facade::identity::KindId(1),
-                                client_key: InternedString::Raw("bob".to_string()),
-                                payload: crate::payloads::data::RecordPayload::StructuredJson(
-                                    serde_json::json!({"name":"bob"}),
-                                ),
-                            },
-                        ),
-                    )),
+                WorkerIntentBatch::new("update").push(MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: crate::facade::identity::KindId(1),
+                            client_key: InternedString::Raw("bob".to_string()),
+                            payload: crate::payloads::data::RecordPayload::StructuredJson(
+                                serde_json::json!({"name":"bob"}),
+                            ),
+                        },
+                    ),
+                )),
             );
             txn.commit().expect("second commit should publish");
 
@@ -1136,8 +1169,14 @@ pub mod bridge {
                 .replay_canonical_record(&canonical)
                 .expect("historical replay should remain reconstructable");
 
-            assert_eq!(result.result_summary().snapshot_identity(), &expected_snapshot_identity);
-            assert_eq!(result.receipt().snapshot_identity(), &expected_snapshot_identity);
+            assert_eq!(
+                result.result_summary().snapshot_identity(),
+                &expected_snapshot_identity
+            );
+            assert_eq!(
+                result.receipt().snapshot_identity(),
+                &expected_snapshot_identity
+            );
             assert_eq!(replay.source_snapshot(), &expected_snapshot_identity);
         }
     }

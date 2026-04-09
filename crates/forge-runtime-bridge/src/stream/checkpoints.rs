@@ -4,9 +4,9 @@ use crate::error::{BridgeStreamError, BridgeStreamErrorKind};
 use crate::identity::{BridgeIdentity, CheckpointTokenIdentityTag};
 use crate::routing::canonicalization::digest_string;
 
+use super::counters::StreamProtocolCounters;
 use super::position::CanonicalStreamPosition;
 use super::protocol::{AdmittedConsumerContract, ConsumerContractIdentity, StreamProtocolIdentity};
-use super::counters::StreamProtocolCounters;
 use super::window::PlannedChangeStreamWindow;
 
 type CheckpointTokenIdentity = BridgeIdentity<CheckpointTokenIdentityTag>;
@@ -67,7 +67,10 @@ impl ConsumerCheckpointToken {
             checkpoint_member_count,
             source_retention_anchor,
             protocol_semantics_version: Arc::from("forge-runtime-bridge.stream.v1"),
-            counters: window.counters().clone().with_checkpoint(checkpoint_member_count),
+            counters: window
+                .counters()
+                .clone()
+                .with_checkpoint(checkpoint_member_count),
         }
     }
 
@@ -96,7 +99,8 @@ impl ConsumerCheckpointToken {
     }
 
     pub fn contiguous_acknowledged_through_member_identity(&self) -> &str {
-        self.contiguous_acknowledged_through_member_identity.as_ref()
+        self.contiguous_acknowledged_through_member_identity
+            .as_ref()
     }
 
     pub fn checkpoint_member_count(&self) -> usize {

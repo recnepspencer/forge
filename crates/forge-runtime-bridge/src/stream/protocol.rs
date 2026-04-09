@@ -5,10 +5,9 @@ use crate::identity::{BridgeIdentity, ConsumerContractIdentityTag, StreamProtoco
 use crate::routing::canonicalization::digest_string;
 
 use super::declaration::{
-    checkpoint_publication_mode_label, coalescing_family_label,
-    delivery_intent_label, replay_mode_label, resume_mode_label, ChangeStreamDeclaration,
-    StreamCheckpointPublicationMode, StreamCoalescingFamily, StreamConsumerShape,
-    StreamDeliveryIntent, StreamReplayMode,
+    checkpoint_publication_mode_label, coalescing_family_label, delivery_intent_label,
+    replay_mode_label, resume_mode_label, ChangeStreamDeclaration, StreamCheckpointPublicationMode,
+    StreamCoalescingFamily, StreamConsumerShape, StreamDeliveryIntent, StreamReplayMode,
 };
 
 pub type StreamProtocolIdentity = BridgeIdentity<StreamProtocolIdentityTag>;
@@ -70,9 +69,7 @@ pub struct AdmittedConsumerContract {
 }
 
 impl AdmittedConsumerContract {
-    pub(crate) fn resolve(
-        protocol: &ValidatedStreamProtocol,
-    ) -> Result<Self, BridgeStreamError> {
+    pub(crate) fn resolve(protocol: &ValidatedStreamProtocol) -> Result<Self, BridgeStreamError> {
         let declaration = protocol.declaration();
         if declaration.resume_mode() == super::declaration::StreamResumeMode::FromCheckpointOnly
             && declaration.replay_mode() != StreamReplayMode::Enabled
@@ -99,14 +96,12 @@ impl AdmittedConsumerContract {
             declaration.consumer_shape(),
             declaration.delivery_intent(),
         ) {
-            (
-                StreamConsumerShape::RoutingConsumer,
-                StreamDeliveryIntent::RouteInvalidations,
-            ) => StreamDeliveryIntent::RouteInvalidations,
-            (
-                StreamConsumerShape::ReplayAuditConsumer,
-                StreamDeliveryIntent::ReplayAudit,
-            ) => StreamDeliveryIntent::ReplayAudit,
+            (StreamConsumerShape::RoutingConsumer, StreamDeliveryIntent::RouteInvalidations) => {
+                StreamDeliveryIntent::RouteInvalidations
+            }
+            (StreamConsumerShape::ReplayAuditConsumer, StreamDeliveryIntent::ReplayAudit) => {
+                StreamDeliveryIntent::ReplayAudit
+            }
             _ => {
                 return Err(BridgeStreamError::new(
                     BridgeStreamErrorKind::UnsupportedConsumerShape,

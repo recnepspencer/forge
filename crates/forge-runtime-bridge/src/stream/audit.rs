@@ -31,7 +31,9 @@ impl StreamReplayAuditSummary {
             consumer_contract_identity: window.consumer_contract_identity().clone(),
             stream_digest: std::sync::Arc::from(window.member_set_digest()),
             window_digest: std::sync::Arc::from(window.digest()),
-            consumer_contract_digest: std::sync::Arc::from(window.consumer_contract_identity().as_str()),
+            consumer_contract_digest: std::sync::Arc::from(
+                window.consumer_contract_identity().as_str(),
+            ),
             diagnostics_digest: std::sync::Arc::from(digest_string(
                 "stream-diagnostics-policy",
                 diagnostics_policy_class_label(window.diagnostics_policy_class()).as_ref(),
@@ -154,5 +156,9 @@ pub(crate) fn audit_change_stream_window(
     let replay_record = canonicalize_stream_replay_record(contract, window, &checkpoint)?;
     let summary = StreamReplayAuditSummary::new(window, &checkpoint, &replay_record);
 
-    Ok(StreamReplayAuditResult::new(summary, checkpoint, replay_record))
+    Ok(StreamReplayAuditResult::new(
+        summary,
+        checkpoint,
+        replay_record,
+    ))
 }

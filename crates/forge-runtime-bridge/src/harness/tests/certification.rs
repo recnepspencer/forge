@@ -1,23 +1,22 @@
-use forge_harness::facade::{certification_matrix, ExecutionProfile, ExecutionRequest, ScenarioPlan};
+use forge_harness::facade::{
+    certification_matrix, ExecutionProfile, ExecutionRequest, ScenarioPlan,
+};
 use forge_harness::runtime::HarnessAdapter;
 use std::sync::Arc;
 
-use crate::harness::adapter::BridgeHarnessAdapter;
-use crate::harness::fixtures::BridgeHarnessFixture;
+use super::support::{
+    build_runtime, committed_patch, field_aspect_registration, field_slice_snapshot, registration,
+    snapshot,
+};
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
     BridgeHistoricalLineageAuthority, BridgeLineageContext, BridgeParallelAdmissionClass,
     BridgeParallelAdmissionReason, BridgeRouteRequest, TruthBranchIdentity, TruthSnapshotIdentity,
 };
-use super::support::{
-    build_runtime, committed_patch, field_aspect_registration, field_slice_snapshot, registration,
-    snapshot,
-};
+use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::fixtures::BridgeHarnessFixture;
 
-fn continuity_authority(
-    branch: &str,
-    snapshot: &str,
-) -> BridgeHistoricalLineageAuthority {
+fn continuity_authority(branch: &str, snapshot: &str) -> BridgeHistoricalLineageAuthority {
     continuity_authority_with_successor(branch, snapshot, "entity:0:4:2")
 }
 
@@ -304,22 +303,43 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
     assert_eq!(plan.packet_set().counters().bulk_packet_count(), 6);
     assert_eq!(plan.execution_plan().counters().bulk_routed_item_count(), 2);
     assert_eq!(
-        plan.execution_plan().counters().bulk_normalized_workload_width(),
+        plan.execution_plan()
+            .counters()
+            .bulk_normalized_workload_width(),
         13
     );
-    assert_eq!(plan.execution_plan().counters().bulk_packet_entry_count(), 6);
-    assert_eq!(plan.execution_plan().counters().bulk_reduction_input_count(), 4);
-    assert_eq!(plan.execution_plan().counters().bulk_reduction_output_count(), 4);
     assert_eq!(
-        plan.execution_plan().counters().bulk_packet_queue_depth_peak(),
+        plan.execution_plan().counters().bulk_packet_entry_count(),
         6
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_reducer_input_buffer_peak(),
+        plan.execution_plan()
+            .counters()
+            .bulk_reduction_input_count(),
         4
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_replay_mismatch_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_reduction_output_count(),
+        4
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_packet_queue_depth_peak(),
+        6
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_reducer_input_buffer_peak(),
+        4
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_replay_mismatch_count(),
         0
     );
     assert_eq!(
@@ -327,7 +347,9 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
         1
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_parallel_profitable_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_parallel_profitable_count(),
         1
     );
     assert_eq!(
@@ -337,7 +359,9 @@ fn bridge_bulk_certifies_exact_counters_for_parallel_admitted_workload() {
         1
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_parallel_fallback_to_serial_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_parallel_fallback_to_serial_count(),
         0
     );
 }
@@ -372,22 +396,43 @@ fn bridge_bulk_certifies_exact_counters_for_serial_fallback_workload() {
     assert_eq!(plan.packet_set().counters().bulk_packet_count(), 5);
     assert_eq!(plan.execution_plan().counters().bulk_routed_item_count(), 2);
     assert_eq!(
-        plan.execution_plan().counters().bulk_normalized_workload_width(),
+        plan.execution_plan()
+            .counters()
+            .bulk_normalized_workload_width(),
         11
     );
-    assert_eq!(plan.execution_plan().counters().bulk_packet_entry_count(), 6);
-    assert_eq!(plan.execution_plan().counters().bulk_reduction_input_count(), 3);
-    assert_eq!(plan.execution_plan().counters().bulk_reduction_output_count(), 3);
     assert_eq!(
-        plan.execution_plan().counters().bulk_packet_queue_depth_peak(),
-        5
+        plan.execution_plan().counters().bulk_packet_entry_count(),
+        6
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_reducer_input_buffer_peak(),
+        plan.execution_plan()
+            .counters()
+            .bulk_reduction_input_count(),
         3
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_replay_mismatch_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_reduction_output_count(),
+        3
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_packet_queue_depth_peak(),
+        5
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_reducer_input_buffer_peak(),
+        3
+    );
+    assert_eq!(
+        plan.execution_plan()
+            .counters()
+            .bulk_replay_mismatch_count(),
         0
     );
     assert_eq!(
@@ -395,11 +440,15 @@ fn bridge_bulk_certifies_exact_counters_for_serial_fallback_workload() {
         1
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_parallel_profitable_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_parallel_profitable_count(),
         0
     );
     assert_eq!(
-        plan.execution_plan().counters().bulk_parallel_fallback_to_serial_count(),
+        plan.execution_plan()
+            .counters()
+            .bulk_parallel_fallback_to_serial_count(),
         1
     );
     assert_eq!(plan.execution_plan().planning_failures().len(), 1);

@@ -59,17 +59,39 @@ impl NormalizedBridgeWorkloadSummary {
         }
     }
 
-    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity { &self.workload_identity }
-    pub fn route_count(&self) -> usize { self.route_count }
-    pub fn invalidation_target_count(&self) -> usize { self.invalidation_target_count }
-    pub fn subscription_slice_count(&self) -> usize { self.subscription_slice_count }
-    pub fn snapshot_read_count(&self) -> usize { self.snapshot_read_count }
-    pub fn truth_view_member_count(&self) -> usize { self.truth_view_member_count }
-    pub fn continuity_member_count(&self) -> usize { self.continuity_member_count }
-    pub fn branch_scope_count(&self) -> usize { self.branch_scope_count }
-    pub fn snapshot_scope_count(&self) -> usize { self.snapshot_scope_count }
-    pub fn counters(&self) -> &BridgeBulkPlanningCounters { &self.counters }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
+        &self.workload_identity
+    }
+    pub fn route_count(&self) -> usize {
+        self.route_count
+    }
+    pub fn invalidation_target_count(&self) -> usize {
+        self.invalidation_target_count
+    }
+    pub fn subscription_slice_count(&self) -> usize {
+        self.subscription_slice_count
+    }
+    pub fn snapshot_read_count(&self) -> usize {
+        self.snapshot_read_count
+    }
+    pub fn truth_view_member_count(&self) -> usize {
+        self.truth_view_member_count
+    }
+    pub fn continuity_member_count(&self) -> usize {
+        self.continuity_member_count
+    }
+    pub fn branch_scope_count(&self) -> usize {
+        self.branch_scope_count
+    }
+    pub fn snapshot_scope_count(&self) -> usize {
+        self.snapshot_scope_count
+    }
+    pub fn counters(&self) -> &BridgeBulkPlanningCounters {
+        &self.counters
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

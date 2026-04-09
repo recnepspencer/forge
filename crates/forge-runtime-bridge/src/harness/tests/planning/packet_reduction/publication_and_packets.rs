@@ -37,8 +37,18 @@ fn bridge_bulk_reduction_collapses_duplicate_publications_deterministically() {
 #[test]
 fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let left_runtime = build_runtime(
@@ -48,8 +58,18 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let right_runtime = build_runtime(
@@ -76,9 +96,14 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
         right.execution_plan().reduced_artifact().digest()
     );
     assert_eq!(
-        left.execution_plan().reduced_artifact().reduced_publications()[0]
+        left.execution_plan()
+            .reduced_artifact()
+            .reduced_publications()[0]
             .publication_identity(),
-        right.execution_plan().reduced_artifact().reduced_publications()[0]
+        right
+            .execution_plan()
+            .reduced_artifact()
+            .reduced_publications()[0]
             .publication_identity()
     );
     assert_eq!(left.packet_set().digest(), right.packet_set().digest());
@@ -87,8 +112,18 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
 #[test]
 fn bridge_bulk_packet_set_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let left_runtime = build_runtime(
@@ -98,8 +133,18 @@ fn bridge_bulk_packet_set_is_stable_across_input_order() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let right_runtime = build_runtime(
@@ -205,9 +250,9 @@ fn bridge_bulk_packet_set_emits_fallback_packets_for_fallback_admitted_slices() 
     );
 
     let planned = runtime
-        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
-            BridgeRouteRequest::for_commit("commit-a"),
-        )]))
+        .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+        ]))
         .expect("fallback workload should plan");
 
     assert_eq!(planned.packet_set().routing_packets().len(), 1);
@@ -217,10 +262,7 @@ fn bridge_bulk_packet_set_emits_fallback_packets_for_fallback_admitted_slices() 
         "surface"
     );
     assert_eq!(planned.packet_set().truth_view_packets().len(), 1);
-    assert_eq!(
-        planned.packet_set().counters().bulk_packet_count(),
-        4
-    );
+    assert_eq!(planned.packet_set().counters().bulk_packet_count(), 4);
     assert_eq!(
         planned
             .execution_plan()
@@ -230,7 +272,10 @@ fn bridge_bulk_packet_set_emits_fallback_packets_for_fallback_admitted_slices() 
         1
     );
     assert_eq!(
-        planned.execution_plan().reduced_artifact().reduction_output_count(),
+        planned
+            .execution_plan()
+            .reduced_artifact()
+            .reduction_output_count(),
         3
     );
 }

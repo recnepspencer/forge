@@ -4,8 +4,8 @@ use forge_harness::runtime::HarnessAdapter;
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
-use super::support::{replay_audit_target, routing_target, stream_fixture};
 use super::super::support::{build_runtime, committed_patch, registration, snapshot};
+use super::support::{replay_audit_target, routing_target, stream_fixture};
 
 #[test]
 fn bridge_harness_stream_consumers_preserve_canonical_member_truth() {
@@ -83,7 +83,11 @@ fn illegal_coalescing_boundary_fails_explicitly() {
     source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
     source.insert_snapshot(snapshot("snapshot-a", "alice"));
     source.insert_snapshot(snapshot("snapshot-b", "alice"));
-    let runtime = build_runtime(source, RecordingSignalBridgeSink::default(), vec![registration()]);
+    let runtime = build_runtime(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
     let declaration = crate::stream::ChangeStreamDeclaration::new(
         crate::stream::StreamConsumerShape::RoutingConsumer,
         crate::stream::StreamResumeMode::FromCheckpointOnly,
@@ -107,10 +111,14 @@ fn illegal_coalescing_boundary_fails_explicitly() {
             &contract,
             vec![
                 runtime
-                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-a"))
+                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                        "commit-a",
+                    ))
                     .expect("first envelope should ingest"),
                 runtime
-                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-b"))
+                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                        "commit-b",
+                    ))
                     .expect("second envelope should ingest"),
             ],
         )

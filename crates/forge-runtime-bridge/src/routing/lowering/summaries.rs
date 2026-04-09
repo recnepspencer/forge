@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
-use crate::routing::planning::{BridgeExecutionCounts, BridgePlanningProvenance, BridgeRouteSourceSummary};
+use crate::routing::planning::{
+    BridgeExecutionCounts, BridgePlanningProvenance, BridgeRouteSourceSummary,
+};
 use crate::snapshot::TruthSnapshotIdentity;
 
-use crate::routing::BridgeRouteIdentity;
 use super::BridgeSubscriptionSliceIdentity;
+use crate::routing::BridgeRouteIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeLoweringPlanSummary {

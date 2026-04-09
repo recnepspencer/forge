@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeCanonicalBulkPlanRecord {
     schema_version: Arc<str>,
@@ -128,6 +127,5 @@ impl BridgeCanonicalBulkPlanRecord {
         Ok(self.clone())
     }
 }
-
 
 use super::*;

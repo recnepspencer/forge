@@ -1,10 +1,10 @@
 use crate::facade::BridgeRouteRequest;
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn replayed_slice_route_matches_original_canonical_slice_artifact() {
@@ -37,7 +37,10 @@ fn replayed_slice_route_matches_original_canonical_slice_artifact() {
         replay.subscription_slice_identity(),
         result.result_summary().subscription_slice_identity()
     );
-    assert_eq!(replay.route_identity(), result.result_summary().route_identity());
+    assert_eq!(
+        replay.route_identity(),
+        result.result_summary().route_identity()
+    );
     assert_eq!(
         replay.invalidation_identity(),
         result.result_summary().invalidation_identity()

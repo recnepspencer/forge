@@ -21,20 +21,18 @@ pub struct BackpressureDecisionRecord {
 
 impl BackpressureDecisionRecord {
     pub(crate) fn classify(window: &PlannedChangeStreamWindow) -> Self {
-        let (pressure_class, pressure_reason_family) = match (
-            window.members().len(),
-            window.coalescing_family(),
-        ) {
-            (0 | 1, _) => ("no-pressure", "none"),
-            (2, super::declaration::StreamCoalescingFamily::None) => {
-                ("elevated-pressure", "consumer-lag-risk")
-            }
-            (2, _) => ("elevated-pressure", "coalesced-window-width"),
-            (_, super::declaration::StreamCoalescingFamily::None) => {
-                ("saturated-pressure", "uncoalesced-burst-width")
-            }
-            (_, _) => ("saturated-pressure", "coalesced-burst-width"),
-        };
+        let (pressure_class, pressure_reason_family) =
+            match (window.members().len(), window.coalescing_family()) {
+                (0 | 1, _) => ("no-pressure", "none"),
+                (2, super::declaration::StreamCoalescingFamily::None) => {
+                    ("elevated-pressure", "consumer-lag-risk")
+                }
+                (2, _) => ("elevated-pressure", "coalesced-window-width"),
+                (_, super::declaration::StreamCoalescingFamily::None) => {
+                    ("saturated-pressure", "uncoalesced-burst-width")
+                }
+                (_, _) => ("saturated-pressure", "coalesced-burst-width"),
+            };
         Self::new(window, pressure_class, pressure_reason_family)
     }
 

@@ -10,7 +10,7 @@ use crate::snapshot::{
     TruthViewPolicyRejectionKind as PolicyRejectionKind,
 };
 
-pub(super) fn historical_materialization_path_for(
+pub(crate) fn historical_materialization_path_for(
     planned: &PlannedTruthViewPacket,
 ) -> BridgeHistoricalMaterializationPath {
     match planned.declaration().selector().view_kind() {
@@ -26,7 +26,7 @@ pub(super) fn historical_materialization_path_for(
     }
 }
 
-pub(super) fn historical_materialization_path_for_declaration(
+pub(crate) fn historical_materialization_path_for_declaration(
     declaration: &HistoricalEvaluationDeclaration,
 ) -> BridgeHistoricalMaterializationPath {
     match declaration.selector().view_kind() {
@@ -42,7 +42,7 @@ pub(super) fn historical_materialization_path_for_declaration(
     }
 }
 
-pub(super) fn historical_failure_class_for_policy_rejection(
+pub(crate) fn historical_failure_class_for_policy_rejection(
     kind: PolicyRejectionKind,
 ) -> BridgeHistoricalEvaluationFailureClass {
     match kind {
@@ -63,10 +63,17 @@ pub(super) fn historical_failure_class_for_policy_rejection(
     }
 }
 
-pub(super) fn historical_failure_class_for_delivery_error(
+pub(crate) fn historical_failure_class_for_delivery_error(
     error: &BridgeDeliveryError,
 ) -> BridgeHistoricalEvaluationFailureClass {
     match error.kind() {
+        BridgeDeliveryErrorKind::SourceContractMismatch => {
+            BridgeHistoricalEvaluationFailureClass::UnresolvedTruthViewPolicyConflict
+        }
+        BridgeDeliveryErrorKind::StructuralContractMismatch
+        | BridgeDeliveryErrorKind::StructuralPlanRejected => {
+            BridgeHistoricalEvaluationFailureClass::RejectedHistoricalResolutionFailure
+        }
         BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable
         | BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
             BridgeHistoricalEvaluationFailureClass::TruthViewUnavailable
@@ -90,7 +97,7 @@ pub(super) fn historical_failure_class_for_delivery_error(
     }
 }
 
-pub(super) fn historical_failure_counters_for_policy_rejection(
+pub(crate) fn historical_failure_counters_for_policy_rejection(
     declaration: &HistoricalEvaluationDeclaration,
     kind: PolicyRejectionKind,
 ) -> BridgeHistoricalEvaluationCounters {
@@ -105,7 +112,7 @@ pub(super) fn historical_failure_counters_for_policy_rejection(
     }
 }
 
-pub(super) fn historical_failure_counters_for_delivery_error(
+pub(crate) fn historical_failure_counters_for_delivery_error(
     declaration: &HistoricalEvaluationDeclaration,
     error: &BridgeDeliveryError,
 ) -> BridgeHistoricalEvaluationCounters {
@@ -114,6 +121,9 @@ pub(super) fn historical_failure_counters_for_delivery_error(
         historical_materialization_path_for_declaration(declaration),
     );
     match error.kind() {
+        BridgeDeliveryErrorKind::SourceContractMismatch => counters,
+        BridgeDeliveryErrorKind::StructuralContractMismatch
+        | BridgeDeliveryErrorKind::StructuralPlanRejected => counters,
         BridgeDeliveryErrorKind::HistoricalTruthViewUnavailable
         | BridgeDeliveryErrorKind::SnapshotAcquisitionFailure => {
             counters.with_unavailable_truth_view()
@@ -125,7 +135,7 @@ pub(super) fn historical_failure_counters_for_delivery_error(
 }
 
 impl RuntimeBridge {
-    pub(super) fn record_historical_evaluation_failure(
+    pub(crate) fn record_historical_evaluation_failure(
         &self,
         declaration: &HistoricalEvaluationDeclaration,
         failure_class: BridgeHistoricalEvaluationFailureClass,

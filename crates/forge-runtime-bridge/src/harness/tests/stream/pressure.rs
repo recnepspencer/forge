@@ -87,7 +87,11 @@ fn bridge_stream_backpressure_changes_pacing_class_without_changing_member_truth
     source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
     source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
     source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    let runtime = build_runtime(source, RecordingSignalBridgeSink::default(), vec![registration()]);
+    let runtime = build_runtime(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
     let declaration = crate::stream::ChangeStreamDeclaration::new(
         crate::stream::StreamConsumerShape::ReplayAuditConsumer,
         crate::stream::StreamResumeMode::FromCheckpointOnly,
@@ -118,10 +122,14 @@ fn bridge_stream_backpressure_changes_pacing_class_without_changing_member_truth
             &contract,
             vec![
                 runtime
-                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-a"))
+                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                        "commit-a",
+                    ))
                     .expect("first envelope should ingest"),
                 runtime
-                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-b"))
+                    .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                        "commit-b",
+                    ))
                     .expect("second envelope should ingest"),
             ],
         )

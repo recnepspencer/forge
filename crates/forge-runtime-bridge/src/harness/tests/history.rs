@@ -1,10 +1,12 @@
-use forge_harness::facade::{ExecutionProfile, ExecutionRequest, MutationBatch, ReplayRequest, ScenarioPlan};
+use forge_harness::facade::{
+    ExecutionProfile, ExecutionRequest, MutationBatch, ReplayRequest, ScenarioPlan,
+};
 use forge_harness::runtime::{HarnessAdapter, ReplayHarnessAdapter};
 
-use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation};
-use crate::harness::fixtures::BridgeHarnessFixture;
 use super::support::{committed_patch, committed_patch_on_branch, registration, snapshot};
 use crate::facade::BridgeHistoricalEvaluationFailureClass;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation};
+use crate::harness::fixtures::BridgeHarnessFixture;
 
 #[test]
 fn bridge_harness_executes_historical_commit_view() {
@@ -128,7 +130,8 @@ fn bridge_harness_replays_historical_record() {
 fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
     let adapter = BridgeHarnessAdapter;
     let profile = ExecutionProfile::development("development");
-    let request = ExecutionRequest::target("branch-head-feature", "branch-head:feature".to_string());
+    let request =
+        ExecutionRequest::target("branch-head-feature", "branch-head:feature".to_string());
 
     let main_fixture = ScenarioPlan::new(
         "bridge-historical-main-head",
@@ -161,7 +164,9 @@ fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
     .declare_observation("historical")
     .compile();
 
-    let mut main_session = adapter.create_runtime().expect("main bridge harness runtime");
+    let mut main_session = adapter
+        .create_runtime()
+        .expect("main bridge harness runtime");
     adapter
         .prepare_runtime(&mut main_session, &profile)
         .expect("main bridge harness prepare");
@@ -194,8 +199,14 @@ fn bridge_harness_branch_divergence_changes_selected_truth_view_explicitly() {
         main_run.summary["historical_record_identity"],
         feature_run.summary["historical_record_identity"]
     );
-    assert_ne!(main_run.summary["snapshot_identity"], feature_run.summary["snapshot_identity"]);
-    assert_ne!(main_run.summary["branch_identity"], feature_run.summary["branch_identity"]);
+    assert_ne!(
+        main_run.summary["snapshot_identity"],
+        feature_run.summary["snapshot_identity"]
+    );
+    assert_ne!(
+        main_run.summary["branch_identity"],
+        feature_run.summary["branch_identity"]
+    );
 }
 
 #[test]
@@ -273,13 +284,13 @@ fn bridge_harness_replays_historical_record_after_newer_publication_arrives() {
         .expect("historical execution should succeed");
 
     let mutation = MutationBatch::new("publish-newer-history")
-        .push(BridgeHarnessMutation::PublishCommittedPatch(committed_patch(
-            "commit-b",
-            "patch-b",
+        .push(BridgeHarnessMutation::PublishCommittedPatch(
+            committed_patch("commit-b", "patch-b", "snapshot-b", "name"),
+        ))
+        .push(BridgeHarnessMutation::PublishSnapshot(snapshot(
             "snapshot-b",
-            "name",
-        )))
-        .push(BridgeHarnessMutation::PublishSnapshot(snapshot("snapshot-b", "bob")));
+            "bob",
+        )));
     adapter
         .apply_mutation_batch(&mut session, &mutation)
         .expect("mutation batch should apply");

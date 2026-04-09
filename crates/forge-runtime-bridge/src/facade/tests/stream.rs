@@ -74,7 +74,10 @@ fn runtime_lowers_identical_envelope_windows_canonically() {
         )
         .expect("identical stream material should plan identically");
 
-    assert_eq!(left.stream_window_identity(), right.stream_window_identity());
+    assert_eq!(
+        left.stream_window_identity(),
+        right.stream_window_identity()
+    );
     assert_eq!(left.member_set_digest(), right.member_set_digest());
     assert_eq!(left.digest(), right.digest());
 }
@@ -194,7 +197,12 @@ fn runtime_checkpoint_member_count_tracks_cumulative_frontier_width() {
     let first_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("first window should plan");
     let first_checkpoint = runtime.publish_consumer_checkpoint(
@@ -208,7 +216,12 @@ fn runtime_checkpoint_member_count_tracks_cumulative_frontier_width() {
     let resumed = runtime
         .resume_stream_window_from_checkpoint(
             &contract,
-            vec![canonical_envelope("main", "commit-b", "patch-b", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-b",
+                "patch-b",
+                "snapshot-a",
+            )],
             first_checkpoint.checkpoint_token_identity(),
         )
         .expect("resume should succeed");
@@ -243,7 +256,12 @@ fn runtime_classifies_stable_no_pressure_backpressure_record() {
     let window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("single-member window should plan");
 
@@ -255,7 +273,10 @@ fn runtime_classifies_stable_no_pressure_backpressure_record() {
         left.consumer_contract_identity(),
         contract.consumer_contract_identity()
     );
-    assert_eq!(left.stream_window_identity(), window.stream_window_identity());
+    assert_eq!(
+        left.stream_window_identity(),
+        window.stream_window_identity()
+    );
 }
 
 #[test]
@@ -300,10 +321,21 @@ fn runtime_canonicalizes_stream_replay_record_from_matching_checkpoint() {
         .canonicalize_stream_replay_record(&contract, &window, &checkpoint)
         .expect("matching stream facts should canonicalize a replay record");
 
-    assert_eq!(replay.consumer_contract_identity(), contract.consumer_contract_identity());
-    assert_eq!(replay.stream_window_identity(), window.stream_window_identity());
-    assert_eq!(replay.checkpoint_token_identity(), checkpoint.checkpoint_token_identity());
-    assert!(replay.digest().starts_with("canonical-stream-replay-record:sha256:"));
+    assert_eq!(
+        replay.consumer_contract_identity(),
+        contract.consumer_contract_identity()
+    );
+    assert_eq!(
+        replay.stream_window_identity(),
+        window.stream_window_identity()
+    );
+    assert_eq!(
+        replay.checkpoint_token_identity(),
+        checkpoint.checkpoint_token_identity()
+    );
+    assert!(replay
+        .digest()
+        .starts_with("canonical-stream-replay-record:sha256:"));
 }
 
 #[test]
@@ -346,7 +378,12 @@ fn runtime_rejects_checkpoint_reuse_across_different_contracts() {
     let window = runtime
         .plan_change_stream_window(
             &routing_contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("window should plan");
     let checkpoint = runtime.publish_consumer_checkpoint(
@@ -388,7 +425,12 @@ fn runtime_retains_stream_checkpoint_and_replay_records() {
     let window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("window should plan");
     let checkpoint = runtime.publish_consumer_checkpoint(
@@ -453,7 +495,12 @@ fn runtime_resume_rejects_truncated_checkpoint_identity() {
     let first_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("first window should plan");
     let first_checkpoint = runtime.publish_consumer_checkpoint(
@@ -464,7 +511,12 @@ fn runtime_resume_rejects_truncated_checkpoint_identity() {
     let second_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-b", "patch-b", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-b",
+                "patch-b",
+                "snapshot-a",
+            )],
         )
         .expect("second window should plan");
     let _second_checkpoint = runtime.publish_consumer_checkpoint(
@@ -476,7 +528,12 @@ fn runtime_resume_rejects_truncated_checkpoint_identity() {
     let error = runtime
         .resume_stream_window_from_checkpoint(
             &contract,
-            vec![canonical_envelope("main", "commit-b", "patch-b", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-b",
+                "patch-b",
+                "snapshot-a",
+            )],
             first_checkpoint.checkpoint_token_identity(),
         )
         .expect_err("evicted checkpoints should be treated as truncated");
@@ -510,7 +567,12 @@ fn runtime_resume_reuses_retained_checkpoint_and_replay_truth() {
     let first_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("first window should plan");
     let checkpoint = runtime.publish_consumer_checkpoint(
@@ -525,7 +587,12 @@ fn runtime_resume_reuses_retained_checkpoint_and_replay_truth() {
     let resumed = runtime
         .resume_stream_window_from_checkpoint(
             &contract,
-            vec![canonical_envelope("main", "commit-b", "patch-b", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-b",
+                "patch-b",
+                "snapshot-a",
+            )],
             checkpoint.checkpoint_token_identity(),
         )
         .expect("retained checkpoint should resume cleanly");
@@ -540,7 +607,10 @@ fn runtime_resume_reuses_retained_checkpoint_and_replay_truth() {
     );
     assert_eq!(resumed.resumed_window().members().len(), 1);
     assert_eq!(
-        resumed.resumed_window().first_stream_position().ordinal_position(),
+        resumed
+            .resumed_window()
+            .first_stream_position()
+            .ordinal_position(),
         checkpoint.checkpoint_member_count()
     );
 }
@@ -617,7 +687,12 @@ fn runtime_rejects_delivery_for_non_routing_consumer_shape() {
     let window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("window should plan");
 
@@ -682,7 +757,9 @@ fn runtime_delivers_replay_audit_stream_window_and_retains_protocol_truth() {
     assert_eq!(
         runtime
             .diagnostics()
-            .stream_replay_record_for_identity(result.replay_record().replay_record_identity().as_str())
+            .stream_replay_record_for_identity(
+                result.replay_record().replay_record_identity().as_str()
+            )
             .expect("audit replay record should be retained")
             .replay_record_identity(),
         result.replay_record().replay_record_identity()
@@ -712,7 +789,12 @@ fn runtime_explains_last_stream_checkpoint_and_replay_record() {
     let window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("window should plan");
     let result = runtime
@@ -760,7 +842,9 @@ fn runtime_rejects_replay_disabled_checkpoint_resume_contract_during_resolution(
 
     let error = runtime
         .resolve_change_stream_consumer_contract(&protocol)
-        .expect_err("replay-disabled checkpoint resume contracts must be rejected during contract resolution");
+        .expect_err(
+        "replay-disabled checkpoint resume contracts must be rejected during contract resolution",
+    );
 
     assert_eq!(
         error.kind(),
@@ -786,7 +870,9 @@ fn runtime_rejects_checkpoint_resume_contract_when_replay_mode_is_disabled() {
 
     let error = runtime
         .resolve_change_stream_consumer_contract(&protocol)
-        .expect_err("checkpoint resume without replay records must be rejected during contract resolution");
+        .expect_err(
+            "checkpoint resume without replay records must be rejected during contract resolution",
+        );
 
     assert_eq!(
         error.kind(),

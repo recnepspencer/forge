@@ -51,7 +51,12 @@ fn bridge_bulk_packet_set_tracks_continuity_remap_packets() {
 #[test]
 fn bridge_bulk_reduction_artifact_carries_continuity_remaps() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let left_runtime = build_runtime(
         left_source,
@@ -60,7 +65,12 @@ fn bridge_bulk_reduction_artifact_carries_continuity_remaps() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let right_runtime = build_runtime(
         right_source,

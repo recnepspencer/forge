@@ -59,8 +59,20 @@ fn stream_replay_matches_original_canonical_records() {
         )
         .expect("second replay execution");
 
-    assert_eq!(first_run.summary["stream_digest"], second_run.summary["stream_digest"]);
-    assert_eq!(first_run.summary["window_digest"], second_run.summary["window_digest"]);
-    assert_eq!(first_run.summary["checkpoint_digest"], second_run.summary["checkpoint_digest"]);
-    assert_eq!(first_run.summary["replay_digest"], second_run.summary["replay_digest"]);
+    assert_eq!(
+        first_run.summary["stream_digest"],
+        second_run.summary["stream_digest"]
+    );
+    assert_eq!(
+        first_run.summary["window_digest"],
+        second_run.summary["window_digest"]
+    );
+    assert_eq!(
+        first_run.summary["checkpoint_digest"],
+        second_run.summary["checkpoint_digest"]
+    );
+    assert_eq!(
+        first_run.summary["replay_digest"],
+        second_run.summary["replay_digest"]
+    );
 }

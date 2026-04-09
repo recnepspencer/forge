@@ -5,7 +5,9 @@ use sha2::{Digest, Sha256};
 use crate::adapter::BridgeHistoricalLineageAuthority;
 use crate::routing::{BridgeRouteIdentity, BridgeSubscriptionSliceIdentity};
 
-use super::{BridgeContinuityAuthorityBasis, BridgeEligibleContinuityRequestSet, PriorSubscriptionSlice};
+use super::{
+    BridgeContinuityAuthorityBasis, BridgeEligibleContinuityRequestSet, PriorSubscriptionSlice,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeHistoricalLineagePacketEntry {

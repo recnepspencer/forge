@@ -1,15 +1,20 @@
 use crate::facade::BridgeRouteRequest;
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration, surface_fallback_registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn coarse_and_fine_routes_remain_parity_safe_for_shared_scope() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     left_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let left_runtime = build_runtime_with_aspects(
         left_source,

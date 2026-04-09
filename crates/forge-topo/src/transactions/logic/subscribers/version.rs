@@ -1,7 +1,7 @@
 use forge_core::KernelError;
-use forge_signal::facade::SignalError;
 use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
 use forge_signal::facade::runtime::CheckpointBarrier;
+use forge_signal::facade::SignalError;
 
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::transactions::data::operation_outputs::VersionCounters;

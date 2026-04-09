@@ -38,13 +38,27 @@ impl ReducedContinuityRemap {
         }
     }
 
-    pub fn continuity_identity(&self) -> &ReducedContinuityIdentity { &self.continuity_identity }
-    pub fn continuity_authority_digest(&self) -> &str { self.continuity_authority_digest.as_ref() }
-    pub fn branch_identity(&self) -> &str { self.branch_identity.as_ref() }
-    pub fn snapshot_identity(&self) -> &str { self.snapshot_identity.as_ref() }
-    pub fn reduced_route_count(&self) -> usize { self.reduced_route_count }
-    pub fn prior_slice_count(&self) -> usize { self.prior_slice_count }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn continuity_identity(&self) -> &ReducedContinuityIdentity {
+        &self.continuity_identity
+    }
+    pub fn continuity_authority_digest(&self) -> &str {
+        self.continuity_authority_digest.as_ref()
+    }
+    pub fn branch_identity(&self) -> &str {
+        self.branch_identity.as_ref()
+    }
+    pub fn snapshot_identity(&self) -> &str {
+        self.snapshot_identity.as_ref()
+    }
+    pub fn reduced_route_count(&self) -> usize {
+        self.reduced_route_count
+    }
+    pub fn prior_slice_count(&self) -> usize {
+        self.prior_slice_count
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,13 +101,27 @@ impl ReducedTruthViewMaterialization {
         }
     }
 
-    pub fn truth_view_identity(&self) -> &ReducedTruthViewIdentity { &self.truth_view_identity }
-    pub fn source_branch(&self) -> &str { self.source_branch.as_ref() }
-    pub fn source_commit(&self) -> &str { self.source_commit.as_ref() }
-    pub fn source_snapshot(&self) -> &str { self.source_snapshot.as_ref() }
-    pub fn planned_route_count(&self) -> usize { self.planned_route_count }
-    pub fn snapshot_read_count(&self) -> usize { self.snapshot_read_count }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn truth_view_identity(&self) -> &ReducedTruthViewIdentity {
+        &self.truth_view_identity
+    }
+    pub fn source_branch(&self) -> &str {
+        self.source_branch.as_ref()
+    }
+    pub fn source_commit(&self) -> &str {
+        self.source_commit.as_ref()
+    }
+    pub fn source_snapshot(&self) -> &str {
+        self.source_snapshot.as_ref()
+    }
+    pub fn planned_route_count(&self) -> usize {
+        self.planned_route_count
+    }
+    pub fn snapshot_read_count(&self) -> usize {
+        self.snapshot_read_count
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -238,8 +266,7 @@ impl ReducedBridgeWorkloadArtifact {
         reduced_publications: Vec<ReducedBridgePublication>,
         counters: BridgeBulkPlanningCounters,
     ) -> Self {
-        let reduction_output_count =
-            reduced_continuity_remaps.len()
+        let reduction_output_count = reduced_continuity_remaps.len()
             + reduced_truth_views.len()
             + reduced_fallbacks.len()
             + reduced_publications.len();

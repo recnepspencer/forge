@@ -1,4 +1,4 @@
-mod failures;
+pub(crate) mod failures;
 mod materialization;
 mod planning;
 mod policy;

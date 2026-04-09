@@ -115,8 +115,14 @@ fn bridge_replay_preserves_canonical_route_outcome_for_delivered_patch() {
         replay.subscription_slice_identity(),
         result.result_summary().subscription_slice_identity()
     );
-    assert_eq!(replay.source_commit(), result.result_summary().source_commit());
-    assert_eq!(replay.source_patch(), result.result_summary().source_patch());
+    assert_eq!(
+        replay.source_commit(),
+        result.result_summary().source_commit()
+    );
+    assert_eq!(
+        replay.source_patch(),
+        result.result_summary().source_patch()
+    );
     assert_eq!(
         replay.source_snapshot(),
         result.result_summary().snapshot_identity()
@@ -126,7 +132,12 @@ fn bridge_replay_preserves_canonical_route_outcome_for_delivered_patch() {
 #[test]
 fn bridge_replay_rejects_subscription_slice_drift() {
     let original_source = InMemoryRelationalBridgeSource::default();
-    original_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    original_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     original_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let original_runtime = build_runtime_with_aspects(
         original_source,
@@ -147,7 +158,12 @@ fn bridge_replay_rejects_subscription_slice_drift() {
         .expect("original runtime should expose a canonical route record");
 
     let restarted_source = InMemoryRelationalBridgeSource::default();
-    restarted_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    restarted_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     restarted_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let restarted_runtime = build_runtime_with_aspects(
         restarted_source,
@@ -279,4 +295,3 @@ fn bridge_replay_detects_route_drift_after_restart_shaped_truth_change() {
         .expect("bridge replay failure record");
     assert_eq!(failure_record.counters().route_replay_mismatch_count(), 1);
 }
-

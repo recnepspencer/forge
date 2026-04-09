@@ -64,6 +64,12 @@ These tests are all certification tests. They must:
 - prove diagnostics richness changes retained detail, not semantic truth
 - prove replay from canonical bridge artifacts rather than ambient host state
 - verify counter contracts where the milestone makes boundedness or scale claims
+- prove that any lowered bridge taxonomy remains losslessly traceable back to
+  the authoritative truth/runtime taxonomy it consumes
+- prove replay parity over full canonical result bundles when a milestone claims
+  replay-safe explanations, routing, continuity, remap, or denial
+- prove discovery work boundedness when a milestone claims bounded lowering or
+  bounded execution cost, not just post-lowering work boundedness
 
 These requirements are mandatory, not advisory. A test does not satisfy this
 document merely because it exercises the right API shape or emits a non-empty
@@ -504,6 +510,8 @@ Scenario
 
 - construct merge-bearing histories with ordered parent lists
 - vary host adapter ordering and replay paths
+- vary canonical relational merge-class labels that lower into the same
+  bridge-consumption class
 - run invalidation, continuity, and remapping over those histories
 
 Must verify
@@ -511,17 +519,25 @@ Must verify
 - parent ordering survives bridge ingestion and replay
 - merge-influenced routing changes are deterministic
 - no single-parent fallback assumptions leak into bridge logic
+- bridge class lowering remains losslessly traceable back to canonical
+  relational merge ontology
+- canonical result bundles stay identical across adapter-order variation, not
+  only routing digests
 
 Required verification output
 
 - `merge_history_digest`
+- `merge_ontology_mapping_report`
 - `parent_order_report`
 - `routing_digest`
+- `result_bundle_digest`
 - `replay_digest`
 
 Pass condition
 
-Ordered multi-parent histories produce identical bridge semantics across runs.
+Ordered multi-parent histories produce identical canonical result bundles across
+runs, and every lowered bridge merge class remains losslessly attributable to
+canonical relational merge ontology.
 
 ### 11. Unsupported Merge Class Denial Test
 
@@ -534,6 +550,8 @@ Scenario
 
 - feed supported and unsupported merge classes through the same bridge surface
 - vary causal frontier metadata and merge-policy outcomes
+- include cases denied at different precedence stages:
+  lineage, deletion/topology gates, causal admissibility, and policy outcome
 - attempt replay and diagnostics queries over rejected cases
 
 Must verify
@@ -541,17 +559,26 @@ Must verify
 - unsupported classes are rejected before semantic drift occurs
 - diagnostics distinguish unsupported merge class from malformed history
 - rejected merges leave no misleading derived artifacts
+- denial artifacts identify the exact precedence stage that blocked
+  continuation or publication
+- structural similarity never reopens continuity or remap after an
+  authoritative merge denial
+- rejected cases preserve canonical ontology provenance even when no
+  bridge-level publication artifact is emitted
 
 Required verification output
 
 - `merge_support_matrix`
+- `merge_denial_stage_report`
 - `failure_digest`
 - `diagnostics_digest`
 - `counter_snapshot`
 
 Pass condition
 
-Unsupported merge classes fail closed and remain mechanically attributable.
+Unsupported or denied merge cases fail closed, remain mechanically attributable,
+and cannot be reinterpreted into continuity or reconciliation through
+structural convenience.
 
 ### 12. Merge Replay And Explanation Parity Test
 
@@ -565,23 +592,35 @@ Scenario
 - run merge-bearing histories through original execution
 - replay from canonical bridge artifacts
 - reconstruct explanations and continuity records for selected subscriptions
+- vary diagnostics richness and adapter implementation shape across equivalent
+  replay lanes
+- include histories whose lowering requires non-trivial causal-frontier,
+  lineage, and structural consultation work
 
 Must verify
 
 - replay matches original merge-aware routing
 - explanation artifacts identify merge inputs and merge outcomes exactly
 - continuity behavior remains branch- and merge-aware after restart
+- replay matches the original full canonical result bundle:
+  routing, continuity, remap, denial/failure, and explanation
+- diagnostics richness changes retained detail only, not causal meaning
+- discovery-work counters remain bounded and parity-safe across equivalent runs
 
 Required verification output
 
 - `merge_history_digest`
+- `result_bundle_digest`
 - `continuity_digest`
 - `explanation_digest`
 - `replay_digest`
+- `counter_snapshot`
 
 Pass condition
 
-Merge-aware routing and explanation are replay-equivalent and causally exact.
+Merge-aware replay is bundle-equivalent and causally exact: routing,
+continuity, remap, denial, explanation, and bounded discovery work all remain
+parity-safe across replay.
 
 ## Milestone 10 Named Certification Suites
 
@@ -959,6 +998,8 @@ Together, these tests prove that the bridge from Milestone 6 onward is:
 - replay-safe under restart, backpressure, and multi-consumer pressure
 - host-agnostic at its public source and stream boundaries
 - explicit about structural identity, merge semantics, speculative flows, and policy provenance
+- lossless about authority provenance when lowering parent-runtime truth into
+  bridge-consumption vocabularies
 - unable to bypass truth authority during writeback
 - certifiable through canonical artifacts rather than intuition
 

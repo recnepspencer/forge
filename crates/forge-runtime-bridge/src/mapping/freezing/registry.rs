@@ -1,5 +1,5 @@
-use super::*;
 use super::validation::{validate_registration_set, validate_registration_values};
+use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrozenBridgeMappingRegistration {
@@ -38,7 +38,9 @@ pub struct FrozenMappingRegistry {
 }
 
 impl FrozenMappingRegistry {
-    pub(crate) fn freeze(mut registrations: Vec<BridgeMappingRegistration>) -> Result<Self, BridgeBuildError> {
+    pub(crate) fn freeze(
+        mut registrations: Vec<BridgeMappingRegistration>,
+    ) -> Result<Self, BridgeBuildError> {
         if registrations.is_empty() {
             return Err(BridgeBuildError::new(
                 BridgeBuildErrorKind::MissingMappingRegistrations,

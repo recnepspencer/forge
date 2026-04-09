@@ -1,8 +1,18 @@
 #[test]
 fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let left_runtime = build_runtime(
@@ -12,8 +22,18 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let right_runtime = build_runtime(
@@ -100,10 +120,18 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     assert_eq!(left.packet_set().counters().bulk_packet_count(), 6);
     assert_eq!(left.packet_set().counters().bulk_packet_entry_count(), 6);
     assert_eq!(left.packet_set().counters().bulk_reduction_input_count(), 4);
-    assert_eq!(left.packet_set().counters().bulk_reduction_output_count(), 4);
-    assert_eq!(left.execution_plan().counters().bulk_parallel_legal_count(), 1);
     assert_eq!(
-        left.execution_plan().counters().bulk_parallel_profitable_count(),
+        left.packet_set().counters().bulk_reduction_output_count(),
+        4
+    );
+    assert_eq!(
+        left.execution_plan().counters().bulk_parallel_legal_count(),
+        1
+    );
+    assert_eq!(
+        left.execution_plan()
+            .counters()
+            .bulk_parallel_profitable_count(),
         1
     );
     assert!(left.execution_plan().planning_failures().is_empty());

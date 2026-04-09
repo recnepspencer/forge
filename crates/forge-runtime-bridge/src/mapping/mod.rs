@@ -7,11 +7,12 @@ pub(crate) mod lookup;
 pub(crate) mod registration;
 pub(crate) mod subscriptions;
 
+pub(crate) use aspects::FrozenAspectMappingRegistry;
 pub use aspects::{
-    BridgeAspectRegistration, BridgeAspectRegistrationId, SliceFallbackPolicy, TruthDeltaSurfaceKind,
+    BridgeAspectRegistration, BridgeAspectRegistrationId, SliceFallbackPolicy,
+    TruthDeltaSurfaceKind,
 };
 pub use fallback::BridgeMappingFallbackClass;
-pub(crate) use aspects::FrozenAspectMappingRegistry;
 pub(crate) use freezing::{FrozenBridgeMappingRegistration, FrozenMappingRegistry};
 pub(crate) use lookup::BridgeMappingLookup;
 pub use registration::{

@@ -3,11 +3,11 @@ use crate::facade::{
     SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
 };
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::super::support::{
     build_runtime_with_aspects, committed_patch, field_aspect_registration, field_slice_snapshot,
     registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn field_surface_invalidates_only_registered_field_slice() {
@@ -30,7 +30,10 @@ fn field_surface_invalidates_only_registered_field_slice() {
         route.subscription_slices().slices()[0].slice_kind(),
         &SubscriptionSliceKind::SignalField
     );
-    assert_eq!(route.subscription_slices().slices()[0].surface_label(), "name");
+    assert_eq!(
+        route.subscription_slices().slices()[0].surface_label(),
+        "name"
+    );
     assert_eq!(route.counters().truth_delta_surface_count(), 1);
     assert_eq!(route.counters().normalized_truth_delta_surface_count(), 1);
     assert_eq!(route.counters().planned_slice_match_count(), 1);
@@ -76,7 +79,10 @@ fn region_surface_invalidates_only_registered_region_slice() {
         route.subscription_slices().slices()[0].slice_kind(),
         &SubscriptionSliceKind::SignalRegion
     );
-    assert_eq!(route.subscription_slices().slices()[0].surface_label(), "name");
+    assert_eq!(
+        route.subscription_slices().slices()[0].surface_label(),
+        "name"
+    );
     assert_eq!(route.counters().truth_delta_surface_count(), 1);
     assert_eq!(route.counters().normalized_truth_delta_surface_count(), 1);
     assert_eq!(route.counters().planned_slice_match_count(), 1);

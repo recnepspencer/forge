@@ -40,7 +40,12 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
     let changed_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("changed window should plan");
     let changed_checkpoint = runtime.publish_consumer_checkpoint(
@@ -50,7 +55,12 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
     );
 
     let error = runtime
-        .validate_stream_replay_record(&contract, &changed_window, &changed_checkpoint, &replay_record)
+        .validate_stream_replay_record(
+            &contract,
+            &changed_window,
+            &changed_checkpoint,
+            &replay_record,
+        )
         .expect_err("changed windows must fail replay validation");
 
     assert_eq!(
@@ -82,7 +92,12 @@ fn runtime_classifies_width_sensitive_backpressure_without_changing_window_truth
     let narrow_window = runtime
         .plan_change_stream_window(
             &contract,
-            vec![canonical_envelope("main", "commit-a", "patch-a", "snapshot-a")],
+            vec![canonical_envelope(
+                "main",
+                "commit-a",
+                "patch-a",
+                "snapshot-a",
+            )],
         )
         .expect("narrow window should plan");
     let burst_window = runtime
@@ -100,11 +115,17 @@ fn runtime_classifies_width_sensitive_backpressure_without_changing_window_truth
 
     assert_eq!(narrow_pressure.pressure_class(), "no-pressure");
     assert_eq!(burst_pressure.pressure_class(), "elevated-pressure");
-    assert_eq!(burst_pressure.pressure_reason_family(), "coalesced-window-width");
+    assert_eq!(
+        burst_pressure.pressure_reason_family(),
+        "coalesced-window-width"
+    );
     assert_eq!(narrow_window.counters().stream_member_count(), 1);
     assert_eq!(burst_window.counters().stream_member_count(), 2);
     assert_eq!(burst_window.counters().stream_coalesced_window_count(), 1);
-    assert_eq!(burst_pressure.counters().stream_backpressure_signal_count(), 1);
+    assert_eq!(
+        burst_pressure.counters().stream_backpressure_signal_count(),
+        1
+    );
     assert_eq!(
         burst_pressure.stream_window_identity(),
         burst_window.stream_window_identity()
@@ -179,7 +200,10 @@ fn runtime_stream_identities_are_invariant_across_diagnostics_tiers() {
         standard_window.stream_window_identity(),
         exhaustive_window.stream_window_identity()
     );
-    assert_eq!(standard_window.member_set_digest(), exhaustive_window.member_set_digest());
+    assert_eq!(
+        standard_window.member_set_digest(),
+        exhaustive_window.member_set_digest()
+    );
     let standard_delivery = runtime
         .deliver_change_stream_window(&standard_contract, &standard_window)
         .expect("standard delivery should succeed");

@@ -5,10 +5,22 @@ pub enum BridgeBuildErrorKind {
     MissingRelationalSource,
     MissingSignalSink,
     MissingMappingRegistrations,
+    MissingSourceAdapter,
     DuplicateMappingRegistration,
     AmbiguousMappingRegistration,
     DuplicateAspectRegistration,
     AmbiguousAspectRegistration,
+    DuplicateSourceDeclaration,
+    AmbiguousSourceDeclaration,
+    DuplicateStructuralDeclaration,
+    AmbiguousStructuralDeclaration,
+    DuplicateMergeDeclaration,
+    AmbiguousMergeDeclaration,
+    MergeOntologyLoweringMismatch,
+    MergeAuthorityBasisMismatch,
+    StructuralComparisonModeMismatch,
+    SourceCapabilityMismatch,
+    BuilderConfigurationConflict,
     InvalidFineGrainedFallbackPolicy,
 }
 
@@ -32,6 +44,7 @@ pub type BridgeRouteError = BridgeTypedError<BridgeRouteErrorKind>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeDeliveryErrorKind {
+    SourceContractMismatch,
     InvalidFallbackAdmission,
     BulkDeliveryRejected,
     HistoricalPolicyRejected,
@@ -43,6 +56,8 @@ pub enum BridgeDeliveryErrorKind {
     SnapshotReadFailure,
     SnapshotReadContractViolation,
     SnapshotIdentityMismatch,
+    StructuralContractMismatch,
+    StructuralPlanRejected,
     SignalSinkRejection,
 }
 
@@ -52,6 +67,7 @@ pub type BridgeDeliveryError = BridgeTypedError<BridgeDeliveryErrorKind>;
 pub enum BridgeReplayErrorKind {
     ReplayArtifactsDisabled,
     CanonicalArtifactCompatibilityFailure,
+    StructuralReplayBasisTruncated,
     BulkPlanReplayMismatch,
     HistoricalEvaluationDeclarationMismatch,
     HistoricalEvaluationPolicyMismatch,
@@ -98,6 +114,19 @@ pub enum BridgeContinuityErrorKind {
 }
 
 pub type BridgeContinuityError = BridgeTypedError<BridgeContinuityErrorKind>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeMergeErrorKind {
+    MergeContractMismatch,
+    MergeContinuityDenied,
+    MergeStructuralContradiction,
+    MergeCausalFrontierTruncated,
+    MergePolicyRejected,
+    MergeDeletionDenied,
+    MergeTopologyRewireDenied,
+}
+
+pub type BridgeMergeError = BridgeTypedError<BridgeMergeErrorKind>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeLineageSourceErrorKind {

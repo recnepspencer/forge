@@ -1,4 +1,5 @@
 use crate::delivery::BridgeDeliveryReceipt;
+use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
 use crate::routing::counters::BridgeRoutingCounters;
 use crate::routing::lowering::{
     BridgeInvalidationArtifact, BridgeInvalidationIdentity, BridgeSubscriptionSliceIdentity,
@@ -9,7 +10,6 @@ use crate::routing::planning::{
     BridgePreparationMode, BridgeRoutingSummary, BridgeWorkloadIdentity,
 };
 use crate::routing::proof::BridgeRouteContractProof;
-use crate::input::envelope::{TruthCommitIdentity, TruthPatchIdentity};
 use crate::snapshot::TruthSnapshotIdentity;
 use std::sync::Arc;
 

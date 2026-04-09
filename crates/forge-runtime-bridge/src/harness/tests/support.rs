@@ -2,12 +2,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::facade::{
-    BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId, BridgeMappingRegistration,
-    BridgeProducerMetadata, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RawCommittedPatchEnvelope, RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope,
-    SliceFallbackPolicy, SnapshotReadRecord, SnapshotReaderPool, SubscriptionSliceKind,
-    TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind, TruthPatchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity,
+    BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
+    BridgeMappingRegistration, BridgeProducerMetadata, CoarseRoutingMode, InvalidationSink,
+    MappingSelector, RawCommittedPatchEnvelope, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SliceFallbackPolicy, SnapshotReadRecord, SnapshotReaderPool,
+    SubscriptionSliceKind, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
+    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
 };
 
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, SnapshotFixture};
@@ -85,7 +85,10 @@ pub(super) fn committed_patch_items(
 pub(super) fn snapshot(snapshot: &str, value: &str) -> SnapshotFixture {
     SnapshotFixture::new(
         TruthSnapshotIdentity::new(snapshot),
-        vec![SnapshotReadRecord::new("user:profile", value.as_bytes().to_vec())],
+        vec![SnapshotReadRecord::new(
+            "user:profile",
+            value.as_bytes().to_vec(),
+        )],
     )
 }
 
@@ -180,7 +183,10 @@ impl SnapshotReaderPool for CountingSnapshotReaderPool {
     fn acquire(
         &self,
         identity: &TruthSnapshotIdentity,
-    ) -> Result<Box<dyn crate::facade::TruthSnapshotReader>, crate::facade::RelationalBridgeSourceError> {
+    ) -> Result<
+        Box<dyn crate::facade::TruthSnapshotReader>,
+        crate::facade::RelationalBridgeSourceError,
+    > {
         self.acquire_count.fetch_add(1, Ordering::SeqCst);
         crate::facade::SnapshotReadSource::open_snapshot(&self.source, identity)
     }
@@ -219,5 +225,29 @@ pub(super) fn field_aspect_registration_with_kind(
         surface_kind,
         slice_kind,
         SliceFallbackPolicy::Disallow,
+    )
+}
+
+pub(super) fn merge_declaration(
+    id: &str,
+    class: crate::facade::BridgeMergeConsumptionClass,
+    parents: Vec<&str>,
+) -> crate::facade::MergeHistoryDeclaration {
+    crate::facade::MergeHistoryDeclaration::new(
+        crate::facade::MergeHistoryDeclarationIdentity::new(id),
+        class,
+        crate::facade::BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
+        crate::facade::BridgeMergeAuthorityBasis::new(
+            crate::facade::BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
+            format!("merge-artifact:{id}"),
+            "rel-merge-v1",
+            "schema-policy-v1",
+            crate::facade::BridgeMergeParentOrderProof::new(
+                parents
+                    .into_iter()
+                    .map(crate::facade::TruthCommitIdentity::new)
+                    .collect(),
+            ),
+        ),
     )
 }

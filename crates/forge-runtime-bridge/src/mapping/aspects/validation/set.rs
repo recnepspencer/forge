@@ -83,5 +83,8 @@ pub(crate) fn validate_registration_set(
 pub(crate) fn registration_rank_group(
     registration: &BridgeAspectRegistration,
 ) -> (TruthDeltaSurfaceKind, SliceFallbackPolicy) {
-    (registration.truth_surface_kind(), registration.fallback_policy())
+    (
+        registration.truth_surface_kind(),
+        registration.fallback_policy(),
+    )
 }

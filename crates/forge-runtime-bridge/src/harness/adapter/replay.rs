@@ -1,6 +1,6 @@
 use forge_harness::facade::{
-    replay_id, HarnessAdapter, RecordSchemaVersion, ReplayHarnessAdapter, ReplayRecord, ReplayRequest,
-    ScenarioFixture,
+    replay_id, HarnessAdapter, RecordSchemaVersion, ReplayHarnessAdapter, ReplayRecord,
+    ReplayRequest, ScenarioFixture,
 };
 use serde_json::json;
 
@@ -17,7 +17,10 @@ impl ReplayHarnessAdapter for BridgeHarnessAdapter {
             .runtime
             .as_ref()
             .ok_or_else(|| BridgeHarnessError::new("bridge runtime not loaded"))?;
-        if let Some(record) = runtime_bridge.diagnostics().last_historical_evaluation_record() {
+        if let Some(record) = runtime_bridge
+            .diagnostics()
+            .last_historical_evaluation_record()
+        {
             let replay_record = runtime_bridge
                 .replay_canonical_historical_evaluation_record(&record)
                 .map_err(|error| {

@@ -4,21 +4,23 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::facade::{
-    BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeDiagnosticsTier, BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
-    BridgeLineageContext, BridgeLineageSourceError, BridgeMappingContext, BridgeRouteRequest,
-    BridgeBulkDecisionRecordKind, BridgeBulkPlanningFailureKind, BridgeParallelAdmissionClass,
+    BridgeBulkDecisionRecordKind, BridgeBulkPlanningFailureKind, BridgeBulkWorkloadRequest,
+    BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis, BridgeDiagnosticsTier,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeLineageContext,
+    BridgeLineageSourceError, BridgeMappingContext, BridgeParallelAdmissionClass,
     BridgeParallelAdmissionReason, BridgeParallelLegalityClass, BridgeParallelLegalityReason,
     BridgeParallelProfitabilityClass, BridgeParallelProfitabilityReason, BridgePreparationMode,
-    BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus, SubscriptionSliceKind,
-    TruthSnapshotIdentity,
+    BridgeRouteRequest, BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus,
+    SubscriptionSliceKind, TruthSnapshotIdentity,
 };
 
-use crate::harness::adapter::BridgeHarnessAdapter;
-use crate::harness::fixtures::{BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime, committed_patch, committed_patch_items, field_aspect_registration,
     field_slice_snapshot, registration, snapshot, surface_fallback_registration,
+};
+use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::fixtures::{
+    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -183,8 +185,7 @@ impl ContinuityLineageSource for CountingContinuityLineageSource {
     }
 }
 
-
-mod route_identity;
 mod bulk_workload;
-mod packet_reduction;
 mod continuity;
+mod packet_reduction;
+mod route_identity;

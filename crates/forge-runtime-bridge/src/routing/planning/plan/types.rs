@@ -9,9 +9,8 @@ use crate::input::envelope::{
 use crate::routing::context::BridgeMappingContext;
 use crate::routing::counters::BridgeRoutingCounters;
 use crate::routing::lowering::{
-    lower_validated_route, BridgeLoweringPlan, BridgeLoweringPlanSummary,
-    BridgeLoweringProvenance, BridgeLoweringSummary, CanonicalSubscriptionSlices,
-    ValidatedBridgeLoweringPlan,
+    lower_validated_route, BridgeLoweringPlan, BridgeLoweringPlanSummary, BridgeLoweringProvenance,
+    BridgeLoweringSummary, CanonicalSubscriptionSlices, ValidatedBridgeLoweringPlan,
 };
 use crate::routing::proof::BridgeRouteContractProof;
 use crate::routing::scope::RouteScope;

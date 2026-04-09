@@ -7,8 +7,8 @@ use crate::routing::canonicalization::digest_string;
 use super::checkpoints::{validate_checkpoint_for_window, ConsumerCheckpointToken};
 use super::counters::StreamProtocolCounters;
 use super::protocol::AdmittedConsumerContract;
-use super::StreamReplayMode;
 use super::window::PlannedChangeStreamWindow;
+use super::StreamReplayMode;
 
 pub type StreamReplayRecordIdentity = BridgeIdentity<StreamReplayRecordIdentityTag>;
 
@@ -114,7 +114,8 @@ pub(crate) fn validate_stream_replay_record(
     checkpoint: &ConsumerCheckpointToken,
     record: &CanonicalStreamReplayRecord,
 ) -> Result<(), BridgeStreamError> {
-    let expected = CanonicalStreamReplayRecord::from_window_and_checkpoint(contract, window, checkpoint)?;
+    let expected =
+        CanonicalStreamReplayRecord::from_window_and_checkpoint(contract, window, checkpoint)?;
     if record.consumer_contract_identity() != contract.consumer_contract_identity()
         || record.stream_window_identity() != window.stream_window_identity()
         || record.checkpoint_token_identity() != checkpoint.checkpoint_token_identity()

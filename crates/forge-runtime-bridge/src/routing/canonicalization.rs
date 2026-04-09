@@ -4,10 +4,10 @@ use sha2::{Digest, Sha256};
 
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
 use crate::mapping::{FrozenBridgeMappingRegistration, MappingSelector};
+use crate::routing::context::BridgeMappingContext;
 use crate::routing::eligibility::EligibleRouteEntry;
 use crate::routing::lowering::{BridgeInvalidationTarget, BridgeSubscriptionSlice};
 use crate::routing::matching::FineGrainedMatchStatus;
-use crate::routing::context::BridgeMappingContext;
 use crate::routing::planning::BridgeRouteIdentity;
 use crate::snapshot::{canonical_subscription_slice_kind_label, SnapshotReadRequest};
 
@@ -31,10 +31,7 @@ pub(crate) fn canonical_route_entry_order(
         .then_with(|| canonical_registration_order(left.registration(), right.registration()))
 }
 
-pub(crate) fn canonical_target_order<T>(
-    left: &T,
-    right: &T,
-) -> std::cmp::Ordering
+pub(crate) fn canonical_target_order<T>(left: &T, right: &T) -> std::cmp::Ordering
 where
     T: CanonicalTargetView,
 {
@@ -265,7 +262,9 @@ fn canonical_match_status_label(status: FineGrainedMatchStatus) -> &'static str 
     match status {
         FineGrainedMatchStatus::Matched => "matched",
         FineGrainedMatchStatus::FallbackAdmitted => "fallback-admitted",
-        FineGrainedMatchStatus::SuppressedByRegistrationPolicy => "suppressed-by-registration-policy",
+        FineGrainedMatchStatus::SuppressedByRegistrationPolicy => {
+            "suppressed-by-registration-policy"
+        }
         FineGrainedMatchStatus::UnsupportedSurfaceCategory => "unsupported-surface-category",
         FineGrainedMatchStatus::AmbiguousRegistration => "ambiguous-registration",
     }
@@ -301,7 +300,11 @@ fn canonical_registration_order(
                 right.truth_scope().surface_selector(),
             )
         })
-        .then_with(|| left.signal_scope().as_str().cmp(right.signal_scope().as_str()))
+        .then_with(|| {
+            left.signal_scope()
+                .as_str()
+                .cmp(right.signal_scope().as_str())
+        })
         .then_with(|| {
             left.truth_scope()
                 .specificity_rank()
@@ -335,7 +338,9 @@ fn selector_order(left: &MappingSelector, right: &MappingSelector) -> std::cmp::
         (MappingSelector::Any, MappingSelector::Any) => std::cmp::Ordering::Equal,
         (MappingSelector::Any, MappingSelector::Exact(_)) => std::cmp::Ordering::Less,
         (MappingSelector::Exact(_), MappingSelector::Any) => std::cmp::Ordering::Greater,
-        (MappingSelector::Exact(left), MappingSelector::Exact(right)) => left.as_ref().cmp(right.as_ref()),
+        (MappingSelector::Exact(left), MappingSelector::Exact(right)) => {
+            left.as_ref().cmp(right.as_ref())
+        }
     }
 }
 

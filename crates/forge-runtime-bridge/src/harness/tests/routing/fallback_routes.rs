@@ -3,10 +3,10 @@ use crate::facade::{
     SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
 };
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::super::support::{
     build_runtime_with_aspects, committed_patch, surface_fallback_registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[test]
 fn registered_partition_fallback_routes_deterministically() {

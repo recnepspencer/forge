@@ -1,5 +1,6 @@
 use crate::routing::{
-    BridgeInvalidationIdentity, BridgeInvalidationTarget, BridgeRouteIdentity, BridgeSubscriptionSlice,
+    BridgeInvalidationIdentity, BridgeInvalidationTarget, BridgeRouteIdentity,
+    BridgeSubscriptionSlice,
 };
 use crate::snapshot::TruthSnapshotIdentity;
 

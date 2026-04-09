@@ -19,7 +19,7 @@ use super::super::summaries::{
     BridgeRouteSourceSummary, BridgeRoutingSummary,
 };
 use super::super::BridgeRouteIdentity;
-use super::types::{BridgePlanningArtifacts, BridgePlannedExecution, BridgePlannedRoute};
+use super::types::{BridgePlannedExecution, BridgePlannedRoute, BridgePlanningArtifacts};
 
 pub(crate) fn plan_ingested_patch(
     runtime: &RuntimeBridge,

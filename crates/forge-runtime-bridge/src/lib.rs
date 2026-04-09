@@ -23,10 +23,13 @@ mod historical;
 mod identity;
 mod input;
 mod mapping;
+mod merge;
 mod policy;
 mod routing;
 mod snapshot;
+mod source;
 mod stream;
+mod structural;
 
 #[cfg(test)]
 mod harness;

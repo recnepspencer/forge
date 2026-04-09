@@ -21,7 +21,9 @@ pub(crate) fn parallel_legality_reason_label(reason: BridgeParallelLegalityReaso
     }
 }
 
-pub(crate) fn parallel_profitability_class_label(class: BridgeParallelProfitabilityClass) -> &'static str {
+pub(crate) fn parallel_profitability_class_label(
+    class: BridgeParallelProfitabilityClass,
+) -> &'static str {
     match class {
         BridgeParallelProfitabilityClass::NotApplicable => "not-applicable",
         BridgeParallelProfitabilityClass::Profitable => "profitable",
@@ -29,7 +31,9 @@ pub(crate) fn parallel_profitability_class_label(class: BridgeParallelProfitabil
     }
 }
 
-pub(crate) fn parallel_profitability_reason_label(reason: BridgeParallelProfitabilityReason) -> &'static str {
+pub(crate) fn parallel_profitability_reason_label(
+    reason: BridgeParallelProfitabilityReason,
+) -> &'static str {
     match reason {
         BridgeParallelProfitabilityReason::SerialOnlyWorkload => "serial-only-workload",
         BridgeParallelProfitabilityReason::SharedPublicationReductionTarget => {
@@ -51,7 +55,9 @@ pub(crate) fn parallel_admission_class_label(class: BridgeParallelAdmissionClass
     }
 }
 
-pub(crate) fn parallel_admission_reason_label(reason: BridgeParallelAdmissionReason) -> &'static str {
+pub(crate) fn parallel_admission_reason_label(
+    reason: BridgeParallelAdmissionReason,
+) -> &'static str {
     match reason {
         BridgeParallelAdmissionReason::SerialExecutor => "serial-executor",
         BridgeParallelAdmissionReason::BelowMinWorkloadWidth => "below-min-workload-width",
@@ -88,9 +94,7 @@ pub(crate) fn planning_failure_kind_label(kind: BridgeBulkPlanningFailureKind) -
             "invalid-parallel-admission-basis"
         }
         BridgeBulkPlanningFailureKind::PacketOverlapDetected => "packet-overlap-detected",
-        BridgeBulkPlanningFailureKind::ReductionIdentityConflict => {
-            "reduction-identity-conflict"
-        }
+        BridgeBulkPlanningFailureKind::ReductionIdentityConflict => "reduction-identity-conflict",
         BridgeBulkPlanningFailureKind::ParallelPreparationNotProfitable => {
             "parallel-preparation-not-profitable"
         }

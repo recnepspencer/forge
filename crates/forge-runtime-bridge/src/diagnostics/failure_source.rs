@@ -1,6 +1,6 @@
 use crate::routing::{
-    BridgeInvalidationIdentity, BridgeRouteContractProof, BridgeRouteIdentity, BridgeRoutingCounters,
-    BridgeSubscriptionSliceIdentity,
+    BridgeInvalidationIdentity, BridgeRouteContractProof, BridgeRouteIdentity,
+    BridgeRoutingCounters, BridgeSubscriptionSliceIdentity,
 };
 use crate::snapshot::TruthSnapshotIdentity;
 

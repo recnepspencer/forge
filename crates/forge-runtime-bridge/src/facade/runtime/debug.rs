@@ -1,19 +1,15 @@
 use super::*;
 
-impl std::fmt::Debug for RuntimeBridge {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RuntimeBridge")
-            .field("policy", &self.policy)
-            .field("diagnostics", &self.diagnostics)
-            .field(
-                "mapping_registration_count",
-                &self.mapping_registry.registrations().len(),
-            )
-            .field(
-                "aspect_registration_count",
-                &self.aspect_registry.registrations().len(),
-            )
-            .finish_non_exhaustive()
+impl RuntimeBridge {
+    pub fn source_registry(&self) -> &AdmittedSourceRegistry {
+        &self.source_registry
+    }
+
+    pub fn structural_registry(&self) -> &AdmittedStructuralRegistry {
+        &self.structural_registry
+    }
+
+    pub fn source_adapter(&self) -> Option<&Arc<dyn BridgeSourceAdapter>> {
+        self.source_adapter.as_ref()
     }
 }
-

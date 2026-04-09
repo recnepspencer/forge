@@ -8,11 +8,11 @@ use crate::facade::{
     TruthSnapshotIdentity,
 };
 
-use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, field_aspect_registration,
     field_slice_snapshot, registration, snapshot, surface_fallback_registration,
 };
+use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 #[derive(Debug, Clone, Default)]
 struct ExplanationContinuityLineageSource;
@@ -34,7 +34,12 @@ impl ContinuityLineageSource for ExplanationContinuityLineageSource {
 #[test]
 fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "avatar"));
+    source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "avatar",
+    ));
     source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let runtime = build_runtime(
         source,
@@ -94,8 +99,14 @@ fn bridge_route_explanation_exposes_fine_grained_match_status() {
         .expect("bridge should explain the last canonical route record");
 
     let entry = &explanation.route_entries()[0];
-    assert_eq!(entry.truth_surface_kind(), TruthDeltaSurfaceKind::EntityField);
-    assert_eq!(entry.fine_grained_match_status(), FineGrainedMatchStatus::Matched);
+    assert_eq!(
+        entry.truth_surface_kind(),
+        TruthDeltaSurfaceKind::EntityField
+    );
+    assert_eq!(
+        entry.fine_grained_match_status(),
+        FineGrainedMatchStatus::Matched
+    );
     assert_eq!(
         entry.aspect_registration_id().map(|id| id.as_str()),
         Some("profile-name-field")
@@ -104,7 +115,10 @@ fn bridge_route_explanation_exposes_fine_grained_match_status() {
         entry.subscription_slice_kind(),
         Some(&SubscriptionSliceKind::SignalField)
     );
-    assert_eq!(entry.slice_fallback_policy(), Some(SliceFallbackPolicy::Disallow));
+    assert_eq!(
+        entry.slice_fallback_policy(),
+        Some(SliceFallbackPolicy::Disallow)
+    );
     assert_eq!(explanation.subscription_slices().len(), 1);
     assert_eq!(
         explanation.subscription_slices()[0].slice_kind(),
@@ -157,9 +171,7 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
     let artifact = runtime.lower_continuity_artifact(&resolved);
     let canonical = runtime.canonicalize_continuity_record(&route_record, &requests, &artifact);
 
-    let explanation = runtime
-        .diagnostics()
-        .explain_continuity_record(&canonical);
+    let explanation = runtime.diagnostics().explain_continuity_record(&canonical);
 
     assert_eq!(explanation.route_identity(), route_record.route_identity());
     assert_eq!(explanation.source_snapshot().as_str(), "snapshot-a");
@@ -197,9 +209,7 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
         .expect("bulk workload should plan before explanation reconstruction");
     let record = runtime.canonicalize_bulk_workload_plan(&plan);
 
-    let explanation = runtime
-        .diagnostics()
-        .explain_bulk_record(&record);
+    let explanation = runtime.diagnostics().explain_bulk_record(&record);
 
     assert_eq!(explanation.workload_identity(), plan.workload_identity());
     assert_eq!(
@@ -210,7 +220,10 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
         explanation.admission_profile_identity(),
         plan.admission_profile_identity()
     );
-    assert_eq!(explanation.selected_mode(), BridgePreparationMode::ParallelPreparation);
+    assert_eq!(
+        explanation.selected_mode(),
+        BridgePreparationMode::ParallelPreparation
+    );
     assert_eq!(explanation.request_segment_count(), 2);
     assert_eq!(explanation.packet_set_digest(), plan.packet_set().digest());
     assert_eq!(
@@ -230,7 +243,9 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
         plan.execution_plan().decision_log()
     );
     assert_eq!(
-        explanation.counters().bulk_parallel_preparation_admitted_count(),
+        explanation
+            .counters()
+            .bulk_parallel_preparation_admitted_count(),
         1
     );
     assert!(explanation.planning_failures().is_empty());
@@ -260,8 +275,14 @@ fn bridge_bulk_explanation_retains_typed_parallel_fallback_failures() {
         .explain_bulk_record(&runtime.canonicalize_bulk_workload_plan(&plan));
 
     assert_eq!(explanation.selected_mode(), BridgePreparationMode::Serial);
-    assert_eq!(explanation.decision_log(), plan.execution_plan().decision_log());
-    assert_eq!(explanation.planning_failures(), plan.execution_plan().planning_failures());
+    assert_eq!(
+        explanation.decision_log(),
+        plan.execution_plan().decision_log()
+    );
+    assert_eq!(
+        explanation.planning_failures(),
+        plan.execution_plan().planning_failures()
+    );
     assert_eq!(explanation.planning_failure_count(), 1);
     assert_eq!(
         explanation.planning_failures()[0].kind(),

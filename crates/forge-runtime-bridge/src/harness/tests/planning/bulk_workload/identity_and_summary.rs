@@ -20,8 +20,18 @@ fn bridge_bulk_planning_rejects_empty_workloads() {
 #[test]
 fn bridge_bulk_planning_identity_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    left_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let left_runtime = build_runtime(
@@ -31,8 +41,18 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    right_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let right_runtime = build_runtime(
@@ -63,7 +83,10 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
         left.admission_profile_identity(),
         right.admission_profile_identity()
     );
-    assert_eq!(left.canonical_request().digest(), right.canonical_request().digest());
+    assert_eq!(
+        left.canonical_request().digest(),
+        right.canonical_request().digest()
+    );
     assert_eq!(
         left.normalized_summary().digest(),
         right.normalized_summary().digest()
@@ -84,7 +107,12 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
 #[test]
 fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile_identity() {
     let standard_source = InMemoryRelationalBridgeSource::default();
-    standard_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    standard_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     standard_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let standard_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_policy(
@@ -100,7 +128,12 @@ fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile
         .expect("standard runtime should build");
 
     let exhaustive_source = InMemoryRelationalBridgeSource::default();
-    exhaustive_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    exhaustive_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     exhaustive_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let exhaustive_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_policy(
@@ -146,7 +179,10 @@ fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile
         standard.planned_routes()[0].source_commit().as_str(),
         exhaustive.planned_routes()[0].source_commit().as_str()
     );
-    assert_eq!(BridgeDiagnosticsTier::Standard, standard_runtime.policy().diagnostics_tier());
+    assert_eq!(
+        BridgeDiagnosticsTier::Standard,
+        standard_runtime.policy().diagnostics_tier()
+    );
     assert_eq!(
         BridgeDiagnosticsTier::Exhaustive,
         exhaustive_runtime.policy().diagnostics_tier()

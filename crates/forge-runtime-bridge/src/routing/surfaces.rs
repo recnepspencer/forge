@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::error::{BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind};
+use crate::error::{
+    BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind,
+};
 use crate::identity::{BridgeIdentity, TruthDeltaSurfaceIdentityTag};
 use crate::input::envelope::{BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem};
 use crate::mapping::{FrozenAspectMappingRegistry, TruthDeltaSurfaceKind};
@@ -198,9 +200,18 @@ impl FrozenAspectMappingRegistry {
     ) -> Option<&crate::mapping::aspects::FrozenAspectRegistration> {
         self.registrations().iter().find(|registration| {
             registration.truth_surface_kind() == surface_kind
-                && registration.truth_scope().entity_selector().matches(entity_identity)
-                && registration.truth_scope().aspect_selector().matches(aspect_label)
-                && registration.truth_scope().surface_selector().matches(surface_label)
+                && registration
+                    .truth_scope()
+                    .entity_selector()
+                    .matches(entity_identity)
+                && registration
+                    .truth_scope()
+                    .aspect_selector()
+                    .matches(aspect_label)
+                && registration
+                    .truth_scope()
+                    .surface_selector()
+                    .matches(surface_label)
         })
     }
 }
@@ -236,23 +247,26 @@ mod tests {
         ))
     }
 
-    fn frozen_aspects(
-        registrations: Vec<BridgeAspectRegistration>,
-    ) -> FrozenAspectMappingRegistry {
+    fn frozen_aspects(registrations: Vec<BridgeAspectRegistration>) -> FrozenAspectMappingRegistry {
         FrozenAspectMappingRegistry::freeze(registrations).expect("aspect registry should freeze")
     }
 
     #[test]
     fn derives_default_field_surface_without_prefix() {
         let normalized = derive_normalized_truth_delta_surface_set(
-            &envelope(vec![BridgeCommittedPatchItem::new("user", "profile", "name")]),
+            &envelope(vec![BridgeCommittedPatchItem::new(
+                "user", "profile", "name",
+            )]),
             &FrozenAspectMappingRegistry::default(),
         )
         .expect("unprefixed surfaces should normalize as entity fields");
 
-        assert_eq!(truth_delta_surface_count(&envelope(vec![BridgeCommittedPatchItem::new(
-            "user", "profile", "name"
-        )])), 1);
+        assert_eq!(
+            truth_delta_surface_count(&envelope(vec![BridgeCommittedPatchItem::new(
+                "user", "profile", "name"
+            )])),
+            1
+        );
         assert_eq!(normalized.len(), 1);
         let surface = &normalized.surfaces[0];
         assert_eq!(surface.surface_kind, TruthDeltaSurfaceKind::EntityField);
@@ -288,7 +302,10 @@ mod tests {
         )
         .expect_err("unknown prefixes must fail explicitly");
 
-        assert_eq!(error.kind(), BridgeRouteErrorKind::UnsupportedTruthDeltaSurface);
+        assert_eq!(
+            error.kind(),
+            BridgeRouteErrorKind::UnsupportedTruthDeltaSurface
+        );
     }
 
     #[test]
@@ -334,6 +351,9 @@ mod tests {
         .expect("duplicate normalized surfaces should collapse");
 
         assert_eq!(normalized.len(), 1);
-        assert!(normalized.surfaces[0].surface_identity.as_str().contains("name"));
+        assert!(normalized.surfaces[0]
+            .surface_identity
+            .as_str()
+            .contains("name"));
     }
 }

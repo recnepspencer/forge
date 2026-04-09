@@ -216,4 +216,3 @@ impl RawCommittedPatchEnvelope {
         &self.0.payload.patch_items
     }
 }
-

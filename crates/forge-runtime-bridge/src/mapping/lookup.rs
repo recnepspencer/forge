@@ -58,12 +58,8 @@ impl<'a> ResolvedBridgeMapping<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeMappingLookup<'a> {
-    Exact {
-        resolved: ResolvedBridgeMapping<'a>,
-    },
-    Fallback {
-        resolved: ResolvedBridgeMapping<'a>,
-    },
+    Exact { resolved: ResolvedBridgeMapping<'a> },
+    Fallback { resolved: ResolvedBridgeMapping<'a> },
     Missing,
 }
 

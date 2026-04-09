@@ -13,9 +13,11 @@ impl RuntimeBridge {
         &self,
         request: BridgeRouteRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, BridgeRouteError> {
-        Ok(crate::input::ingress::ingest_committed_patch(self, request)?
-            .envelope()
-            .clone())
+        Ok(
+            crate::input::ingress::ingest_committed_patch(self, request)?
+                .envelope()
+                .clone(),
+        )
     }
 
     pub fn plan_envelope(
@@ -82,10 +84,7 @@ impl RuntimeBridge {
         crate::delivery::deliver_planned_route(self, route)
     }
 
-    pub fn prepare_delivery(
-        &self,
-        route: BridgePlannedRoute,
-    ) -> BridgePreparedDeliveryRequest {
+    pub fn prepare_delivery(&self, route: BridgePlannedRoute) -> BridgePreparedDeliveryRequest {
         crate::delivery::prepare_planned_route_for_delivery(route)
     }
 
@@ -130,18 +129,18 @@ impl RuntimeBridge {
         }
 
         let record = record.decode()?;
-        let replayed = self.plan_bulk_workload(record.request().clone()).map_err(|error| {
-            BridgeReplayError::new(
+        let replayed =
+            self.plan_bulk_workload(record.request().clone())
+                .map_err(|error| {
+                    BridgeReplayError::new(
                 BridgeReplayErrorKind::BulkPlanReplayMismatch,
                 format!("Bridge bulk replay failed to reconstruct the planned workload: {error}"),
             )
-        })?;
+                })?;
 
         if replayed.workload_identity() != record.workload_identity()
-            || replayed.canonical_request().digest()
-                != record.canonical_request_digest()
-            || replayed.normalized_summary().digest()
-                != record.normalized_summary_digest()
+            || replayed.canonical_request().digest() != record.canonical_request_digest()
+            || replayed.normalized_summary().digest() != record.normalized_summary_digest()
             || replayed.canonical_planning_identity() != record.canonical_planning_identity()
             || replayed.admission_profile_identity() != record.admission_profile_identity()
             || replayed.packet_set().digest() != record.packet_set_digest()
@@ -178,8 +177,9 @@ impl RuntimeBridge {
         &self,
         prior_route_record: &BridgeRouteRecord,
     ) -> Result<BridgeEligibleContinuityRequestSet, BridgeContinuityError> {
-        let planned =
-            crate::continuity::BridgePlannedContinuityRequestSet::from_route_record(prior_route_record)?;
+        let planned = crate::continuity::BridgePlannedContinuityRequestSet::from_route_record(
+            prior_route_record,
+        )?;
         crate::continuity::BridgeEligibleContinuityRequestSet::from_planned(planned)
     }
 
@@ -235,8 +235,6 @@ impl RuntimeBridge {
                 lineage_authority,
             ));
         }
-        Ok(crate::continuity::BridgeHistoricalLineagePacket::from_entries(
-            requests, entries,
-        ))
+        Ok(crate::continuity::BridgeHistoricalLineagePacket::from_entries(requests, entries))
     }
 }

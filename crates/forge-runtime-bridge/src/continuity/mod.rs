@@ -7,8 +7,8 @@ mod resolution;
 mod taxonomy;
 
 pub use authority::{
-    BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind,
-    BridgeContinuityDigestBasisKind, BridgeLineageContext,
+    BridgeContinuityAuthorityBasis, BridgeContinuityAuthorityKind, BridgeContinuityDigestBasisKind,
+    BridgeLineageContext,
 };
 pub use counters::BridgeContinuityCounters;
 pub use lineage_packet::{BridgeHistoricalLineagePacket, BridgeHistoricalLineagePacketEntry};

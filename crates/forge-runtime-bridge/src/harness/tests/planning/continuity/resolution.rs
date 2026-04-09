@@ -16,12 +16,12 @@ fn bridge_resolved_lineage_continuity_lowers_single_successor_artifact() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -57,7 +57,10 @@ fn bridge_resolved_lineage_continuity_lowers_single_successor_artifact() {
         artifact.remapped_slices().slices()[0].aspect_label(),
         "profile"
     );
-    assert_eq!(artifact.remapped_slices().slices()[0].surface_label(), "name");
+    assert_eq!(
+        artifact.remapped_slices().slices()[0].surface_label(),
+        "name"
+    );
     assert_eq!(artifact.counters().continuity_request_count(), 1);
     assert_eq!(artifact.counters().continuity_prior_slice_count(), 1);
     assert_eq!(artifact.counters().continuity_single_successor_count(), 1);
@@ -81,12 +84,12 @@ fn bridge_resolved_lineage_continuity_lowers_split_successor_artifact() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -142,12 +145,12 @@ fn bridge_resolved_lineage_continuity_lowers_merge_like_successor_artifact() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -174,7 +177,10 @@ fn bridge_resolved_lineage_continuity_lowers_merge_like_successor_artifact() {
         crate::facade::BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
     );
     assert_eq!(artifact.remapped_slices().len(), 1);
-    assert_eq!(artifact.remapped_slices().slices()[0].entity_identity(), "entity:0:9:3");
+    assert_eq!(
+        artifact.remapped_slices().slices()[0].entity_identity(),
+        "entity:0:9:3"
+    );
 }
 
 #[test]
@@ -195,12 +201,12 @@ fn bridge_resolved_lineage_continuity_rejects_ambiguous_successor_sets() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -247,12 +253,12 @@ fn bridge_resolved_lineage_continuity_rejects_no_authoritative_successor() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -299,12 +305,12 @@ fn bridge_deliver_continuity_returns_delivered_result_and_canonical_record() {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("route should plan");
     let result = runtime
@@ -324,7 +330,9 @@ fn bridge_deliver_continuity_returns_delivered_result_and_canonical_record() {
         delivered.continuity_identity()
     );
     assert_eq!(
-        delivered.canonical_record().remapped_subscription_slice_identity(),
+        delivered
+            .canonical_record()
+            .remapped_subscription_slice_identity(),
         delivered.remapped_subscription_slice_identity()
     );
     assert_eq!(
@@ -336,7 +344,12 @@ fn bridge_deliver_continuity_returns_delivered_result_and_canonical_record() {
 #[test]
 fn bridge_continuity_truth_is_invariant_across_diagnostics_tiers() {
     let standard_source = InMemoryRelationalBridgeSource::default();
-    standard_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    standard_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     standard_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let forensic_source = standard_source.clone();
 
@@ -362,23 +375,23 @@ fn bridge_continuity_truth_is_invariant_across_diagnostics_tiers() {
     let standard_route = standard_runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("standard route should plan");
     let forensic_route = forensic_runtime
         .plan_committed_patch_with_mapping_context(
             BridgeRouteRequest::for_commit("commit-a"),
-            BridgeMappingContext::default().with_lineage_context(
-                BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
+            BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
+                BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
                     TruthSnapshotIdentity::new("snapshot-a"),
-                )),
-            ),
+                ),
+            )),
         )
         .expect("forensic route should plan");
 
@@ -405,7 +418,10 @@ fn bridge_continuity_truth_is_invariant_across_diagnostics_tiers() {
         .deliver_continuity(&forensic_route_record)
         .expect("forensic continuity should deliver");
 
-    assert_eq!(standard.continuity_identity(), forensic.continuity_identity());
+    assert_eq!(
+        standard.continuity_identity(),
+        forensic.continuity_identity()
+    );
     assert_eq!(
         standard.canonical_record().continuity_resolution_digest(),
         forensic.canonical_record().continuity_resolution_digest()

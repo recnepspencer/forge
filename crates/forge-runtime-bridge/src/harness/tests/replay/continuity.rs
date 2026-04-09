@@ -59,7 +59,12 @@ fn bridge_continuity_replay_matches_original_canonical_artifact() {
 #[test]
 fn bridge_continuity_replay_rejects_artifact_drift() {
     let original_source = InMemoryRelationalBridgeSource::default();
-    original_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    original_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     original_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let original_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(original_source)
@@ -98,10 +103,16 @@ fn bridge_continuity_replay_rejects_artifact_drift() {
         .resolve_lineage_continuity(&packet)
         .expect("continuity should resolve");
     let artifact = original_runtime.lower_continuity_artifact(&resolved);
-    let canonical = original_runtime.canonicalize_continuity_record(&route_record, &requests, &artifact);
+    let canonical =
+        original_runtime.canonicalize_continuity_record(&route_record, &requests, &artifact);
 
     let restarted_source = InMemoryRelationalBridgeSource::default();
-    restarted_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    restarted_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     restarted_source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
     let restarted_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(restarted_source)
@@ -179,4 +190,3 @@ fn bridge_continuity_replay_rejects_incompatible_canonical_record_version() {
     );
     assert!(error.to_string().contains("not supported"));
 }
-

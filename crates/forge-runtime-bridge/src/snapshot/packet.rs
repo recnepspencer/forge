@@ -85,7 +85,9 @@ impl SnapshotReadRequest {
     pub fn surface_label(&self) -> Option<&str> {
         match &self.shape {
             SnapshotReadShape::Coarse => None,
-            SnapshotReadShape::SubscriptionSlice { surface_label, .. } => Some(surface_label.as_ref()),
+            SnapshotReadShape::SubscriptionSlice { surface_label, .. } => {
+                Some(surface_label.as_ref())
+            }
         }
     }
 
@@ -280,11 +282,11 @@ pub(crate) fn canonical_subscription_slice_kind_label(
 
 #[cfg(test)]
 mod tests {
+    use crate::mapping::SubscriptionSliceKind;
     use crate::snapshot::{
         validate_snapshot_read_result_contract, BridgeSnapshotReadError, SnapshotReadPacket,
         SnapshotReadRecord, SnapshotReadRequest, TruthSnapshotIdentity,
     };
-    use crate::mapping::SubscriptionSliceKind;
 
     use super::SnapshotReadPacketResult;
 
@@ -317,12 +319,10 @@ mod tests {
 
     #[test]
     fn packet_digest_changes_when_declared_reads_change() {
-        let left = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-1", "profile",
-        )]);
-        let right = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-2", "profile",
-        )]);
+        let left =
+            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-1", "profile")]);
+        let right =
+            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-2", "profile")]);
 
         assert_ne!(left.digest(), right.digest());
     }
@@ -360,9 +360,8 @@ mod tests {
 
     #[test]
     fn validation_rejects_duplicate_result_keys() {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-1", "profile",
-        )]);
+        let packet =
+            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-1", "profile")]);
 
         let error = validate_snapshot_read_result_contract(
             &packet,

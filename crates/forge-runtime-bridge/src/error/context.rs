@@ -88,7 +88,10 @@ pub struct BridgeDeliveryContext {
 }
 
 impl BridgeDeliveryContext {
-    pub fn new(route_identity: BridgeRouteIdentity, snapshot_identity: TruthSnapshotIdentity) -> Self {
+    pub fn new(
+        route_identity: BridgeRouteIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
         Self {
             route_identity,
             snapshot_identity,
@@ -114,7 +117,10 @@ impl BridgeDeliveryContext {
         self
     }
 
-    pub(crate) fn with_snapshot_read(mut self, snapshot_read: BridgeSnapshotReadCoordinate) -> Self {
+    pub(crate) fn with_snapshot_read(
+        mut self,
+        snapshot_read: BridgeSnapshotReadCoordinate,
+    ) -> Self {
         self.snapshot_read = Some(snapshot_read);
         self
     }
@@ -129,7 +135,10 @@ pub struct BridgeReplayContext {
 }
 
 impl BridgeReplayContext {
-    pub fn new(route_identity: BridgeRouteIdentity, snapshot_identity: TruthSnapshotIdentity) -> Self {
+    pub fn new(
+        route_identity: BridgeRouteIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
         Self {
             route_identity,
             snapshot_identity,
@@ -195,7 +204,10 @@ impl BridgeErrorContext {
         route_identity: BridgeRouteIdentity,
         snapshot_identity: TruthSnapshotIdentity,
     ) -> Self {
-        Self::Delivery(BridgeDeliveryContext::new(route_identity, snapshot_identity))
+        Self::Delivery(BridgeDeliveryContext::new(
+            route_identity,
+            snapshot_identity,
+        ))
     }
 
     pub fn replay(
@@ -216,10 +228,17 @@ impl BridgeErrorContext {
         }
     }
 
-    pub(crate) fn with_invalidation_identity(self, invalidation_identity: BridgeInvalidationIdentity) -> Self {
+    pub(crate) fn with_invalidation_identity(
+        self,
+        invalidation_identity: BridgeInvalidationIdentity,
+    ) -> Self {
         match self {
-            Self::Delivery(context) => Self::Delivery(context.with_invalidation_identity(invalidation_identity)),
-            Self::Replay(context) => Self::Replay(context.with_invalidation_identity(invalidation_identity)),
+            Self::Delivery(context) => {
+                Self::Delivery(context.with_invalidation_identity(invalidation_identity))
+            }
+            Self::Replay(context) => {
+                Self::Replay(context.with_invalidation_identity(invalidation_identity))
+            }
             other => other,
         }
     }
@@ -229,9 +248,9 @@ impl BridgeErrorContext {
         subscription_slice_identity: BridgeSubscriptionSliceIdentity,
     ) -> Self {
         match self {
-            Self::Delivery(context) => {
-                Self::Delivery(context.with_subscription_slice_identity(subscription_slice_identity))
-            }
+            Self::Delivery(context) => Self::Delivery(
+                context.with_subscription_slice_identity(subscription_slice_identity),
+            ),
             Self::Replay(context) => {
                 Self::Replay(context.with_subscription_slice_identity(subscription_slice_identity))
             }

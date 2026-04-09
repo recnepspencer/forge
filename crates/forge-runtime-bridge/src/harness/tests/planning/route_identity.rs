@@ -3,7 +3,12 @@ use super::*;
 #[test]
 fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let left_runtime = build_runtime(
         left_source,
@@ -12,7 +17,12 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let right_runtime = build_runtime(
         right_source,
@@ -54,7 +64,12 @@ fn bridge_prepared_delivery_is_equivalent_to_one_shot_delivery() {
 #[test]
 fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let left_runtime = build_runtime(
         left_source,
@@ -63,7 +78,12 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let right_runtime = build_runtime(
         right_source,
@@ -81,8 +101,14 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
         )
         .expect("explicit empty mapping context planning should succeed");
 
-    assert_eq!(default_route.route_identity(), explicit_route.route_identity());
-    assert_eq!(default_route.source_digest(), explicit_route.source_digest());
+    assert_eq!(
+        default_route.route_identity(),
+        explicit_route.route_identity()
+    );
+    assert_eq!(
+        default_route.source_digest(),
+        explicit_route.source_digest()
+    );
     assert_eq!(
         default_route.planning_provenance().digest(),
         explicit_route.planning_provenance().digest()
@@ -98,7 +124,12 @@ fn bridge_empty_mapping_context_is_equivalent_to_default_planning_path() {
 #[test]
 fn bridge_route_identity_is_stable_across_equivalent_surface_spellings() {
     let left_source = InMemoryRelationalBridgeSource::default();
-    left_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
+    left_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -106,7 +137,12 @@ fn bridge_route_identity_is_stable_across_equivalent_surface_spellings() {
     );
 
     let right_source = InMemoryRelationalBridgeSource::default();
-    right_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "field:name"));
+    right_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "field:name",
+    ));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -196,4 +232,3 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
         right_run.summary["route_identity"]
     );
 }
-

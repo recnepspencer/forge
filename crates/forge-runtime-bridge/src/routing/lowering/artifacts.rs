@@ -189,10 +189,5 @@ pub(crate) fn lower_validated_route(
         digest_string("snapshot-token", &snapshot_basis),
     );
 
-    BridgeInvalidationArtifact::new(
-        validated,
-        invalidation_identity,
-        snapshot_token,
-        counters,
-    )
+    BridgeInvalidationArtifact::new(validated, invalidation_identity, snapshot_token, counters)
 }

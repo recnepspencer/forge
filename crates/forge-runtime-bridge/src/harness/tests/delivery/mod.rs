@@ -1,4 +1,6 @@
-use forge_harness::facade::{ExecutionProfile, ExecutionRequest, HarnessRunner, MutationBatch, ScenarioPlan};
+use forge_harness::facade::{
+    ExecutionProfile, ExecutionRequest, HarnessRunner, MutationBatch, ScenarioPlan,
+};
 use forge_harness::runtime::HarnessAdapter;
 
 use crate::facade::{
@@ -6,16 +8,15 @@ use crate::facade::{
     BridgePreparationMode, BridgeRouteRequest, RuntimeBridgeBuilder, TruthSnapshotIdentity,
 };
 
-use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation};
-use crate::harness::fixtures::{
-    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, SnapshotFixture,
-};
 use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, field_aspect_registration,
-    field_slice_snapshot, registration, snapshot,
-    RejectingSignalSink, CountingSnapshotReaderPool,
+    field_slice_snapshot, registration, snapshot, CountingSnapshotReaderPool, RejectingSignalSink,
+};
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessMutation};
+use crate::harness::fixtures::{
+    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
+    SnapshotFixture,
 };
 
-
-mod snapshot;
 mod bulk;
+mod snapshot;

@@ -6,7 +6,9 @@ use forge_core::KernelError;
 use forge_signal::facade::adapters::{
     BatchedDirtySet, CheckpointEvaluator, DomainImpact, EffectMapping,
 };
-use forge_signal::facade::runtime::{CheckpointBarrier, RuntimeCheckpointPolicy as CheckpointPolicy};
+use forge_signal::facade::runtime::{
+    CheckpointBarrier, RuntimeCheckpointPolicy as CheckpointPolicy,
+};
 use forge_signal::facade::specialist::CheckpointRuntime;
 use forge_signal::facade::SignalError;
 use smallvec::{smallvec, SmallVec};

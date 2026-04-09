@@ -1,4 +1,6 @@
-use crate::error::{BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind};
+use crate::error::{
+    BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind,
+};
 use crate::input::envelope::{
     BridgeCommittedPatchEnvelope, BridgeProducerAuthorityKind, BridgeProducerMetadata,
     NormalizedBridgePatchEnvelope, BRIDGE_PRODUCER_EXPORT_SCHEMA_V1,
@@ -57,7 +59,11 @@ pub(crate) fn validate_normalized_envelope(
                 item.surface_label(),
             )))
         })?;
-        validate_identity(&format!("patch item #{index} aspect label"), item.aspect_label()).map_err(|error| {
+        validate_identity(
+            &format!("patch item #{index} aspect label"),
+            item.aspect_label(),
+        )
+        .map_err(|error| {
             error.with_context(BridgeErrorContext::patch(BridgePatchCoordinate::new(
                 item.entity_identity(),
                 item.aspect_label(),
@@ -92,7 +98,10 @@ fn validate_identity(label: &str, value: &str) -> Result<(), BridgeRouteError> {
 }
 
 fn validate_producer_metadata(metadata: &BridgeProducerMetadata) -> Result<(), BridgeRouteError> {
-    validate_identity("producer export schema version", metadata.export_schema_version())?;
+    validate_identity(
+        "producer export schema version",
+        metadata.export_schema_version(),
+    )?;
     if metadata.export_schema_version() != BRIDGE_PRODUCER_EXPORT_SCHEMA_V1 {
         return Err(BridgeRouteError::new(
             BridgeRouteErrorKind::UnsupportedProducerEnvelope,
@@ -145,9 +154,7 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1",
-                "profile",
-                "name",
+                "entity-1", "profile", "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -155,7 +162,10 @@ mod tests {
         let error = validate_normalized_envelope(parts)
             .expect_err("empty canonical identities must be rejected");
 
-        assert_eq!(error.kind(), BridgeRouteErrorKind::UnsupportedTruthPatchScope);
+        assert_eq!(
+            error.kind(),
+            BridgeRouteErrorKind::UnsupportedTruthPatchScope
+        );
         assert!(error.to_string().contains("commit identity"));
     }
 
@@ -169,9 +179,7 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-            "entity-1",
-            "",
-            "name",
+                "entity-1", "", "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -179,7 +187,10 @@ mod tests {
         let error = validate_normalized_envelope(parts)
             .expect_err("empty canonical patch item labels must be rejected");
 
-        assert_eq!(error.kind(), BridgeRouteErrorKind::UnsupportedTruthPatchScope);
+        assert_eq!(
+            error.kind(),
+            BridgeRouteErrorKind::UnsupportedTruthPatchScope
+        );
         assert!(error.to_string().contains("patch item #0 aspect label"));
     }
 
@@ -196,9 +207,7 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1",
-                "profile",
-                "name",
+                "entity-1", "profile", "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -206,6 +215,9 @@ mod tests {
         let error = validate_normalized_envelope(parts)
             .expect_err("unsupported producer schemas must fail at ingress");
 
-        assert_eq!(error.kind(), BridgeRouteErrorKind::UnsupportedProducerEnvelope);
+        assert_eq!(
+            error.kind(),
+            BridgeRouteErrorKind::UnsupportedProducerEnvelope
+        );
     }
 }

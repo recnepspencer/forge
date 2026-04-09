@@ -3,11 +3,11 @@ use std::sync::Arc;
 use crate::identity::{BridgeIdentity, StreamWindowIdentityTag};
 use crate::routing::canonicalization::digest_string;
 
+use super::counters::StreamProtocolCounters;
 use super::declaration::{
     checkpoint_publication_mode_label, coalescing_family_label, StreamCheckpointPublicationMode,
     StreamCoalescingFamily, StreamDiagnosticsPolicyClass,
 };
-use super::counters::StreamProtocolCounters;
 use super::lowered::LoweredConsumedChangeSet;
 use super::member::CanonicalStreamMember;
 use super::position::CanonicalStreamPosition;

@@ -38,8 +38,11 @@ pub(crate) fn plan_bulk_workload(
         "bulk-workload",
         &bulk_workload_digest_basis(&planned_routes),
     ));
-    let canonical_request =
-        canonical_workload_request(workload_identity.clone(), request.segments(), &planned_routes);
+    let canonical_request = canonical_workload_request(
+        workload_identity.clone(),
+        request.segments(),
+        &planned_routes,
+    );
     let normalized_summary = normalized_workload_summary(&canonical_request, &planned_routes);
     let canonical_planning_identity = BridgeCanonicalPlanningIdentity::new(digest_string(
         "bulk-planning-identity",
@@ -102,7 +105,8 @@ fn canonical_workload_request(
         .iter()
         .map(|route| {
             Arc::<str>::from(
-                route.lowering_summary()
+                route
+                    .lowering_summary()
                     .subscription_slice_identity()
                     .as_str()
                     .to_owned(),
@@ -114,9 +118,12 @@ fn canonical_workload_request(
     let mut continuity_members = planned_routes
         .iter()
         .filter_map(|route| {
-            route.mapping_context().lineage_context().map(|lineage_context| {
-                Arc::<str>::from(lineage_context.authority_basis().digest().to_owned())
-            })
+            route
+                .mapping_context()
+                .lineage_context()
+                .map(|lineage_context| {
+                    Arc::<str>::from(lineage_context.authority_basis().digest().to_owned())
+                })
         })
         .collect::<Vec<_>>();
     continuity_members.sort();
@@ -185,7 +192,9 @@ fn normalized_workload_summary(
     let mut snapshot_scopes = std::collections::BTreeSet::<Arc<str>>::new();
     for route in planned_routes {
         branch_scopes.insert(Arc::<str>::from(route.source_branch().as_str().to_owned()));
-        snapshot_scopes.insert(Arc::<str>::from(route.source_snapshot().as_str().to_owned()));
+        snapshot_scopes.insert(Arc::<str>::from(
+            route.source_snapshot().as_str().to_owned(),
+        ));
     }
     NormalizedBridgeWorkloadSummary::new(
         canonical_request.workload_identity().clone(),

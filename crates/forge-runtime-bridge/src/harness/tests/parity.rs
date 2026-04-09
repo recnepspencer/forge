@@ -1,24 +1,19 @@
-use forge_harness::facade::{
-    parity_suite, ExecutionProfile, ExecutionRequest, ScenarioPlan,
-};
+use forge_harness::facade::{parity_suite, ExecutionProfile, ExecutionRequest, ScenarioPlan};
 use std::sync::Arc;
 
-use crate::harness::adapter::BridgeHarnessAdapter;
-use crate::harness::fixtures::BridgeHarnessFixture;
+use super::support::{
+    build_runtime, committed_patch, field_aspect_registration, field_slice_snapshot, registration,
+    snapshot,
+};
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
     BridgeHistoricalLineageAuthority, BridgeLineageContext, BridgeRouteRequest,
     TruthBranchIdentity, TruthSnapshotIdentity,
 };
-use super::support::{
-    build_runtime, committed_patch, field_aspect_registration, field_slice_snapshot, registration,
-    snapshot,
-};
+use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::fixtures::BridgeHarnessFixture;
 
-fn continuity_authority(
-    branch: &str,
-    snapshot: &str,
-) -> BridgeHistoricalLineageAuthority {
+fn continuity_authority(branch: &str, snapshot: &str) -> BridgeHistoricalLineageAuthority {
     BridgeHistoricalLineageAuthority::try_new(
         BridgeContinuityAuthorityBasis::new(
             TruthBranchIdentity::new(branch),
@@ -175,8 +170,18 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
     ]);
 
     let development_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
-    development_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    development_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    development_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    development_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     development_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     development_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let development = crate::facade::RuntimeBridge::builder()
@@ -188,8 +193,18 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
         .expect("development runtime");
 
     let operational_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
-    operational_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    operational_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    operational_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    operational_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     operational_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     operational_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let operational = crate::facade::RuntimeBridge::builder()
@@ -207,7 +222,10 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
         .plan_bulk_workload(request)
         .expect("operational bulk workload should plan");
 
-    assert_eq!(development_plan.workload_identity(), operational_plan.workload_identity());
+    assert_eq!(
+        development_plan.workload_identity(),
+        operational_plan.workload_identity()
+    );
     assert_eq!(
         development_plan.canonical_request().digest(),
         operational_plan.canonical_request().digest()
@@ -220,10 +238,19 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
         development_plan.canonical_planning_identity(),
         operational_plan.canonical_planning_identity()
     );
-    assert_eq!(development_plan.packet_set().digest(), operational_plan.packet_set().digest());
     assert_eq!(
-        development_plan.execution_plan().reduced_artifact().digest(),
-        operational_plan.execution_plan().reduced_artifact().digest()
+        development_plan.packet_set().digest(),
+        operational_plan.packet_set().digest()
+    );
+    assert_eq!(
+        development_plan
+            .execution_plan()
+            .reduced_artifact()
+            .digest(),
+        operational_plan
+            .execution_plan()
+            .reduced_artifact()
+            .digest()
     );
     assert_eq!(
         development_plan.execution_plan().legality_decision(),
@@ -238,12 +265,23 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
 #[test]
 fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path() {
     let admitted_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
-    admitted_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    admitted_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
+    admitted_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    admitted_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-b",
+        "name",
+    ));
     admitted_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     admitted_source.insert_snapshot(snapshot("snapshot-b", "bob"));
     let admitted_sink = crate::harness::fixtures::RecordingSignalBridgeSink::default();
-    let admitted_runtime = build_runtime(admitted_source, admitted_sink.clone(), vec![registration()]);
+    let admitted_runtime =
+        build_runtime(admitted_source, admitted_sink.clone(), vec![registration()]);
 
     let admitted_result = admitted_runtime
         .deliver_bulk_workload_plan(
@@ -257,8 +295,18 @@ fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path(
         .expect("parallel-admitted bulk workload should deliver");
 
     let serial_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
-    serial_source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    serial_source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
+    serial_source.insert_committed_patch(committed_patch(
+        "commit-a",
+        "patch-a",
+        "snapshot-a",
+        "name",
+    ));
+    serial_source.insert_committed_patch(committed_patch(
+        "commit-b",
+        "patch-b",
+        "snapshot-a",
+        "name",
+    ));
     serial_source.insert_snapshot(snapshot("snapshot-a", "alice"));
     let serial_sink = crate::harness::fixtures::RecordingSignalBridgeSink::default();
     let serial_runtime = build_runtime(serial_source, serial_sink.clone(), vec![registration()]);

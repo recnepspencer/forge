@@ -1,5 +1,4 @@
 use super::*;
-use crate::routing::canonicalization::digest_string;
 use crate::facade::{
     AdmittedConsumerContract, BridgeRouteRequest, CanonicalStreamReplayRecord,
     ChangeStreamDeclaration, ConsumerCheckpointToken, PlannedChangeStreamWindow,
@@ -8,6 +7,7 @@ use crate::facade::{
     StreamReplayAuditResult, StreamReplayMode, StreamResumeMode, StreamWindowDeliveryResult,
     ValidatedStreamProtocol,
 };
+use crate::routing::canonicalization::digest_string;
 
 pub(super) enum StreamHarnessTarget {
     RoutingWindow { commit_identities: Vec<String> },
@@ -189,11 +189,14 @@ impl StreamHarnessExecution {
     }
 }
 
-pub(super) fn parse_stream_harness_target(target: &str) -> Option<Result<StreamHarnessTarget, BridgeHarnessError>> {
+pub(super) fn parse_stream_harness_target(
+    target: &str,
+) -> Option<Result<StreamHarnessTarget, BridgeHarnessError>> {
     if let Some(rest) = target.strip_prefix("stream-routing:") {
-        return Some(parse_commit_list(rest).map(|commit_identities| {
-            StreamHarnessTarget::RoutingWindow { commit_identities }
-        }));
+        return Some(
+            parse_commit_list(rest)
+                .map(|commit_identities| StreamHarnessTarget::RoutingWindow { commit_identities }),
+        );
     }
     if let Some(rest) = target.strip_prefix("stream-replay-audit:") {
         return Some(parse_commit_list(rest).map(|commit_identities| {
@@ -333,7 +336,9 @@ fn diagnostics_policy_class(
     match tier {
         crate::facade::BridgeDiagnosticsTier::Minimal => StreamDiagnosticsPolicyClass::Minimal,
         crate::facade::BridgeDiagnosticsTier::Standard => StreamDiagnosticsPolicyClass::Standard,
-        crate::facade::BridgeDiagnosticsTier::Exhaustive => StreamDiagnosticsPolicyClass::Exhaustive,
+        crate::facade::BridgeDiagnosticsTier::Exhaustive => {
+            StreamDiagnosticsPolicyClass::Exhaustive
+        }
     }
 }
 

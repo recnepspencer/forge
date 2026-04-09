@@ -23,10 +23,7 @@ pub(crate) fn normalize_raw_envelope(
         raw.patch_identity().clone(),
         raw.snapshot_identity().clone(),
         raw.branch_identity().clone(),
-        BridgeCommittedPatchSummary::new(
-            raw_item_count,
-            normalized_patch_item_count,
-        ),
+        BridgeCommittedPatchSummary::new(raw_item_count, normalized_patch_item_count),
         BridgeCommittedPatchBody::new(canonical_items),
         digest,
     )

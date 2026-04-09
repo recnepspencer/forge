@@ -42,11 +42,17 @@ fn bridge_bulk_execution_plan_falls_back_when_parallel_is_legal_but_not_profitab
         BridgeParallelAdmissionReason::SharedPublicationReductionTarget
     );
     assert_eq!(
-        planned.execution_plan().counters().bulk_parallel_legal_count(),
+        planned
+            .execution_plan()
+            .counters()
+            .bulk_parallel_legal_count(),
         1
     );
     assert_eq!(
-        planned.execution_plan().counters().bulk_parallel_profitable_count(),
+        planned
+            .execution_plan()
+            .counters()
+            .bulk_parallel_profitable_count(),
         0
     );
     assert_eq!(

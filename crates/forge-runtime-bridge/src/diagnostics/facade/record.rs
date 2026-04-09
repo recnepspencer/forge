@@ -1,4 +1,5 @@
 use super::*;
+use crate::source::{SourceFailureRecord, SourceMaterializationRecord};
 
 impl BridgeDiagnosticsFacade {
     pub(crate) fn record_route(&self, record: BridgeRouteRecord) {
@@ -28,6 +29,17 @@ impl BridgeDiagnosticsFacade {
             .write()
             .expect("bridge diagnostics lock poisoned")
             .record_continuity(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_merge(&self, record: BridgeCanonicalMergeRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_merge(record, self.config.route_record_limit);
     }
 
     pub(crate) fn record_bulk(&self, record: BridgeCanonicalBulkPlanRecord) {
@@ -69,6 +81,28 @@ impl BridgeDiagnosticsFacade {
             .record_historical_failure(record, self.config.route_record_limit);
     }
 
+    pub(crate) fn record_source_materialization(&self, record: SourceMaterializationRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_source_materialization(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_source_failure(&self, record: SourceFailureRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_source_failure(record, self.config.route_record_limit);
+    }
+
     pub(crate) fn record_stream_checkpoint(&self, record: ConsumerCheckpointToken) {
         if !self.config.records_enabled {
             return;
@@ -89,6 +123,31 @@ impl BridgeDiagnosticsFacade {
             .write()
             .expect("bridge diagnostics lock poisoned")
             .record_stream_replay_record(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_structural_remap(&self, record: BridgeCanonicalStructuralRemapRecord) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_structural_remap(record, self.config.route_record_limit);
+    }
+
+    pub(crate) fn record_structural_branch_comparison(
+        &self,
+        record: BridgeCanonicalStructuralBranchComparisonRecord,
+    ) {
+        if !self.config.records_enabled {
+            return;
+        }
+
+        self.state
+            .write()
+            .expect("bridge diagnostics lock poisoned")
+            .record_structural_branch_comparison(record, self.config.route_record_limit);
     }
 
     pub(crate) fn record_delivery_failure(
@@ -117,4 +176,3 @@ impl BridgeDiagnosticsFacade {
         ));
     }
 }
-

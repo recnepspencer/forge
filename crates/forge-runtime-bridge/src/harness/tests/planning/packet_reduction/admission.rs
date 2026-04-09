@@ -60,22 +60,18 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_shared_truth_view
         BridgeBulkPlanningFailureKind::InvalidParallelAdmissionBasis
     );
     assert_eq!(planned.packet_set().truth_view_packets().len(), 1);
-    assert!(
-        planned
-            .execution_plan()
-            .legality_proof()
-            .admitted_partitions()
-            .partitions()
-            .is_empty()
-    );
-    assert!(
-        planned
-            .execution_plan()
-            .legality_proof()
-            .disjoint_packet_regions()
-            .regions()
-            .is_empty()
-    );
+    assert!(planned
+        .execution_plan()
+        .legality_proof()
+        .admitted_partitions()
+        .partitions()
+        .is_empty());
+    assert!(planned
+        .execution_plan()
+        .legality_proof()
+        .disjoint_packet_regions()
+        .regions()
+        .is_empty());
 }
 
 #[test]
@@ -143,22 +139,18 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_continuity_remap_
         planned.execution_plan().planning_failures()[0].kind(),
         BridgeBulkPlanningFailureKind::InvalidParallelAdmissionBasis
     );
-    assert!(
-        planned
-            .execution_plan()
-            .legality_proof()
-            .admitted_partitions()
-            .partitions()
-            .is_empty()
-    );
-    assert!(
-        planned
-            .execution_plan()
-            .legality_proof()
-            .disjoint_packet_regions()
-            .regions()
-            .is_empty()
-    );
+    assert!(planned
+        .execution_plan()
+        .legality_proof()
+        .admitted_partitions()
+        .partitions()
+        .is_empty());
+    assert!(planned
+        .execution_plan()
+        .legality_proof()
+        .disjoint_packet_regions()
+        .regions()
+        .is_empty());
 }
 
 use super::*;

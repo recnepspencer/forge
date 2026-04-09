@@ -9,7 +9,10 @@ impl DiagnosticSink for BridgeDiagnosticsFacade {
         BridgeDiagnosticsFacade::record_historical_evaluation(self, record);
     }
 
-    fn record_historical_evaluation_failure(&self, record: BridgeHistoricalEvaluationFailureRecord) {
+    fn record_historical_evaluation_failure(
+        &self,
+        record: BridgeHistoricalEvaluationFailureRecord,
+    ) {
         BridgeDiagnosticsFacade::record_historical_evaluation_failure(self, record);
     }
 

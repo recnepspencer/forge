@@ -201,7 +201,8 @@ impl BridgePlannedContinuityRequestSet {
                         .cmp(right.prior_subscription_slice_identity().as_str())
                 })
         });
-        prior_slices.dedup_by(|left, right| left.logical_dedup_basis() == right.logical_dedup_basis());
+        prior_slices
+            .dedup_by(|left, right| left.logical_dedup_basis() == right.logical_dedup_basis());
         let requests = prior_slices
             .into_iter()
             .map(|prior_slice| {

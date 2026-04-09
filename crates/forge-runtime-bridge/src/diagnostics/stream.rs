@@ -72,9 +72,7 @@ impl BridgeStreamCheckpointExplanation {
             contiguous_acknowledged_through_member_identity: checkpoint
                 .contiguous_acknowledged_through_member_identity()
                 .to_owned(),
-            acknowledged_member_set_digest: checkpoint
-                .acknowledged_member_set_digest()
-                .to_owned(),
+            acknowledged_member_set_digest: checkpoint.acknowledged_member_set_digest().to_owned(),
             checkpoint_member_count: checkpoint.checkpoint_member_count(),
             source_retention_anchor: checkpoint.source_retention_anchor().to_owned(),
         }

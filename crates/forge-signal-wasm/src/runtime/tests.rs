@@ -1319,4 +1319,3 @@ fn replay_artifact_proof_reports_typed_mismatch_classes() {
         .mismatch_classes
         .contains(&forge_signal::facade::adapters::ReplayMismatchClass::BranchStateDigestMismatch));
 }
-

@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use forge_harness::facade::{
-    diagnostics_id, DiagnosticsHarnessAdapter, DiagnosticsRecord, ExecutionProfile,
-    HarnessAdapter, RecordSchemaVersion, ScenarioFixture,
+    diagnostics_id, DiagnosticsHarnessAdapter, DiagnosticsRecord, ExecutionProfile, HarnessAdapter,
+    RecordSchemaVersion, ScenarioFixture,
 };
 use serde_json::json;
 
@@ -34,6 +34,14 @@ impl DiagnosticsHarnessAdapter for BridgeHarnessAdapter {
             summary: json!({
                 "tier": format!("{:?}", runtime_bridge.diagnostics().tier()),
                 "record_count": runtime_bridge.diagnostics().route_records().len(),
+                "source_materialization_record_count": runtime_bridge
+                    .diagnostics()
+                    .source_materialization_records()
+                    .len(),
+                "source_failure_record_count": runtime_bridge
+                    .diagnostics()
+                    .source_failure_records()
+                    .len(),
                 "route_records": runtime_bridge
                     .diagnostics()
                     .route_records()

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity};
+use crate::routing::context::BridgeMappingContext;
+use crate::routing::BridgeRoutingCounters;
 use crate::routing::{
     BridgeInvalidationIdentity, BridgeInvalidationTarget, BridgeRouteContractProof,
     BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
 };
-use crate::routing::context::BridgeMappingContext;
-use crate::routing::BridgeRoutingCounters;
 use crate::snapshot::TruthSnapshotIdentity;
 
 use super::contract::BridgeContractDiagnosticsRecord;
