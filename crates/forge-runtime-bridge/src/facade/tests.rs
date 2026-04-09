@@ -384,6 +384,7 @@ fn canonical_envelope(
 mod merge;
 mod policy_and_materialization;
 mod replay;
+mod speculation;
 mod stream;
 mod stream_protocol;
 mod structural;

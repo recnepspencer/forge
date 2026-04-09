@@ -5,7 +5,10 @@ use super::support::{
     registration,
 };
 use crate::facade::{
-    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
+    BridgeDeliveryIntent, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
+    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayMode,
+    BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
     HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity, TruthCommitIdentity,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
@@ -76,4 +79,113 @@ fn historical_evaluation_counters_capture_selector_branch_and_materialization_wi
     assert_eq!(record.counters().commit_envelope_materialization_count(), 1);
     assert_eq!(record.counters().direct_snapshot_materialization_count(), 0);
     assert_eq!(record.counters().branch_head_materialization_count(), 0);
+}
+
+#[test]
+fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
+    let source = InMemoryRelationalBridgeSource::default();
+    let runtime = build_runtime_with_aspects(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+        vec![field_aspect_registration()],
+    );
+    let declaration = BridgePreviewSessionDeclaration::new(
+        BridgePreviewSessionDeclarationIdentity::new("counter:preview-declaration"),
+        BridgeRequestKind::Preview,
+        BridgeSpeculativeBranchBinding::new(
+            BridgeSpeculativeBranchBindingIdentity::new("counter:binding"),
+            TruthBranchIdentity::new("main"),
+            BridgeSignalBranchIdentity::new("signal:counter"),
+        ),
+        "truth-view:counter",
+        "source-capability:counter",
+        "request-shape:counter",
+        "artifact-schema:counter",
+    );
+
+    let admitted = runtime
+        .admit_preview_session(
+            BridgePreviewSessionIdentity::new("counter:preview-session"),
+            declaration,
+        )
+        .expect("preview declaration should admit");
+    let (active, execution_record) = runtime.activate_preview_session(admitted, 4, 2, 2);
+
+    assert_eq!(execution_record.counters().preview_session_count_touched(), 1);
+    assert_eq!(execution_record.counters().branch_binding_proof_width(), 2);
+    assert_eq!(execution_record.counters().preview_artifact_count(), 4);
+    assert_eq!(execution_record.counters().discard_artifact_count(), 2);
+    assert_eq!(
+        execution_record
+            .counters()
+            .retained_non_authoritative_artifact_count(),
+        2
+    );
+
+    let (discarded, discard_record) = runtime
+        .discard_preview_session(
+            active,
+            &execution_record,
+            vec![
+                BridgePreviewResidueClass::PreviewExecutionRetained,
+                BridgePreviewResidueClass::ReplayRetainedNonAuthoritative,
+                BridgePreviewResidueClass::TemporaryRoutingResidue,
+            ],
+        )
+        .expect("discard should succeed");
+
+    assert_eq!(discard_record.counters().preview_session_count_touched(), 1);
+    assert_eq!(discard_record.counters().discard_artifact_count(), 1);
+    assert_eq!(discard_record.counters().destroyed_artifact_count(), 1);
+    assert_eq!(
+        discard_record
+            .counters()
+            .retained_non_authoritative_artifact_count(),
+        2
+    );
+    assert_eq!(discard_record.counters().replay_bundle_width(), 2);
+
+    let replay_bundle = runtime
+        .replay_preview_bundle(discarded.session_identity().as_str())
+        .expect("replay bundle should exist");
+    assert_eq!(replay_bundle.counters().preview_session_count_touched(), 1);
+    assert_eq!(replay_bundle.counters().replay_bundle_width(), 2);
+
+    let promotion_admitted = runtime
+        .admit_preview_session(
+            BridgePreviewSessionIdentity::new("counter:preview-promotion-session"),
+            BridgePreviewSessionDeclaration::new(
+                BridgePreviewSessionDeclarationIdentity::new("counter:preview-promotion-declaration"),
+                BridgeRequestKind::Preview,
+                BridgeSpeculativeBranchBinding::new(
+                    BridgeSpeculativeBranchBindingIdentity::new("counter:promotion-binding"),
+                    TruthBranchIdentity::new("main"),
+                    BridgeSignalBranchIdentity::new("signal:counter"),
+                ),
+                "truth-view:counter",
+                "source-capability:counter",
+                "request-shape:counter",
+                "artifact-schema:counter",
+            ),
+        )
+        .expect("promotion preview declaration should admit");
+    let (promotion_active, promotion_execution_record) =
+        runtime.activate_preview_session(promotion_admitted, 4, 2, 2);
+    let proof = promotion_active.promotion_admissibility_proof();
+    let (_promoted, promotion_record) = runtime
+        .promote_preview_session(
+            promotion_active,
+            &promotion_execution_record,
+            &proof,
+            "commit-boundary:counter",
+            "authoritative-artifact:counter",
+        )
+        .expect("promotion should succeed");
+
+    assert_eq!(promotion_record.counters().preview_session_count_touched(), 1);
+    assert_eq!(promotion_record.counters().branch_binding_proof_width(), 2);
+    assert_eq!(promotion_record.counters().admissibility_proof_width(), 9);
+    assert_eq!(promotion_record.counters().promotion_proof_checks(), 1);
+    assert_eq!(promotion_record.counters().replay_bundle_width(), 2);
 }

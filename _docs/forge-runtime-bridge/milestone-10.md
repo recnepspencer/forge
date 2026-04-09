@@ -165,6 +165,8 @@ The following decisions are explicit and not open questions for this milestone:
 - preview session identity, branch correspondence, execution result, lifecycle
   transition, discard record, and promotion record are distinct concepts and
   must remain distinct types
+- preview lifecycle must be modeled as a closed typestate progression rather
+  than an open status string or loosely coordinated booleans
 - preview is a first-class bridge request mode, not a disguised authoritative
   request with post hoc cleanup
 - discard and promotion are lifecycle transitions over an admitted preview
@@ -340,6 +342,11 @@ Out of scope for Milestone 10:
 - every bridge request must declare whether it is authoritative or preview
   before admission, and lifecycle transitions must declare the preview session
   they target
+- preview sessions must advance through a closed typestate graph:
+  `PreviewDeclared -> PreviewAdmitted -> PreviewActive -> PreviewDiscarded | PreviewPromoted`
+- discard and promotion must consume only `PreviewActive` sessions
+- `PreviewDiscarded` and `PreviewPromoted` are terminal states and must not
+  admit further execution, discard, or promotion transitions
 - preview branch correspondence must consume explicit truth-branch and
   signal-branch identities; it may not infer them from ambient current state
 - discard must emit a canonical outcome class even when the physical cleanup
@@ -389,6 +396,51 @@ Promotion must fail explicitly if any required basis entry:
 Milestone 10 does not yet need the full cross-runtime policy provenance of
 Milestone 11, but it must already leave room for that work by keeping promotion
 admissibility closed and typed rather than ambient.
+
+## Lifecycle Typestate Requirement
+
+Milestone 10 should make illegal preview lifecycle transitions mechanically hard
+or impossible.
+
+The preferred architectural shape is a closed typestate family along the lines
+of:
+
+- `BridgePreviewSession<Declared>`
+- `BridgePreviewSession<Admitted>`
+- `BridgePreviewSession<Active>`
+- `BridgePreviewSession<Discarded>`
+- `BridgePreviewSession<Promoted>`
+
+The exact Rust spelling may differ, but the mechanical guarantees are required:
+
+- only `Declared` sessions may enter admission
+- only `Admitted` sessions may enter preview execution
+- only `Active` sessions may be discarded or promoted
+- `Discarded` sessions cannot be promoted, executed, or reused
+- `Promoted` sessions cannot be discarded, executed, or re-promoted
+- lifecycle transitions must consume the prior state and produce the next state
+  rather than mutating an ambient shared status field
+
+Equivalent enforcement mechanisms are acceptable if they are comparably strong,
+for example:
+
+- sealed state markers
+- private constructors plus state-specific transition methods
+- enum wrappers that preserve move-only transition ownership and forbid illegal
+  re-entry
+
+The following are out of spec unless wrapped by stronger enforcement:
+
+- public mutable status fields
+- string or integer lifecycle codes
+- transition APIs that accept any session regardless of state and fail only by
+  convention
+- helper functions that take a raw session ID and "figure out" whether discard
+  or promotion is legal at runtime
+
+This requirement exists because preview lifecycle mistakes are authority
+mistakes. The wrong transition should be difficult to express, not merely
+detectable after the fact.
 
 ## Preview Reuse Equivalence Contract
 
@@ -489,7 +541,7 @@ replay is out of spec unless explicitly marked as debt with named proof gaps.
 
 ## Phases
 
-### Phase 1: Speculative Branch Taxonomy, Request-Kind Lock, And Lifecycle Authority
+### Phase 1: Preview Lifecycle And Authority Lock
 
 Milestone 10 must first define:
 
@@ -497,6 +549,7 @@ Milestone 10 must first define:
   flows
 - the closed lifecycle-transition vocabulary for preview discard and preview
   promotion
+- the closed typestate graph for preview lifecycle progression
 - bridge-owned proof-bearing branch correspondence types between speculative
   truth branches and speculative signal branches
 - canonical preview-session identity and lifecycle-state types
@@ -507,10 +560,28 @@ Milestone 10 must first define:
 - the closed promotion admissibility proof bundle
 - the residue taxonomy for all preview-created bridge artifacts
 
-This phase exists to make speculation mechanically representable before preview
-execution or cleanup work begins.
+This is the hard-foundation workload bucket for the milestone. It should end
+with the bridge able to represent preview sessions, branch bindings, lifecycle
+states, admissibility proofs, residue classes, and typed failures mechanically,
+with illegal lifecycle transitions made unrepresentable or uncompilable.
 
-### Phase 2: Preview Lowering, Discard Enforcement, And Promotion Publication
+Phase 1 is complete only when:
+
+- preview lifecycle and authority boundaries are mechanically locked
+- promotion admissibility has a closed proof surface
+- discard, promotion, and reuse legality can be decided from typed bridge
+  artifacts rather than host folklore
+- the facade can expose speculation entrypoints without relying on raw status
+  fields, raw IDs, or ambient state
+
+Phase 1 must not ship:
+
+- preview execution publication
+- discard execution and cleanup
+- promotion publication
+- replay or diagnostics flows that depend on speculation execution artifacts
+
+### Phase 2: Preview Execution And Discard Cleanup
 
 Milestone 10 must then implement:
 
@@ -518,19 +589,36 @@ Milestone 10 must then implement:
 - lowering of preview requests into replay-safe preview execution records
 - discard publication that proves zero authoritative residue and explicit
   temporary-resource cleanup outcome
-- promotion publication that records exactly how a non-authoritative result
-  crossed into authoritative meaning
 - fail-closed reuse admission through explicit equivalence proofs only
-- bounded counters for preview planning width, resource retention, cleanup
-  breadth, and promotion work
+- bounded counters for preview planning width, resource retention, and cleanup
+  breadth
 
-This phase exists to make preview useful without making cleanup or promotion
-folklore-driven.
+This is the non-authoritative execution workload bucket. It should end with
+preview sessions running end-to-end, admitted preview artifacts being published
+as non-authoritative bridge records, and discard behaving as a real lifecycle
+transition with zero-residue cleanup for discarded work.
 
-### Phase 3: Replay, Diagnostics, And Certification Against Preview Hostility
+Phase 2 is complete only when:
+
+- `PreviewAdmitted -> PreviewActive` execution exists as a real bridge path
+- `PreviewActive -> PreviewDiscarded` exists as a real bridge path
+- every discard path proves residue classification and cleanup outcome
+- non-authoritative preview publication remains bounded by the named complexity
+  contracts
+
+Phase 2 must not ship:
+
+- preview-to-authority promotion
+- authoritative publication derived from preview outputs
+- replay or explanation that depends on promotion artifacts
+- milestone closeout certification
+
+### Phase 3: Promotion, Replay, And Certification
 
 Milestone 10 must finally ship:
 
+- promotion publication that records exactly how a non-authoritative result
+  crossed into authoritative meaning
 - replay-safe preview, discard, and promotion records
 - explanation artifacts that distinguish preview, discard, and promotion
   behavior without changing canonical meaning across diagnostics tiers
@@ -540,8 +628,25 @@ Milestone 10 must finally ship:
 - machine-checkable canonical bundles satisfying suites 13 through 15 in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 
-This phase exists to prove the bridge can survive preview-heavy workloads
-without leaking temporary truth into authoritative semantics.
+This is the authority-crossing and closure workload bucket. It should end with
+explicit preview-to-authority promotion, replay-safe lifecycle records,
+diagnostics shaping, and the certification evidence needed to close the
+milestone.
+
+Phase 3 is complete only when:
+
+- `PreviewActive -> PreviewPromoted` exists as a typed, proof-checked bridge
+  path
+- stale, duplicate, and post-discard promotion attempts fail typed
+- replay can reconstruct preview, discard, and promotion outcomes from
+  canonical artifacts alone
+- suites 13 through 15 pass with canonical machine-checkable bundles
+
+Phase 3 may assume:
+
+- Phase 1 lifecycle and authority lock is already in place
+- Phase 2 non-authoritative preview and zero-residue discard are already
+  implemented and verified
 
 ## Must Ship
 
@@ -630,7 +735,11 @@ The bridge facade should expose bridge-owned types such as:
 - `BridgeRequestKind`
 - `BridgeSpeculativeBranchBinding`
 - `BridgePreviewSessionDeclaration`
-- `AdmittedBridgePreviewSession`
+- `BridgePreviewSession<Declared>`
+- `BridgePreviewSession<Admitted>`
+- `BridgePreviewSession<Active>`
+- `BridgePreviewSession<Discarded>`
+- `BridgePreviewSession<Promoted>`
 - `BridgePreviewExecutionRecord`
 - `BridgePreviewLifecycleTransition`
 - `BridgeDiscardRecord`
@@ -645,6 +754,7 @@ These names are illustrative, but the separation is mandatory:
 
 - request-kind classification is not the same responsibility as branch
   correspondence admission
+- typestate progression is not the same responsibility as artifact publication
 - preview execution record publication is not the same responsibility as discard
   cleanup verification
 - promotion publication is not the same responsibility as authoritative truth
@@ -695,13 +805,15 @@ Milestone 10 should add or extend bridge-owned surfaces along these lines:
 
 - facade speculation entrypoints
   - preview-session declaration
-  - preview execution request
-  - discard request
-  - promotion request
+  - admission from declared to admitted
+  - execution from admitted to active
+  - discard from active to discarded
+  - promotion from active to promoted
 - speculation types
   - request kind
   - branch binding
   - preview session
+  - preview typestate markers
   - discard outcome
   - promotion provenance
   - failure classes
@@ -726,6 +838,7 @@ Milestone 10 must execute in strict order.
 
 - add bridge-owned request-kind vocabulary
 - add lifecycle-transition vocabulary distinct from request kind
+- add preview typestate markers and transition ownership rules
 - add branch correspondence proof types
 - add admission-time mismatch and reuse failure classes
 - add promotion admissibility proof types
@@ -760,6 +873,8 @@ Milestone 10 must execute in strict order.
 - preview mode as a loose flag on authoritative requests
 - discard and promotion modeled as peer execution modes instead of lifecycle
   transitions over preview sessions
+- mutable lifecycle status fields or raw status codes as the primary lifecycle
+  enforcement surface
 - cleanup that depends on adapter goodwill rather than bridge-owned records
 - authoritative publication inferred from absence of discard
 - shared ambient temporary caches across preview sessions
@@ -824,6 +939,8 @@ Milestone 10 is complete only when all of the following are true:
 
 - preview and authoritative requests are mechanically distinct at the facade
   and admission boundaries
+- preview lifecycle progression is mechanically enforced through a closed
+  typestate-shaped transition surface or equivalent-strength enforcement
 - canonical branch correspondence, preview execution, discard, and promotion
   records exist and replay safely
 - discard proves zero authoritative residue

@@ -129,6 +129,19 @@ pub enum BridgeMergeErrorKind {
 pub type BridgeMergeError = BridgeTypedError<BridgeMergeErrorKind>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeSpeculationErrorKind {
+    PreviewRequestKindMismatch,
+    PreviewSessionIdentityConflict,
+    PreviewBranchBindingMismatch,
+    IllegalPreviewLifecycleTransition,
+    PromotionAdmissibilityMismatch,
+    PreviewReuseEquivalenceMismatch,
+    PreviewResidueClassificationMismatch,
+}
+
+pub type BridgeSpeculationError = BridgeTypedError<BridgeSpeculationErrorKind>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeLineageSourceErrorKind {
     UnsupportedContinuityClass,
     HistoricalResolutionFailure,

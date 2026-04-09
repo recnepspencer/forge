@@ -22,6 +22,7 @@ use super::types::{
     SourceAdapterBehavior, SourceAdapterShape, SourceBuilderLoadOrder,
 };
 use merge::execute_merge_request;
+use speculation::execute_speculation_request;
 use source::execute_source_request;
 use stream::execute_stream_request;
 use structural::execute_structural_request;
@@ -104,6 +105,7 @@ impl HarnessAdapter for BridgeHarnessAdapter {
             "bridge_merge_record".to_string(),
             "bridge_historical_evaluation_record".to_string(),
             "bridge_source_materialization_record".to_string(),
+            "bridge_speculation_record".to_string(),
             "bridge_structural_remap_record".to_string(),
             "bridge_structural_branch_comparison_record".to_string(),
         ]);
@@ -329,6 +331,9 @@ impl HarnessAdapter for BridgeHarnessAdapter {
                 &fixture.fixture,
                 merge_target,
             )?),
+            HarnessTarget::Speculation(speculation_target) => HarnessExecution::Speculation(
+                execute_speculation_request(runtime_bridge, &fixture.fixture, speculation_target)?,
+            ),
             HarnessTarget::Structural(structural_target) => HarnessExecution::Structural(
                 execute_structural_request(runtime_bridge, &fixture.fixture, structural_target)?,
             ),
@@ -472,6 +477,7 @@ impl HarnessAdapter for BridgeHarnessAdapter {
 }
 
 mod merge;
+mod speculation;
 mod source;
 mod stream;
 mod structural;

@@ -5,6 +5,7 @@ mod historical_and_replay;
 mod merge;
 mod routing_and_bulk;
 mod source;
+mod speculation;
 mod stream;
 mod structural;
 

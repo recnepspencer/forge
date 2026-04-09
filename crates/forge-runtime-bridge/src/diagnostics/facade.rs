@@ -3,6 +3,9 @@ use std::sync::{Arc, RwLock};
 use crate::error::{BridgeDeliveryError, BridgeReplayError};
 use crate::policy::{BridgeDiagnosticsTier, BridgeRuntimePolicy};
 use crate::routing::BridgeCanonicalBulkPlanRecord;
+use crate::speculation::{
+    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+};
 use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 
 use super::bulk::BridgeBulkPlanExplanation;
@@ -22,12 +25,17 @@ use super::stream::{BridgeStreamCheckpointExplanation, BridgeStreamReplayExplana
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
+use super::speculation::{
+    BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
+    BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation,
+};
 use super::BridgeRouteExplanation;
 
 mod explain;
 mod query;
 mod record;
 mod sink;
+mod speculation;
 
 #[derive(Debug, Clone)]
 pub struct BridgeDiagnosticsFacade {

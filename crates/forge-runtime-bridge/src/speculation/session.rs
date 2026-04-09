@@ -1,0 +1,231 @@
+use std::marker::PhantomData;
+use std::sync::Arc;
+
+use sha2::{Digest, Sha256};
+
+use crate::error::{BridgeSpeculationError, BridgeSpeculationErrorKind};
+use crate::identity::{
+    BridgeIdentity, PreviewExecutionRecordIdentityTag, PreviewSessionIdentityTag,
+};
+
+use super::contracts::BridgePromotionAdmissibilityProof;
+use super::taxonomy::{
+    BridgePreviewLifecycleStateKind, BridgePreviewTypestate, PreviewActive, PreviewAdmitted,
+    PreviewDeclared, PreviewDiscarded, PreviewPromoted,
+};
+use super::validation::ValidatedBridgePreviewSessionDeclaration;
+
+pub type BridgePreviewSessionIdentity = BridgeIdentity<PreviewSessionIdentityTag>;
+pub type PreviewExecutionRecordIdentity = BridgeIdentity<PreviewExecutionRecordIdentityTag>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct PreviewSessionActivation {
+    execution_record_identity: PreviewExecutionRecordIdentity,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+}
+
+impl PreviewSessionActivation {
+    pub(crate) fn new(execution_record_identity: PreviewExecutionRecordIdentity) -> Self {
+        let canonical_basis = Arc::<str>::from(format!(
+            "preview-session-activation|execution-record={}",
+            execution_record_identity.as_str()
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Self {
+            execution_record_identity,
+            canonical_basis,
+            digest: Arc::from(format!("preview-session-activation:sha256:{digest:x}")),
+        }
+    }
+
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct BridgePreviewSession<State> {
+    session_identity: BridgePreviewSessionIdentity,
+    declaration: ValidatedBridgePreviewSessionDeclaration,
+    execution_record_identity: Option<PreviewExecutionRecordIdentity>,
+    lifecycle_state_kind: BridgePreviewLifecycleStateKind,
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+    _state: PhantomData<State>,
+}
+
+impl BridgePreviewSession<PreviewDeclared> {
+    pub(crate) fn declare(
+        session_identity: BridgePreviewSessionIdentity,
+        declaration: ValidatedBridgePreviewSessionDeclaration,
+    ) -> Self {
+        Self::new(session_identity, declaration, None)
+    }
+
+    pub(crate) fn admit(self) -> BridgePreviewSession<PreviewAdmitted> {
+        BridgePreviewSession::new(self.session_identity, self.declaration, None)
+    }
+}
+
+impl BridgePreviewSession<PreviewAdmitted> {
+    pub(crate) fn activate(
+        self,
+        activation: PreviewSessionActivation,
+    ) -> BridgePreviewSession<PreviewActive> {
+        BridgePreviewSession::new(
+            self.session_identity,
+            self.declaration,
+            Some(activation.execution_record_identity),
+        )
+    }
+}
+
+impl BridgePreviewSession<PreviewActive> {
+    pub(crate) fn discard(self) -> BridgePreviewSession<PreviewDiscarded> {
+        BridgePreviewSession::new(
+            self.session_identity,
+            self.declaration,
+            self.execution_record_identity,
+        )
+    }
+
+    pub fn promotion_admissibility_proof(&self) -> BridgePromotionAdmissibilityProof {
+        BridgePromotionAdmissibilityProof::from_active_session(self)
+    }
+
+    pub(crate) fn promote(
+        self,
+        proof: &BridgePromotionAdmissibilityProof,
+    ) -> Result<BridgePreviewSession<PreviewPromoted>, BridgeSpeculationError> {
+        if !proof.matches_active_session(&self) {
+            return Err(BridgeSpeculationError::new(
+                BridgeSpeculationErrorKind::PromotionAdmissibilityMismatch,
+                format!(
+                    "Promotion proof `{}` did not match active preview session `{}`.",
+                    proof.proof_identity().as_str(),
+                    self.session_identity.as_str(),
+                ),
+            ));
+        }
+
+        Ok(BridgePreviewSession::new(
+            self.session_identity,
+            self.declaration,
+            self.execution_record_identity,
+        ))
+    }
+}
+
+impl<State> BridgePreviewSession<State>
+where
+    State: BridgePreviewTypestate,
+{
+    fn new(
+        session_identity: BridgePreviewSessionIdentity,
+        declaration: ValidatedBridgePreviewSessionDeclaration,
+        execution_record_identity: Option<PreviewExecutionRecordIdentity>,
+    ) -> Self {
+        let lifecycle_state_kind = State::lifecycle_state_kind();
+        let canonical_basis = Arc::<str>::from(format!(
+            "preview-session|id={}|declaration={}|state:{lifecycle_state_kind:?}|execution-record={}",
+            session_identity.as_str(),
+            declaration.digest(),
+            execution_record_identity
+                .as_ref()
+                .map(PreviewExecutionRecordIdentity::as_str)
+                .unwrap_or("none"),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Self {
+            session_identity,
+            declaration,
+            execution_record_identity,
+            lifecycle_state_kind,
+            canonical_basis,
+            digest: Arc::from(format!("preview-session:sha256:{digest:x}")),
+            _state: PhantomData,
+        }
+    }
+
+    pub fn session_identity(&self) -> &BridgePreviewSessionIdentity {
+        &self.session_identity
+    }
+
+    pub fn declaration(&self) -> &ValidatedBridgePreviewSessionDeclaration {
+        &self.declaration
+    }
+
+    pub fn execution_record_identity(&self) -> Option<&PreviewExecutionRecordIdentity> {
+        self.execution_record_identity.as_ref()
+    }
+
+    pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
+        self.lifecycle_state_kind
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::input::envelope::TruthBranchIdentity;
+
+    use super::{
+        BridgePreviewSession, BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
+        PreviewSessionActivation,
+    };
+    use crate::speculation::{
+        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
+        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+        BridgeSpeculativeBranchBindingIdentity, PreviewAdmitted, PreviewDeclared,
+    };
+
+    #[test]
+    fn preview_session_typestate_progression_is_canonical() {
+        let declaration = BridgePreviewSessionDeclaration::new(
+            BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
+            BridgeRequestKind::Preview,
+            BridgeSpeculativeBranchBinding::new(
+                BridgeSpeculativeBranchBindingIdentity::new("binding"),
+                TruthBranchIdentity::new("truth-branch"),
+                BridgeSignalBranchIdentity::new("signal-branch"),
+            ),
+            "truth-view-digest",
+            "source-capability-digest",
+            "request-shape-digest",
+            "artifact-schema-digest",
+        )
+        .validate()
+        .expect("preview declaration should validate");
+
+        let declared = BridgePreviewSession::<PreviewDeclared>::declare(
+            BridgePreviewSessionIdentity::new("preview-session"),
+            declaration,
+        );
+        assert!(declared.canonical_basis().contains("state:Declared"));
+        let admitted: BridgePreviewSession<PreviewAdmitted> = declared.admit();
+        let active = admitted.activate(PreviewSessionActivation::new(
+            PreviewExecutionRecordIdentity::new("preview-execution"),
+        ));
+        let proof = active.promotion_admissibility_proof();
+        let promoted = active
+            .promote(&proof)
+            .expect("matching proof should promote");
+        let declared = BridgePreviewSession::<PreviewDeclared>::declare(
+            BridgePreviewSessionIdentity::new("preview-session-discard"),
+            promoted.declaration().clone(),
+        );
+        let admitted: BridgePreviewSession<PreviewAdmitted> = declared.admit();
+        let active = admitted.activate(PreviewSessionActivation::new(
+            PreviewExecutionRecordIdentity::new("preview-execution-discard"),
+        ));
+        let discarded = active.discard();
+
+        assert!(promoted.canonical_basis().contains("state:Promoted"));
+        assert!(discarded.canonical_basis().contains("state:Discarded"));
+    }
+}

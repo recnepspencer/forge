@@ -28,6 +28,7 @@ mod policy;
 mod routing;
 mod snapshot;
 mod source;
+mod speculation;
 mod stream;
 mod structural;
 

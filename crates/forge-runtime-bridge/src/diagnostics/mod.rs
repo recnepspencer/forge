@@ -10,6 +10,7 @@ mod records;
 mod replay;
 mod sink;
 mod source;
+mod speculation;
 mod state;
 mod stream;
 mod structural;
@@ -43,6 +44,10 @@ pub use replay::{
     BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3,
 };
 pub use source::{BridgeSourceFailureExplanation, BridgeSourceMaterializationExplanation};
+pub use speculation::{
+    BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
+    BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation,
+};
 pub use stream::{
     BridgeStreamCheckpointExplanation, BridgeStreamReplayExplanation, BridgeStreamResumeSummary,
 };

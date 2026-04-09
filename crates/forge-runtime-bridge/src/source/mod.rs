@@ -1,19 +1,20 @@
 mod capabilities;
+mod counters;
 mod contracts;
 mod declaration;
 mod failures;
 mod materialization;
 mod planning;
+mod record_digests;
 mod records;
 mod validation;
 
 pub use capabilities::{BridgeSourceCapability, BridgeSourceCapabilitySet};
+pub use counters::SourceMaterializationCounters;
 pub use contracts::{AdmittedSourceContract, AdmittedSourceRegistry};
 pub use declaration::{SourceDeclaration, SourceDeclarationIdentity};
 pub use failures::{SourceFailureClass, SourceFailureRecord, SourceFailureRecordIdentity};
 pub use materialization::MaterializedTruthViewPacketSet;
 pub use planning::PlannedSourceReadPacketSet;
-pub use records::{
-    SourceMaterializationCounters, SourceMaterializationRecord, SourceMaterializationRecordIdentity,
-};
+pub use records::{SourceMaterializationRecord, SourceMaterializationRecordIdentity};
 pub use validation::ValidatedSourceDeclaration;

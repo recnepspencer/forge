@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 use crate::routing::BridgeCanonicalBulkPlanRecord;
@@ -11,6 +11,9 @@ use super::history::{
 };
 use super::merge::BridgeCanonicalMergeRecord;
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
+use crate::speculation::{
+    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
@@ -19,6 +22,7 @@ mod config;
 mod evict;
 mod query;
 mod record;
+mod speculation;
 
 pub(crate) use config::BridgeDiagnosticsConfig;
 
@@ -35,6 +39,9 @@ pub(crate) struct BridgeDiagnosticsState {
     structural_remap_records: VecDeque<Arc<BridgeCanonicalStructuralRemapRecord>>,
     structural_branch_comparison_records:
         VecDeque<Arc<BridgeCanonicalStructuralBranchComparisonRecord>>,
+    preview_execution_records: VecDeque<Arc<BridgePreviewExecutionRecord>>,
+    preview_discard_records: VecDeque<Arc<BridgePreviewDiscardRecord>>,
+    preview_promotion_records: VecDeque<Arc<BridgePreviewPromotionRecord>>,
     stream_checkpoints: VecDeque<Arc<ConsumerCheckpointToken>>,
     stream_replay_records: VecDeque<Arc<CanonicalStreamReplayRecord>>,
     failure_records: VecDeque<Arc<BridgeFailureRecord>>,
@@ -55,6 +62,13 @@ pub(crate) struct BridgeDiagnosticsState {
         BTreeMap<String, Arc<BridgeCanonicalStructuralRemapRecord>>,
     latest_structural_branch_comparison_by_record_identity:
         BTreeMap<String, Arc<BridgeCanonicalStructuralBranchComparisonRecord>>,
+    latest_preview_execution_by_record_identity: BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
+    latest_preview_execution_by_session_identity: BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
+    latest_preview_discard_by_record_identity: BTreeMap<String, Arc<BridgePreviewDiscardRecord>>,
+    latest_preview_discard_by_session_identity: BTreeMap<String, Arc<BridgePreviewDiscardRecord>>,
+    latest_preview_promotion_by_record_identity: BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
+    latest_preview_promotion_by_session_identity: BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
+    reserved_preview_session_identities: BTreeSet<String>,
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,
     latest_stream_replay_by_checkpoint_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,

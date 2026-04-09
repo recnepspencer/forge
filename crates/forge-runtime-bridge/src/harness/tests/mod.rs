@@ -11,6 +11,8 @@ mod planning;
 mod replay;
 mod routing;
 mod source;
+mod speculation;
+mod speculation_certification;
 mod stream;
 mod structural;
 mod support;

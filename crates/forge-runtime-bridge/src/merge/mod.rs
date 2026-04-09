@@ -1,3 +1,4 @@
+mod authority;
 mod contracts;
 mod counters;
 mod declaration;
@@ -7,20 +8,24 @@ mod publication;
 mod replay;
 mod routing;
 mod taxonomy;
+mod ontology;
 mod validation;
 
+pub use authority::{
+    BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisIdentity, BridgeMergeParentOrderProof,
+    BridgeMergeParentOrderProofIdentity,
+};
 pub use contracts::{AdmittedMergeHistoryContract, AdmittedMergeRegistry};
 pub use counters::BridgeMergeCounters;
-pub use declaration::{
-    BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisIdentity, BridgeMergeOntologyMappingEntry,
-    BridgeMergeOntologyMappingSurface, BridgeMergeOntologyMappingSurfaceIdentity,
-    BridgeMergeParentOrderProof, BridgeMergeParentOrderProofIdentity, MergeHistoryDeclaration,
-    MergeHistoryDeclarationIdentity,
-};
+pub use declaration::{MergeHistoryDeclaration, MergeHistoryDeclarationIdentity};
 pub use explanation::PublishedMergeExplanationArtifact;
 pub use lowering::{
     BridgeMergeParentOrderDigestBasis, LoweredMergeHistoryPacketSet, MergeDecisionLogEntry,
     MergePrecedenceStageOutput,
+};
+pub use ontology::{
+    BridgeMergeOntologyMappingEntry, BridgeMergeOntologyMappingSurface,
+    BridgeMergeOntologyMappingSurfaceIdentity,
 };
 pub use publication::{PublishedMergeContinuityArtifact, PublishedMergeRemapArtifact};
 pub use replay::MergeReplayCertificationBundle;

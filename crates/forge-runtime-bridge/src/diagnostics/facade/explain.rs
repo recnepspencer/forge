@@ -1,4 +1,5 @@
 use super::*;
+use crate::speculation::BridgePreviewReplayBundle;
 
 impl BridgeDiagnosticsFacade {
     pub fn explain_route_record(&self, record: &BridgeRouteRecord) -> BridgeRouteExplanation {
@@ -145,6 +146,51 @@ impl BridgeDiagnosticsFacade {
     pub fn explain_last_stream_replay_record(&self) -> Option<BridgeStreamReplayExplanation> {
         self.last_stream_replay_record()
             .map(|record| BridgeStreamReplayExplanation::from_replay_record(&record))
+    }
+
+    pub fn explain_preview_execution_record(
+        &self,
+        record: &BridgePreviewExecutionRecord,
+    ) -> BridgePreviewExecutionExplanation {
+        BridgePreviewExecutionExplanation::from_record(record)
+    }
+
+    pub fn explain_last_preview_execution_record(&self) -> Option<BridgePreviewExecutionExplanation> {
+        self.last_preview_execution_record()
+            .map(|record| BridgePreviewExecutionExplanation::from_record(&record))
+    }
+
+    pub fn explain_preview_discard_record(
+        &self,
+        record: &BridgePreviewDiscardRecord,
+    ) -> BridgePreviewDiscardExplanation {
+        BridgePreviewDiscardExplanation::from_record(record)
+    }
+
+    pub fn explain_last_preview_discard_record(&self) -> Option<BridgePreviewDiscardExplanation> {
+        self.last_preview_discard_record()
+            .map(|record| BridgePreviewDiscardExplanation::from_record(&record))
+    }
+
+    pub fn explain_preview_promotion_record(
+        &self,
+        record: &BridgePreviewPromotionRecord,
+    ) -> BridgePreviewPromotionExplanation {
+        BridgePreviewPromotionExplanation::from_record(record)
+    }
+
+    pub fn explain_last_preview_promotion_record(
+        &self,
+    ) -> Option<BridgePreviewPromotionExplanation> {
+        self.last_preview_promotion_record()
+            .map(|record| BridgePreviewPromotionExplanation::from_record(&record))
+    }
+
+    pub fn explain_preview_replay_bundle(
+        &self,
+        bundle: &BridgePreviewReplayBundle,
+    ) -> BridgePreviewReplayExplanation {
+        BridgePreviewReplayExplanation::from_bundle(bundle)
     }
 
     pub fn last_canonical_route_record(&self) -> Option<BridgeCanonicalRouteRecord> {

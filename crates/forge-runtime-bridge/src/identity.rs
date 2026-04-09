@@ -144,3 +144,12 @@ pub enum StructuralCandidateIdentityTag {}
 pub enum StructuralFingerprintIdentityTag {}
 pub enum StructuralRemapRecordIdentityTag {}
 pub enum StructuralBranchComparisonRecordIdentityTag {}
+pub enum SpeculativeSignalBranchIdentityTag {}
+pub enum PreviewBranchBindingIdentityTag {}
+pub enum PreviewSessionDeclarationIdentityTag {}
+pub enum PreviewSessionIdentityTag {}
+pub enum PreviewExecutionRecordIdentityTag {}
+pub enum PreviewDiscardRecordIdentityTag {}
+pub enum PreviewPromotionRecordIdentityTag {}
+pub enum PromotionAdmissibilityProofIdentityTag {}
+pub enum PreviewReuseEquivalenceIdentityTag {}
