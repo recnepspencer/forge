@@ -6,6 +6,11 @@ use crate::routing::BridgeCanonicalBulkPlanRecord;
 use crate::speculation::{
     BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
 };
+use crate::writeback::{
+    BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
+    BridgeWritebackFamilyAdmissionRecord,
+    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+};
 use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 
 use super::bulk::BridgeBulkPlanExplanation;
@@ -29,6 +34,16 @@ use super::stream::{BridgeStreamCheckpointExplanation, BridgeStreamReplayExplana
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
+use super::writeback::{
+    BridgeWritebackAdmissionExplanation,
+    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackCandidateExplanation,
+    BridgeWritebackExecutionExplanation,
+    BridgeWritebackLoopPreventionExplanation, BridgeWritebackMapperEnvelopeExplanation,
+    BridgeWritebackMapperExplanation,
+    BridgeWritebackOutcomeExplanation, BridgeWritebackReplayExplanation,
+    BridgeWritebackReplayRecordExplanation,
+    BridgeWritebackStrategyCompatibilityExplanation,
+};
 use super::BridgeRouteExplanation;
 
 mod explain;
@@ -37,6 +52,7 @@ mod query;
 mod record;
 mod sink;
 mod speculation;
+mod writeback;
 
 #[derive(Debug, Clone)]
 pub struct BridgeDiagnosticsFacade {

@@ -10,6 +10,7 @@ pub(super) enum HarnessTarget {
     Policy(super::policy::PolicyHarnessTarget),
     Speculation(super::speculation::SpeculationHarnessTarget),
     Structural(super::structural::StructuralHarnessTarget),
+    Writeback(super::writeback::WritebackHarnessTarget),
     HistoricalCommit {
         branch_identity: TruthBranchIdentity,
         commit_identity: TruthCommitIdentity,
@@ -42,6 +43,7 @@ pub(super) enum HarnessExecution {
     Policy(super::policy::PolicyHarnessExecution),
     Speculation(super::speculation::SpeculationHarnessExecution),
     Structural(super::structural::StructuralHarnessExecution),
+    Writeback(super::writeback::WritebackHarnessExecution),
 }
 
 impl HarnessExecution {
@@ -85,6 +87,7 @@ impl HarnessExecution {
             Self::Policy(execution) => execution.summary_json(),
             Self::Speculation(execution) => execution.summary_json(),
             Self::Structural(execution) => execution.summary_json(),
+            Self::Writeback(execution) => execution.summary_json(),
         }
     }
 
@@ -175,6 +178,7 @@ impl HarnessExecution {
             Self::Policy(execution) => execution.extensions_json(runtime_bridge),
             Self::Speculation(execution) => execution.extensions_json(runtime_bridge),
             Self::Structural(execution) => execution.extensions_json(runtime_bridge),
+            Self::Writeback(execution) => execution.extensions_json(runtime_bridge),
         }
     }
 }
@@ -224,6 +228,9 @@ pub(super) fn parse_harness_target(target: &str) -> Result<HarnessTarget, Bridge
     }
     if let Some(structural_target) = super::structural::parse_structural_harness_target(target) {
         return structural_target.map(HarnessTarget::Structural);
+    }
+    if let Some(writeback_target) = super::writeback::parse_writeback_harness_target(target) {
+        return writeback_target.map(HarnessTarget::Writeback);
     }
 
     if let Some(rest) = target.strip_prefix("history-commit:") {

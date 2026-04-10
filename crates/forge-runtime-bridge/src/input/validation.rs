@@ -127,6 +127,18 @@ fn validate_producer_metadata(metadata: &BridgeProducerMetadata) -> Result<(), B
     if let Some(semantics_version) = metadata.producer_semantics_version() {
         validate_identity("producer semantics version", semantics_version)?;
     }
+    if let Some(feedback_provenance_digest) = metadata.writeback_feedback_provenance_digest() {
+        validate_identity(
+            "writeback feedback provenance digest",
+            feedback_provenance_digest,
+        )?;
+    }
+    if let Some(feedback_causality_digest) = metadata.writeback_feedback_causality_digest() {
+        validate_identity(
+            "writeback feedback causality digest",
+            feedback_causality_digest,
+        )?;
+    }
 
     Ok(())
 }
@@ -218,6 +230,31 @@ mod tests {
         assert_eq!(
             error.kind(),
             BridgeRouteErrorKind::UnsupportedProducerEnvelope
+        );
+    }
+
+    #[test]
+    fn validation_rejects_empty_writeback_feedback_provenance_fields() {
+        let parts = NormalizedBridgePatchEnvelope::new(
+            BridgeProducerMetadata::bridge_harness_fixture()
+                .with_writeback_feedback_provenance(" ", "bridge-writeback-causality:sha256:a"),
+            TruthCommitIdentity::new("commit-a"),
+            TruthPatchIdentity::new("patch-a"),
+            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::new("main"),
+            BridgeCommittedPatchSummary::new(1, 1),
+            BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
+                "entity-1", "profile", "name",
+            )]),
+            BridgeCommittedPatchDigest::new("digest-a"),
+        );
+
+        let error = validate_normalized_envelope(parts)
+            .expect_err("empty writeback feedback provenance fields must fail ingress validation");
+
+        assert_eq!(
+            error.kind(),
+            BridgeRouteErrorKind::UnsupportedTruthPatchScope
         );
     }
 }

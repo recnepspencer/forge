@@ -15,6 +15,7 @@ mod speculation;
 mod state;
 mod stream;
 mod structural;
+mod writeback;
 
 pub use bulk::BridgeBulkPlanExplanation;
 pub use continuity::{
@@ -63,6 +64,15 @@ pub use structural::{
     BridgeStructuralRemapReplaySummary,
     BRIDGE_CANONICAL_STRUCTURAL_BRANCH_COMPARISON_RECORD_SCHEMA_V1,
     BRIDGE_CANONICAL_STRUCTURAL_REMAP_RECORD_SCHEMA_V1,
+};
+pub use writeback::{
+    BridgeWritebackAdmissionExplanation,
+    BridgeWritebackCandidateExplanation, BridgeWritebackLoopPreventionExplanation,
+    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackExecutionExplanation,
+    BridgeWritebackMapperExplanation, BridgeWritebackMapperEnvelopeExplanation,
+    BridgeWritebackOutcomeExplanation, BridgeWritebackReplayExplanation,
+    BridgeWritebackReplayRecordExplanation,
+    BridgeWritebackStrategyCompatibilityExplanation,
 };
 
 pub(crate) use failure_source::BridgeFailureSource;

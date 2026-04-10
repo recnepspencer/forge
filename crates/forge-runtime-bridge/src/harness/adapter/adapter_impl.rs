@@ -27,6 +27,7 @@ use source::execute_source_request;
 use speculation::execute_speculation_request;
 use stream::execute_stream_request;
 use structural::execute_structural_request;
+use writeback::execute_writeback_request;
 
 #[derive(Clone)]
 struct FixtureSourceAdapter {
@@ -186,6 +187,7 @@ impl HarnessAdapter for BridgeHarnessAdapter {
             .with_relational_source(runtime.source.clone())
             .with_truth_branch_head_source(runtime.source.clone())
             .with_signal_sink(runtime.sink.clone())
+            .with_writeback_authority(runtime.writeback_authority.clone())
             .with_continuity_lineage_source(runtime.source.clone()),
             runtime,
             fixture.fixture.policy(),
@@ -353,6 +355,9 @@ impl HarnessAdapter for BridgeHarnessAdapter {
             HarnessTarget::Structural(structural_target) => HarnessExecution::Structural(
                 execute_structural_request(runtime_bridge, &fixture.fixture, structural_target)?,
             ),
+            HarnessTarget::Writeback(writeback_target) => HarnessExecution::Writeback(
+                execute_writeback_request(runtime, runtime_bridge, &fixture.fixture, writeback_target)?,
+            ),
             HarnessTarget::HistoricalCommit {
                 branch_identity,
                 commit_identity,
@@ -498,6 +503,7 @@ mod source;
 mod speculation;
 mod stream;
 mod structural;
+mod writeback;
 use execution::{
     execute_historical_request, parse_harness_target, HarnessExecution, HarnessTarget,
 };

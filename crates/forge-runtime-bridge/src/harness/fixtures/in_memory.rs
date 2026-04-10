@@ -17,7 +17,9 @@ use crate::facade::{
 mod fixture_surface;
 mod sink_surface;
 mod source_surface;
+mod writeback_surface;
 
 pub use fixture_surface::{BridgeHarnessFixture, SnapshotFixture};
 pub use sink_surface::RecordingSignalBridgeSink;
 pub use source_surface::InMemoryRelationalBridgeSource;
+pub use writeback_surface::RecordingTruthWritebackAuthority;

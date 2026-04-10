@@ -12,4 +12,8 @@ impl RuntimeBridge {
     pub fn source_adapter(&self) -> Option<&Arc<dyn BridgeSourceAdapter>> {
         self.source_adapter.as_ref()
     }
+
+    pub fn writeback_authority(&self) -> Option<&Arc<dyn TruthWritebackAuthority>> {
+        self.writeback_authority.as_ref()
+    }
 }

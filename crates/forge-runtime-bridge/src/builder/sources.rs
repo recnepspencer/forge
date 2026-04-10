@@ -29,6 +29,7 @@ impl<SnapshotState, SignalState, BranchHeadState, MappingState>
             signal_sink: self.signal_sink,
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
+            writeback_authority: self.writeback_authority,
             snapshot_reader_pool: self.snapshot_reader_pool,
             source_adapter_registrations: self.source_adapter_registrations,
             source_declarations: self.source_declarations,
@@ -70,6 +71,7 @@ impl<PatchState, SignalState, BranchHeadState, MappingState>
             signal_sink: self.signal_sink,
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
+            writeback_authority: self.writeback_authority,
             snapshot_reader_pool: self.snapshot_reader_pool,
             source_adapter_registrations: self.source_adapter_registrations,
             source_declarations: self.source_declarations,
@@ -112,6 +114,7 @@ impl<SignalState, MappingState>
             signal_sink: self.signal_sink,
             truth_branch_head_source: MissingTruthBranchHeadSource,
             continuity_lineage_source: self.continuity_lineage_source,
+            writeback_authority: self.writeback_authority,
             snapshot_reader_pool: self.snapshot_reader_pool,
             source_adapter_registrations: self.source_adapter_registrations,
             source_declarations: self.source_declarations,
@@ -153,6 +156,7 @@ impl<PatchState, SnapshotState, BranchHeadState, MappingState>
             signal_sink: PresentSignalSink(Arc::new(sink)),
             truth_branch_head_source: self.truth_branch_head_source,
             continuity_lineage_source: self.continuity_lineage_source,
+            writeback_authority: self.writeback_authority,
             snapshot_reader_pool: self.snapshot_reader_pool,
             source_adapter_registrations: self.source_adapter_registrations,
             source_declarations: self.source_declarations,
@@ -222,6 +226,14 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
         self
     }
 
+    pub fn with_writeback_authority<S>(mut self, authority: S) -> Self
+    where
+        S: TruthWritebackAuthority,
+    {
+        self.writeback_authority = Some(Arc::new(authority));
+        self
+    }
+
     pub fn with_truth_branch_head_source<S>(
         self,
         source: S,
@@ -242,6 +254,7 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
             signal_sink: self.signal_sink,
             truth_branch_head_source: PresentTruthBranchHeadSource(Arc::new(source)),
             continuity_lineage_source: self.continuity_lineage_source,
+            writeback_authority: self.writeback_authority,
             snapshot_reader_pool: self.snapshot_reader_pool,
             source_adapter_registrations: self.source_adapter_registrations,
             source_declarations: self.source_declarations,

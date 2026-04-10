@@ -288,6 +288,20 @@ What this enables:
 - ordered live subscriptions where new results arrive in sort position
 - bounded initial load followed by cursor-based advancement
 
+### Type-Bound Execution Architecture
+
+#### Implicit topological binding
+
+Technical role:
+The query layer acts as a Type-Bound Dependency Injector rather than just an explicit fetching API. Consumer functions (UI components, controller endpoints, or kernel solvers) declare their data needs purely as typed signature inputs (e.g., `Query<Entity, SubgraphCone<Depth=3>>`). The runtime automatically parses the active context (URL route, user session, or spatial trigger), binds the target ID, executes the query, and injects the fully-resolved result into the function.
+
+What this enables:
+
+- eradication of explicit "data fetching" and "loading/error states" from consuming code
+- React/Web components that declare exact relational boundaries via props and auto-hydrate
+- geometry kernel solvers that state topological dependencies as inputs, letting the runtime guarantee data is loaded before invocation
+- perfectly decoupled execution boundaries where the caller doesn't orchestrate how the data is retrieved
+
 ### Live Query Architecture
 
 #### Read-to-subscribe promotion
@@ -711,6 +725,18 @@ What this enables:
   consumption
 
 ### Policy-Aware Query Architecture
+
+#### Graph-native relationship proofs (ReBAC constraints)
+
+Technical role:
+Permissions and constraints are natively embedded as Relationship Calculus (inspired by Zanzibar) directly within the query. The query layer mathematically evaluates "Subject-Relation-Object" tuples. Access control is not an external boolean flag check; it is an intrinsic graph traversal proof. A query mathematically yields empty results if the unbroken lineage sequence ("User A is on Team B which owns Object C") does not exist.
+
+What this enables:
+
+- web application access control that is mathematically robust and scales arbitrarily across deep ownership trees
+- geometry kernel domain constraints ("Is part A structurally allowed to mutate part B?") resolved as native unified relational queries
+- eradication of ad-hoc application code checking `is_admin()` or `has_write_access()`; the query itself proves legality 
+- security policies that leverage the identical relation-graph query syntax used by regular domain logic
 
 #### Aspect-level policy masking
 

@@ -9,6 +9,7 @@ mod source;
 mod speculation;
 mod stream;
 mod structural;
+mod writeback;
 
 #[derive(Clone)]
 pub struct RuntimeBridge {
@@ -21,6 +22,7 @@ pub struct RuntimeBridge {
     pub(crate) signal_sink: Arc<dyn InvalidationSink>,
     pub(crate) truth_branch_head_source: Option<Arc<dyn TruthBranchHeadSource>>,
     pub(crate) continuity_lineage_source: Option<Arc<dyn ContinuityLineageSource>>,
+    pub(crate) writeback_authority: Option<Arc<dyn TruthWritebackAuthority>>,
     pub(crate) source_registry: AdmittedSourceRegistry,
     pub(crate) source_adapter: Option<Arc<dyn BridgeSourceAdapter>>,
     pub(crate) structural_registry: AdmittedStructuralRegistry,
@@ -41,6 +43,7 @@ impl std::fmt::Debug for RuntimeBridge {
                 "has_continuity_lineage_source",
                 &self.continuity_lineage_source.is_some(),
             )
+            .field("has_writeback_authority", &self.writeback_authority.is_some())
             .field(
                 "has_snapshot_reader_pool",
                 &self.snapshot_reader_pool.is_some(),

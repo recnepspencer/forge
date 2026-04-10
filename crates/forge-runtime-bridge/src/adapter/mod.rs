@@ -21,6 +21,7 @@ use crate::{continuity, input};
 mod continuity_lineage;
 mod signal_sink;
 mod source_materialization;
+mod truth_writeback;
 mod truth_sources;
 
 #[cfg(test)]
@@ -37,6 +38,11 @@ pub use signal_sink::{
 #[allow(unused_imports)]
 pub use source_materialization::{
     BridgeSourceAdapter, RelationalBridgeSourceError, RelationalBridgeSourceErrorTag,
+};
+#[allow(unused_imports)]
+pub use truth_writeback::{
+    TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackAuthorityErrorTag,
+    TruthWritebackRequest, TruthWritebackReceipt,
 };
 pub use truth_sources::{
     CommittedPatchSource, RelationalBridgeSource, RelationalCommittedPatchRequest,

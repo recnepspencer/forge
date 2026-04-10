@@ -81,6 +81,56 @@ impl BridgeDiagnosticsFacade {
             .preview_promotion_records()
     }
 
+    pub fn writeback_admission_records(
+        &self,
+    ) -> Vec<crate::writeback::BridgeWritebackFamilyAdmissionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_admission_records()
+    }
+
+    pub fn writeback_execution_records(
+        &self,
+    ) -> Vec<crate::writeback::BridgeWritebackExecutionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_execution_records()
+    }
+
+    pub fn writeback_mapper_envelopes(
+        &self,
+    ) -> Vec<crate::writeback::BridgeWritebackMapperEnvelope> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_envelopes()
+    }
+
+    pub fn writeback_mapped_family_inputs(
+        &self,
+    ) -> Vec<crate::writeback::BridgeMappedWritebackFamilyInput> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapped_family_inputs()
+    }
+
+    pub fn writeback_mapper_records(&self) -> Vec<crate::writeback::BridgeWritebackMapperRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_records()
+    }
+
+    pub fn writeback_replay_records(&self) -> Vec<crate::writeback::BridgeWritebackReplayRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_replay_records()
+    }
+
     pub fn merge_records(&self) -> Vec<BridgeCanonicalMergeRecord> {
         self.state
             .read()
@@ -179,6 +229,60 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .last_preview_promotion_record()
+    }
+
+    pub fn last_writeback_admission_record(
+        &self,
+    ) -> Option<crate::writeback::BridgeWritebackFamilyAdmissionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_admission_record()
+    }
+
+    pub fn last_writeback_execution_record(
+        &self,
+    ) -> Option<crate::writeback::BridgeWritebackExecutionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_execution_record()
+    }
+
+    pub fn last_writeback_mapper_envelope(
+        &self,
+    ) -> Option<crate::writeback::BridgeWritebackMapperEnvelope> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_mapper_envelope()
+    }
+
+    pub fn last_writeback_mapped_family_input(
+        &self,
+    ) -> Option<crate::writeback::BridgeMappedWritebackFamilyInput> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_mapped_family_input()
+    }
+
+    pub fn last_writeback_mapper_record(
+        &self,
+    ) -> Option<crate::writeback::BridgeWritebackMapperRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_mapper_record()
+    }
+
+    pub fn last_writeback_replay_record(
+        &self,
+    ) -> Option<crate::writeback::BridgeWritebackReplayRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .last_writeback_replay_record()
     }
 
     pub fn last_merge_record(&self) -> Option<BridgeCanonicalMergeRecord> {
@@ -359,6 +463,116 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .preview_promotion_record_for_session_identity(session_identity)
+    }
+
+    pub fn writeback_admission_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<crate::writeback::BridgeWritebackFamilyAdmissionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_admission_record_for_identity(record_identity)
+    }
+
+    pub fn writeback_admission_record_for_contract_digest(
+        &self,
+        contract_digest: &str,
+    ) -> Option<crate::writeback::BridgeWritebackFamilyAdmissionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_admission_record_for_contract_digest(contract_digest)
+    }
+
+    pub fn writeback_execution_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<crate::writeback::BridgeWritebackExecutionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_execution_record_for_identity(record_identity)
+    }
+
+    pub fn writeback_execution_record_for_candidate_digest(
+        &self,
+        candidate_digest: &str,
+    ) -> Option<crate::writeback::BridgeWritebackExecutionRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_execution_record_for_candidate_digest(candidate_digest)
+    }
+
+    pub fn writeback_mapper_envelope_for_identity(
+        &self,
+        envelope_identity: &str,
+    ) -> Option<crate::writeback::BridgeWritebackMapperEnvelope> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_envelope_for_identity(envelope_identity)
+    }
+
+    pub fn writeback_mapper_envelope_for_digest(
+        &self,
+        envelope_digest: &str,
+    ) -> Option<crate::writeback::BridgeWritebackMapperEnvelope> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_envelope_for_digest(envelope_digest)
+    }
+
+    pub fn writeback_mapped_family_input_for_identity(
+        &self,
+        mapped_input_identity: &str,
+    ) -> Option<crate::writeback::BridgeMappedWritebackFamilyInput> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapped_family_input_for_identity(mapped_input_identity)
+    }
+
+    pub fn writeback_mapped_family_input_for_digest(
+        &self,
+        mapped_input_digest: &str,
+    ) -> Option<crate::writeback::BridgeMappedWritebackFamilyInput> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapped_family_input_for_digest(mapped_input_digest)
+    }
+
+    pub fn writeback_mapper_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<crate::writeback::BridgeWritebackMapperRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_record_for_identity(record_identity)
+    }
+
+    pub fn writeback_mapper_record_for_candidate_digest(
+        &self,
+        candidate_digest: &str,
+    ) -> Option<crate::writeback::BridgeWritebackMapperRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_mapper_record_for_candidate_digest(candidate_digest)
+    }
+
+    pub fn writeback_replay_record_for_identity(
+        &self,
+        record_identity: &str,
+    ) -> Option<crate::writeback::BridgeWritebackReplayRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .writeback_replay_record_for_identity(record_identity)
     }
 
     pub fn bulk_record_for_workload_identity(

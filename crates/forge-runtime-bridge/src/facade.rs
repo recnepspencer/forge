@@ -9,7 +9,8 @@ pub use crate::adapter::{
     BridgeHistoricalLineageTopology, BridgeSourceAdapter, CommittedPatchSource,
     ContinuityLineageSource, InvalidationSink, RelationalBridgeSource, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest, SignalBridgeSink, SignalBridgeSinkError, SnapshotReadSource,
-    SnapshotReaderPool, TruthBranchHeadSource,
+    SnapshotReaderPool, TruthBranchHeadSource, TruthWritebackAuthority,
+    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 pub use crate::builder::RuntimeBridgeBuilder;
 pub use crate::continuity::{
@@ -49,7 +50,14 @@ pub use crate::diagnostics::{
     BridgeStructuralBranchComparisonExplanation, BridgeStructuralBranchComparisonRecord,
     BridgeStructuralBranchComparisonReplaySummary, BridgeStructuralCounters,
     BridgeStructuralRemapExplanation, BridgeStructuralRemapRecord,
-    BridgeStructuralRemapReplaySummary, BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1,
+    BridgeStructuralRemapReplaySummary, BridgeMappedWritebackFamilyInputExplanation,
+    BridgeWritebackAdmissionExplanation,
+    BridgeWritebackCandidateExplanation,
+    BridgeWritebackExecutionExplanation, BridgeWritebackLoopPreventionExplanation,
+    BridgeWritebackMapperEnvelopeExplanation, BridgeWritebackMapperExplanation,
+    BridgeWritebackOutcomeExplanation, BridgeWritebackReplayExplanation,
+    BridgeWritebackReplayRecordExplanation, BridgeWritebackStrategyCompatibilityExplanation,
+    BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1,
     BRIDGE_CANONICAL_HISTORICAL_EVALUATION_RECORD_SCHEMA_V1,
     BRIDGE_CANONICAL_MERGE_RECORD_SCHEMA_V1, BRIDGE_CANONICAL_ROUTE_RECORD_SCHEMA_V3,
     BRIDGE_CANONICAL_STRUCTURAL_BRANCH_COMPARISON_RECORD_SCHEMA_V1,
@@ -61,7 +69,7 @@ pub use crate::error::{
     BridgeLineageSourceErrorKind, BridgeMergeError, BridgeMergeErrorKind, BridgePatchCoordinate,
     BridgeReplayError, BridgeReplayErrorKind, BridgeRouteError, BridgeRouteErrorKind,
     BridgeSnapshotReadCoordinate, BridgeSpeculationError, BridgeSpeculationErrorKind,
-    BridgeStreamError, BridgeStreamErrorKind,
+    BridgeStreamError, BridgeStreamErrorKind, BridgeWritebackError, BridgeWritebackErrorKind,
 };
 pub use crate::input::envelope::{
     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
@@ -176,6 +184,33 @@ pub use crate::stream::{
     StreamReplayAuditSummary, StreamReplayMode, StreamReplayRecordIdentity, StreamResumeMode,
     StreamWindowDeliveryResult, StreamWindowDeliverySummary, StreamWindowIdentity,
     ValidatedStreamProtocol,
+};
+pub use crate::writeback::{
+    AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
+    BridgeWritebackAuthorityInputs, BridgeWritebackAuthorityOutcome, BridgeWritebackCausalityBasis,
+    BridgeWritebackCausalityIdentity, BridgeWritebackContractIdentity, BridgeWritebackCounters,
+    BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity,
+    BridgeWritebackEffectClass, BridgeWritebackEffectIdentity, BridgeWritebackFailureClass,
+    BridgeWritebackFamilyBasis, BridgeWritebackFamilyIdentity, BridgeWritebackFamilyKind,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackFamilyAdmissionRecordIdentity,
+    BridgeWritebackFeedbackProvenance, BridgeWritebackExecutionRecord,
+    BridgeWritebackExecutionRecordIdentity, BridgeWritebackIdempotenceBasis,
+    BridgeWritebackIdempotenceClass,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackOutcomeClass,
+    BridgeWritebackLoopDisposition, BridgeWritebackLoopPreventionIdentity,
+    BridgeWritebackLoopPreventionReport,
+    BridgeWritebackMapperEnvelope, BridgeWritebackMapperEnvelopeIdentity,
+    BridgeMappedWritebackFamilyInput, BridgeMappedWritebackFamilyInputIdentity,
+    BridgeWritebackMapperRecord, BridgeWritebackMapperRecordIdentity,
+    BridgeWritebackMapperWitness, BridgeWritebackMapperWitnessIdentity,
+    BridgeValidatedWritebackCandidate, BridgeWritebackCandidateIdentity,
+    BridgeWritebackReplayBundle, BridgeWritebackReplayRecord,
+    BridgeWritebackReplayRecordIdentity, BridgeWritebackRequestMode,
+    BridgeWritebackRetryDisposition, BridgeWritebackStrategyBasis, BridgeWritebackStrategyClass,
+    BridgeWritebackStrategyCompatibilityDisposition,
+    BridgeWritebackStrategyCompatibilityIdentity,
+    BridgeWritebackStrategyCompatibilityReport, BridgeWritebackStrategyIdentity,
+    ValidatedBridgeWritebackDeclaration,
 };
 pub use crate::structural::{
     AdmittedStructuralComparisonContract, AdmittedStructuralRegistry,

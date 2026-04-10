@@ -1,7 +1,8 @@
 use crate::adapter::{
     BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeSourceAdapter,
     CommittedPatchSource, ContinuityLineageSource, InvalidationSink, RelationalBridgeSourceError,
-    SignalBridgeSinkError, SnapshotReadSource, TruthBranchHeadSource,
+    SignalBridgeSinkError, SnapshotReadSource, TruthBranchHeadSource, TruthWritebackAuthority,
+    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 use crate::continuity::BridgeContinuityAuthorityBasis;
 use crate::delivery::BridgeDeliveryReceipt;
@@ -89,6 +90,7 @@ struct TestLineageSource;
 struct TestSourceAdapter {
     capabilities: BridgeSourceCapabilitySet,
 }
+struct TestWritebackAuthority;
 
 impl InvalidationSink for TestSink {
     fn deliver_invalidation(
@@ -140,6 +142,19 @@ impl BridgeSourceAdapter for TestSourceAdapter {
         _identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
         unreachable!("builder tests do not materialize source snapshots")
+    }
+}
+
+impl TruthWritebackAuthority for TestWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: TruthWritebackRequest,
+    ) -> Result<TruthWritebackReceipt, TruthWritebackAuthorityError> {
+        Ok(TruthWritebackReceipt::new(
+            crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            format!("authoritative-artifact:{}", request.digest()),
+            &request,
+        ))
     }
 }
 
@@ -254,6 +269,19 @@ fn build_accepts_optional_continuity_lineage_source() {
     assert!(authority
         .lineage_digest()
         .starts_with("historical-lineage-authority:sha256:"));
+}
+
+#[test]
+fn build_accepts_optional_writeback_authority() {
+    let runtime = RuntimeBridgeBuilder::new()
+        .with_relational_source(TestSource)
+        .with_signal_sink(TestSink)
+        .with_writeback_authority(TestWritebackAuthority)
+        .register_mapping(exact_registration("user-profile-name"))
+        .build()
+        .expect("builder should accept optional writeback authority");
+
+    assert!(runtime.writeback_authority().is_some());
 }
 
 #[test]

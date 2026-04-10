@@ -11,6 +11,7 @@ This document defines the certification-grade bridge test requirements for:
 - Milestone 10
 - Milestone 11
 - Milestone 12
+- Milestone 12b
 - Milestone 13
 
 Milestones 1 through 5 already have their own acceptance and closeout proof
@@ -896,9 +897,169 @@ Pass condition
 
 The bridge cannot create a parallel authority path into truth mutation.
 
+## Milestone 12b Named Certification Suites
+
+### 22. Multi-Family Writeback Admission Boundary Test
+
+Purpose
+
+Prove that multiple writeback families can be admitted through one bridge-owned
+protocol boundary without turning new families into bridge-core special cases
+or opaque host payloads.
+
+Scenario
+
+- admit at least two materially different writeback families
+- run equivalent and non-equivalent requests through each family
+- attempt undeclared family, wrong-family, and opaque-family admission
+- attempt compile-time construction of unwired or skipped-phase family values
+- replay admitted and rejected family-bearing paths
+
+Must verify
+
+- family identity remains explicit from admission through replay
+- different families do not alias into one bridge writeback meaning
+- undeclared or opaque family paths fail before authority execution
+- family-aware diagnostics remain bridge-native rather than host-defined
+- undeclared families and skipped proof phases are uncompilable wherever the
+  type system can enforce them
+
+Required verification output
+
+- `writeback_family_digest`
+- `family_contract_digest`
+- `bridge_effect_digest`
+- `failure_digest`
+- `replay_digest`
+- `family_admission_record_digest`
+- `decision_trace_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Multiple families can enter the bridge honestly, and family identity remains a
+first-class bridge artifact rather than host-local folklore.
+
+### 23. Cross-Family Replay And Loop Isolation Test
+
+Purpose
+
+Prove that replay, idempotence, and loop-prevention semantics remain
+family-correct and do not collapse across writeback families that may appear
+structurally similar.
+
+Scenario
+
+- run same-causality and changed-causality flows through at least two admitted
+  families
+- include same-output-lookalike and different-output family pairs
+- replay original and restart-shaped family-bearing histories
+- inject bridge-origin feedback pressure into multiple families
+- assert exact family lookup, family dispatch, and decision-log retention
+  counters on the hot path
+
+Must verify
+
+- cross-family lookalike outputs do not alias replay identity when family
+  semantics differ
+- loop-prevention classification remains family-visible and replay-stable
+- idempotence suppression remains scoped to the correct family contract
+- same-family equivalent runs remain equal while cross-family divergent runs
+  remain mechanically distinct
+- family tracing remains reconstructable from retained native execution and
+  replay records alone
+
+Required verification output
+
+- `writeback_family_digest`
+- `causality_digest`
+- `idempotence_report`
+- `loop_prevention_report`
+- `replay_digest`
+- `counter_snapshot`
+- `family_execution_record_digest`
+- `family_replay_record_digest`
+- `decision_trace_digest`
+
+Pass condition
+
+Replay and feedback pressure preserve family-specific meaning instead of
+flattening all families into one writeback lane.
+
+### 24. Host Mapper Parity And Shadow-Protocol Rejection Test
+
+Purpose
+
+Prove that host mappers remain translation layers into admitted family
+contracts rather than becoming shadow writeback protocols that redefine bridge
+semantics outside canonical artifacts.
+
+Scenario
+
+- run equivalent family-bearing workloads through at least two host mappers
+- vary mapper implementation shape while preserving admitted family semantics
+- attempt mapper-side redefinition of no-op, retry, failure, or family identity
+- attempt family execution with missing bridge-visible mapper evidence
+- attempt mapper outputs that try to author replay identity, idempotence
+  identity, loop disposition, failure class, or authority classification
+
+Must verify
+
+- mapper-only implementation differences do not change canonical bridge meaning
+- host attempts to redefine bridge protocol semantics fail explicitly
+- mapper paths cannot hide family-specific authority or loop semantics inside
+  host-local strings or opaque payloads
+- parity holds only when the mapper is translation, not shadow protocol
+- illegal mapper outputs are compile-time rejected where the API can enforce it
+- mapper parity and rejection are explainable from retained mapper and
+  execution records without reopening host code
+
+Required verification output
+
+- `writeback_family_digest`
+- `mapper_parity_matrix`
+- `authority_boundary_matrix`
+- `failure_digest`
+- `diagnostics_digest`
+- `family_mapper_record_digest`
+- `family_execution_record_digest`
+- `decision_trace_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Host mappers can translate into bridge writeback families, but they cannot
+become the real writeback protocol.
+
 ## Milestone 13 Named Certification Suites
 
-### 22. End-To-End Causality Bundle Equivalence Test
+### Milestone 13 Reference Workload Requirement
+
+Milestone 13 must include one concrete Rust-only reference workload in addition
+to the abstract suite definitions below.
+
+The required reference shape is:
+
+- authoritative products and component costs in `forge-relational`
+- derived tariff, tax, margin, and final-price nodes in `forge-signal`
+- bridge-coordinated live updates, speculative branch-local shocks, discard,
+  commit promotion, replay, and diagnostics over the boundary
+
+Minimum required reference scenarios:
+
+- a high-fanout main-branch component-cost wave over at least 100 products
+- a speculative branch-local `rubber +300%` style shock that remains isolated
+  from the main branch
+- a main-versus-speculative branch comparison bundle over the same fork basis
+- a speculative discard lane proving zero authoritative and bridge residue
+- a speculative commit-promotion lane proving clear authority-boundary
+  promotion through the Milestone 12 writeback contract
+
+This workload is a certification fixture, not a bridge-owned finance product
+surface. Its role is to prove that the bridge can carry a concrete dual-runtime
+story end to end without relying on a UI or on host-local debug folklore.
+
+### 25. End-To-End Causality Bundle Equivalence Test
 
 Purpose
 
@@ -917,6 +1078,8 @@ Must verify
 - the same causality tokens survive original execution and replay
 - explanation surfaces remain aligned with routing and truth-view records
 - diagnostics tiers change retained richness only
+- the reference workload preserves the same main-branch and speculative-branch
+  causality digests across original execution and replay
 
 Required verification output
 
@@ -929,7 +1092,7 @@ Pass condition
 
 End-to-end bridge causality is canonical, replay-safe, and mechanically inspectable.
 
-### 23. Failure Taxonomy Localization Test
+### 26. Failure Taxonomy Localization Test
 
 Purpose
 
@@ -947,6 +1110,8 @@ Must verify
 - failures map into explicit bridge-native classes
 - failure localization identifies the exact failed protocol or planning boundary
 - replay preserves failure meaning
+- reference-workload failures such as wrong-branch comparison, preview misuse,
+  source mismatch, and writeback denial remain typed and replay-stable
 
 Required verification output
 
@@ -959,7 +1124,7 @@ Pass condition
 
 Bridge failures are typed, composable, and replay-stable.
 
-### 24. Certification Matrix Sufficiency Test
+### 27. Certification Matrix Sufficiency Test
 
 Purpose
 
@@ -978,6 +1143,8 @@ Must verify
 - certification artifacts are enough to distinguish the major failure families
 - bundle completeness does not depend on ambient runtime state
 - the bridge has one coherent public diagnostics entrypoint
+- the reference workload can be diagnosed offline for main-branch live runs,
+  speculative runs, discard residue checks, and commit-promotion outcomes
 
 Required verification output
 

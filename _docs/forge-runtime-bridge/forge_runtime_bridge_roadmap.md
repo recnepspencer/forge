@@ -505,10 +505,63 @@ This milestone is complete only when bridge harness scenarios can prove:
 - strategy-bearing and non-strategy-bearing histories remain distinguishable and diagnosable
 - the Milestone 12 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
+## Milestone 12b: Bridge-Native Extensible Writeback Families And Mapper Containment
+
+Status: Complete
+
+Engineering spec: [milestone-12b.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-12b.md)
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 22-24: Multi-Family Writeback Admission Boundary, Cross-Family Replay And Loop Isolation, Host Mapper Parity And Shadow-Protocol Rejection
+
+### Goal
+
+Make extensible writeback families a bridge-native protocol surface so domains
+can admit multiple writeback families through one causal boundary without
+teaching domain semantics to the bridge and without letting host mappers become
+shadow writeback protocols.
+
+### Must Ship
+
+- bridge-owned writeback-family taxonomy and admission surfaces
+- family-aware effect, candidate, outcome, diagnostics, and replay artifacts
+- a sealed family admission boundary that avoids per-family bridge-core rewrites
+- host-mapper containment rules that keep translation separate from protocol
+  ownership
+- at least two materially distinct admitted writeback families in
+  certification-grade harness scenarios
+- runtime-owned family admission, mapper, execution, and replay records with
+  certification derived from those native records
+
+### Must Preserve
+
+- bridge remains a protocol boundary, not a domain runtime
+- truth authority stays in `forge-relational`
+- derived execution authority stays in `forge-signal`
+- causality, idempotence, loop prevention, and replay remain bridge-owned and
+  family-visible
+- host mappers do not define bridge protocol semantics
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- two admitted writeback families can coexist without aliasing replay,
+  idempotence, or authority-boundary meaning
+- host mapper variation that preserves family semantics yields equal canonical
+  bundles
+- undeclared or opaque writeback-family attempts fail explicitly before
+  authority execution
+- suite 22, 23, and 24 run as distinct hostile certifications rather than
+  slices of one omnibus scenario
+- the Milestone 12b certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
 ## Milestone 13: End-to-End Causality, Failure Taxonomy, and Bridge Certification
 
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
-Suites 22-24: End-To-End Causality Bundle Equivalence, Failure Taxonomy Localization, Certification Matrix Sufficiency
+Suites 25-27: End-To-End Causality Bundle Equivalence, Failure Taxonomy Localization, Certification Matrix Sufficiency
+Engineering spec: [milestone-13.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-13.md)
 
 ### Goal
 
@@ -522,12 +575,17 @@ integration convenience layer.
 - bridge certification artifacts for routing, mapping, merge-aware evaluation, historical evaluation, preview flows, writeback flows, and replay parity
 - one public bridge diagnostics entrypoint
 - reusable bridge harness suites for patch-driven, historical, branch-aware, merge-bearing, strategy-bearing, parallel-admission, and failure-path scenarios
+- one Rust-only reference workload that proves live high-fanout truth changes,
+  speculative branch-local shocks, main-versus-speculative comparison, discard
+  zero-residue, and authoritative commit promotion without requiring a UI
 
 ### Must Preserve
 
 - separate runtime ownership on both sides
 - canonical observability and replay behavior
 - bridge artifacts remain machine-checkable and bounded
+- the reference workload remains certification substrate rather than bridge-owned
+  domain authority
 
 ### Acceptance Evidence
 
@@ -536,6 +594,9 @@ This milestone is complete only when the bridge harness can prove:
 - end-to-end causality survives original execution and replay
 - bridge failure classes are explicit and structured
 - certification artifacts are sufficient to diagnose routing, merge-aware, policy-aware, and historical-evaluation failures mechanically
+- the reference workload proves main-branch live propagation, speculative branch
+  isolation, discard zero-residue, and commit-promotion clarity through the same
+  canonical certification bundles
 - the Milestone 13 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Completion Standard

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::adapter::{
     BridgeSourceAdapter, CommittedPatchSource, ContinuityLineageSource, InvalidationSink,
-    SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource,
+    SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource, TruthWritebackAuthority,
 };
 use crate::diagnostics::DiagnosticSink;
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};

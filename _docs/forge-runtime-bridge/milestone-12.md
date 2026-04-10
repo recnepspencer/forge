@@ -1,6 +1,6 @@
 # Milestone 12 Engineering Spec: Bridge-Mediated Commit Strategies And Derived Writeback Contracts
 
-> **Status:** Planned engineering spec
+> **Status:** Complete for the first admitted writeback family; Milestone 12b is required before Milestone 13 to make writeback family extensibility bridge-native and production-grade
 >
 > **Roadmap parent:** [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 >
@@ -32,6 +32,41 @@ Without Milestone 12, the bridge still has a fatal hole:
 
 Milestone 12 exists to close that hole without turning the bridge into a second
 commit runtime.
+
+## Implementation Progress
+
+The codebase now has a real Milestone 12 substrate rather than only a plan.
+
+Implemented today:
+
+- bridge-owned writeback declaration, validation, admission, effect, causality,
+  feedback provenance, idempotence, loop-prevention, strategy-basis,
+  strategy-compatibility, authority outcome, replay, and counter artifacts
+- builder-owned optional truth writeback authority seam with freeze-at-build
+  semantics
+- runtime execution through a real writeback authority boundary
+- first-class bridge-origin feedback provenance in runtime and harness flows
+- first-class writeback strategy class and retry semantics for the first narrow
+  admitted strategy family
+- validated writeback candidate artifacts between pre-authority classification
+  and authority execution
+- authority receipt contract validation, including request/receipt coherence and
+  malformed receipt fail-closed handling
+- typed fail-closed handling for preview misuse, unbound authority, unsafe
+  feedback, merge rejection, stale basis rejection, authority transport
+  failure, and authority panic
+- hostile certification lanes for duplicate-attempt boundedness, authority
+  bypass rejection, merge-boundary rejection, unsafe feedback pre-authority
+  rejection, contradictory feedback rejection, and bridge-origin feedback
+  convergence through canonical no-op
+
+Still intentionally incomplete:
+
+- a broader admitted strategy surface beyond the current narrow Phase 1 class
+- richer production-shaped authority adapters beyond the in-memory harness seam
+- final certification breadth for every planned hostile lane in suites 19-21
+- bridge-native extensible writeback families and mapper-containment rules for
+  domain-honest multi-family writeback
 
 It also has to respect the crate that actually exists today:
 
@@ -72,8 +107,11 @@ Milestone 11 established that policy is explicit and request-scoped. Milestone
 - one typed failure topology for strategy failure, invariant rejection, merge
   rejection, stale basis, and authority bypass
 
-This milestone also belongs before Milestone 13 because end-to-end causality is
-not certifiable while bridge-mediated writeback still disappears into host code.
+This milestone also belongs before Milestone 12b and Milestone 13 because
+end-to-end causality is not certifiable while bridge-mediated writeback still
+disappears into host code, and production-grade reference workloads are not
+honest until the bridge can admit more than one writeback family without
+falling back to host-local shadow protocols.
 
 ## Hard Part
 
@@ -366,6 +404,9 @@ mechanically distinct, bridge effects are first-class, causality is
 first-class, loop-prevention assumptions are explicit, and idempotence meaning
 is typed rather than narrative.
 
+Current read: this phase is effectively implemented. Remaining work is mainly
+regression pressure from later phases rather than missing substrate.
+
 ### Phase 2: Strategy Admission, Validation, And Authoritative Outcome
 
 Implement:
@@ -383,6 +424,17 @@ Phase 2 is complete only when identical admitted effect inputs lower to
 identical candidate digests, no-op and commit outcomes are explicit, loop
 checks are explicit, and failed strategies leave zero authoritative residue.
 
+Current read: this phase is partially implemented. The runtime already carries
+typed no-op, commit, rejection, failure, and panic boundaries, but the admitted
+writeback strategy surface is still intentionally narrow.
+
+Updated read: this phase is implemented for the first admitted strategy class.
+The runtime now carries explicit strategy-class admission, validated
+writeback-candidate artifacts, retry disposition, typed no-op/commit/rejection
+outcomes, and typed failure containment through the authority seam. Remaining
+work in this area is post-Phase-2 surface expansion, not missing lifecycle
+plumbing.
+
 ### Phase 3: Replay, Diagnostics, And Certification
 
 Ship:
@@ -399,6 +451,11 @@ Ship:
 Phase 3 is complete only when replay reconstructs writeback meaning from
 canonical artifacts alone and diagnostics-tier variation changes retained detail
 only, not writeback meaning.
+
+Current read: this phase is implemented. Replay-safe bundles, hostile harness
+lanes, standardized certification evidence, bridge-owned writeback execution
+and replay records, canonical counter artifacts, and diagnostics/explanation
+surfaces now ship as part of the runtime rather than as harness-local folklore.
 
 ## Must Ship
 
@@ -549,12 +606,16 @@ Minimum certification outputs:
 - `failure_digest`
 - `replay_digest`
 - `counter_snapshot`
+- `counter_artifact`
 
 ### Certification Rules For Milestone 12
 
 Every Milestone 12 certification suite must:
 
 - emit a canonical bundle sufficient for offline pass/fail analysis
+  including a canonical counter artifact rather than only a sibling digest
+- derive certification counters from retained bridge-owned writeback execution
+  and replay records rather than scenario-local bookkeeping
 - compare independently produced lanes rather than checking one run in isolation
 - prove what must stay the same, what must change, and what must fail
 - include exact counter assertions for representative scenarios, including
@@ -724,9 +785,14 @@ Milestone 12 builds directly on:
 - Milestone 11 policy propagation
 - relational Milestone 8.5 commit-strategy infrastructure
 
-Milestone 12 must land before Milestone 13 end-to-end certification, because
-writeback must already be a canonical bridge story before it can be certified
-end to end.
+Milestone 12 must land before Milestone 12b, because the bridge first has to
+prove one canonical writeback family before it can generalize writeback-family
+extensibility honestly.
+
+Milestone 12b must then land before Milestone 13 end-to-end certification,
+because production-grade certification should test the bridge against a
+bridge-native extensible writeback surface rather than a single-family special
+case or host-local mapper folklore.
 
 ## Self-Check
 
@@ -755,4 +821,9 @@ equivalent retries can still fabricate duplicate authoritative commits, if
 bridge-origin effect meaning or causality still disappears before replay, if
 self-triggered writeback still depends on luck rather than explicit convergence
 or fail-closed no-op classification, or if authority bypass remains visible
-only in host logs rather than typed artifacts, Milestone 12 is not complete.
+only in host logs rather than typed artifacts, Milestone 12 is not complete for
+its first admitted family.
+
+If the bridge still needs host-local shadow protocol logic to admit a second
+writeback family honestly, that is Milestone 12b work, not a defect in the
+Milestone 12 closeout statement above.

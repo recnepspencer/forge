@@ -24,6 +24,8 @@ pub struct BridgeProducerMetadata {
     authority_kind: BridgeProducerAuthorityKind,
     export_schema_version: Arc<str>,
     producer_semantics_version: Option<Arc<str>>,
+    writeback_feedback_provenance_digest: Option<Arc<str>>,
+    writeback_feedback_causality_digest: Option<Arc<str>>,
 }
 
 impl BridgeProducerMetadata {
@@ -49,6 +51,8 @@ impl BridgeProducerMetadata {
             authority_kind,
             export_schema_version: export_schema_version.into(),
             producer_semantics_version: None,
+            writeback_feedback_provenance_digest: None,
+            writeback_feedback_causality_digest: None,
         }
     }
 
@@ -57,6 +61,16 @@ impl BridgeProducerMetadata {
         producer_semantics_version: impl Into<Arc<str>>,
     ) -> Self {
         self.producer_semantics_version = Some(producer_semantics_version.into());
+        self
+    }
+
+    pub fn with_writeback_feedback_provenance(
+        mut self,
+        feedback_provenance_digest: impl Into<Arc<str>>,
+        feedback_causality_digest: impl Into<Arc<str>>,
+    ) -> Self {
+        self.writeback_feedback_provenance_digest = Some(feedback_provenance_digest.into());
+        self.writeback_feedback_causality_digest = Some(feedback_causality_digest.into());
         self
     }
 
@@ -70,6 +84,14 @@ impl BridgeProducerMetadata {
 
     pub fn producer_semantics_version(&self) -> Option<&str> {
         self.producer_semantics_version.as_deref()
+    }
+
+    pub fn writeback_feedback_provenance_digest(&self) -> Option<&str> {
+        self.writeback_feedback_provenance_digest.as_deref()
+    }
+
+    pub fn writeback_feedback_causality_digest(&self) -> Option<&str> {
+        self.writeback_feedback_causality_digest.as_deref()
     }
 }
 

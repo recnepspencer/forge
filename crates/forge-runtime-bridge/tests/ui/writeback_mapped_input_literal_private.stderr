@@ -1,0 +1,40 @@
+warning: unreachable expression
+ --> tests/ui/writeback_mapped_input_literal_private.rs:6:33
+  |
+5 |         mapped_input_identity: todo!(),
+  |                                ------- any code following this expression is unreachable
+6 |         mapper_envelope_digest: todo!(),
+  |                                 ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `mapped_input_identity`, `mapper_envelope_digest`, `contract_digest`, `family_kind`, `effect_class`, `strategy_class`, `strategy_descriptor_digest`, `causality_digest`, `domain_payload_digest`, `domain_evidence_digest`, `canonical_basis` and `digest` of struct `BridgeMappedWritebackFamilyInput` are private
+  --> tests/ui/writeback_mapped_input_literal_private.rs:5:9
+   |
+ 4 |     let _ = BridgeMappedWritebackFamilyInput {
+   |             -------------------------------- in this type
+ 5 |         mapped_input_identity: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         mapper_envelope_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         contract_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 8 |         family_kind: todo!(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         effect_class: todo!(),
+   |         ^^^^^^^^^^^^ private field
+10 |         strategy_class: todo!(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         strategy_descriptor_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         causality_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+13 |         domain_payload_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         domain_evidence_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         canonical_basis: todo!(),
+   |         ^^^^^^^^^^^^^^^ private field
+16 |         digest: todo!(),
+   |         ^^^^^^ private field

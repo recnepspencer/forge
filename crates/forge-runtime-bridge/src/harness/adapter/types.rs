@@ -1,7 +1,8 @@
 use crate::facade::RawCommittedPatchEnvelope;
 
 use super::super::fixtures::{
-    InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, SnapshotFixture,
+    InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, RecordingTruthWritebackAuthority,
+    SnapshotFixture,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +46,7 @@ pub struct BridgeHarnessSession {
     pub(crate) runtime: Option<crate::facade::RuntimeBridge>,
     pub(crate) source: InMemoryRelationalBridgeSource,
     pub(crate) sink: RecordingSignalBridgeSink,
+    pub(crate) writeback_authority: RecordingTruthWritebackAuthority,
     pub(crate) source_adapter_shape: SourceAdapterShape,
     pub(crate) source_builder_load_order: SourceBuilderLoadOrder,
     pub(crate) policy_builder_load_order: PolicyBuilderLoadOrder,
@@ -57,6 +59,7 @@ impl Default for BridgeHarnessSession {
             runtime: None,
             source: InMemoryRelationalBridgeSource::default(),
             sink: RecordingSignalBridgeSink::default(),
+            writeback_authority: RecordingTruthWritebackAuthority::default(),
             source_adapter_shape: SourceAdapterShape::Direct,
             source_builder_load_order: SourceBuilderLoadOrder::AdapterBeforeSources,
             policy_builder_load_order: PolicyBuilderLoadOrder::WholePolicy,

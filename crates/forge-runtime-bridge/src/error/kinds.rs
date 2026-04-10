@@ -143,6 +143,26 @@ pub enum BridgeSpeculationErrorKind {
 pub type BridgeSpeculationError = BridgeTypedError<BridgeSpeculationErrorKind>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BridgeWritebackErrorKind {
+    WritebackNotRequested,
+    PolicyRejected,
+    StrategyUnavailable,
+    FamilyBindingMismatch,
+    StrategyDescriptorMismatch,
+    IdempotenceBasisMismatch,
+    StaleTruthBasis,
+    InvariantRejected,
+    MergeAuthorityRejected,
+    StrategyFailed,
+    StrategyPanicked,
+    ReplayMismatch,
+    AuthorityBypassRejected,
+    PreviewWritebackRejected,
+}
+
+pub type BridgeWritebackError = BridgeTypedError<BridgeWritebackErrorKind>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeLineageSourceErrorKind {
     UnsupportedContinuityClass,
     HistoricalResolutionFailure,

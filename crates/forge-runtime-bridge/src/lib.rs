@@ -31,6 +31,7 @@ mod source;
 mod speculation;
 mod stream;
 mod structural;
+mod writeback;
 
 #[cfg(test)]
 mod harness;
