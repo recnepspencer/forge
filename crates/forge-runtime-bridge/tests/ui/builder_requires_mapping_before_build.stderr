@@ -5,5 +5,5 @@ error[E0599]: no method named `build` found for struct `RuntimeBridgeBuilder` in
   |                      ^^^^^ method not found in `RuntimeBridgeBuilder`
   |
   = note: the method was found for
-          - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>`
-          - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::PresentCommittedPatchSource, forge_runtime_bridge::builder::PresentSnapshotReadSource, forge_runtime_bridge::builder::PresentSignalSink, forge_runtime_bridge::builder::PresentTruthBranchHeadSource, forge_runtime_bridge::builder::PresentMappingRegistrations>`
+          - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::states::PresentCommittedPatchSource, forge_runtime_bridge::builder::states::PresentSnapshotReadSource, forge_runtime_bridge::builder::states::PresentSignalSink, forge_runtime_bridge::builder::states::MissingTruthBranchHeadSource, forge_runtime_bridge::builder::states::PresentMappingRegistrations>`
+          - `RuntimeBridgeBuilder<forge_runtime_bridge::builder::states::PresentCommittedPatchSource, forge_runtime_bridge::builder::states::PresentSnapshotReadSource, forge_runtime_bridge::builder::states::PresentSignalSink, forge_runtime_bridge::builder::states::PresentTruthBranchHeadSource, forge_runtime_bridge::builder::states::PresentMappingRegistrations>`

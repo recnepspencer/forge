@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use super::counters::BridgeSpeculationCounters;
 use super::contracts::BridgePreviewReuseEquivalence;
+use super::counters::BridgeSpeculationCounters;
 use super::session::{BridgePreviewSession, PreviewExecutionRecordIdentity};
 use super::taxonomy::{PreviewActive, PreviewAdmitted};
 

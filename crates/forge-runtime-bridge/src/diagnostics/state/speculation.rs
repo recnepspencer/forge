@@ -1,10 +1,7 @@
 use super::*;
 
 impl BridgeDiagnosticsState {
-    pub(crate) fn reserve_preview_session_identity(
-        &mut self,
-        session_identity: &str,
-    ) -> bool {
+    pub(crate) fn reserve_preview_session_identity(&mut self, session_identity: &str) -> bool {
         self.reserved_preview_session_identities
             .insert(session_identity.to_string())
     }

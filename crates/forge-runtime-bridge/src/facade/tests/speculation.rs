@@ -1,9 +1,8 @@
 use super::runtime;
 use crate::facade::{
-    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass,
-    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
-    BridgePreviewSessionIdentity, BridgeRequestKind, BridgeRuntimePolicy,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
+    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
+    BridgeRuntimePolicy, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
 };
 
@@ -256,7 +255,6 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
         crate::error::BridgeSpeculationErrorKind::PreviewSessionIdentityConflict
     );
 
-    let discard_proof = active_a.promotion_admissibility_proof();
     let (_discarded, _discard_record) = runtime
         .discard_preview_session(
             active_a,
@@ -277,7 +275,6 @@ fn runtime_rejects_stale_duplicate_and_post_discard_promotion() {
         reactivated_admission_error.kind(),
         crate::error::BridgeSpeculationErrorKind::PreviewSessionIdentityConflict
     );
-    let _ = discard_proof;
 }
 
 #[test]
@@ -317,6 +314,76 @@ fn runtime_replays_discarded_preview_bundle_from_retained_records() {
         discard_record.record_identity()
     );
     assert_eq!(replay_bundle.counters().replay_bundle_width(), 2);
+}
+
+#[test]
+fn runtime_rejects_post_discard_reentry_and_preserves_canonical_discard_bundle() {
+    let runtime = runtime(BridgeRuntimePolicy::default());
+    let admitted = runtime
+        .admit_preview_session(
+            BridgePreviewSessionIdentity::new("preview-session:discard-terminal"),
+            preview_declaration(),
+        )
+        .expect("preview declaration should admit");
+    let (active, execution_record) = runtime.activate_preview_session(admitted, 4, 2, 2);
+    let (discarded, discard_record) = runtime
+        .discard_preview_session(
+            active,
+            &execution_record,
+            vec![
+                BridgePreviewResidueClass::PreviewExecutionRetained,
+                BridgePreviewResidueClass::ReplayRetainedNonAuthoritative,
+                BridgePreviewResidueClass::TemporaryDiagnosticsResidue,
+            ],
+        )
+        .expect("discard should succeed");
+
+    let initial_replay = runtime
+        .replay_preview_bundle(discarded.session_identity().as_str())
+        .expect("discarded preview should replay");
+    assert_eq!(
+        initial_replay
+            .preview_discard_record()
+            .expect("discard replay should retain discard record")
+            .record_identity(),
+        discard_record.record_identity()
+    );
+
+    let hostile_reentry_error = runtime
+        .admit_preview_session(
+            BridgePreviewSessionIdentity::new("preview-session:discard-terminal"),
+            preview_declaration().with_structural_basis_digest("structural:hostile-reentry"),
+        )
+        .expect_err("discarded preview session identity must reject hostile re-entry");
+    assert_eq!(
+        hostile_reentry_error.kind(),
+        crate::error::BridgeSpeculationErrorKind::PreviewSessionIdentityConflict
+    );
+
+    let replay_after_reentry_attempt = runtime
+        .replay_preview_bundle(discarded.session_identity().as_str())
+        .expect("discard replay should remain canonical after rejected re-entry");
+
+    assert_eq!(
+        replay_after_reentry_attempt.lifecycle_outcome(),
+        BridgePreviewLifecycleStateKind::Discarded
+    );
+    assert_eq!(
+        replay_after_reentry_attempt
+            .preview_discard_record()
+            .expect("discard replay should still contain the original terminal record")
+            .record_identity(),
+        discard_record.record_identity()
+    );
+    assert!(
+        replay_after_reentry_attempt
+            .preview_promotion_record()
+            .is_none(),
+        "discarded sessions must not acquire promotion residue through hostile re-entry"
+    );
+    assert_eq!(runtime.diagnostics().preview_execution_records().len(), 1);
+    assert_eq!(runtime.diagnostics().preview_discard_records().len(), 1);
+    assert_eq!(runtime.diagnostics().preview_promotion_records().len(), 0);
 }
 
 #[test]

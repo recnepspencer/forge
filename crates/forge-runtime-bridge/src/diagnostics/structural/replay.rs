@@ -1,7 +1,7 @@
 use crate::error::{BridgeErrorContext, BridgeReplayError, BridgeReplayErrorKind};
 use crate::structural::{
-    AdmittedStructuralComparisonContract, PlannedStructuralMatchPacketSet, ReducedStructuralMatchSet,
-    StructuralComparisonMode,
+    AdmittedStructuralComparisonContract, PlannedStructuralMatchPacketSet,
+    ReducedStructuralMatchSet, StructuralComparisonMode,
 };
 
 pub(crate) fn validate_structural_replay_contract(

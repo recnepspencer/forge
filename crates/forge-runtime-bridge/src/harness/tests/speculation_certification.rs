@@ -47,7 +47,9 @@ fn execute_speculation_run(
 ) -> RunRecord<String> {
     let adapter = BridgeHarnessAdapter;
     let fixture = speculation_fixture(fixture_name, policy);
-    let mut runtime = adapter.create_runtime().expect("speculation harness runtime");
+    let mut runtime = adapter
+        .create_runtime()
+        .expect("speculation harness runtime");
     adapter
         .prepare_runtime(&mut runtime, &profile)
         .expect("speculation harness prepare");
@@ -125,7 +127,10 @@ fn speculative_discard_zero_residue_bundle_is_canonical_and_host_parity_safe() {
         bundle["discard_residue_report"],
         control_run.summary["discard_residue_report"]
     );
-    assert_eq!(bundle["routing_digest"], control_run.summary["routing_digest"]);
+    assert_eq!(
+        bundle["routing_digest"],
+        control_run.summary["routing_digest"]
+    );
     assert_eq!(
         bundle["counter_snapshot"],
         control_run.summary["counter_snapshot"]
@@ -197,7 +202,10 @@ fn speculative_commit_boundary_bundle_stays_replay_safe_and_tier_explicit() {
         control_bundle["preview_vs_authoritative_matrix"],
         control_run.summary["preview_vs_authoritative_matrix"]
     );
-    assert_eq!(control_bundle["replay_digest"], control_run.summary["replay_digest"]);
+    assert_eq!(
+        control_bundle["replay_digest"],
+        control_run.summary["replay_digest"]
+    );
     assert_eq!(
         control_bundle["diagnostics_digest"],
         control_run.summary["diagnostics_digest"]
@@ -210,7 +218,10 @@ fn speculative_commit_boundary_bundle_stays_replay_safe_and_tier_explicit() {
         control_bundle["preview_vs_authoritative_matrix"],
         hostile_bundle["preview_vs_authoritative_matrix"]
     );
-    assert_eq!(control_bundle["replay_digest"], hostile_bundle["replay_digest"]);
+    assert_eq!(
+        control_bundle["replay_digest"],
+        hostile_bundle["replay_digest"]
+    );
     assert_eq!(
         control_bundle["counter_snapshot"],
         hostile_bundle["counter_snapshot"]
@@ -220,19 +231,23 @@ fn speculative_commit_boundary_bundle_stays_replay_safe_and_tier_explicit() {
         hostile_bundle["diagnostics_digest"]
     );
     assert_eq!(
-        control_bundle["preview_vs_authoritative_matrix"]["promoted_preview"]["preview_session_identity"],
+        control_bundle["preview_vs_authoritative_matrix"]["promoted_preview"]
+            ["preview_session_identity"],
         json!("harness:speculation-promotion")
     );
     assert_eq!(
-        control_bundle["preview_vs_authoritative_matrix"]["discarded_preview"]["preview_session_identity"],
+        control_bundle["preview_vs_authoritative_matrix"]["discarded_preview"]
+            ["preview_session_identity"],
         json!("harness:speculation-discard-sibling")
     );
     assert_eq!(
-        control_run.extensions["bridge_speculation_record"]["discard_replay_explanation"]["lifecycle_outcome"],
+        control_run.extensions["bridge_speculation_record"]["discard_replay_explanation"]
+            ["lifecycle_outcome"],
         json!("Discarded")
     );
     assert_eq!(
-        control_run.extensions["bridge_speculation_record"]["replay_explanation"]["lifecycle_outcome"],
+        control_run.extensions["bridge_speculation_record"]["replay_explanation"]
+            ["lifecycle_outcome"],
         json!("Promoted")
     );
 }
@@ -302,9 +317,16 @@ fn preview_lifecycle_churn_bundle_stays_bounded_and_branch_isolated() {
         bundle["counter_snapshot"],
         control_run.summary["counter_snapshot"]
     );
-    assert_eq!(bundle["branch_isolation_matrix"]["rows"].as_array().map(Vec::len), Some(3));
-    let baseline_route_digest = bundle["branch_isolation_matrix"]["baseline_authoritative_route_digest"].clone();
-    let final_route_digest = bundle["branch_isolation_matrix"]["final_authoritative_route_digest"].clone();
+    assert_eq!(
+        bundle["branch_isolation_matrix"]["rows"]
+            .as_array()
+            .map(Vec::len),
+        Some(3)
+    );
+    let baseline_route_digest =
+        bundle["branch_isolation_matrix"]["baseline_authoritative_route_digest"].clone();
+    let final_route_digest =
+        bundle["branch_isolation_matrix"]["final_authoritative_route_digest"].clone();
     assert_eq!(baseline_route_digest, final_route_digest);
     for row in bundle["branch_isolation_matrix"]["rows"]
         .as_array()

@@ -10,7 +10,9 @@ pub(super) fn execute_discard_certification(
             crate::facade::BridgePreviewSessionIdentity::new("harness:speculation-discard"),
             shared::preview_declaration("harness:speculation-discard", "main", "signal:discard"),
         )
-        .map_err(|error| BridgeHarnessError::new(format!("speculation admission failed: {error}")))?;
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("speculation admission failed: {error}"))
+        })?;
     let (active, execution_record) = runtime_bridge.activate_preview_session(admitted, 4, 2, 2);
     let (_discarded, discard_record) = runtime_bridge
         .discard_preview_session(

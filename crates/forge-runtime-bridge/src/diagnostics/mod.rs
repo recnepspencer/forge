@@ -6,6 +6,7 @@ mod failure_source;
 mod handle;
 mod history;
 mod merge;
+mod policy;
 mod records;
 mod replay;
 mod sink;
@@ -33,6 +34,9 @@ pub use history::{
 pub use merge::{
     BridgeCanonicalMergeRecord, BridgeMergeExplanation, BridgeMergeRecord,
     BridgeMergeRecordIdentity, BridgeMergeReplaySummary, BRIDGE_CANONICAL_MERGE_RECORD_SCHEMA_V1,
+};
+pub use policy::{
+    BridgePolicyExplanation, BridgePolicyExplanationRow, BridgePolicyRejectionExplanation,
 };
 pub use records::{
     BridgeContractDiagnosticsRecord, BridgeFailureClass, BridgeFailureRecord,

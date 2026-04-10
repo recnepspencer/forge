@@ -43,7 +43,7 @@ impl crate::adapter::CommittedPatchSource for StaticSource {
             )),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("analysis"),
-            vec![],
+            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
         ))
     }
 }
@@ -114,7 +114,7 @@ impl crate::adapter::TruthBranchHeadSource for StaticSource {
             )),
             TruthSnapshotIdentity::new("snapshot-a"),
             branch_identity.clone(),
-            vec![],
+            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
         ))
     }
 }
@@ -383,6 +383,7 @@ fn canonical_envelope(
 
 mod merge;
 mod policy_and_materialization;
+mod policy_phase2;
 mod replay;
 mod speculation;
 mod stream;

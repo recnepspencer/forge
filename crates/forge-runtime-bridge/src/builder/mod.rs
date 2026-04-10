@@ -17,6 +17,7 @@ use crate::source::{AdmittedSourceRegistry, SourceDeclaration};
 use crate::structural::{AdmittedStructuralRegistry, StructuralIdentityDeclaration};
 
 mod build;
+mod policy;
 mod registrations;
 mod sources;
 mod states;

@@ -10,6 +10,12 @@ pub(super) fn route_record_json(
         "source_patch": record.source_patch().as_str(),
         "source_snapshot": record.source_snapshot().as_str(),
         "source_digest": record.source_digest().as_str(),
+        "route_planning_policy_digest": record.route_planning_policy_digest(),
+        "mapping_context_digest": record.mapping_context().digest(),
+        "planning_provenance_digest": record.planning_provenance_digest(),
+        "planning_summary_digest": record.planning_summary_digest(),
+        "lowering_provenance_digest": record.lowering_provenance_digest(),
+        "lowering_summary_digest": record.lowering_summary_digest(),
         "subscription_slice_identity": record.subscription_slice_identity().as_str(),
         "entries": record.entries().iter().map(|entry| {
             json!({

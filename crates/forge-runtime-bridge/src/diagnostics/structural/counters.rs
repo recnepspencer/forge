@@ -1,6 +1,7 @@
 use crate::structural::{
-    AdmittedStructuralComparisonContract, PlannedStructuralMatchPacketSet, ReducedStructuralMatchSet,
-    StructuralComparisonMode, StructuralMatchCandidateKind, StructuralMatchOutcomeClass,
+    AdmittedStructuralComparisonContract, PlannedStructuralMatchPacketSet,
+    ReducedStructuralMatchSet, StructuralComparisonMode, StructuralMatchCandidateKind,
+    StructuralMatchOutcomeClass,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

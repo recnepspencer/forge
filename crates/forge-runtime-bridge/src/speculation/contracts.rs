@@ -13,8 +13,7 @@ use super::taxonomy::{PreviewActive, PreviewAdmitted};
 
 pub type BridgePromotionAdmissibilityProofIdentity =
     BridgeIdentity<PromotionAdmissibilityProofIdentityTag>;
-pub type BridgePreviewReuseEquivalenceIdentity =
-    BridgeIdentity<PreviewReuseEquivalenceIdentityTag>;
+pub type BridgePreviewReuseEquivalenceIdentity = BridgeIdentity<PreviewReuseEquivalenceIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePromotionAdmissibilityProof {
@@ -61,10 +60,16 @@ impl BridgePromotionAdmissibilityProof {
             preview_session_identity: session.session_identity().clone(),
             preview_execution_record_identity: execution_record_identity,
             truth_branch_identity: Arc::from(
-                declaration.branch_binding().truth_branch_identity().as_str(),
+                declaration
+                    .branch_binding()
+                    .truth_branch_identity()
+                    .as_str(),
             ),
             signal_branch_identity: Arc::from(
-                declaration.branch_binding().signal_branch_identity().as_str(),
+                declaration
+                    .branch_binding()
+                    .signal_branch_identity()
+                    .as_str(),
             ),
             truth_view_basis_digest: Arc::from(declaration.truth_view_basis_digest()),
             merge_history_basis_digest: declaration.merge_history_basis_digest().map(Arc::from),
@@ -86,12 +91,19 @@ impl BridgePromotionAdmissibilityProof {
                 .execution_record_identity()
                 .map(PreviewExecutionRecordIdentity::as_str)
                 == Some(self.preview_execution_record_identity.as_str())
-            && declaration.branch_binding().truth_branch_identity().as_str()
+            && declaration
+                .branch_binding()
+                .truth_branch_identity()
+                .as_str()
                 == self.truth_branch_identity.as_ref()
-            && declaration.branch_binding().signal_branch_identity().as_str()
+            && declaration
+                .branch_binding()
+                .signal_branch_identity()
+                .as_str()
                 == self.signal_branch_identity.as_ref()
             && declaration.truth_view_basis_digest() == self.truth_view_basis_digest.as_ref()
-            && declaration.merge_history_basis_digest() == self.merge_history_basis_digest.as_deref()
+            && declaration.merge_history_basis_digest()
+                == self.merge_history_basis_digest.as_deref()
             && declaration.structural_basis_digest() == self.structural_basis_digest.as_deref()
             && declaration.source_capability_digest() == self.source_capability_digest.as_ref()
             && declaration.request_shape_digest() == self.request_shape_digest.as_ref()
@@ -165,10 +177,16 @@ impl BridgePreviewReuseEquivalence {
             source_preview_execution_record_identity: source_execution_record_identity,
             target_preview_session_identity: target.session_identity().clone(),
             truth_branch_identity: Arc::from(
-                source_declaration.branch_binding().truth_branch_identity().as_str(),
+                source_declaration
+                    .branch_binding()
+                    .truth_branch_identity()
+                    .as_str(),
             ),
             signal_branch_identity: Arc::from(
-                source_declaration.branch_binding().signal_branch_identity().as_str(),
+                source_declaration
+                    .branch_binding()
+                    .signal_branch_identity()
+                    .as_str(),
             ),
             truth_view_basis_digest: Arc::from(source_declaration.truth_view_basis_digest()),
             merge_history_basis_digest: source_declaration
@@ -198,13 +216,25 @@ impl BridgePreviewReuseEquivalence {
                 .execution_record_identity()
                 .map(PreviewExecutionRecordIdentity::as_str)
                 == Some(self.source_preview_execution_record_identity.as_str())
-            && source_declaration.branch_binding().truth_branch_identity().as_str()
+            && source_declaration
+                .branch_binding()
+                .truth_branch_identity()
+                .as_str()
                 == self.truth_branch_identity.as_ref()
-            && source_declaration.branch_binding().signal_branch_identity().as_str()
+            && source_declaration
+                .branch_binding()
+                .signal_branch_identity()
+                .as_str()
                 == self.signal_branch_identity.as_ref()
-            && target_declaration.branch_binding().truth_branch_identity().as_str()
+            && target_declaration
+                .branch_binding()
+                .truth_branch_identity()
+                .as_str()
                 == self.truth_branch_identity.as_ref()
-            && target_declaration.branch_binding().signal_branch_identity().as_str()
+            && target_declaration
+                .branch_binding()
+                .signal_branch_identity()
+                .as_str()
                 == self.signal_branch_identity.as_ref()
             && source_declaration.truth_view_basis_digest() == self.truth_view_basis_digest.as_ref()
             && target_declaration.truth_view_basis_digest() == self.truth_view_basis_digest.as_ref()

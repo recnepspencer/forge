@@ -3,9 +3,9 @@ use std::sync::Arc;
 use super::*;
 
 use crate::speculation::{
-    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewResidueClass,
-    BridgePreviewPromotionRecord, BridgePreviewReplayBundle, BridgePreviewReuseEquivalence,
-    BridgePreviewResidueReport, BridgePreviewSession, BridgePreviewSessionDeclaration,
+    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+    BridgePreviewReplayBundle, BridgePreviewResidueClass, BridgePreviewResidueReport,
+    BridgePreviewReuseEquivalence, BridgePreviewSession, BridgePreviewSessionDeclaration,
     BridgePreviewSessionIdentity, BridgePromotionAdmissibilityProof, BridgeSpeculationCounters,
     PreviewActive, PreviewAdmitted, PreviewDeclared, PreviewDiscarded, PreviewPromoted,
     PreviewSessionActivation,
@@ -55,7 +55,10 @@ impl RuntimeBridge {
         preview_artifact_count: usize,
         destroyable_artifact_count: usize,
         retained_non_authoritative_artifact_count: usize,
-    ) -> (BridgePreviewSession<PreviewActive>, BridgePreviewExecutionRecord) {
+    ) -> (
+        BridgePreviewSession<PreviewActive>,
+        BridgePreviewExecutionRecord,
+    ) {
         let counters = BridgeSpeculationCounters::for_preview_execution(
             preview_artifact_count,
             destroyable_artifact_count,
@@ -77,7 +80,10 @@ impl RuntimeBridge {
         source_execution_record: &BridgePreviewExecutionRecord,
         target_session: &BridgePreviewSession<PreviewAdmitted>,
     ) -> Result<BridgePreviewReuseEquivalence, BridgeSpeculationError> {
-        self.ensure_execution_record_matches_active_session(source_session, source_execution_record)?;
+        self.ensure_execution_record_matches_active_session(
+            source_session,
+            source_execution_record,
+        )?;
 
         let equivalence =
             BridgePreviewReuseEquivalence::between_sessions(source_session, target_session);
@@ -102,9 +108,17 @@ impl RuntimeBridge {
         source_session: &BridgePreviewSession<PreviewActive>,
         source_execution_record: &BridgePreviewExecutionRecord,
         reuse_equivalence: &BridgePreviewReuseEquivalence,
-    ) -> Result<(BridgePreviewSession<PreviewActive>, BridgePreviewExecutionRecord), BridgeSpeculationError>
-    {
-        self.ensure_execution_record_matches_active_session(source_session, source_execution_record)?;
+    ) -> Result<
+        (
+            BridgePreviewSession<PreviewActive>,
+            BridgePreviewExecutionRecord,
+        ),
+        BridgeSpeculationError,
+    > {
+        self.ensure_execution_record_matches_active_session(
+            source_session,
+            source_execution_record,
+        )?;
 
         if !reuse_equivalence.matches_sessions(source_session, &session) {
             return Err(BridgeSpeculationError::new(
@@ -179,7 +193,8 @@ impl RuntimeBridge {
             counters,
         );
         let discarded = session.discard();
-        self.diagnostics.record_preview_discard(discard_record.clone());
+        self.diagnostics
+            .record_preview_discard(discard_record.clone());
         Ok((discarded, discard_record))
     }
 

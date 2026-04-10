@@ -15,6 +15,22 @@ pub(crate) fn plan_bulk_workload(
     runtime: &RuntimeBridge,
     request: BridgeBulkWorkloadRequest,
 ) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
+    plan_bulk_workload_internal(runtime, request, None)
+}
+
+pub(crate) fn plan_bulk_workload_with_route_policy(
+    runtime: &RuntimeBridge,
+    request: BridgeBulkWorkloadRequest,
+    route_policy: &crate::facade::BridgeRoutePlanningPolicy,
+) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
+    plan_bulk_workload_internal(runtime, request, Some(route_policy))
+}
+
+fn plan_bulk_workload_internal(
+    runtime: &RuntimeBridge,
+    request: BridgeBulkWorkloadRequest,
+    route_policy: Option<&crate::facade::BridgeRoutePlanningPolicy>,
+) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
     if request.segments().is_empty() {
         return Err(BridgeRouteError::new(
             BridgeRouteErrorKind::EmptyBulkWorkloadRequest,
@@ -26,10 +42,18 @@ pub(crate) fn plan_bulk_workload(
         .segments()
         .iter()
         .map(|segment| {
-            runtime.plan_committed_patch_with_mapping_context(
-                segment.request().clone(),
-                segment.mapping_context().clone(),
-            )
+            if let Some(route_policy) = route_policy {
+                runtime.plan_committed_patch_with_mapping_context_and_route_policy(
+                    segment.request().clone(),
+                    segment.mapping_context().clone(),
+                    route_policy,
+                )
+            } else {
+                runtime.plan_committed_patch_with_mapping_context(
+                    segment.request().clone(),
+                    segment.mapping_context().clone(),
+                )
+            }
         })
         .collect::<Result<Vec<_>, _>>()?;
     planned_routes.sort_by(|left, right| left.route_identity().cmp(right.route_identity()));

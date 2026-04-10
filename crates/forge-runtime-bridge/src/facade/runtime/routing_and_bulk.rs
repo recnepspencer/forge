@@ -42,6 +42,24 @@ impl RuntimeBridge {
         )
     }
 
+    pub fn plan_envelope_with_mapping_context_and_route_policy(
+        &self,
+        envelope: BridgeCommittedPatchEnvelope,
+        mapping_context: BridgeMappingContext,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<BridgePlannedRoute, BridgeRouteError> {
+        self.ensure_route_planning_policy_compatible(route_policy)?;
+        crate::routing::planning::plan_ingested_patch(
+            self,
+            crate::routing::IngestedBridgePatch::new(
+                envelope,
+                mapping_context,
+                crate::routing::scope::RouteScope::begin()
+                    .with_route_planning_policy(route_policy.clone()),
+            ),
+        )
+    }
+
     pub fn plan_committed_patch(
         &self,
         request: BridgeRouteRequest,
@@ -61,11 +79,87 @@ impl RuntimeBridge {
         )
     }
 
+    pub fn plan_committed_patch_with_route_policy(
+        &self,
+        request: BridgeRouteRequest,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<BridgePlannedRoute, BridgeRouteError> {
+        self.plan_committed_patch_with_mapping_context_and_route_policy(
+            request,
+            BridgeMappingContext::default(),
+            route_policy,
+        )
+    }
+
+    pub fn plan_committed_patch_with_mapping_context_and_route_policy(
+        &self,
+        request: BridgeRouteRequest,
+        mapping_context: BridgeMappingContext,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<BridgePlannedRoute, BridgeRouteError> {
+        self.ensure_route_planning_policy_compatible(route_policy)?;
+        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        crate::routing::planning::plan_ingested_patch(
+            self,
+            ingested
+                .with_mapping_context(mapping_context)
+                .with_route_scope(
+                    crate::routing::scope::RouteScope::begin()
+                        .with_route_planning_policy(route_policy.clone()),
+                ),
+        )
+    }
+
+    pub(crate) fn plan_committed_patch_with_mapping_context_and_route_policy_digest_for_replay(
+        &self,
+        request: BridgeRouteRequest,
+        mapping_context: BridgeMappingContext,
+        route_policy_digest: &str,
+    ) -> Result<BridgePlannedRoute, BridgeRouteError> {
+        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        crate::routing::planning::plan_ingested_patch(
+            self,
+            ingested
+                .with_mapping_context(mapping_context)
+                .with_route_scope(
+                    crate::routing::scope::RouteScope::begin()
+                        .with_route_planning_policy_digest(route_policy_digest.to_owned()),
+                ),
+        )
+    }
+
+    pub(crate) fn plan_committed_patch_with_mapping_context_and_route_policy_for_replay(
+        &self,
+        request: BridgeRouteRequest,
+        mapping_context: BridgeMappingContext,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<BridgePlannedRoute, BridgeRouteError> {
+        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        crate::routing::planning::plan_ingested_patch(
+            self,
+            ingested
+                .with_mapping_context(mapping_context)
+                .with_route_scope(
+                    crate::routing::scope::RouteScope::begin()
+                        .with_route_planning_policy(route_policy.clone()),
+                ),
+        )
+    }
+
     pub fn plan_bulk_workload(
         &self,
         request: BridgeBulkWorkloadRequest,
     ) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
         crate::routing::planning::plan_bulk_workload(self, request)
+    }
+
+    pub fn plan_bulk_workload_with_route_policy(
+        &self,
+        request: BridgeBulkWorkloadRequest,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
+        self.ensure_route_planning_policy_compatible(route_policy)?;
+        crate::routing::planning::plan_bulk_workload_with_route_policy(self, request, route_policy)
     }
 
     pub fn canonicalize_bulk_workload_plan(
@@ -169,6 +263,15 @@ impl RuntimeBridge {
         &self.diagnostics
     }
 
+    pub fn project_route_planning_policy(
+        &self,
+        lowered: &LoweredBridgeExecutionPolicy,
+    ) -> Result<BridgeRoutePlanningPolicy, BridgeRouteError> {
+        let route_policy = lowered.route_planning_policy();
+        self.ensure_route_planning_policy_compatible(&route_policy)?;
+        Ok(route_policy)
+    }
+
     pub fn continuity_lineage_source(&self) -> Option<&dyn ContinuityLineageSource> {
         self.continuity_lineage_source.as_deref()
     }
@@ -236,5 +339,43 @@ impl RuntimeBridge {
             ));
         }
         Ok(crate::continuity::BridgeHistoricalLineagePacket::from_entries(requests, entries))
+    }
+}
+
+impl RuntimeBridge {
+    fn ensure_route_planning_policy_compatible(
+        &self,
+        route_policy: &BridgeRoutePlanningPolicy,
+    ) -> Result<(), BridgeRouteError> {
+        if route_policy.diagnostics_tier() > self.policy.diagnostics_tier() {
+            return Err(BridgeRouteError::new(
+                BridgeRouteErrorKind::RoutePolicyMismatch,
+                format!(
+                    "Route planning policy `{}` requires diagnostics tier `{:?}` but runtime baseline admits only `{:?}`.",
+                    route_policy.digest(),
+                    route_policy.diagnostics_tier(),
+                    self.policy.diagnostics_tier()
+                ),
+            ));
+        }
+        if route_policy.route_artifacts() && !self.policy.record_route_artifacts() {
+            return Err(BridgeRouteError::new(
+                BridgeRouteErrorKind::RoutePolicyMismatch,
+                format!(
+                    "Route planning policy `{}` requires route artifacts but runtime baseline disables route artifact retention.",
+                    route_policy.digest()
+                ),
+            ));
+        }
+        if route_policy.replay_artifacts() && !self.policy.allow_replay_artifacts() {
+            return Err(BridgeRouteError::new(
+                BridgeRouteErrorKind::RoutePolicyMismatch,
+                format!(
+                    "Route planning policy `{}` requires replay artifacts but runtime baseline disables replay retention.",
+                    route_policy.digest()
+                ),
+            ));
+        }
+        Ok(())
     }
 }

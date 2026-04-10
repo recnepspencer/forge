@@ -54,9 +54,9 @@ impl RuntimeBridge {
                 return Err(BridgeDeliveryError::new(
                     BridgeDeliveryErrorKind::StructuralPlanRejected,
                     format!(
-                        "Structural contract `{}` does not admit branch-pair structural comparison.",
-                        contract.contract_identity().as_str()
-                    ),
+                    "Structural contract `{}` does not admit branch-pair structural comparison.",
+                    contract.contract_identity().as_str()
+                ),
                 ))
             }
         };

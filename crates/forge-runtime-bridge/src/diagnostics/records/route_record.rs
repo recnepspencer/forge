@@ -91,6 +91,10 @@ impl BridgeRouteRecord {
         self.contract_proof().source_digest()
     }
 
+    pub fn route_planning_policy_digest(&self) -> Option<&str> {
+        self.contract_proof().route_planning_policy_digest()
+    }
+
     pub fn planning_provenance_digest(&self) -> &str {
         self.contract_proof().planning_provenance_digest()
     }

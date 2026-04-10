@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::clone_budget::CheapClone;
 use crate::input::envelope::{BridgeCommittedPatchDigest, BridgeProducerMetadata};
+use crate::policy::BridgeRoutePlanningPolicy;
 use crate::routing::context::BridgeMappingContext;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,6 +10,8 @@ pub struct BridgeRouteContractProof {
     producer_metadata: BridgeProducerMetadata,
     mapping_context: BridgeMappingContext,
     source_digest: BridgeCommittedPatchDigest,
+    route_planning_policy: Option<BridgeRoutePlanningPolicy>,
+    route_planning_policy_digest: Option<Arc<str>>,
     planning_provenance_digest: Arc<str>,
     planning_summary_digest: Arc<str>,
     lowering_provenance_digest: Arc<str>,
@@ -21,6 +24,8 @@ impl BridgeRouteContractProof {
         producer_metadata: BridgeProducerMetadata,
         mapping_context: BridgeMappingContext,
         source_digest: BridgeCommittedPatchDigest,
+        route_planning_policy: Option<BridgeRoutePlanningPolicy>,
+        route_planning_policy_digest: Option<impl Into<Arc<str>>>,
         planning_provenance_digest: impl Into<Arc<str>>,
         planning_summary_digest: impl Into<Arc<str>>,
         lowering_provenance_digest: impl Into<Arc<str>>,
@@ -30,6 +35,8 @@ impl BridgeRouteContractProof {
             producer_metadata,
             mapping_context,
             source_digest,
+            route_planning_policy,
+            route_planning_policy_digest: route_planning_policy_digest.map(Into::into),
             planning_provenance_digest: planning_provenance_digest.into(),
             planning_summary_digest: planning_summary_digest.into(),
             lowering_provenance_digest: lowering_provenance_digest.into(),
@@ -51,6 +58,14 @@ impl BridgeRouteContractProof {
 
     pub fn source_digest(&self) -> &BridgeCommittedPatchDigest {
         &self.source_digest
+    }
+
+    pub fn route_planning_policy_digest(&self) -> Option<&str> {
+        self.route_planning_policy_digest.as_deref()
+    }
+
+    pub fn route_planning_policy(&self) -> Option<&BridgeRoutePlanningPolicy> {
+        self.route_planning_policy.as_ref()
     }
 
     pub fn planning_provenance_digest(&self) -> &str {

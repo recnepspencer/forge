@@ -133,6 +133,10 @@ impl BridgePlannedRoute {
         &self.mapping_context
     }
 
+    pub fn route_planning_policy_digest(&self) -> Option<&str> {
+        self.route_scope.route_planning_policy_digest()
+    }
+
     pub fn source_commit(&self) -> &TruthCommitIdentity {
         self.source.source_commit()
     }
@@ -198,12 +202,19 @@ impl BridgePlannedRoute {
     }
 
     pub(crate) fn into_prepared_delivery(self) -> BridgePreparedDelivery {
+        let route_planning_policy = self.route_scope.route_planning_policy().cloned();
+        let route_planning_policy_digest = self
+            .route_scope
+            .route_planning_policy_digest()
+            .map(str::to_owned);
         BridgePreparedDelivery {
             route_scope: self.route_scope,
             contract_proof: BridgeRouteContractProof::new(
                 self.producer_metadata,
                 self.mapping_context,
                 self.source_digest,
+                route_planning_policy,
+                route_planning_policy_digest,
                 self.planning.planning_provenance.digest(),
                 self.planning.planning_summary.digest(),
                 self.execution.validated_lowering_plan.provenance().digest(),
@@ -276,6 +287,10 @@ impl BridgePreparedDelivery {
 }
 
 impl BridgeLoweredExecution {
+    pub(crate) fn route_scope(&self) -> &RouteScope {
+        &self.route_scope
+    }
+
     pub(crate) fn new(
         route_scope: RouteScope,
         contract_proof: BridgeRouteContractProof,

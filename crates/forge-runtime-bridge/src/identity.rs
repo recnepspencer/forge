@@ -153,3 +153,7 @@ pub enum PreviewDiscardRecordIdentityTag {}
 pub enum PreviewPromotionRecordIdentityTag {}
 pub enum PromotionAdmissibilityProofIdentityTag {}
 pub enum PreviewReuseEquivalenceIdentityTag {}
+pub enum PolicyDeclarationIdentityTag {}
+pub enum PolicyContractIdentityTag {}
+pub enum LoweredExecutionPolicyIdentityTag {}
+pub enum PolicyProvenanceIdentityTag {}

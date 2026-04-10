@@ -19,11 +19,12 @@ use super::super::fixtures::BridgeHarnessFixture;
 use super::support::route_record_json;
 use super::types::{
     BridgeHarnessAdapter, BridgeHarnessError, BridgeHarnessMutation, BridgeHarnessSession,
-    SourceAdapterBehavior, SourceAdapterShape, SourceBuilderLoadOrder,
+    PolicyBuilderLoadOrder, SourceAdapterBehavior, SourceAdapterShape, SourceBuilderLoadOrder,
 };
 use merge::execute_merge_request;
-use speculation::execute_speculation_request;
+use policy::execute_policy_request;
 use source::execute_source_request;
+use speculation::execute_speculation_request;
 use stream::execute_stream_request;
 use structural::execute_structural_request;
 
@@ -137,6 +138,15 @@ impl HarnessAdapter for BridgeHarnessAdapter {
             Some("sources_first") => SourceBuilderLoadOrder::SourcesBeforeAdapter,
             _ => SourceBuilderLoadOrder::AdapterBeforeSources,
         };
+        runtime.policy_builder_load_order = match profile
+            .metadata
+            .get("policy_builder_load_order")
+            .map(String::as_str)
+        {
+            Some("sections_canonical") => PolicyBuilderLoadOrder::SectionsCanonical,
+            Some("sections_reverse") => PolicyBuilderLoadOrder::SectionsReverse,
+            _ => PolicyBuilderLoadOrder::WholePolicy,
+        };
         runtime.source_adapter_behavior = match profile
             .metadata
             .get("source_adapter_behavior")
@@ -171,12 +181,15 @@ impl HarnessAdapter for BridgeHarnessAdapter {
                 .insert_continuity_authority(entity_identity.clone(), authority.clone());
         }
 
-        let builder = RuntimeBridgeBuilder::new()
+        let builder = apply_policy_builder_load_order(
+            RuntimeBridgeBuilder::new()
             .with_relational_source(runtime.source.clone())
             .with_truth_branch_head_source(runtime.source.clone())
             .with_signal_sink(runtime.sink.clone())
-            .with_continuity_lineage_source(runtime.source.clone())
-            .with_policy(fixture.fixture.policy());
+            .with_continuity_lineage_source(runtime.source.clone()),
+            runtime,
+            fixture.fixture.policy(),
+        );
         let (first_mapping, remaining_mappings) =
             fixture.fixture.mappings().split_first().ok_or_else(|| {
                 BridgeHarnessError::new("bridge harness fixture requires at least one mapping")
@@ -331,6 +344,9 @@ impl HarnessAdapter for BridgeHarnessAdapter {
                 &fixture.fixture,
                 merge_target,
             )?),
+            HarnessTarget::Policy(policy_target) => HarnessExecution::Policy(
+                execute_policy_request(runtime_bridge, &fixture.fixture, policy_target)?,
+            ),
             HarnessTarget::Speculation(speculation_target) => HarnessExecution::Speculation(
                 execute_speculation_request(runtime_bridge, &fixture.fixture, speculation_target)?,
             ),
@@ -477,8 +493,9 @@ impl HarnessAdapter for BridgeHarnessAdapter {
 }
 
 mod merge;
-mod speculation;
+mod policy;
 mod source;
+mod speculation;
 mod stream;
 mod structural;
 use execution::{
@@ -512,6 +529,36 @@ fn with_session_source_adapter<
         SourceAdapterShape::Wrapped => {
             builder.with_source_adapter(WrappedFixtureSourceAdapter { inner: adapter })
         }
+    }
+}
+
+fn apply_policy_builder_load_order<
+    PatchState,
+    SnapshotState,
+    SignalState,
+    BranchHeadState,
+    MappingState,
+>(
+    builder: RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        SignalState,
+        BranchHeadState,
+        MappingState,
+    >,
+    runtime: &BridgeHarnessSession,
+    policy: crate::facade::BridgeRuntimePolicy,
+) -> RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState> {
+    match runtime.policy_builder_load_order {
+        PolicyBuilderLoadOrder::WholePolicy => builder.with_policy(policy),
+        PolicyBuilderLoadOrder::SectionsCanonical => builder
+            .with_execution_policy_baseline(policy.execution())
+            .with_diagnostics_policy_baseline(policy.diagnostics())
+            .with_artifact_policy_baseline(policy.artifacts()),
+        PolicyBuilderLoadOrder::SectionsReverse => builder
+            .with_artifact_policy_baseline(policy.artifacts())
+            .with_diagnostics_policy_baseline(policy.diagnostics())
+            .with_execution_policy_baseline(policy.execution()),
     }
 }
 

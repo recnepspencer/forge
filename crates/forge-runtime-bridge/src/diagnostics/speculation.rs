@@ -93,9 +93,7 @@ impl BridgePreviewDiscardExplanation {
                 .to_owned(),
             cleanup_outcome: record.cleanup_outcome(),
             residue_classes: record.residue_report().residue_classes().to_vec(),
-            authoritative_residue_count: record
-                .residue_report()
-                .authoritative_residue_count(),
+            authoritative_residue_count: record.residue_report().authoritative_residue_count(),
             destroyed_artifact_count: record.counters().destroyed_artifact_count(),
         }
     }

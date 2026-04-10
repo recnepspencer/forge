@@ -10,8 +10,7 @@ use super::execution::BridgePreviewExecutionRecord;
 use super::session::{BridgePreviewSession, PreviewExecutionRecordIdentity};
 use super::taxonomy::PreviewActive;
 
-pub type BridgePreviewPromotionRecordIdentity =
-    BridgeIdentity<PreviewPromotionRecordIdentityTag>;
+pub type BridgePreviewPromotionRecordIdentity = BridgeIdentity<PreviewPromotionRecordIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePreviewPromotionRecord {

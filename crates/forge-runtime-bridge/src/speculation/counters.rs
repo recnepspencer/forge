@@ -66,10 +66,7 @@ impl BridgeSpeculationCounters {
         }
     }
 
-    pub fn for_replay(
-        preview_session_count_touched: usize,
-        replay_bundle_width: usize,
-    ) -> Self {
+    pub fn for_replay(preview_session_count_touched: usize, replay_bundle_width: usize) -> Self {
         Self {
             preview_session_count_touched,
             branch_binding_proof_width: 0,

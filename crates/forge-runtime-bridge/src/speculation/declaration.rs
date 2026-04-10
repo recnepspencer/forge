@@ -5,9 +5,9 @@ use sha2::{Digest, Sha256};
 use crate::error::BridgeSpeculationError;
 use crate::identity::{BridgeIdentity, PreviewSessionDeclarationIdentityTag};
 
-use super::binding::{BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity};
+use super::binding::BridgeSpeculativeBranchBinding;
 use super::validation::ValidatedBridgePreviewSessionDeclaration;
-use super::{BridgeRequestKind, BridgeSignalBranchIdentity};
+use super::BridgeRequestKind;
 
 pub type BridgePreviewSessionDeclarationIdentity =
     BridgeIdentity<PreviewSessionDeclarationIdentityTag>;
@@ -177,11 +177,13 @@ impl BridgePreviewSessionDeclaration {
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
+    use crate::speculation::{
+        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
+    };
 
     use super::{
         BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
-        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
-        BridgeSpeculativeBranchBindingIdentity,
+        BridgeSpeculativeBranchBinding,
     };
 
     #[test]

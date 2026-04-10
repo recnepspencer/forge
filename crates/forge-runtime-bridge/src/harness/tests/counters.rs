@@ -112,7 +112,10 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         .expect("preview declaration should admit");
     let (active, execution_record) = runtime.activate_preview_session(admitted, 4, 2, 2);
 
-    assert_eq!(execution_record.counters().preview_session_count_touched(), 1);
+    assert_eq!(
+        execution_record.counters().preview_session_count_touched(),
+        1
+    );
     assert_eq!(execution_record.counters().branch_binding_proof_width(), 2);
     assert_eq!(execution_record.counters().preview_artifact_count(), 4);
     assert_eq!(execution_record.counters().discard_artifact_count(), 2);
@@ -156,7 +159,9 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         .admit_preview_session(
             BridgePreviewSessionIdentity::new("counter:preview-promotion-session"),
             BridgePreviewSessionDeclaration::new(
-                BridgePreviewSessionDeclarationIdentity::new("counter:preview-promotion-declaration"),
+                BridgePreviewSessionDeclarationIdentity::new(
+                    "counter:preview-promotion-declaration",
+                ),
                 BridgeRequestKind::Preview,
                 BridgeSpeculativeBranchBinding::new(
                     BridgeSpeculativeBranchBindingIdentity::new("counter:promotion-binding"),
@@ -183,7 +188,10 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         )
         .expect("promotion should succeed");
 
-    assert_eq!(promotion_record.counters().preview_session_count_touched(), 1);
+    assert_eq!(
+        promotion_record.counters().preview_session_count_touched(),
+        1
+    );
     assert_eq!(promotion_record.counters().branch_binding_proof_width(), 2);
     assert_eq!(promotion_record.counters().admissibility_proof_width(), 9);
     assert_eq!(promotion_record.counters().promotion_proof_checks(), 1);

@@ -20,4 +20,4 @@ pub(crate) use labels::{
     parallel_profitability_class_label, parallel_profitability_reason_label,
     planning_failure_kind_label, preparation_mode_label,
 };
-pub(crate) use workload_pipeline::plan_bulk_workload;
+pub(crate) use workload_pipeline::{plan_bulk_workload, plan_bulk_workload_with_route_policy};

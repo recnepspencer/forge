@@ -63,6 +63,7 @@ impl
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
             self.source_adapter_registrations,
@@ -70,7 +71,7 @@ impl
         let structural_registry = finalize_structural_configuration(self.structural_declarations)?;
         let merge_registry = finalize_merge_configuration(self.merge_declarations)?;
         Ok(RuntimeBridge::new(
-            self.policy,
+            policy,
             self.committed_patch_source.0,
             self.snapshot_read_source.0,
             self.signal_sink.0,
@@ -100,6 +101,7 @@ impl
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
             self.source_adapter_registrations,
@@ -107,7 +109,7 @@ impl
         let structural_registry = finalize_structural_configuration(self.structural_declarations)?;
         let merge_registry = finalize_merge_configuration(self.merge_declarations)?;
         Ok(RuntimeBridge::new(
-            self.policy,
+            policy,
             self.committed_patch_source.0,
             self.snapshot_read_source.0,
             self.signal_sink.0,

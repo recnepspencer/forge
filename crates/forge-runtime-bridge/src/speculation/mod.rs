@@ -1,6 +1,6 @@
 mod binding;
-mod counters;
 mod contracts;
+mod counters;
 mod declaration;
 mod discard;
 mod execution;
@@ -14,21 +14,19 @@ pub use binding::{
     BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity,
 };
-pub use counters::BridgeSpeculationCounters;
 pub use contracts::{BridgePreviewReuseEquivalence, BridgePromotionAdmissibilityProof};
-pub use declaration::{
-    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
-};
+pub use counters::BridgeSpeculationCounters;
+pub use declaration::{BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity};
 pub use discard::{
     BridgePreviewDiscardCleanupOutcome, BridgePreviewDiscardRecord, BridgePreviewResidueReport,
 };
 pub use execution::BridgePreviewExecutionRecord;
 pub use promotion::{BridgePreviewPromotionRecord, BridgePreviewPromotionRecordIdentity};
 pub use replay::BridgePreviewReplayBundle;
+pub(crate) use session::PreviewSessionActivation;
 pub use session::{
     BridgePreviewSession, BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
 };
-pub(crate) use session::PreviewSessionActivation;
 pub use taxonomy::{
     BridgePreviewLifecycleStateKind, BridgePreviewLifecycleTransitionKind,
     BridgePreviewResidueClass, BridgeRequestKind, BridgeSpeculationFailureClass, PreviewActive,

@@ -11,11 +11,11 @@ use super::history::{
 };
 use super::merge::BridgeCanonicalMergeRecord;
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
-use crate::speculation::{
-    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
-};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
+};
+use crate::speculation::{
+    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
 };
 
 mod config;
@@ -62,12 +62,16 @@ pub(crate) struct BridgeDiagnosticsState {
         BTreeMap<String, Arc<BridgeCanonicalStructuralRemapRecord>>,
     latest_structural_branch_comparison_by_record_identity:
         BTreeMap<String, Arc<BridgeCanonicalStructuralBranchComparisonRecord>>,
-    latest_preview_execution_by_record_identity: BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
-    latest_preview_execution_by_session_identity: BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
+    latest_preview_execution_by_record_identity:
+        BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
+    latest_preview_execution_by_session_identity:
+        BTreeMap<String, Arc<BridgePreviewExecutionRecord>>,
     latest_preview_discard_by_record_identity: BTreeMap<String, Arc<BridgePreviewDiscardRecord>>,
     latest_preview_discard_by_session_identity: BTreeMap<String, Arc<BridgePreviewDiscardRecord>>,
-    latest_preview_promotion_by_record_identity: BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
-    latest_preview_promotion_by_session_identity: BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
+    latest_preview_promotion_by_record_identity:
+        BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
+    latest_preview_promotion_by_session_identity:
+        BTreeMap<String, Arc<BridgePreviewPromotionRecord>>,
     reserved_preview_session_identities: BTreeSet<String>,
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,

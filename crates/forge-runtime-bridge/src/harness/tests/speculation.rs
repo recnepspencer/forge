@@ -1,8 +1,7 @@
 use crate::facade::{
-    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass,
-    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
-    BridgePreviewSessionIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
-    BridgeSpeculativeBranchBinding,
+    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
+    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
+    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
 };
 
@@ -28,7 +27,11 @@ fn preview_declaration() -> BridgePreviewSessionDeclaration {
 #[test]
 fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_and_replay() {
     let source = InMemoryRelationalBridgeSource::default();
-    let runtime = build_runtime(source, RecordingSignalBridgeSink::default(), vec![registration()]);
+    let runtime = build_runtime(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
     let admitted = runtime
         .admit_preview_session(
             BridgePreviewSessionIdentity::new("harness:preview-session"),
@@ -80,7 +83,11 @@ fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_a
 #[test]
 fn bridge_harness_speculation_discard_replay_remains_queryable() {
     let source = InMemoryRelationalBridgeSource::default();
-    let runtime = build_runtime(source, RecordingSignalBridgeSink::default(), vec![registration()]);
+    let runtime = build_runtime(
+        source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration()],
+    );
     let admitted = runtime
         .admit_preview_session(
             BridgePreviewSessionIdentity::new("harness:preview-discard"),

@@ -38,7 +38,6 @@ impl PreviewSessionActivation {
             digest: Arc::from(format!("preview-session-activation:sha256:{digest:x}")),
         }
     }
-
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -179,8 +178,8 @@ mod tests {
         PreviewSessionActivation,
     };
     use crate::speculation::{
-        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
-        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
+        BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
         BridgeSpeculativeBranchBindingIdentity, PreviewAdmitted, PreviewDeclared,
     };
 

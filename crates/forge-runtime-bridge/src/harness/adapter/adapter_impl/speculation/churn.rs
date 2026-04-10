@@ -66,8 +66,7 @@ pub(super) fn execute_churn_certification(
     let final_authoritative_route_digest =
         shared::first_commit_routing_digest(runtime_bridge, fixture)?;
     let preview_session_count_touched = lifecycle_digests.len();
-    let authoritative_route_observation_count =
-        authoritative_route_digests_after_discard.len() + 2;
+    let authoritative_route_observation_count = authoritative_route_digests_after_discard.len() + 2;
 
     Ok(SpeculationHarnessExecution::Churn {
         lifecycle_digests,

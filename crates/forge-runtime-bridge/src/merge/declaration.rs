@@ -185,8 +185,8 @@ impl MergeHistoryDeclaration {
 mod tests {
     use crate::input::envelope::TruthCommitIdentity;
     use crate::merge::{
-        BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind,
-        BridgeMergeAuthoritativeLineageDisposition, BridgeMergeCausalFrontierDisposition,
+        BridgeMergeAuthoritativeLineageDisposition, BridgeMergeAuthorityBasis,
+        BridgeMergeAuthorityBasisKind, BridgeMergeCausalFrontierDisposition,
         BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
         BridgeMergeParentOrderProof, BridgeMergeSchemaPolicyDisposition,
         BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclaration,

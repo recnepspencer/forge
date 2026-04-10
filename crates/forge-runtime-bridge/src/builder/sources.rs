@@ -169,7 +169,31 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
     RuntimeBridgeBuilder<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
 {
     pub fn with_policy(mut self, policy: BridgeRuntimePolicy) -> Self {
-        self.policy = policy;
+        self.policy = super::policy::replace_runtime_policy(self.policy, policy);
+        self
+    }
+
+    pub fn with_execution_policy_baseline(
+        mut self,
+        execution: crate::policy::BridgeExecutionPolicyBaseline,
+    ) -> Self {
+        self.policy = super::policy::replace_execution_policy_baseline(self.policy, execution);
+        self
+    }
+
+    pub fn with_diagnostics_policy_baseline(
+        mut self,
+        diagnostics: crate::policy::BridgeDiagnosticsPolicyBaseline,
+    ) -> Self {
+        self.policy = super::policy::replace_diagnostics_policy_baseline(self.policy, diagnostics);
+        self
+    }
+
+    pub fn with_artifact_policy_baseline(
+        mut self,
+        artifacts: crate::policy::BridgeArtifactPolicyBaseline,
+    ) -> Self {
+        self.policy = super::policy::replace_artifact_policy_baseline(self.policy, artifacts);
         self
     }
 

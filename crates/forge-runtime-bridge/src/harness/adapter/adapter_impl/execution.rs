@@ -7,6 +7,7 @@ pub(super) enum HarnessTarget {
     Stream(super::stream::StreamHarnessTarget),
     Source(super::source::SourceHarnessTarget),
     Merge(super::merge::MergeHarnessTarget),
+    Policy(super::policy::PolicyHarnessTarget),
     Speculation(super::speculation::SpeculationHarnessTarget),
     Structural(super::structural::StructuralHarnessTarget),
     HistoricalCommit {
@@ -38,6 +39,7 @@ pub(super) enum HarnessExecution {
     Stream(super::stream::StreamHarnessExecution),
     Source(super::source::SourceHarnessExecution),
     Merge(super::merge::MergeHarnessExecution),
+    Policy(super::policy::PolicyHarnessExecution),
     Speculation(super::speculation::SpeculationHarnessExecution),
     Structural(super::structural::StructuralHarnessExecution),
 }
@@ -80,6 +82,7 @@ impl HarnessExecution {
             Self::Stream(execution) => execution.summary_json(),
             Self::Source(execution) => execution.summary_json(),
             Self::Merge(execution) => execution.summary_json(),
+            Self::Policy(execution) => execution.summary_json(),
             Self::Speculation(execution) => execution.summary_json(),
             Self::Structural(execution) => execution.summary_json(),
         }
@@ -169,6 +172,7 @@ impl HarnessExecution {
             Self::Stream(execution) => execution.extensions_json(runtime_bridge),
             Self::Source(execution) => execution.extensions_json(runtime_bridge),
             Self::Merge(execution) => execution.extensions_json(runtime_bridge),
+            Self::Policy(execution) => execution.extensions_json(runtime_bridge),
             Self::Speculation(execution) => execution.extensions_json(runtime_bridge),
             Self::Structural(execution) => execution.extensions_json(runtime_bridge),
         }
@@ -211,6 +215,9 @@ pub(super) fn parse_harness_target(target: &str) -> Result<HarnessTarget, Bridge
     }
     if let Some(merge_target) = super::merge::parse_merge_harness_target(target) {
         return merge_target.map(HarnessTarget::Merge);
+    }
+    if let Some(policy_target) = super::policy::parse_policy_harness_target(target) {
+        return policy_target.map(HarnessTarget::Policy);
     }
     if let Some(speculation_target) = super::speculation::parse_speculation_harness_target(target) {
         return speculation_target.map(HarnessTarget::Speculation);

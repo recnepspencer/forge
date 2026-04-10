@@ -3,6 +3,7 @@ use super::*;
 mod debug;
 mod historical_and_replay;
 mod merge;
+mod policy;
 mod routing_and_bulk;
 mod source;
 mod speculation;

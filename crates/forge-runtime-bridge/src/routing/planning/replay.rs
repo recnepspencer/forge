@@ -10,18 +10,26 @@ pub(crate) fn replay_route_record(
     runtime: &RuntimeBridge,
     record: &BridgeRouteRecord,
 ) -> Result<BridgeReplaySummary, BridgeReplayError> {
-    if !runtime.policy.allow_replay_artifacts() {
-        return Err(BridgeReplayError::new(
-            BridgeReplayErrorKind::ReplayArtifactsDisabled,
-            "Bridge replay artifacts are disabled by runtime policy.",
-        )
-        .with_context(replay_context(record)));
-    }
-
-    let planned = match runtime.plan_committed_patch_with_mapping_context(
-        BridgeRouteRequest::for_commit(record.source_commit().as_str()),
-        record.mapping_context().clone(),
-    ) {
+    let planned_result = match record.contract_proof().route_planning_policy() {
+        Some(route_policy) => runtime.plan_committed_patch_with_mapping_context_and_route_policy_for_replay(
+            BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+            record.mapping_context().clone(),
+            route_policy,
+        ),
+        None => match record.contract_proof().route_planning_policy_digest() {
+            Some(route_policy_digest) => runtime
+                .plan_committed_patch_with_mapping_context_and_route_policy_digest_for_replay(
+                    BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+                    record.mapping_context().clone(),
+                    route_policy_digest,
+                ),
+            None => runtime.plan_committed_patch_with_mapping_context(
+                BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+                record.mapping_context().clone(),
+            ),
+        },
+    };
+    let planned = match planned_result {
         Ok(planned) => planned,
         Err(error) => {
             let replay_error = BridgeReplayError::new(
@@ -115,15 +123,19 @@ pub(crate) fn replay_route_record(
         != record.contract_proof().planning_provenance_digest()
         || contract_proof.planning_summary_digest()
             != record.contract_proof().planning_summary_digest()
+        || contract_proof.route_planning_policy_digest()
+            != record.contract_proof().route_planning_policy_digest()
     {
         let error = BridgeReplayError::new(
             BridgeReplayErrorKind::PlanningContractMismatch,
             format!(
-                "Bridge replay reconstructed planning contract `{}` / `{}` but original planning contract was `{}` / `{}`.",
+                "Bridge replay reconstructed planning contract `{}` / `{}` / policy {:?} but original planning contract was `{}` / `{}` / policy {:?}.",
                 contract_proof.planning_provenance_digest(),
                 contract_proof.planning_summary_digest(),
+                contract_proof.route_planning_policy_digest(),
                 record.contract_proof().planning_provenance_digest(),
-                record.contract_proof().planning_summary_digest()
+                record.contract_proof().planning_summary_digest(),
+                record.contract_proof().route_planning_policy_digest()
             ),
         )
         .with_context(replay_context(record).with_invalidation_identity(record.invalidation_identity().clone()));

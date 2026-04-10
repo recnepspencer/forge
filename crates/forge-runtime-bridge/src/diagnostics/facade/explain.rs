@@ -155,7 +155,9 @@ impl BridgeDiagnosticsFacade {
         BridgePreviewExecutionExplanation::from_record(record)
     }
 
-    pub fn explain_last_preview_execution_record(&self) -> Option<BridgePreviewExecutionExplanation> {
+    pub fn explain_last_preview_execution_record(
+        &self,
+    ) -> Option<BridgePreviewExecutionExplanation> {
         self.last_preview_execution_record()
             .map(|record| BridgePreviewExecutionExplanation::from_record(&record))
     }

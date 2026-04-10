@@ -131,6 +131,10 @@ impl BridgeSignalInvalidationDelivery {
         self.contract_proof.planning_provenance_digest()
     }
 
+    pub fn route_planning_policy_digest(&self) -> Option<&str> {
+        self.contract_proof.route_planning_policy_digest()
+    }
+
     pub fn planning_summary_digest(&self) -> &str {
         self.contract_proof.planning_summary_digest()
     }

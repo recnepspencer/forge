@@ -29,6 +29,7 @@ pub type BridgeBuildError = BridgeTypedError<BridgeBuildErrorKind>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeRouteErrorKind {
     EmptyBulkWorkloadRequest,
+    RoutePolicyMismatch,
     UnsupportedProducerEnvelope,
     MissingMappingRegistration,
     AmbiguousSliceMappingRegistration,

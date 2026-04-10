@@ -20,18 +20,19 @@ use super::merge::{BridgeCanonicalMergeRecord, BridgeMergeExplanation};
 use super::records::{BridgeFailureClass, BridgeFailureRecord, BridgeRouteRecord};
 use super::replay::{BridgeCanonicalRouteRecord, BridgeReplayRecord};
 use super::sink::DiagnosticSink;
+use super::speculation::{
+    BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
+    BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation,
+};
 use super::state::{BridgeDiagnosticsConfig, BridgeDiagnosticsState};
 use super::stream::{BridgeStreamCheckpointExplanation, BridgeStreamReplayExplanation};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
-use super::speculation::{
-    BridgePreviewDiscardExplanation, BridgePreviewExecutionExplanation,
-    BridgePreviewPromotionExplanation, BridgePreviewReplayExplanation,
-};
 use super::BridgeRouteExplanation;
 
 mod explain;
+mod policy;
 mod query;
 mod record;
 mod sink;

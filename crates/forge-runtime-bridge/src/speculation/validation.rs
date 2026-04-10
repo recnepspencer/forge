@@ -29,7 +29,11 @@ impl ValidatedBridgePreviewSessionDeclaration {
             ));
         }
 
-        if declaration.branch_binding().truth_branch_identity().as_str().is_empty()
+        if declaration
+            .branch_binding()
+            .truth_branch_identity()
+            .as_str()
+            .is_empty()
             || declaration
                 .branch_binding()
                 .signal_branch_identity()
@@ -99,8 +103,8 @@ mod tests {
     use super::ValidatedBridgePreviewSessionDeclaration;
     use crate::input::envelope::TruthBranchIdentity;
     use crate::speculation::{
-        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
-        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
+        BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
         BridgeSpeculativeBranchBindingIdentity,
     };
 

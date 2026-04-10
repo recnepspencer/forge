@@ -137,7 +137,7 @@ pub(crate) fn plan_ingested_patch(
         );
 
     Ok(BridgePlannedRoute::new(
-        eligible.route_scope(),
+        eligible.route_scope().clone(),
         mapping_context.clone(),
         route_identity,
         BridgeRouteSourceSummary::new(

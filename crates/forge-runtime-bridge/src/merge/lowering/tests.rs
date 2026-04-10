@@ -6,9 +6,7 @@ use crate::merge::{
     LoweredMergeHistoryPacketSet, MergeHistoryDeclaration, MergeHistoryDeclarationIdentity,
 };
 
-fn contract(
-    structural: BridgeMergeStructuralAdvisoryDisposition,
-) -> AdmittedMergeHistoryContract {
+fn contract(structural: BridgeMergeStructuralAdvisoryDisposition) -> AdmittedMergeHistoryContract {
     let declaration = MergeHistoryDeclaration::new(
         MergeHistoryDeclarationIdentity::new("merge:test"),
         BridgeMergeConsumptionClass::AspectReconciliationMerge,

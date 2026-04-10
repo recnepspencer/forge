@@ -242,20 +242,27 @@ pub(crate) fn deliver_prepared_route(
         ),
         receipt.delivered_target_count(),
     );
-    runtime.diagnostic_sink.record_route(BridgeRouteRecord::new(
-        lowered.artifact().route_identity().clone(),
-        lowered.artifact().invalidation_identity().clone(),
-        lowered.artifact().source_branch().clone(),
-        lowered.artifact().source_commit().clone(),
-        lowered.artifact().source_patch().clone(),
-        lowered.artifact().source_snapshot().clone(),
-        lowered.contract_proof().clone(),
-        lowered.artifact().subscription_slice_identity().clone(),
-        std::sync::Arc::clone(lowered.route_record_entries()),
-        std::sync::Arc::clone(lowered.artifact().subscription_slices().shared()),
-        std::sync::Arc::clone(lowered.artifact().invalidation_targets().shared()),
-        *lowered.counters(),
-    ));
+    let retain_route_record = lowered
+        .route_scope()
+        .route_planning_policy()
+        .map(|policy| policy.route_artifacts())
+        .unwrap_or_else(|| runtime.policy().record_route_artifacts());
+    if retain_route_record {
+        runtime.diagnostic_sink.record_route(BridgeRouteRecord::new(
+            lowered.artifact().route_identity().clone(),
+            lowered.artifact().invalidation_identity().clone(),
+            lowered.artifact().source_branch().clone(),
+            lowered.artifact().source_commit().clone(),
+            lowered.artifact().source_patch().clone(),
+            lowered.artifact().source_snapshot().clone(),
+            lowered.contract_proof().clone(),
+            lowered.artifact().subscription_slice_identity().clone(),
+            std::sync::Arc::clone(lowered.route_record_entries()),
+            std::sync::Arc::clone(lowered.artifact().subscription_slices().shared()),
+            std::sync::Arc::clone(lowered.artifact().invalidation_targets().shared()),
+            *lowered.counters(),
+        ));
+    }
 
     Ok(BridgeRouteResult::new(
         lowered.routing_summary().clone(),

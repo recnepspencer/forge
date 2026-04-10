@@ -41,8 +41,13 @@ impl IngestedBridgePatch {
         self
     }
 
-    pub(crate) fn route_scope(&self) -> RouteScope {
-        self.route_scope
+    pub(crate) fn with_route_scope(mut self, route_scope: RouteScope) -> Self {
+        self.route_scope = route_scope;
+        self
+    }
+
+    pub(crate) fn route_scope(&self) -> &RouteScope {
+        &self.route_scope
     }
 }
 
@@ -82,7 +87,7 @@ impl EligibleBridgeRouting {
         self.counters
     }
 
-    pub(crate) fn route_scope(&self) -> RouteScope {
+    pub(crate) fn route_scope(&self) -> &RouteScope {
         self.ingested_patch.route_scope()
     }
 }

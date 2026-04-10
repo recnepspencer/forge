@@ -4,11 +4,11 @@ mod counters;
 mod declaration;
 mod explanation;
 mod lowering;
+mod ontology;
 mod publication;
 mod replay;
 mod routing;
 mod taxonomy;
-mod ontology;
 mod validation;
 
 pub use authority::{

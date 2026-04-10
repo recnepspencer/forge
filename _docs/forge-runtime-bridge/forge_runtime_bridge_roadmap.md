@@ -428,6 +428,8 @@ This milestone is complete only when bridge harness scenarios can prove:
 
 ## Milestone 11: Cross-Runtime Policy Propagation and Clean Configuration Model
 
+Engineering spec: [milestone-11.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-11.md)
+
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 16-18: Policy Provenance Equivalence, Illegal Policy Combination Rejection, Ambient Policy Leak Resistance
 
@@ -463,6 +465,8 @@ This milestone is complete only when bridge harness scenarios can prove:
 - the Milestone 11 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
 ## Milestone 12: Bridge-Mediated Commit Strategies and Derived Writeback Contracts
+
+Engineering spec: [milestone-12.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-12.md)
 
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 19-21: Bridge Writeback Idempotence And Diff Truth, Strategy Failure Containment, Authority Bypass Rejection

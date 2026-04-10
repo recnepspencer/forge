@@ -8,6 +8,7 @@ mod history;
 mod merge;
 mod parity;
 mod planning;
+mod policy_certification;
 mod replay;
 mod routing;
 mod source;

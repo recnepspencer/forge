@@ -25,6 +25,14 @@ pub(crate) enum SourceBuilderLoadOrder {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum PolicyBuilderLoadOrder {
+    #[default]
+    WholePolicy,
+    SectionsCanonical,
+    SectionsReverse,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum SourceAdapterBehavior {
     #[default]
     Honest,
@@ -39,6 +47,7 @@ pub struct BridgeHarnessSession {
     pub(crate) sink: RecordingSignalBridgeSink,
     pub(crate) source_adapter_shape: SourceAdapterShape,
     pub(crate) source_builder_load_order: SourceBuilderLoadOrder,
+    pub(crate) policy_builder_load_order: PolicyBuilderLoadOrder,
     pub(crate) source_adapter_behavior: SourceAdapterBehavior,
 }
 
@@ -50,6 +59,7 @@ impl Default for BridgeHarnessSession {
             sink: RecordingSignalBridgeSink::default(),
             source_adapter_shape: SourceAdapterShape::Direct,
             source_builder_load_order: SourceBuilderLoadOrder::AdapterBeforeSources,
+            policy_builder_load_order: PolicyBuilderLoadOrder::WholePolicy,
             source_adapter_behavior: SourceAdapterBehavior::Honest,
         }
     }
