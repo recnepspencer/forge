@@ -14,6 +14,8 @@
 >
 > **Relational companion:** [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 >
+> **Bridge DX companions:** [dx_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md), [dx_canonical_surface_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_canonical_surface_spec.md), [dx_boundary_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_spec.md)
+>
 > **Primary architectural driver:** turn the bridge from a collection of individually strong capabilities into one certifiable causal protocol boundary with one canonical reference workload, one bridge-native failure topology, one coherent diagnostics entrypoint, and one machine-checkable certification bundle story spanning truth commit, routing, branch-local evaluation, speculative discard or commit, writeback, and replay
 
 ## Summary
@@ -541,6 +543,15 @@ Milestone 13 builds directly on:
 - Milestone 11 policy propagation
 - Milestone 12 writeback and authority-boundary causality preservation
 - Milestone 12b extensible writeback-family admission and mapper containment
+
+It also depends on the pre-certification bridge DX hardening pass defined in:
+
+- [`dx_plan.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md)
+- [`dx_canonical_surface_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_canonical_surface_spec.md)
+- [`dx_boundary_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_spec.md)
+
+The reference workload should be implemented against that hardened public bridge
+boundary rather than against ad hoc subsystem seams.
 
 It should also deliberately reuse:
 
