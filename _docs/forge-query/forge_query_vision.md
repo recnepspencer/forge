@@ -196,8 +196,9 @@ deliver, cache, and subscribe to.
 9. Tolerance and suppression policies are expressible per query for live
    subscriptions.
 10. Queries must not bypass or weaken the truth runtime's semantic contracts.
-11. The query layer is the primary consumer-facing API for truth reads —
-    direct runtime access is an escape hatch, not the encouraged path.
+11. Ordinary consumer reads **must** originate in `forge-query`. Direct
+    runtime/store reads are infrastructure escape hatches reserved for
+    system internals, certification harnesses, and exceptional hot paths.
 12. Query results must carry enough metadata for the server to deliver them
     efficiently (aspect masks, entity scopes, tolerance policies, cursor
     positions).
@@ -290,17 +291,20 @@ What this enables:
 
 ### Type-Bound Execution Architecture
 
-#### Implicit topological binding
+#### Implicit topological binding (Route-model binding generalized)
 
 Technical role:
-The query layer acts as a Type-Bound Dependency Injector rather than just an explicit fetching API. Consumer functions (UI components, controller endpoints, or kernel solvers) declare their data needs purely as typed signature inputs (e.g., `Query<Entity, SubgraphCone<Depth=3>>`). The runtime automatically parses the active context (URL route, user session, or spatial trigger), binds the target ID, executes the query, and injects the fully-resolved result into the function.
+The query layer acts as a Type-Bound Dependency Injector, taking inspiration from Laravel's route-model binding but generalizing it to graph-native truth. Consumer functions (UI components, controller endpoints, or kernel solvers) declare their data needs purely as typed signature inputs (e.g., `Query<Entity, SubgraphCone<Depth=3>>`). 
+
+The runtime automatically parses the active context, binds the target, executes the query, and injects the fully-resolved regional dependencies into the function.
 
 What this enables:
 
+- **Web URLs** can implicitly bind to an entity or collection
+- **Workflow context** can implicitly bind to a pending-approval scope
+- **Geometry triggers** can implicitly bind to a neighborhood/subgraph traversal
+- **AI execution contexts** can implicitly bind to a speculative branch or time window
 - eradication of explicit "data fetching" and "loading/error states" from consuming code
-- React/Web components that declare exact relational boundaries via props and auto-hydrate
-- geometry kernel solvers that state topological dependencies as inputs, letting the runtime guarantee data is loaded before invocation
-- perfectly decoupled execution boundaries where the caller doesn't orchestrate how the data is retrieved
 
 ### Live Query Architecture
 
@@ -529,21 +533,20 @@ What this enables:
 
 ### Query Composition Architecture
 
-#### Named scopes
+#### Scopes as first-class domain vocabulary
 
 Technical role:
-Queries support reusable, composable query fragments — named scopes — that
-can be defined once and mixed into any query. A scope encapsulates a
-combination of filters, projections, or ordering and can be applied across
-entity types when the aspect fields are compatible.
+Queries support reusable, composable query fragments — named scopes — that act as the primary bridge between the typed runtime and pragmatic app development. A scope is not just a convenience filter; it is a schema-validated, policy-aware, composable, and subscription-safe boundary.
+
+You want developers writing code that reads conceptually like:
+`active()`, `pending_approval()`, `changed_since_divergence()`, `visible_to(actor)`, `assembly_region(root, depth=3)`
 
 What this enables:
 
-- reusable business rules expressed as query fragments ("active," "recent,"
-  "mine," "pending approval")
+- reusable business rules expressed as strict compiler-checked domain vocabulary
 - composition of multiple scopes without manual filter merging
-- shared query vocabulary across a codebase
-- scopes that compose across entity types when aspects are shared
+- shared ubiquitous language across geometry kernels, AI agents, and web backends
+- scopes that inherently respect aspect-masking and Zanzibarian relationship proofs
 
 #### Saved and named query definitions
 
@@ -576,21 +579,17 @@ What this enables:
 - SDK generation from template definitions
 - query variants that share structure but differ by parameters
 
-#### Eager relation loading with depth control
+#### Bounded relational materialization
 
 Technical role:
-Queries can declare relation chains to eagerly load in a single query
-operation, preventing N+1 access patterns. Eager loading follows typed
-relation edges to a declared depth, bringing back related entities in the
-same result set with their own aspect projections.
+Queries can declare relation chains to eagerly materialize in a single query operation. Unlike traditional ORM "eager loading," this is not just "load some relations too." It strictly brings back exactly the bounded relational/materialized neighborhood required by this consumer contract, with explicit aspect projection per semantic hop.
 
 What this enables:
 
-- loading an entity with its relations in one round trip
-- declarative prevention of N+1 access patterns
-- depth-bounded eager loading that prevents unbounded fan-out
-- per-relation aspect projection (load related entities with only the
-  aspects needed for each relation level)
+- loading an entity with its exact bounding box of dependencies in one operation
+- declarative prevention of N+1 access patterns via strict topological depth constraints
+- graph fan-out bounded mathematically by the query's materialization contract
+- per-relation aspect projection (load related entities with only the aspects needed for that specific layer of the subgraph)
 
 ### View Shape Architecture
 
@@ -707,22 +706,17 @@ What this enables:
 
 ### Result Transformation Architecture
 
-#### Result shape declarations for delivery
+#### Result shape declarations for delivery (API Resources)
 
 Technical role:
-Queries can declare an explicit result shape that transforms the raw
-query result into a delivery-ready structure. Result shape declarations
-specify field mapping, renaming, nesting, and flattening to produce
-results shaped for consumer needs.
+Queries can declare an explicit result shape that defines the delivery-ready structure. Inspired by Laravel API Resources, but with a critical distinction: Forge result shapes are declared as part of the query expression itself, not as a post-fetch wrapper. This means query planning, narrowing, schema validation, and live maintenance all understand the delivery structure structurally before the data is even fetched from disk.
 
 What this enables:
 
-- query results that arrive in the shape the consumer needs, not the
-  shape the storage uses
+- query results that arrive in the shape the consumer needs natively, not transformed after-the-fact in the application layer
+- CDC subscriptions that narrow invalidation optimally because the signal graph understands the delivery shape
 - typed delivery contracts between the query layer and the server
-- SDK generation from result shape declarations
-- clear contracts between backend query definitions and frontend
-  consumption
+- SDK generation mapped exactly to the runtime's execution plan
 
 ### Policy-Aware Query Architecture
 

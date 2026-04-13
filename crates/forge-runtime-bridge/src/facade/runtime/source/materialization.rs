@@ -1,6 +1,10 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Materializes a planned source packet set through the configured source adapter.
+    ///
+    /// This is the main advanced source-materialization door; validation and
+    /// replay helpers stay specialist.
     pub fn materialize_source(
         &self,
         planned_packet_set: &PlannedSourceReadPacketSet,
@@ -51,6 +55,7 @@ impl RuntimeBridge {
             })
     }
 
+    /// Materializes one source-backed truth-view observation.
     pub fn materialize_source_packet(
         &self,
         contract: &AdmittedSourceContract,
@@ -100,6 +105,23 @@ impl RuntimeBridge {
             })
     }
 
+    /// Materializes a batch of source-backed truth-view observations.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedSourceContract, RuntimeBridge, SnapshotReadPacket,
+    /// };
+    ///
+    /// fn materialize_source_batch(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedSourceContract,
+    ///     packets: Vec<SnapshotReadPacket>,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let packet_set = bridge.materialize_source_packet_batch(contract, packets)?;
+    ///     let _record = bridge.canonicalize_source_materialization_packet_set_record(&packet_set)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn materialize_source_packet_batch(
         &self,
         contract: &AdmittedSourceContract,

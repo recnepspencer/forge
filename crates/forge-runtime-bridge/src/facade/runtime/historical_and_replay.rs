@@ -1,6 +1,22 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Delivers the full continuity workflow for one retained route record.
+    ///
+    /// This is an advanced diagnostics/proof entrypoint that reconstructs,
+    /// resolves, lowers, and canonicalizes continuity in one bridge job.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{BridgeRouteRecord, RuntimeBridge};
+    ///
+    /// fn deliver_continuity(
+    ///     bridge: &RuntimeBridge,
+    ///     route_record: &BridgeRouteRecord,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let _result = bridge.deliver_continuity(route_record)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn deliver_continuity(
         &self,
         route_record: &BridgeRouteRecord,
@@ -18,6 +34,11 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Resolves historical lineage material into a continuity outcome set.
+    ///
+    /// This remains an advanced lane because continuity is a real bridge proof
+    /// workflow, but ordinary route/evaluate callers should not need to invoke
+    /// it directly.
     pub fn resolve_lineage_continuity(
         &self,
         packet: &BridgeHistoricalLineagePacket,
@@ -25,6 +46,7 @@ impl RuntimeBridge {
         crate::continuity::ResolvedLineageContinuitySet::from_historical_packet(packet)
     }
 
+    /// Lowers a resolved continuity outcome set into a bridge artifact.
     pub fn lower_continuity_artifact(
         &self,
         resolved: &ResolvedLineageContinuitySet,
@@ -32,6 +54,7 @@ impl RuntimeBridge {
         crate::continuity::BridgeContinuityArtifact::from_resolved(resolved)
     }
 
+    /// Canonicalizes and records a continuity artifact for replay and diagnostics.
     pub fn canonicalize_continuity_record(
         &self,
         route_record: &BridgeRouteRecord,
@@ -52,6 +75,11 @@ impl RuntimeBridge {
         record
     }
 
+    /// Replays a canonical continuity record and verifies semantic stability.
+    ///
+    /// Use this when certification or retained diagnostics need to prove that a
+    /// continuity artifact can be reconstructed from canonical bridge records
+    /// alone.
     pub fn replay_canonical_continuity_record(
         &self,
         record: &BridgeCanonicalContinuityRecord,

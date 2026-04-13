@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Specialist validation entrypoint for change stream declarations.
     pub fn validate_change_stream_declaration(
         &self,
         declaration: ChangeStreamDeclaration,
@@ -8,6 +9,7 @@ impl RuntimeBridge {
         crate::stream::validate_change_stream_declaration(declaration)
     }
 
+    /// Admits a validated stream protocol for one consumer shape.
     pub fn resolve_change_stream_consumer_contract(
         &self,
         protocol: &ValidatedStreamProtocol,
@@ -15,6 +17,30 @@ impl RuntimeBridge {
         crate::stream::resolve_consumer_contract(protocol)
     }
 
+    /// Plans and lowers one change stream window for a consumer contract.
+    ///
+    /// This is the main advanced stream-planning door; lower-level validation
+    /// and replay helpers remain specialist.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedConsumerContract, BridgeCommittedPatchEnvelope, RuntimeBridge,
+    /// };
+    ///
+    /// fn plan_stream_window(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedConsumerContract,
+    ///     envelopes: Vec<BridgeCommittedPatchEnvelope>,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let window = bridge.plan_change_stream_window(contract, envelopes)?;
+    ///     let _checkpoint = bridge.publish_consumer_checkpoint(
+    ///         contract,
+    ///         &window,
+    ///         forge_runtime_bridge::facade::StreamCheckpointFrontierKind::ContiguousFrontier,
+    ///     );
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn plan_change_stream_window(
         &self,
         contract: &AdmittedConsumerContract,
@@ -24,6 +50,7 @@ impl RuntimeBridge {
         self.lower_change_stream_window(contract, window)
     }
 
+    /// Publishes a checkpoint token from a planned stream window.
     pub fn publish_consumer_checkpoint(
         &self,
         contract: &AdmittedConsumerContract,
@@ -40,6 +67,7 @@ impl RuntimeBridge {
         checkpoint
     }
 
+    /// Validates that a checkpoint still matches a contract and window pair.
     pub fn validate_consumer_checkpoint(
         &self,
         contract: &AdmittedConsumerContract,
@@ -49,6 +77,7 @@ impl RuntimeBridge {
         crate::stream::validate_checkpoint_for_window(contract, window, checkpoint)
     }
 
+    /// Canonicalizes the replay record for a stream checkpoint.
     pub fn canonicalize_stream_replay_record(
         &self,
         contract: &AdmittedConsumerContract,
@@ -61,6 +90,32 @@ impl RuntimeBridge {
         Ok(record)
     }
 
+    /// Resumes stream planning from a retained checkpoint identity.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedConsumerContract, BridgeCommittedPatchEnvelope, RuntimeBridge,
+    /// };
+    ///
+    /// fn resume_stream_window(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedConsumerContract,
+    ///     envelopes: Vec<BridgeCommittedPatchEnvelope>,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let window = bridge.plan_change_stream_window(contract, envelopes.clone())?;
+    ///     let checkpoint = bridge.publish_consumer_checkpoint(
+    ///         contract,
+    ///         &window,
+    ///         forge_runtime_bridge::facade::StreamCheckpointFrontierKind::ContiguousFrontier,
+    ///     );
+    ///     let _resumed = bridge.resume_stream_window_from_checkpoint(
+    ///         contract,
+    ///         envelopes,
+    ///         checkpoint.checkpoint_token_identity().as_ref(),
+    ///     )?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn resume_stream_window_from_checkpoint(
         &self,
         contract: &AdmittedConsumerContract,
@@ -128,6 +183,7 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Validates a replay record against a contract, window, and checkpoint.
     pub fn validate_stream_replay_record(
         &self,
         contract: &AdmittedConsumerContract,
@@ -138,6 +194,7 @@ impl RuntimeBridge {
         crate::stream::validate_stream_replay_record(contract, window, checkpoint, record)
     }
 
+    /// Classifies backpressure for a planned stream window without changing its semantics.
     pub fn classify_stream_backpressure(
         &self,
         window: &PlannedChangeStreamWindow,
@@ -145,6 +202,7 @@ impl RuntimeBridge {
         crate::stream::BackpressureDecisionRecord::classify(window)
     }
 
+    /// Delivers one lowered change stream window to the configured consumer.
     pub fn deliver_change_stream_window(
         &self,
         contract: &AdmittedConsumerContract,
@@ -153,6 +211,7 @@ impl RuntimeBridge {
         crate::stream::deliver_change_stream_window(self, contract, window)
     }
 
+    /// Delivers a replay-audit stream window and retains its proof artifacts.
     pub fn deliver_replay_audit_stream_window(
         &self,
         contract: &AdmittedConsumerContract,

@@ -1,14 +1,67 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Creates a new runtime bridge builder.
     pub fn builder() -> RuntimeBridgeBuilder {
         RuntimeBridgeBuilder::new()
     }
 
+    /// Routes one authoritative truth change through the standard path.
+    ///
+    /// This is the everyday front door for:
+    ///
+    /// - ingesting committed truth change
+    /// - planning invalidation
+    /// - delivering invalidation to the bound compute sink
+    ///
+    /// Prefer this over the lower-level ingest/plan/deliver sequence unless the
+    /// job explicitly needs advanced control.
+    pub fn route(
+        &self,
+        request: impl Into<BridgeRouteRequest>,
+    ) -> Result<BridgeRoute, BridgeStandardRouteError> {
+        let planned = self.plan_committed_patch(request.into())?;
+        let result = self.deliver_invalidation(planned.clone())?;
+        Ok(BridgeRoute::new(planned, result))
+    }
+
+    /// Returns the runtime policy frozen into this bridge instance.
+    ///
+    /// Reach for this when you need to explain or verify runtime-wide replay,
+    /// diagnostics, or execution guarantees.
     pub fn policy(&self) -> &BridgeRuntimePolicy {
         &self.policy
     }
 
+    /// Evaluates the current bridge-visible result for a routed target.
+    ///
+    /// This is the standard answer to "what should the compute side see now for
+    /// the thing that was just routed?"
+    pub fn evaluate_current(
+        &self,
+        target: BridgeEvaluationTarget,
+    ) -> Result<BridgeSignalEvaluationRequest, BridgeDeliveryError> {
+        self.prepare_signal_evaluation(target.into_planned_route())
+    }
+
+    /// Evaluates an explicit truth view.
+    ///
+    /// Use this when branch head, branch snapshot, or historical commit basis
+    /// is part of the job rather than an internal detail.
+    pub fn evaluate(
+        &self,
+        request: BridgeTruthViewEvaluationRequest,
+    ) -> Result<BridgeTruthViewEvaluation, BridgeDeliveryError> {
+        let planned = self.plan_truth_view_packet(request.declaration(), request.read_packet())?;
+        let observation = self.materialize_truth_view_observation(planned)?;
+        let canonical_record = self.canonicalize_historical_evaluation_record(&observation);
+        Ok(BridgeTruthViewEvaluation::new(
+            observation,
+            canonical_record,
+        ))
+    }
+
+    /// Specialist ingress step that turns a route request into a committed-patch envelope.
     pub fn ingest_committed_patch(
         &self,
         request: BridgeRouteRequest,
@@ -20,6 +73,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans one already-ingested committed-patch envelope with default mapping context.
     pub fn plan_envelope(
         &self,
         envelope: BridgeCommittedPatchEnvelope,
@@ -27,6 +81,7 @@ impl RuntimeBridge {
         self.plan_envelope_with_mapping_context(envelope, BridgeMappingContext::default())
     }
 
+    /// Plans one already-ingested committed-patch envelope with explicit mapping context.
     pub fn plan_envelope_with_mapping_context(
         &self,
         envelope: BridgeCommittedPatchEnvelope,
@@ -42,6 +97,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans one already-ingested envelope under explicit mapping context and route policy.
     pub fn plan_envelope_with_mapping_context_and_route_policy(
         &self,
         envelope: BridgeCommittedPatchEnvelope,
@@ -60,6 +116,10 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans one committed patch through the routing substrate without delivering it.
+    ///
+    /// Prefer [`RuntimeBridge::route`] for ordinary work. This is the advanced
+    /// door for callers that need to inspect or stage the planned route.
     pub fn plan_committed_patch(
         &self,
         request: BridgeRouteRequest,
@@ -67,6 +127,7 @@ impl RuntimeBridge {
         self.plan_committed_patch_with_mapping_context(request, BridgeMappingContext::default())
     }
 
+    /// Plans one committed patch with explicit mapping context.
     pub fn plan_committed_patch_with_mapping_context(
         &self,
         request: BridgeRouteRequest,
@@ -79,6 +140,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans one committed patch with an explicit route policy.
     pub fn plan_committed_patch_with_route_policy(
         &self,
         request: BridgeRouteRequest,
@@ -91,6 +153,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans one committed patch with both explicit mapping context and route policy.
     pub fn plan_committed_patch_with_mapping_context_and_route_policy(
         &self,
         request: BridgeRouteRequest,
@@ -146,6 +209,10 @@ impl RuntimeBridge {
         )
     }
 
+    /// Plans a bulk bridge workload under the runtime's default route policy.
+    ///
+    /// This is an advanced execution-planning surface used by bulk and
+    /// certification workflows.
     pub fn plan_bulk_workload(
         &self,
         request: BridgeBulkWorkloadRequest,
@@ -153,6 +220,7 @@ impl RuntimeBridge {
         crate::routing::planning::plan_bulk_workload(self, request)
     }
 
+    /// Plans a bulk bridge workload under an explicit route policy.
     pub fn plan_bulk_workload_with_route_policy(
         &self,
         request: BridgeBulkWorkloadRequest,
@@ -162,6 +230,7 @@ impl RuntimeBridge {
         crate::routing::planning::plan_bulk_workload_with_route_policy(self, request, route_policy)
     }
 
+    /// Canonicalizes and records a bulk workload plan for replay and diagnostics.
     pub fn canonicalize_bulk_workload_plan(
         &self,
         plan: &BridgeBulkWorkloadPlan,
@@ -171,6 +240,7 @@ impl RuntimeBridge {
         record
     }
 
+    /// Delivers one previously planned route to the configured compute sink.
     pub fn deliver_invalidation(
         &self,
         route: BridgePlannedRoute,
@@ -178,10 +248,12 @@ impl RuntimeBridge {
         crate::delivery::deliver_planned_route(self, route)
     }
 
+    /// Prepares a planned route for later delivery.
     pub fn prepare_delivery(&self, route: BridgePlannedRoute) -> BridgePreparedDeliveryRequest {
         crate::delivery::prepare_planned_route_for_delivery(route)
     }
 
+    /// Delivers a previously prepared route.
     pub fn deliver_prepared(
         &self,
         prepared: BridgePreparedDeliveryRequest,
@@ -189,6 +261,7 @@ impl RuntimeBridge {
         crate::delivery::deliver_prepared_route(self, prepared)
     }
 
+    /// Delivers a previously planned bulk workload.
     pub fn deliver_bulk_workload_plan(
         &self,
         plan: BridgeBulkWorkloadPlan,
@@ -196,6 +269,7 @@ impl RuntimeBridge {
         crate::delivery::deliver_bulk_workload_plan(self, plan)
     }
 
+    /// Prepares a signal evaluation request from a planned route.
     pub fn prepare_signal_evaluation(
         &self,
         route: BridgePlannedRoute,
@@ -203,6 +277,7 @@ impl RuntimeBridge {
         crate::delivery::prepare_signal_evaluation(self, route)
     }
 
+    /// Replays and verifies a canonical route record.
     pub fn replay_canonical_record(
         &self,
         record: &BridgeCanonicalRouteRecord,
@@ -211,6 +286,7 @@ impl RuntimeBridge {
         crate::routing::replay_route_record(self, &route_record)
     }
 
+    /// Replays and verifies a canonical bulk workload record.
     pub fn replay_canonical_bulk_plan_record(
         &self,
         record: &BridgeCanonicalBulkPlanRecord,
@@ -259,10 +335,15 @@ impl RuntimeBridge {
         Ok(replayed)
     }
 
-    pub fn diagnostics(&self) -> &BridgeDiagnosticsFacade {
-        &self.diagnostics
+    /// Opens the standard diagnostics door for this bridge.
+    ///
+    /// The returned wrapper keeps the everyday, job-shaped helpers in front
+    /// while still allowing access to the raw diagnostics facade when needed.
+    pub fn diagnostics(&self) -> BridgeDiagnostics<'_> {
+        BridgeDiagnostics::new(&self.diagnostics)
     }
 
+    /// Projects a route planning policy from a lowered execution policy.
     pub fn project_route_planning_policy(
         &self,
         lowered: &LoweredBridgeExecutionPolicy,
@@ -272,10 +353,12 @@ impl RuntimeBridge {
         Ok(route_policy)
     }
 
+    /// Returns the configured continuity lineage source, if one is bound.
     pub fn continuity_lineage_source(&self) -> Option<&dyn ContinuityLineageSource> {
         self.continuity_lineage_source.as_deref()
     }
 
+    /// Plans continuity requests from one retained route record.
     pub fn plan_continuity_requests(
         &self,
         prior_route_record: &BridgeRouteRecord,
@@ -286,6 +369,7 @@ impl RuntimeBridge {
         crate::continuity::BridgeEligibleContinuityRequestSet::from_planned(planned)
     }
 
+    /// Materializes one historical lineage packet from eligible continuity requests.
     pub fn plan_historical_lineage_packet(
         &self,
         requests: &BridgeEligibleContinuityRequestSet,

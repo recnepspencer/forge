@@ -466,6 +466,7 @@ mod policy_and_materialization;
 mod policy_phase2;
 mod replay;
 mod speculation;
+mod standard_path;
 mod stream;
 mod stream_protocol;
 mod structural;

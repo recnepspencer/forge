@@ -28,10 +28,15 @@ impl RuntimeBridge {
         }
     }
 
+    /// Returns the runtime's admitted merge registry.
+    ///
+    /// This is a specialist inspection surface for hosts and certification
+    /// workflows that need direct access to admitted merge contracts.
     pub fn merge_registry(&self) -> &AdmittedMergeRegistry {
         &self.merge_registry
     }
 
+    /// Specialist validation entrypoint for merge history declarations.
     pub fn validate_merge_declaration(
         &self,
         declaration: MergeHistoryDeclaration,
@@ -40,6 +45,11 @@ impl RuntimeBridge {
         Ok(contract.validated_declaration().clone())
     }
 
+    /// Admits a merge history declaration against the runtime merge registry.
+    ///
+    /// This is the advanced entrypoint for merge-aware history consumption.
+    /// Ordinary bridge callers should stay on the standard path unless they are
+    /// intentionally working with merge-bearing truth history.
     pub fn admit_merge_history(
         &self,
         declaration: MergeHistoryDeclaration,
@@ -58,6 +68,7 @@ impl RuntimeBridge {
             })
     }
 
+    /// Lowers an admitted merge contract into its merge packet set.
     pub fn lower_merge_history(
         &self,
         contract: &AdmittedMergeHistoryContract,
@@ -76,6 +87,9 @@ impl RuntimeBridge {
         Ok(LoweredMergeHistoryPacketSet::from_contract(contract))
     }
 
+    /// Reduces a lowered merge packet set into its routing/publication outcome.
+    ///
+    /// This is the main advanced reduction door for merge-aware bridge work.
     pub fn reduce_merge_routing(
         &self,
         lowered_packet_set: &LoweredMergeHistoryPacketSet,
@@ -102,6 +116,7 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Publishes the continuity artifact for a reduced merge routing outcome.
     pub fn publish_merge_continuity_artifact(
         &self,
         reduced_routing_artifact: &ReducedMergeRoutingArtifact,
@@ -120,6 +135,7 @@ impl RuntimeBridge {
         })
     }
 
+    /// Publishes the advisory remap artifact for a reduced merge routing outcome.
     pub fn publish_merge_remap_artifact(
         &self,
         reduced_routing_artifact: &ReducedMergeRoutingArtifact,
@@ -138,6 +154,29 @@ impl RuntimeBridge {
         })
     }
 
+    /// Produces the merge explanation artifact for a merge workflow result.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{MergeHistoryDeclaration, RuntimeBridge};
+    ///
+    /// fn build_merge_explanation(
+    ///     bridge: &RuntimeBridge,
+    ///     declaration: MergeHistoryDeclaration,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let contract = bridge.admit_merge_history(declaration)?;
+    ///     let lowered = bridge.lower_merge_history(&contract)?;
+    ///     let reduced = bridge.reduce_merge_routing(&lowered)?;
+    ///     let continuity = bridge.publish_merge_continuity_artifact(&reduced).ok();
+    ///     let remap = bridge.publish_merge_remap_artifact(&reduced).ok();
+    ///     let _explanation = bridge.publish_merge_explanation_artifact(
+    ///         &lowered,
+    ///         &reduced,
+    ///         continuity.as_ref(),
+    ///         remap.as_ref(),
+    ///     );
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn publish_merge_explanation_artifact(
         &self,
         lowered_packet_set: &LoweredMergeHistoryPacketSet,
@@ -153,6 +192,24 @@ impl RuntimeBridge {
         )
     }
 
+    /// Reconstructs the full merge replay certification bundle from one admitted contract.
+    ///
+    /// This remains public because merge replay is a real advanced and
+    /// certification workflow, not hidden implementation detail.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{AdmittedMergeHistoryContract, RuntimeBridge};
+    ///
+    /// fn replay_merge_bundle(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedMergeHistoryContract,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let bundle = bridge.replay_merge_history(contract)?;
+    ///     let record = bridge.canonicalize_merge_record(&bundle);
+    ///     let _replayed = bridge.replay_canonical_merge_record(&record)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn replay_merge_history(
         &self,
         contract: &AdmittedMergeHistoryContract,
@@ -187,6 +244,7 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Canonicalizes and records a merge replay bundle for diagnostics and replay.
     pub fn canonicalize_merge_record(
         &self,
         bundle: &MergeReplayCertificationBundle,
@@ -196,6 +254,7 @@ impl RuntimeBridge {
         record
     }
 
+    /// Replays and verifies a canonical merge record.
     pub fn replay_canonical_merge_record(
         &self,
         record: &BridgeCanonicalMergeRecord,

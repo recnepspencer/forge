@@ -1,6 +1,11 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Publishes an advisory structural remap artifact from a reduced match set.
+    ///
+    /// This is the advanced publication door for advisory structural remap
+    /// workflows after planning and reduction have already established the
+    /// candidate set.
     pub fn publish_structural_remap_artifact(
         &self,
         reduced_match_set: &ReducedStructuralMatchSet,
@@ -17,6 +22,30 @@ impl RuntimeBridge {
             })
     }
 
+    /// Publishes a branch-comparison artifact from a reduced match set.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedStructuralComparisonContract, RuntimeBridge, SnapshotReadPacket,
+    /// };
+    ///
+    /// fn publish_branch_comparison(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedStructuralComparisonContract,
+    ///     packet: SnapshotReadPacket,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let planned = bridge.plan_structural_branch_comparison_from_read_packet(contract, packet)?;
+    ///     let reduced = bridge.reduce_structural_match_set(&planned)?;
+    ///     let artifact = bridge.publish_branch_comparison_artifact(&reduced)?;
+    ///     let _record = bridge.canonicalize_structural_branch_comparison_record(
+    ///         contract,
+    ///         &planned,
+    ///         &reduced,
+    ///         &artifact,
+    ///     );
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn publish_branch_comparison_artifact(
         &self,
         reduced_match_set: &ReducedStructuralMatchSet,
@@ -33,6 +62,10 @@ impl RuntimeBridge {
             })
     }
 
+    /// Canonicalizes and records a structural remap artifact.
+    ///
+    /// Use this when an advanced structural remap workflow needs retained
+    /// diagnostics or replay-safe comparison artifacts.
     pub fn canonicalize_structural_remap_record(
         &self,
         contract: &AdmittedStructuralComparisonContract,
@@ -56,6 +89,7 @@ impl RuntimeBridge {
         record
     }
 
+    /// Canonicalizes and records a structural branch comparison artifact.
     pub fn canonicalize_structural_branch_comparison_record(
         &self,
         contract: &AdmittedStructuralComparisonContract,

@@ -12,6 +12,36 @@ use crate::speculation::{
 };
 
 impl RuntimeBridge {
+    /// Opens a speculative session through the standard path.
+    ///
+    /// The returned handle owns the normal preview workflow:
+    ///
+    /// - compare to main
+    /// - inspect preview diagnostics
+    /// - discard
+    /// - promote
+    pub fn speculate(
+        &self,
+        request: BridgeSpeculativeSessionRequest,
+    ) -> Result<BridgeSpeculativeSessionHandle, BridgeSpeculationError> {
+        let admitted = self.admit_preview_session(
+            request.session_identity().clone(),
+            request.declaration().clone(),
+        )?;
+        let (session, execution_record) = self.activate_preview_session(
+            admitted,
+            request.preview_artifact_count(),
+            request.destroyable_artifact_count(),
+            request.retained_non_authoritative_artifact_count(),
+        );
+        Ok(BridgeSpeculativeSessionHandle::new(
+            self.clone(),
+            session,
+            execution_record,
+        ))
+    }
+
+    /// Specialist validation entrypoint for preview-session declarations.
     pub fn validate_preview_session_declaration(
         &self,
         declaration: BridgePreviewSessionDeclaration,
@@ -19,6 +49,7 @@ impl RuntimeBridge {
         declaration.validate()
     }
 
+    /// Declares a preview session without admitting or activating it yet.
     pub fn declare_preview_session(
         &self,
         session_identity: BridgePreviewSessionIdentity,
@@ -40,6 +71,7 @@ impl RuntimeBridge {
         Ok(BridgePreviewSession::declare(session_identity, validated))
     }
 
+    /// Admits a preview session declaration into an admitted preview session.
     pub fn admit_preview_session(
         &self,
         session_identity: BridgePreviewSessionIdentity,
@@ -49,6 +81,7 @@ impl RuntimeBridge {
             .map(BridgePreviewSession::admit)
     }
 
+    /// Activates an admitted preview session and records its execution bundle.
     pub fn activate_preview_session(
         &self,
         session: BridgePreviewSession<PreviewAdmitted>,
@@ -74,6 +107,7 @@ impl RuntimeBridge {
         (active, execution_record)
     }
 
+    /// Produces an equivalence proof for preview-session reuse.
     pub fn admit_preview_reuse(
         &self,
         source_session: &BridgePreviewSession<PreviewActive>,
@@ -102,6 +136,7 @@ impl RuntimeBridge {
         Ok(equivalence)
     }
 
+    /// Activates an admitted preview session by reusing an equivalent active session.
     pub fn activate_preview_session_with_reuse(
         &self,
         session: BridgePreviewSession<PreviewAdmitted>,
@@ -154,6 +189,7 @@ impl RuntimeBridge {
         Ok((active, execution_record))
     }
 
+    /// Discards an active preview session with explicit residue classification.
     pub fn discard_preview_session(
         &self,
         session: BridgePreviewSession<PreviewActive>,
@@ -198,6 +234,7 @@ impl RuntimeBridge {
         Ok((discarded, discard_record))
     }
 
+    /// Promotes an active preview session with explicit admissibility proof and authoritative digests.
     pub fn promote_preview_session(
         &self,
         session: BridgePreviewSession<PreviewActive>,
@@ -241,6 +278,7 @@ impl RuntimeBridge {
         Ok((promoted, promotion_record))
     }
 
+    /// Replays the retained preview bundle for one preview session identity.
     pub fn replay_preview_bundle(
         &self,
         preview_session_identity: &str,

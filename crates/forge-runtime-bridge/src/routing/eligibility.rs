@@ -99,22 +99,32 @@ pub(crate) fn validate_route_request(
         };
         counters = counters.with_mapping_lookup();
         match registry.lookup_truth_surface(normalized_surface) {
-            BridgeMappingLookup::Exact { resolved } => entries.push(EligibleRouteEntry {
-                item: item.clone(),
-                normalized_surface: normalized_surface.clone(),
-                registration: resolved.registration().clone(),
-                fallback_class: None,
-                fine_grained_match,
-            }),
+            BridgeMappingLookup::Exact { resolved } => {
+                for registration in resolved.registrations() {
+                    entries.push(EligibleRouteEntry {
+                        item: item.clone(),
+                        normalized_surface: normalized_surface.clone(),
+                        registration: registration.clone(),
+                        fallback_class: None,
+                        fine_grained_match: fine_grained_match.clone(),
+                    });
+                }
+            }
             BridgeMappingLookup::Fallback { resolved } => {
                 counters = counters.with_mapping_fallback();
-                entries.push(EligibleRouteEntry {
-                    item: item.clone(),
-                    normalized_surface: normalized_surface.clone(),
-                    registration: resolved.registration().clone(),
-                    fallback_class: resolved.registration().fallback_class(),
-                    fine_grained_match,
-                });
+                let fallback_class = resolved
+                    .registrations()
+                    .next()
+                    .and_then(FrozenBridgeMappingRegistration::fallback_class);
+                for registration in resolved.registrations() {
+                    entries.push(EligibleRouteEntry {
+                        item: item.clone(),
+                        normalized_surface: normalized_surface.clone(),
+                        registration: registration.clone(),
+                        fallback_class,
+                        fine_grained_match: fine_grained_match.clone(),
+                    });
+                }
             }
             BridgeMappingLookup::Missing => {
                 return Err(BridgeRouteError::new(

@@ -12,6 +12,9 @@ The goal is not to productize every bridge subsystem at once.
 The goal is to decide what users and tests are supposed to memorize first so the
 reference workload and certification suites can target the real bridge.
 
+The everyday feel target for that surface is defined in
+[`dx_standard_path_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_standard_path_spec.md).
+
 ---
 
 ## Canonical Import Path

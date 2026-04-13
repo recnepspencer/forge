@@ -562,6 +562,7 @@ This milestone is complete only when bridge harness scenarios can prove:
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 25-27: End-To-End Causality Bundle Equivalence, Failure Taxonomy Localization, Certification Matrix Sufficiency
 Engineering spec: [milestone-13.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-13.md)
+Showcase extension companion: [milestone-13-showcase-extension.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-13-showcase-extension.md)
 
 ### Goal
 

@@ -23,6 +23,21 @@ impl InMemoryRelationalBridgeSource {
         );
     }
 
+    pub fn set_branch_head(
+        &self,
+        branch_identity: &crate::facade::TruthBranchIdentity,
+        commit_identity: &crate::facade::TruthCommitIdentity,
+    ) {
+        self.state
+            .write()
+            .expect("bridge source lock poisoned")
+            .branch_heads
+            .insert(
+                branch_identity.as_str().to_string(),
+                commit_identity.as_str().to_string(),
+            );
+    }
+
     pub fn insert_snapshot(&self, snapshot: SnapshotFixture) {
         self.state
             .write()

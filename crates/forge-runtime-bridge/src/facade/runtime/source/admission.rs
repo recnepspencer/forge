@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Specialist validation entrypoint for source declarations.
     pub fn validate_source_declaration(
         &self,
         declaration: SourceDeclaration,
@@ -9,6 +10,7 @@ impl RuntimeBridge {
         Ok(ValidatedSourceDeclaration::from_contract(&contract))
     }
 
+    /// Admits a source declaration against the runtime source registry.
     pub fn admit_source(
         &self,
         declaration: SourceDeclaration,

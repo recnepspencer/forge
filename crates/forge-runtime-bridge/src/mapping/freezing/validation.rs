@@ -31,14 +31,7 @@ pub(super) fn validate_registration_set(
             }
 
             if left.truth_scope() == right.truth_scope() {
-                return Err(BridgeBuildError::new(
-                    BridgeBuildErrorKind::AmbiguousMappingRegistration,
-                    format!(
-                        "Ambiguous bridge mapping registration detected for identical truth scope between `{}` and `{}`.",
-                        left.mapping_id().as_str(),
-                        right.mapping_id().as_str()
-                    ),
-                ));
+                continue;
             }
 
             if left.truth_scope().specificity_rank() == right.truth_scope().specificity_rank() {

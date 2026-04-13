@@ -1,6 +1,11 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Canonicalizes and records one materialized source observation.
+    ///
+    /// This is the advanced bridge artifact door for a single source-backed
+    /// materialized observation. Most callers should only reach for this when
+    /// they need retained diagnostics or replay-safe source records.
     pub fn canonicalize_source_materialization_record(
         &self,
         contract: &AdmittedSourceContract,
@@ -47,6 +52,24 @@ impl RuntimeBridge {
         Ok(record)
     }
 
+    /// Canonicalizes and records one materialized source packet set.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedSourceContract, RuntimeBridge, SnapshotReadPacket,
+    /// };
+    ///
+    /// fn canonicalize_source_batch(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedSourceContract,
+    ///     packets: Vec<SnapshotReadPacket>,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let planned = bridge.plan_source_packet_batch(contract, packets)?;
+    ///     let materialized = bridge.materialize_source(&planned)?;
+    ///     let _record = bridge.canonicalize_source_materialization_packet_set_record(&materialized)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn canonicalize_source_materialization_packet_set_record(
         &self,
         materialized_packet_set: &MaterializedTruthViewPacketSet,

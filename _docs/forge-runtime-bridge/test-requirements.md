@@ -1054,6 +1054,27 @@ Minimum required reference scenarios:
 - a speculative discard lane proving zero authoritative and bridge residue
 - a speculative commit-promotion lane proving clear authority-boundary
   promotion through the Milestone 12 writeback contract
+- a restart-safe replay lane over the same ordinary pricing route
+- a restart-shaped replay-drift lane proving typed mismatch localization after
+  truth-shape change
+
+The reference workload should converge on one top-level workload certification
+bundle rather than remaining a loose set of unrelated end-to-end assertions.
+At minimum that workload bundle should contain nested artifacts for:
+
+- ordinary path reference and replay
+- aspect-aware routing and comparison
+- hostile missing-snapshot or missing-basis failure
+- discard lifecycle under interleaved main churn
+- promotion lifecycle under interleaved main churn
+- 100-product high-fanout live churn
+- restart-safe replay
+- restart-shaped replay drift rejection
+- writeback authority outcomes covering commit, noop, and typed rejection
+- merge-bearing pricing history with revisitable pre-merge, speculative, and
+  merged truth states
+- historical provenance sufficient to inspect retained shock criteria from
+  bridge-visible truth at a historical commit
 
 This workload is a certification fixture, not a bridge-owned finance product
 surface. Its role is to prove that the bridge can carry a concrete dual-runtime
@@ -1080,6 +1101,9 @@ Must verify
 - diagnostics tiers change retained richness only
 - the reference workload preserves the same main-branch and speculative-branch
   causality digests across original execution and replay
+- retained historical pricing commits can expose their upstream shock criteria
+  through bridge-visible truth and bundle artifacts rather than hidden scenario
+  memory
 
 Required verification output
 
@@ -1087,6 +1111,7 @@ Required verification output
 - `routing_digest`
 - `explanation_digest`
 - `replay_digest`
+- `reference_workload_bundle_digest`
 
 Pass condition
 
@@ -1112,6 +1137,9 @@ Must verify
 - replay preserves failure meaning
 - reference-workload failures such as wrong-branch comparison, preview misuse,
   source mismatch, and writeback denial remain typed and replay-stable
+- retained provenance and residue surfaces are sufficient to distinguish
+  routing, branch-isolation, policy, source, preview, merge, writeback, and
+  residue failures mechanically
 
 Required verification output
 
@@ -1119,6 +1147,7 @@ Required verification output
 - `failure_localization_matrix`
 - `replay_failure_digest`
 - `diagnostics_digest`
+- `reference_workload_failure_bundle_digest`
 
 Pass condition
 
@@ -1145,6 +1174,8 @@ Must verify
 - the bridge has one coherent public diagnostics entrypoint
 - the reference workload can be diagnosed offline for main-branch live runs,
   speculative runs, discard residue checks, and commit-promotion outcomes
+- the reference workload can diagnose retained historical shock lineage from
+  canonical artifacts alone
 
 Required verification output
 
@@ -1152,6 +1183,8 @@ Required verification output
 - `bundle_completeness_report`
 - `diagnostics_entrypoint_matrix`
 - `counter_snapshot`
+- `reference_workload_bundle_digest`
+- `reference_workload_bundle_comparison`
 
 Pass condition
 

@@ -12,9 +12,10 @@ It answers:
 - what should count as specialist infrastructure
 - what should not define the bridge product identity
 
-This is not a publication-wide cleanup spec.
-It is the minimum honest boundary the bridge needs so Milestone 13 can be
-implemented and certified through real end-to-end tests.
+This is the full bridge boundary target.
+
+It is immediately relevant to Milestone 13, but it is not intentionally capped
+at the minimum needed to unblock that milestone.
 
 ---
 
@@ -29,8 +30,8 @@ The bridge public API should optimize for these jobs first:
 5. discard or promote it
 6. inspect what happened
 
-If those jobs are not smooth, the bridge is not ready for end-to-end
-certification regardless of how strong its deep subsystem artifacts already are.
+If those jobs are not smooth, the bridge boundary is not ready, regardless of
+how strong its deep subsystem artifacts already are.
 
 ---
 
@@ -102,6 +103,7 @@ The bridge should converge toward:
 - `RuntimeBridgeBuilder` as the obvious setup door
 - `RuntimeBridge` as the obvious execution door
 - one diagnostics entrypoint for inspection and certification readback
+- clear guided request and session types for ordinary bridge jobs
 
 Everything else should either reinforce that shape or be explicitly contained.
 
@@ -211,6 +213,21 @@ The pricing-shock reference workload should be treated as the boundary audit.
 
 If the reference workload can only be written by reaching directly into raw
 subsystem export surfaces for ordinary jobs, the boundary is not yet honest.
+
+### 6. Milestone 12b Must Count As Baseline, Not As Specialist Noise
+
+Bridge-native extensible writeback families and mapper containment are now part
+of the real bridge product baseline after
+[`milestone-12b.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-12b.md).
+
+That means the boundary must make room for:
+
+- family-aware promotion flows
+- family-aware diagnostics readback
+- family-aware specialist containment
+
+without forcing ordinary users to learn the full family protocol to do common
+bridge work.
 
 ---
 

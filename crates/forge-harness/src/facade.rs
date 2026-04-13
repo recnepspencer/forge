@@ -68,4 +68,8 @@ pub use crate::workflow::{
     WorkflowFailureContext, WorkflowPlan, WorkflowRuntimeProfile, WorkflowSession, WorkflowState,
     WorkflowStep, WorkflowStepOutcome, WorkflowStepTraceEntry,
 };
-pub use crate::workload::{BudgetUsage, WorkBudget, WorkloadProfile};
+pub use crate::workload::{
+    BudgetUsage, DeterministicFeedStreamGenerator, FeedShiftRange, FeedStreamBatch,
+    FeedStreamEventKind, FeedStreamProfile, FeedStreamSample, FeedVolatilityRegime, WorkBudget,
+    WorkloadProfile,
+};

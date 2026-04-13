@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Specialist validation entrypoint for structural identity declarations.
     pub fn validate_structural_declaration(
         &self,
         declaration: StructuralIdentityDeclaration,
@@ -11,6 +12,7 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Admits a structural comparison declaration against the runtime registry.
     pub fn admit_structural_comparison(
         &self,
         declaration: StructuralIdentityDeclaration,

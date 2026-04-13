@@ -125,6 +125,22 @@ impl<SignalState, MappingState>
             aspect_registrations: self.aspect_registrations,
         }
     }
+
+    pub fn with_truth_source<S>(
+        self,
+        source: S,
+    ) -> RuntimeBridgeBuilder<
+        PresentCommittedPatchSource,
+        PresentSnapshotReadSource,
+        SignalState,
+        MissingTruthBranchHeadSource,
+        MappingState,
+    >
+    where
+        S: CommittedPatchSource + SnapshotReadSource,
+    {
+        self.with_relational_source(source)
+    }
 }
 
 impl<PatchState, SnapshotState, BranchHeadState, MappingState>
@@ -166,6 +182,22 @@ impl<PatchState, SnapshotState, BranchHeadState, MappingState>
             mapping_registrations: self.mapping_registrations,
             aspect_registrations: self.aspect_registrations,
         }
+    }
+
+    pub fn with_compute_sink<S>(
+        self,
+        sink: S,
+    ) -> RuntimeBridgeBuilder<
+        PatchState,
+        SnapshotState,
+        PresentSignalSink,
+        BranchHeadState,
+        MappingState,
+    >
+    where
+        S: InvalidationSink,
+    {
+        self.with_signal_sink(sink)
     }
 }
 

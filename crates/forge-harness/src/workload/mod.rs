@@ -1,8 +1,15 @@
+mod stream;
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::timeline::ExecutionPhase;
+
+pub use stream::{
+    DeterministicFeedStreamGenerator, FeedShiftRange, FeedStreamBatch, FeedStreamEventKind,
+    FeedStreamProfile, FeedStreamSample, FeedVolatilityRegime,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct WorkBudget {

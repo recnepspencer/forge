@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Replays and verifies a retained source materialization record.
     pub fn replay_source_materialization_record(
         &self,
         record: &SourceMaterializationRecord,

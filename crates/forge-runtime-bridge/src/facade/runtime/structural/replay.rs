@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Replays and verifies a canonical structural remap record.
     pub fn replay_canonical_structural_remap_record(
         &self,
         record: &BridgeCanonicalStructuralRemapRecord,
@@ -183,6 +184,7 @@ impl RuntimeBridge {
         Ok(artifact)
     }
 
+    /// Replays and verifies a canonical structural branch comparison record.
     pub fn replay_canonical_structural_branch_comparison_record(
         &self,
         record: &BridgeCanonicalStructuralBranchComparisonRecord,

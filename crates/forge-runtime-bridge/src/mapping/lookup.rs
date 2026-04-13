@@ -57,26 +57,58 @@ impl<'a> ResolvedBridgeMapping<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedBridgeMappings<'a> {
+    resolved: Vec<ResolvedBridgeMapping<'a>>,
+}
+
+impl<'a> ResolvedBridgeMappings<'a> {
+    pub(crate) fn new(resolved: Vec<ResolvedBridgeMapping<'a>>) -> Self {
+        Self { resolved }
+    }
+
+    pub(crate) fn registrations(
+        &self,
+    ) -> impl Iterator<Item = &'a FrozenBridgeMappingRegistration> + '_ {
+        self.resolved.iter().map(ResolvedBridgeMapping::registration)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeMappingLookup<'a> {
-    Exact { resolved: ResolvedBridgeMapping<'a> },
-    Fallback { resolved: ResolvedBridgeMapping<'a> },
+    Exact { resolved: ResolvedBridgeMappings<'a> },
+    Fallback { resolved: ResolvedBridgeMappings<'a> },
     Missing,
 }
 
 impl FrozenMappingRegistry {
     pub(crate) fn lookup<'a>(&'a self, key: BridgeMappingLookupKey<'_>) -> BridgeMappingLookup<'a> {
-        let Some(registration) = self
+        let mut matches = self
             .registrations
             .iter()
-            .find(|registration| registration.truth_scope().matches_key(key))
-        else {
+            .filter(|registration| registration.truth_scope().matches_key(key))
+            .collect::<Vec<_>>();
+        if matches.is_empty() {
             return BridgeMappingLookup::Missing;
-        };
+        }
 
-        let resolved = ResolvedBridgeMapping::new(registration);
-        match registration.fallback_class() {
-            None => BridgeMappingLookup::Exact { resolved },
-            Some(_) => BridgeMappingLookup::Fallback { resolved },
+        let most_specific_rank = matches
+            .iter()
+            .map(|registration| registration.truth_scope().specificity_rank())
+            .max()
+            .expect("non-empty matching registrations should have a specificity rank");
+        matches.retain(|registration| {
+            registration.truth_scope().specificity_rank() == most_specific_rank
+        });
+
+        let is_fallback = matches
+            .first()
+            .and_then(|registration| registration.fallback_class())
+            .is_some();
+        let resolved =
+            ResolvedBridgeMappings::new(matches.into_iter().map(ResolvedBridgeMapping::new).collect());
+        match is_fallback {
+            false => BridgeMappingLookup::Exact { resolved },
+            true => BridgeMappingLookup::Fallback { resolved },
         }
     }
     pub(crate) fn lookup_truth_surface<'a>(

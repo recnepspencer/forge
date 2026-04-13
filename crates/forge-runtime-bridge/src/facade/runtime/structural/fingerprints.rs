@@ -1,6 +1,10 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Materializes one structural fingerprint from a single-basis structural contract.
+    ///
+    /// This is an advanced structural helper that turns truth-view material
+    /// into a fingerprint suitable for advisory remap planning or replay proof.
     pub fn materialize_structural_fingerprint(
         &self,
         contract: &AdmittedStructuralComparisonContract,
@@ -38,6 +42,7 @@ impl RuntimeBridge {
         })
     }
 
+    /// Materializes the left and right structural fingerprints for a branch-pair contract.
     pub fn materialize_structural_branch_fingerprints(
         &self,
         contract: &AdmittedStructuralComparisonContract,

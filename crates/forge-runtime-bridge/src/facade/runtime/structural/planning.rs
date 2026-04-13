@@ -1,6 +1,7 @@
 use super::*;
 
 impl RuntimeBridge {
+    /// Plans a structural match packet set from already-classified candidates.
     pub fn plan_structural_match_packet_set(
         &self,
         contract: &AdmittedStructuralComparisonContract,
@@ -17,6 +18,9 @@ impl RuntimeBridge {
         ))
     }
 
+    /// Plans structural matching by first materializing fingerprints from read packets.
+    ///
+    /// This is the main advanced door for advisory remap-style structural work.
     pub fn plan_structural_match_packet_set_from_read_packets(
         &self,
         contract: &AdmittedStructuralComparisonContract,
@@ -45,6 +49,24 @@ impl RuntimeBridge {
         })
     }
 
+    /// Plans a branch-comparison structural packet set from one branch-pair read packet.
+    ///
+    /// ```no_run
+    /// use forge_runtime_bridge::facade::{
+    ///     AdmittedStructuralComparisonContract, RuntimeBridge, SnapshotReadPacket,
+    /// };
+    ///
+    /// fn plan_branch_comparison(
+    ///     bridge: &RuntimeBridge,
+    ///     contract: &AdmittedStructuralComparisonContract,
+    ///     packet: SnapshotReadPacket,
+    /// ) -> Result<(), Box<dyn std::error::Error>> {
+    ///     let planned = bridge.plan_structural_branch_comparison_from_read_packet(contract, packet)?;
+    ///     let reduced = bridge.reduce_structural_match_set(&planned)?;
+    ///     let _artifact = bridge.publish_branch_comparison_artifact(&reduced)?;
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn plan_structural_branch_comparison_from_read_packet(
         &self,
         contract: &AdmittedStructuralComparisonContract,
@@ -64,6 +86,7 @@ impl RuntimeBridge {
             })
     }
 
+    /// Reduces a planned structural packet set into a publication-ready outcome set.
     pub fn reduce_structural_match_set(
         &self,
         planned_packet_set: &PlannedStructuralMatchPacketSet,

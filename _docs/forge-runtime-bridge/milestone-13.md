@@ -1,6 +1,6 @@
 # Milestone 13 Engineering Spec: End-To-End Causality, Failure Taxonomy, And Bridge Certification
 
-> **Status:** Planned
+> **Status:** Complete
 >
 > **Roadmap parent:** [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 >
@@ -10,11 +10,13 @@
 >
 > **Bridge certification companion:** [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 >
+> **Running closeout:** [milestone-13-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-13-closeout.md)
+>
 > **Signal companion:** [_docs/forge_signal/forge_signal_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge_signal/forge_signal_vision.md)
 >
 > **Relational companion:** [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 >
-> **Bridge DX companions:** [dx_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md), [dx_canonical_surface_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_canonical_surface_spec.md), [dx_boundary_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_spec.md)
+> **Bridge DX companions:** [dx_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md), [dx_canonical_surface_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_canonical_surface_spec.md), [dx_boundary_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_spec.md), [dx_boundary_cleanup_spec.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_cleanup_spec.md)
 >
 > **Primary architectural driver:** turn the bridge from a collection of individually strong capabilities into one certifiable causal protocol boundary with one canonical reference workload, one bridge-native failure topology, one coherent diagnostics entrypoint, and one machine-checkable certification bundle story spanning truth commit, routing, branch-local evaluation, speculative discard or commit, writeback, and replay
 
@@ -66,6 +68,12 @@ The reference workload for this milestone is a pricing-shock matrix:
 This is intentionally Rust-only. No UI is required for the milestone. The
 "slider", "split screen", and "buttons" become harness verbs and certification
 lanes.
+
+The implementation is now expected to converge on one top-level pricing-shock
+workload certification bundle rather than a loose collection of scenario-local
+assertions. That bundle should carry the ordinary path, hostile failure,
+discard, promotion, fanout, replay, restart, merge-history, writeback, and
+historical-provenance stories together.
 
 ## Goal
 
@@ -216,6 +224,9 @@ In scope:
   commit promotion, replay, and hostile failure injection
 - certification bundles satisfying suites 25 through 27 in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+- one top-level pricing-shock workload certification bundle capable of offline
+  diagnosis across the ordinary, hostile, lifecycle, fanout, replay,
+  restart, merge-history, writeback, and historical-provenance lanes
 
 Out of scope:
 
@@ -263,6 +274,19 @@ At minimum the milestone must unify:
 
 No story may terminate in "inspect the log" or "compare runtime state
 manually."
+
+For the pricing-shock reference workload specifically, the canonical bundle
+must be sufficient to answer:
+
+- what the main branch did under ordinary live churn
+- what the speculative branch did under branch-local shock
+- what replay preserved from the ordinary route and branch basis
+- what discard proved about residue
+- what promotion proved about authority-boundary handoff
+- what the 100-product fanout lane proved about breadth and boundedness
+- what restart-safe replay preserved
+- what restart-shaped drift rejection localized and counted
+- what retained historical commits reveal about the upstream shock criteria
 
 ### 3. Main And Speculative Branches Must Be Comparable Without Identity Fusion
 
@@ -453,6 +477,8 @@ following on the reference workload:
   artifacts alone
 - offline bundle diagnosis can distinguish routing, branch isolation, policy,
   source, preview, merge, writeback, and residue failures mechanically
+- retained historical pricing commits can reveal their upstream shock criteria
+  through bridge-visible truth and canonical bundle artifacts alone
 - exact Milestone 13 counters match their declared values for representative
   certification lanes
 - certification suites 25 through 27 pass with canonical machine-checkable
@@ -544,14 +570,25 @@ Milestone 13 builds directly on:
 - Milestone 12 writeback and authority-boundary causality preservation
 - Milestone 12b extensible writeback-family admission and mapper containment
 
-It also depends on the pre-certification bridge DX hardening pass defined in:
+It also depends on the bridge DX hardening program defined in:
 
 - [`dx_plan.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md)
 - [`dx_canonical_surface_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_canonical_surface_spec.md)
 - [`dx_boundary_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_spec.md)
+- [`dx_boundary_cleanup_spec.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_boundary_cleanup_spec.md)
 
 The reference workload should be implemented against that hardened public bridge
 boundary rather than against ad hoc subsystem seams.
+
+For execution order, [`dx_plan.md`](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/dx_plan.md)
+is now the implementation-guide authority.
+Milestone 13 work should track the active DX phase explicitly:
+
+- finish Phase 2 if the code surface still needs hardening to support honest
+  workload usage
+- move into Phase 3 to widen the pricing-shock matrix and hostile
+  certification pressure
+- only treat docs or publication polish as primary work once Phase 4 is active
 
 It should also deliberately reuse:
 
@@ -582,8 +619,8 @@ Milestone 13 is complete only when the bridge can run a Rust-only pricing-shock
 reference workload that proves live high-fanout propagation, speculative branch
 isolation, main-vs-speculative comparison, discard zero-residue, authoritative
 commit promotion, typed hostile-failure localization, end-to-end causality
-bundle equivalence, and offline certification-bundle sufficiency from canonical
-artifacts alone.
+bundle equivalence, historical shock provenance, and offline
+certification-bundle sufficiency from canonical artifacts alone.
 
 If the bridge still needs host logs to explain failures, if speculative
 discard still leaves unproven residue, if replay can still preserve final price

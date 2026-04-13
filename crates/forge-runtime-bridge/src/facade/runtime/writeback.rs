@@ -259,6 +259,10 @@ fn validate_writeback_receipt_contract(
 }
 
 impl RuntimeBridge {
+    /// Specialist validation entrypoint for writeback declarations.
+    ///
+    /// Everyday bridge flows should reach writeback through higher-level
+    /// promotion or authority workflows, not by assembling declarations by hand.
     pub fn validate_writeback_declaration(
         &self,
         declaration: BridgeWritebackDeclaration,
@@ -266,6 +270,7 @@ impl RuntimeBridge {
         ValidatedBridgeWritebackDeclaration::new(declaration)
     }
 
+    /// Admits one writeback declaration against a lowered runtime policy.
     pub fn admit_writeback_declaration(
         &self,
         declaration: BridgeWritebackDeclaration,
@@ -283,6 +288,7 @@ impl RuntimeBridge {
         Ok(contract)
     }
 
+    /// Lowers a writeback effect from contract, causality, and effect identity inputs.
     pub fn lower_writeback_effect(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -299,6 +305,7 @@ impl RuntimeBridge {
         BridgeDerivedWritebackEffect::new(effect_identity, &mapped_input)
     }
 
+    /// Produces and records the mapper envelope for a writeback family input.
     pub fn lower_writeback_mapper_envelope(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -317,6 +324,7 @@ impl RuntimeBridge {
         envelope
     }
 
+    /// Maps bridge-native writeback family inputs from mapper-envelope evidence.
     pub fn map_writeback_family_input(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -336,6 +344,7 @@ impl RuntimeBridge {
         mapped_input
     }
 
+    /// Derives feedback provenance for a lowered writeback effect.
     pub fn derive_writeback_feedback_provenance(
         &self,
         effect: &BridgeDerivedWritebackEffect,
@@ -343,6 +352,7 @@ impl RuntimeBridge {
         BridgeWritebackFeedbackProvenance::new(effect)
     }
 
+    /// Computes idempotence basis data for a writeback effect under one policy.
     pub fn classify_writeback_idempotence(
         &self,
         effect: &BridgeDerivedWritebackEffect,
@@ -360,6 +370,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Classifies whether incoming feedback would create a writeback loop.
     pub fn classify_writeback_loop_prevention(
         &self,
         effect: &BridgeDerivedWritebackEffect,
@@ -375,6 +386,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Classifies strategy compatibility for a lowered writeback candidate.
     pub fn classify_writeback_strategy_compatibility(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -384,6 +396,7 @@ impl RuntimeBridge {
         BridgeWritebackStrategyCompatibilityReport::classify(contract, effect, idempotence)
     }
 
+    /// Validates a fully assembled writeback candidate before authority execution.
     pub fn validate_writeback_candidate(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -401,6 +414,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Produces the replay bundle for an executed writeback outcome.
     pub fn replay_writeback_bundle(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -416,6 +430,7 @@ impl RuntimeBridge {
         )
     }
 
+    /// Verifies that a replayed writeback bundle still matches the expected semantics.
     pub fn validate_replayed_writeback_bundle(
         &self,
         expected: &BridgeWritebackReplayBundle,
@@ -441,6 +456,7 @@ impl RuntimeBridge {
         Ok(())
     }
 
+    /// Executes writeback authority without supplying upstream feedback context.
     pub fn execute_writeback_authority(
         &self,
         contract: &AdmittedBridgeWritebackContract,
@@ -459,6 +475,10 @@ impl RuntimeBridge {
         Ok((outcome, receipt))
     }
 
+    /// Executes the full writeback authority workflow with explicit feedback context.
+    ///
+    /// This is the highest-value specialist entrypoint for tests or hosts that
+    /// need bridge-native writeback proof, loop prevention, and receipt capture.
     pub fn execute_writeback_authority_with_feedback_context(
         &self,
         contract: &AdmittedBridgeWritebackContract,
