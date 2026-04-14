@@ -11,7 +11,7 @@ use crate::operations::boolean::parametric::assemble::merge::eval::execute_boole
 use crate::operations::boolean::test_helpers::{selected_test_pipeline, TestPipeline};
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 use forge_core::KernelError;
-use forge_math::deterministic_rng::DeterministicRng;
+use worth_math::deterministic_rng::DeterministicRng;
 use forge_topo::handles::VertexId;
 use forge_topo::transactions::DraftConfig;
 use forge_topo::validators::validate::ValidationLevel;

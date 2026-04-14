@@ -87,9 +87,9 @@ impl DecisionSink for ModelingContext {
     fn record_escalation(
         &mut self,
         entity_index: u32,
-        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: &worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
-        if escalation.resolved_at > forge_math::arithmetic::precision::PrecisionMode::Float64 {
+        if escalation.resolved_at > worth_math::arithmetic::precision::PrecisionMode::Float64 {
             self.decision_counter += 1;
             let mut decision = TracedDecision::new(
                 DecisionId(self.decision_counter),
@@ -217,9 +217,9 @@ impl ModelingContext {
     /// Prefer `sink.record_escalation()` for new code.
     pub fn log_escalation(
         &mut self,
-        escalation: forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
-        if escalation.resolved_at > forge_math::arithmetic::precision::PrecisionMode::Float64 {
+        if escalation.resolved_at > worth_math::arithmetic::precision::PrecisionMode::Float64 {
             self.decision_counter += 1;
             let decision = TracedDecision::new(
                 DecisionId(self.decision_counter),

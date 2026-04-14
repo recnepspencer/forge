@@ -7,7 +7,7 @@
 //!
 //! INVARIANTS: A clean operation always produces `divergence_rate == 0.0`.
 //! DEPENDENCIES: `schema` (TracedDecision, DecisionContext, EntityRef),
-//!               `decision_log` (DecisionLog), `forge_math` (PrecisionMode).
+//!               `decision_log` (DecisionLog), `worth_math` (PrecisionMode).
 
 use serde::{Deserialize, Serialize};
 
@@ -15,8 +15,8 @@ use crate::tracing::decision::{
     DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision,
 };
 use crate::tracing::decision_log::DecisionLog;
-use forge_math::arithmetic::precision::PrecisionMode;
-use forge_math::sign::TriSign;
+use worth_math::arithmetic::precision::PrecisionMode;
+use worth_math::sign::TriSign;
 
 /// Detail record for a single divergent decision.
 ///
@@ -251,7 +251,7 @@ fn extract_exact_sign(decision: &TracedDecision) -> TriSign {
 mod tests {
     use super::*;
     use crate::tracing::decision::{DecisionKind, DecisionTier, EntityKind};
-    use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation};
+    use worth_math::arithmetic::precision::{build_target_description, PrecisionEscalation};
 
     fn make_clean_escalation() -> PrecisionEscalation {
         PrecisionEscalation {

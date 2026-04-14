@@ -18,7 +18,7 @@
 //!    - Calculate using f64.
 //!    - Calculate the error bound ε.
 //!    - If |result| < ε, recalculate using Arbitrary Precision Rationals.
-//!    Already partially implemented in `forge-math::predicates`.
+//!    Already partially implemented in `worth-math::predicates`.
 //!
 //! 2. **Symbolic Vertices**: Change vertex storage from bare `[f64; 3]` to
 //!    `Intersection(PlaneIdx, PlaneIdx, PlaneIdx)`. When cubes rotate 100

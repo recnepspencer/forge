@@ -5,7 +5,7 @@
 //!         pre-filtering in the boolean pipeline.
 
 use forge_core::KernelError;
-use forge_geom::Aabb;
+use worth_geom::Aabb;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::queries::traverse::FaceAllEdgesIterator;

@@ -157,18 +157,18 @@ impl_entity_ref_from_handle!(RegionId, forge_core::EntityKind::Region);
 impl_entity_ref_from_handle!(ShellId, forge_core::EntityKind::Shell);
 impl_entity_ref_from_handle!(EdgeId, forge_core::EntityKind::Edge);
 
-/// Opaque cross-crate reference to a curve in `forge-geom::CurveGeom`.
+/// Opaque cross-crate reference to a curve in `worth-geom::CurveGeom`.
 ///
 /// This handle is stored in `EdgeData.curve` so that the topology arena can
 /// hold a typed reference to edge-curve geometry without owning or inspecting
 /// any `f64` values (Doctrine D3). The actual `CurveGeom` arena lives in
-/// `forge-geom` and is managed by the kernel's `GeometryStore`.
+/// `worth-geom` and is managed by the kernel's `GeometryStore`.
 ///
 /// During Phase 1–2 (planar-only), this is always `None`. Phase 4+ populates
 /// it when curved surfaces are introduced.
 define_handle!(CurveRef);
 
-/// Opaque cross-crate reference to a surface in `forge-geom::SurfaceData`.
+/// Opaque cross-crate reference to a surface in `worth-geom::SurfaceData`.
 ///
 /// Stored in `FaceData.surface` so that the topology arena can hold a typed
 /// reference to face-surface geometry without owning any `f64` values
@@ -181,7 +181,7 @@ define_handle!(CurveRef);
 define_handle!(SurfaceRef);
 
 /// Opaque cross-crate reference to a coedge (UV trim curve) in
-/// `forge-geom::Coedge`.
+/// `worth-geom::Coedge`.
 ///
 /// Stored in `HalfEdgeData.coedge` so that each directed use of an edge
 /// can reference its 2D trim curve in the adjacent face's parameter space.

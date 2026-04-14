@@ -6,7 +6,7 @@ license.workspace = true
 description = "Halfedge mesh, Euler operators, and topology state for the Forge geometry kernel"
 
 [dependencies]
-forge-math.workspace = true
+worth-math.workspace = true
 forge-core.workspace = true
 forge-signal.workspace = true
 forge-spec.workspace = true

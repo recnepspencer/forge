@@ -143,7 +143,7 @@ pub(super) fn can_use_scaffold_fallback(
     face_plane: &Plane,
     cut_plane: &Plane,
 ) -> bool {
-    let dir = forge_math::linalg::plane_cut_direction(
+    let dir = worth_math::linalg::plane_cut_direction(
         face_plane.raw_normal(),
         cut_plane.raw_normal(),
         1e-24,
@@ -164,8 +164,8 @@ pub(super) fn can_use_scaffold_fallback(
         }
         let Some(pa) = geometry.get_vertex_position(v_a) else { continue; };
         let Some(pb) = geometry.get_vertex_position(v_b) else { continue; };
-        let a_t = forge_math::linalg::dot(*pa, dir);
-        let b_t = forge_math::linalg::dot(*pb, dir);
+        let a_t = worth_math::linalg::dot(*pa, dir);
+        let b_t = worth_math::linalg::dot(*pb, dir);
         let cand_min = a_t.min(b_t);
         let cand_max = a_t.max(b_t);
         let bracketed = expected_intervals.iter().any(|(exp_min, exp_max, exp_scale)| {
@@ -184,14 +184,14 @@ pub(super) fn can_use_scaffold_fallback(
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
-use forge_math::linalg::distance_sq;
+use worth_math::linalg::distance_sq;
 
 fn scaffold_expected_intervals(hint: &ExpectedCutHint, dir: [f64; 3]) -> Vec<(f64, f64, f64)> {
     let mut out = Vec::new();
     if !hint.intervals.is_empty() {
         for iv in &hint.intervals {
             if let Some((a, b, s)) =
-                forge_geom::algorithms::chord::project_interval_onto_direction([iv.p0, iv.p1], dir)
+                worth_geom::algorithms::chord::project_interval_onto_direction([iv.p0, iv.p1], dir)
             {
                 out.push((a.min(b), a.max(b), s.max(1e-9)));
             }
@@ -199,7 +199,7 @@ fn scaffold_expected_intervals(hint: &ExpectedCutHint, dir: [f64; 3]) -> Vec<(f6
         return out;
     }
     if let Some((a, b, s)) =
-        forge_geom::algorithms::chord::project_interval_onto_direction(hint.endpoints.iter().copied(), dir)
+        worth_geom::algorithms::chord::project_interval_onto_direction(hint.endpoints.iter().copied(), dir)
     {
         out.push((a.min(b), a.max(b), s.max(1e-9)));
     }

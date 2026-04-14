@@ -8,11 +8,11 @@
 //! MB-N5: Condition-number stress: nearly-parallel planes
 //! MB-N6: 100 chained exact rational operations — bit length bounded
 
-use forge_math::arithmetic::precision::PrecisionBudget;
-use forge_math::arithmetic::precision::PrecisionMode;
-use forge_math::arithmetic::rational::Rational;
-use forge_math::predicates::orient3d::orient3d;
-use forge_math::sign::TriSign;
+use worth_math::arithmetic::precision::PrecisionBudget;
+use worth_math::arithmetic::precision::PrecisionMode;
+use worth_math::arithmetic::rational::Rational;
+use worth_math::predicates::orient3d::orient3d;
+use worth_math::sign::TriSign;
 
 use crate::operations::boolean::test_helpers::{
     build_convex_solid, build_cube, euler_audit, execute_boolean_logged,

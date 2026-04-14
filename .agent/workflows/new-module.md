@@ -25,11 +25,11 @@ Refer to `architecture.md` to ensure correct dependency direction:
 | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | Modeling operation (boolean, fillet, extrude) | `forge-kernel/src/operations/<name>/`                                                     |
 | Feature tree entry                            | `forge-kernel/src/features/<name>/`                                                       |
-| Geometry solver                               | `forge-geom/src/primitives/` or `forge-geom/src/spatial/` or `forge-geom/src/algorithms/` |
+| Geometry solver                               | `worth-geom/src/primitives/` or `worth-geom/src/spatial/` or `worth-geom/src/algorithms/` |
 | Topology operation                            | `forge-topo/src/topology/operations/`                                                     |
 | Topology query                                | `forge-topo/src/topology/queries/`                                                        |
-| Math utility                                  | `forge-math/src/numeric/` or `forge-math/src/arithmetic/`                                 |
-| Data-access traits                            | `forge-math/src/data_access/`                                                             |
+| Math utility                                  | `worth-math/src/numeric/` or `worth-math/src/arithmetic/`                                 |
+| Data-access traits                            | `worth-math/src/data_access/`                                                             |
 | IO format handler                             | `forge-io/src/<format>/` (e.g., `forge-io/src/json/`)                                     |
 | Test generator                                | `forge-test/src/generators/`                                                              |
 | Test harness                                  | `forge-test/src/harness/`                                                                 |

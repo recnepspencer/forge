@@ -20,10 +20,10 @@ Primary coverage source: `crates/*/src/**/*.rs` in this workspace.
 Coverage counts (Rust source files):
 
 - `forge-core`: total 19 (`prod=16`, `test=3`)
-- `forge-geom`: total 52 (`prod=47`, `test=5`)
+- `worth-geom`: total 52 (`prod=47`, `test=5`)
 - `forge-io`: total 6 (`prod=5`, `test=1`)
 - `forge-kernel`: total 148 (`prod=117`, `test=31`)
-- `forge-math`: total 26 (`prod=26`, `test=0`)
+- `worth-math`: total 26 (`prod=26`, `test=0`)
 - `forge-repr`: total 4 (`prod=3`, `test=1`)
 - `forge-schema`: total 1 (`prod=1`, `test=0`)
 - `forge-signal`: total 10 (`prod=9`, `test=1`)
@@ -40,21 +40,21 @@ Notes:
 
 Single list of implemented architectural systems/components (no "known vs missed" split).
 
-- `forge-math` exactness foundation (`crates/forge-math/src/lib.rs`)
-- `TriSign`, `CertifiedTriSign` (`crates/forge-math/src/numeric/sign.rs`)
-- `Rational` exact arithmetic (`crates/forge-math/src/arithmetic/rational.rs`)
-- `Double` compensated arithmetic (`crates/forge-math/src/arithmetic/double.rs`)
-- `Interval` arithmetic (`crates/forge-math/src/arithmetic/interval.rs`)
-- Precision escalation framework: `PrecisionMode`, `PrecisionEscalation`, `PrecisionBudget` (`crates/forge-math/src/arithmetic/precision.rs`)
-- Expansion arithmetic + Shewchuk-style error bounds / tiny-float safety (`crates/forge-math/src/arithmetic/expansion.rs`)
-- Robust predicates: `orient2d`, `orient3d`, `incircle`, `in_sphere` (`crates/forge-math/src/predicates/*.rs`)
-- Grid predicates (`crates/forge-math/src/predicates/grid_predicates.rs`)
-- Symbolic perturbation / SoS (`crates/forge-math/src/coincidence/sos.rs`)
-- Coincidence graph + merge actions (`crates/forge-math/src/coincidence/mod.rs`)
-- Math geometry-access contract: `GeometrySource`, `PlaneCoefficients` (`crates/forge-math/src/data_access/schema.rs`)
-- Deterministic RNG utilities (`crates/forge-math/src/numeric/deterministic_rng.rs`)
-- Math error taxonomy: `MathError` (`crates/forge-math/src/error.rs`)
-- Linear algebra helper layer (`crates/forge-math/src/linalg/mod.rs`)
+- `worth-math` exactness foundation (`crates/worth-math/src/lib.rs`)
+- `TriSign`, `CertifiedTriSign` (`crates/worth-math/src/numeric/sign.rs`)
+- `Rational` exact arithmetic (`crates/worth-math/src/arithmetic/rational.rs`)
+- `Double` compensated arithmetic (`crates/worth-math/src/arithmetic/double.rs`)
+- `Interval` arithmetic (`crates/worth-math/src/arithmetic/interval.rs`)
+- Precision escalation framework: `PrecisionMode`, `PrecisionEscalation`, `PrecisionBudget` (`crates/worth-math/src/arithmetic/precision.rs`)
+- Expansion arithmetic + Shewchuk-style error bounds / tiny-float safety (`crates/worth-math/src/arithmetic/expansion.rs`)
+- Robust predicates: `orient2d`, `orient3d`, `incircle`, `in_sphere` (`crates/worth-math/src/predicates/*.rs`)
+- Grid predicates (`crates/worth-math/src/predicates/grid_predicates.rs`)
+- Symbolic perturbation / SoS (`crates/worth-math/src/coincidence/sos.rs`)
+- Coincidence graph + merge actions (`crates/worth-math/src/coincidence/mod.rs`)
+- Math geometry-access contract: `GeometrySource`, `PlaneCoefficients` (`crates/worth-math/src/data_access/schema.rs`)
+- Deterministic RNG utilities (`crates/worth-math/src/numeric/deterministic_rng.rs`)
+- Math error taxonomy: `MathError` (`crates/worth-math/src/error.rs`)
+- Linear algebra helper layer (`crates/worth-math/src/linalg/mod.rs`)
 
 - `forge-core` shared kernel language (`crates/forge-core/src/lib.rs`)
 - Kernel error taxonomy: `KernelError`, `TopologyError`, `ErrorContext`, `ErrorScope`, `SuggestedFix` (`crates/forge-core/src/errors/schema.rs`)
@@ -81,24 +81,24 @@ Single list of implemented architectural systems/components (no "known vs missed
 - Tolerance provider abstraction: `ToleranceProvider`, `FlatToleranceProvider` (`crates/forge-core/src/tolerance.rs`)
 - Core-level `GeometrySource` firewall trait (`crates/forge-core/src/lib.rs`)
 
-- `forge-geom` geometry layer (`crates/forge-geom/src/lib.rs`)
-- Primitive geometry: `Plane`, `Aabb`, rays, polygons, points (`crates/forge-geom/src/primitives/*`)
-- Plane classification/intersection exact+approx helpers (`crates/forge-geom/src/primitives/plane/eval.rs`)
-- Implicit vertex resolution / symbolic triple selection (`crates/forge-geom/src/primitives/implicit_vertex.rs`)
-- Vertex geometry + provenance (`crates/forge-geom/src/primitives/vertex_geom.rs`)
-- BSP pipeline: `BspSolid`, `BspNode`, `BspOp`, `BspConfig`, `PlaneSet` (`crates/forge-geom/src/spatial/bsp/*`)
-- BVH spatial acceleration: `BvhNode`, overlap queries (`crates/forge-geom/src/spatial/bvh/*`)
-- Epsilon welding (`crates/forge-geom/src/spatial/epsilon_weld.rs`)
-- Edge matching / fuzzy weld candidates (`crates/forge-geom/src/spatial/edge_match.rs`)
-- Local coordinate space + scale analysis (`crates/forge-geom/src/spatial/local_space.rs`)
-- Union-find utility (`crates/forge-geom/src/spatial/union_find.rs`)
-- Geometry algorithms: chord extraction/clipping (`crates/forge-geom/src/algorithms/chord.rs`)
-- Geometry algorithms: CDT triangulation (`crates/forge-geom/src/algorithms/cdt.rs`)
-- Geometry algorithms: clipping/intersection/polygon overlap (`crates/forge-geom/src/algorithms/*.rs`)
-- Boundary certification subsystem (`crates/forge-geom/src/algorithms/boundary_cert/*`)
-- Surface subsystem scaffolding: `SurfaceKind`, `SurfaceData`, `ParameterDomain`, `SurfaceRelation` (`crates/forge-geom/src/surface/*`)
-- Curve subsystem scaffolding: `CurveKind`, `CurveGeom`, `CurveProvenance`, `SpCurveApproximation` (`crates/forge-geom/src/curve/*`)
-- Coedge / UV trim representation: `Coedge`, `ParametricCurve2D` (`crates/forge-geom/src/coedge/mod.rs`)
+- `worth-geom` geometry layer (`crates/worth-geom/src/lib.rs`)
+- Primitive geometry: `Plane`, `Aabb`, rays, polygons, points (`crates/worth-geom/src/primitives/*`)
+- Plane classification/intersection exact+approx helpers (`crates/worth-geom/src/primitives/plane/eval.rs`)
+- Implicit vertex resolution / symbolic triple selection (`crates/worth-geom/src/primitives/implicit_vertex.rs`)
+- Vertex geometry + provenance (`crates/worth-geom/src/primitives/vertex_geom.rs`)
+- BSP pipeline: `BspSolid`, `BspNode`, `BspOp`, `BspConfig`, `PlaneSet` (`crates/worth-geom/src/spatial/bsp/*`)
+- BVH spatial acceleration: `BvhNode`, overlap queries (`crates/worth-geom/src/spatial/bvh/*`)
+- Epsilon welding (`crates/worth-geom/src/spatial/epsilon_weld.rs`)
+- Edge matching / fuzzy weld candidates (`crates/worth-geom/src/spatial/edge_match.rs`)
+- Local coordinate space + scale analysis (`crates/worth-geom/src/spatial/local_space.rs`)
+- Union-find utility (`crates/worth-geom/src/spatial/union_find.rs`)
+- Geometry algorithms: chord extraction/clipping (`crates/worth-geom/src/algorithms/chord.rs`)
+- Geometry algorithms: CDT triangulation (`crates/worth-geom/src/algorithms/cdt.rs`)
+- Geometry algorithms: clipping/intersection/polygon overlap (`crates/worth-geom/src/algorithms/*.rs`)
+- Boundary certification subsystem (`crates/worth-geom/src/algorithms/boundary_cert/*`)
+- Surface subsystem scaffolding: `SurfaceKind`, `SurfaceData`, `ParameterDomain`, `SurfaceRelation` (`crates/worth-geom/src/surface/*`)
+- Curve subsystem scaffolding: `CurveKind`, `CurveGeom`, `CurveProvenance`, `SpCurveApproximation` (`crates/worth-geom/src/curve/*`)
+- Coedge / UV trim representation: `Coedge`, `ParametricCurve2D` (`crates/worth-geom/src/coedge/mod.rs`)
 
 - `forge-topo` topology foundation (`crates/forge-topo/src/lib.rs`)
 - Topology arena storage: `TopologyArena` (`crates/forge-topo/src/arena/eval.rs`)
@@ -221,9 +221,9 @@ Single list of implemented architectural systems/components (no "known vs missed
 
 ## Crate-Level Architecture Index
 
-### `forge-math` (foundation math / exactness)
+### `worth-math` (foundation math / exactness)
 
-Top-level modules (`crates/forge-math/src/lib.rs`):
+Top-level modules (`crates/worth-math/src/lib.rs`):
 
 - `error`
 - `env`
@@ -356,9 +356,9 @@ Important tracing submodules (`crates/forge-core/src/tracing/`):
 - `logging.rs`
 - `schema.rs`
 
-### `forge-geom` (geometry primitives, spatial structures, algorithms)
+### `worth-geom` (geometry primitives, spatial structures, algorithms)
 
-Top-level modules (`crates/forge-geom/src/lib.rs`):
+Top-level modules (`crates/worth-geom/src/lib.rs`):
 
 - `primitives`
 - `spatial`
@@ -791,8 +791,8 @@ Notable pieces:
 ## Cross-Crate Architectural Connections (What Exists Today)
 
 - Exactness path:
-  - `forge-kernel` -> `forge-topo` / `forge-geom`
-  - `forge-geom` / `forge-topo` decisions -> `forge-math` predicates/arithmetic
+  - `forge-kernel` -> `forge-topo` / `worth-geom`
+  - `worth-geom` / `forge-topo` decisions -> `worth-math` predicates/arithmetic
 - Policy/tolerance path:
   - `forge-kernel::core::ModelingContext` + `ToleranceConfig`
   - `forge-core::PolicyResult` and tracing decisions
@@ -831,59 +831,59 @@ crates/forge-core/src/tracing/persistence.rs
 crates/forge-core/src/tracing/schema.rs
 crates/forge-core/src/tracing/tests.rs
 
-## crates/forge-geom
-crates/forge-geom/src/algorithms/angular_sort.rs
-crates/forge-geom/src/algorithms/boundary_cert/adversarial_tests.rs
-crates/forge-geom/src/algorithms/boundary_cert/eval.rs
-crates/forge-geom/src/algorithms/boundary_cert/exact_intersect.rs
-crates/forge-geom/src/algorithms/boundary_cert/mod.rs
-crates/forge-geom/src/algorithms/boundary_cert/schema.rs
-crates/forge-geom/src/algorithms/boundary_cert/split.rs
-crates/forge-geom/src/algorithms/boundary_cert/tests.rs
-crates/forge-geom/src/algorithms/cdt.rs
-crates/forge-geom/src/algorithms/chord.rs
-crates/forge-geom/src/algorithms/clipping.rs
-crates/forge-geom/src/algorithms/intersection.rs
-crates/forge-geom/src/algorithms/mod.rs
-crates/forge-geom/src/algorithms/polygon.rs
-crates/forge-geom/src/algorithms/polygon_overlap.rs
-crates/forge-geom/src/coedge/mod.rs
-crates/forge-geom/src/curve/eval.rs
-crates/forge-geom/src/curve/mod.rs
-crates/forge-geom/src/curve/schema.rs
-crates/forge-geom/src/lib.rs
-crates/forge-geom/src/prelude.rs
-crates/forge-geom/src/primitives/aabb.rs
-crates/forge-geom/src/primitives/implicit_vertex.rs
-crates/forge-geom/src/primitives/mod.rs
-crates/forge-geom/src/primitives/plane/eval.rs
-crates/forge-geom/src/primitives/plane/mod.rs
-crates/forge-geom/src/primitives/plane/tests.rs
-crates/forge-geom/src/primitives/point.rs
-crates/forge-geom/src/primitives/polygon.rs
-crates/forge-geom/src/primitives/ray.rs
-crates/forge-geom/src/primitives/shapes.rs
-crates/forge-geom/src/primitives/vertex_geom.rs
-crates/forge-geom/src/spatial/bsp/convert.rs
-crates/forge-geom/src/spatial/bsp/eval.rs
-crates/forge-geom/src/spatial/bsp/merge.rs
-crates/forge-geom/src/spatial/bsp/mod.rs
-crates/forge-geom/src/spatial/bsp/schema.rs
-crates/forge-geom/src/spatial/bsp/tests.rs
-crates/forge-geom/src/spatial/bvh/eval.rs
-crates/forge-geom/src/spatial/bvh/mod.rs
-crates/forge-geom/src/spatial/bvh/schema.rs
-crates/forge-geom/src/spatial/bvh/tests.rs
-crates/forge-geom/src/spatial/coincidence.rs
-crates/forge-geom/src/spatial/edge_match.rs
-crates/forge-geom/src/spatial/epsilon_weld.rs
-crates/forge-geom/src/spatial/local_space.rs
-crates/forge-geom/src/spatial/mod.rs
-crates/forge-geom/src/spatial/union_find.rs
-crates/forge-geom/src/surface/eval.rs
-crates/forge-geom/src/surface/mod.rs
-crates/forge-geom/src/surface/schema.rs
-crates/forge-geom/src/traits.rs
+## crates/worth-geom
+crates/worth-geom/src/algorithms/angular_sort.rs
+crates/worth-geom/src/algorithms/boundary_cert/adversarial_tests.rs
+crates/worth-geom/src/algorithms/boundary_cert/eval.rs
+crates/worth-geom/src/algorithms/boundary_cert/exact_intersect.rs
+crates/worth-geom/src/algorithms/boundary_cert/mod.rs
+crates/worth-geom/src/algorithms/boundary_cert/schema.rs
+crates/worth-geom/src/algorithms/boundary_cert/split.rs
+crates/worth-geom/src/algorithms/boundary_cert/tests.rs
+crates/worth-geom/src/algorithms/cdt.rs
+crates/worth-geom/src/algorithms/chord.rs
+crates/worth-geom/src/algorithms/clipping.rs
+crates/worth-geom/src/algorithms/intersection.rs
+crates/worth-geom/src/algorithms/mod.rs
+crates/worth-geom/src/algorithms/polygon.rs
+crates/worth-geom/src/algorithms/polygon_overlap.rs
+crates/worth-geom/src/coedge/mod.rs
+crates/worth-geom/src/curve/eval.rs
+crates/worth-geom/src/curve/mod.rs
+crates/worth-geom/src/curve/schema.rs
+crates/worth-geom/src/lib.rs
+crates/worth-geom/src/prelude.rs
+crates/worth-geom/src/primitives/aabb.rs
+crates/worth-geom/src/primitives/implicit_vertex.rs
+crates/worth-geom/src/primitives/mod.rs
+crates/worth-geom/src/primitives/plane/eval.rs
+crates/worth-geom/src/primitives/plane/mod.rs
+crates/worth-geom/src/primitives/plane/tests.rs
+crates/worth-geom/src/primitives/point.rs
+crates/worth-geom/src/primitives/polygon.rs
+crates/worth-geom/src/primitives/ray.rs
+crates/worth-geom/src/primitives/shapes.rs
+crates/worth-geom/src/primitives/vertex_geom.rs
+crates/worth-geom/src/spatial/bsp/convert.rs
+crates/worth-geom/src/spatial/bsp/eval.rs
+crates/worth-geom/src/spatial/bsp/merge.rs
+crates/worth-geom/src/spatial/bsp/mod.rs
+crates/worth-geom/src/spatial/bsp/schema.rs
+crates/worth-geom/src/spatial/bsp/tests.rs
+crates/worth-geom/src/spatial/bvh/eval.rs
+crates/worth-geom/src/spatial/bvh/mod.rs
+crates/worth-geom/src/spatial/bvh/schema.rs
+crates/worth-geom/src/spatial/bvh/tests.rs
+crates/worth-geom/src/spatial/coincidence.rs
+crates/worth-geom/src/spatial/edge_match.rs
+crates/worth-geom/src/spatial/epsilon_weld.rs
+crates/worth-geom/src/spatial/local_space.rs
+crates/worth-geom/src/spatial/mod.rs
+crates/worth-geom/src/spatial/union_find.rs
+crates/worth-geom/src/surface/eval.rs
+crates/worth-geom/src/surface/mod.rs
+crates/worth-geom/src/surface/schema.rs
+crates/worth-geom/src/traits.rs
 
 ## crates/forge-io
 crates/forge-io/src/json/diff.rs
@@ -1043,33 +1043,33 @@ crates/forge-kernel/src/operations/ember_boolean/tests.rs
 crates/forge-kernel/src/operations/mod.rs
 crates/forge-kernel/src/prelude.rs
 
-## crates/forge-math
-crates/forge-math/src/arithmetic/double.rs
-crates/forge-math/src/arithmetic/expansion.rs
-crates/forge-math/src/arithmetic/interval.rs
-crates/forge-math/src/arithmetic/mod.rs
-crates/forge-math/src/arithmetic/precision.rs
-crates/forge-math/src/arithmetic/rational.rs
-crates/forge-math/src/coincidence/mod.rs
-crates/forge-math/src/coincidence/sos.rs
-crates/forge-math/src/data_access/mod.rs
-crates/forge-math/src/data_access/schema.rs
-crates/forge-math/src/env.rs
-crates/forge-math/src/error.rs
-crates/forge-math/src/lib.rs
-crates/forge-math/src/linalg/mod.rs
-crates/forge-math/src/numeric/deterministic_rng.rs
-crates/forge-math/src/numeric/mod.rs
-crates/forge-math/src/numeric/sign.rs
-crates/forge-math/src/predicates/grid_predicates.rs
-crates/forge-math/src/predicates/in_sphere.rs
-crates/forge-math/src/predicates/incircle.rs
-crates/forge-math/src/predicates/mod.rs
-crates/forge-math/src/predicates/orient2d.rs
-crates/forge-math/src/predicates/orient3d.rs
-crates/forge-math/src/predicates/vendored.rs
-crates/forge-math/src/prelude.rs
-crates/forge-math/src/traits.rs
+## crates/worth-math
+crates/worth-math/src/arithmetic/double.rs
+crates/worth-math/src/arithmetic/expansion.rs
+crates/worth-math/src/arithmetic/interval.rs
+crates/worth-math/src/arithmetic/mod.rs
+crates/worth-math/src/arithmetic/precision.rs
+crates/worth-math/src/arithmetic/rational.rs
+crates/worth-math/src/coincidence/mod.rs
+crates/worth-math/src/coincidence/sos.rs
+crates/worth-math/src/data_access/mod.rs
+crates/worth-math/src/data_access/schema.rs
+crates/worth-math/src/env.rs
+crates/worth-math/src/error.rs
+crates/worth-math/src/lib.rs
+crates/worth-math/src/linalg/mod.rs
+crates/worth-math/src/numeric/deterministic_rng.rs
+crates/worth-math/src/numeric/mod.rs
+crates/worth-math/src/numeric/sign.rs
+crates/worth-math/src/predicates/grid_predicates.rs
+crates/worth-math/src/predicates/in_sphere.rs
+crates/worth-math/src/predicates/incircle.rs
+crates/worth-math/src/predicates/mod.rs
+crates/worth-math/src/predicates/orient2d.rs
+crates/worth-math/src/predicates/orient3d.rs
+crates/worth-math/src/predicates/vendored.rs
+crates/worth-math/src/prelude.rs
+crates/worth-math/src/traits.rs
 
 ## crates/forge-repr
 crates/forge-repr/src/lib.rs

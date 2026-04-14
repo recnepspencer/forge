@@ -3,12 +3,12 @@ name = "forge-spatial"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Spatial queries bridging forge-topo topology and forge-geom geometry"
+description = "Spatial queries bridging forge-topo topology and worth-geom geometry"
 
 [dependencies]
-forge-math.workspace = true
+worth-math.workspace = true
 forge-core.workspace = true
-forge-geom.workspace = true
+worth-geom.workspace = true
 forge-topo.workspace = true
 serde = { workspace = true, features = ["derive"] }
 

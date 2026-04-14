@@ -56,7 +56,7 @@ fn tetrahedron_topology() {
 }
 
 /// Tetrahedron volume is non-trivial — verify against the production oracle.
-/// For scale=1.0, forge_geom::tetrahedron produces a specific geometry;
+/// For scale=1.0, worth_geom::tetrahedron produces a specific geometry;
 /// we lock the volume to catch regressions.
 #[test]
 fn tetrahedron_volume_regression() {

@@ -4,7 +4,7 @@
 //! before attempting topology construction.
 
 use forge_core::KernelError;
-use forge_geom::ConvexCell;
+use worth_geom::ConvexCell;
 
 /// Validate that a ConvexCell has enough structure for a valid polyhedron.
 ///

@@ -388,6 +388,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "atomicwrites"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ef1bb8d1b645fe38d51dfc331d720fb5fc2c94b440c76cc79c80ff265ca33e3"
+dependencies = [
+ "rustix 0.38.44",
+ "tempfile",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "atspi"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1244,6 +1255,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1343,20 +1366,10 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 name = "forge-core"
 version = "0.1.0"
 dependencies = [
- "forge-math",
  "serde",
  "serde_json",
  "tracing",
-]
-
-[[package]]
-name = "forge-geom"
-version = "0.1.0"
-dependencies = [
- "forge-core",
- "forge-math",
- "serde",
- "serde_json",
+ "worth-math",
 ]
 
 [[package]]
@@ -1373,13 +1386,13 @@ name = "forge-io"
 version = "0.1.0"
 dependencies = [
  "forge-core",
- "forge-geom",
  "forge-kernel",
- "forge-math",
  "forge-topo",
  "serde",
  "serde_json",
  "tempfile",
+ "worth-geom",
+ "worth-math",
 ]
 
 [[package]]
@@ -1388,8 +1401,6 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "forge-core",
- "forge-geom",
- "forge-math",
  "forge-schema",
  "forge-signal",
  "forge-spatial",
@@ -1401,19 +1412,15 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "trybuild",
+ "worth-geom",
+ "worth-math",
 ]
 
 [[package]]
-name = "forge-math"
+name = "forge-query"
 version = "0.1.0"
 dependencies = [
- "criterion",
- "geometry-predicates",
- "num-bigint",
- "num-rational",
- "num-traits",
- "serde",
- "serde_json",
+ "sha2",
  "trybuild",
 ]
 
@@ -1490,11 +1497,11 @@ name = "forge-spatial"
 version = "0.1.0"
 dependencies = [
  "forge-core",
- "forge-geom",
- "forge-math",
  "forge-topo",
  "serde",
  "serde_json",
+ "worth-geom",
+ "worth-math",
 ]
 
 [[package]]
@@ -1507,11 +1514,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-store"
+version = "0.1.0"
+dependencies = [
+ "atomicwrites",
+ "forge-relational",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "trybuild",
+]
+
+[[package]]
 name = "forge-topo"
 version = "0.1.0"
 dependencies = [
  "forge-core",
- "forge-math",
  "forge-signal",
  "forge-spec",
  "indexmap",
@@ -1520,6 +1539,7 @@ dependencies = [
  "serde_json",
  "smallvec",
  "tracing",
+ "worth-math",
 ]
 
 [[package]]
@@ -1885,6 +1905,15 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+dependencies = [
+ "ahash",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
@@ -1897,6 +1926,15 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+
+[[package]]
+name = "hashlink"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
+dependencies = [
+ "hashbrown 0.14.5",
+]
 
 [[package]]
 name = "heck"
@@ -2202,6 +2240,17 @@ dependencies = [
  "bitflags 2.11.0",
  "libc",
  "redox_syscall 0.7.1",
+]
+
+[[package]]
+name = "libsqlite3-sys"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
+dependencies = [
+ "cc",
+ "pkg-config",
+ "vcpkg",
 ]
 
 [[package]]
@@ -3358,6 +3407,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cd14fd5e3b777a7422cca79358c57a8f6e3a703d9ac187448d0daf220c2407f"
 
 [[package]]
+name = "rusqlite"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7753b721174eb8ff87a9a0e799e2d7bc3749323e773db92e0984debb00019d6e"
+dependencies = [
+ "bitflags 2.11.0",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
+ "smallvec",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4196,6 +4259,12 @@ name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
+
+[[package]]
+name = "vcpkg"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "version_check"
@@ -5104,6 +5173,50 @@ dependencies = [
  "serde_json",
  "unicode-xid",
  "wasmparser",
+]
+
+[[package]]
+name = "worth-geom"
+version = "0.1.0"
+dependencies = [
+ "forge-core",
+ "serde",
+ "serde_json",
+ "worth-math",
+]
+
+[[package]]
+name = "worth-math"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "geometry-predicates",
+ "num-bigint",
+ "num-rational",
+ "num-traits",
+ "serde",
+ "serde_json",
+ "trybuild",
+]
+
+[[package]]
+name = "worth-schema"
+version = "0.1.0"
+dependencies = [
+ "forge-relational",
+ "serde",
+ "serde_json",
+ "worth-math",
+]
+
+[[package]]
+name = "worth-topo"
+version = "0.1.0"
+dependencies = [
+ "forge-relational",
+ "serde",
+ "serde_json",
+ "worth-schema",
 ]
 
 [[package]]

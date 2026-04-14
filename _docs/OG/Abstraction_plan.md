@@ -519,7 +519,7 @@ let (result, audit) = PipelineBuilder::start(ctx, selection)
 | 8   | `detect_slivers`               | policies: [SliverFace], precision: true                       | Boolean, Fillet, Chamfer                          |
 
 > [!NOTE]
-> **Relationship to boolean's internal phases:** Boolean's existing pipeline (EMBER quantize → split → classify → assemble → postprocess) is NOT replaced or wrapped by these steps. Boolean's internal phases are engine-specific and orchestrated by `BooleanEngine` traits (`Splitter`, `Classifier`, `Assembler`, `PostProcessor`). The step catalog above captures _cross-feature_ reusable operations — things that fillet, chamfer, and boolean all do. For example, `certify_boundary` wraps the existing `forge-geom::boundary_cert` module, and `detect_slivers` wraps `forge-kernel::analysis::sliver::analyze_slivers`. Boolean's `execute_typed` implementation calls `execute_boolean` internally and uses the step library only for pre/post operations (selection resolution, manifold validation, sliver detection).
+> **Relationship to boolean's internal phases:** Boolean's existing pipeline (EMBER quantize → split → classify → assemble → postprocess) is NOT replaced or wrapped by these steps. Boolean's internal phases are engine-specific and orchestrated by `BooleanEngine` traits (`Splitter`, `Classifier`, `Assembler`, `PostProcessor`). The step catalog above captures _cross-feature_ reusable operations — things that fillet, chamfer, and boolean all do. For example, `certify_boundary` wraps the existing `worth-geom::boundary_cert` module, and `detect_slivers` wraps `forge-kernel::analysis::sliver::analyze_slivers`. Boolean's `execute_typed` implementation calls `execute_boolean` internally and uses the step library only for pre/post operations (selection resolution, manifold validation, sliver detection).
 
 ### 3.2 Queryability
 
@@ -699,7 +699,7 @@ This is ~200 LOC of infrastructure and can be built when the first parallel feat
 > This is the highest blast-radius change. Concrete plan:
 
 1. **Single atomic commit.** No feature flag.
-2. Change `classify_surface_pair` in `forge-geom/src/surface/eval.rs` from `-> SurfaceRelation` to `-> PolicyResult<SurfaceRelation>`
+2. Change `classify_surface_pair` in `worth-geom/src/surface/eval.rs` from `-> SurfaceRelation` to `-> PolicyResult<SurfaceRelation>`
 3. Update all callers (actual call sites as of 2026-02-25):
    - `forge-kernel/src/geometry_state/adversarial_tests.rs` (~10 call sites, test-only)
    - `forge-kernel/src/operations/boolean/postprocess/curved_merge/` (references `SurfaceRelation` conceptually; may need updates if it calls `classify_surface_pair` directly after curved merge is implemented)

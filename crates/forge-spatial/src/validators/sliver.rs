@@ -4,11 +4,11 @@
 //! Slivers indicate precision issues or require explicit policy waivers.
 //!
 //! DEPENDENCIES: `forge-topo` (arena, handles, traversal),
-//!               `forge-geom` (polygon area).
+//!               `worth-geom` (polygon area).
 //! INVARIANTS: No topology mutation. Read-only spatial query.
 
 use forge_core::KernelError;
-use forge_geom::compute_polygon_area;
+use worth_geom::compute_polygon_area;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 

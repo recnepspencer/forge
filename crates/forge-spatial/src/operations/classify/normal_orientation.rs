@@ -5,7 +5,7 @@
 //!
 //! ALGORITHM:
 //!   1. Compute face normal `n` via Newell's method (continuity module)
-//!   2. Compute face interior point `p` via polygon centroid (forge-geom)
+//!   2. Compute face interior point `p` via polygon centroid (worth-geom)
 //!   3. Classify `p + ε·n` and `p - ε·n` via point-in-solid
 //!   4. Outward iff (p + εn) is Outside and (p - εn) is Inside
 //!
@@ -16,11 +16,11 @@
 //! EPSILON CONSTRAINT: `ε` must satisfy:
 //!   `boundary_tolerance < ε < min_feature_size / 2`
 //!
-//! DEPENDENCIES: forge-topo (arena, handles), forge-geom (polygon centroid),
+//! DEPENDENCIES: forge-topo (arena, handles), worth-geom (polygon centroid),
 //!               forge-core (ToleranceProvider).
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::facade::compute_polygon_centroid;
+use worth_geom::facade::compute_polygon_centroid;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 
@@ -56,7 +56,7 @@ pub fn classify_face_normal_orientation(
         }
     };
 
-    // Step 2: Compute face interior point via polygon centroid (forge-geom)
+    // Step 2: Compute face interior point via polygon centroid (worth-geom)
     let face_center = match compute_polygon_centroid(face_vertices) {
         Some(c) => c,
         None => {

@@ -10,8 +10,8 @@ use crate::operations::primitives::{
 fn two_planes_rejected() {
     let cfg = test_config();
     let planes = vec![
-        forge_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        worth_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        worth_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
     ];
     assert!(
         make_convex_solid(planes, &cfg).is_err(),
@@ -23,9 +23,9 @@ fn two_planes_rejected() {
 fn three_planes_rejected() {
     let cfg = test_config();
     let planes = vec![
-        forge_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
+        worth_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        worth_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        worth_geom::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
     ];
     assert!(
         make_convex_solid(planes, &cfg).is_err(),

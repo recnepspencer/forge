@@ -275,7 +275,7 @@ Read-only traversal and classification. The _iterator pattern_ is locked. New qu
 
 | Area                              | Why                                                                                                                                               |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **NURBS/curve data in topo**      | Topo only holds opaque `CurveRef`/`SurfaceRef`. Actual curve math lives in `forge-geom` / `BrepState`. Topo doesn't care if it's planar or NURBS. |
+| **NURBS/curve data in topo**      | Topo only holds opaque `CurveRef`/`SurfaceRef`. Actual curve math lives in `worth-geom` / `BrepState`. Topo doesn't care if it's planar or NURBS. |
 | **Replay _execution_**            | Schema exists, executor is future.                                                                                                                |
 | **Multi-hop re-identification**   | V1 is one-hop. Multi-generation descendant queries deferred.                                                                                      |
 | **Wire body / antenna semantics** | Exempted from manifold checks, but no feature uses them deliberately yet.                                                                         |
@@ -291,7 +291,7 @@ Question involves…              → Lives in…
 ────────────────────────────────────────────────────
 Connectivity only?              → forge-topo
 Float position / area / AABB?   → forge-spatial
-Plane / curve math?             → forge-geom
+Plane / curve math?             → worth-geom
 Policy decisions?               → forge-kernel
 Tolerance thresholds?           → forge-kernel (ToleranceConfig)
 Surface/curve definitions?      → BrepState (forge-kernel)

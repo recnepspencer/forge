@@ -4,10 +4,10 @@
 //! surfaces from 3+ co-planar points or an explicit normal+offset.
 //! Pure geometry — no topology handles, no GeometryState.
 //!
-//! DEPENDENCIES: forge-geom (Plane), forge-core (KernelError)
+//! DEPENDENCIES: worth-geom (Plane), forge-core (KernelError)
 
 use forge_core::KernelError;
-use forge_geom::facade::Plane;
+use worth_geom::facade::Plane;
 
 /// A surface constructed from geometric inputs.
 #[derive(Debug, Clone)]
@@ -29,10 +29,10 @@ pub fn construct_planar_surface_from_points(
     c: [f64; 3],
     degeneracy_tol: f64,
 ) -> Result<ConstructedSurface, KernelError> {
-    let ab = forge_geom::facade::distance(&a, &b);
-    let ac = forge_geom::facade::distance(&a, &c);
+    let ab = worth_geom::facade::distance(&a, &b);
+    let ac = worth_geom::facade::distance(&a, &c);
     // Use triangle_area_3d for collinearity detection (area → 0 when collinear)
-    let area = forge_geom::facade::triangle_area_3d(&a, &b, &c);
+    let area = worth_geom::facade::triangle_area_3d(&a, &b, &c);
     // Area of a triangle = 0.5 * |AB × AC|, so cross magnitude = 2 * area
     let cross_mag = 2.0 * area;
 
@@ -47,7 +47,7 @@ pub fn construct_planar_surface_from_points(
         });
     }
 
-    // Construct normal via forge-geom: sub + cross + normalize_checked
+    // Construct normal via worth-geom: sub + cross + normalize_checked
     // This is a one-off geometry construction, not an inline math hotpath.
     let ab_vec = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     let ac_vec = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];

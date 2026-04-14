@@ -4,8 +4,8 @@
 //! These are the "authoritarian" guards — any violation fails CI.
 //!
 //! Rules enforced:
-//! 1. No direct `forge_math::linalg::` access (route through forge-geom)
-//! 2. No direct `forge_math::predicates::` access (route through forge-geom)
+//! 1. No direct `worth_math::linalg::` access (route through worth-geom)
+//! 2. No direct `worth_math::predicates::` access (route through worth-geom)
 //! 3. No ad-hoc floating-point math in kernel orchestration code
 //!
 //! Exempted paths:
@@ -70,9 +70,9 @@ fn is_exempt_path(rel_path: &str) -> bool {
     false
 }
 
-/// Paths that are allowed to import forge_math types (not computation).
+/// Paths that are allowed to import worth_math types (not computation).
 /// These import data types like `Rational`, `PrecisionEscalation`, etc.
-fn is_forge_math_type_import_allowed(rel_path: &str) -> bool {
+fn is_worth_math_type_import_allowed(rel_path: &str) -> bool {
     // ExactPosition stores Rational — data type, not computation
     if rel_path.ends_with("geometry/data/position.rs") {
         return true;
@@ -118,12 +118,12 @@ fn is_projection_contract_path_allowed(rel_path: &str) -> bool {
     false
 }
 
-// ── Guard 1: No direct forge_math::linalg:: access ─────────────────────
+// ── Guard 1: No direct worth_math::linalg:: access ─────────────────────
 
-/// No direct `forge_math::linalg::` calls allowed in kernel code.
-/// All linear algebra must route through `forge-geom` facade.
+/// No direct `worth_math::linalg::` calls allowed in kernel code.
+/// All linear algebra must route through `worth-geom` facade.
 #[test]
-fn no_forge_math_linalg_bypass() {
+fn no_worth_math_linalg_bypass() {
     let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let rs_files = collect_rs_files(&kernel_src);
 
@@ -146,7 +146,7 @@ fn no_forge_math_linalg_bypass() {
         };
 
         for (line_num, line) in content.lines().enumerate() {
-            if line.contains("forge_math::linalg::") && is_code_line(line) {
+            if line.contains("worth_math::linalg::") && is_code_line(line) {
                 violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
             }
         }
@@ -154,21 +154,21 @@ fn no_forge_math_linalg_bypass() {
 
     if !violations.is_empty() {
         panic!(
-            "\n\nARCHITECTURE VIOLATION: direct forge_math::linalg access in kernel.\n\
-             Route through forge-geom facade instead.\n\
+            "\n\nARCHITECTURE VIOLATION: direct worth_math::linalg access in kernel.\n\
+             Route through worth-geom facade instead.\n\
              Violations:\n{}\n",
             violations.join("\n")
         );
     }
 }
 
-// ── Guard 2: No direct forge_math::predicates:: access ──────────────────
+// ── Guard 2: No direct worth_math::predicates:: access ──────────────────
 
-/// No direct `forge_math::predicates::` calls in non-test kernel code.
-/// Predicates (orient3d, incircle) must be consumed through `forge-geom`
+/// No direct `worth_math::predicates::` calls in non-test kernel code.
+/// Predicates (orient3d, incircle) must be consumed through `worth-geom`
 /// or `forge-spatial`, never called directly from the orchestration layer.
 #[test]
-fn no_forge_math_predicates_bypass() {
+fn no_worth_math_predicates_bypass() {
     let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let rs_files = collect_rs_files(&kernel_src);
 
@@ -191,7 +191,7 @@ fn no_forge_math_predicates_bypass() {
         };
 
         for (line_num, line) in content.lines().enumerate() {
-            if line.contains("forge_math::predicates::") && is_code_line(line) {
+            if line.contains("worth_math::predicates::") && is_code_line(line) {
                 violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
             }
         }
@@ -199,8 +199,8 @@ fn no_forge_math_predicates_bypass() {
 
     if !violations.is_empty() {
         panic!(
-            "\n\nARCHITECTURE VIOLATION: direct forge_math::predicates access in kernel.\n\
-             Route through forge-geom or forge-spatial instead.\n\
+            "\n\nARCHITECTURE VIOLATION: direct worth_math::predicates access in kernel.\n\
+             Route through worth-geom or forge-spatial instead.\n\
              Violations:\n{}\n",
             violations.join("\n")
         );
@@ -211,7 +211,7 @@ fn no_forge_math_predicates_bypass() {
 
 /// Bans ad-hoc f64 math methods in non-test kernel code.
 /// These indicate someone is doing geometry inline instead of
-/// through the proper forge-math → forge-geom pipeline.
+/// through the proper worth-math → worth-geom pipeline.
 ///
 /// Allowed:
 /// - Test code (integration_tests/, proof/tests/, #[cfg(test)])
@@ -287,7 +287,7 @@ fn no_adhoc_float_math() {
     if !violations.is_empty() {
         panic!(
             "\n\nARCHITECTURE VIOLATION: ad-hoc floating-point math in kernel code.\n\
-             These operations belong in forge-math or forge-geom.\n\
+             These operations belong in worth-math or worth-geom.\n\
              Violations:\n{}\n",
             violations.join("\n")
         );

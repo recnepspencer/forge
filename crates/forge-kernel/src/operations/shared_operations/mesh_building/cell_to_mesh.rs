@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use forge_core::tolerance::ToleranceProvider;
 use forge_core::KernelError;
-use forge_geom::facade::{CurveGeom, CurveKind, SurfaceData};
-use forge_geom::ConvexCell;
+use worth_geom::facade::{CurveGeom, CurveKind, SurfaceData};
+use worth_geom::ConvexCell;
 use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::LineageRecorder;
@@ -211,7 +211,7 @@ pub(crate) fn stitch_twins(
 ///
 /// Decoupled from `stitch_twins` to keep topology wiring geometry-blind.
 /// All vector math is delegated to `CurveGeom::line_from_endpoints`
-/// (in `forge-geom`), keeping this function a pure orchestrator.
+/// (in `worth-geom`), keeping this function a pure orchestrator.
 pub(crate) fn emit_edge_curves(
     arena: &TopologyArena,
     geometry: &mut GeometryStore,

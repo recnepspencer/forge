@@ -1,0 +1,17 @@
+[package]
+name = "worth-geom"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Analytic surfaces, NURBS, and curves for the Worth geometry kernel"
+
+[dependencies]
+worth-math.workspace = true
+forge-core.workspace = true
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = { workspace = true }

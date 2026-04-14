@@ -4,7 +4,10 @@ use super::pricing_domain::{
     PricingMaterial, ProductPriceBreakdown,
 };
 use std::collections::BTreeMap;
-use forge_harness::facade::{FeedStreamEventKind, FeedVolatilityRegime};
+use forge_harness::facade::{
+    ExecutionProfile, ExecutionRequest, FeedStreamEventKind, FeedVolatilityRegime,
+    HarnessAdapter, RunRecord, ScenarioPlan,
+};
 use crate::adapter::{
     TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
     TruthWritebackRequest,
@@ -33,15 +36,18 @@ use crate::facade::{
     BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass,
     BridgeMergeOntologyMappingSurface, BridgeMergeParentOrderProof,
     BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclaration,
-    MergeHistoryDeclarationIdentity,
+    MergeHistoryDeclarationIdentity, BridgeSourceCapability, BridgeSourceCapabilitySet,
+    BridgeTruthViewSelector,
 };
+use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::{
-    InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, RecordingTruthWritebackAuthority,
-    SnapshotFixture,
+    BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
+    RecordingTruthWritebackAuthority, SnapshotFixture,
 };
 use crate::error::BridgeDeliveryErrorKind;
 use crate::snapshot::{SnapshotReadPacket, SnapshotReadRequest};
 use crate::speculation::BridgePreviewLifecycleStateKind;
+use crate::source::{SourceDeclaration, SourceDeclarationIdentity};
 use serde_json::json;
 
 #[derive(Clone)]
@@ -792,6 +798,14 @@ fn snapshot_with_corrupted_provenance_field(
         .with_read_result_identity(snapshot.read_result_identity().clone())
 }
 
+fn snapshot_with_identity(
+    snapshot: &SnapshotFixture,
+    identity: &str,
+) -> SnapshotFixture {
+    SnapshotFixture::new(TruthSnapshotIdentity::new(identity), snapshot.records().to_vec())
+        .with_read_result_identity(TruthSnapshotIdentity::new(identity))
+}
+
 fn read_single_payload(
     evaluation: &crate::facade::BridgeTruthViewEvaluation,
 ) -> String {
@@ -925,20 +939,26 @@ fn pricing_reference_source_with_conflicting_shock_snapshot() -> InMemoryRelatio
     source
 }
 
-fn pricing_reference_source_with_conflicting_commit_identity_for_route() -> InMemoryRelationalBridgeSource {
+fn pricing_reference_source_with_conflicting_route_commit_items(
+    commit: &str,
+    patch: &str,
+    items: Vec<BridgeCommittedPatchItem>,
+) -> InMemoryRelationalBridgeSource {
     let source = pricing_reference_source();
-    source.insert_committed_patch(pricing_patch_items(
-        "main",
+    source.insert_committed_patch(pricing_patch_items("main", commit, patch, "snapshot:pricing-main", items));
+    source
+}
+
+fn pricing_reference_source_with_conflicting_commit_identity_for_route() -> InMemoryRelationalBridgeSource {
+    pricing_reference_source_with_conflicting_route_commit_items(
         "commit:steel-main",
         "patch:steel-main-conflicting-meaning",
-        "snapshot:pricing-main",
         vec![BridgeCommittedPatchItem::new(
             "component:rubber",
             "cost",
             "usd",
         )],
-    ));
-    source
+    )
 }
 
 fn pricing_reference_source_with_branch_head_pointing_to(
@@ -959,6 +979,23 @@ fn pricing_reference_source_with_missing_branch_head_snapshot(
     let source = pricing_reference_source();
     source.insert_committed_patch(pricing_patch(branch, commit, "patch:missing-snapshot", snapshot, component));
     source.set_branch_head(&TruthBranchIdentity::new(branch), &TruthCommitIdentity::new(commit));
+    source
+}
+
+fn pricing_reference_source_with_missing_branch_head_commit(
+    branch: &str,
+    commit: &str,
+) -> InMemoryRelationalBridgeSource {
+    let source = pricing_reference_source();
+    source.set_branch_head(&TruthBranchIdentity::new(branch), &TruthCommitIdentity::new(commit));
+    source
+}
+
+fn pricing_reference_source_with_conflicting_snapshot_identity(
+    snapshot: SnapshotFixture,
+) -> InMemoryRelationalBridgeSource {
+    let source = pricing_reference_source();
+    source.insert_snapshot(snapshot);
     source
 }
 
@@ -988,6 +1025,16 @@ fn pricing_merge_source() -> InMemoryRelationalBridgeSource {
         "patch:pricing-merged-aspect",
         "snapshot:pricing-merged-aspect",
         "rubber",
+    ));
+    source
+}
+
+fn pricing_merge_source_with_conflicting_merged_snapshot_identity() -> InMemoryRelationalBridgeSource {
+    let scenario = generated_pricing_scenario();
+    let source = pricing_merge_source();
+    source.insert_snapshot(snapshot_with_identity(
+        &scenario.main_snapshot,
+        "snapshot:pricing-merged",
     ));
     source
 }
@@ -2231,12 +2278,11 @@ fn capture_pricing_writeback_bundle(policy: BridgeRuntimePolicy) -> PricingWrite
     }
 }
 
-fn capture_pricing_merge_bundle(policy: BridgeRuntimePolicy) -> PricingMergeBundle {
-    let runtime = build_pricing_runtime_with_merge(
-        pricing_merge_source(),
-        RecordingSignalBridgeSink::default(),
-        policy,
-    );
+fn capture_pricing_merge_bundle_from_source(
+    source: InMemoryRelationalBridgeSource,
+    policy: BridgeRuntimePolicy,
+) -> PricingMergeBundle {
+    let runtime = build_pricing_runtime_with_merge(source, RecordingSignalBridgeSink::default(), policy);
     let contract = runtime
         .admit_merge_history(pricing_merge_declaration())
         .expect("pricing merge declaration should admit");
@@ -2330,6 +2376,10 @@ fn capture_pricing_merge_bundle(policy: BridgeRuntimePolicy) -> PricingMergeBund
     }
 }
 
+fn capture_pricing_merge_bundle(policy: BridgeRuntimePolicy) -> PricingMergeBundle {
+    capture_pricing_merge_bundle_from_source(pricing_merge_source(), policy)
+}
+
 fn capture_pricing_workload_certification_bundle(
     policy: BridgeRuntimePolicy,
     preview_session_identity: &str,
@@ -2366,6 +2416,106 @@ fn capture_pricing_workload_certification_bundle(
         trust_attacks: capture_pricing_trust_attack_bundle(),
         hostile_failure: capture_pricing_missing_snapshot_failure_bundle(&hostile_runtime),
     }
+}
+
+fn pricing_historical_source_declaration(declaration_id: &str) -> SourceDeclaration {
+    SourceDeclaration::new(
+        SourceDeclarationIdentity::new(declaration_id),
+        BridgeTruthViewSelector::historical_commit(
+            TruthBranchIdentity::new("main"),
+            TruthCommitIdentity::new("commit:steel-main"),
+        ),
+        BridgeSourceCapabilitySet::new(vec![
+            BridgeSourceCapability::SnapshotRead,
+            BridgeSourceCapability::HistoricalRead,
+            BridgeSourceCapability::BranchRead,
+            BridgeSourceCapability::ReplayCompatibleRead,
+        ]),
+    )
+}
+
+fn pricing_harness_fixture(
+    name: &str,
+    policy: BridgeRuntimePolicy,
+) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
+    let scenario = generated_pricing_scenario();
+    ScenarioPlan::new(
+        name,
+        BridgeHarnessFixture::new(vec![
+            pricing_mapping("steel", "price:bicycle"),
+            pricing_mapping("steel", "price:wheelbarrow"),
+            pricing_mapping("rubber", "price:scooter"),
+        ])
+        .with_policy(policy)
+        .with_source_declaration(pricing_historical_source_declaration(
+            "source:pricing-main-history",
+        ))
+        .with_source_adapter_capabilities(BridgeSourceCapabilitySet::new(vec![
+            BridgeSourceCapability::SnapshotRead,
+            BridgeSourceCapability::HistoricalRead,
+            BridgeSourceCapability::BranchRead,
+            BridgeSourceCapability::ReplayCompatibleRead,
+        ]))
+        .with_committed_patch(pricing_patch(
+            "main",
+            "commit:steel-main",
+            "patch:steel-main",
+            "snapshot:pricing-main",
+            "steel",
+        ))
+        .with_committed_patch(pricing_patch(
+            "main",
+            "commit:rubber-main",
+            "patch:rubber-main",
+            "snapshot:pricing-main",
+            "rubber",
+        ))
+        .with_snapshot(scenario.main_snapshot),
+    )
+    .declare_input("pricing-source")
+    .declare_observation("pricing-source")
+    .compile()
+}
+
+fn execute_pricing_harness_source_probe(
+    policy: BridgeRuntimePolicy,
+    profile: ExecutionProfile,
+    request_name: &str,
+) -> RunRecord<String> {
+    let adapter = BridgeHarnessAdapter;
+    let fixture = pricing_harness_fixture("bridge-pricing-harness-parity", policy);
+    let mut runtime = adapter
+        .create_runtime()
+        .expect("pricing harness runtime should construct");
+    adapter
+        .prepare_runtime(&mut runtime, &profile)
+        .expect("pricing harness prepare should succeed");
+    adapter
+        .load_fixture(&mut runtime, &fixture)
+        .expect("pricing harness fixture should load");
+    adapter
+        .execute(
+            &mut runtime,
+            &fixture,
+            &ExecutionRequest::target(
+                request_name,
+                "source-materialize:source:pricing-main-history".to_owned(),
+            ),
+            &profile,
+        )
+        .expect("pricing harness source probe should execute")
+}
+
+fn capture_pricing_bundle_with_harness_profile(
+    policy: BridgeRuntimePolicy,
+    preview_session_identity: &str,
+    profile: ExecutionProfile,
+    request_name: &str,
+) -> (PricingWorkloadCertificationBundle, RunRecord<String>) {
+    (
+        capture_pricing_workload_certification_bundle(policy.clone(), preview_session_identity),
+        execute_pricing_harness_source_probe(policy, profile, request_name),
+    )
 }
 
 #[test]
@@ -2829,6 +2979,90 @@ fn pricing_shock_branch_head_and_snapshot_basis_mutation_sweep_is_detectable() {
 }
 
 #[test]
+fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independent_oracle() {
+    let scenario = generated_pricing_scenario();
+
+    for (label, source, selector_branch, expected_snapshot, unexpected_cost) in [
+        (
+            "main-snapshot-overwritten-with-speculative-meaning",
+            pricing_reference_source_with_conflicting_snapshot_identity(
+                snapshot_with_identity(&scenario.speculative_snapshot, "snapshot:pricing-main"),
+            ),
+            "main",
+            "snapshot:pricing-main",
+            scenario.main_rubber_cost,
+        ),
+        (
+            "speculative-snapshot-overwritten-with-main-meaning",
+            pricing_reference_source_with_conflicting_snapshot_identity(snapshot_with_identity(
+                &scenario.main_snapshot,
+                "snapshot:pricing-shock",
+            )),
+            "pricing-shock",
+            "snapshot:pricing-shock",
+            scenario.speculative_rubber_cost,
+        ),
+    ] {
+        let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
+        let evaluation = runtime
+            .evaluate(
+                BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(
+                    selector_branch,
+                ))
+                .with_read_packet(pricing_component_read_packet("rubber")),
+            )
+            .unwrap_or_else(|_| panic!("{label} should still materialize the overwritten retained snapshot"));
+
+        assert_eq!(
+            evaluation.snapshot_identity().as_str(),
+            expected_snapshot,
+            "{label} should expose the conflicting retained snapshot identity"
+        );
+        assert_ne!(
+            read_single_money_cents(&evaluation),
+            unexpected_cost,
+            "{label} should diverge from the independent oracle for the original branch meaning"
+        );
+    }
+}
+
+#[test]
+fn pricing_shock_branch_head_missing_commit_sweep_fails_closed() {
+    for (label, source, branch, missing_commit) in [
+        (
+            "main-branch-head-missing-envelope",
+            pricing_reference_source_with_missing_branch_head_commit("main", "commit:missing-main"),
+            "main",
+            "commit:missing-main",
+        ),
+        (
+            "speculative-branch-head-missing-envelope",
+            pricing_reference_source_with_missing_branch_head_commit(
+                "pricing-shock",
+                "commit:missing-speculative",
+            ),
+            "pricing-shock",
+            "commit:missing-speculative",
+        ),
+    ] {
+        let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
+        let error = runtime
+            .evaluate(
+                BridgeTruthViewEvaluationRequest::for_branch_head(TruthBranchIdentity::new(branch))
+                    .with_read_packet(pricing_component_read_packet("rubber")),
+            )
+            .err()
+            .unwrap_or_else(|| panic!("{label} should fail closed when branch head commit is missing"));
+
+        let error_text = error.to_string();
+        assert!(
+            error_text.contains(missing_commit),
+            "{label} should mention the missing retained branch-head commit"
+        );
+    }
+}
+
+#[test]
 fn pricing_shock_discard_stays_zero_residue_under_interleaved_main_churn() {
     let scenario = generated_pricing_scenario();
     let discard = capture_pricing_discard_bundle();
@@ -2960,6 +3194,27 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
 }
 
 #[test]
+fn pricing_shock_merge_snapshot_identity_conflict_is_detectable_against_independent_oracle() {
+    let scenario = generated_pricing_scenario();
+    let merge = capture_pricing_merge_bundle_from_source(
+        pricing_merge_source_with_conflicting_merged_snapshot_identity(),
+        BridgeRuntimePolicy::development(),
+    );
+
+    assert_eq!(merge.merged_snapshot, "snapshot:pricing-merged");
+    assert_eq!(
+        merge.merged_rubber_cost_cents,
+        scenario.main_rubber_cost,
+        "overwritten merged snapshot should surface conflicting retained main-branch meaning"
+    );
+    assert_ne!(
+        merge.merged_rubber_cost_cents,
+        scenario.speculative_rubber_cost,
+        "independent merge oracle expects merged pricing truth to match speculative rubber cost"
+    );
+}
+
+#[test]
 fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_profiles() {
     let baseline =
         capture_pricing_certification_matrix(BridgeRuntimePolicy::development(), "pricing:preview-baseline");
@@ -3012,6 +3267,79 @@ fn pricing_shock_duplicate_commit_identity_with_conflicting_route_meaning_is_det
 }
 
 #[test]
+fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_detectable() {
+    for (label, source, commit, expected_snapshot, expected_targets) in [
+        (
+            "steel-commit-rewritten-to-rubber",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:steel-main",
+                "patch:steel-main-conflicting-rubber",
+                vec![BridgeCommittedPatchItem::new("component:rubber", "cost", "usd")],
+            ),
+            "commit:steel-main",
+            "snapshot:pricing-main",
+            vec!["price:scooter"],
+        ),
+        (
+            "rubber-commit-rewritten-to-steel",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:rubber-main",
+                "patch:rubber-main-conflicting-steel",
+                vec![BridgeCommittedPatchItem::new("component:steel", "cost", "usd")],
+            ),
+            "commit:rubber-main",
+            "snapshot:pricing-main",
+            vec!["price:bicycle", "price:wheelbarrow"],
+        ),
+        (
+            "steel-commit-rewritten-to-combined-meaning",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:steel-main",
+                "patch:steel-main-conflicting-combined",
+                vec![
+                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
+                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                ],
+            ),
+            "commit:steel-main",
+            "snapshot:pricing-main",
+            vec!["price:bicycle", "price:scooter", "price:wheelbarrow"],
+        ),
+    ] {
+        let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
+        let route = runtime
+            .route(commit)
+            .unwrap_or_else(|_| panic!("{label} should still route as retained truth"));
+
+        assert_eq!(route.result().result_summary().source_commit().as_str(), commit);
+        assert_eq!(route.result().receipt().snapshot_identity().as_str(), expected_snapshot);
+        assert_eq!(
+            route.result().receipt().delivered_target_count(),
+            expected_targets.len(),
+            "{label} should deliver the expected target width"
+        );
+
+        let mut actual_targets = route
+            .result()
+            .artifact()
+            .invalidation_targets()
+            .targets()
+            .iter()
+            .map(|target| target.signal_scope().to_owned())
+            .collect::<Vec<_>>();
+        actual_targets.sort();
+
+        let mut expected_targets = expected_targets
+            .into_iter()
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        expected_targets.sort();
+
+        assert_eq!(actual_targets, expected_targets, "{label} should surface the conflicting retained meaning");
+    }
+}
+
+#[test]
 fn pricing_shock_non_commuting_route_history_attack_fails_closed_on_replay() {
     let original_runtime = build_pricing_runtime(
         pricing_reference_source(),
@@ -3039,6 +3367,77 @@ fn pricing_shock_non_commuting_route_history_attack_fails_closed_on_replay() {
         .last_failure_record()
         .expect("replay failure should retain diagnostics");
     assert_eq!(failure_record.counters().route_replay_mismatch_count(), 1);
+}
+
+#[test]
+fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
+    for (label, clean_commit, mutated_source) in [
+        (
+            "steel-route-replayed-against-rubber-meaning",
+            "commit:steel-main",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:steel-main",
+                "patch:steel-main-conflicting-rubber",
+                vec![BridgeCommittedPatchItem::new("component:rubber", "cost", "usd")],
+            ),
+        ),
+        (
+            "rubber-route-replayed-against-steel-meaning",
+            "commit:rubber-main",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:rubber-main",
+                "patch:rubber-main-conflicting-steel",
+                vec![BridgeCommittedPatchItem::new("component:steel", "cost", "usd")],
+            ),
+        ),
+        (
+            "steel-route-replayed-against-combined-meaning",
+            "commit:steel-main",
+            pricing_reference_source_with_conflicting_route_commit_items(
+                "commit:steel-main",
+                "patch:steel-main-conflicting-combined",
+                vec![
+                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
+                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                ],
+            ),
+        ),
+    ] {
+        let original_runtime = build_pricing_runtime(
+            pricing_reference_source(),
+            RecordingSignalBridgeSink::default(),
+        );
+        original_runtime
+            .route(clean_commit)
+            .unwrap_or_else(|_| panic!("{label} should route canonically before replay attack"));
+        let canonical_record = original_runtime
+            .diagnostics()
+            .last_canonical_route_record()
+            .unwrap_or_else(|| panic!("{label} should retain a canonical route record"));
+
+        let restarted_runtime =
+            build_pricing_runtime(mutated_source, RecordingSignalBridgeSink::default());
+        let error = restarted_runtime
+            .replay_canonical_record(&canonical_record)
+            .err()
+            .unwrap_or_else(|| panic!("{label} should fail closed under non-commuting replay"));
+
+        assert_eq!(
+            error.kind(),
+            BridgeReplayErrorKind::RouteMismatch,
+            "{label} should classify as a replay route mismatch"
+        );
+
+        let failure_record = restarted_runtime
+            .diagnostics()
+            .last_failure_record()
+            .unwrap_or_else(|| panic!("{label} should retain a failure record"));
+        assert_eq!(
+            failure_record.counters().route_replay_mismatch_count(),
+            1,
+            "{label} should increment replay mismatch exactly once"
+        );
+    }
 }
 
 #[test]
@@ -3420,7 +3819,15 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     assert_eq!(counters["causality_bundle_replay_mismatch_count"], json!(1));
     assert_eq!(counters["failure_taxonomy_classification_count"], json!(3));
     assert_eq!(counters["failure_taxonomy_unclassified_count"], json!(0));
-    assert_eq!(counters["diagnostics_entrypoint_request_count"], json!(9));
+    assert_eq!(
+        counters["diagnostics_entrypoint_request_count"],
+        json!(
+            suite_27["diagnostics_entrypoint_matrix"]
+                .as_object()
+                .expect("suite 27 diagnostics entrypoint matrix should be an object")
+                .len()
+        )
+    );
     assert_eq!(counters["showcase_entrypoint_request_count"], json!(1));
     assert_eq!(counters["simulation_trace_bundle_count"], json!(1));
     assert_eq!(counters["trust_attack_classification_count"], json!(8));
@@ -3873,6 +4280,25 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
         export["lineage_provenance"]["causality"]["suite_25_causality_digest"],
         bundle.suite_25_artifact_json()["causality_digest"]
     );
+    assert!(
+        export["lineage_provenance_edges"]
+            .as_array()
+            .is_some_and(|edges| !edges.is_empty())
+    );
+    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
+        |edge| edge["kind"] == json!("commit_to_snapshot")
+            && edge["from"] == json!(bundle.provenance.shock_commit)
+            && edge["to"] == json!(bundle.provenance.shock_snapshot)
+    )));
+    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
+        |edge| edge["kind"] == json!("speculative_to_merged_snapshot")
+            && edge["from"] == json!(bundle.merge.speculative_snapshot)
+            && edge["to"] == json!(bundle.merge.merged_snapshot)
+    )));
+    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
+        |edge| edge["kind"] == json!("bundle_to_causality_digest")
+            && edge["from"] == json!(bundle.digest())
+    )));
     assert_eq!(
         export["suite_27"]["reference_workload_bundle_comparison"]["simulation_identifies_at_least_one_damaging_material"],
         json!(true)
@@ -3881,6 +4307,606 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
         export["suite_27"]["reference_workload_bundle_comparison"]["trust_attack_matrix_is_typed"],
         json!(true)
     );
+}
+
+#[test]
+fn pricing_shock_ml_pipeline_export_lineage_graph_is_well_formed() {
+    let bundle = capture_pricing_workload_certification_bundle(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-ml-graph",
+    );
+    let export = bundle.ml_pipeline_export_json();
+    let edges = export["lineage_provenance_edges"]
+        .as_array()
+        .expect("ml export should expose lineage_provenance_edges as an array");
+
+    let valid_nodes = std::collections::HashSet::from([
+        bundle.matrix.reference.source_commit.clone(),
+        bundle.matrix.reference.main_snapshot.clone(),
+        bundle.provenance.main_commit.clone(),
+        bundle.provenance.main_snapshot.clone(),
+        bundle.provenance.shock_commit.clone(),
+        bundle.provenance.shock_snapshot.clone(),
+        bundle.matrix.reference.speculative_snapshot.clone(),
+        bundle.aspect.source_commit.clone(),
+        bundle.matrix.replay.route_identity.clone(),
+        bundle.matrix.replay.invalidation_identity.clone(),
+        bundle.aspect.aspect_registration_id.clone(),
+        bundle.aspect.invalidation_target.clone(),
+        bundle.promotion.promotion_session_identity.clone(),
+        bundle.promotion.authoritative_commit_boundary_digest.clone(),
+        bundle.promotion.authoritative_artifact_digest.clone(),
+        bundle.fanout.second_source_commit.clone(),
+        bundle.fanout.second_snapshot.clone(),
+        bundle.restart_replay.source_commit.clone(),
+        bundle.restart_replay.route_identity.clone(),
+        bundle.writeback.family_kind.clone(),
+        bundle.writeback.commit_replay_semantic_digest.clone(),
+        bundle.merge.main_premerge_snapshot.clone(),
+        bundle.merge.speculative_snapshot.clone(),
+        bundle.merge.merged_snapshot.clone(),
+        bundle.merge.bundle_digest.clone(),
+        bundle.merge.canonical_replay_digest.clone(),
+        bundle.hostile_failure.source_commit.clone(),
+        bundle.hostile_failure.source_snapshot.clone(),
+        bundle.digest(),
+        bundle.suite_25_artifact_json()["causality_digest"]
+            .as_str()
+            .expect("suite 25 should expose causality digest")
+            .to_owned(),
+    ]);
+
+    let mut seen_edges = std::collections::HashSet::new();
+    let mut seen_edge_kinds = std::collections::HashSet::new();
+
+    for edge in edges {
+        let from = edge["from"]
+            .as_str()
+            .expect("lineage edge should expose string `from`");
+        let to = edge["to"]
+            .as_str()
+            .expect("lineage edge should expose string `to`");
+        let kind = edge["kind"]
+            .as_str()
+            .expect("lineage edge should expose string `kind`");
+        let surface = edge["surface"]
+            .as_str()
+            .expect("lineage edge should expose string `surface`");
+
+        assert!(
+            !from.is_empty() && !to.is_empty() && !kind.is_empty() && !surface.is_empty(),
+            "lineage edges should not contain empty graph fields"
+        );
+        assert!(
+            valid_nodes.contains(from),
+            "lineage edge source `{from}` should be a known retained node"
+        );
+        assert!(
+            valid_nodes.contains(to),
+            "lineage edge target `{to}` should be a known retained node"
+        );
+        assert!(
+            seen_edges.insert((from.to_owned(), to.to_owned(), kind.to_owned(), surface.to_owned())),
+            "duplicate lineage edge detected: {kind} {from} -> {to} ({surface})"
+        );
+        seen_edge_kinds.insert(kind.to_owned());
+    }
+
+    for required_kind in [
+        "commit_to_snapshot",
+        "commit_to_route",
+        "route_to_invalidation",
+        "aspect_to_target",
+        "speculative_to_merged_snapshot",
+        "bundle_to_causality_digest",
+    ] {
+        assert!(
+            seen_edge_kinds.contains(required_kind),
+            "lineage graph should include required edge kind `{required_kind}`"
+        );
+    }
+}
+
+#[test]
+fn pricing_shock_ml_pipeline_export_simulation_summaries_match_iteration_traces() {
+    let bundle = capture_pricing_workload_certification_bundle(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-ml-simulation-consistency",
+    );
+    let export = bundle.ml_pipeline_export_json();
+    let material_summaries = export["simulation"]["material_summaries"]
+        .as_array()
+        .expect("ml export should expose material_summaries as an array");
+    let iteration_traces = export["simulation"]["iteration_traces"]
+        .as_array()
+        .expect("ml export should expose iteration_traces as an array");
+    let branch_count = export["simulation"]["branch_count"]
+        .as_u64()
+        .expect("ml export should expose branch_count") as usize;
+    let iterations_per_branch = export["simulation"]["iterations_per_branch"]
+        .as_u64()
+        .expect("ml export should expose iterations_per_branch") as usize;
+
+    let mut ranked_from_summaries = Vec::new();
+
+    for summary in material_summaries {
+        let material = summary["material"]
+            .as_str()
+            .expect("material summary should expose material");
+        let matching_traces = iteration_traces
+            .iter()
+            .filter(|trace| trace["material"] == json!(material))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            matching_traces.len(),
+            branch_count * iterations_per_branch,
+            "each material summary should cover the full branch/iteration grid"
+        );
+
+        let total_retail_delta = matching_traces
+            .iter()
+            .map(|trace| {
+                trace["total_retail_delta_cents"]
+                    .as_i64()
+                    .expect("trace should expose total_retail_delta_cents")
+            })
+            .sum::<i64>();
+        let total_shipping_delta = matching_traces
+            .iter()
+            .map(|trace| {
+                trace["shipping_delta_cents"]
+                    .as_i64()
+                    .expect("trace should expose shipping_delta_cents")
+            })
+            .sum::<i64>();
+        let total_material_delta = matching_traces
+            .iter()
+            .map(|trace| {
+                trace["material_delta_cents"]
+                    .as_i64()
+                    .expect("trace should expose material_delta_cents")
+            })
+            .sum::<i64>();
+        let total_breach_count = matching_traces
+            .iter()
+            .map(|trace| {
+                trace["margin_floor_breach_count"]
+                    .as_u64()
+                    .expect("trace should expose margin_floor_breach_count") as i64
+            })
+            .sum::<i64>();
+        let total_repricing_count = matching_traces
+            .iter()
+            .map(|trace| {
+                trace["repricing_count"]
+                    .as_u64()
+                    .expect("trace should expose repricing_count") as i64
+            })
+            .sum::<i64>();
+        let total_iterations = matching_traces.len() as i64;
+
+        let expected_mean_total = total_retail_delta / total_iterations;
+        let expected_mean_shipping = total_shipping_delta / total_iterations;
+        let expected_mean_material = total_material_delta / total_iterations;
+        let expected_mean_breach = total_breach_count / total_iterations;
+        let expected_mean_repricing = total_repricing_count / total_iterations;
+        let expected_damage_score =
+            expected_mean_total + (expected_mean_breach * 50) + expected_mean_shipping.abs() / 10;
+
+        assert_eq!(
+            summary["mean_total_retail_delta_cents"],
+            json!(expected_mean_total),
+            "material summary should derive mean_total_retail_delta_cents from traces"
+        );
+        assert_eq!(
+            summary["mean_shipping_delta_cents"],
+            json!(expected_mean_shipping),
+            "material summary should derive mean_shipping_delta_cents from traces"
+        );
+        assert_eq!(
+            summary["mean_material_delta_cents"],
+            json!(expected_mean_material),
+            "material summary should derive mean_material_delta_cents from traces"
+        );
+        assert_eq!(
+            summary["mean_margin_floor_breach_count"],
+            json!(expected_mean_breach),
+            "material summary should derive mean_margin_floor_breach_count from traces"
+        );
+        assert_eq!(
+            summary["mean_repricing_count"],
+            json!(expected_mean_repricing),
+            "material summary should derive mean_repricing_count from traces"
+        );
+        assert_eq!(
+            summary["damage_score"],
+            json!(expected_damage_score),
+            "material summary should derive damage_score from traces"
+        );
+
+        let mut branch_totals = std::collections::BTreeMap::<String, i64>::new();
+        for trace in matching_traces {
+            let branch_identity = trace["branch_identity"]
+                .as_str()
+                .expect("trace should expose branch_identity")
+                .to_owned();
+            let total_delta = trace["total_retail_delta_cents"]
+                .as_i64()
+                .expect("trace should expose total_retail_delta_cents");
+            *branch_totals.entry(branch_identity).or_default() += total_delta;
+        }
+        let (expected_worst_branch_identity, expected_worst_branch_total) = branch_totals
+            .into_iter()
+            .max_by_key(|(_, delta)| *delta)
+            .expect("branch totals should not be empty");
+        assert_eq!(
+            summary["worst_branch_identity"],
+            json!(expected_worst_branch_identity),
+            "material summary should report the branch with highest accumulated damage"
+        );
+        assert_eq!(
+            summary["worst_branch_mean_total_delta_cents"],
+            json!(expected_worst_branch_total / iterations_per_branch as i64),
+            "material summary should report the mean branch damage for the worst branch"
+        );
+
+        ranked_from_summaries.push((
+            material.to_owned(),
+            expected_damage_score,
+            expected_mean_total,
+        ));
+    }
+
+    ranked_from_summaries.sort_by(|left, right| {
+        right
+            .1
+            .cmp(&left.1)
+            .then_with(|| right.2.cmp(&left.2))
+    });
+    let expected_ranked_materials = ranked_from_summaries
+        .into_iter()
+        .map(|(material, _, _)| material)
+        .collect::<Vec<_>>();
+    let actual_ranked_materials = export["simulation"]["ranked_materials_by_damage"]
+        .as_array()
+        .expect("ml export should expose ranked_materials_by_damage as an array")
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .expect("ranked_materials_by_damage should contain strings")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        actual_ranked_materials, expected_ranked_materials,
+        "simulation ranking should be derivable from the exported summaries"
+    );
+}
+
+#[test]
+fn pricing_shock_showcase_timeline_is_lineage_coherent() {
+    let bundle = capture_pricing_workload_certification_bundle(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-showcase-timeline",
+    );
+    let artifact = bundle.showcase_artifact_json();
+    let ml_export = bundle.ml_pipeline_export_json();
+    let timeline = artifact["timeline"]
+        .as_array()
+        .expect("showcase artifact should expose timeline as an array");
+    let edges = ml_export["lineage_provenance_edges"]
+        .as_array()
+        .expect("ml export should expose lineage graph edges");
+
+    assert_eq!(timeline.len(), 5, "showcase timeline should keep the five canonical phases");
+
+    let has_edge = |from: &str, to: &str| {
+        edges.iter().any(|edge| {
+            edge["from"] == json!(from)
+                && edge["to"] == json!(to)
+        })
+    };
+
+    let main_basis = &timeline[0];
+    let speculative_shock = &timeline[2];
+    let merged_authority = &timeline[4];
+
+    assert_eq!(main_basis["commit"], json!(bundle.matrix.reference.source_commit));
+    assert_eq!(main_basis["snapshot"], json!(bundle.matrix.reference.main_snapshot));
+    assert_eq!(speculative_shock["commit"], json!(bundle.provenance.shock_commit));
+    assert_eq!(speculative_shock["snapshot"], json!(bundle.provenance.shock_snapshot));
+    assert_eq!(merged_authority["snapshot"], json!(bundle.merge.merged_snapshot));
+
+    assert!(
+        has_edge(
+            bundle.matrix.reference.source_commit.as_str(),
+            bundle.matrix.reference.main_snapshot.as_str()
+        ),
+        "timeline main basis should be backed by a lineage edge"
+    );
+    assert!(
+        has_edge(
+            bundle.provenance.shock_commit.as_str(),
+            bundle.provenance.shock_snapshot.as_str()
+        ),
+        "timeline speculative shock should be backed by a lineage edge"
+    );
+    assert!(
+        has_edge(
+            bundle.merge.speculative_snapshot.as_str(),
+            bundle.merge.merged_snapshot.as_str()
+        ),
+        "timeline merged authority should be reachable from speculative lineage"
+    );
+    assert!(
+        has_edge(
+            bundle.merge.main_premerge_snapshot.as_str(),
+            bundle.merge.merged_snapshot.as_str()
+        ),
+        "timeline merged authority should also remain reachable from main premerge lineage"
+    );
+}
+
+#[test]
+fn pricing_shock_showcase_trust_attack_matrix_is_bundle_derived() {
+    let bundle = capture_pricing_workload_certification_bundle(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-showcase-trust-derived",
+    );
+    let artifact = bundle.showcase_artifact_json();
+    let trust_attacks = artifact["trust_attack_matrix"]
+        .as_array()
+        .expect("showcase artifact should expose trust_attack_matrix as an array");
+
+    assert_eq!(
+        trust_attacks.len(),
+        bundle.counter_snapshot_json()["trust_attack_classification_count"]
+            .as_u64()
+            .expect("counter snapshot should expose trust attack count") as usize,
+        "trust attack matrix length should match the declared counter snapshot"
+    );
+
+    let expected_entries = vec![
+        (
+            "missing_snapshot_basis",
+            format!("{:?}", bundle.hostile_failure.failure_class),
+            "typed_fail_closed",
+        ),
+        (
+            "restart_replay_drift",
+            format!("{:?}", bundle.restart_failure.error_kind),
+            "typed_fail_closed",
+        ),
+        (
+            "writeback_authority_denial",
+            format!("{:?}", bundle.writeback.rejection_error_kind),
+            "typed_fail_closed",
+        ),
+        (
+            "stale_historical_basis",
+            format!("{:?}", bundle.restart_failure.error_kind),
+            "typed_fail_closed",
+        ),
+        (
+            "replay_policy_mismatch",
+            bundle.trust_attacks.replay_policy_error_kind.to_owned(),
+            "typed_fail_closed",
+        ),
+        (
+            "route_policy_projection_conflict",
+            bundle.trust_attacks.route_policy_error_kind.to_owned(),
+            "typed_fail_closed",
+        ),
+        (
+            "merge_topology_denial",
+            bundle.trust_attacks.merge_denial_class.to_owned(),
+            "typed_fail_closed",
+        ),
+        (
+            "simulation_damaging_material_ranked",
+            bundle
+                .simulation
+                .ranked_materials_by_damage
+                .first()
+                .cloned()
+                .unwrap_or_default(),
+            "portfolio_risk_explained",
+        ),
+    ];
+
+    for (attack, classification, result) in expected_entries {
+        assert!(
+            trust_attacks.iter().any(|entry| {
+                entry["attack"] == json!(attack)
+                    && entry["classification"] == json!(classification)
+                    && entry["result"] == json!(result)
+            }),
+            "trust attack matrix should derive `{attack}` directly from the bundle state"
+        );
+    }
+}
+
+#[test]
+fn pricing_shock_suite_artifacts_and_showcase_digests_are_semantically_coherent() {
+    let bundle = capture_pricing_workload_certification_bundle(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-suite-coherence",
+    );
+    let artifact = bundle.showcase_artifact_json();
+    let export = bundle.ml_pipeline_export_json();
+    let suite_25 = bundle.suite_25_artifact_json();
+    let suite_26 = bundle.suite_26_artifact_json();
+    let suite_27 = bundle.suite_27_artifact_json();
+
+    assert_eq!(
+        artifact["demo_artifact_family"]["control_digest"],
+        suite_25["reference_workload_bundle_digest"],
+        "showcase control digest should point at suite 25 reference workload digest"
+    );
+    assert_eq!(
+        artifact["demo_artifact_family"]["hostile_digest"],
+        suite_26["reference_workload_failure_bundle_digest"],
+        "showcase hostile digest should point at suite 26 failure workload digest"
+    );
+    assert_eq!(
+        artifact["demo_artifact_family"]["certification_digest"],
+        suite_27["certification_bundle_digest"],
+        "showcase certification digest should point at suite 27 certification digest"
+    );
+    assert_eq!(
+        artifact["demo_artifact_family"]["showcase_digest"],
+        export["bundle_digest"],
+        "showcase digest should match the top-level ML export bundle digest"
+    );
+
+    assert_eq!(
+        export["lineage_provenance"]["causality"]["suite_25_causality_digest"],
+        suite_25["causality_digest"],
+        "ML export causality lineage should mirror suite 25 causality digest"
+    );
+    assert_eq!(
+        export["lineage_provenance"]["causality"]["suite_25_routing_digest"],
+        suite_25["routing_digest"],
+        "ML export causality lineage should mirror suite 25 routing digest"
+    );
+    assert_eq!(
+        export["lineage_provenance"]["causality"]["suite_25_replay_digest"],
+        suite_25["replay_digest"],
+        "ML export causality lineage should mirror suite 25 replay digest"
+    );
+    assert_eq!(
+        export["suite_27"]["reference_workload_bundle_digest"],
+        suite_25["reference_workload_bundle_digest"],
+        "suite 27 should point back to the suite 25 reference workload digest"
+    );
+
+    assert_ne!(
+        suite_25["reference_workload_bundle_digest"],
+        suite_26["reference_workload_failure_bundle_digest"],
+        "control and hostile workload digests should remain distinct"
+    );
+    assert_ne!(
+        suite_25["reference_workload_bundle_digest"],
+        suite_27["certification_bundle_digest"],
+        "reference and certification digests should remain distinct"
+    );
+    assert_ne!(
+        suite_26["reference_workload_failure_bundle_digest"],
+        suite_27["certification_bundle_digest"],
+        "hostile and certification digests should remain distinct"
+    );
+}
+
+#[test]
+fn pricing_shock_suite_25_through_27_parity_holds_across_direct_and_wrapped_source_adapter_shapes()
+{
+    let (direct_bundle, direct_probe) = capture_pricing_bundle_with_harness_profile(
+        BridgeRuntimePolicy::development(),
+        "pricing:adapter-direct",
+        ExecutionProfile::development("pricing-direct"),
+        "pricing-source-direct",
+    );
+    let (wrapped_bundle, wrapped_probe) = capture_pricing_bundle_with_harness_profile(
+        BridgeRuntimePolicy::development(),
+        "pricing:adapter-direct",
+        ExecutionProfile::development("pricing-wrapped")
+            .with_metadata("source_adapter_shape", "wrapped"),
+        "pricing-source-wrapped",
+    );
+
+    assert_eq!(direct_bundle.suite_25_artifact_json(), wrapped_bundle.suite_25_artifact_json());
+    assert_eq!(direct_bundle.suite_26_artifact_json(), wrapped_bundle.suite_26_artifact_json());
+    assert_eq!(direct_bundle.suite_27_artifact_json(), wrapped_bundle.suite_27_artifact_json());
+    assert_eq!(direct_bundle.digest(), wrapped_bundle.digest());
+
+    let direct_export = direct_bundle.ml_pipeline_export_json();
+    let wrapped_export = wrapped_bundle.ml_pipeline_export_json();
+    assert_eq!(
+        direct_export["lineage_provenance"]["causality"],
+        wrapped_export["lineage_provenance"]["causality"]
+    );
+    assert_eq!(
+        direct_export["lineage_provenance"]["historical_provenance"],
+        wrapped_export["lineage_provenance"]["historical_provenance"]
+    );
+    assert_eq!(direct_probe.summary, wrapped_probe.summary);
+    assert_eq!(direct_probe.extensions, wrapped_probe.extensions);
+    assert_eq!(direct_probe.summary["failure_digest"], serde_json::Value::Null);
+    assert_eq!(
+        direct_probe.summary["truth_view_digest"],
+        wrapped_probe.summary["truth_view_digest"]
+    );
+    assert_eq!(
+        direct_probe.extensions["bridge_source_certification_bundle"]["source_contract_digest"],
+        wrapped_probe.extensions["bridge_source_certification_bundle"]["source_contract_digest"]
+    );
+    assert_eq!(
+        direct_bundle.suite_25_artifact_json()["routing_digest"],
+        wrapped_bundle.suite_25_artifact_json()["routing_digest"]
+    );
+}
+
+#[test]
+fn pricing_shock_suite_25_through_27_parity_holds_across_source_and_policy_builder_load_orders() {
+    let baseline_profile = ExecutionProfile::development("pricing-load-order-baseline");
+    let (baseline_bundle, baseline_probe) = capture_pricing_bundle_with_harness_profile(
+        BridgeRuntimePolicy::development(),
+        "pricing:load-order",
+        baseline_profile,
+        "pricing-load-order-baseline",
+    );
+
+    let variant_profiles = [
+        ExecutionProfile::development("pricing-load-order-sources-first")
+            .with_metadata("source_builder_load_order", "sources_first"),
+        ExecutionProfile::development("pricing-load-order-sections-canonical")
+            .with_metadata("policy_builder_load_order", "sections_canonical"),
+        ExecutionProfile::development("pricing-load-order-sections-reverse")
+            .with_metadata("policy_builder_load_order", "sections_reverse"),
+        ExecutionProfile::development("pricing-load-order-combined")
+            .with_metadata("source_builder_load_order", "sources_first")
+            .with_metadata("policy_builder_load_order", "sections_reverse"),
+    ];
+
+    for (index, profile) in variant_profiles.into_iter().enumerate() {
+        let (candidate_bundle, candidate_probe) = capture_pricing_bundle_with_harness_profile(
+            BridgeRuntimePolicy::development(),
+            "pricing:load-order",
+            profile,
+            &format!("pricing-load-order-{index}"),
+        );
+
+        assert_eq!(
+            baseline_bundle.suite_25_artifact_json(),
+            candidate_bundle.suite_25_artifact_json()
+        );
+        assert_eq!(
+            baseline_bundle.suite_26_artifact_json(),
+            candidate_bundle.suite_26_artifact_json()
+        );
+        assert_eq!(
+            baseline_bundle.suite_27_artifact_json(),
+            candidate_bundle.suite_27_artifact_json()
+        );
+        assert_eq!(baseline_bundle.digest(), candidate_bundle.digest());
+        assert_eq!(
+            baseline_bundle.trust_attack_matrix_json(),
+            candidate_bundle.trust_attack_matrix_json()
+        );
+        assert_eq!(
+            baseline_bundle.suite_27_artifact_json()["diagnostics_entrypoint_matrix"],
+            candidate_bundle.suite_27_artifact_json()["diagnostics_entrypoint_matrix"]
+        );
+        assert_eq!(
+            baseline_bundle.suite_27_artifact_json()["counter_snapshot"],
+            candidate_bundle.suite_27_artifact_json()["counter_snapshot"]
+        );
+        assert_eq!(baseline_probe.summary, candidate_probe.summary);
+        assert_eq!(baseline_probe.extensions, candidate_probe.extensions);
+        assert_eq!(candidate_probe.summary["failure_digest"], serde_json::Value::Null);
+    }
 }
 
 #[test]

@@ -10,7 +10,7 @@
 //! This file contains NO inline math, data structures, or validation logic.
 
 use forge_core::KernelError;
-use forge_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
+use worth_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
 use forge_topo::handles::VertexId;
 use forge_topo::provenance::{
     LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_SYSTEM,
@@ -263,7 +263,7 @@ pub fn make_cube(
     config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, size, config.config())?;
-    make_convex_solid(forge_geom::cube(center, size / 2.0)?, config)
+    make_convex_solid(worth_geom::cube(center, size / 2.0)?, config)
 }
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
@@ -273,7 +273,7 @@ pub fn make_tetrahedron(
     config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, scale, config.config())?;
-    make_convex_solid(forge_geom::tetrahedron(center, scale)?, config)
+    make_convex_solid(worth_geom::tetrahedron(center, scale)?, config)
 }
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
@@ -283,7 +283,7 @@ pub fn make_dodecahedron(
     config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, scale, config.config())?;
-    make_convex_solid(forge_geom::dodecahedron(center, scale)?, config)
+    make_convex_solid(worth_geom::dodecahedron(center, scale)?, config)
 }
 
 /// Create an axis-aligned block with independent half-extents.
@@ -298,7 +298,7 @@ pub fn make_block(
     for (i, &v) in half_extents.iter().enumerate() {
         validate_dimension(v, &format!("half_extents[{i}]"), config.config())?;
     }
-    make_convex_solid(forge_geom::block(center, half_extents)?, config)
+    make_convex_solid(worth_geom::block(center, half_extents)?, config)
 }
 
 /// Create a regular prism (n-gon extrusion) centered at `center`.
@@ -315,7 +315,7 @@ pub fn make_prism(
     validate_dimension(radius, "radius", config.config())?;
     validate_dimension(height, "height", config.config())?;
     validate_minimum_sides(sides, 3, "prism")?;
-    make_convex_solid(forge_geom::prism(center, sides, radius, height)?, config)
+    make_convex_solid(worth_geom::prism(center, sides, radius, height)?, config)
 }
 
 /// Create a regular pyramid (n-gon base with apex) centered at `center`.
@@ -332,7 +332,7 @@ pub fn make_pyramid(
     validate_dimension(radius, "radius", config.config())?;
     validate_dimension(height, "height", config.config())?;
     validate_minimum_sides(sides, 3, "pyramid")?;
-    make_convex_solid(forge_geom::pyramid(center, sides, radius, height)?, config)
+    make_convex_solid(worth_geom::pyramid(center, sides, radius, height)?, config)
 }
 
 /// Create a wedge (triangular cross-section extrusion) centered at `center`.
@@ -348,7 +348,7 @@ pub fn make_wedge(
     for (i, &v) in dimensions.iter().enumerate() {
         validate_dimension(v, names[i], config.config())?;
     }
-    make_convex_solid(forge_geom::wedge(center, dimensions)?, config)
+    make_convex_solid(worth_geom::wedge(center, dimensions)?, config)
 }
 
 /// Validate that a polygon primitive has enough sides.

@@ -10,7 +10,7 @@
 use crate::integration_tests::harness::shapes;
 
 use crate::geometry::facade::ExactPosition;
-use forge_geom::facade::{CurveKind, SurfaceKind};
+use worth_geom::facade::{CurveKind, SurfaceKind};
 
 // ── Surface completeness ────────────────────────────────────────────────
 
@@ -293,7 +293,7 @@ fn edge_curve_consistency_passes_all_primitives() {
 /// Adversarial: corrupt a curve's origin and verify the validator rejects it.
 #[test]
 fn corrupted_curve_origin_detected_by_validator() {
-    use forge_geom::facade::CurveGeom;
+    use worth_geom::facade::CurveGeom;
     use std::sync::Arc;
 
     let mut env = shapes::unit_cube().unwrap().into_value();
@@ -335,7 +335,7 @@ fn corrupted_curve_origin_detected_by_validator() {
 /// Adversarial: corrupt a curve's direction and verify the validator rejects it.
 #[test]
 fn corrupted_curve_direction_detected_by_validator() {
-    use forge_geom::facade::CurveGeom;
+    use worth_geom::facade::CurveGeom;
     use forge_topo::queries::edge_endpoint_ids;
     use std::sync::Arc;
 

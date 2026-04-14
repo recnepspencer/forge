@@ -4,12 +4,12 @@
 //! into E_old and E_new, and E had an attached 3D curve, the kernel must
 //! subdivide the curve into two segments and assign them to the resulting edges.
 //!
-//! DEPENDENCIES: `geometry` (GeometryStore), `forge-geom` (CurveGeom)
+//! DEPENDENCIES: `geometry` (GeometryStore), `worth-geom` (CurveGeom)
 
 use std::sync::Arc;
 
 use forge_core::KernelError;
-use forge_geom::facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
+use worth_geom::facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
 use forge_topo::handles::EdgeId;
 
 use super::super::data::store::GeometryStore;

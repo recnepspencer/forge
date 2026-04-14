@@ -57,7 +57,7 @@ pub trait ToleranceProvider: std::fmt::Debug {
     ///
     /// For planar edges (Phase 1–2) this is always `global_default()` since
     /// planar edges are implicit plane-plane intersections with no numeric error.
-    /// For curved edges (Phase 4+) this is stored in `forge-geom::CurveGeom`.
+    /// For curved edges (Phase 4+) this is stored in `worth-geom::CurveGeom`.
     ///
     /// Returns `global_default()` when no geometry has been bound to `edge`.
     fn edge_tolerance(&self, edge_index: u32, edge_generation: u32) -> f64;

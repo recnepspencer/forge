@@ -1,12 +1,12 @@
-//! GeometrySource adapter — bridges GeometryStore → forge-math's trait.
+//! GeometrySource adapter — bridges GeometryStore → worth-math's trait.
 //!
-//! DOMAIN: The `GeometrySource` trait (forge-math) maps a bare `usize` index
+//! DOMAIN: The `GeometrySource` trait (worth-math) maps a bare `usize` index
 //! to plane coefficients. This adapter wraps a `GeometryStore` and performs
 //! the index-based scan required by the BSP/implicit vertex layer.
 //!
-//! DEPENDENCIES: `forge-math` (GeometrySource, PlaneCoefficients, MathError)
+//! DEPENDENCIES: `worth-math` (GeometrySource, PlaneCoefficients, MathError)
 
-use forge_math::{GeometrySource, MathError, PlaneCoefficients};
+use worth_math::{GeometrySource, MathError, PlaneCoefficients};
 
 use crate::geometry::data::store::GeometryStore;
 

@@ -4,13 +4,13 @@
 //! analysis and coordinate transforms that P2.4 mandates for operations
 //! at extreme scales.
 //!
-//! DEPENDENCIES: `forge-geom` (LocalCoordinateSpace, ScaleAnalysis),
+//! DEPENDENCIES: `worth-geom` (LocalCoordinateSpace, ScaleAnalysis),
 //! `forge-topo` (TopologyState), GeometryStore, GeometryView.
 //!
 //! INVARIANTS: `transform_geometry` and `restore_geometry` are inverse
 //! operations — calling both is a no-op within floating-point ULP.
 
-use forge_geom::facade::{LocalCoordinateSpace, Plane, ScaleAnalysis};
+use worth_geom::facade::{LocalCoordinateSpace, Plane, ScaleAnalysis};
 use forge_topo::transactions::TopologyState;
 
 use crate::engine::output::solid_envelope::SolidEnvelope;

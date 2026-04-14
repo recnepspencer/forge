@@ -192,7 +192,7 @@ fn collect_expected_overlap_hints(
             None => continue,
         };
 
-        if let Some((p0, p1)) = forge_geom::algorithms::chord::chord_overlap_segment(
+        if let Some((p0, p1)) = worth_geom::algorithms::chord::chord_overlap_segment(
             chord_a, chord_b, config.get_min_edge_length(),
         ) {
             positions.push(p0);

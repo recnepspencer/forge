@@ -2,12 +2,12 @@
 //!
 //! DOMAIN: Thin adapter layer that walks topology (arena + handles)
 //! to collect vertex data, then delegates all computation to pure
-//! math algorithms in `forge_geom`.
+//! math algorithms in `worth_geom`.
 //!
 //! These functions need both `TopologyArena` and `GeometryView`,
-//! which is why they live in `forge-kernel` rather than `forge-geom`.
+//! which is why they live in `forge-kernel` rather than `worth-geom`.
 
-use forge_geom::facade::{compute_polygon_area, distance, polyhedron_centroid, polyhedron_volume};
+use worth_geom::facade::{compute_polygon_area, distance, polyhedron_centroid, polyhedron_volume};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId};
 
@@ -16,7 +16,7 @@ use super::super::contracts::GeometryView;
 // ── Face area ────────────────────────────────────────────────────────────────
 
 /// Compute the area of a face by collecting its vertices and delegating
-/// to `forge_geom::compute_polygon_area`.
+/// to `worth_geom::compute_polygon_area`.
 pub fn face_area(arena: &TopologyArena, geom: &impl GeometryView, face: FaceId) -> f64 {
     let verts = collect_face_positions(arena, geom, face);
     compute_polygon_area(&verts)
@@ -33,7 +33,7 @@ pub fn all_face_areas(arena: &TopologyArena, geom: &impl GeometryView) -> Vec<(F
 // ── Edge length ──────────────────────────────────────────────────────────────
 
 /// Compute the length of an edge by looking up its endpoint positions
-/// and delegating to `forge_geom::distance`.
+/// and delegating to `worth_geom::distance`.
 pub fn edge_length(arena: &TopologyArena, geom: &impl GeometryView, edge: EdgeId) -> Option<f64> {
     let edata = arena.get_edge(edge).ok()?;
     let he = edata.half_edge();
@@ -49,7 +49,7 @@ pub fn edge_length(arena: &TopologyArena, geom: &impl GeometryView, edge: EdgeId
 // ── Solid volume ─────────────────────────────────────────────────────────────
 
 /// Compute the signed volume of a closed solid by collecting all face
-/// vertex lists and delegating to `forge_geom::polyhedron_volume`.
+/// vertex lists and delegating to `worth_geom::polyhedron_volume`.
 pub fn solid_volume(arena: &TopologyArena, geom: &impl GeometryView) -> f64 {
     let face_verts: Vec<Vec<[f64; 3]>> = arena
         .iter_faces()
@@ -62,7 +62,7 @@ pub fn solid_volume(arena: &TopologyArena, geom: &impl GeometryView) -> f64 {
 // ── Solid centroid ───────────────────────────────────────────────────────────
 
 /// Compute the volumetric centroid of a closed solid by collecting all face
-/// vertex lists and delegating to `forge_geom::polyhedron_centroid`.
+/// vertex lists and delegating to `worth_geom::polyhedron_centroid`.
 ///
 /// Returns `None` if the solid has near-zero volume (degenerate).
 pub fn solid_centroid(arena: &TopologyArena, geom: &impl GeometryView) -> Option<[f64; 3]> {

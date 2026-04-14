@@ -261,16 +261,13 @@ pub mod bridge {
             branch_identity: &TruthBranchIdentity,
         ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
             let branch_id = crate::history::data::BranchId(branch_identity.as_str().to_string());
-            let head = self
-                .runtime
-                .history()
-                .branch_head(&branch_id)
-                .ok_or_else(|| {
-                    RelationalBridgeSourceError::new(format!(
-                        "relational runtime has no branch head for `{}`",
-                        branch_identity.as_str()
-                    ))
-                })?;
+            let history = self.runtime.history();
+            let head = history.branch_head(&branch_id).ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "relational runtime has no branch head for `{}`",
+                    branch_identity.as_str()
+                ))
+            })?;
             let envelope = self.runtime.commit_envelope(head.commit_id).ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
                     "relational runtime has no authoritative commit envelope for branch head `{}` on `{}`",

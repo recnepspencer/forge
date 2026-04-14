@@ -95,7 +95,7 @@ fn compute_face_area_via_bounds(
     Ok(total)
 }
 
-/// Area of a triangle via the canonical forge-geom implementation.
+/// Area of a triangle via the canonical worth-geom implementation.
 fn triangle_area(a: &[f64; 3], b: &[f64; 3], c: &[f64; 3]) -> f64 {
-    forge_geom::facade::triangle_area_3d(a, b, c)
+    worth_geom::facade::triangle_area_3d(a, b, c)
 }

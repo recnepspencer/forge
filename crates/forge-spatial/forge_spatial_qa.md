@@ -8,7 +8,7 @@ Bridge crate: needs **both** topology handles and geometry math. Anything requir
 
 ## Boundary Rules (every file, every PR)
 
-- [ ] **No upward imports.** Depends on `forge-topo`, `forge-geom`, `forge-math`, `forge-core`. Never `forge-kernel`.
+- [ ] **No upward imports.** Depends on `forge-topo`, `worth-geom`, `worth-math`, `forge-core`. Never `forge-kernel`.
 - [ ] **Read-only topology.** Every function takes `&TopologyArena`. Zero `&mut` refs — this crate classifies and measures, never mutates.
 - [ ] **Positions via callbacks.** All vertex coordinates come through `Fn(VertexId) -> Option<[f64; 3]>` closures. Never import `GeometryState` or `ExactPosition`.
 - [ ] **Tolerances via `&dyn ToleranceProvider`.** No `const EPS`, no `1e-8`, no hardcoded thresholds. If a function needs a tolerance, it accepts it as a parameter.
@@ -21,7 +21,7 @@ Bridge crate: needs **both** topology handles and geometry math. Anything requir
 ## Classification — Invariants
 
 - [ ] **Boundary proximity is checked BEFORE ray casting.** Point-on-face pre-pass must catch boundary-contact cases before SoS perturbation can corrupt them.
-- [ ] **Orientation predicates come from `forge-math`.** All [orient2d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#17-40)/[orient3d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#41-85) calls use the certified predicates. No raw `f64` cross products or `> 0.0` orientation checks (D3).
+- [ ] **Orientation predicates come from `worth-math`.** All [orient2d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#17-40)/[orient3d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#41-85) calls use the certified predicates. No raw `f64` cross products or `> 0.0` orientation checks (D3).
 - [ ] **SoS is purely symbolic.** Simulation of Simplicity resolves exact-zero orientations via sign-of-coefficient analysis. No floating-point epsilon is ever added to coordinates.
 - [ ] **SoS never produces `Zero`.** The cascade must always terminate with a definite sign. If a code path can return `Zero` from SoS, it's broken.
 - [ ] **Per-entity tolerances.** Vertex proximity uses [vertex_tolerance(v)](file:///Users/spenstar/Documents/programming/Forge/crates/forge-core/src/tolerance.rs#101-104), edge proximity uses [edge_tolerance(e)](file:///Users/spenstar/Documents/programming/Forge/crates/forge-core/src/tolerance.rs#105-108). Never a single global tolerance for both entity types.
@@ -70,7 +70,7 @@ Bridge crate: needs **both** topology handles and geometry math. Anything requir
 | Hardcoded tolerance (`1e-10`, `const EPS`) | D2/D4 violation | Accept via [ToleranceProvider](file:///Users/spenstar/Documents/programming/Forge/crates/forge-core/src/tolerance.rs#39-73) or `f64` param |
 | `HashMap` for visited-face/shell tracking | Non-deterministic (D1) | `BTreeSet` or `EntityBitset` |
 | Importing `GeometryState` or `ExactPosition` | Wrong layer — positions come via callbacks | `Fn(VertexId) -> Option<[f64; 3]>` |
-| Raw `f64 < f64` for orientation | D3 firewall violation | [orient2d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#17-40)/[orient3d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#41-85) from `forge-math` |
+| Raw `f64 < f64` for orientation | D3 firewall violation | [orient2d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#17-40)/[orient3d](file:///Users/spenstar/Documents/programming/Forge/crates/forge-spatial/src/classify/sos.rs#41-85) from `worth-math` |
 | Face normal from `GeometryState::get_face_plane` | Wrong layer | Compute Newell normal from vertex positions |
 | `unwrap()` in non-test code | Panic-free zone | `?` or `ok_or_else` |
 | Integrity check silently fixes instead of reporting | Violates envelope contract | Return `TopologyError` variant |

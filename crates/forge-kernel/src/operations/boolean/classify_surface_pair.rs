@@ -1,16 +1,16 @@
 //! Classify the geometric relationship between two surfaces.
 //!
 //! DOMAIN: Surface pair classification — coincident, disjoint, tangent,
-//! or general intersection. Wraps forge-geom plane classification so the
+//! or general intersection. Wraps worth-geom plane classification so the
 //! result is always a `SurfacePairClass`, never a raw f64 comparison.
 //!
 //! POLICY REQUIREMENTS: CoincidentGeometry, NearTangency (declared in step contract).
 //! These are validated by `OperationPipeline::run_step` before this runs.
 //!
-//! DEPENDENCIES: forge-geom (Plane), forge-core (KernelError)
+//! DEPENDENCIES: worth-geom (Plane), forge-core (KernelError)
 
 use forge_core::KernelError;
-use forge_geom::facade::Plane;
+use worth_geom::facade::Plane;
 
 /// Geometric relationship between two surface planes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,7 +45,7 @@ pub fn classify_surface_pair(
     let na = plane_a.normal();
     let nb = plane_b.normal();
 
-    let (sin_angle, dot) = forge_geom::facade::dihedral_sine(&na, &nb);
+    let (sin_angle, dot) = worth_geom::facade::dihedral_sine(&na, &nb);
     let abs_dot = dot.abs();
 
     if sin_angle < tangency_tol {

@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Data shapes for point-in-solid and point-on-face results.
 
-use forge_geom::{Aabb, BvhNode};
+use worth_geom::{Aabb, BvhNode};
 use forge_topo::handles::FaceId;
 
 /// Result of classifying a point relative to a solid's boundary.
@@ -10,11 +10,11 @@ use forge_topo::handles::FaceId;
 pub enum PointClassification {
     /// Point is strictly inside the solid.
     Inside {
-        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+        escalation: Option<worth_math::arithmetic::precision::PrecisionEscalation>,
     },
     /// Point is strictly outside the solid.
     Outside {
-        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+        escalation: Option<worth_math::arithmetic::precision::PrecisionEscalation>,
     },
     /// Point lies exactly on a boundary face.
     OnBoundary(FaceId),

@@ -11,7 +11,7 @@
 //!   4. Mesh — combined halfedge mesh from cells (mesh.rs)
 //!   5. Finalize — wrap in BooleanResult + OperationResult envelope
 //!
-//! DEPENDENCIES: forge-geom (BspSolid, merge_bsp, convex_to_bsp),
+//! DEPENDENCIES: worth-geom (BspSolid, merge_bsp, convex_to_bsp),
 //!               mesh.rs (bsp_to_mesh), ModelingContext, OperationResult
 
 use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
@@ -41,8 +41,8 @@ impl From<KernelError> for EmberError {
     }
 }
 
-impl From<forge_math::MathError> for EmberError {
-    fn from(e: forge_math::MathError) -> Self {
+impl From<worth_math::MathError> for EmberError {
+    fn from(e: worth_math::MathError) -> Self {
         EmberError::PipelineError(KernelError::from(e))
     }
 }

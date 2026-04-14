@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Build BVH trees, detect overlapping face pairs, propose which faces
 //!   need to be cut by which planes, and supplement any missed cuts.
-//! DEPENDENCIES: schema (PlaneTable), GeometryState, forge_geom BVH, gate.
+//! DEPENDENCIES: schema (PlaneTable), GeometryState, worth_geom BVH, gate.
 //! INVARIANTS: All functions are read-only over topology — no mutation.
 
 use std::collections::BTreeMap;

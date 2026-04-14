@@ -39,7 +39,7 @@ fn bench_gap_measurement(c: &mut Criterion) {
         geom_a.get_vertex_position(v).copied()
     };
     let plane_fn =
-        |f: forge_topo::handles::FaceId| -> Option<forge_geom::primitives::plane::Plane> {
+        |f: forge_topo::handles::FaceId| -> Option<worth_geom::primitives::plane::Plane> {
             geom_b.get_face_plane(f).cloned()
         };
 

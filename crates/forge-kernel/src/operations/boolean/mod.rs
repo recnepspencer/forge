@@ -16,7 +16,7 @@
 //! - Result satisfies Euler's formula (V − E + F = 2)
 //! - Each pipeline phase declares its `StepContract` (policies, precision sensitivity)
 //!
-//! DEPENDENCIES: `forge-geom` (planes, predicates), `forge-topo` (arena, operators),
+//! DEPENDENCIES: `worth-geom` (planes, predicates), `forge-topo` (arena, operators),
 //!               `geometry_state` (GeometryState), `mesh_builder` (mesh construction)
 //!
 //! FILES:

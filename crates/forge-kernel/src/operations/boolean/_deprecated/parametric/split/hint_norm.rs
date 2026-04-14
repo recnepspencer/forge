@@ -30,7 +30,7 @@ pub(super) fn localize_expected_hint(
     }
 
     for iv in &hint.intervals {
-        if let Some((p0, p1)) = forge_geom::algorithms::chord::chord_overlap_segment(
+        if let Some((p0, p1)) = worth_geom::algorithms::chord::chord_overlap_segment(
             face_chord,
             (iv.p0, iv.p1),
             min_len,
@@ -60,15 +60,15 @@ fn normalize_intervals(
     let mut out: Vec<ExpectedCutInterval> = Vec::new();
 
     'outer: for mut iv in intervals {
-        if forge_math::linalg::distance_sq(iv.p0, iv.p1) <= tol_sq {
+        if worth_math::linalg::distance_sq(iv.p0, iv.p1) <= tol_sq {
             continue;
         }
         canonicalize_interval(&mut iv);
         for existing in &out {
-            let same_dir = (forge_math::linalg::distance_sq(iv.p0, existing.p0) <= tol_sq
-                && forge_math::linalg::distance_sq(iv.p1, existing.p1) <= tol_sq)
-                || (forge_math::linalg::distance_sq(iv.p0, existing.p1) <= tol_sq
-                    && forge_math::linalg::distance_sq(iv.p1, existing.p0) <= tol_sq);
+            let same_dir = (worth_math::linalg::distance_sq(iv.p0, existing.p0) <= tol_sq
+                && worth_math::linalg::distance_sq(iv.p1, existing.p1) <= tol_sq)
+                || (worth_math::linalg::distance_sq(iv.p0, existing.p1) <= tol_sq
+                    && worth_math::linalg::distance_sq(iv.p1, existing.p0) <= tol_sq);
             if same_dir {
                 continue 'outer;
             }
@@ -83,15 +83,15 @@ fn normalize_intervals(
 fn canonicalize_interval(iv: &mut ExpectedCutInterval) {
     let a = iv.p0;
     let b = iv.p1;
-    if forge_math::linalg::compare_points_lex(&a, &b).is_gt() {
+    if worth_math::linalg::compare_points_lex(&a, &b).is_gt() {
         iv.p0 = b;
         iv.p1 = a;
     }
 }
 
 fn interval_sort_key(a: &ExpectedCutInterval, b: &ExpectedCutInterval) -> std::cmp::Ordering {
-    forge_math::linalg::compare_points_lex(&a.p0, &b.p0)
-        .then_with(|| forge_math::linalg::compare_points_lex(&a.p1, &b.p1))
+    worth_math::linalg::compare_points_lex(&a.p0, &b.p0)
+        .then_with(|| worth_math::linalg::compare_points_lex(&a.p1, &b.p1))
 }
 
 

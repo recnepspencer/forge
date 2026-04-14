@@ -3,7 +3,7 @@
 //! DOMAIN: Self-contained, serializable topological sub-region for
 //! standalone test case reproduction and causal debugging.
 //!
-//! DEPENDENCIES: `forge-topo` (handles, arena), `forge-geom` (Plane), serde
+//! DEPENDENCIES: `forge-topo` (handles, arena), `worth-geom` (Plane), serde
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -11,7 +11,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_geom::facade::Plane;
+use worth_geom::facade::Plane;
 use forge_topo::b_rep::EntityBitset;
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};

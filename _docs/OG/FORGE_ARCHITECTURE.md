@@ -57,7 +57,7 @@ PERSISTENCE & INTERFACE
 KERNEL                     │
 ┌──────────────────────────┼──────────────────────────────┐
                   ┌──────────────────────┐
-                  │      forge-math      │ (Predicates, exact math)
+                  │      worth-math      │ (Predicates, exact math)
                   └─────┬──────────┬─────┘
                         │          │
                   ┌─────▼──────────▼─────┐
@@ -67,7 +67,7 @@ KERNEL                     │
    ┌────────────────────┼──────────┼────────────────────┐
    │                    │          │                    │
 ┌──▼─────────┐   ┌──────▼───┐  ┌───▼──────┐   ┌─────────▼──┐
-│forge-signal│   │forge-topo◄──►forge-geom│   │forge-schema│
+│forge-signal│   │forge-topo◄──►worth-geom│   │forge-schema│
 └──┬─────────┘   └──────┬───┘  └──┬───────┘   └─────────┬──┘
    │                    │          │                    │
    │                    │  ┌───────▼─────┐              │
@@ -90,7 +90,7 @@ the kernel. Nothing in the kernel knows about persistence or UI.
 
 # 4. Foundation Crates
 
-## 4.1 forge-math
+## 4.1 worth-math
 
 The leaf crate. No internal dependencies.
 
@@ -165,7 +165,7 @@ precision floats with a hard fuel cap — never BigInt rationals.
 ```rust
 pub enum TriSign { Neg, Zero, Pos }
 
-/// Only constructible inside forge-math. Topology functions accept ONLY this.
+/// Only constructible inside worth-math. Topology functions accept ONLY this.
 pub struct CertifiedTriSign(pub(crate) TriSign);
 
 /// Interval with tracked error bounds
@@ -229,7 +229,7 @@ pub struct PrecisionCertificate {
 exist, how edges link them, how loops bound faces. Knows _nothing_ about
 where things are in space.
 
-**Depends on:** `forge-math` (for hashing only, not predicates)
+**Depends on:** `worth-math` (for hashing only, not predicates)
 
 **Core types (✔ exists, partially implemented):**
 
@@ -281,7 +281,7 @@ pub struct LoopId(pub(crate) thunderdome::Index);
 pub struct FaceData {
     pub outer_loop: LoopId,
     pub inner_loops: SmallVec<[LoopId; 2]>,  // holes in the face
-    pub surface: SurfaceRef,                  // → forge-geom (opaque ID)
+    pub surface: SurfaceRef,                  // → worth-geom (opaque ID)
     pub lineage: Lineage,
 }
 
@@ -289,14 +289,14 @@ pub struct FaceData {
 /// Owns only topological connectivity — the representative HalfEdgeId.
 ///
 /// Geometric edge data (3D curve + tolerance tube) lives in
-/// `forge-geom::CurveGeom`, mirroring how `VertexGeom` holds vertex
+/// `worth-geom::CurveGeom`, mirroring how `VertexGeom` holds vertex
 /// positions and tolerance spheres. `EdgeData` holds an opaque `CurveRef`
 /// only as a cross-crate lookup key — it does NOT own or compare f64 values.
 pub struct EdgeData {
     pub halfedge: HalfEdgeId,   // one halfedge in the radial ring (entry point)
-    pub curve: Option<CurveRef>,// opaque ID → forge-geom::CurveGeom (None = planar)
+    pub curve: Option<CurveRef>,// opaque ID → worth-geom::CurveGeom (None = planar)
     pub lineage: Lineage,
-    // NO tolerance here. Tube radius lives in forge-geom::CurveGeom.tolerance.
+    // NO tolerance here. Tube radius lives in worth-geom::CurveGeom.tolerance.
 }
 
 /// The directed 2D boundary. Each Edge has a ring of HalfEdges linked
@@ -330,15 +330,15 @@ pub struct LoopData {
 **Key design: vertices have no coordinates, edges have no curves (in topology).**
 For planar geometry, a vertex's position is the intersection of 3+ planes —
 computed on demand from the original plane coefficients. For curved geometry,
-a vertex's position is stored in `forge-geom::VertexGeom` (with a tolerance
+a vertex's position is stored in `worth-geom::VertexGeom` (with a tolerance
 sphere), and an edge's 3D curve geometry + tolerance tube are stored in
-`forge-geom::CurveGeom`. `forge-topo` holds only opaque `CurveRef` handles
+`worth-geom::CurveGeom`. `forge-topo` holds only opaque `CurveRef` handles
 — it never stores, reads, or compares `f64` geometry values.
 
-**Geometry mirror types in forge-geom:**
+**Geometry mirror types in worth-geom:**
 
 ```rust
-// forge-geom — mirrors VertexGeom for edges
+// worth-geom — mirrors VertexGeom for edges
 pub struct CurveGeom {
     /// The 3D curve parametric definition (None = planar implicit intersection)
     pub kind: Option<CurveKind>,
@@ -414,12 +414,12 @@ The kernel is **2-manifold by default, NMT-aware by data structure**.
 
 ---
 
-## 4.3 forge-geom
+## 4.3 worth-geom
 
 **Purpose:** All geometry. Surfaces, curves, intersections, evaluation. This
 is the most complex crate and where the hybrid pipeline lives.
 
-**Depends on:** `forge-math`
+**Depends on:** `worth-math`
 
 **This crate does NOT depend on forge-topo.** Geometry doesn't know about
 halfedges. It provides surfaces and curves that topology _references_ via
@@ -723,7 +723,7 @@ is organized by how hard it is:
 
 **Purpose:** This crate holds the foundation layer for operation orchestration, observability, and policy enforcement. Commercial kernels are black boxes; they make thousands of silent tolerance decisions during a Boolean operation. When they fail, you cannot know why. `forge-core` exists to make every decision visible, replayable, and governed by explicit policy.
 
-**Depends on:** `forge-math`
+**Depends on:** `worth-math`
 
 ### OperationScope and DecisionSink
 
@@ -1624,17 +1624,17 @@ What gets built first, what depends on what, and why.
 
 | Crate           | Dependency                                                                                  | Role |
 | --------------- | ------------------------------------------------------------------------------------------- | ---- |
-| `forge-math`    | Exact predicates (BigInt / Shewchuk), exact rational numbers, matrices. Zero deps.          |
+| `worth-math`    | Exact predicates (BigInt / Shewchuk), exact rational numbers, matrices. Zero deps.          |
 | `forge-core`    | Foundation. Tracing, policy, errors, operation envelopes, `OperationScope`, `DecisionSink`. |
 | `forge-topo`    | Immutable half-edge data structure, undo/redo transactions, Euler operators. Generational.  |
-| `forge-geom`    | Surface types, curve types, tolerance coalescence, Coedges.                                 |
+| `worth-geom`    | Surface types, curve types, tolerance coalescence, Coedges.                                 |
 | `forge-spatial` | Bounding Volume Hierarchies (BVH), AABB trees, fast point-in-solid classification.          |
 | `forge-signal`  | Reactive dependency graph. Smart invalidation, evaluation scheduling.                       |
 | `forge-kernel`  | The Boolean algorithms that combine all the above. The actual orchestrator.                 |
 | `forge-persist` | JSON serialization of the spec graph, semantic git merge driver.                            |
 | `forge-io`      | STEP / IGES / 3MF / STL import and export.                                                  |
 
-Note: `forge-topo` and `forge-geom` are siblings, not parent-child. They
+Note: `forge-topo` and `worth-geom` are siblings, not parent-child. They
 communicate through opaque IDs. `forge-kernel` is the first crate that
 combines them.
 
@@ -1642,7 +1642,7 @@ combines them.
 
 ### Phase 1: Math + Planar Topology
 
-Build `forge-math` (predicates, filtered pipeline) and `forge-topo` (halfedge
+Build `worth-math` (predicates, filtered pipeline) and `forge-topo` (halfedge
 mesh, Euler operators, immutable state). At the end of this phase you can
 construct a cube from 6 planes and validate its topology.
 
@@ -1670,7 +1670,7 @@ affected parts recompute. You can commit the spec to git.
 
 ### Phase 4: Geometry Store + Analytic Surfaces
 
-Build `forge-geom` (surface hierarchy, geometry store, analytic surfaces).
+Build `worth-geom` (surface hierarchy, geometry store, analytic surfaces).
 Implement coedges, tolerant vertices, analytic arbitration. At the end of
 this phase the data structures for curved geometry exist.
 
@@ -1851,7 +1851,7 @@ easy to conflate but must never be mixed:
 
 | Concept                     | Type                                | Home                              | Meaning                                                                    |
 | --------------------------- | ----------------------------------- | --------------------------------- | -------------------------------------------------------------------------- |
-| **Geometric uncertainty**   | `f64` on `VertexGeom` / `CurveGeom` | `forge-geom`                      | "How accurately does the kernel know where this point is, mathematically?" |
+| **Geometric uncertainty**   | `f64` on `VertexGeom` / `CurveGeom` | `worth-geom`                      | "How accurately does the kernel know where this point is, mathematically?" |
 | **Specification tolerance** | `ToleranceZone` (PMI)               | `forge-schema` / `AttributeStore` | "How much deviation from nominal is acceptable for manufacturing?"         |
 
 The first is a _kernel_ property — it's about floating-point error bounds and

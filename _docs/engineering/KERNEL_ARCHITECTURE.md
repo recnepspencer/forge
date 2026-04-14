@@ -33,12 +33,12 @@
 ## 2. Crate Layering
 
 ```
-forge-math          Pure math: Rational, linalg, orient3d
+worth-math          Pure math: Rational, linalg, orient3d
     ↓
 forge-core          Shared types: errors, policy, tracing, envelope, tolerance
     ↓               TracedDecision, DecisionLog, DecisionId (proof substrate)
     ↓              ↘
-forge-geom          forge-topo    Topology: arena, handles, state, draft, lineage, attributes
+worth-geom          forge-topo    Topology: arena, handles, state, draft, lineage, attributes
 Geometry solvers        ↓         ReplayLog, LineageEvent, OpSignature (operation history)
     ↓           forge-spatial     Spatial queries: point-in-solid, AABB bounds, geometric validation
     ↘               ↘             integrity/ (gap, sliver, area, volume), classify/ (dual-path)
@@ -54,7 +54,7 @@ forge-test          Integration tests
 
 - Lower crates never import higher crates
 - `forge-core` defines shared _types_ (errors, policy, tracing schemas) — no geometry, no topology
-- `forge-topo` owns the connectivity graph and all entity metadata (lineage, naming, attributes) — **no `forge-geom` dependency**
+- `forge-topo` owns the connectivity graph and all entity metadata (lineage, naming, attributes) — **no `worth-geom` dependency**
 - `forge-spatial` is the exclusive home for functions that need **both** topology handles and geometry math
 - `forge-kernel` owns domain logic, stores, and the feature pipeline
 - `&dyn ToleranceProvider` and `&dyn GeometrySource` cross the crate boundary cleanly (D3 firewall)
@@ -63,8 +63,8 @@ forge-test          Integration tests
 
 `forge-spatial` is a bridge crate introduced to fix a layering violation: spatial
 queries (point-in-solid classification, AABB bounds, geometric invariant validation)
-require both topology handles (`FaceId`, `VertexId`) and geometry math (`forge-geom`).
-Putting them in `forge-topo` would create an upward dependency on `forge-geom`,
+require both topology handles (`FaceId`, `VertexId`) and geometry math (`worth-geom`).
+Putting them in `forge-topo` would create an upward dependency on `worth-geom`,
 which is forbidden.
 
 **What lives in `forge-spatial`:**
@@ -100,7 +100,7 @@ completely different concerns.
 
 **`grid_scale` threading:** `ToleranceConfig::get_spatial_hash_grid_scale()` (default `1e6`,
 defined in `core::config::defaults::SPATIAL_HASH_GRID_SCALE`) is passed as an
-explicit `f64` parameter to `forge_math::linalg::compute_spatial_hash` via
+explicit `f64` parameter to `worth_math::linalg::compute_spatial_hash` via
 `forge_topo::ordering::compute_entity_spatial_hash(position, grid_scale)`. No
 hardcoded constants anywhere below the kernel (D4: No Hardcoded Globals).
 
@@ -431,7 +431,7 @@ Side-car storage mapping topology handles to geometric meaning:
 
 **Key design decisions:**
 
-- Implements `GeometrySource` (from `forge-math`) so `forge-geom` solvers
+- Implements `GeometrySource` (from `worth-math`) so `worth-geom` solvers
   can query planes without importing `GeometryState`
 - Implements `ToleranceProvider` with ISO 10303-42 scale-aware defaults
 - `GeometryView` trait abstracts over both `GeometryState` (immutable snapshot)
@@ -913,7 +913,7 @@ the step library grows, each step gets its own file in `operations/shared_steps/
 
 #### `shared_ops/` — Pure Algorithmic Utilities
 
-Cross-operation algorithms that are too high-level for `forge-geom`/`forge-topo`
+Cross-operation algorithms that are too high-level for `worth-geom`/`forge-topo`
 but shared across multiple features. These are **not** pipeline steps — they are
 pure functions or small structs with no step contract, no audit, no tracing.
 
@@ -1135,7 +1135,7 @@ forge-kernel/src/
 - **DO:** Pass `&ResolvedConfig` to functions that need tolerance values
 - **DON'T:** Pass `&mut KernelConfig` — config is immutable during execution
 - **DO:** Copy `f64` values to stack locals before hot loops
-- **DO:** Destructure `ResolvedConfig` into individual `f64` params at the `forge-geom`/`forge-topo` boundary
+- **DO:** Destructure `ResolvedConfig` into individual `f64` params at the `worth-geom`/`forge-topo` boundary
 - **DON'T:** Import `ResolvedConfig` in lower crates
 
 ### Logging
@@ -1268,7 +1268,7 @@ algorithms. A failure in one layer does not invalidate the others.
 | ----- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------- |
 | 1     | Topological Invariants    | `forge-topo` + `forge-kernel/proof/`    | Euler formula, manifoldness, orientation, loop closure           |
 | 2     | Dual-Path Verification    | `forge-spatial/classify/`               | Independent algorithm agreement (ray casting vs. winding number) |
-| 3     | Redundant Numerical Modes | `forge-math` + `forge-kernel` (policy)  | Float vs. interval vs. rational result comparison                |
+| 3     | Redundant Numerical Modes | `worth-math` + `forge-kernel` (policy)  | Float vs. interval vs. rational result comparison                |
 | 4     | Causal Replay & Witnesses | `forge-kernel/proof/`                   | Decision trace queries, counterfactual replay, region extraction |
 | 5     | Self-Consistency Fuzzing  | `forge-kernel/proof/tests/` (MB series) | Algebraic identity testing at scale (A∪B=B∪A, A∩∅=∅)             |
 

@@ -11,10 +11,10 @@
 //!
 //! POLICY REQUIREMENTS: NearTangency (declared in step contract).
 //!
-//! DEPENDENCIES: forge-topo (handles, arena), forge-geom (Plane)
+//! DEPENDENCIES: forge-topo (handles, arena), worth-geom (Plane)
 
 use forge_core::KernelError;
-use forge_geom::facade::Plane;
+use worth_geom::facade::Plane;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId};
 
@@ -115,7 +115,7 @@ fn classify_dihedral(
 ) -> Result<EdgeConvexity, KernelError> {
     let na = plane_a.normal();
     let nb = plane_b.normal();
-    let (sin_angle, dot) = forge_geom::facade::dihedral_sine(&na, &nb);
+    let (sin_angle, dot) = worth_geom::facade::dihedral_sine(&na, &nb);
 
     if sin_angle < tangency_tol {
         return Ok(EdgeConvexity::Smooth);

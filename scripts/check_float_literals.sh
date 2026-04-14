@@ -9,7 +9,7 @@
 #   - Deprecated code: */_deprecated/*
 #   - Tolerance definitions: forge-core/src/tolerance.rs
 #   - Doc comments: lines starting with ///  or //!
-#   - forge-math (pure math library, no tolerance concerns)
+#   - worth-math (pure math library, no tolerance concerns)
 #
 # Exit code 0 = clean, 1 = violations found.
 
@@ -25,7 +25,7 @@ violations=$(
     -not -path '*/tests.rs' \
     -not -name '*_tests.rs' \
     -not -name '*_test.rs' \
-    -not -path '*/forge-math/*' \
+    -not -path '*/worth-math/*' \
     -not -path '*/tolerance.rs' \
     -not -path '*/testing/*' \
     -not -path '*/target/*' \

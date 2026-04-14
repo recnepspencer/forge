@@ -19,13 +19,13 @@
 use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
 use forge_core::{DecisionId, ToleranceProvider};
-use forge_math::arithmetic::precision::{PrecisionEscalation, PrecisionMode};
+use worth_math::arithmetic::precision::{PrecisionEscalation, PrecisionMode};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::configuration::facade::{ResolvedConfig, ToleranceConfig};
 use crate::geometry::facade::GeometryView;
-use forge_geom::facade::{BvhNode, Plane};
+use worth_geom::facade::{BvhNode, Plane};
 
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 use crate::operations::boolean::counterfactual::CounterfactualOverrides;

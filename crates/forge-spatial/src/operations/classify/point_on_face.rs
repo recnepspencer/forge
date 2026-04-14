@@ -6,14 +6,14 @@
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, FaceEdgeIterator),
 //!               forge-core (KernelError, ToleranceProvider),
-//!               forge-geom (dominant_projection_axes, scanline_edge_crossing).
+//!               worth-geom (dominant_projection_axes, scanline_edge_crossing).
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::{
+use worth_geom::{
     dominant_projection_axes, resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
 };
-use forge_math::predicates::orient2d;
-use forge_math::sign::TriSign;
+use worth_math::predicates::orient2d;
+use worth_math::sign::TriSign;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
@@ -134,7 +134,7 @@ fn point_in_projected_polygon(
 ) -> Result<
     (
         bool,
-        Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+        Option<worth_math::arithmetic::precision::PrecisionEscalation>,
     ),
     KernelError,
 > {
@@ -148,7 +148,7 @@ fn point_in_projected_polygon(
     let hit_v = hit[v_axis];
 
     let mut winding: i32 = 0;
-    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
+    let mut max_escalation: Option<worth_math::arithmetic::precision::PrecisionEscalation> = None;
 
     for i in 0..n {
         let j = (i + 1) % n;

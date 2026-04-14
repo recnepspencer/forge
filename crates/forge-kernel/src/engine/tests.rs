@@ -15,7 +15,7 @@ use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceEvent;
 use forge_core::KernelError;
 use forge_core::PolicyKind;
-use forge_geom::facade::LocalCoordinateSpace;
+use worth_geom::facade::LocalCoordinateSpace;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 use forge_signal::facade::{EvaluationCondition, NodeId};

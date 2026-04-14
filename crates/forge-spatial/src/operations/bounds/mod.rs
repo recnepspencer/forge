@@ -3,7 +3,7 @@
 //! DOMAIN: AABB aggregation over faces, shells, regions, lumps, and bodies.
 //!         Vertex proximity and coincidence detection for mesh construction.
 //!
-//! DEPENDENCIES: forge-topo (arena, handles, traversal), forge-geom (Aabb, point predicates).
+//! DEPENDENCIES: forge-topo (arena, handles, traversal), worth-geom (Aabb, point predicates).
 //! INVARIANTS: No topology mutation. Returns Ok(None) when no vertex positions present.
 
 pub mod distance;

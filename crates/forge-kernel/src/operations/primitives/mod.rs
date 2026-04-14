@@ -9,7 +9,7 @@
 //! - Every edge has a twin (manifold)
 //! - All inputs validated (no NaN, Inf, or ≤0 dimensions)
 //!
-//! DEPENDENCIES: forge-geom (shapes, BSP, ConvexCell, Plane),
+//! DEPENDENCIES: worth-geom (shapes, BSP, ConvexCell, Plane),
 //!               forge-topo (arena, operators), geometry (GeometryStore),
 //!               configuration (ResolvedConfig)
 

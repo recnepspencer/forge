@@ -5,9 +5,9 @@
 //! PV-24: Near-degenerate inputs — interval correctly reports inconclusive where
 //!        the f64 fast-path silently chooses a sign.
 
-use forge_math::arithmetic::precision::PrecisionMode;
-use forge_math::predicates::orient3d::orient3d;
-use forge_math::sign::TriSign;
+use worth_math::arithmetic::precision::PrecisionMode;
+use worth_math::predicates::orient3d::orient3d;
+use worth_math::sign::TriSign;
 
 /// Deterministic LCG for reproducible random inputs.
 /// Period: 2^64, full cycle. Constants from Knuth MMIX.

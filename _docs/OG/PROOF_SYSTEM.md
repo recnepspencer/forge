@@ -495,7 +495,7 @@ MB-D6: Scale-extreme: 1e12 block ∪ 1e-6 cylinder — dual-path functions acros
 
 **Duration target:** 3–4 weeks
 **Goal:** Build the infrastructure to run the same geometric decision through multiple numerical precision modes and detect when float-precision results diverge from exact results. This catches the most insidious class of bug: numerically plausible but mathematically wrong decisions.
-**Crate:** `forge-math` + `forge-geom` + `forge-kernel`
+**Crate:** `worth-math` + `worth-geom` + `forge-kernel`
 **Depends on:** Phase P0, existing `CertifiedTriSign` + exact predicates
 **Unlocks:** Phase P3, MB-N series
 
@@ -512,7 +512,7 @@ MB-D6: Scale-extreme: 1e12 block ∪ 1e-6 cylinder — dual-path functions acros
 
 ### Milestone P2.1 — Interval Arithmetic Core 🔴
 
-**What:** Add interval arithmetic to `forge-math` as a runtime precision mode between float and rational.
+**What:** Add interval arithmetic to `worth-math` as a runtime precision mode between float and rational.
 
 **Implementation:**
 

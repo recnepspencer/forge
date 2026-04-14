@@ -10,7 +10,7 @@
 //!   - Exactly ONE cut pair is applied per call.
 
 use forge_core::KernelError;
-use forge_math::linalg::{plane_cut_direction, sort_points_along_direction};
+use worth_math::linalg::{plane_cut_direction, sort_points_along_direction};
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::transactions::MutableDraft;
 

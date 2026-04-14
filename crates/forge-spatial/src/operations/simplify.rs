@@ -118,15 +118,15 @@ where
     let p_a = position_fn(target_a)?;
     let p_b = position_fn(target_b)?;
 
-    let v_va = forge_math::linalg::sub(p_a, p_v);
-    let v_vb = forge_math::linalg::sub(p_b, p_v);
-    let len_a = forge_math::linalg::norm(v_va);
-    let len_b = forge_math::linalg::norm(v_vb);
+    let v_va = worth_math::linalg::sub(p_a, p_v);
+    let v_vb = worth_math::linalg::sub(p_b, p_v);
+    let len_a = worth_math::linalg::norm(v_va);
+    let len_b = worth_math::linalg::norm(v_vb);
     if len_a < min_edge_length || len_b < min_edge_length {
         return None;
     }
 
-    let dot = forge_math::linalg::dot(v_va, v_vb) / (len_a * len_b);
+    let dot = worth_math::linalg::dot(v_va, v_vb) / (len_a * len_b);
     if (dot + 1.0).abs() < collinearity_dot_tolerance {
         Some(e1_data.radial_next())
     } else {

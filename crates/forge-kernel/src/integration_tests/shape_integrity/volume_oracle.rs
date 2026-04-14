@@ -3,7 +3,7 @@
 //! DOMAIN: Uses volume as an independent oracle to verify that topology
 //! mutations preserve geometric integrity. The divergence theorem volume
 //! `V = (1/6) Σ det([v1, v2, v3])` is computed through the production
-//! `solid_volume` pipeline (forge-kernel geometry facade → forge-geom
+//! `solid_volume` pipeline (forge-kernel geometry facade → worth-geom
 //! polyhedron_volume). Tests assert volume invariance across Euler
 //! operator chains, catching geometry corruption that topology validators
 //! alone cannot detect.

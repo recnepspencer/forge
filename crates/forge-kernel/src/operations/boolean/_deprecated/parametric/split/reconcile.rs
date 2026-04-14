@@ -21,7 +21,7 @@ use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::queries::edge_endpoint_ids;
 use forge_topo::transactions::MutableDraft;
-use forge_math::linalg::distance_sq;
+use worth_math::linalg::distance_sq;
 
 use super::schema::LocalVertexDedup;
 use crate::geometry_state::GeometryState;
@@ -301,7 +301,7 @@ fn inject_orphans_into_solid(
 
 /// Locate which edge on the solid contains the given point.
 ///
-/// Walks all half-edges and uses `point_on_segment` from forge-geom.
+/// Walks all half-edges and uses `point_on_segment` from worth-geom.
 /// Returns the half-edge ID and parametric t value (0..1) along the edge.
 fn locate_edge_for_vertex(
     draft: &MutableDraft,
@@ -389,4 +389,4 @@ fn find_coincident_endpoint(
 }
 
 // dist_sq_3d, find_nearest_vertex_distance, and find_nearest_edge_distance
-// have been removed. Use forge_math::linalg::distance_sq directly.
+// have been removed. Use worth_math::linalg::distance_sq directly.

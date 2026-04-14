@@ -12,7 +12,7 @@
 //! REQUIRED CODE/MATH CHANGES TO PASS ALL TESTS:
 //! ═══════════════════════════════════════════════════════════════
 //!
-//! 1. **AABB / BVH Optimization**: Already implemented in `forge-geom`.
+//! 1. **AABB / BVH Optimization**: Already implemented in `worth-geom`.
 //!    The split phase uses BVH to find overlapping face pairs. However,
 //!    P.1 (cluster pressure) stresses this with 20 cubes in a tight region
 //!    where almost ALL face pairs overlap — the BVH doesn't help much and

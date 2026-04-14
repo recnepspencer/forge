@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 
 use crate::geom_facade::Plane;
-use forge_math::arithmetic::Rational;
+use worth_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::transactions::TopologyState;
 

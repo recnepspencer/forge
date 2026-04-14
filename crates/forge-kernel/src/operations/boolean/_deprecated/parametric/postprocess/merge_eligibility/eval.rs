@@ -1,9 +1,9 @@
 //! Merge eligibility evaluation — kernel-side certification wrapper.
 //!
 //! DOMAIN: Orchestrate boundary extraction and certification for merge eligibility.
-//! Wraps forge-geom certifier results in OperationResult<T> with traced decisions.
+//! Wraps worth-geom certifier results in OperationResult<T> with traced decisions.
 //!
-//! DEPENDENCIES: `boundary_adapter`, `forge-geom::boundary_cert`, `GeometryState`.
+//! DEPENDENCIES: `boundary_adapter`, `worth-geom::boundary_cert`, `GeometryState`.
 //! INVARIANTS: Wraps plain results in OperationResult. Policy here, not in geom.
 
 use forge_core::tracing::{

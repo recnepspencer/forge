@@ -3,14 +3,14 @@
 //! DOMAIN: Transforms geometric data between world and local coordinate
 //! spaces using exact rational arithmetic. Decoupled from GeometryStore.
 //!
-//! DEPENDENCIES: `forge-geom` (Plane, LocalCoordinateSpace)
+//! DEPENDENCIES: `worth-geom` (Plane, LocalCoordinateSpace)
 //!
 //! Phase 1 only: Only planes and positions are transformed. Parametric
 //! surfaces, curves, and coedges require surface-specific transform logic
 //! that will be added in Phase 4+.
 
 use crate::geometry::data::store::GeometryStore;
-use forge_geom::facade::LocalCoordinateSpace;
+use worth_geom::facade::LocalCoordinateSpace;
 
 /// Transform all planes and positions to local coordinates.
 ///

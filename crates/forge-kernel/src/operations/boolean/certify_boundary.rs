@@ -83,7 +83,7 @@ pub fn certify_boundary(
 
 /// Build an orthonormal tangent frame (u, v) perpendicular to `n`.
 fn build_tangent_frame(n: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
-    forge_geom::facade::tangent_frame(n)
+    worth_geom::facade::tangent_frame(n)
 }
 
 fn dot3(a: &[f64; 3], b: &[f64; 3]) -> f64 {

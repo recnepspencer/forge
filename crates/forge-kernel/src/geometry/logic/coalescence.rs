@@ -7,12 +7,12 @@
 //! Every coalescence is recorded via `DecisionSink`. This makes the operation
 //! auditable, overridable, and replayable (Doctrine D2).
 //!
-//! DEPENDENCIES: `forge-geom` (VertexGeom),
+//! DEPENDENCIES: `worth-geom` (VertexGeom),
 //!               `forge-core` (DecisionSink, DecisionTier)
 
 use forge_core::tracing::sink::DecisionSink;
 use forge_core::DecisionTier;
-use forge_geom::facade::VertexGeom;
+use worth_geom::facade::VertexGeom;
 use forge_topo::handles::VertexId;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
@@ -65,7 +65,7 @@ pub fn snap_or_coalesce_vertex<S: DecisionSink>(
     coalescence_threshold: f64,
     sink: &mut S,
 ) -> CoalescenceResult {
-    let gap = forge_geom::facade::distance(&candidate_pos, &existing_pos);
+    let gap = worth_geom::facade::distance(&candidate_pos, &existing_pos);
 
     if gap < existing_tol {
         sink.record_tolerance_snap(existing.index(), gap, existing_tol, DecisionTier::Resolved);

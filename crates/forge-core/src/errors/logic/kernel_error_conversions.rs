@@ -2,10 +2,10 @@
 
 use crate::errors::data::{AmbiguousResult, KernelError};
 
-impl From<forge_math::MathError> for KernelError {
-    fn from(err: forge_math::MathError) -> Self {
+impl From<worth_math::MathError> for KernelError {
+    fn from(err: worth_math::MathError) -> Self {
         match err {
-            forge_math::MathError::PrecisionEscalation {
+            worth_math::MathError::PrecisionEscalation {
                 bit_length,
                 threshold,
             } => KernelError::PrecisionEscalation {
@@ -13,15 +13,15 @@ impl From<forge_math::MathError> for KernelError {
                 threshold,
                 context: None,
             },
-            forge_math::MathError::InvalidInput(msg) => KernelError::InvalidInput {
+            worth_math::MathError::InvalidInput(msg) => KernelError::InvalidInput {
                 message: msg,
                 context: None,
             },
-            forge_math::MathError::InternalError(msg) => KernelError::InternalError {
+            worth_math::MathError::InternalError(msg) => KernelError::InternalError {
                 message: msg,
                 context: None,
             },
-            forge_math::MathError::Ambiguous {
+            worth_math::MathError::Ambiguous {
                 location,
                 residual,
                 context,

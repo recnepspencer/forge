@@ -24,7 +24,7 @@ pub fn compute_solid_centroid(
         });
     }
 
-    let coords = forge_geom::compute_polygon_centroid(&vertices).unwrap_or(vertices[0]);
+    let coords = worth_geom::compute_polygon_centroid(&vertices).unwrap_or(vertices[0]);
 
     Ok(coords)
 }
@@ -42,16 +42,16 @@ pub fn combined_solid_scale(
 
     for (vid, _) in primary_arena.iter_vertices() {
         if let Some(pos) = primary_pos(vid) {
-            min_pos = forge_math::linalg::component_min(min_pos, pos);
-            max_pos = forge_math::linalg::component_max(max_pos, pos);
+            min_pos = worth_math::linalg::component_min(min_pos, pos);
+            max_pos = worth_math::linalg::component_max(max_pos, pos);
         }
     }
 
     if let Some((sec_arena, sec_pos)) = secondary {
         for (vid, _) in sec_arena.iter_vertices() {
             if let Some(pos) = sec_pos(vid) {
-                min_pos = forge_math::linalg::component_min(min_pos, pos);
-                max_pos = forge_math::linalg::component_max(max_pos, pos);
+                min_pos = worth_math::linalg::component_min(min_pos, pos);
+                max_pos = worth_math::linalg::component_max(max_pos, pos);
             }
         }
     }
@@ -60,7 +60,7 @@ pub fn combined_solid_scale(
         return 1e-15; // Fallback for completely empty arenas
     }
 
-    forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos)).max(1e-15)
+    worth_math::linalg::norm(worth_math::linalg::sub(max_pos, min_pos)).max(1e-15)
 }
 
 /// Compute a scale-aware ray extent for point-in-solid classification.
@@ -82,8 +82,8 @@ pub fn compute_solid_ray_extent(
 
     for (vid, _) in arena.iter_vertices() {
         if let Some(pos) = position_fn(vid) {
-            min_pos = forge_math::linalg::component_min(min_pos, pos);
-            max_pos = forge_math::linalg::component_max(max_pos, pos);
+            min_pos = worth_math::linalg::component_min(min_pos, pos);
+            max_pos = worth_math::linalg::component_max(max_pos, pos);
         }
     }
 
@@ -91,6 +91,6 @@ pub fn compute_solid_ray_extent(
         return default_extent;
     }
 
-    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
+    let diagonal = worth_math::linalg::norm(worth_math::linalg::sub(max_pos, min_pos));
     (diagonal * scale_factor).max(default_extent)
 }

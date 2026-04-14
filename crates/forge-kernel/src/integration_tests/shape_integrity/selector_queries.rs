@@ -60,7 +60,7 @@ fn cube_six_axis_aligned_faces() {
 
 /// The tetrahedron has one face with normal [0,0,1] (its top plane).
 /// This was initially written as "has no axis-aligned faces" which was wrong —
-/// forge_geom::tetrahedron() explicitly defines plane 0 with normal [0,0,1].
+/// worth_geom::tetrahedron() explicitly defines plane 0 with normal [0,0,1].
 #[test]
 fn tetrahedron_has_one_top_face() {
     let env = shapes::tetrahedron().unwrap();

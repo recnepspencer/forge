@@ -2,10 +2,12 @@
 resolver = "2"
 members = [
     "crates/forge-harness",
-    "crates/forge-math",
+    "crates/worth-math",
+    "crates/worth-schema",
+    "crates/worth-topo",
     "crates/forge-core",
     "crates/forge-topo",
-    "crates/forge-geom",
+    "crates/worth-geom",
     "crates/forge-kernel",
     "crates/forge-io",
 
@@ -14,6 +16,8 @@ members = [
     "crates/forge-schema",
     "crates/forge-spec",
     "crates/forge-runtime-bridge",
+    "crates/forge-query",
+    "crates/forge-store",
     "crates/forge-signal",
     "crates/forge-signal-wasm",
     "crates/forge-spatial",
@@ -34,10 +38,12 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
 # Internal crates — kernel
-forge-math = { path = "crates/forge-math" }
+worth-math = { path = "crates/worth-math" }
+worth-schema = { path = "crates/worth-schema" }
+worth-topo = { path = "crates/worth-topo" }
 forge-core = { path = "crates/forge-core" }
 forge-topo = { path = "crates/forge-topo" }
-forge-geom = { path = "crates/forge-geom" }
+worth-geom = { path = "crates/worth-geom" }
 forge-kernel = { path = "crates/forge-kernel" }
 forge-io = { path = "crates/forge-io" }
 
@@ -46,9 +52,12 @@ forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-spec = { path = "crates/forge-spec" }
 forge-runtime-bridge = { path = "crates/forge-runtime-bridge" }
+forge-query = { path = "crates/forge-query" }
+forge-store = { path = "crates/forge-store" }
 forge-signal = { path = "crates/forge-signal" }
 forge-signal-wasm = { path = "crates/forge-signal-wasm" }
 forge-spatial = { path = "crates/forge-spatial" }
+forge-relational = { path = "crates/forge-relational" }
 # Internal crates — UI library stack
 forge-ui-types      = { path = "crates/forge-ui-types" }
 forge-ui-theme      = { path = "crates/forge-ui-theme" }

@@ -16,4 +16,4 @@
 //! - ValidateConsistentSharedEdgeDualTrims
 //! - ValidateCurveSurfaceInversionResiduals
 //!
-//! DEPENDENCIES: `arena`, `handles`, `forge-geom` (curve/surface)
+//! DEPENDENCIES: `arena`, `handles`, `worth-geom` (curve/surface)

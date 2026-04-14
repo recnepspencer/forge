@@ -99,14 +99,14 @@ fn octahedron_from_eight_planes_generates() {
     let cfg = test_config();
     let tolerance = cfg.scaled_vertex_tolerance();
     let planes = vec![
-        forge_geom::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
+        worth_geom::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
     ];
     let r = make_convex_solid(planes, &cfg).unwrap();
     let a = r.get_value().topology().arena();
@@ -124,7 +124,7 @@ fn truncated_cube_fourteen_faces() {
     init_test_tracing();
     let cfg = test_config();
     let tolerance = cfg.scaled_vertex_tolerance();
-    let mut planes = forge_geom::cube([0.0; 3], 2.0).unwrap();
+    let mut planes = worth_geom::cube([0.0; 3], 2.0).unwrap();
     let corners: [[f64; 3]; 8] = [
         [1.0, 1.0, 1.0],
         [1.0, 1.0, -1.0],
@@ -138,7 +138,7 @@ fn truncated_cube_fourteen_faces() {
     // Cutting planes at 1.5 × corner normal — inside the cube (corners at ±2.0)
     for n in &corners {
         let pt = [n[0] * 1.5, n[1] * 1.5, n[2] * 1.5];
-        planes.push(forge_geom::Plane::from_point_normal(pt, *n).unwrap());
+        planes.push(worth_geom::Plane::from_point_normal(pt, *n).unwrap());
     }
     let r = make_convex_solid(planes, &cfg).unwrap();
     let a = r.get_value().topology().arena();
@@ -216,7 +216,7 @@ fn prism_hexagonal_counts() {
 
 #[test]
 fn pyramid_quad_generates() {
-    let planes = forge_geom::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
+    let planes = worth_geom::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
     assert_eq!(planes.len(), 5, "pyramid(4) should produce 5 planes");
 }
 

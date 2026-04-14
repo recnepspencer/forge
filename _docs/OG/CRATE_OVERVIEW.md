@@ -4,7 +4,7 @@ This document provides a thorough overview of the most important types, concepts
 
 ---
 
-## forge-math
+## worth-math
 
 **Purpose**: Exact arithmetic, certified predicates, and filtered evaluation — the mathematical foundation.
 
@@ -12,7 +12,7 @@ This document provides a thorough overview of the most important types, concepts
 
 - **`TriSign`** (`numeric/sign.rs`): Three-valued sign (Neg/Zero/Pos) representing geometric predicate outcomes. Unlike boolean predicates, `Zero` represents genuine geometric coincidence, not a degeneracy to avoid.
 
-- **`CertifiedTriSign`** (`numeric/sign.rs`): A newtype wrapper around `TriSign` that can ONLY be constructed inside `forge-math` via `pub(crate) fn new()`. This enforces **Doctrine D3** (Topology-Geometry Firewall) at compile time — topology functions accept `CertifiedTriSign`, making it impossible to pass raw float comparisons to topology mutations.
+- **`CertifiedTriSign`** (`numeric/sign.rs`): A newtype wrapper around `TriSign` that can ONLY be constructed inside `worth-math` via `pub(crate) fn new()`. This enforces **Doctrine D3** (Topology-Geometry Firewall) at compile time — topology functions accept `CertifiedTriSign`, making it impossible to pass raw float comparisons to topology mutations.
 
 - **`FilteredEval`** (`arithmetic/filter.rs`): Four-stage evaluation pipeline:
   1. **f64** with Shewchuk error bounds (resolves >95% of cases)
@@ -121,7 +121,7 @@ Every operation returns an `OperationResult` that contains a complete audit trai
 
 ---
 
-## forge-geom
+## worth-geom
 
 **Purpose**: Geometry layer — analytic surfaces, spatial structures, and curve representations.
 
@@ -367,8 +367,8 @@ The kernel and geometry solvers are NEVER aware of these traits — they are con
 2. **Command** → `Feature` evaluation (forge-kernel)
 3. **Feature** → `SignalGraph` dependency resolution (forge-signal)
 4. **Feature** → `EulerOperator` execution (forge-topo)
-5. **EulerOperator** → `CertifiedTriSign` predicates (forge-math)
-6. **Predicates** → `FilteredEval` pipeline (forge-math)
+5. **EulerOperator** → `CertifiedTriSign` predicates (worth-math)
+6. **Predicates** → `FilteredEval` pipeline (worth-math)
 7. **Result** → `OperationResult` envelope (forge-core)
 8. **Envelope** → `DecisionLog` tracing (forge-core)
 9. **Final State** → `TopologyState` + `GeometryStore` (forge-topo + forge-kernel)

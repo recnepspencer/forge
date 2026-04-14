@@ -1,6 +1,6 @@
 //! Core shared types for the Forge geometry kernel.
 //!
-//! This crate contains the common language that `forge-math`, `forge-geom`,
+//! This crate contains the common language that `worth-math`, `worth-geom`,
 //! `forge-topo`, and `forge-kernel` all speak. It is organized into four
 //! functional domains:
 //!

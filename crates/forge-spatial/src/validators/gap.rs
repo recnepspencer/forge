@@ -4,14 +4,14 @@
 //! projecting quasi-random sample points onto the opposing face's plane.
 //!
 //! DEPENDENCIES: `forge-topo` (arena, handles, traversal),
-//!               `forge-geom` (Plane, signed_distance).
+//!               `worth-geom` (Plane, signed_distance).
 //! INVARIANTS:
 //!   - Non-planar faces must be filtered by the caller.
 //!   - Sample density maps to fixed counts for reproducible results.
 //!   - `has_overlap = min_gap_mm < 0` (negative = penetration).
 
 use forge_core::KernelError;
-use forge_geom::{signed_distance, Plane};
+use worth_geom::{signed_distance, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;

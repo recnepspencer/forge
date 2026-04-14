@@ -4,7 +4,7 @@
 //! operations. These types are architectural placeholders following the
 //! Epic B pattern (MergeRegionSelection → MergePlan → execution).
 //!
-//! DEPENDENCIES: forge-topo handles, forge-geom surface types
+//! DEPENDENCIES: forge-topo handles, worth-geom surface types
 
 use forge_topo::handles::{CoedgeRef, CurveRef, FaceId, SurfaceRef};
 use serde::{Deserialize, Serialize};

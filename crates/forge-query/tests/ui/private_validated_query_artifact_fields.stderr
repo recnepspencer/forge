@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/private_validated_query_artifact_fields.rs:6:33
+  |
+5 |         digest: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         canonical_query_digest: todo!(),
+  |                                 ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `digest`, `canonical_query_digest`, `schema_basis`, `projection`, `traversal`, `predicates` and `ordering` of struct `ValidatedQueryArtifact` are private
+  --> tests/ui/private_validated_query_artifact_fields.rs:5:9
+   |
+ 4 |     let _ = ValidatedQueryArtifact {
+   |             ---------------------- in this type
+ 5 |         digest: todo!(),
+   |         ^^^^^^ private field
+ 6 |         canonical_query_digest: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         schema_basis: todo!(),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         projection: todo!(),
+   |         ^^^^^^^^^^ private field
+ 9 |         traversal: todo!(),
+   |         ^^^^^^^^^ private field
+10 |         predicates: todo!(),
+   |         ^^^^^^^^^^ private field
+11 |         ordering: todo!(),
+   |         ^^^^^^^^ private field

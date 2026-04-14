@@ -10,7 +10,7 @@
 //!   3. Extract boundary ConvexCells from merged tree
 //!   4. Build halfedge mesh from ConvexCells
 //!
-//! DEPENDENCIES: forge-geom (BspSolid, merge_bsp, convex_to_bsp,
+//! DEPENDENCIES: worth-geom (BspSolid, merge_bsp, convex_to_bsp,
 //!   extract_boundary_cells), mesh_builder (build_halfedge_mesh)
 //!
 //! INVARIANTS:

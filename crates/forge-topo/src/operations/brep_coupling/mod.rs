@@ -12,4 +12,4 @@
 //! - H5: Trim network editing (InsertTrimLoop, SplitTrimLoop, StitchTrimEndpoints, etc.)
 //! - H6: Seams/Periodicity (CreateSeamEdge, RemoveSeamEdge, CreatePoleSingularity, etc.)
 //!
-//! DEPENDENCIES: `euler`, `arena`, `handles`, `forge-geom` (curve/surface)
+//! DEPENDENCIES: `euler`, `arena`, `handles`, `worth-geom` (curve/surface)

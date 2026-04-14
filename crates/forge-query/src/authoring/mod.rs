@@ -1,0 +1,39 @@
+mod collection;
+mod collection_result_shape;
+mod detail;
+mod detail_result_shape;
+mod error;
+mod ordering;
+mod predicate;
+mod projection;
+mod query_family;
+mod raw_query;
+mod raw_result_shape;
+mod request;
+mod result_shape_family;
+mod result_shape_field;
+mod traversal;
+
+pub use collection::{CollectionAuthoredQuery, CollectionQueryBuilder};
+pub use collection_result_shape::{CollectionAuthoredResultShape, CollectionResultShapeBuilder};
+pub use detail::{DetailAuthoredQuery, DetailQueryBuilder};
+pub use detail_result_shape::{DetailAuthoredResultShape, DetailResultShapeBuilder};
+pub use error::{AuthoringError, AuthoringFailureClass};
+pub use ordering::{OrderingDirection, OrderingSelector};
+pub use predicate::{
+    EqualityPredicate, IntegerComparisonOperator, IntegerComparisonPredicate, PredicateSelector,
+    PresencePredicate, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
+};
+pub use projection::AspectFieldSelector;
+pub(crate) use query_family::{AuthoredQuery, QueryAuthoringFamily};
+pub(crate) use raw_query::InternalQueryFamily;
+pub use raw_query::{QueryFamily, RawAuthoredQuery, RootEntityKey};
+pub(crate) use raw_result_shape::InternalResultShapeFamily;
+pub use raw_result_shape::{RawAuthoredResultShape, ResultShapeFamily};
+pub use request::{
+    AuthoredBundleError, AuthoredBundleFailureClass, AuthoredQueryBundleRequest,
+    GuidedAuthoringPath,
+};
+pub(crate) use result_shape_family::{AuthoredResultShape, ResultShapeAuthoringFamily};
+pub use result_shape_field::AuthoredResultShapeField;
+pub use traversal::TraversalSelector;

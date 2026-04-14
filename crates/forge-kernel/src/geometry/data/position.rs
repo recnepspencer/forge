@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use forge_math::arithmetic::Rational;
+use worth_math::arithmetic::Rational;
 
 /// Exact 3D position backed by rational coordinates with a cached f64 approximation.
 ///
@@ -138,7 +138,7 @@ impl ExactPosition {
     ///
     /// Updates both exact rationals (via `to_local_exact`) and the f64 cache
     /// (via `to_local`), keeping them in sync.
-    pub fn transform_in_place(&mut self, space: &forge_geom::facade::LocalCoordinateSpace) {
+    pub fn transform_in_place(&mut self, space: &worth_geom::facade::LocalCoordinateSpace) {
         self.exact = space.to_local_exact(&self.exact);
         self.approx = space.to_local(self.approx);
     }
@@ -147,7 +147,7 @@ impl ExactPosition {
     ///
     /// Updates both exact rationals (via `from_local_exact`) and the f64 cache
     /// (via `from_local`), keeping them in sync.
-    pub fn inverse_transform_in_place(&mut self, space: &forge_geom::facade::LocalCoordinateSpace) {
+    pub fn inverse_transform_in_place(&mut self, space: &worth_geom::facade::LocalCoordinateSpace) {
         self.exact = space.from_local_exact(&self.exact);
         self.approx = space.from_local(self.approx);
     }

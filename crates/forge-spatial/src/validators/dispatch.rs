@@ -8,10 +8,10 @@
 //! dispatched through `forge-topo::validator_for()`.
 //!
 //! DEPENDENCIES: forge-core (InvariantId, ValidatorCost, KernelError, ToleranceProvider),
-//!               forge-topo (TopologyArena, handles), forge-geom (CurveKind, Plane).
+//!               forge-topo (TopologyArena, handles), worth-geom (CurveKind, Plane).
 
 use forge_core::{InvariantId, KernelError, ToleranceProvider, ValidatorCost};
-use forge_geom::facade::{CurveKind, Plane};
+use worth_geom::facade::{CurveKind, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId, VertexId};
 

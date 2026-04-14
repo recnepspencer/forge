@@ -27,11 +27,11 @@ Asset Location Decision
 Halfedge + radial_next ring storage forge-topo::arena::schema Keep
 JoinFaces manifold-only semantics forge-topo::euler::join_faces Keep unchanged
 ValidationLevel forge-topo::integrity::validate Extend (not replace)
-SurfaceRelation + classify_surface_pair forge-geom::surface::{schema,eval} Evolve
+SurfaceRelation + classify_surface_pair worth-geom::surface::{schema,eval} Evolve
 GeometryState generational refs (SurfaceRef, CurveRef, CoedgeRef) forge-kernel::geometry_state::schema (historically `geometry_store`) Reuse/extend
 EntityBitset forge-topo::topology::bitset Reuse
 merge_face_group_by_join_faces forge-topo::algorithms::region_extraction Keep pure-topology; call from certified kernel wrapper
-Dominant-axis projection utilities / segment crossing helpers forge-geom::algorithms::polygon_overlap Reuse/extend 2. Scope Framing
+Dominant-axis projection utilities / segment crossing helpers worth-geom::algorithms::polygon_overlap Reuse/extend 2. Scope Framing
 2.1 Architectural Requirements (Future-Proofing, In Scope Now)
 Design must be extensible to persistent/user-visible non-manifold modeling later without changing the core topology representation.
 NMT semantics must be explicit in architecture:
@@ -52,11 +52,11 @@ Persistent NMT import/export semantics
 UI/repair tooling for NMT bodies
 Full NURBS support equivalence and UV trim certification implementation 3. Architecture Alignment and Crate Ownership
 3.1 Layer Ownership (Corrected)
-forge-geom: stateless geometry certifiers and classifiers
+worth-geom: stateless geometry certifiers and classifiers
 forge-topo: connectivity, radial queries, mode-aware topology validation
 forge-kernel: orchestration, policy, OperationResult<T>, decision logging, merge execution flow
 3.2 New Type Placement
-forge-geom
+worth-geom
 
 ProjectionFrame2D
 ProjectedBoundary2D
@@ -79,8 +79,8 @@ MergeSheetRegion (compound algorithm)
 merge eligibility orchestration
 OperationResult wrappers, TracedDecision, policy fallback/escalation
 3.3 Communication Rules
-forge-geom must not accept TopologyState, TopologyArena, ModelingContext, or ToleranceConfig.
-forge-kernel converts topo/geometry data into raw geometry inputs for forge-geom.
+worth-geom must not accept TopologyState, TopologyArena, ModelingContext, or ToleranceConfig.
+forge-kernel converts topo/geometry data into raw geometry inputs for worth-geom.
 forge-topo remains geometry-agnostic.
 3.4 Error Flow
 Introduce MergeError and wrap in KernelError.
@@ -102,7 +102,7 @@ UnsupportedPersistentNmtOutput,
 KernelError wraps this as a structured variant (or equivalent sub-enum wrapper).
 
 3.5 Tracing and Result Envelopes
-forge-geom returns plain certifiers/results.
+worth-geom returns plain certifiers/results.
 forge-kernel wraps merge/certification orchestration in OperationResult<T>.
 Tests for new merge/certification flows must support FORGE_TRACE_DIR.
 4. Epic A — Boundary Certification (Planar Now, UV-Reusable)
@@ -115,7 +115,7 @@ Rejected => do not merge
 Boundary certification is split into:
 
 forge-kernel adapter: extract boundary candidate from topo + geometry provenance
-forge-geom certifier: project/build arrangement/classify weak simplicity
+worth-geom certifier: project/build arrangement/classify weak simplicity
 4.3 Kernel Adapter Type (forge-kernel)
 pub struct BoundaryCycleCandidate {
 /// Boundary segments in 3D with stable provenance (not halfedge-ID semantics).
@@ -125,7 +125,7 @@ provenance: Vec<BoundaryProvenance>,
 }
 This is topology-derived and therefore kernel-owned.
 
-4.4 Geometry Types (forge-geom::algorithms::boundary_cert)
+4.4 Geometry Types (worth-geom::algorithms::boundary_cert)
 pub struct ProjectionFrame2D {
 drop_axis: usize,
 u_axis: usize,
@@ -188,7 +188,7 @@ exact re-evaluation callbacks from source geometry data
 The spec requirement is on predicate correctness, not storage type alone.
 
 4.6 Deterministic Projection
-Reuse/extend existing dominant-axis projection helper in forge-geom.
+Reuse/extend existing dominant-axis projection helper in worth-geom.
 Require fixed tie-break (X > Y > Z) when magnitudes tie.
 Projection frame metadata must be test-stable and explicit.
 4.7 Algorithm (Two-Phase: Fast Path + Fallback)
@@ -227,7 +227,7 @@ Topo-side changes
 None for geometry certification call flow.
 Optional topo helpers for boundary extraction remain pure-topology.
 4.9 Module Layout
-forge-geom/src/algorithms/boundary_cert/
+worth-geom/src/algorithms/boundary_cert/
 mod.rs
 schema.rs
 eval.rs
@@ -421,7 +421,7 @@ tests.rs 6. Epic C — Curved Same-Support Surface Merge (Design Contracts Only)
 6.1 Goal
 Generalize planar coplanar merge eligibility to curved faces that share the same geometric support surface and have valid merged trim boundaries in UV.
 
-6.2 SurfaceRelation Evolution (forge-geom)
+6.2 SurfaceRelation Evolution (worth-geom)
 Do not create a parallel kernel enum. Evolve existing SurfaceRelation.
 
 Current semantics:
@@ -443,7 +443,7 @@ add cone/cone and torus/torus analytic support classification
 preserve existing plane/sphere/cylinder behavior
 return Undetermined when classification cannot be safely decided under future bounded precision policies
 Kernel-side policy requirement: `SurfaceRelation::Undetermined` is fail-closed by default for merge eligibility and must emit a traced decision (precision/policy escalation), never silently proceed.
-6.4 Surface Evaluation API Contracts (forge-geom)
+6.4 Surface Evaluation API Contracts (worth-geom)
 Acknowledge existing SurfaceData::{point_at, normal_at} and define traits as abstractions/extensions, not replacements.
 
 pub trait EvaluateSurface {
@@ -453,7 +453,7 @@ fn tangent_u_at_uv(&self, u: f64, v: f64) -> [f64; 3];
 fn tangent_v_at_uv(&self, u: f64, v: f64) -> [f64; 3];
 fn domain(&self) -> &ParameterDomain;
 }
-6.5 Trim Curve API Contracts (forge-geom)
+6.5 Trim Curve API Contracts (worth-geom)
 pub trait TrimCurveOps {
 fn uv_endpoints(&self) -> ([f64; 2], [f64; 2]);
 fn uv_direction(&self) -> [f64; 2];
@@ -509,7 +509,7 @@ without duplicating weakly-simple logic.
 
 7.2 Contract Shape (Design Requirement)
 forge-kernel builds a backend-neutral boundary candidate from topology + geometry references.
-forge-geom provides backend-specific input builders and a common certifier API.
+worth-geom provides backend-specific input builders and a common certifier API.
 UV backend must reuse the same certificate/result taxonomy (`WeakSimpleCertificate`, deterministic witnesses/rejections) as planar backend.
 Example direction (illustrative, not final API):
 
@@ -522,7 +522,7 @@ This keeps backend pluggability without violating crate dependencies.
 
 8. Implementation Sequence
    Milestone 1 — Planar Boundary Certification (Build Now)
-   forge-geom::algorithms::boundary_cert
+   worth-geom::algorithms::boundary_cert
    ProjectionFrame2D (reuse dominant-axis helper, add deterministic tie-break)
    ProjectedBoundary2D
    fast-path simplicity check
@@ -666,7 +666,7 @@ meaningful DecisionTier
 margin/threshold in DecisionContext::Tolerance (or stricter typed context if added later)
 Design requirements
 
-forge-geom may depend on forge-core policy schema, but not forge-kernel.
+worth-geom may depend on forge-core policy schema, but not forge-kernel.
 Policy evaluation must be explicit:
 no direct “default_used=true” traces without an actual PolicyQuery
 Fail-closed by default:
@@ -704,7 +704,7 @@ Make SurfaceRelation::Undetermined real, explicit, and fail-closed; eliminate �
 
 Scope
 
-forge-geom surface pair classification
+worth-geom surface pair classification
 Kernel callers that consume surface relations for merge eligibility / curved merge
 Trace + policy handling for near-threshold classifications
 Non-goals (initial phase)

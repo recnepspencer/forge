@@ -13,4 +13,4 @@
 //! - J6: Stitch/merge/resolve
 //! - J7: Finalization
 //!
-//! DEPENDENCIES: `euler`, `algorithms`, `arena`, `handles`, `forge-geom`
+//! DEPENDENCIES: `euler`, `algorithms`, `arena`, `handles`, `worth-geom`

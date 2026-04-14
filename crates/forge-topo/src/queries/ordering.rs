@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Ordering comparisons for stable, reproducible sorts.
 //! INVARIANTS: Ordering is total and deterministic (D1).
-//! DEPENDENCIES: forge-math (spatial Tie-breaking).
+//! DEPENDENCIES: worth-math (spatial Tie-breaking).
 //!
 //! Sort order: ID first → lineage hash → spatial hash.
 //! This ensures that enumeration order is identical across runs
@@ -106,8 +106,8 @@ mod tests {
         let pos = [1.5, 2.5, 3.5];
         let scale = 1e6;
         assert_eq!(
-            forge_math::linalg::compute_spatial_hash(&pos, scale),
-            forge_math::linalg::compute_spatial_hash(&pos, scale)
+            worth_math::linalg::compute_spatial_hash(&pos, scale),
+            worth_math::linalg::compute_spatial_hash(&pos, scale)
         );
     }
 

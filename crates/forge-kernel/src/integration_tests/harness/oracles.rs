@@ -7,7 +7,7 @@
 //!
 //! ARCHITECTURE: Oracles are thin precondition wrappers around the crate stack:
 //! - Volume/centroid adapters: `forge_kernel::geometry::facade`
-//! - Pure math: `forge_geom::algorithms::measurement`
+//! - Pure math: `worth_geom::algorithms::measurement`
 //! - Normal classification: `forge_spatial::operations::classify::normal_orientation`
 //! - Face normals: `forge_spatial::operations::continuity`
 //!
@@ -81,7 +81,7 @@ impl std::error::Error for OracleError {}
 /// - Closed manifold: `is_boundary_edge` returns false for all half-edges
 /// - All vertices have positions
 ///
-/// **Delegates to**: `solid_volume` → `forge_geom::polyhedron_volume`
+/// **Delegates to**: `solid_volume` → `worth_geom::polyhedron_volume`
 pub fn volume_of(env: &SolidEnvelope) -> Result<f64, OracleError> {
     let arena = env.topology().arena();
     let geom = env.geometry();
@@ -92,7 +92,7 @@ pub fn volume_of(env: &SolidEnvelope) -> Result<f64, OracleError> {
 
 /// Compute the volumetric centroid of a closed, oriented solid.
 ///
-/// **Delegates to**: `solid_centroid` → `forge_geom::polyhedron_centroid`
+/// **Delegates to**: `solid_centroid` → `worth_geom::polyhedron_centroid`
 pub fn centroid_of(env: &SolidEnvelope) -> Result<[f64; 3], OracleError> {
     let arena = env.topology().arena();
     let geom = env.geometry();

@@ -10,7 +10,7 @@
 //! `forge-topo::validator_for()`.
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, traversal),
-//!               forge-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
+//!               worth-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
 pub mod area;

@@ -198,8 +198,8 @@ pub fn find_near_reverse_edge_debug(
             None => continue,
         };
 
-        let d0 = forge_math::linalg::distance_sq(a, pb);
-        let d1 = forge_math::linalg::distance_sq(b, pa);
+        let d0 = worth_math::linalg::distance_sq(a, pb);
+        let d1 = worth_math::linalg::distance_sq(b, pa);
         let score = d0 + d1;
         let is_better_any = best_any.map(|(_, s)| score < s).unwrap_or(true);
         if is_better_any {

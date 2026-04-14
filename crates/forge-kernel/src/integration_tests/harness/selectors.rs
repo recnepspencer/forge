@@ -234,7 +234,7 @@ impl<'a> VertexQuery<'a> {
         let geom = self.env.geometry();
         self.candidates.retain(|&vid| {
             if let Some(pos) = geom.get_vertex_position(vid) {
-                let dist = forge_geom::facade::distance(pos, &target);
+                let dist = worth_geom::facade::distance(pos, &target);
                 dist <= radius
             } else {
                 false

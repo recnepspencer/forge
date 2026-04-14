@@ -49,4 +49,4 @@ let vtol = tolerance_provider.vertex_tolerance(idx, gen);
 
 - **Test code** (`#[cfg(test)]`, `*_tests.rs`): Float literals in assertions are fine
 - **Named algorithm constants**: Finite difference steps, grid scales — use named constants with doc comments explaining the value
-- **`forge-math`**: Pure math library, no tolerance concerns
+- **`worth-math`**: Pure math library, no tolerance concerns

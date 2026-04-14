@@ -1,6 +1,6 @@
 //! Configurable thresholds for geometry-layer computations.
 //!
-//! DOMAIN: Detailed numeric thresholds used by `forge-geom` functions
+//! DOMAIN: Detailed numeric thresholds used by `worth-geom` functions
 //! that accept tolerance parameters.
 //! INVARIANTS: Defaults are suitable for unit-scale CAD (meters).
 
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 /// Configurable thresholds for geometry-layer computations.
 ///
-/// These values are used by `forge-geom` functions that accept tolerance
+/// These values are used by `worth-geom` functions that accept tolerance
 /// parameters (plane intersection degeneracy, overconstrained residual, etc.).
 /// Defaults are suitable for unit-scale CAD (meters).
 #[derive(Debug, Clone, Serialize, Deserialize)]

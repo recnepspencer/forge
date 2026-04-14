@@ -1,7 +1,7 @@
 //! Boundary adapter — extract boundary candidate from topology + geometry.
 //!
 //! DOMAIN: Convert topology-derived face-group boundaries into raw geometry
-//! inputs suitable for the `forge-geom::boundary_cert` certifier.
+//! inputs suitable for the `worth-geom::boundary_cert` certifier.
 //!
 //! DEPENDENCIES: `forge-topo` (arena, region_extraction), `GeometryState`.
 //! INVARIANTS: No policy decisions. Pure data extraction.

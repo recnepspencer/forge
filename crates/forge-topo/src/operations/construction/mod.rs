@@ -12,4 +12,4 @@
 //! - L6: Fillet/Chamfer/Blend (FilletConstantRadius, ChamferDistance, BlendFaces, etc.)
 //! - L7: Draft/Deform (DraftFacesNeutralPlane, TaperExtrude, BendSheet, etc.)
 //!
-//! DEPENDENCIES: `euler`, `algorithms`, `arena`, `handles`, `forge-geom`
+//! DEPENDENCIES: `euler`, `algorithms`, `arena`, `handles`, `worth-geom`

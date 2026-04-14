@@ -9,10 +9,10 @@ use forge_core::tracing::replay::divergence::{scan_for_divergences, DivergenceRe
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, EntityRef, TracedDecision,
 };
-use forge_math::arithmetic::precision::{
+use worth_math::arithmetic::precision::{
     build_target_description, PrecisionEscalation, PrecisionMode,
 };
-use forge_math::sign::TriSign;
+use worth_math::sign::TriSign;
 
 fn make_clean_decision(id: u64) -> TracedDecision {
     TracedDecision::new(

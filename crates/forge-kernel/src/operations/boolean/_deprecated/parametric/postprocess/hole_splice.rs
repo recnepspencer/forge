@@ -11,7 +11,7 @@
 //!   4. Pick target vertex (mutually visible, closest)
 //!   5. Apply BridgeEdge Euler operator
 //!
-//! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryState, forge_geom
+//! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryState, worth_geom
 
 use forge_core::tracing::TopologyDelta;
 use forge_core::KernelError;
@@ -207,7 +207,7 @@ fn find_extremal_vertex(
     plane: &crate::geom_facade::Plane,
 ) -> Result<(HalfEdgeId, VertexId, [f64; 3]), KernelError> {
     let normal = plane.normal();
-    let u_axis = forge_math::linalg::compute_perpendicular_direction(normal);
+    let u_axis = worth_math::linalg::compute_perpendicular_direction(normal);
 
     let mut best_he = start_he;
     let mut best_vertex = draft.arena().get_half_edge(start_he)?.origin();
@@ -221,7 +221,7 @@ fn find_extremal_vertex(
         let he_data = draft.arena().get_half_edge(current)?;
         let vid = he_data.origin();
         if let Some(pos) = geom.get_vertex_position(vid) {
-            let local_x = forge_math::linalg::dot(*pos, u_axis);
+            let local_x = worth_math::linalg::dot(*pos, u_axis);
             if local_x > best_x {
                 best_x = local_x;
                 best_he = current;
@@ -259,11 +259,11 @@ fn raycast_to_outer_boundary(
     plane: &crate::geom_facade::Plane,
 ) -> Result<(HalfEdgeId, VertexId), KernelError> {
     let normal = plane.normal();
-    let u_axis = forge_math::linalg::compute_perpendicular_direction(normal);
-    let v_axis = forge_math::linalg::cross(normal, u_axis);
+    let u_axis = worth_math::linalg::compute_perpendicular_direction(normal);
+    let v_axis = worth_math::linalg::cross(normal, u_axis);
 
-    let ray_origin_u = forge_math::linalg::dot(h_max_pos, u_axis);
-    let ray_origin_v = forge_math::linalg::dot(h_max_pos, v_axis);
+    let ray_origin_u = worth_math::linalg::dot(h_max_pos, u_axis);
+    let ray_origin_v = worth_math::linalg::dot(h_max_pos, v_axis);
 
     let mut best_he: Option<HalfEdgeId> = None;
     let mut best_t = f64::MAX;
@@ -283,10 +283,10 @@ fn raycast_to_outer_boundary(
             geom.get_vertex_position(origin_vid),
             geom.get_vertex_position(dest_vid),
         ) {
-            let o_u = forge_math::linalg::dot(*p_origin, u_axis);
-            let o_v = forge_math::linalg::dot(*p_origin, v_axis);
-            let d_u = forge_math::linalg::dot(*p_dest, u_axis);
-            let d_v = forge_math::linalg::dot(*p_dest, v_axis);
+            let o_u = worth_math::linalg::dot(*p_origin, u_axis);
+            let o_v = worth_math::linalg::dot(*p_origin, v_axis);
+            let d_u = worth_math::linalg::dot(*p_dest, u_axis);
+            let d_v = worth_math::linalg::dot(*p_dest, v_axis);
 
             let t = compute_ray_edge_intersection(ray_origin_u, ray_origin_v, o_u, o_v, d_u, d_v);
 
@@ -368,8 +368,8 @@ fn pick_closer_vertex(
 
     match (p_origin, p_dest) {
         (Some(po), Some(pd)) => {
-            let dist_o = forge_math::linalg::norm_sq(forge_math::linalg::sub(*po, h_max_pos));
-            let dist_d = forge_math::linalg::norm_sq(forge_math::linalg::sub(*pd, h_max_pos));
+            let dist_o = worth_math::linalg::norm_sq(worth_math::linalg::sub(*po, h_max_pos));
+            let dist_d = worth_math::linalg::norm_sq(worth_math::linalg::sub(*pd, h_max_pos));
             if dist_o <= dist_d {
                 Ok((hit_he, origin_vid))
             } else {

@@ -1,12 +1,12 @@
-//! Spatial queries bridging forge-topo topology and forge-geom geometry.
+//! Spatial queries bridging forge-topo topology and worth-geom geometry.
 //!
 //! DOMAIN: Point-in-solid classification, AABB bounds aggregation, and
 //!         geometric invariant validation — functions that require both
 //!         topology traversal (via forge-topo) and geometric types
-//!         (via forge-geom) and therefore cannot live in either crate alone.
+//!         (via worth-geom) and therefore cannot live in either crate alone.
 //!
-//! DEPENDENCIES: forge-topo (arena, handles, traversal), forge-geom (Aabb,
-//!               BvhNode, polygon helpers), forge-math (predicates, linalg).
+//! DEPENDENCIES: forge-topo (arena, handles, traversal), worth-geom (Aabb,
+//!               BvhNode, polygon helpers), worth-math (predicates, linalg).
 //!
 //! INVARIANTS:
 //! - Geometry is always received via caller-provided position callbacks.

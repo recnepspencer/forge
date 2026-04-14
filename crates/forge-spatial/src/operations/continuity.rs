@@ -9,7 +9,7 @@
 
 use forge_core::KernelError;
 use forge_core::ToleranceProvider;
-use forge_math::linalg::{cross, dot, normalize_checked};
+use worth_math::linalg::{cross, dot, normalize_checked};
 
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};

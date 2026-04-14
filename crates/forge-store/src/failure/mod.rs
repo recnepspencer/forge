@@ -1,0 +1,160 @@
+use forge_relational::facade::history::{BranchId, CommitId};
+use serde::Serialize;
+use std::fmt;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum StoreErrorKind {
+    InvalidRuntimeOwnershipMode,
+    EmbeddedModeLifecycleViolation,
+    AbsentModeStoreDependencyViolation,
+    ModeCapabilityViolation,
+    CrossModeCanonicalBoundaryViolation,
+    CheckpointCommitSurfaceConfusion,
+    EmbeddedCheckpointAuthorityViolation,
+    ConflictingAuthorityOwner,
+    UnsupportedModeConstruction,
+    HostedRuntimeStartupFailure,
+    HostedRuntimeShutdownFailure,
+    HostedRuntimeReplayPurityViolation,
+    ExternalRuntimeArtifactRejection,
+    ExternalRuntimeCheckpointRejection,
+    ModeSelectionContractViolation,
+    HostedRuntimeMutationProducedNoCommit,
+    WalRecordCorruption,
+    WalCanonicalizationVersionUnsupported,
+    WalDigestMismatch,
+    DurablePublicationStateGap,
+    AcknowledgmentBoundaryViolation,
+    RecoveryDuplicateSuppressionFailure,
+    RecoveryAuthoritativeArtifactMissing,
+    RecoveryBranchHeadMismatch,
+    RecoveryReplayParityViolation,
+    RecoveryRequiresFullRebuild,
+    RecoveryIntegrityFailure,
+    HostedRuntimeRestartMisuse,
+    DurableRetryResolutionRequired,
+    NonCanonicalEnvelope,
+    UnknownBranch,
+    OrphanParentReference,
+    IllegalBranchHeadTransition,
+    DuplicateArtifactIdentity,
+    FetchedArtifactDigestMismatch,
+    UnsupportedCanonicalizationVersion,
+    BackendIntegrityViolation,
+    AuthoritativeAppendAtomicityViolation,
+    CommitNotFound,
+    BranchHeadNotFound,
+    Io,
+    Serialization,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct StoreError {
+    kind: StoreErrorKind,
+    message: String,
+}
+
+impl StoreError {
+    pub fn new(kind: StoreErrorKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+        }
+    }
+
+    pub fn kind(&self) -> &StoreErrorKind {
+        &self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn unknown_branch(branch_id: &BranchId) -> Self {
+        Self::new(
+            StoreErrorKind::UnknownBranch,
+            format!("branch `{}` is not registered in forge-store", branch_id.0),
+        )
+    }
+
+    pub fn orphan_parent(commit_id: CommitId, missing_parent: CommitId) -> Self {
+        Self::new(
+            StoreErrorKind::OrphanParentReference,
+            format!(
+                "commit {} references missing parent {}",
+                commit_id.0, missing_parent.0
+            ),
+        )
+    }
+
+    pub fn duplicate_conflict(commit_id: CommitId) -> Self {
+        Self::new(
+            StoreErrorKind::DuplicateArtifactIdentity,
+            format!(
+                "commit {} already exists with a different canonical digest",
+                commit_id.0
+            ),
+        )
+    }
+
+    pub fn digest_mismatch(commit_id: CommitId) -> Self {
+        Self::new(
+            StoreErrorKind::FetchedArtifactDigestMismatch,
+            format!(
+                "fetched commit {} failed canonical digest verification",
+                commit_id.0
+            ),
+        )
+    }
+
+    pub fn backend_integrity(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::BackendIntegrityViolation, message)
+    }
+
+    pub fn invalid_runtime_ownership(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::InvalidRuntimeOwnershipMode, message)
+    }
+
+    pub fn mode_capability_violation(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::ModeCapabilityViolation, message)
+    }
+
+    pub fn embedded_checkpoint_authority_violation(message: impl Into<String>) -> Self {
+        Self::new(
+            StoreErrorKind::EmbeddedCheckpointAuthorityViolation,
+            message,
+        )
+    }
+
+    pub fn external_runtime_artifact_rejection(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::ExternalRuntimeArtifactRejection, message)
+    }
+
+    pub fn external_runtime_checkpoint_rejection(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::ExternalRuntimeCheckpointRejection, message)
+    }
+
+    pub fn recovery_integrity(message: impl Into<String>) -> Self {
+        Self::new(StoreErrorKind::RecoveryIntegrityFailure, message)
+    }
+}
+
+impl fmt::Display for StoreError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for StoreError {}
+
+impl From<std::io::Error> for StoreError {
+    fn from(value: std::io::Error) -> Self {
+        Self::new(StoreErrorKind::Io, value.to_string())
+    }
+}
+
+impl From<serde_json::Error> for StoreError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::new(StoreErrorKind::Serialization, value.to_string())
+    }
+}

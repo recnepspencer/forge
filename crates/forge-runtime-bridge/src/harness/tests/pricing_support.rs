@@ -513,24 +513,174 @@ impl PricingWorkloadCertificationBundle {
         })
     }
 
+    pub(super) fn trust_attack_matrix_json(&self) -> serde_json::Value {
+        json!([
+            {
+                "attack": "missing_snapshot_basis",
+                "classification": format!("{:?}", self.hostile_failure.failure_class),
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "restart_replay_drift",
+                "classification": format!("{:?}", self.restart_failure.error_kind),
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "writeback_authority_denial",
+                "classification": format!("{:?}", self.writeback.rejection_error_kind),
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "stale_historical_basis",
+                "classification": format!("{:?}", self.restart_failure.error_kind),
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "replay_policy_mismatch",
+                "classification": self.trust_attacks.replay_policy_error_kind,
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "route_policy_projection_conflict",
+                "classification": self.trust_attacks.route_policy_error_kind,
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "merge_topology_denial",
+                "classification": self.trust_attacks.merge_denial_class,
+                "result": "typed_fail_closed",
+            },
+            {
+                "attack": "simulation_damaging_material_ranked",
+                "classification": self
+                    .simulation
+                    .ranked_materials_by_damage
+                    .first()
+                    .cloned()
+                    .unwrap_or_default(),
+                "result": "portfolio_risk_explained",
+            }
+        ])
+    }
+
+    fn diagnostics_entrypoint_matrix_json(&self) -> serde_json::Value {
+        json!({
+            "routing": self.matrix.reference.route_entry_count > 0,
+            "branch_isolation": self.matrix.reference.main_snapshot != self.matrix.reference.speculative_snapshot,
+            "policy": !self.trust_attacks.route_policy_error_kind.is_empty(),
+            "source": !self.hostile_failure.source_commit.is_empty() && !self.hostile_failure.source_snapshot.is_empty(),
+            "preview": self.discard.has_discard_record && self.promotion.has_promotion_explanation,
+            "merge": !self.merge.bundle_digest.is_empty(),
+            "writeback": !self.writeback.commit_replay_semantic_digest.is_empty(),
+            "residue": self.discard.has_discard_record,
+            "historical_provenance": !self.provenance.shock_commit.is_empty() && !self.provenance.shock_snapshot.is_empty(),
+            "portfolio": self.portfolio.product_count > 0,
+            "crisis": !self.crisis.crisis_name.is_empty() && self.crisis.affected_product_count > 0,
+            "strategy": !self.strategy.recommended_strategy.is_empty(),
+            "simulation": !self.simulation.iteration_traces.is_empty(),
+            "trust_attacks": self
+                .trust_attack_matrix_json()
+                .as_array()
+                .is_some_and(|entries| !entries.is_empty()),
+        })
+    }
+
+    fn bundle_completeness_report_json(&self) -> serde_json::Value {
+        let diagnostics_entrypoints = self
+            .diagnostics_entrypoint_matrix_json()
+            .as_object()
+            .expect("diagnostics entrypoint matrix should be an object")
+            .clone();
+        let insufficiency_count = diagnostics_entrypoints
+            .values()
+            .filter(|value| value.as_bool() != Some(true))
+            .count();
+
+        json!({
+            "has_routing_artifact": diagnostics_entrypoints["routing"],
+            "has_branch_comparison_artifact": diagnostics_entrypoints["branch_isolation"],
+            "has_policy_artifact": diagnostics_entrypoints["policy"],
+            "has_source_artifact": diagnostics_entrypoints["source"],
+            "has_preview_artifact": diagnostics_entrypoints["preview"],
+            "has_merge_artifact": diagnostics_entrypoints["merge"],
+            "has_writeback_artifact": diagnostics_entrypoints["writeback"],
+            "has_residue_artifact": diagnostics_entrypoints["residue"],
+            "has_historical_provenance_artifact": diagnostics_entrypoints["historical_provenance"],
+            "has_portfolio_artifact": diagnostics_entrypoints["portfolio"],
+            "has_crisis_artifact": diagnostics_entrypoints["crisis"],
+            "has_strategy_artifact": diagnostics_entrypoints["strategy"],
+            "has_simulation_artifact": diagnostics_entrypoints["simulation"],
+            "has_trust_attack_artifact": diagnostics_entrypoints["trust_attacks"],
+            "offline_sufficient": insufficiency_count == 0,
+            "insufficiency_count": insufficiency_count,
+        })
+    }
+
+    fn reference_workload_bundle_comparison_json(&self) -> serde_json::Value {
+        let trust_attack_matrix_json = self.trust_attack_matrix_json();
+        let trust_attack_matrix = trust_attack_matrix_json
+            .as_array()
+            .expect("trust attack matrix should be an array");
+        let trust_attack_matrix_is_typed = trust_attack_matrix.iter().all(|entry| {
+            entry["classification"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty())
+                && entry["result"].as_str().is_some_and(|value| !value.is_empty())
+        });
+
+        json!({
+            "main_vs_speculative_snapshot_distinct": self.matrix.reference.main_snapshot != self.matrix.reference.speculative_snapshot,
+            "main_vs_speculative_rubber_cost_distinct": self.matrix.reference.main_rubber_cost_cents != self.matrix.reference.speculative_rubber_cost_cents,
+            "merged_vs_premerge_rubber_cost_distinct": self.merge.merged_rubber_cost_cents != self.merge.main_premerge_rubber_cost_cents,
+            "merged_vs_speculative_rubber_cost_equal": self.merge.merged_rubber_cost_cents == self.merge.speculative_rubber_cost_cents,
+            "discard_vs_promotion_classification_distinct": self.discard.lifecycle_state != self.promotion.lifecycle_state,
+            "hostile_failure_vs_restart_failure_distinct": format!("{:?}", self.hostile_failure.failure_class) != format!("{:?}", self.restart_failure.error_kind),
+            "historical_provenance_commit_matches_shock": self.provenance.shock_commit == "commit:rubber-shock",
+            "portfolio_reports_positive_blast_radius": self.portfolio.positive_retail_delta_count > 0,
+            "crisis_affects_portfolio_breadth": self.crisis.affected_product_count > 0,
+            "strategy_recommends_non_hold_response": self.strategy.recommended_strategy != "hold",
+            "promotion_strategy_prefers_authoritative_action": self.strategy.promotion_strategy == "promote-speculative-strategy",
+            "simulation_identifies_at_least_one_damaging_material": !self.simulation.ranked_materials_by_damage.is_empty(),
+            "trust_attack_matrix_is_typed": trust_attack_matrix_is_typed,
+        })
+    }
+
     pub(super) fn counter_snapshot_json(&self) -> serde_json::Value {
+        let diagnostics_entrypoints = self
+            .diagnostics_entrypoint_matrix_json()
+            .as_object()
+            .expect("diagnostics entrypoint matrix should be an object")
+            .clone();
+        let trust_attack_count = self
+            .trust_attack_matrix_json()
+            .as_array()
+            .expect("trust attack matrix should be an array")
+            .len();
+        let completeness_report = self.bundle_completeness_report_json();
         json!({
             "causality_bundle_count": 1,
             "causality_bundle_replay_match_count": 3,
             "causality_bundle_replay_mismatch_count": 1,
             "failure_taxonomy_classification_count": 3,
             "failure_taxonomy_unclassified_count": 0,
-            "diagnostics_entrypoint_request_count": 9,
-            "showcase_entrypoint_request_count": 1,
-            "simulation_trace_bundle_count": 1,
-            "trust_attack_classification_count": 8,
+            "diagnostics_entrypoint_request_count": diagnostics_entrypoints.len(),
+            "showcase_entrypoint_request_count": usize::from(
+                self.showcase_commit_explorer_json("commit:rubber-main").is_some()
+                    && self.showcase_commit_explorer_json("commit:rubber-shock").is_some()
+            ),
+            "simulation_trace_bundle_count": usize::from(!self.simulation.iteration_traces.is_empty()),
+            "trust_attack_classification_count": trust_attack_count,
             "diagnostics_entrypoint_reconstruction_count": 1,
             "speculative_branch_bundle_count": 1,
             "speculative_discard_residue_check_count": 1,
-            "speculative_discard_residue_nonzero_count": 0,
+            "speculative_discard_residue_nonzero_count": usize::from(
+                !self.discard.has_discard_record || self.discard.has_promotion_record || self.discard.promotion_record_count > 0
+            ),
             "branch_comparison_bundle_count": 1,
             "offline_bundle_diagnosis_count": 1,
-            "offline_bundle_insufficiency_count": 0,
+            "offline_bundle_insufficiency_count": completeness_report["insufficiency_count"]
+                .as_u64()
+                .expect("bundle completeness report should expose insufficiency_count"),
         })
     }
 
@@ -795,61 +945,15 @@ impl PricingWorkloadCertificationBundle {
     }
 
     pub(super) fn suite_27_artifact_json(&self) -> serde_json::Value {
-        let diagnostics_entrypoint_matrix = json!({
-            "routing": true,
-            "branch_isolation": true,
-            "policy": true,
-            "source": true,
-            "preview": true,
-            "merge": true,
-            "writeback": true,
-            "residue": true,
-            "historical_provenance": true,
-            "portfolio": true,
-            "crisis": true,
-            "strategy": true,
-            "simulation": true,
-            "trust_attacks": true,
-        });
-        let bundle_completeness_report = json!({
-            "has_routing_artifact": true,
-            "has_branch_comparison_artifact": true,
-            "has_policy_artifact": true,
-            "has_source_artifact": true,
-            "has_preview_artifact": true,
-            "has_merge_artifact": true,
-            "has_writeback_artifact": true,
-            "has_residue_artifact": true,
-            "has_historical_provenance_artifact": true,
-            "has_portfolio_artifact": true,
-            "has_crisis_artifact": true,
-            "has_strategy_artifact": true,
-            "has_simulation_artifact": true,
-            "has_trust_attack_artifact": true,
-            "offline_sufficient": true,
-            "insufficiency_count": 0,
-        });
+        let diagnostics_entrypoint_matrix = self.diagnostics_entrypoint_matrix_json();
+        let bundle_completeness_report = self.bundle_completeness_report_json();
         json!({
             "certification_bundle_digest": digest_json("pricing-suite-27-certification", &self.core_summary_json()),
             "bundle_completeness_report": bundle_completeness_report,
             "diagnostics_entrypoint_matrix": diagnostics_entrypoint_matrix,
             "counter_snapshot": self.counter_snapshot_json(),
             "reference_workload_bundle_digest": self.suite_25_artifact_json()["reference_workload_bundle_digest"],
-            "reference_workload_bundle_comparison": {
-                "main_vs_speculative_snapshot_distinct": self.matrix.reference.main_snapshot != self.matrix.reference.speculative_snapshot,
-                "main_vs_speculative_rubber_cost_distinct": self.matrix.reference.main_rubber_cost_cents != self.matrix.reference.speculative_rubber_cost_cents,
-                "merged_vs_premerge_rubber_cost_distinct": self.merge.merged_rubber_cost_cents != self.merge.main_premerge_rubber_cost_cents,
-                "merged_vs_speculative_rubber_cost_equal": self.merge.merged_rubber_cost_cents == self.merge.speculative_rubber_cost_cents,
-                "discard_vs_promotion_classification_distinct": self.discard.lifecycle_state != self.promotion.lifecycle_state,
-                "hostile_failure_vs_restart_failure_distinct": format!("{:?}", self.hostile_failure.failure_class) != format!("{:?}", self.restart_failure.error_kind),
-                "historical_provenance_commit_matches_shock": self.provenance.shock_commit == "commit:rubber-shock",
-                "portfolio_reports_positive_blast_radius": self.portfolio.positive_retail_delta_count > 0,
-                "crisis_affects_portfolio_breadth": self.crisis.affected_product_count > 0,
-                "strategy_recommends_non_hold_response": self.strategy.recommended_strategy != "hold",
-                "promotion_strategy_prefers_authoritative_action": self.strategy.promotion_strategy == "promote-speculative-strategy",
-                "simulation_identifies_at_least_one_damaging_material": !self.simulation.ranked_materials_by_damage.is_empty(),
-                "trust_attack_matrix_is_typed": true,
-            },
+            "reference_workload_bundle_comparison": self.reference_workload_bundle_comparison_json(),
         })
     }
 

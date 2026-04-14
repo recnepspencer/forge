@@ -17,7 +17,7 @@
 //!   - Internal faces detected by plane index + opposite normal sign
 //!   - Result satisfies Euler V−E+F=2 per shell
 //!
-//! DEPENDENCIES: forge-geom (BspSolid, extract_boundary_cells, ConvexCell),
+//! DEPENDENCIES: worth-geom (BspSolid, extract_boundary_cells, ConvexCell),
 //!               forge-topo (arena insertion), GeometryState, ModelingContext
 
 use std::collections::HashMap;
@@ -210,12 +210,12 @@ fn insert_cell_vertices(
         let pos = *vert.position();
 
         let existing = vertex_pool.iter().find(|(_, existing_pos)| {
-            let diff = forge_math::linalg::sub(pos, *existing_pos);
-            forge_math::linalg::norm_sq(diff) < tol_sq
+            let diff = worth_math::linalg::sub(pos, *existing_pos);
+            worth_math::linalg::norm_sq(diff) < tol_sq
         });
 
         if let Some((existing_vid, existing_pos)) = existing {
-            let dist = forge_math::linalg::norm(forge_math::linalg::sub(pos, *existing_pos));
+            let dist = worth_math::linalg::norm(worth_math::linalg::sub(pos, *existing_pos));
             check_tolerance!(
                 ctx,
                 tolerance,

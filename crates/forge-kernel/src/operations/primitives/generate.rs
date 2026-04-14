@@ -4,7 +4,7 @@
 //! All convex planar primitives share the same mesh-building pipeline;
 //! only the plane set differs.
 //!
-//! DEPENDENCIES: forge-geom (shapes), mesh_builder (make_convex_solid)
+//! DEPENDENCIES: worth-geom (shapes), mesh_builder (make_convex_solid)
 
 use forge_core::KernelError;
 
@@ -16,7 +16,7 @@ use super::PrimitiveParams;
 
 /// Generate a convex primitive solid from its parameters and center.
 ///
-/// Dispatches to the appropriate plane generator in `forge_geom::primitives::shapes`,
+/// Dispatches to the appropriate plane generator in `worth_geom::primitives::shapes`,
 /// then builds a closed halfedge mesh via `make_convex_solid`.
 pub fn generate_primitive(
     params: &PrimitiveParams,

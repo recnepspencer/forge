@@ -8,10 +8,10 @@
 //! indexing lands (roadmap), the implementation swaps to grid/KD-tree
 //! lookup without changing the public API.
 //!
-//! DEPENDENCIES: forge-topo (VertexId), forge-geom (is_same_point_within)
+//! DEPENDENCIES: forge-topo (VertexId), worth-geom (is_same_point_within)
 //! CONSUMERS: forge-kernel (primitives/eval.rs)
 
-use forge_geom::is_same_point_within;
+use worth_geom::is_same_point_within;
 use forge_topo::handles::VertexId;
 
 /// Result of a vertex proximity query.

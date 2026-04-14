@@ -6,8 +6,8 @@ use crate::core::ModelingContext;
 use crate::mesh_builder::build_halfedge_mesh;
 use crate::geom_facade::{build_convex_polyhedron, BspConfig};
 use crate::geom_facade::Plane;
-use forge_math::predicates::orient3d::orient3d;
-use forge_math::sign::TriSign;
+use worth_math::predicates::orient3d::orient3d;
+use worth_math::sign::TriSign;
 
 // ══════════════════════════════════════════════════════════════
 // §1  PREDICATE & EXACTNESS TORTURE

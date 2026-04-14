@@ -1,13 +1,13 @@
 //! Gate logic: should a face be cut by a plane?
 //!
 //! DOMAIN: Determines IF a face needs cutting, separately from applying the cut.
-//! DEPENDENCIES: forge_geom (intersection_line, clip_line), GeometryState.
+//! DEPENDENCIES: worth_geom (intersection_line, clip_line), GeometryState.
 //! INVARIANTS: `compute_face_chord` is the SOLE gate for face cutting.
 //!   No cut occurs without passing this gate first.
 
 use forge_core::KernelError;
 use crate::geom_facade::Plane;
-use forge_math::sign::TriSign;
+use worth_math::sign::TriSign;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 

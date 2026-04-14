@@ -3,7 +3,7 @@
 //! DOMAIN: Validate that no planar face has area below its per-vertex tolerance.
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::compute_polygon_area;
+use worth_geom::compute_polygon_area;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;

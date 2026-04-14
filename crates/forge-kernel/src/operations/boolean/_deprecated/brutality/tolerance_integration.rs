@@ -185,7 +185,7 @@ fn ti4_gap_measurement_on_boolean_cavity() {
     let position_fn = |v: forge_topo::handles::VertexId| -> Option<[f64; 3]> {
         geom_result.get_vertex_position(v).copied()
     };
-    let plane_fn = |f: forge_topo::handles::FaceId| -> Option<forge_geom::primitives::plane::Plane> {
+    let plane_fn = |f: forge_topo::handles::FaceId| -> Option<worth_geom::primitives::plane::Plane> {
         geom_result.get_face_plane(f).cloned()
     };
 

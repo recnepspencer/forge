@@ -25,14 +25,14 @@ fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3
 /// Build a face-plane lookup closure from a GeometryStore.
 fn plane_lookup(
     store: &GeometryStore,
-) -> impl Fn(FaceId) -> Option<forge_geom::facade::Plane> + '_ {
+) -> impl Fn(FaceId) -> Option<worth_geom::facade::Plane> + '_ {
     |face_id| store.planes.get(face_id).cloned()
 }
 
 /// Build an edge-curve-kind lookup closure from a GeometryStore.
 fn curve_lookup(
     store: &GeometryStore,
-) -> impl Fn(forge_topo::handles::EdgeId) -> Option<forge_geom::facade::CurveKind> + '_ {
+) -> impl Fn(forge_topo::handles::EdgeId) -> Option<worth_geom::facade::CurveKind> + '_ {
     |edge_id| store.curves.get(edge_id).map(|curve| curve.kind.clone())
 }
 

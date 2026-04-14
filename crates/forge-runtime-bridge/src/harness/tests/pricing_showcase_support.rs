@@ -2,6 +2,119 @@ use super::pricing_support::PricingWorkloadCertificationBundle;
 use serde_json::json;
 
 impl PricingWorkloadCertificationBundle {
+    fn lineage_provenance_edges_json(&self) -> Vec<serde_json::Value> {
+        vec![
+            json!({
+                "from": self.matrix.reference.source_commit,
+                "to": self.matrix.reference.main_snapshot,
+                "kind": "commit_to_snapshot",
+                "surface": "reference",
+            }),
+            json!({
+                "from": self.provenance.main_commit,
+                "to": self.provenance.main_snapshot,
+                "kind": "commit_to_snapshot",
+                "surface": "historical_provenance",
+            }),
+            json!({
+                "from": self.provenance.shock_commit,
+                "to": self.provenance.shock_snapshot,
+                "kind": "commit_to_snapshot",
+                "surface": "historical_provenance",
+            }),
+            json!({
+                "from": self.matrix.reference.main_snapshot,
+                "to": self.matrix.reference.speculative_snapshot,
+                "kind": "fork_basis_to_speculative_snapshot",
+                "surface": "branch_comparison",
+            }),
+            json!({
+                "from": self.matrix.replay.source_commit,
+                "to": self.matrix.replay.route_identity,
+                "kind": "commit_to_route",
+                "surface": "replay",
+            }),
+            json!({
+                "from": self.matrix.replay.route_identity,
+                "to": self.matrix.replay.invalidation_identity,
+                "kind": "route_to_invalidation",
+                "surface": "replay",
+            }),
+            json!({
+                "from": self.aspect.source_commit,
+                "to": self.aspect.aspect_registration_id,
+                "kind": "commit_to_aspect_registration",
+                "surface": "aspect",
+            }),
+            json!({
+                "from": self.aspect.aspect_registration_id,
+                "to": self.aspect.invalidation_target,
+                "kind": "aspect_to_target",
+                "surface": "aspect",
+            }),
+            json!({
+                "from": self.promotion.promotion_session_identity,
+                "to": self.promotion.authoritative_commit_boundary_digest,
+                "kind": "promotion_session_to_authoritative_boundary",
+                "surface": "speculation",
+            }),
+            json!({
+                "from": self.promotion.authoritative_commit_boundary_digest,
+                "to": self.promotion.authoritative_artifact_digest,
+                "kind": "authoritative_boundary_to_artifact",
+                "surface": "promotion",
+            }),
+            json!({
+                "from": self.fanout.second_source_commit,
+                "to": self.fanout.second_snapshot,
+                "kind": "commit_to_snapshot",
+                "surface": "fanout",
+            }),
+            json!({
+                "from": self.restart_replay.source_commit,
+                "to": self.restart_replay.route_identity,
+                "kind": "commit_to_route",
+                "surface": "restart_replay",
+            }),
+            json!({
+                "from": self.writeback.family_kind,
+                "to": self.writeback.commit_replay_semantic_digest,
+                "kind": "writeback_family_to_commit_replay_digest",
+                "surface": "writeback",
+            }),
+            json!({
+                "from": self.merge.main_premerge_snapshot,
+                "to": self.merge.merged_snapshot,
+                "kind": "premerge_to_merged_snapshot",
+                "surface": "merge",
+            }),
+            json!({
+                "from": self.merge.speculative_snapshot,
+                "to": self.merge.merged_snapshot,
+                "kind": "speculative_to_merged_snapshot",
+                "surface": "merge",
+            }),
+            json!({
+                "from": self.merge.bundle_digest,
+                "to": self.merge.canonical_replay_digest,
+                "kind": "merge_bundle_to_replay_digest",
+                "surface": "merge",
+            }),
+            json!({
+                "from": self.hostile_failure.source_commit,
+                "to": self.hostile_failure.source_snapshot,
+                "kind": "hostile_commit_to_snapshot",
+                "surface": "hostile",
+            }),
+            json!({
+                "from": self.digest(),
+                "to": self.suite_25_artifact_json()["causality_digest"],
+                "kind": "bundle_to_causality_digest",
+                "surface": "causality",
+            }),
+        ]
+    }
+
     pub(super) fn showcase_artifact_json(&self) -> serde_json::Value {
         json!({
             "executive_summary": {
@@ -151,48 +264,7 @@ impl PricingWorkloadCertificationBundle {
                 "suite_26": self.suite_26_artifact_json(),
                 "suite_27": self.suite_27_artifact_json(),
             },
-            "trust_attack_matrix": [
-                {
-                    "attack": "missing_snapshot_basis",
-                    "classification": format!("{:?}", self.hostile_failure.failure_class),
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "restart_replay_drift",
-                    "classification": format!("{:?}", self.restart_failure.error_kind),
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "writeback_authority_denial",
-                    "classification": format!("{:?}", self.writeback.rejection_error_kind),
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "stale_historical_basis",
-                    "classification": format!("{:?}", self.restart_failure.error_kind),
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "replay_policy_mismatch",
-                    "classification": self.trust_attacks.replay_policy_error_kind,
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "route_policy_projection_conflict",
-                    "classification": self.trust_attacks.route_policy_error_kind,
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "merge_topology_denial",
-                    "classification": self.trust_attacks.merge_denial_class,
-                    "result": "typed_fail_closed",
-                },
-                {
-                    "attack": "simulation_damaging_material_ranked",
-                    "classification": self.simulation.ranked_materials_by_damage.first().cloned().unwrap_or_default(),
-                    "result": "portfolio_risk_explained",
-                }
-            ],
+            "trust_attack_matrix": self.trust_attack_matrix_json(),
             "demo_flow": [
                 "stabilize main live pricing world",
                 "fork speculative crisis branch",
@@ -493,6 +565,7 @@ impl PricingWorkloadCertificationBundle {
                     "bundle_digest": self.digest(),
                 },
             },
+            "lineage_provenance_edges": self.lineage_provenance_edges_json(),
             "simulation": {
                 "branch_count": self.simulation.branch_count,
                 "iterations_per_branch": self.simulation.iterations_per_branch,

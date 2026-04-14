@@ -11,12 +11,12 @@
 //!           Odd count → Inside.
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, FaceEdgeIterator),
-//!               forge-geom (Aabb), forge-math (orient2d, orient3d, TriSign).
+//!               worth-geom (Aabb), worth-math (orient2d, orient3d, TriSign).
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::Aabb;
-use forge_math::predicates::{orient2d, orient3d};
-use forge_math::sign::TriSign;
+use worth_geom::Aabb;
+use worth_math::predicates::{orient2d, orient3d};
+use worth_math::sign::TriSign;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;

@@ -13,7 +13,7 @@ Use this workflow to implement any milestone from `FORGE_ARCHITECTURE.MD`.
 
 1.  **Intent Check**: Define the serializable JSON schema in `intent.rs`. This must be token-efficient (< 200 tokens).
 2.  **SDF Check**: Can this feature be represented as a distance function for 60fps previews?
-3.  **Solver Check**: Identify which `forge-geom` solvers are needed. If they don't exist, create them using `PolicyResult`.
+3.  **Solver Check**: Identify which `worth-geom` solvers are needed. If they don't exist, create them using `PolicyResult`.
 4.  **Attribute Check**: What semantic metadata (material, color, tolerance) does this feature need to tag on its output faces?
 
 ## Step 2: Create the Bento Box (Expanded)
@@ -30,8 +30,8 @@ Create `crates/forge-kernel/src/operations/<feature_name>/` (for modeling operat
 
 Every feature evaluation must follow the **Escalation Pattern**:
 
-1.  **Construct Provider**: Create a local adapter that wraps the `TopologyArena` to satisfy `forge-geom`'s `GeometrySource` trait.
-2.  **Call Solver**: Pass the provider and `ToleranceConfig` to the `forge-geom` solver.
+1.  **Construct Provider**: Create a local adapter that wraps the `TopologyArena` to satisfy `worth-geom`'s `GeometrySource` trait.
+2.  **Call Solver**: Pass the provider and `ToleranceConfig` to the `worth-geom` solver.
 3.  **Handle Ambiguity**:
     ```rust
     match solver_result {
@@ -57,20 +57,20 @@ Before considering a feature complete, verify **every** item:
 
 ### Layering & Dependencies
 
-- [ ] No upward dependencies (e.g., forge-geom does NOT import forge-topo types)
+- [ ] No upward dependencies (e.g., worth-geom does NOT import forge-topo types)
 - [ ] All shared types (`KernelError`, `PolicyResult`) come from `forge-core`
-- [ ] `GeometrySource` trait comes from `forge-math::data_access`
-- [ ] `forge-math` only uses `MathError`, never `KernelError`
+- [ ] `GeometrySource` trait comes from `worth-math::data_access`
+- [ ] `worth-math` only uses `MathError`, never `KernelError`
 
 ### Geometry Firewall (D3)
 
 - [ ] **Zero** raw f64 comparisons in `forge-topo` (no `dist < EPS`, no `denom.abs() < 1e-30`)
-- [ ] All floating-point geometry lives in `forge-geom` functions
+- [ ] All floating-point geometry lives in `worth-geom` functions
 - [ ] Topology decisions driven by `CertifiedTriSign` or imported geometry results
 
 ### Tolerance & Policy (D2)
 
-- [ ] **Zero** hardcoded `const EPS` or magic numbers in `forge-geom` or `forge-topo`
+- [ ] **Zero** hardcoded `const EPS` or magic numbers in `worth-geom` or `forge-topo`
 - [ ] All thresholds flow from `ToleranceConfig` (owned by `forge-kernel`)
 - [ ] Ambiguous results return `PolicyResult::Ambiguous`, never silently rounded
 
@@ -78,7 +78,7 @@ Before considering a feature complete, verify **every** item:
 
 - [ ] **Zero** `unwrap()` / `expect()` / `panic!()` outside `#[cfg(test)]`
 - [ ] All mutations go through `MutableDraft` — no direct arena mutation
-- [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in forge-math)
+- [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in worth-math)
 
 ### Conventions (CONVENTIONS.md)
 
@@ -93,7 +93,7 @@ Before considering a feature complete, verify **every** item:
 
 - [ ] **D1 (Determinism)**: Run test 100x. Is the topology hash bit-identical?
 - [ ] **D2 (Policy)**: Is there a hardcoded `1e-8` in the code? If yes, move it to `ToleranceConfig`.
-- [ ] **D3 (Firewall)**: Does `forge-geom` know about `FaceId`? If yes, refactor to use a value-based trait.
+- [ ] **D3 (Firewall)**: Does `worth-geom` know about `FaceId`? If yes, refactor to use a value-based trait.
 - [ ] `cargo build --workspace` clean (no errors)
 - [ ] `cargo test --workspace` passes (no regressions)
 - [ ] `cargo clippy --workspace -- -D warnings` clean

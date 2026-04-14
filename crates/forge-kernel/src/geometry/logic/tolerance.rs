@@ -39,7 +39,7 @@ pub fn compute_model_scale(view: &impl GeometryView) -> f64 {
     if !any {
         return 0.0;
     }
-    forge_geom::facade::distance(&min, &max)
+    worth_geom::facade::distance(&min, &max)
 }
 
 /// Compute a sensible global default tolerance from model scale.

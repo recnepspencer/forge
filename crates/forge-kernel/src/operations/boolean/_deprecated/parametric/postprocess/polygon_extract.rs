@@ -7,7 +7,7 @@
 //!   1. Graph discovery: BFS to find connected coplanar face clusters
 //!   2. Topology merge: iteratively JoinFaces across internal region edges
 //!
-//! DEPENDENCIES: forge_topo (arena, handles), GeometryState, forge_geom (exact_eq)
+//! DEPENDENCIES: forge_topo (arena, handles), GeometryState, worth_geom (exact_eq)
 
 use forge_topo::bitset::EntityBitset;
 

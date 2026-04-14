@@ -1,0 +1,18 @@
+[package]
+name = "forge-query"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Canonical typed query artifact authority for Forge."
+repository = "https://github.com/recnepspencer/forge"
+keywords = ["query", "canonicalization", "facade", "typed"]
+categories = ["data-structures", "science"]
+
+[dependencies]
+sha2 = "0.10"
+
+[dev-dependencies]
+trybuild.workspace = true
+
+[lints]
+workspace = true

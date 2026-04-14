@@ -1,7 +1,7 @@
 //! Reusable step structs for the operation pipeline (Tier 3).
 //!
 //! DOMAIN: Cross-feature step declarations. Each step wraps an existing
-//! function from forge-geom, forge-topo, or forge-kernel and declares
+//! function from worth-geom, forge-topo, or forge-kernel and declares
 //! its policy requirements and precision sensitivity via `StepContract`.
 //!
 //! These steps are not implementations — they are contract declarations.

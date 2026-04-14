@@ -8,11 +8,11 @@
 //! no floating-point arithmetic is done with it — if the base predicate result
 //! is exactly zero we read the sign off the ε-polynomial coefficients.
 //!
-//! DEPENDENCIES: forge-math (orient2d, TriSign).
+//! DEPENDENCIES: worth-math (orient2d, TriSign).
 
 use forge_core::KernelError;
-use forge_math::predicates::orient2d;
-use forge_math::sign::TriSign;
+use worth_math::predicates::orient2d;
+use worth_math::sign::TriSign;
 
 /// Orient2d tie-breaker for P(ε) = (P_y + ε¹, P_z + ε²) in the YZ plane.
 ///

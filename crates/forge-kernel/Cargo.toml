@@ -6,11 +6,11 @@ license.workspace = true
 description = "Features, booleans, and fillets — the application layer of the Forge geometry kernel"
 
 [dependencies]
-forge-math.workspace = true
+worth-math.workspace = true
 forge-core.workspace = true
 forge-topo.workspace = true
 forge-spec.workspace = true
-forge-geom.workspace = true
+worth-geom.workspace = true
 forge-signal.workspace = true
 forge-schema.workspace = true
 forge-spatial.workspace = true

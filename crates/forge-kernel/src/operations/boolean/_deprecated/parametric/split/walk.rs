@@ -10,13 +10,13 @@
 use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_math::arithmetic::Rational;
+use worth_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 use forge_topo::operator::apply_op;
 use forge_topo::transactions::MutableDraft;
 use forge_topo::traverse::FaceAllEdgesIterator;
-use forge_math::sign::is_sign_crossing;
+use worth_math::sign::is_sign_crossing;
 
 use crate::geom_facade::Plane;
 use crate::core::ModelingContext;
@@ -44,7 +44,7 @@ pub(super) fn find_cut_points_provenance(
     split_cfg: &SplitConfig<'_>,
 ) -> Result<Vec<CutPoint>, KernelError> {
     let mut points = Vec::new();
-    let mut sign_cache: BTreeMap<VertexId, forge_math::sign::TriSign> = BTreeMap::new();
+    let mut sign_cache: BTreeMap<VertexId, worth_math::sign::TriSign> = BTreeMap::new();
 
     for he in FaceAllEdgesIterator::new(arena, face)? {
         let he = he?;
@@ -62,8 +62,8 @@ pub(super) fn find_cut_points_provenance(
                     exact_sign_for_vertex(geometry, dest, p_d, cut_plane, cut_plane_idx)
                 });
 
-                if s_o == forge_math::sign::TriSign::Zero
-                    && s_d != forge_math::sign::TriSign::Zero
+                if s_o == worth_math::sign::TriSign::Zero
+                    && s_d != worth_math::sign::TriSign::Zero
                 {
                     points.push(CutPoint::Existing(origin));
                 } else if is_sign_crossing(s_o, s_d) {

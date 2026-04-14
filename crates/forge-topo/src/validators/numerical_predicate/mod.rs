@@ -11,4 +11,4 @@
 //! - ValidateConditionNumberTriggers
 //! - ValidateBitBudgetAccounting
 //!
-//! DEPENDENCIES: `forge-math` (predicates, exact arithmetic)
+//! DEPENDENCIES: `worth-math` (predicates, exact arithmetic)

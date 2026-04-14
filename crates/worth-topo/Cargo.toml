@@ -1,0 +1,17 @@
+[package]
+name = "worth-topo"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Worth topology materialization and structural interpretation"
+
+[dependencies]
+forge-relational.workspace = true
+serde = { workspace = true, features = ["derive"] }
+worth-schema.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

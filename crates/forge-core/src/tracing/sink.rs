@@ -12,7 +12,7 @@
 //!
 //! DEPENDENCIES: `forge-core::tracing` (TracedDecision, DecisionTier, SpanId),
 //!               `forge-core::policy` (PolicyKind),
-//!               `forge-math::arithmetic::precision` (PrecisionEscalation)
+//!               `worth-math::arithmetic::precision` (PrecisionEscalation)
 
 use std::sync::{Arc, Mutex};
 
@@ -64,7 +64,7 @@ pub trait DecisionSink {
     fn record_escalation(
         &mut self,
         entity_index: u32,
-        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: &worth_math::arithmetic::precision::PrecisionEscalation,
     );
 
     // ── Policy decisions ─────────────────────────────────────────────
@@ -126,7 +126,7 @@ impl<T: DecisionSink + ?Sized> DecisionSink for &mut T {
     fn record_escalation(
         &mut self,
         entity_index: u32,
-        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: &worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
         (**self).record_escalation(entity_index, escalation)
     }
@@ -169,7 +169,7 @@ impl DecisionSink for NullSink {
     fn record_escalation(
         &mut self,
         _: u32,
-        _: &forge_math::arithmetic::precision::PrecisionEscalation,
+        _: &worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
     }
     fn record_policy_applied(&mut self, _: PolicyKind, _: f64, _: bool, _: Option<&str>) {}
@@ -233,7 +233,7 @@ impl DecisionSink for DecisionSinkHandle {
     fn record_escalation(
         &mut self,
         entity_index: u32,
-        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: &worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
         if let Ok(mut lock) = self.inner.lock() {
             lock.record_escalation(entity_index, escalation);
@@ -386,7 +386,7 @@ impl DecisionSink for TestSink {
     fn record_escalation(
         &mut self,
         entity_index: u32,
-        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+        escalation: &worth_math::arithmetic::precision::PrecisionEscalation,
     ) {
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(

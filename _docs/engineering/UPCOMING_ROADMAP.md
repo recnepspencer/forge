@@ -75,7 +75,7 @@ Divergence theorem volume computation for polyhedra. Promoted to a first-class h
 
 Also implements mass-property centroid via tetrahedralization against reference point — not vertex averaging.
 
-Oracle architecture: thin precondition wrappers in `forge-kernel/integration_tests/harness/oracles.rs` delegating pure math to `forge-geom` (divergence theorem) and topology walking to `forge-kernel/geometry/logic/measurements.rs`. No ad-hoc math in test code.
+Oracle architecture: thin precondition wrappers in `forge-kernel/integration_tests/harness/oracles.rs` delegating pure math to `worth-geom` (divergence theorem) and topology walking to `forge-kernel/geometry/logic/measurements.rs`. No ad-hoc math in test code.
 
 - **Difficulty:** ✅ Done | **Size:** ~2 PRs | **Status:** ✅ Done — oracle + 12 adversarial tests
 - **Test:** Analytical volume (block, cube), cubic scaling, height linearity, translation invariance, centroid at origin/offset, tetrahedron centroid exact vertex average, complex solid invariance, needle-thin box (`rel_tol=1e-10`), giant cube ($1000^3$), all-primitives-positive. Oracle precondition rejects open shells and non-manifold edges (`radial_valence ≠ 2`).
@@ -112,7 +112,7 @@ Every edge must have an associated `CurveGeom` stored in `GeometryStore.curves`.
 
 **8b. Curve Completeness Validator**: every edge has a `CurveGeom` → `MissingCurveBinding`. Endpoint positions match within tolerance → `CurveMismatch { deviation }`. Both half-edges of a shared edge reference the same underlying curve.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs | **Status:** ⏳ Deferred to Phase 2b — types exist in `forge-geom`, emission + validators needed
+- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs | **Status:** ⏳ Deferred to Phase 2b — types exist in `worth-geom`, emission + validators needed
 - **Test:** All primitives pass. Missing curve → `MissingCurveBinding`. Corrupted origin → `CurveMismatch` with deviation reported. Shared-edge consistency.
 
 ### 9. Geometric Invariants [P0.1]

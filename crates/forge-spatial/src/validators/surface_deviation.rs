@@ -2,14 +2,14 @@
 //!
 //! DOMAIN: Checks that every vertex of each face lies on that face's
 //! supporting surface plane within tolerance. Uses `Plane::signed_distance`
-//! from `forge-geom` — no ad-hoc math.
+//! from `worth-geom` — no ad-hoc math.
 //!
 //! DEPENDENCIES: forge-core (KernelError, ToleranceProvider),
-//!               forge-geom (Plane, signed_distance),
+//!               worth-geom (Plane, signed_distance),
 //!               forge-topo (TopologyArena, handles, FaceEdgeIterator)
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::facade::{signed_distance, Plane};
+use worth_geom::facade::{signed_distance, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;

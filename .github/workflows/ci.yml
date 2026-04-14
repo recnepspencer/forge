@@ -108,7 +108,7 @@ jobs:
         run: cargo bench --workspace --no-run
 
   miri:
-    name: Miri (forge-math)
+    name: Miri (worth-math)
     runs-on: ubuntu-latest
 
     steps:
@@ -130,8 +130,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-miri-
 
-      - name: Run miri on forge-math
-        run: cargo +nightly miri test -p forge-math
+      - name: Run miri on worth-math
+        run: cargo +nightly miri test -p worth-math
 
   signal-perf:
     name: Signal Performance Lane

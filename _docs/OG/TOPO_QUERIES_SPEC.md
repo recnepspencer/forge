@@ -127,7 +127,7 @@ While exact curvature (G2) requires parametric surfaces, tangent continuity (G1)
 
 ---
 
-## 7. Geometry Layer Updates (`forge-geom`)
+## 7. Geometry Layer Updates (`worth-geom`)
 
 To support the rigorous, O(1) mathematical lookups required by the advanced Topo queries (specifically bounding and continuity), the geometry layer needs three minor additions.
 
@@ -152,24 +152,24 @@ To support the rigorous, O(1) mathematical lookups required by the advanced Topo
 
 The Boolean layer currently hoards several advanced algorithms that belong in lower crates. These must be extracted to their proper architectural homes so other operations (like sweeping, lofting, and filleting) can use them.
 
-### 8.1 Computational Geometry (`forge-geom`)
+### 8.1 Computational Geometry (`worth-geom`)
 
 These are pure mathematical routines that operate on arrays of `[f64; 3]`. They must not depend on `FaceId` or `TopologyState`.
 
 - **Cyrus-Beck Line Clipping**:
   - **From**: `boolean/split/gate.rs`
-  - **To**: `forge_geom::algorithms::clipping::clip_line_to_polygon`
+  - **To**: `worth_geom::algorithms::clipping::clip_line_to_polygon`
   - **Purpose**: Clips an infinite intersection line against a face's boundary polygon. Classic 2D graphics algorithm adapted for 3D boolean gating.
 - **Extremal Vertex Raycasting / Hole Bridging**:
   - **From**: `boolean/postprocess/hole_splice.rs`
-  - **To**: `forge_geom::algorithms::polygon::bridge_polygon_holes`
+  - **To**: `worth_geom::algorithms::polygon::bridge_polygon_holes`
   - **Purpose**: Finds the +X extremal vertex on a hole and raycasts to the mutually visible outer boundary. Textbook triangulation subroutine.
 - **Exact Symbolic Orientation (4x4 Determinants)**:
   - **From**: `boolean/split/gate.rs`
-  - **To**: Already exists conceptually in `forge-math::predicates`, but usage needs to be centralized. Shewchuk-style robust predicates preventing roundoff shatters.
+  - **To**: Already exists conceptually in `worth-math::predicates`, but usage needs to be centralized. Shewchuk-style robust predicates preventing roundoff shatters.
 - **2D Dominant Axis Projection & Polygon Overlap**:
   - **From**: `boolean/classify/coplanar.rs`
-  - **To**: `forge_geom::algorithms::intersection::polygons_overlap_3d`
+  - **To**: `worth_geom::algorithms::intersection::polygons_overlap_3d`
   - **Purpose**: Projects 3D coplanar faces onto their dominant 2D axis to compute geometric intersection areas.
 
 ### 8.2 Topological Graph Theory (`forge-topo::operations::algorithms`)
@@ -199,15 +199,15 @@ Algorithms bridging exact math and floating-point reality.
   - **Purpose**: Pragmatic resolution of coplanar grazing contact via $\pm \epsilon$ sampling and majority voting.
 - **Fuzzy Bipartite Edge Matching**:
   - **From**: `boolean/assemble/stitch/fallback.rs`
-  - **To**: `forge_geom::spatial::edge_match::fuzzy_match_edges`
-  - **Purpose**: Matching undirected topological edges via 3D Euclidean endpoint proximity. The geometric distance check belongs in `forge_geom`, while the twin-wiring stays in `forge_topo::euler::SewEdge`.
+  - **To**: `worth_geom::spatial::edge_match::fuzzy_match_edges`
+  - **Purpose**: Matching undirected topological edges via 3D Euclidean endpoint proximity. The geometric distance check belongs in `worth_geom`, while the twin-wiring stays in `forge_topo::euler::SewEdge`.
 
 ---
 
 ## Execution Plan
 
-1. **Extract Geometry Algorithms**: Move Cyrus-Beck, Hole Bridging, and Point-in-Polygon logic into `forge-geom::algorithms`.
-2. **Upgrade Geometry Primitives**: Add `union` and `distance_to_point_sq` to `Aabb`, and add the `EvaluateNormal` trait in `forge-geom`.
+1. **Extract Geometry Algorithms**: Move Cyrus-Beck, Hole Bridging, and Point-in-Polygon logic into `worth-geom::algorithms`.
+2. **Upgrade Geometry Primitives**: Add `union` and `distance_to_point_sq` to `Aabb`, and add the `EvaluateNormal` trait in `worth-geom`.
 3. **Build Topo Query Modules**:
    - `crates/forge-topo/src/topology/queries/hierarchy.rs` (Shell/Region/Lump traversal)
    - `crates/forge-topo/src/topology/queries/bounds.rs` (AABB aggregations)

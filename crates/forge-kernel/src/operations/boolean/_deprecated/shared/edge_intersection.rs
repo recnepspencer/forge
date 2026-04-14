@@ -10,7 +10,7 @@
 //! INVARIANT: Tolerance threshold is supplied as `f64` from `ToleranceConfig`
 //! at the kernel layer — not hardcoded here.
 
-use forge_math::arithmetic::Rational;
+use worth_math::arithmetic::Rational;
 
 use crate::geom_facade::{intersect_three_planes_exact, Plane};
 use crate::core::ToleranceConfig;

@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use forge_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
+use worth_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
 
 use super::layer::PropertyLayer;

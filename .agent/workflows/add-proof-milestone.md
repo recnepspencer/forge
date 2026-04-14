@@ -35,8 +35,8 @@ Use the "I Need To…" table in `CRATE_MAP.md`. Common placements:
 | Milestone Type                   | Primary Crate                 | Pattern                                    |
 | -------------------------------- | ----------------------------- | ------------------------------------------ |
 | Invariant check (P0.x)           | `forge-topo`                  | Extend `integrity/validate.rs`             |
-| Geometry solver (P1.2, P4.3)     | `forge-geom`                  | New module in `algorithms/` or `spatial/`  |
-| Math primitive (P2.1)            | `forge-math`                  | New module in `arithmetic/` or `numeric/`  |
+| Geometry solver (P1.2, P4.3)     | `worth-geom`                  | New module in `algorithms/` or `spatial/`  |
+| Math primitive (P2.1)            | `worth-math`                  | New module in `arithmetic/` or `numeric/`  |
 | Policy/config (P0.5, P2.2)       | `forge-kernel`                | Extend `core/` (context, tolerance)        |
 | Proof orchestration (P1.1, P1.3) | `forge-kernel`                | New module in `operations/` or `analysis/` |
 | Replay/causal (P3.x)             | `forge-kernel` + `forge-core` | Extend `tracing/` and `envelope/`          |
@@ -52,7 +52,7 @@ Follow `/new-module` if creating a new directory. Standard proof milestone files
 
 Not every milestone needs all three. A validator extension (P0.1) might only
 add functions to an existing `validate.rs`. An `Interval` type (P2.1) needs
-`schema.rs` + `eval.rs` + `tests.rs` in `forge-math`.
+`schema.rs` + `eval.rs` + `tests.rs` in `worth-math`.
 
 ## Step 5: Implement the PV Suites
 
@@ -99,7 +99,7 @@ Verify every item before considering the milestone complete:
 
 - [ ] No upward dependencies added
 - [ ] All shared types come from `forge-core`
-- [ ] `GeometrySource` trait comes from `forge-math::data_access`
+- [ ] `GeometrySource` trait comes from `worth-math::data_access`
 - [ ] Lower crates receive individual `f64` tolerance values, never `ToleranceConfig`
 
 ### Proof Doctrines
@@ -115,7 +115,7 @@ Verify every item before considering the milestone complete:
 
 - [ ] Zero `unwrap()` / `expect()` outside `#[cfg(test)]`
 - [ ] All mutations through `MutableDraft`
-- [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in forge-math)
+- [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in worth-math)
 
 ### Verification
 

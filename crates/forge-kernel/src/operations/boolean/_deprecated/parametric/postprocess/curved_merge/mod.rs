@@ -5,7 +5,7 @@
 //! `execute_curved_merge`, which follows the D8/D6 execution model.
 //!
 //! DEPENDENCIES:
-//! - forge-geom: SurfaceRelation, SurfaceData, EvaluateSurface, TrimCurveOps
+//! - worth-geom: SurfaceRelation, SurfaceData, EvaluateSurface, TrimCurveOps
 //! - forge-topo: FaceId, SurfaceRef, CoedgeRef, CurveRef
 //! - forge-kernel: KernelState, KernelDraft, GeometryPatch, OperationResult
 //!

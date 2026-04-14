@@ -6,14 +6,14 @@
 //!   2. Curve direction is aligned with the vertex displacement vector.
 //!   3. Curve endpoint (via `point_at`) matches the destination vertex.
 //!
-//! DEPENDENCIES: forge-math (linalg), forge-geom (CurveKind),
+//! DEPENDENCIES: worth-math (linalg), worth-geom (CurveKind),
 //!               forge-topo (arena, handles, traversal),
 //!               forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires position + curve callbacks.
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::facade::CurveKind;
-use forge_math::linalg;
+use worth_geom::facade::CurveKind;
+use worth_math::linalg;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, VertexId};
 use forge_topo::queries::edge_endpoint_ids;
@@ -28,7 +28,7 @@ use forge_topo::queries::edge_endpoint_ids;
 /// 3. **Destination match**: `curve.point_at(edge_length)` ≈ destination
 ///    vertex position — confirms direction + length coherence.
 ///
-/// Uses `forge_math::linalg` for all metric computations.
+/// Uses `worth_math::linalg` for all metric computations.
 /// Tolerance is drawn from `ToleranceProvider`.
 pub fn validate_edge_curve_consistency(
     arena: &TopologyArena,
