@@ -10,7 +10,7 @@ use crate::storage::logic::state::{
     RelationRecordKind,
 };
 use crate::storage::overlay::WorkingState;
-use crate::transactions::data::{CommitConflict, ConflictClass, RelationSpec};
+use crate::transactions::data::{CommitConflict, ConflictClass};
 
 use super::outcomes::{MutationOutcome, RecordMutation};
 use super::{AdjacencyDelta, AdjacencyDeltaKind};
@@ -62,23 +62,27 @@ pub(super) fn allocate_entity(
 pub(super) fn allocate_relation(
     state: &mut WorkingState,
     version_id: crate::identity::data::VersionId,
-    spec: &RelationSpec,
+    partition_id: PartitionId,
+    kind_id: KindId,
+    source: EntityId,
+    target: EntityId,
+    payload: Option<RecordPayload>,
 ) -> RelationId {
     let (slot, generation, reused) = allocate_record::<RelationRecordKind>(
         state,
-        spec.partition_id,
-        spec.kind_id,
-        spec.payload.clone(),
+        partition_id,
+        kind_id,
+        payload,
         version_id,
         Some(RelationEndpoints {
-            source: spec.source,
-            target: spec.target,
+            source,
+            target,
         }),
     );
     if reused {
-        state.mark_relation_free_list_changed(spec.partition_id);
+        state.mark_relation_free_list_changed(partition_id);
     }
-    RelationId::new(spec.partition_id, slot as u64, generation)
+    RelationId::new(partition_id, slot as u64, generation)
 }
 
 pub(super) fn delete_entity_with_cascade(

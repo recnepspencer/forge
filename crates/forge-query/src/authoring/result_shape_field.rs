@@ -1,10 +1,9 @@
-use super::AuthoringError;
+use super::{AspectFieldKey, AspectName, AuthoringError, DeliveredFieldName, FieldName};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AuthoredResultShapeField {
-    source_aspect: String,
-    source_field: String,
-    delivered_name: String,
+    source: AspectFieldKey,
+    delivered_name: DeliveredFieldName,
 }
 
 impl AuthoredResultShapeField {
@@ -13,31 +12,34 @@ impl AuthoredResultShapeField {
         source_field: impl Into<String>,
         delivered_name: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
-        let source_aspect = source_aspect.into();
-        let source_field = source_field.into();
-        let delivered_name = delivered_name.into();
-        if source_aspect.trim().is_empty() || source_field.trim().is_empty() {
-            return Err(AuthoringError::EmptyResultFieldSource);
-        }
-        if delivered_name.trim().is_empty() {
-            return Err(AuthoringError::EmptyDeliveredFieldName);
-        }
         Ok(Self {
-            source_aspect,
-            source_field,
-            delivered_name,
+            source: AspectFieldKey::new(source_aspect, source_field)
+                .map_err(|_| AuthoringError::EmptyResultFieldSource)?,
+            delivered_name: DeliveredFieldName::new(delivered_name)?,
         })
     }
 
     pub fn source_aspect(&self) -> &str {
-        &self.source_aspect
+        self.source.aspect().as_str()
     }
 
     pub fn source_field(&self) -> &str {
-        &self.source_field
+        self.source.field().as_str()
     }
 
     pub fn delivered_name(&self) -> &str {
+        self.delivered_name.as_str()
+    }
+
+    pub fn source_aspect_name(&self) -> &AspectName {
+        self.source.aspect()
+    }
+
+    pub fn source_field_name(&self) -> &FieldName {
+        self.source.field()
+    }
+
+    pub fn delivered_field_name(&self) -> &DeliveredFieldName {
         &self.delivered_name
     }
 }

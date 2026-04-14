@@ -12,7 +12,7 @@ use crate::schema::data::{
 use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::HistoricalMetadata;
 use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind, SlotView};
-use crate::transactions::data::MergedCommitPlan;
+use crate::transactions::data::{CreatedEntityRef, EntityReference, MergedCommitPlan};
 use crate::validation::data::{
     InvariantClass, InvariantRule, InvariantViolation, InvariantViolationFields, RecordKindTag,
     RelationCardinalityBoundary, RelationEndpointBoundary,
@@ -652,7 +652,7 @@ fn evaluate_partition_isolation_contract(
                     crate::transactions::data::CreateIntent::Relation(spec),
                 ) if spec.kind_id == contract.relation_kind_id => {
                     context.metrics().count_relation_slot_scans(1);
-                    if spec.source.partition_id != spec.target.partition_id {
+                    if spec.source.partition_id() != spec.target.partition_id() {
                         violations.push(InvariantViolation {
                             class,
                             code: DiagnosticCode::InvariantViolation,
@@ -664,8 +664,8 @@ fn evaluate_partition_isolation_contract(
                                 contract_id: contract.contract_id.clone(),
                                 relation_kind_id: contract.relation_kind_id,
                                 relation_id: None,
-                                source_partition_id: spec.source.partition_id,
-                                target_partition_id: spec.target.partition_id,
+                                source_partition_id: spec.source.partition_id(),
+                                target_partition_id: spec.target.partition_id(),
                             },
                         });
                     }
@@ -675,7 +675,7 @@ fn evaluate_partition_isolation_contract(
                 ) if spec.kind_id == contract.relation_kind_id => {
                     for (source, target) in &spec.endpoints {
                         context.metrics().count_relation_slot_scans(1);
-                        if source.partition_id != target.partition_id {
+                        if source.partition_id() != target.partition_id() {
                             violations.push(InvariantViolation {
                                 class,
                                 code: DiagnosticCode::InvariantViolation,
@@ -687,8 +687,8 @@ fn evaluate_partition_isolation_contract(
                                     contract_id: contract.contract_id.clone(),
                                     relation_kind_id: contract.relation_kind_id,
                                     relation_id: None,
-                                    source_partition_id: source.partition_id,
-                                    target_partition_id: target.partition_id,
+                                    source_partition_id: source.partition_id(),
+                                    target_partition_id: target.partition_id(),
                                 },
                             });
                         }
@@ -891,8 +891,8 @@ fn evaluate_acyclicity_contract(
                 class,
                 &contract.contract_id,
                 contract.relation_kind_id,
-                edge.target,
-                edge.source,
+                edge.target.clone(),
+                edge.source.clone(),
                 &planned_successors,
             )
         };
@@ -908,8 +908,8 @@ fn evaluate_acyclicity_contract(
                     fields: InvariantViolationFields::Acyclicity {
                         contract_id: contract.contract_id.clone(),
                         relation_kind_id: contract.relation_kind_id,
-                        source: edge.source,
-                        target: edge.target,
+                        source: edge.source.clone(),
+                        target: edge.target.clone(),
                     },
                 });
             }
@@ -941,7 +941,7 @@ fn evaluate_connectivity_minimum_contract(
             class,
             &contract.contract_id,
             contract.relation_kind_id,
-            source,
+            source.clone(),
             &contract.target_kind_ids,
             &planned_successors,
         ) {
@@ -974,7 +974,7 @@ fn evaluate_connectivity_minimum_contract(
 fn visible_entities_of_kinds(
     context: &InvariantExecutionContext<'_>,
     kind_ids: &[crate::identity::data::KindId],
-) -> Vec<crate::identity::data::EntityId> {
+) -> Vec<EntityReference> {
     let state_view = context.state_view();
     let mut entities = Vec::new();
     for partition_id in state_view.state().partition_ids() {
@@ -991,11 +991,11 @@ fn visible_entities_of_kinds(
                     continue;
                 };
                 if contract_candidate_kind_matches(kind_id, kind_ids) {
-                    entities.push(crate::identity::data::EntityId::new(
+                    entities.push(EntityReference::Existing(crate::identity::data::EntityId::new(
                         partition_id,
                         slot as u64,
                         slot_view.generation(),
-                    ));
+                    )));
                 }
             }
         } else {
@@ -1007,8 +1007,39 @@ fn visible_entities_of_kinds(
                 };
                 context.metrics().count_entity_slot_scans(1);
                 if contract_candidate_kind_matches(metadata.kind_id, kind_ids) {
-                    entities.push(metadata.entity_id);
+                    entities.push(EntityReference::Existing(metadata.entity_id));
                 }
+            }
+        }
+    }
+    if let Some(merged_plan) = context.merged_plan() {
+        for intent in &merged_plan.merged_intents {
+            match intent {
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::Entity(spec),
+                ) => {
+                    if contract_candidate_kind_matches(spec.kind_id, kind_ids) {
+                        entities.push(EntityReference::Created(CreatedEntityRef {
+                            partition_id: spec.partition_id,
+                            kind_id: spec.kind_id,
+                            client_key: spec.client_key.clone(),
+                        }));
+                    }
+                }
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::BulkEntities(spec),
+                ) => {
+                    if contract_candidate_kind_matches(spec.kind_id, kind_ids) {
+                        entities.extend(spec.client_keys.iter().cloned().map(|client_key| {
+                            EntityReference::Created(CreatedEntityRef {
+                                partition_id: spec.partition_id,
+                                kind_id: spec.kind_id,
+                                client_key,
+                            })
+                        }));
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -1020,15 +1051,12 @@ fn reachable_target_count_for_connectivity(
     class: InvariantClass,
     contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
-    source: crate::identity::data::EntityId,
+    source: EntityReference,
     target_kind_ids: &[crate::identity::data::KindId],
-    planned_successors: &BTreeMap<
-        crate::identity::data::EntityId,
-        Vec<crate::identity::data::EntityId>,
-    >,
+    planned_successors: &BTreeMap<EntityReference, Vec<EntityReference>>,
 ) -> Result<usize, InvariantViolation> {
     let mut visited = BTreeSet::new();
-    let mut frontier = vec![source];
+        let mut frontier = vec![source.clone()];
     let mut reachable_targets = BTreeSet::new();
     let planned_edge_count = planned_successor_count(planned_successors);
     let mut traversal_budget = RelationTraversalBudget::new(
@@ -1052,11 +1080,11 @@ fn reachable_target_count_for_connectivity(
             class,
             contract_id,
             relation_kind_id,
-            entity_id,
+            &entity_id,
             planned_successors,
             &mut traversal_budget,
         )? {
-            if !visited.insert(next) {
+            if !visited.insert(next.clone()) {
                 continue;
             }
             if traversal_budget.record_entity_visit().is_err() {
@@ -1068,13 +1096,9 @@ fn reachable_target_count_for_connectivity(
                     planned_edge_count,
                 ));
             }
-            if let Some(kind_id) = context
-                .state_view()
-                .entity_metadata(next)
-                .map(|metadata| metadata.kind_id)
-            {
+            if let Some(kind_id) = entity_reference_kind(context, class, &next)? {
                 if contract_candidate_kind_matches(kind_id, target_kind_ids) {
-                    reachable_targets.insert(next);
+                    reachable_targets.insert(next.clone());
                 }
             }
             frontier.push(next);
@@ -1089,15 +1113,12 @@ fn relation_kind_reaches(
     class: InvariantClass,
     contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
-    start: crate::identity::data::EntityId,
-    target: crate::identity::data::EntityId,
-    planned_successors: &BTreeMap<
-        crate::identity::data::EntityId,
-        Vec<crate::identity::data::EntityId>,
-    >,
+    start: EntityReference,
+    target: EntityReference,
+    planned_successors: &BTreeMap<EntityReference, Vec<EntityReference>>,
 ) -> Result<bool, InvariantViolation> {
     let mut visited = BTreeSet::new();
-    let mut frontier = vec![start];
+    let mut frontier = vec![start.clone()];
     let planned_edge_count = planned_successor_count(planned_successors);
     let mut traversal_budget = RelationTraversalBudget::new(
         context.relation_integrity_scope_budget(),
@@ -1120,14 +1141,14 @@ fn relation_kind_reaches(
             class,
             contract_id,
             relation_kind_id,
-            entity_id,
+            &entity_id,
             planned_successors,
             &mut traversal_budget,
         )? {
             if next == target {
                 return Ok(true);
             }
-            if visited.insert(next) {
+            if visited.insert(next.clone()) {
                 if traversal_budget.record_entity_visit().is_err() {
                     return Err(traversal_budget_exceeded_violation(
                         class,
@@ -1150,17 +1171,14 @@ fn relation_kind_successors(
     class: InvariantClass,
     contract_id: &crate::schema::data::ContractId,
     relation_kind_id: crate::identity::data::KindId,
-    entity_id: crate::identity::data::EntityId,
-    planned_successors: &BTreeMap<
-        crate::identity::data::EntityId,
-        Vec<crate::identity::data::EntityId>,
-    >,
+    entity_id: &EntityReference,
+    planned_successors: &BTreeMap<EntityReference, Vec<EntityReference>>,
     traversal_budget: &mut RelationTraversalBudget,
-) -> Result<Vec<crate::identity::data::EntityId>, InvariantViolation> {
+) -> Result<Vec<EntityReference>, InvariantViolation> {
     let mut successors = BTreeSet::new();
     let planned_edge_count = planned_successor_count(planned_successors);
-    if let Some(edges) = planned_successors.get(&entity_id) {
-        for &target in edges {
+    if let Some(edges) = planned_successors.get(entity_id) {
+        for target in edges {
             if traversal_budget.record_relation_scan().is_err() {
                 return Err(traversal_budget_exceeded_violation(
                     class,
@@ -1170,13 +1188,13 @@ fn relation_kind_successors(
                     planned_edge_count,
                 ));
             }
-            successors.insert(target);
+            successors.insert(target.clone());
         }
     }
-    let Some(partition) = context
-        .partition_access()
-        .get_partition(entity_id.partition_id)
-    else {
+    let EntityReference::Existing(entity_id) = entity_id else {
+        return Ok(successors.into_iter().collect());
+    };
+    let Some(partition) = context.partition_access().get_partition(entity_id.partition_id) else {
         return Ok(successors.into_iter().collect());
     };
     let slot = entity_id.local_slot.0 as usize;
@@ -1201,7 +1219,7 @@ fn relation_kind_successors(
             continue;
         };
         if metadata.kind_id == relation_kind_id {
-            successors.insert(metadata.target);
+            successors.insert(EntityReference::Existing(metadata.target));
         }
     }
     Ok(successors.into_iter().collect())
@@ -1252,22 +1270,19 @@ impl RelationTraversalBudget {
 
 fn planned_successor_map(
     planned_edges: &[super::request::PlannedRelationEdge],
-) -> BTreeMap<crate::identity::data::EntityId, Vec<crate::identity::data::EntityId>> {
+) -> BTreeMap<EntityReference, Vec<EntityReference>> {
     let mut successors = BTreeMap::new();
     for edge in planned_edges {
         successors
-            .entry(edge.source)
+            .entry(edge.source.clone())
             .or_insert_with(Vec::new)
-            .push(edge.target);
+            .push(edge.target.clone());
     }
     successors
 }
 
 fn planned_successor_count(
-    planned_successors: &BTreeMap<
-        crate::identity::data::EntityId,
-        Vec<crate::identity::data::EntityId>,
-    >,
+    planned_successors: &BTreeMap<EntityReference, Vec<EntityReference>>,
 ) -> usize {
     planned_successors.values().map(Vec::len).sum()
 }
@@ -1315,7 +1330,7 @@ fn evaluate_endpoint_kind_contract(
     let mut violations = Vec::new();
     for edge in &scope.planned_edges {
         context.metrics().count_relation_endpoint_kind_checks(1);
-        let source_kind = match entity_kind_in_state(context, class, edge.source) {
+        let source_kind = match entity_reference_kind(context, class, &edge.source) {
             Ok(Some(kind_id)) => kind_id,
             Ok(None) => continue,
             Err(violation) => {
@@ -1323,7 +1338,7 @@ fn evaluate_endpoint_kind_contract(
                 continue;
             }
         };
-        let target_kind = match entity_kind_in_state(context, class, edge.target) {
+        let target_kind = match entity_reference_kind(context, class, &edge.target) {
             Ok(Some(kind_id)) => kind_id,
             Ok(None) => continue,
             Err(violation) => {
@@ -1342,8 +1357,8 @@ fn evaluate_endpoint_kind_contract(
                 InvariantViolationFields::RelationEndpointKindMismatch {
                     contract_id: contract.contract_id.clone(),
                     relation_kind_id: contract.relation_kind_id,
-                    source: edge.source,
-                    target: edge.target,
+                    source: edge.source.clone(),
+                    target: edge.target.clone(),
                     source_kind_id: source_kind,
                     target_kind_id: target_kind,
                     boundary: RelationEndpointBoundary::Source,
@@ -1361,8 +1376,8 @@ fn evaluate_endpoint_kind_contract(
                 InvariantViolationFields::RelationEndpointKindMismatch {
                     contract_id: contract.contract_id.clone(),
                     relation_kind_id: contract.relation_kind_id,
-                    source: edge.source,
-                    target: edge.target,
+                    source: edge.source.clone(),
+                    target: edge.target.clone(),
                     source_kind_id: source_kind,
                     target_kind_id: target_kind,
                     boundary: RelationEndpointBoundary::Target,
@@ -1380,13 +1395,13 @@ fn evaluate_endpoint_kind_contract(
                 InvariantViolationFields::RelationEndpointKindSelfEdge {
                     contract_id: contract.contract_id.clone(),
                     relation_kind_id: contract.relation_kind_id,
-                    source: edge.source,
-                    target: edge.target,
+                    source: edge.source.clone(),
+                    target: edge.target.clone(),
                     self_edge: true,
                 },
             ));
         }
-        if edge.source.partition_id != edge.target.partition_id
+        if edge.source.partition_id() != edge.target.partition_id()
             && contract.cross_context_policy
                 != crate::config::data::CrossContextPolicy::AllowExplicit
         {
@@ -1400,8 +1415,8 @@ fn evaluate_endpoint_kind_contract(
                 InvariantViolationFields::RelationEndpointKindCrossContext {
                     contract_id: contract.contract_id.clone(),
                     relation_kind_id: contract.relation_kind_id,
-                    source_partition_id: edge.source.partition_id,
-                    target_partition_id: edge.target.partition_id,
+                    source_partition_id: edge.source.partition_id(),
+                    target_partition_id: edge.target.partition_id(),
                 },
             ));
         }
@@ -1436,7 +1451,7 @@ fn evaluate_cardinality_maximum_contract(
                     InvariantViolationFields::RelationCardinalityEndpoint {
                         contract_id: contract.contract_id.clone(),
                         relation_kind_id: contract.relation_kind_id,
-                        entity_id: key.entity_id,
+                        entity_id: key.entity_id.clone(),
                         boundary: RelationCardinalityBoundary::Source,
                         count: *count,
                         limit,
@@ -1459,7 +1474,7 @@ fn evaluate_cardinality_maximum_contract(
                     InvariantViolationFields::RelationCardinalityEndpoint {
                         contract_id: contract.contract_id.clone(),
                         relation_kind_id: contract.relation_kind_id,
-                        entity_id: key.entity_id,
+                        entity_id: key.entity_id.clone(),
                         boundary: RelationCardinalityBoundary::Target,
                         count: *count,
                         limit,
@@ -1482,8 +1497,8 @@ fn evaluate_cardinality_maximum_contract(
                     InvariantViolationFields::RelationCardinalityPair {
                         contract_id: contract.contract_id.clone(),
                         relation_kind_id: contract.relation_kind_id,
-                        source: key.source,
-                        target: key.target,
+                        source: key.source.clone(),
+                        target: key.target.clone(),
                         count: *count,
                         limit,
                     },
@@ -1514,7 +1529,7 @@ fn evaluate_cardinality_minimum_contract(
         for entity_id in snapshot
             .candidate_source_entities
             .iter()
-            .copied()
+            .cloned()
             .collect::<Vec<_>>()
         {
             let count = snapshot
@@ -1548,7 +1563,7 @@ fn evaluate_cardinality_minimum_contract(
         for entity_id in snapshot
             .candidate_target_entities
             .iter()
-            .copied()
+            .cloned()
             .collect::<Vec<_>>()
         {
             let count = snapshot
@@ -1611,17 +1626,11 @@ fn evaluate_cardinality_minimum_contract(
 
 #[derive(Default)]
 struct VisibleRelationCountSnapshot {
-    source_counts: BTreeMap<crate::identity::data::EntityId, usize>,
-    target_counts: BTreeMap<crate::identity::data::EntityId, usize>,
-    directed_pair_counts: BTreeMap<
-        (
-            crate::identity::data::EntityId,
-            crate::identity::data::EntityId,
-        ),
-        usize,
-    >,
-    candidate_source_entities: BTreeSet<crate::identity::data::EntityId>,
-    candidate_target_entities: BTreeSet<crate::identity::data::EntityId>,
+    source_counts: BTreeMap<EntityReference, usize>,
+    target_counts: BTreeMap<EntityReference, usize>,
+    directed_pair_counts: BTreeMap<(EntityReference, EntityReference), usize>,
+    candidate_source_entities: BTreeSet<EntityReference>,
+    candidate_target_entities: BTreeSet<EntityReference>,
     relation_slot_scans: usize,
     entity_slot_scans: usize,
 }
@@ -1653,11 +1662,20 @@ fn visible_relation_counts(
                 let Some(endpoints) = slot_view.extra().as_ref() else {
                     continue;
                 };
-                *snapshot.source_counts.entry(endpoints.source).or_insert(0) += 1;
-                *snapshot.target_counts.entry(endpoints.target).or_insert(0) += 1;
+                *snapshot
+                    .source_counts
+                    .entry(EntityReference::Existing(endpoints.source))
+                    .or_insert(0) += 1;
+                *snapshot
+                    .target_counts
+                    .entry(EntityReference::Existing(endpoints.target))
+                    .or_insert(0) += 1;
                 *snapshot
                     .directed_pair_counts
-                    .entry((endpoints.source, endpoints.target))
+                    .entry((
+                        EntityReference::Existing(endpoints.source),
+                        EntityReference::Existing(endpoints.target),
+                    ))
                     .or_insert(0) += 1;
             }
 
@@ -1676,10 +1694,14 @@ fn visible_relation_counts(
                     slot_view.generation(),
                 );
                 if contract_candidate_kind_matches(kind_id, &contract.candidate_source_kinds) {
-                    snapshot.candidate_source_entities.insert(entity_id);
+                    snapshot
+                        .candidate_source_entities
+                        .insert(EntityReference::Existing(entity_id));
                 }
                 if contract_candidate_kind_matches(kind_id, &contract.candidate_target_kinds) {
-                    snapshot.candidate_target_entities.insert(entity_id);
+                    snapshot
+                        .candidate_target_entities
+                        .insert(EntityReference::Existing(entity_id));
                 }
             }
         } else {
@@ -1696,15 +1718,18 @@ fn visible_relation_counts(
                 }
                 *snapshot
                     .source_counts
-                    .entry(metadata.endpoints.source)
+                    .entry(EntityReference::Existing(metadata.endpoints.source))
                     .or_insert(0) += 1;
                 *snapshot
                     .target_counts
-                    .entry(metadata.endpoints.target)
+                    .entry(EntityReference::Existing(metadata.endpoints.target))
                     .or_insert(0) += 1;
                 *snapshot
                     .directed_pair_counts
-                    .entry((metadata.endpoints.source, metadata.endpoints.target))
+                    .entry((
+                        EntityReference::Existing(metadata.endpoints.source),
+                        EntityReference::Existing(metadata.endpoints.target),
+                    ))
                     .or_insert(0) += 1;
             }
 
@@ -1722,7 +1747,7 @@ fn visible_relation_counts(
                 ) {
                     snapshot
                         .candidate_source_entities
-                        .insert(metadata.entity_id);
+                        .insert(EntityReference::Existing(metadata.entity_id));
                 }
                 if contract_candidate_kind_matches(
                     metadata.kind_id,
@@ -1730,8 +1755,82 @@ fn visible_relation_counts(
                 ) {
                     snapshot
                         .candidate_target_entities
-                        .insert(metadata.entity_id);
+                        .insert(EntityReference::Existing(metadata.entity_id));
                 }
+            }
+        }
+    }
+
+    if let Some(merged_plan) = context.merged_plan() {
+        for intent in &merged_plan.merged_intents {
+            match intent {
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::Entity(spec),
+                ) => {
+                    let entity = EntityReference::Created(CreatedEntityRef {
+                        partition_id: spec.partition_id,
+                        kind_id: spec.kind_id,
+                        client_key: spec.client_key.clone(),
+                    });
+                    if contract_candidate_kind_matches(spec.kind_id, &contract.candidate_source_kinds)
+                    {
+                        snapshot.candidate_source_entities.insert(entity.clone());
+                    }
+                    if contract_candidate_kind_matches(spec.kind_id, &contract.candidate_target_kinds)
+                    {
+                        snapshot.candidate_target_entities.insert(entity);
+                    }
+                }
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::BulkEntities(spec),
+                ) => {
+                    for client_key in &spec.client_keys {
+                        let entity = EntityReference::Created(CreatedEntityRef {
+                            partition_id: spec.partition_id,
+                            kind_id: spec.kind_id,
+                            client_key: client_key.clone(),
+                        });
+                        if contract_candidate_kind_matches(
+                            spec.kind_id,
+                            &contract.candidate_source_kinds,
+                        ) {
+                            snapshot.candidate_source_entities.insert(entity.clone());
+                        }
+                        if contract_candidate_kind_matches(
+                            spec.kind_id,
+                            &contract.candidate_target_kinds,
+                        ) {
+                            snapshot.candidate_target_entities.insert(entity);
+                        }
+                    }
+                }
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::Relation(spec),
+                ) => {
+                    if spec.kind_id == contract.relation_kind_id {
+                        *snapshot.source_counts.entry(spec.source.clone()).or_insert(0) += 1;
+                        *snapshot.target_counts.entry(spec.target.clone()).or_insert(0) += 1;
+                        *snapshot
+                            .directed_pair_counts
+                            .entry((spec.source.clone(), spec.target.clone()))
+                            .or_insert(0) += 1;
+                    }
+                }
+                crate::transactions::data::MutationIntent::Create(
+                    crate::transactions::data::CreateIntent::BulkRelations(spec),
+                ) => {
+                    if spec.kind_id == contract.relation_kind_id {
+                        for (source, target) in &spec.endpoints {
+                            *snapshot.source_counts.entry(source.clone()).or_insert(0) += 1;
+                            *snapshot.target_counts.entry(target.clone()).or_insert(0) += 1;
+                            *snapshot
+                                .directed_pair_counts
+                                .entry((source.clone(), target.clone()))
+                                .or_insert(0) += 1;
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -1790,8 +1889,8 @@ fn evaluate_uniqueness_contract(
                             contract_id: contract.contract_id.clone(),
                             relation_kind_id: contract.relation_kind_id,
                             scope: contract.scope,
-                            source: key.source,
-                            target: key.target,
+                            source: key.source.clone(),
+                            target: key.target.clone(),
                             count: *count,
                         },
                     ));
@@ -1813,8 +1912,8 @@ fn evaluate_uniqueness_contract(
                             contract_id: contract.contract_id.clone(),
                             relation_kind_id: contract.relation_kind_id,
                             scope: contract.scope,
-                            source: key.source,
-                            target: key.target,
+                            source: key.source.clone(),
+                            target: key.target.clone(),
                             count: *count,
                         },
                     ));
@@ -1853,8 +1952,8 @@ fn evaluate_symmetry_contract(
                         InvariantViolationFields::RelationSymmetry {
                             contract_id: contract.contract_id.clone(),
                             relation_kind_id: contract.relation_kind_id,
-                            source: edge.source,
-                            target: edge.target,
+                            source: edge.source.clone(),
+                            target: edge.target.clone(),
                             mode: contract.mode,
                         },
                     ));
@@ -1862,8 +1961,8 @@ fn evaluate_symmetry_contract(
             }
             SymmetryMode::PairedInverseRequired | SymmetryMode::PairedTwinRequired => {
                 let inverse = super::request::PreparedRelationPairKey {
-                    source: edge.target,
-                    target: edge.source,
+                    source: edge.target.clone(),
+                    target: edge.source.clone(),
                 };
                 if scope
                     .directed_pair_counts
@@ -1882,8 +1981,8 @@ fn evaluate_symmetry_contract(
                         InvariantViolationFields::RelationSymmetry {
                             contract_id: contract.contract_id.clone(),
                             relation_kind_id: contract.relation_kind_id,
-                            source: edge.source,
-                            target: edge.target,
+                            source: edge.source.clone(),
+                            target: edge.target.clone(),
                             mode: contract.mode,
                         },
                     ));
@@ -1891,8 +1990,8 @@ fn evaluate_symmetry_contract(
             }
             SymmetryMode::InverseProhibited => {
                 let inverse = super::request::PreparedRelationPairKey {
-                    source: edge.target,
-                    target: edge.source,
+                    source: edge.target.clone(),
+                    target: edge.source.clone(),
                 };
                 if scope
                     .directed_pair_counts
@@ -1911,8 +2010,8 @@ fn evaluate_symmetry_contract(
                         InvariantViolationFields::RelationSymmetry {
                             contract_id: contract.contract_id.clone(),
                             relation_kind_id: contract.relation_kind_id,
-                            source: edge.source,
-                            target: edge.target,
+                            source: edge.source.clone(),
+                            target: edge.target.clone(),
                             mode: contract.mode,
                         },
                     ));
@@ -1938,7 +2037,7 @@ fn evaluate_endpoint_deletion_integrity_contract(
     let mut violations = Vec::new();
     for entity_id in &scope.deleted_entities {
         let endpoint_key = super::request::PreparedRelationEndpointKey {
-            entity_id: *entity_id,
+            entity_id: EntityReference::Existing(*entity_id),
         };
         let live_relations = scope
             .source_counts
@@ -2078,6 +2177,46 @@ fn entity_kind_in_state(
             )
         })
         .map(Some)
+}
+
+fn entity_reference_kind(
+    context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    entity_reference: &EntityReference,
+) -> Result<Option<crate::identity::data::KindId>, InvariantViolation> {
+    match entity_reference {
+        EntityReference::Existing(entity_id) => entity_kind_in_state(context, class, *entity_id),
+        EntityReference::Created(created) => Ok(created_entity_kind_in_plan(context, created)),
+    }
+}
+
+fn created_entity_kind_in_plan(
+    context: &InvariantExecutionContext<'_>,
+    created: &CreatedEntityRef,
+) -> Option<crate::identity::data::KindId> {
+    let merged_plan = context.merged_plan()?;
+    for intent in &merged_plan.merged_intents {
+        match intent {
+            crate::transactions::data::MutationIntent::Create(
+                crate::transactions::data::CreateIntent::Entity(spec),
+            ) if spec.partition_id == created.partition_id
+                && spec.kind_id == created.kind_id
+                && spec.client_key == created.client_key =>
+            {
+                return Some(spec.kind_id);
+            }
+            crate::transactions::data::MutationIntent::Create(
+                crate::transactions::data::CreateIntent::BulkEntities(spec),
+            ) if spec.partition_id == created.partition_id
+                && spec.kind_id == created.kind_id
+                && spec.client_keys.iter().any(|key| key == &created.client_key) =>
+            {
+                return Some(spec.kind_id);
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn relation_violation(

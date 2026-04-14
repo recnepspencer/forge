@@ -1,6 +1,7 @@
 use crate::authoring::ScalarPredicateValue;
 use crate::canonicalization::{
     CanonicalPredicateEntry, CanonicalPredicateFamily, CanonicalPredicateOperand,
+    CanonicalScalarSet,
 };
 use crate::schema_view::SchemaFieldKind;
 
@@ -18,7 +19,7 @@ pub(crate) struct FieldPredicateState {
     weakest_lt: Option<LegalPredicate>,
     membership: Option<LegalPredicate>,
     presence: Option<LegalPredicate>,
-    contains: Vec<LegalPredicate>,
+    contains: NormalizedContainsPredicates,
 }
 
 impl FieldPredicateState {
@@ -67,10 +68,9 @@ impl FieldPredicateState {
                 }
             }
             CanonicalPredicateFamily::ScalarMembership => {
-                let next_values = membership_values(&entry.0);
+                let next_values = membership_values_set(&entry.0);
                 if let Some(existing) = &self.membership {
-                    let intersection =
-                        intersect_sorted_scalar_sets(membership_values(&existing.0), next_values);
+                    let intersection = membership_values_set(&existing.0).intersect(next_values);
                     if intersection.is_empty() {
                         return contradictory(
                             aspect,
@@ -100,26 +100,7 @@ impl FieldPredicateState {
                 }
             }
             CanonicalPredicateFamily::StringContains => {
-                let candidate = string_scalar(&entry.0);
-                if self
-                    .contains
-                    .iter()
-                    .any(|existing| string_scalar(&existing.0) == candidate)
-                {
-                    return Ok(());
-                }
-                self.contains
-                    .retain(|existing| !candidate.contains(string_scalar(&existing.0)));
-                if self
-                    .contains
-                    .iter()
-                    .any(|existing| string_scalar(&existing.0).contains(candidate))
-                {
-                    return Ok(());
-                }
-                self.contains.push(entry);
-                self.contains
-                    .sort_by(|left, right| string_scalar(&left.0).cmp(string_scalar(&right.0)));
+                self.contains.ingest(entry);
             }
         }
         Ok(())
@@ -138,7 +119,7 @@ impl FieldPredicateState {
                 self.strongest_gt.as_ref(),
                 self.weakest_lt.as_ref(),
                 self.membership.as_ref(),
-                &self.contains,
+                self.contains.as_slice(),
                 aspect,
                 field,
                 counters,
@@ -172,7 +153,10 @@ impl FieldPredicateState {
         if let Some(membership) = membership {
             let reduced = membership_values(&membership.0);
             if reduced.len() == 1 {
-                let only = reduced[0].clone();
+                let only = reduced
+                    .first()
+                    .expect("single-value reduced membership must have a first value")
+                    .clone();
                 let equality = CanonicalPredicateEntry {
                     aspect: membership.0.aspect.clone(),
                     field: membership.0.field.clone(),
@@ -200,7 +184,7 @@ impl FieldPredicateState {
             }
         }
 
-        for contains in self.contains {
+        for contains in self.contains.into_entries() {
             normalized.push(ValidatedPredicateEntry::from_canonical(
                 &contains.0,
                 contains.1,
@@ -220,6 +204,42 @@ impl FieldPredicateState {
 
         normalized.sort();
         Ok(normalized)
+    }
+}
+
+#[derive(Default)]
+struct NormalizedContainsPredicates(Vec<LegalPredicate>);
+
+impl NormalizedContainsPredicates {
+    fn ingest(&mut self, entry: LegalPredicate) {
+        let candidate = string_scalar(&entry.0);
+        if self
+            .0
+            .iter()
+            .any(|existing| string_scalar(&existing.0) == candidate)
+        {
+            return;
+        }
+        self.0
+            .retain(|existing| !candidate.contains(string_scalar(&existing.0)));
+        if self
+            .0
+            .iter()
+            .any(|existing| string_scalar(&existing.0).contains(candidate))
+        {
+            return;
+        }
+        self.0.push(entry);
+        self.0
+            .sort_by(|left, right| string_scalar(&left.0).cmp(string_scalar(&right.0)));
+    }
+
+    fn as_slice(&self) -> &[LegalPredicate] {
+        &self.0
+    }
+
+    fn into_entries(self) -> Vec<LegalPredicate> {
+        self.0
     }
 }
 
@@ -259,10 +279,7 @@ fn apply_equality_constraints(
     }
 
     if let Some(membership) = membership {
-        if membership_values(&membership.0)
-            .binary_search(scalar_operand(&equality.0))
-            .is_err()
-        {
+        if !membership_values_set(&membership.0).contains(scalar_operand(&equality.0)) {
             return contradictory(
                 aspect,
                 field,
@@ -303,20 +320,25 @@ fn apply_range_to_membership(
         return Ok(None);
     };
 
-    let mut reduced = Vec::with_capacity(membership_values(&membership.0).len());
-    reduced.extend_from_slice(membership_values(&membership.0));
-    if let Some(gt) = strongest_gt {
-        reduced.retain(|value| match value {
-            ScalarPredicateValue::Integer(value) => *value > integer_scalar(&gt.0),
-            _ => true,
-        });
-    }
-    if let Some(lt) = weakest_lt {
-        reduced.retain(|value| match value {
-            ScalarPredicateValue::Integer(value) => *value < integer_scalar(&lt.0),
-            _ => true,
-        });
-    }
+    let reduced = membership_values_set(&membership.0).filtered(|value| {
+        let passes_gt = strongest_gt
+            .map(|gt| match value {
+                ScalarPredicateValue::Integer(integer_value) => {
+                    integer_value > &integer_scalar(&gt.0)
+                }
+                _ => true,
+            })
+            .unwrap_or(true);
+        let passes_lt = weakest_lt
+            .map(|lt| match value {
+                ScalarPredicateValue::Integer(integer_value) => {
+                    integer_value < &integer_scalar(&lt.0)
+                }
+                _ => true,
+            })
+            .unwrap_or(true);
+        passes_gt && passes_lt
+    });
 
     if reduced.is_empty() {
         return contradictory(
@@ -382,36 +404,13 @@ fn string_scalar(predicate: &CanonicalPredicateEntry) -> &str {
     }
 }
 
-fn membership_values(predicate: &CanonicalPredicateEntry) -> &[ScalarPredicateValue] {
+fn membership_values_set(predicate: &CanonicalPredicateEntry) -> &CanonicalScalarSet {
     match &predicate.operand {
         CanonicalPredicateOperand::ScalarSet(values) => values,
         _ => unreachable!("membership predicate expected scalar set"),
     }
 }
 
-fn intersect_sorted_scalar_sets(
-    left: &[ScalarPredicateValue],
-    right: &[ScalarPredicateValue],
-) -> Vec<ScalarPredicateValue> {
-    let mut intersection = Vec::with_capacity(left.len().min(right.len()));
-    let mut left_index = 0;
-    let mut right_index = 0;
-
-    while left_index < left.len() && right_index < right.len() {
-        match left[left_index].cmp(&right[right_index]) {
-            std::cmp::Ordering::Less => {
-                left_index += 1;
-            }
-            std::cmp::Ordering::Greater => {
-                right_index += 1;
-            }
-            std::cmp::Ordering::Equal => {
-                intersection.push(left[left_index].clone());
-                left_index += 1;
-                right_index += 1;
-            }
-        }
-    }
-
-    intersection
+fn membership_values(predicate: &CanonicalPredicateEntry) -> &[ScalarPredicateValue] {
+    membership_values_set(predicate).as_slice()
 }

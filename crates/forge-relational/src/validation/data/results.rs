@@ -7,6 +7,7 @@ use crate::schema::data::{
     ContractId, EndpointDeletionIntegrityMode, PayloadContractRecordKind, PayloadSchemaValueType,
     SymmetryMode, UniquenessScope,
 };
+use crate::transactions::data::EntityReference;
 
 use super::execution::InvariantClass;
 use super::execution::InvariantWitnessKey;
@@ -35,8 +36,8 @@ pub enum InvariantViolationFields {
     RelationEndpointKindMismatch {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         source_kind_id: KindId,
         target_kind_id: KindId,
         boundary: RelationEndpointBoundary,
@@ -44,8 +45,8 @@ pub enum InvariantViolationFields {
     RelationEndpointKindSelfEdge {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         self_edge: bool,
     },
     RelationEndpointKindCrossContext {
@@ -57,7 +58,7 @@ pub enum InvariantViolationFields {
     RelationCardinalityEndpoint {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        entity_id: EntityId,
+        entity_id: EntityReference,
         boundary: RelationCardinalityBoundary,
         count: usize,
         limit: u64,
@@ -65,8 +66,8 @@ pub enum InvariantViolationFields {
     RelationCardinalityPair {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         count: usize,
         limit: u64,
     },
@@ -74,15 +75,15 @@ pub enum InvariantViolationFields {
         contract_id: ContractId,
         relation_kind_id: KindId,
         scope: UniquenessScope,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         count: usize,
     },
     RelationSymmetry {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         mode: SymmetryMode,
     },
     RelationEndpointDeletionIntegrity {
@@ -138,13 +139,13 @@ pub enum InvariantViolationFields {
     Acyclicity {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
     },
     ConnectivityMinimum {
         contract_id: ContractId,
         relation_kind_id: KindId,
-        source: EntityId,
+        source: EntityReference,
         reachable_target_count: usize,
         minimum_reachable_targets: u32,
     },

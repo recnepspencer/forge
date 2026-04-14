@@ -960,8 +960,8 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("illegal-overflow".to_string()),
-                source,
-                target: target_b,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target_b),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"illegal-overflow"}),
                 )),
@@ -1593,3 +1593,4 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
     assert!(matches!(error, TransactionCommitError::Publication { .. }));
     assert!(runtime.history().latest_commit().is_none());
 }
+

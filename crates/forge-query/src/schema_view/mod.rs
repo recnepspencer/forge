@@ -1,9 +1,9 @@
 mod field;
 mod relation;
 
-use std::borrow::Borrow;
 use std::collections::BTreeMap;
 
+use crate::authoring::{AspectName, FieldName, RelationName};
 use crate::identity::SchemaBasisDigest;
 
 pub use field::{SchemaFieldKind, SchemaFieldView};
@@ -12,31 +12,13 @@ pub use relation::SchemaRelationView;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySchemaView {
     basis: SchemaBasisDigest,
-    fields: BTreeMap<AspectKey, AspectSchemaView>,
-    relations: BTreeMap<String, SchemaRelationView>,
+    fields: BTreeMap<AspectName, AspectSchemaView>,
+    relations: BTreeMap<RelationName, SchemaRelationView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct AspectSchemaView {
-    fields: BTreeMap<FieldKey, SchemaFieldView>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-struct AspectKey(String);
-
-impl Borrow<str> for AspectKey {
-    fn borrow(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-struct FieldKey(String);
-
-impl Borrow<str> for FieldKey {
-    fn borrow(&self) -> &str {
-        &self.0
-    }
+    fields: BTreeMap<FieldName, SchemaFieldView>,
 }
 
 impl QuerySchemaView {
@@ -45,19 +27,19 @@ impl QuerySchemaView {
         fields: impl IntoIterator<Item = SchemaFieldView>,
         relations: impl IntoIterator<Item = SchemaRelationView>,
     ) -> Self {
-        let mut fields_by_aspect: BTreeMap<AspectKey, AspectSchemaView> = BTreeMap::new();
+        let mut fields_by_aspect: BTreeMap<AspectName, AspectSchemaView> = BTreeMap::new();
         for field in fields {
             fields_by_aspect
-                .entry(AspectKey(field.aspect().to_string()))
+                .entry(field.aspect_name().clone())
                 .or_insert_with(|| AspectSchemaView {
                     fields: BTreeMap::new(),
                 })
                 .fields
-                .insert(FieldKey(field.field().to_string()), field);
+                .insert(field.field_name().clone(), field);
         }
-        let relations: BTreeMap<String, SchemaRelationView> = relations
+        let relations: BTreeMap<RelationName, SchemaRelationView> = relations
             .into_iter()
-            .map(|relation| (relation.relation().to_string(), relation))
+            .map(|relation| (relation.relation_name().clone(), relation))
             .collect();
 
         let mut digest_parts = vec![format!("basis:{}", basis_marker.into())];

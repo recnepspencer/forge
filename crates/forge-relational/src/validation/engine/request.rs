@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::transactions::data::MergedCommitPlan;
+use crate::transactions::data::EntityReference;
 use crate::validation::data::{
     InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet, InvariantPlanContract,
     InvariantRegistration, InvariantViolation, InvariantViolationFields,
@@ -31,21 +32,21 @@ pub(crate) struct InvariantExecutionRequest<'runtime> {
     preparation_violation: Option<InvariantViolation>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PlannedRelationEdge {
-    pub(crate) source: EntityId,
-    pub(crate) target: EntityId,
+    pub(crate) source: EntityReference,
+    pub(crate) target: EntityReference,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PreparedRelationPairKey {
-    pub(crate) source: EntityId,
-    pub(crate) target: EntityId,
+    pub(crate) source: EntityReference,
+    pub(crate) target: EntityReference,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PreparedRelationEndpointKey {
-    pub(crate) entity_id: EntityId,
+    pub(crate) entity_id: EntityReference,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -129,18 +130,25 @@ impl PreparedRelationIntegrityScope {
             && self.deleted_entities.is_empty()
     }
 
-    fn increment_counts(&mut self, source: EntityId, target: EntityId) {
+    fn increment_counts(&mut self, source: EntityReference, target: EntityReference) {
         *self
             .source_counts
-            .entry(PreparedRelationEndpointKey { entity_id: source })
+            .entry(PreparedRelationEndpointKey {
+                entity_id: source.clone(),
+            })
             .or_insert(0) += 1;
         *self
             .target_counts
-            .entry(PreparedRelationEndpointKey { entity_id: target })
+            .entry(PreparedRelationEndpointKey {
+                entity_id: target.clone(),
+            })
             .or_insert(0) += 1;
         *self
             .directed_pair_counts
-            .entry(PreparedRelationPairKey { source, target })
+            .entry(PreparedRelationPairKey {
+                source: source.clone(),
+                target: target.clone(),
+            })
             .or_insert(0) += 1;
         let (left, right) = if target < source {
             (target, source)
@@ -331,9 +339,9 @@ fn prepare_relation_integrity_scopes(
         return Ok(None);
     };
     let mut scopes = BTreeMap::<KindId, PreparedRelationIntegrityScope>::new();
-    let mut touched_entities = BTreeSet::new();
-    let mut touched_relation_sources = BTreeSet::new();
-    let mut touched_relation_targets = BTreeSet::new();
+    let mut touched_entities = BTreeSet::<EntityId>::new();
+    let mut touched_relation_sources = BTreeSet::<EntityId>::new();
+    let mut touched_relation_targets = BTreeSet::<EntityId>::new();
     let mut deleted_entities = BTreeSet::new();
     let mut deleted_relations = BTreeSet::new();
     let empty_scanned_relations = BTreeSet::new();
@@ -349,14 +357,14 @@ fn prepare_relation_integrity_scopes(
                     .or_default()
                     .planned_edges
                     .push(PlannedRelationEdge {
-                        source: spec.source,
-                        target: spec.target,
+                        source: spec.source.clone(),
+                        target: spec.target.clone(),
                     });
                 planned_edge_count += 1;
-                touched_entities.insert(spec.source);
-                touched_entities.insert(spec.target);
-                touched_relation_sources.insert(spec.source);
-                touched_relation_targets.insert(spec.target);
+                include_existing_entity_reference(&mut touched_entities, &spec.source);
+                include_existing_entity_reference(&mut touched_entities, &spec.target);
+                include_existing_entity_reference(&mut touched_relation_sources, &spec.source);
+                include_existing_entity_reference(&mut touched_relation_targets, &spec.target);
                 ensure_relation_integrity_scope_budget(
                     budget,
                     scope_budget_snapshot(
@@ -374,15 +382,15 @@ fn prepare_relation_integrity_scopes(
                 for (source, target) in &spec.endpoints {
                     scopes.entry(spec.kind_id).or_default().planned_edges.push(
                         PlannedRelationEdge {
-                            source: *source,
-                            target: *target,
+                            source: source.clone(),
+                            target: target.clone(),
                         },
                     );
                     planned_edge_count += 1;
-                    touched_entities.insert(*source);
-                    touched_entities.insert(*target);
-                    touched_relation_sources.insert(*source);
-                    touched_relation_targets.insert(*target);
+                    include_existing_entity_reference(&mut touched_entities, source);
+                    include_existing_entity_reference(&mut touched_entities, target);
+                    include_existing_entity_reference(&mut touched_relation_sources, source);
+                    include_existing_entity_reference(&mut touched_relation_targets, target);
                     ensure_relation_integrity_scope_budget(
                         budget,
                         scope_budget_snapshot(
@@ -446,7 +454,7 @@ fn prepare_relation_integrity_scopes(
     let mut scanned_relations = BTreeSet::new();
     let relation_scan_entities = touched_relation_sources
         .union(&touched_relation_targets)
-        .copied()
+        .cloned()
         .collect::<BTreeSet<_>>();
     for entity_id in relation_scan_entities {
         let Some(partition) = partitions.get_partition(entity_id.partition_id) else {
@@ -487,12 +495,16 @@ fn prepare_relation_integrity_scopes(
     for scope in scopes.values_mut() {
         let planned_edges = std::mem::take(&mut scope.planned_edges);
         for edge in planned_edges {
-            scope.increment_counts(edge.source, edge.target);
-            if deleted_entities.contains(&edge.source) {
-                scope.deleted_entities.insert(edge.source);
+            scope.increment_counts(edge.source.clone(), edge.target.clone());
+            if let EntityReference::Existing(source) = &edge.source {
+                if deleted_entities.contains(source) {
+                    scope.deleted_entities.insert(*source);
+                }
             }
-            if deleted_entities.contains(&edge.target) {
-                scope.deleted_entities.insert(edge.target);
+            if let EntityReference::Existing(target) = &edge.target {
+                if deleted_entities.contains(target) {
+                    scope.deleted_entities.insert(*target);
+                }
             }
             scope.planned_edges.push(edge);
         }
@@ -500,6 +512,15 @@ fn prepare_relation_integrity_scopes(
 
     scopes.retain(|_, scope| !scope.is_empty());
     Ok((!scopes.is_empty()).then(|| PreparedRelationIntegrityScopes::new(scopes)))
+}
+
+fn include_existing_entity_reference(
+    touched_entities: &mut BTreeSet<EntityId>,
+    entity_reference: &EntityReference,
+) {
+    if let EntityReference::Existing(entity_id) = entity_reference {
+        touched_entities.insert(*entity_id);
+    }
 }
 
 fn scan_relation_integrity_ids(
@@ -544,7 +565,10 @@ fn scan_relation_integrity_ids(
             continue;
         }
         let scope = scopes.entry(kind_id).or_default();
-        scope.increment_counts(endpoints.source, endpoints.target);
+        scope.increment_counts(
+            EntityReference::Existing(endpoints.source),
+            EntityReference::Existing(endpoints.target),
+        );
         performance.count_relation_uniqueness_candidates(1);
         if deleted_entities.contains(&endpoints.source) {
             scope.deleted_entities.insert(endpoints.source);
@@ -649,6 +673,7 @@ mod tests {
         MutationIntent, RelationSpec, ReplaceEntityIntent, TransactionId, TransactionOptions,
         WorkerIntentBatch,
     };
+    use crate::transactions::facade::EntityReference;
     use crate::validation::data::InvariantPlanContract;
     use crate::validation::engine::{InvariantObservation, InvariantRequestProfile};
     use serde_json::json;
@@ -732,8 +757,8 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id,
                     client_key: crate::symbols::data::InternedString::Raw(client_key.to_string()),
-                    source,
-                    target,
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
                     payload: Some(RecordPayload::StructuredJson(json!({"label":client_key}))),
                 }),
             )),
@@ -815,8 +840,8 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
-                    source,
-                    target,
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
                     payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
                 },
             ))],

@@ -1489,8 +1489,8 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: InternedString::Raw("feature-accepted".to_string()),
-                    source,
-                    target: target_a,
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target_a),
                     payload: Some(RecordPayload::StructuredJson(
                         json!({"label":"feature-accepted"}),
                     )),
@@ -1514,8 +1514,8 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("feature-rejected".to_string()),
-                source,
-                target: target_b,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target_b),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"feature-rejected"}),
                 )),
@@ -1559,3 +1559,4 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         accepted_feature.commit.commit_id
     );
 }
+

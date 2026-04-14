@@ -16,11 +16,11 @@ pub(super) fn canonicalize_traversal(
     let mut duplicate_traversal_entries = Vec::new();
     for entry in traversal {
         let canonical = CanonicalTraversalEntry {
-            relation: entry.relation().to_string(),
+            relation: entry.relation_name().clone(),
             depth: entry.depth(),
         };
         if !seen.insert(canonical.clone()) {
-            duplicate_traversal_entries.push((canonical.relation.clone(), canonical.depth));
+            duplicate_traversal_entries.push((canonical.relation.to_string(), canonical.depth));
             counters.query_deduplication_count += 1;
             continue;
         }
@@ -32,7 +32,7 @@ pub(super) fn canonicalize_traversal(
         ordered
             .iter()
             .map(|canonical| NormalizationEvent::TraversalRetained {
-                relation: canonical.relation.clone(),
+                relation: canonical.relation.to_string(),
                 depth: canonical.depth,
             }),
     );

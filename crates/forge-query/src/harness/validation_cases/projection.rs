@@ -1,3 +1,4 @@
+use crate::harness::fixtures::schema_view::structured_content_queryable_schema_view;
 use crate::harness::validation_cases::support::{
     assert_rejects_with, canonical_bundle_with_projection,
 };
@@ -56,5 +57,26 @@ fn structured_content_projection_rejects_explicitly() {
             field: "bio".to_string(),
         },
         "structured content projection should reject",
+    );
+}
+
+#[test]
+fn structured_content_projection_validates_when_schema_admits_it() {
+    let validated = crate::validation::validate_canonical_bundle(
+        crate::harness::fixtures::schema_view::legal_structured_content_bundle(),
+        structured_content_queryable_schema_view(),
+    )
+    .expect("queryable structured content projection should validate");
+
+    assert_eq!(validated.query().projection().len(), 2);
+    let bio_binding = validated
+        .result_shape()
+        .bindings()
+        .iter()
+        .find(|binding| binding.source_aspect() == "content" && binding.source_field() == "bio")
+        .expect("structured content binding should be present");
+    assert_eq!(
+        bio_binding.field_kind(),
+        &crate::schema_view::SchemaFieldKind::StructuredContent
     );
 }

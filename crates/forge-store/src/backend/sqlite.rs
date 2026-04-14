@@ -112,6 +112,22 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
                 metadata_payload TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS snapshot_basis_records (
+                snapshot_id INTEGER PRIMARY KEY,
+                snapshot_branch_id TEXT NOT NULL,
+                snapshot_frontier_commit_id INTEGER NOT NULL,
+                snapshot_history_range_payload TEXT NOT NULL,
+                snapshot_canonicalization_version INTEGER NOT NULL,
+                snapshot_authority_digest TEXT NOT NULL,
+                snapshot_image_digest TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS snapshot_image_records (
+                snapshot_id INTEGER PRIMARY KEY,
+                image_payload TEXT NOT NULL,
+                FOREIGN KEY(snapshot_id) REFERENCES snapshot_basis_records(snapshot_id)
+            );
+
             CREATE TABLE IF NOT EXISTS wal_records (
                 wal_sequence INTEGER PRIMARY KEY,
                 family TEXT NOT NULL,
@@ -133,6 +149,9 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
 
             CREATE INDEX IF NOT EXISTS idx_embedded_checkpoint_records_basis_commit
             ON embedded_checkpoint_records(basis_commit_id);
+
+            CREATE INDEX IF NOT EXISTS idx_snapshot_basis_branch_frontier
+            ON snapshot_basis_records(snapshot_branch_id, snapshot_frontier_commit_id);
 
             CREATE INDEX IF NOT EXISTS idx_wal_records_mutation_sequence
             ON wal_records(durable_mutation_id, wal_sequence);
@@ -465,6 +484,87 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
         }
     }
 
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT snapshot_id, snapshot_branch_id, snapshot_frontier_commit_id, snapshot_history_range_payload,
+                       snapshot_canonicalization_version, snapshot_authority_digest, snapshot_image_digest
+                FROM snapshot_basis_records
+                ORDER BY snapshot_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                let history_range_payload: String = row.get(3)?;
+                let history_range = serde_json::from_str::<Vec<u64>>(&history_range_payload)
+                    .map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            3,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })?;
+                Ok(super::records::SnapshotBasisRecord {
+                    snapshot_id: crate::snapshot::SnapshotId(row.get::<_, i64>(0)? as u64),
+                    snapshot_branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(1)?,
+                    ),
+                    snapshot_frontier_commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(2)? as u64,
+                    ),
+                    snapshot_history_range: history_range
+                        .into_iter()
+                        .map(forge_relational::facade::history::CommitId)
+                        .collect(),
+                    snapshot_canonicalization_version: row.get::<_, i64>(4)? as u32,
+                    snapshot_authority_digest: row.get(5)?,
+                    snapshot_image_digest: row.get(6)?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .snapshot_basis_records
+                .insert(record.snapshot_id.0, record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT snapshot_id, image_payload
+                FROM snapshot_image_records
+                ORDER BY snapshot_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                let image_payload: String = row.get(1)?;
+                Ok(super::records::SnapshotImageRecord {
+                    snapshot_id: crate::snapshot::SnapshotId(row.get::<_, i64>(0)? as u64),
+                    image: serde_json::from_str(&image_payload).map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            1,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .snapshot_image_records
+                .insert(record.snapshot_id.0, record);
+        }
+    }
+
     state.next_commit_sequence =
         load_meta_u64(connection, "next_commit_sequence")?.unwrap_or_else(|| {
             state
@@ -495,6 +595,14 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
                 .map(|value| value + 1)
                 .unwrap_or(1)
         });
+    state.next_snapshot_id = load_meta_u64(connection, "next_snapshot_id")?.unwrap_or_else(|| {
+        state
+            .snapshot_basis_records
+            .keys()
+            .max()
+            .map(|value| value + 1)
+            .unwrap_or(1)
+    });
     state.next_wal_sequence =
         load_meta_u64(connection, "next_wal_sequence")?.unwrap_or_else(|| {
             state
@@ -518,6 +626,8 @@ fn persist_state(connection: &mut Connection, state: &StoreState) -> Result<(), 
     persist_branch_head_records(&transaction, state)?;
     persist_digest_records(&transaction, state)?;
     persist_embedded_checkpoint_records(&transaction, state)?;
+    persist_snapshot_basis_records(&transaction, state)?;
+    persist_snapshot_image_records(&transaction, state)?;
     persist_wal_records(&transaction, state)?;
     transaction.commit().map_err(sqlite_error)?;
     Ok(())
@@ -533,6 +643,8 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             DELETE FROM commit_envelopes;
             DELETE FROM branch_records;
             DELETE FROM embedded_checkpoint_records;
+            DELETE FROM snapshot_image_records;
+            DELETE FROM snapshot_basis_records;
             DELETE FROM wal_records;
             DELETE FROM store_meta;
             ",
@@ -561,6 +673,11 @@ fn persist_meta(transaction: &Transaction<'_>, state: &StoreState) -> Result<(),
         transaction,
         "next_durable_mutation_id",
         state.next_durable_mutation_id.to_string(),
+    )?;
+    persist_meta_value(
+        transaction,
+        "next_snapshot_id",
+        state.next_snapshot_id.to_string(),
     )?;
     persist_meta_value(
         transaction,
@@ -762,6 +879,67 @@ fn persist_embedded_checkpoint_records(
                     contained_commit_ids_payload,
                     metadata_payload,
                 ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_snapshot_basis_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.snapshot_basis_records.values() {
+        let history_range_payload = serde_json::to_string(
+            &record
+                .snapshot_history_range
+                .iter()
+                .map(|commit_id| commit_id.0)
+                .collect::<Vec<_>>(),
+        )?;
+        transaction
+            .execute(
+                "
+                INSERT INTO snapshot_basis_records(
+                    snapshot_id,
+                    snapshot_branch_id,
+                    snapshot_frontier_commit_id,
+                    snapshot_history_range_payload,
+                    snapshot_canonicalization_version,
+                    snapshot_authority_digest,
+                    snapshot_image_digest
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                ",
+                params![
+                    as_i64_u64(record.snapshot_id.0),
+                    record.snapshot_branch_id.0,
+                    as_i64(record.snapshot_frontier_commit_id),
+                    history_range_payload,
+                    record.snapshot_canonicalization_version as i64,
+                    record.snapshot_authority_digest,
+                    record.snapshot_image_digest,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_snapshot_image_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.snapshot_image_records.values() {
+        let image_payload = serde_json::to_string(&record.image)?;
+        transaction
+            .execute(
+                "
+                INSERT INTO snapshot_image_records(
+                    snapshot_id,
+                    image_payload
+                ) VALUES (?1, ?2)
+                ",
+                params![as_i64_u64(record.snapshot_id.0), image_payload],
             )
             .map_err(sqlite_error)?;
     }

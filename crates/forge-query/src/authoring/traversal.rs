@@ -1,24 +1,27 @@
-use super::AuthoringError;
+use super::{AuthoringError, RelationName};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TraversalSelector {
-    relation: String,
+    relation: RelationName,
     depth: u8,
 }
 
 impl TraversalSelector {
     pub fn bounded(relation: impl Into<String>, depth: u8) -> Result<Self, AuthoringError> {
-        let relation = relation.into();
-        if relation.trim().is_empty() {
-            return Err(AuthoringError::EmptyTraversalRelation);
-        }
         if depth == 0 {
             return Err(AuthoringError::UnsupportedTraversalDepth { depth });
         }
-        Ok(Self { relation, depth })
+        Ok(Self {
+            relation: RelationName::new(relation)?,
+            depth,
+        })
     }
 
     pub fn relation(&self) -> &str {
+        self.relation.as_str()
+    }
+
+    pub fn relation_name(&self) -> &RelationName {
         &self.relation
     }
 

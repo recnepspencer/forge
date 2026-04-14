@@ -20,7 +20,7 @@ use crate::authority::commit::preparation::reduction::merge::{
 use crate::authority::mutation::outcomes::{MutationOutcome, RecordMutation};
 use crate::authority::mutation::record_changes::{allocate_entity, reserve_bulk_entity_capacity};
 use crate::authority::mutation::MutationWorkspace;
-use crate::transactions::data::{BulkEntityCreateIntent, CommitConflict};
+use crate::transactions::data::{BulkEntityCreateIntent, CommitConflict, CreatedEntityRef};
 use crate::validation::data::InvariantGroupSet;
 
 pub(super) fn apply(
@@ -40,7 +40,7 @@ pub(super) fn apply(
     workspace.with_context(|context| {
         reserve_bulk_entity_capacity(context.state, intent.partition_id, intent.payloads.len());
     });
-    for payload in staged_rows {
+    for (client_key, payload) in intent.client_keys.iter().cloned().zip(staged_rows.into_iter()) {
         let entity_id = workspace.with_context(|context| {
             let entity_id = allocate_entity(
                 context.state,
@@ -54,6 +54,14 @@ pub(super) fn apply(
                 .mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
             entity_id
         });
+        workspace.register_created_entity(
+            CreatedEntityRef {
+                partition_id: intent.partition_id,
+                kind_id: intent.kind_id,
+                client_key,
+            },
+            entity_id,
+        );
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
             kind_id: intent.kind_id,

@@ -689,8 +689,8 @@ fn seed_rocketship_world(
             partition_id: PartitionId(101 + (index % ROCKETSHIP_PARTITION_WIDTH) as u32),
             kind_id: KindId(2),
             client_key: InternedString::Raw(format!("rocket-edge-{index}")),
-            source: entities[index],
-            target: entities[index + 1],
+            source: crate::transactions::data::EntityReference::Existing(entities[index]),
+            target: crate::transactions::data::EntityReference::Existing(entities[index + 1]),
             payload: Some(RecordPayload::StructuredJson(json!({
                 "label": format!("rocket-edge-{index}"),
                 "kind": "spine",
@@ -701,8 +701,10 @@ fn seed_rocketship_world(
                 partition_id: PartitionId(201 + ((index / 64) % ROCKETSHIP_PARTITION_WIDTH) as u32),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(format!("rocket-rib-{index}")),
-                source: entities[index],
-                target: entities[index + ROCKETSHIP_PARTITION_WIDTH],
+                source: crate::transactions::data::EntityReference::Existing(entities[index]),
+                target: crate::transactions::data::EntityReference::Existing(
+                    entities[index + ROCKETSHIP_PARTITION_WIDTH],
+                ),
                 payload: Some(RecordPayload::StructuredJson(json!({
                     "label": format!("rocket-rib-{index}"),
                     "kind": "rib",
@@ -868,8 +870,12 @@ fn seed_pseudorealistic_rocketship_world(
                     "rocket.local.{}.{}.{}",
                     layout.section, layout.subsystem, local_index
                 )),
-                source: subsystem_entities[local_index],
-                target: subsystem_entities[local_index + 1],
+                source: crate::transactions::data::EntityReference::Existing(
+                    subsystem_entities[local_index],
+                ),
+                target: crate::transactions::data::EntityReference::Existing(
+                    subsystem_entities[local_index + 1],
+                ),
                 payload: Some(RecordPayload::StructuredJson(json!({
                     "edge_type": "local",
                     "section": layout.section,
@@ -884,8 +890,12 @@ fn seed_pseudorealistic_rocketship_world(
                         "rocket.aspect.{}.{}.{}",
                         layout.section, layout.subsystem, local_index
                     )),
-                    source: subsystem_entities[local_index],
-                    target: subsystem_entities[local_index + 8],
+                    source: crate::transactions::data::EntityReference::Existing(
+                        subsystem_entities[local_index],
+                    ),
+                    target: crate::transactions::data::EntityReference::Existing(
+                        subsystem_entities[local_index + 8],
+                    ),
                     payload: Some(RecordPayload::StructuredJson(json!({
                         "edge_type": "aspect",
                         "section": layout.section,
@@ -927,8 +937,12 @@ fn seed_pseudorealistic_rocketship_world(
                     right_layout.section,
                     interface_index
                 )),
-                source: left_entities[interface_index],
-                target: right_entities[interface_index],
+                source: crate::transactions::data::EntityReference::Existing(
+                    left_entities[interface_index],
+                ),
+                target: crate::transactions::data::EntityReference::Existing(
+                    right_entities[interface_index],
+                ),
                 payload: Some(RecordPayload::StructuredJson(json!({
                     "edge_type": "interface",
                     "left_subsystem": left_layout.subsystem,
@@ -947,8 +961,8 @@ fn seed_pseudorealistic_rocketship_world(
         partition_id: PartitionId(501),
         kind_id: KindId(2),
         client_key: InternedString::Raw("rocket.control.guidance-avionics".to_string()),
-        source: guidance_anchor,
-        target: avionics_anchor,
+        source: crate::transactions::data::EntityReference::Existing(guidance_anchor),
+        target: crate::transactions::data::EntityReference::Existing(avionics_anchor),
         payload: Some(RecordPayload::StructuredJson(
             json!({"edge_type": "control"}),
         )),
@@ -957,8 +971,8 @@ fn seed_pseudorealistic_rocketship_world(
         partition_id: PartitionId(502),
         kind_id: KindId(2),
         client_key: InternedString::Raw("rocket.control.avionics-engine".to_string()),
-        source: avionics_anchor,
-        target: engine_anchor,
+        source: crate::transactions::data::EntityReference::Existing(avionics_anchor),
+        target: crate::transactions::data::EntityReference::Existing(engine_anchor),
         payload: Some(RecordPayload::StructuredJson(
             json!({"edge_type": "control"}),
         )),
@@ -967,16 +981,16 @@ fn seed_pseudorealistic_rocketship_world(
         partition_id: PartitionId(503),
         kind_id: KindId(2),
         client_key: InternedString::Raw("rocket.feed.plumbing-engine".to_string()),
-        source: plumbing_anchor,
-        target: engine_anchor,
+        source: crate::transactions::data::EntityReference::Existing(plumbing_anchor),
+        target: crate::transactions::data::EntityReference::Existing(engine_anchor),
         payload: Some(RecordPayload::StructuredJson(json!({"edge_type": "feed"}))),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(504),
         kind_id: KindId(2),
         client_key: InternedString::Raw("rocket.control.avionics-fin".to_string()),
-        source: avionics_anchor,
-        target: fin_anchor,
+        source: crate::transactions::data::EntityReference::Existing(avionics_anchor),
+        target: crate::transactions::data::EntityReference::Existing(fin_anchor),
         payload: Some(RecordPayload::StructuredJson(
             json!({"edge_type": "control"}),
         )),
@@ -1125,8 +1139,8 @@ fn bulk_relation_create_intents(
         (
             Vec<InternedString>,
             Vec<(
-                crate::facade::identity::EntityId,
-                crate::facade::identity::EntityId,
+                crate::transactions::data::EntityReference,
+                crate::transactions::data::EntityReference,
             )>,
             Vec<Option<RecordPayload>>,
         ),
@@ -1137,7 +1151,7 @@ fn bulk_relation_create_intents(
             .entry((relation.partition_id, relation.kind_id))
             .or_insert_with(|| (Vec::new(), Vec::new(), Vec::new()));
         entry.0.push(relation.client_key.clone());
-        entry.1.push((relation.source, relation.target));
+        entry.1.push((relation.source.clone(), relation.target.clone()));
         entry.2.push(relation.payload.clone());
     }
 
@@ -1330,8 +1344,8 @@ fn perf_commit_delta_matrix() {
                             partition_id: PartitionId(9),
                             kind_id: KindId(2),
                             client_key: InternedString::Raw(format!("cross-{index}")),
-                            source: *source,
-                            target: *target,
+                            source: crate::transactions::data::EntityReference::Existing(*source),
+                            target: crate::transactions::data::EntityReference::Existing(*target),
                             payload: Some(RecordPayload::StructuredJson(json!({
                                 "label": format!("cross-{index}")
                             }))),
@@ -3146,8 +3160,8 @@ fn perf_chip_simulator_matrix() {
                         partition_id: PartitionId(29),
                         kind_id: KindId(2),
                         client_key: InternedString::Raw(format!("chip-fanout-{index}")),
-                        source,
-                        target: *target,
+                        source: crate::transactions::data::EntityReference::Existing(source),
+                        target: crate::transactions::data::EntityReference::Existing(*target),
                         payload: Some(RecordPayload::StructuredJson(json!({
                             "channel": index,
                             "kind": "fanout"
@@ -3312,8 +3326,8 @@ fn perf_chip_simulator_matrix() {
                             partition_id: PartitionId(29),
                             kind_id: KindId(2),
                             client_key: InternedString::Raw(format!("chip-fanout-rich-{index}")),
-                            source,
-                            target: *target,
+                            source: crate::transactions::data::EntityReference::Existing(source),
+                            target: crate::transactions::data::EntityReference::Existing(*target),
                             payload: Some(RecordPayload::StructuredJson(json!({
                                 "channel": index,
                                 "kind": "fanout"
@@ -3636,8 +3650,8 @@ fn perf_chip_simulator_matrix() {
                         partition_id: PartitionId(43),
                         kind_id: KindId(2),
                         client_key: InternedString::Raw(format!("rollback-transient-edge-{index}")),
-                        source,
-                        target: *target,
+                        source: crate::transactions::data::EntityReference::Existing(source),
+                        target: crate::transactions::data::EntityReference::Existing(*target),
                         payload: Some(RecordPayload::StructuredJson(json!({
                             "channel": index,
                             "kind": "transient"
@@ -5855,8 +5869,8 @@ fn perf_rocketship_scale_matrix() {
                                     "rocket.batch.local.{}.{}",
                                     partition_index, edge_index
                                 )),
-                                source: pair[0],
-                                target: pair[1],
+                                source: crate::transactions::data::EntityReference::Existing(pair[0]),
+                                target: crate::transactions::data::EntityReference::Existing(pair[1]),
                                 payload: Some(RecordPayload::StructuredJson(json!({
                                     "edge_type": "batch-local",
                                     "partition": partition_index,

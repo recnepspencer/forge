@@ -1,6 +1,6 @@
 use crate::identity::data::{EntityId, RelationId};
 use crate::transactions::data::{
-    CreateIntent, EntityMutationIntent, MutationIntent, RelationMutationIntent,
+    CreateIntent, EntityMutationIntent, EntityReference, MutationIntent, RelationMutationIntent,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,7 +28,7 @@ pub(crate) enum CanonicalIntentKey {
     BulkCreateRelations {
         partition_id: crate::identity::data::PartitionId,
         kind_id: crate::identity::data::KindId,
-        endpoints: Vec<(EntityId, EntityId)>,
+        endpoints: Vec<(EntityReference, EntityReference)>,
     },
     DeleteRelation(RelationId),
 }
@@ -37,8 +37,8 @@ pub(crate) enum CanonicalIntentKey {
 pub(crate) struct RelationCreateKey {
     pub(crate) partition_id: crate::identity::data::PartitionId,
     pub(crate) kind_id: crate::identity::data::KindId,
-    pub(crate) source: EntityId,
-    pub(crate) target: EntityId,
+    pub(crate) source: EntityReference,
+    pub(crate) target: EntityReference,
     pub(crate) client_key: crate::symbols::data::InternedString,
 }
 
@@ -77,8 +77,8 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             CanonicalIntentKey::CreateRelation(RelationCreateKey {
                 partition_id: spec.partition_id,
                 kind_id: spec.kind_id,
-                source: spec.source,
-                target: spec.target,
+                source: spec.source.clone(),
+                target: spec.target.clone(),
                 client_key: spec.client_key.clone(),
             })
         }

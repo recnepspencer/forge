@@ -17,7 +17,10 @@ mod diagnostics;
 pub mod facade;
 mod identity;
 mod result_shape;
+#[macro_use]
+mod schema_macro;
 mod schema_view;
+mod typed;
 mod validation;
 
 #[cfg(test)]

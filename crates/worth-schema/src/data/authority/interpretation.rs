@@ -30,6 +30,8 @@ pub struct WorthWireInterpretationRecord {
 pub struct WorthShellInterpretationRecord {
     pub shell_id: EntityId,
     pub class: WorthShellInterpretationClass,
+    pub face_count: usize,
+    pub boundary_component_count: usize,
     pub boundary_half_edge_count: usize,
     pub non_manifold_edge_ids: Vec<EntityId>,
 }

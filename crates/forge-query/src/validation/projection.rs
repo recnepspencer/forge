@@ -18,27 +18,28 @@ pub(crate) fn validate_projection_entries(
     for projection in projections {
         counters.record_schema_lookup();
 
-        if !schema_view.has_aspect(&projection.aspect) {
+        if !schema_view.has_aspect(projection.aspect.as_str()) {
             counters.record_rejection();
             counters.record_projection_widening_denial();
             rejection_matrix.record_projection_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnknownAspect {
-                    aspect: projection.aspect.clone(),
+                    aspect: projection.aspect.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
             ));
         }
 
-        let Some(field) = schema_view.field(&projection.aspect, &projection.field) else {
+        let Some(field) = schema_view.field(projection.aspect.as_str(), projection.field.as_str())
+        else {
             counters.record_rejection();
             counters.record_projection_widening_denial();
             rejection_matrix.record_projection_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::ProjectionWideningDenied {
-                    aspect: projection.aspect.clone(),
-                    field: projection.field.clone(),
+                    aspect: projection.aspect.to_string(),
+                    field: projection.field.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -51,13 +52,13 @@ pub(crate) fn validate_projection_entries(
             rejection_matrix.record_projection_rejection();
             let error = if matches!(field.kind(), SchemaFieldKind::StructuredContent) {
                 QueryValidationError::UnsupportedStructuredContentProjection {
-                    aspect: projection.aspect.clone(),
-                    field: projection.field.clone(),
+                    aspect: projection.aspect.to_string(),
+                    field: projection.field.to_string(),
                 }
             } else {
                 QueryValidationError::NonQueryableField {
-                    aspect: projection.aspect.clone(),
-                    field: projection.field.clone(),
+                    aspect: projection.aspect.to_string(),
+                    field: projection.field.to_string(),
                 }
             };
             return Err(ValidationFailureArtifact::new(
@@ -73,8 +74,8 @@ pub(crate) fn validate_projection_entries(
             field.kind().clone(),
         ));
         events.push(ValidationEvent::ProjectionValidated {
-            aspect: projection.aspect.clone(),
-            field: projection.field.clone(),
+            aspect: projection.aspect.to_string(),
+            field: projection.field.to_string(),
             field_kind: format!("{:?}", field.kind()),
         });
     }

@@ -51,14 +51,14 @@ impl MutationIntent {
             }
             Self::Create(CreateIntent::Relation(spec)) => {
                 touched.insert(spec.partition_id);
-                touched.insert(spec.source.partition_id);
-                touched.insert(spec.target.partition_id);
+                touched.insert(spec.source.partition_id());
+                touched.insert(spec.target.partition_id());
             }
             Self::Create(CreateIntent::BulkRelations(spec)) => {
                 touched.insert(spec.partition_id);
                 for (source, target) in &spec.endpoints {
-                    touched.insert(source.partition_id);
-                    touched.insert(target.partition_id);
+                    touched.insert(source.partition_id());
+                    touched.insert(target.partition_id());
                 }
             }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
@@ -139,8 +139,8 @@ impl MutationIntent {
             Self::Create(CreateIntent::Relation(spec)) => identities.push(RelationIdentity {
                 partition_id: spec.partition_id,
                 kind_id: spec.kind_id,
-                source: spec.source,
-                target: spec.target,
+                source: spec.source.clone(),
+                target: spec.target.clone(),
             }),
             Self::Create(CreateIntent::BulkRelations(BulkRelationCreateIntent {
                 partition_id,
@@ -152,8 +152,8 @@ impl MutationIntent {
                     identities.push(RelationIdentity {
                         partition_id: *partition_id,
                         kind_id: *kind_id,
-                        source: *source,
-                        target: *target,
+                        source: source.clone(),
+                        target: target.clone(),
                     });
                 }
             }

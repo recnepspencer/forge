@@ -17,12 +17,12 @@ pub(crate) fn validate_traversal_entries(
 
     for traversal in traversals {
         counters.record_schema_lookup();
-        let Some(relation) = schema_view.relation(&traversal.relation) else {
+        let Some(relation) = schema_view.relation(traversal.relation.as_str()) else {
             counters.record_rejection();
             rejection_matrix.record_traversal_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalTraversalRelation {
-                    relation: traversal.relation.clone(),
+                    relation: traversal.relation.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -34,7 +34,7 @@ pub(crate) fn validate_traversal_entries(
             rejection_matrix.record_traversal_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalTraversalDepth {
-                    relation: traversal.relation.clone(),
+                    relation: traversal.relation.to_string(),
                     requested_depth: traversal.depth,
                     max_depth: relation.max_depth(),
                 },
@@ -49,7 +49,7 @@ pub(crate) fn validate_traversal_entries(
             relation.max_depth(),
         ));
         events.push(ValidationEvent::TraversalValidated {
-            relation: traversal.relation.clone(),
+            relation: traversal.relation.to_string(),
             depth: traversal.depth,
             max_depth: relation.max_depth(),
         });

@@ -56,3 +56,29 @@ fn non_orderable_field_rejects() {
         }
     );
 }
+
+#[test]
+fn duplicate_ordering_entries_collapse_in_validated_ordering_set() {
+    let root = RootEntityKey::new("user").expect("root should build");
+    let query = crate::authoring::DetailQueryBuilder::new(root)
+        .project(AspectFieldSelector::new("identity", "id").expect("projection should build"))
+        .order_by(OrderingSelector::ascending("profile", "rank").expect("ordering should build"))
+        .order_by(OrderingSelector::ascending("profile", "rank").expect("ordering should build"))
+        .build()
+        .expect("query should build");
+    let shape = crate::authoring::DetailResultShapeBuilder::new()
+        .field(
+            AuthoredResultShapeField::new("identity", "id", "id")
+                .expect("shape field should build"),
+        )
+        .build()
+        .expect("shape should build");
+    let bundle =
+        GuidedAuthoringPath::canonicalize_detail(query, shape).expect("bundle should canonicalize");
+
+    let validated =
+        validate_canonical_bundle(bundle, detail_schema_view()).expect("ordering should validate");
+
+    assert_eq!(validated.query().ordering().entries().len(), 1);
+    assert_eq!(validated.counters().validated_ordering_field_count(), 1);
+}

@@ -1,4 +1,5 @@
 use forge_relational::facade::runtime::RelationalRuntimeApi;
+use forge_relational::facade::history::BranchId;
 use worth_math::predicates::orient2d;
 
 use crate::data::bootstrap::worth_bootstrap_schema_registry;
@@ -63,6 +64,7 @@ fn precision_fallback_record_threads_through_authority_flow() {
     let persisted = PersistedTopologyTruthBatch {
         batch,
         snapshot: forge_relational::facade::snapshots::SnapshotHandle::new(1, 1),
+        branch_id: BranchId("main".to_string()),
         mutation_origin: WorthMutationOrigin::Seed,
     };
     let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&persisted);

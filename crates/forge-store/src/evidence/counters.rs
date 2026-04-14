@@ -39,6 +39,16 @@ pub struct StoreCounterSnapshot {
     pub durable_commit_unacknowledged_discard_count: u64,
     pub recovery_requires_full_rebuild_count: u64,
     pub recovery_failure_count: u64,
+    pub snapshot_capture_count: u64,
+    pub snapshot_capture_record_count: u64,
+    pub snapshot_read_count: u64,
+    pub snapshot_read_record_count: u64,
+    pub snapshot_restore_count: u64,
+    pub snapshot_restore_tail_commit_count: u64,
+    pub snapshot_rebuild_count: u64,
+    pub snapshot_rebuild_record_count: u64,
+    pub snapshot_integrity_failure_count: u64,
+    pub snapshot_basis_mismatch_count: u64,
 }
 
 #[derive(Debug, Default)]
@@ -73,6 +83,16 @@ pub(crate) struct StoreCounters {
     durable_commit_unacknowledged_discard_count: AtomicU64,
     recovery_requires_full_rebuild_count: AtomicU64,
     recovery_failure_count: AtomicU64,
+    snapshot_capture_count: AtomicU64,
+    snapshot_capture_record_count: AtomicU64,
+    snapshot_read_count: AtomicU64,
+    snapshot_read_record_count: AtomicU64,
+    snapshot_restore_count: AtomicU64,
+    snapshot_restore_tail_commit_count: AtomicU64,
+    snapshot_rebuild_count: AtomicU64,
+    snapshot_rebuild_record_count: AtomicU64,
+    snapshot_integrity_failure_count: AtomicU64,
+    snapshot_basis_mismatch_count: AtomicU64,
 }
 
 impl StoreCounters {
@@ -197,6 +217,40 @@ impl StoreCounters {
         self.recovery_failure_count.fetch_add(1, Ordering::Relaxed);
     }
 
+    pub fn record_snapshot_capture(&self, record_count: usize) {
+        self.snapshot_capture_count.fetch_add(1, Ordering::Relaxed);
+        self.snapshot_capture_record_count
+            .fetch_add(record_count as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_snapshot_read(&self, record_count: usize) {
+        self.snapshot_read_count.fetch_add(1, Ordering::Relaxed);
+        self.snapshot_read_record_count
+            .fetch_add(record_count as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_snapshot_restore(&self, tail_commit_count: usize) {
+        self.snapshot_restore_count.fetch_add(1, Ordering::Relaxed);
+        self.snapshot_restore_tail_commit_count
+            .fetch_add(tail_commit_count as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_snapshot_rebuild(&self, record_count: usize) {
+        self.snapshot_rebuild_count.fetch_add(1, Ordering::Relaxed);
+        self.snapshot_rebuild_record_count
+            .fetch_add(record_count as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_snapshot_integrity_failure(&self) {
+        self.snapshot_integrity_failure_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_snapshot_basis_mismatch(&self) {
+        self.snapshot_basis_mismatch_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
     pub fn snapshot(&self) -> StoreCounterSnapshot {
         StoreCounterSnapshot {
             durable_mode_selection_count: self.durable_mode_selection_count.load(Ordering::Relaxed),
@@ -265,6 +319,26 @@ impl StoreCounters {
                 .recovery_requires_full_rebuild_count
                 .load(Ordering::Relaxed),
             recovery_failure_count: self.recovery_failure_count.load(Ordering::Relaxed),
+            snapshot_capture_count: self.snapshot_capture_count.load(Ordering::Relaxed),
+            snapshot_capture_record_count: self
+                .snapshot_capture_record_count
+                .load(Ordering::Relaxed),
+            snapshot_read_count: self.snapshot_read_count.load(Ordering::Relaxed),
+            snapshot_read_record_count: self.snapshot_read_record_count.load(Ordering::Relaxed),
+            snapshot_restore_count: self.snapshot_restore_count.load(Ordering::Relaxed),
+            snapshot_restore_tail_commit_count: self
+                .snapshot_restore_tail_commit_count
+                .load(Ordering::Relaxed),
+            snapshot_rebuild_count: self.snapshot_rebuild_count.load(Ordering::Relaxed),
+            snapshot_rebuild_record_count: self
+                .snapshot_rebuild_record_count
+                .load(Ordering::Relaxed),
+            snapshot_integrity_failure_count: self
+                .snapshot_integrity_failure_count
+                .load(Ordering::Relaxed),
+            snapshot_basis_mismatch_count: self
+                .snapshot_basis_mismatch_count
+                .load(Ordering::Relaxed),
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::AuthoringError;
+use super::{AspectFieldKey, AspectName, AuthoringError, FieldName};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ScalarPredicateValue {
@@ -20,19 +20,13 @@ impl ScalarPredicateValue {
 fn validate_predicate_target(
     aspect: impl Into<String>,
     field: impl Into<String>,
-) -> Result<(String, String), AuthoringError> {
-    let aspect = aspect.into();
-    let field = field.into();
-    if aspect.trim().is_empty() || field.trim().is_empty() {
-        return Err(AuthoringError::EmptyProjectionSelector);
-    }
-    Ok((aspect, field))
+) -> Result<AspectFieldKey, AuthoringError> {
+    AspectFieldKey::new(aspect, field)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct EqualityPredicate {
-    aspect: String,
-    field: String,
+    target: AspectFieldKey,
     value: ScalarPredicateValue,
 }
 
@@ -42,20 +36,24 @@ impl EqualityPredicate {
         field: impl Into<String>,
         value: ScalarPredicateValue,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
-        Ok(Self {
-            aspect,
-            field,
-            value,
-        })
+        let target = validate_predicate_target(aspect, field)?;
+        Ok(Self { target, value })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.target.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.target.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.target.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.target.field()
     }
 
     pub fn value(&self) -> &ScalarPredicateValue {
@@ -71,8 +69,7 @@ pub enum IntegerComparisonOperator {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct IntegerComparisonPredicate {
-    aspect: String,
-    field: String,
+    target: AspectFieldKey,
     operator: IntegerComparisonOperator,
     value: i64,
 }
@@ -83,10 +80,9 @@ impl IntegerComparisonPredicate {
         field: impl Into<String>,
         value: i64,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
+        let target = validate_predicate_target(aspect, field)?;
         Ok(Self {
-            aspect,
-            field,
+            target,
             operator: IntegerComparisonOperator::GreaterThan,
             value,
         })
@@ -97,21 +93,28 @@ impl IntegerComparisonPredicate {
         field: impl Into<String>,
         value: i64,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
+        let target = validate_predicate_target(aspect, field)?;
         Ok(Self {
-            aspect,
-            field,
+            target,
             operator: IntegerComparisonOperator::LessThan,
             value,
         })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.target.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.target.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.target.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.target.field()
     }
 
     pub fn operator(&self) -> IntegerComparisonOperator {
@@ -125,8 +128,7 @@ impl IntegerComparisonPredicate {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct StringContainsPredicate {
-    aspect: String,
-    field: String,
+    target: AspectFieldKey,
     value: String,
 }
 
@@ -136,21 +138,25 @@ impl StringContainsPredicate {
         field: impl Into<String>,
         value: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
+        let target = validate_predicate_target(aspect, field)?;
         let value = value.into();
-        Ok(Self {
-            aspect,
-            field,
-            value,
-        })
+        Ok(Self { target, value })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.target.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.target.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.target.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.target.field()
     }
 
     pub fn value(&self) -> &str {
@@ -160,8 +166,7 @@ impl StringContainsPredicate {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SetMembershipPredicate {
-    aspect: String,
-    field: String,
+    target: AspectFieldKey,
     values: Vec<ScalarPredicateValue>,
 }
 
@@ -171,24 +176,28 @@ impl SetMembershipPredicate {
         field: impl Into<String>,
         values: impl IntoIterator<Item = ScalarPredicateValue>,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
+        let target = validate_predicate_target(aspect, field)?;
         let values: Vec<_> = values.into_iter().collect();
         if values.is_empty() {
             return Err(AuthoringError::EmptyProjectionSet);
         }
-        Ok(Self {
-            aspect,
-            field,
-            values,
-        })
+        Ok(Self { target, values })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.target.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.target.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.target.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.target.field()
     }
 
     pub fn values(&self) -> &[ScalarPredicateValue] {
@@ -203,8 +212,7 @@ pub enum PresencePredicateKind {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PresencePredicate {
-    aspect: String,
-    field: String,
+    target: AspectFieldKey,
     kind: PresencePredicateKind,
 }
 
@@ -213,20 +221,27 @@ impl PresencePredicate {
         aspect: impl Into<String>,
         field: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
-        let (aspect, field) = validate_predicate_target(aspect, field)?;
+        let target = validate_predicate_target(aspect, field)?;
         Ok(Self {
-            aspect,
-            field,
+            target,
             kind: PresencePredicateKind::IsPresent,
         })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.target.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.target.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.target.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.target.field()
     }
 
     pub fn kind(&self) -> PresencePredicateKind {

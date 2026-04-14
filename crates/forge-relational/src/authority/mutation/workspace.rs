@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authority::commit::preparation::planning::strategy::{
     ParallelLegality, ParallelProfitability, PreparationStrategy, PreparationStrategySelection,
@@ -9,6 +9,7 @@ use crate::identity::data::{EntityId, RelationId};
 use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
+use crate::transactions::data::{CreatedEntityRef, EntityReference};
 
 use super::mutation_context::MutationContext;
 
@@ -39,6 +40,7 @@ pub(crate) struct MutationWorkspace<'a> {
     version_id: VersionId,
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
     preparation_telemetry: MutationPreparationTelemetry,
+    created_entities: BTreeMap<CreatedEntityRef, EntityId>,
 }
 
 impl<'a> MutationWorkspace<'a> {
@@ -60,6 +62,7 @@ impl<'a> MutationWorkspace<'a> {
             version_id,
             branch_local_delete_allowance,
             preparation_telemetry: MutationPreparationTelemetry::default(),
+            created_entities: BTreeMap::new(),
         }
     }
 
@@ -146,5 +149,19 @@ impl<'a> MutationWorkspace<'a> {
 
     pub(crate) fn preparation_telemetry(&self) -> MutationPreparationTelemetry {
         self.preparation_telemetry
+    }
+
+    pub(crate) fn register_created_entity(&mut self, created: CreatedEntityRef, entity_id: EntityId) {
+        self.created_entities.insert(created, entity_id);
+    }
+
+    pub(crate) fn resolve_entity_reference(
+        &self,
+        entity_reference: &EntityReference,
+    ) -> Option<EntityId> {
+        match entity_reference {
+            EntityReference::Existing(entity_id) => Some(*entity_id),
+            EntityReference::Created(created) => self.created_entities.get(created).copied(),
+        }
     }
 }

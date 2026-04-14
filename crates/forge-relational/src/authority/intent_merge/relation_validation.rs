@@ -5,8 +5,8 @@ use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::logic::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, CreateIntent, ExistingRecordTarget, MutationIntent,
-    RelationIdentity, RelationSpec,
+    CommitConflict, ConflictClass, CreateIntent, CreatedEntityRef, EntityReference,
+    ExistingRecordTarget, MutationIntent, RelationIdentity, RelationSpec,
 };
 
 use super::record_lookup::{
@@ -21,6 +21,7 @@ pub(super) fn validate_relation_intent(
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
     branch_basis_version_id: Option<VersionId>,
+    created_entities: &BTreeSet<CreatedEntityRef>,
     intent: &MutationIntent,
 ) -> Result<(), CommitConflict> {
     match intent {
@@ -29,6 +30,7 @@ pub(super) fn validate_relation_intent(
             schema_source,
             default_cross_context_policy,
             instrumentation,
+            created_entities,
             spec,
         ),
         MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
@@ -37,6 +39,7 @@ pub(super) fn validate_relation_intent(
                 schema_source,
                 default_cross_context_policy,
                 instrumentation,
+                created_entities,
                 spec.partition_id,
                 spec.kind_id,
                 &spec.endpoints,
@@ -69,12 +72,10 @@ fn validate_bulk_relation_creation(
     schema_source: &impl SchemaSource,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
+    created_entities: &BTreeSet<CreatedEntityRef>,
     partition_id: crate::identity::data::PartitionId,
     kind_id: crate::identity::data::KindId,
-    endpoints: &[(
-        crate::identity::data::EntityId,
-        crate::identity::data::EntityId,
-    )],
+    endpoints: &[(EntityReference, EntityReference)],
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
     schema_registry
@@ -89,8 +90,8 @@ fn validate_bulk_relation_creation(
         let identity = RelationIdentity {
             partition_id,
             kind_id,
-            source: *source,
-            target: *target,
+            source: source.clone(),
+            target: target.clone(),
         };
         if !seen_batch_keys.insert(identity) {
             return Err(CommitConflict::new(
@@ -103,13 +104,14 @@ fn validate_bulk_relation_creation(
             state,
             relation_registration.cross_context_policy,
             default_cross_context_policy,
-            *source,
-            *target,
+            &source,
+            target,
+            created_entities,
         )?;
         targets_by_source
-            .entry(*source)
+            .entry(source.clone())
             .or_insert_with(BTreeSet::new)
-            .insert(*target);
+            .insert(target.clone());
     }
 
     for (source, targets) in targets_by_source {
@@ -118,7 +120,7 @@ fn validate_bulk_relation_creation(
             instrumentation,
             partition_id,
             kind_id,
-            source,
+            &source,
             &targets,
         ) {
             return Err(CommitConflict::new(
@@ -136,6 +138,7 @@ fn validate_relation_creation(
     schema_source: &impl SchemaSource,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
+    created_entities: &BTreeSet<CreatedEntityRef>,
     spec: &RelationSpec,
 ) -> Result<(), CommitConflict> {
     let schema_registry = schema_source.schema_registry();
@@ -149,16 +152,17 @@ fn validate_relation_creation(
         state,
         relation_registration.cross_context_policy,
         default_cross_context_policy,
-        spec.source,
-        spec.target,
+        &spec.source,
+        &spec.target,
+        created_entities,
     )?;
     if existing_relation_targets_for_source(
         state,
         instrumentation,
         spec.partition_id,
         spec.kind_id,
-        spec.source,
-        &BTreeSet::from([spec.target]),
+        &spec.source,
+        &BTreeSet::from([spec.target.clone()]),
     ) {
         return Err(CommitConflict::new(
             ConflictClass::DuplicateRelationIdentity {
@@ -173,10 +177,11 @@ fn validate_relation_creation_primitives(
     state: &impl StorageRead,
     relation_cross_context_policy: crate::config::data::CrossContextPolicy,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
-    source: crate::identity::data::EntityId,
-    target: crate::identity::data::EntityId,
+    source: &EntityReference,
+    target: &EntityReference,
+    created_entities: &BTreeSet<CreatedEntityRef>,
 ) -> Result<(), CommitConflict> {
-    if source.partition_id != target.partition_id {
+    if source.partition_id() != target.partition_id() {
         let effective_cross_context_policy = match relation_cross_context_policy {
             crate::config::data::CrossContextPolicy::SchemaControlled => {
                 default_cross_context_policy
@@ -194,7 +199,9 @@ fn validate_relation_creation_primitives(
             ));
         }
     }
-    if !entity_exists_in_state(state, source) || !entity_exists_in_state(state, target) {
+    if !entity_reference_exists_in_commit_scope(state, source, created_entities)
+        || !entity_reference_exists_in_commit_scope(state, target, created_entities)
+    {
         return Err(CommitConflict::new(
             ConflictClass::InvalidRelationEndpoint {
                 detail: "relation endpoints must be live entities".to_string(),
@@ -209,13 +216,16 @@ fn existing_relation_targets_for_source(
     instrumentation: &RuntimeInstrumentation,
     partition_id: crate::identity::data::PartitionId,
     kind_id: crate::identity::data::KindId,
-    source: crate::identity::data::EntityId,
-    targets: &BTreeSet<crate::identity::data::EntityId>,
+    source: &EntityReference,
+    targets: &BTreeSet<EntityReference>,
 ) -> bool {
-    let Some(source_partition) = state.get_partition(source.partition_id) else {
+    let EntityReference::Existing(source_entity) = source else {
         return false;
     };
-    let Some(outgoing_relations) = source_partition.adjacency.get(source.local_slot.0 as usize)
+    let Some(source_partition) = state.get_partition(source_entity.partition_id) else {
+        return false;
+    };
+    let Some(outgoing_relations) = source_partition.adjacency.get(source_entity.local_slot.0 as usize)
     else {
         return false;
     };
@@ -236,11 +246,24 @@ fn existing_relation_targets_for_source(
         let Some(endpoints) = relation_slot.extra().as_ref() else {
             continue;
         };
-        if endpoints.source == source && targets.contains(&endpoints.target) {
+        if endpoints.source == *source_entity
+            && targets.contains(&EntityReference::Existing(endpoints.target))
+        {
             return true;
         }
     }
     false
+}
+
+fn entity_reference_exists_in_commit_scope(
+    state: &impl StorageRead,
+    entity_reference: &EntityReference,
+    created_entities: &BTreeSet<CreatedEntityRef>,
+) -> bool {
+    match entity_reference {
+        EntityReference::Existing(entity_id) => entity_exists_in_state(state, *entity_id),
+        EntityReference::Created(created) => created_entities.contains(created),
+    }
 }
 
 #[cfg(test)]
@@ -254,6 +277,7 @@ mod tests {
         AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, WorkingState,
     };
     use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
+    use crate::transactions::facade::EntityReference;
 
     use super::existing_relation_targets_for_source;
 
@@ -337,8 +361,11 @@ mod tests {
             &instrumentation,
             partition_id,
             KindId(9),
-            source,
-            &BTreeSet::from([left, right]),
+            &EntityReference::Existing(source),
+            &BTreeSet::from([
+                EntityReference::Existing(left),
+                EntityReference::Existing(right),
+            ]),
         );
         let counters = instrumentation
             .complexity_counters

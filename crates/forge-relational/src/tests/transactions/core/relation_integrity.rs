@@ -143,8 +143,8 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("self".to_string()),
-                source: entity,
-                target: entity,
+                source: crate::transactions::data::EntityReference::Existing(entity),
+                target: crate::transactions::data::EntityReference::Existing(entity),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"self"}))),
             },
         ))),
@@ -175,8 +175,8 @@ fn relation_integrity_commit_boundary_rejects_source_cardinality_overflow() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("b".to_string()),
-                source,
-                target: target_b,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target_b),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"b"}))),
             },
         ))),
@@ -232,8 +232,14 @@ fn relation_integrity_certification_boundary_rejects_observed_pair_below_paralle
     let fields = failure.fields();
     assert_eq!(fields["contract_id"], json!("pair_min_two"));
     assert_eq!(fields["relation_kind_id"], json!(2));
-    assert_eq!(fields["source"], json!(source));
-    assert_eq!(fields["target"], json!(target));
+    assert_eq!(
+        fields["source"],
+        json!(crate::transactions::data::EntityReference::Existing(source))
+    );
+    assert_eq!(
+        fields["target"],
+        json!(crate::transactions::data::EntityReference::Existing(target))
+    );
     assert_eq!(fields["count"], json!(1));
     assert_eq!(fields["limit"], json!(2));
 }
@@ -297,8 +303,8 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("illegal-feature".to_string()),
-                source,
-                target: target_b,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target_b),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"illegal-feature"}),
                 )),
@@ -400,8 +406,8 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("reverse".to_string()),
-                source: target,
-                target: source,
+                source: crate::transactions::data::EntityReference::Existing(target),
+                target: crate::transactions::data::EntityReference::Existing(source),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"reverse"}))),
             }),
         )),
@@ -462,8 +468,8 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("one-way".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"one-way"}))),
             },
         ))),
@@ -476,8 +482,14 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
             let fields = error.fields().expect("symmetry localization fields");
             assert_eq!(fields["contract_id"], json!("paired_inverse"));
             assert_eq!(fields["relation_kind_id"], json!(2));
-            assert_eq!(fields["source"], json!(source));
-            assert_eq!(fields["target"], json!(target));
+            assert_eq!(
+                fields["source"],
+                json!(crate::transactions::data::EntityReference::Existing(source))
+            );
+            assert_eq!(
+                fields["target"],
+                json!(crate::transactions::data::EntityReference::Existing(target))
+            );
             assert_eq!(fields["mode"], json!("paired"));
         }
         other => panic!("expected conflict, got {:?}", other),
@@ -530,8 +542,8 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("reverse-undirected".to_string()),
-                source: second,
-                target: first,
+                source: crate::transactions::data::EntityReference::Existing(second),
+                target: crate::transactions::data::EntityReference::Existing(first),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"reverse-undirected"}),
                 )),
@@ -596,8 +608,8 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("inverse".to_string()),
-                source: target,
-                target: source,
+                source: crate::transactions::data::EntityReference::Existing(target),
+                target: crate::transactions::data::EntityReference::Existing(source),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"inverse"}))),
             },
         ))),
@@ -658,8 +670,8 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("missing-twin".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"missing-twin"}),
                 )),

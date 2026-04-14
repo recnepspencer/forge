@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::authoring::{AuthoredResultShapeField, ResultShapeFamily};
+use crate::authoring::{
+    AspectFieldKey, AspectName, AuthoredResultShapeField, DeliveredFieldName, FieldName,
+    ResultShapeFamily,
+};
 use crate::diagnostics::{CanonicalizationCounters, CanonicalizationWarning, NormalizationEvent};
 use crate::identity::CanonicalResultShapeDigest;
 use crate::result_shape::canonical_result_shape_family_digest_part;
@@ -11,27 +14,27 @@ use super::errors::QueryCanonicalizationError;
 pub(super) fn build_result_shape_artifact(
     family: ResultShapeFamily,
     fields: &[AuthoredResultShapeField],
-    projection_field_set: &BTreeSet<(String, String)>,
+    projection_field_set: &BTreeSet<AspectFieldKey>,
     warnings: &mut Vec<CanonicalizationWarning>,
     events: &mut Vec<NormalizationEvent>,
     counters: &mut CanonicalizationCounters,
 ) -> Result<CanonicalResultShapeArtifact, QueryCanonicalizationError> {
     let mut seen = BTreeSet::new();
-    let mut delivered_name_sources = BTreeMap::<String, (String, String)>::new();
+    let mut delivered_name_sources = BTreeMap::<DeliveredFieldName, (AspectName, FieldName)>::new();
     let mut ordered = Vec::new();
     let mut duplicate_result_fields = Vec::new();
 
     for field in fields {
         let canonical = CanonicalResultField {
-            source_aspect: field.source_aspect().to_string(),
-            source_field: field.source_field().to_string(),
-            delivered_name: field.delivered_name().to_string(),
+            source_aspect: field.source_aspect_name().clone(),
+            source_field: field.source_field_name().clone(),
+            delivered_name: field.delivered_field_name().clone(),
         };
         if !projection_field_set.contains(&canonical.source_projection_key()) {
             return Err(QueryCanonicalizationError::UnprojectedShapeField {
-                source_aspect: canonical.source_aspect.clone(),
-                source_field: canonical.source_field.clone(),
-                delivered_name: canonical.delivered_name.clone(),
+                source_aspect: canonical.source_aspect.to_string(),
+                source_field: canonical.source_field.to_string(),
+                delivered_name: canonical.delivered_name.to_string(),
             });
         }
 
@@ -41,11 +44,11 @@ pub(super) fn build_result_shape_artifact(
                     || source_field != &canonical.source_field =>
             {
                 return Err(QueryCanonicalizationError::AmbiguousShapeAliasIdentity {
-                    delivered_name: canonical.delivered_name.clone(),
-                    first_source_aspect: source_aspect.clone(),
-                    first_source_field: source_field.clone(),
-                    second_source_aspect: canonical.source_aspect.clone(),
-                    second_source_field: canonical.source_field.clone(),
+                    delivered_name: canonical.delivered_name.to_string(),
+                    first_source_aspect: source_aspect.to_string(),
+                    first_source_field: source_field.to_string(),
+                    second_source_aspect: canonical.source_aspect.to_string(),
+                    second_source_field: canonical.source_field.to_string(),
                 });
             }
             Some(_) => {}
@@ -61,7 +64,7 @@ pub(super) fn build_result_shape_artifact(
         }
 
         if !seen.insert(canonical.clone()) {
-            duplicate_result_fields.push(canonical.delivered_name.clone());
+            duplicate_result_fields.push(canonical.delivered_name.to_string());
             counters.result_shape_deduplication_count += 1;
             continue;
         }
@@ -73,9 +76,9 @@ pub(super) fn build_result_shape_artifact(
         ordered
             .iter()
             .map(|canonical| NormalizationEvent::ResultFieldRetained {
-                source_aspect: canonical.source_aspect.clone(),
-                source_field: canonical.source_field.clone(),
-                delivered_name: canonical.delivered_name.clone(),
+                source_aspect: canonical.source_aspect.to_string(),
+                source_field: canonical.source_field.to_string(),
+                delivered_name: canonical.delivered_name.to_string(),
             }),
     );
     duplicate_result_fields.sort();

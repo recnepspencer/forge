@@ -12,8 +12,8 @@ use forge_relational::facade::{
     },
     symbols::InternedString,
     transactions::{
-        CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntitySpec, MutationIntent,
-        RelationSpec, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+        CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntityReference, EntitySpec,
+        MutationIntent, RelationSpec, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
     },
 };
 use serde_json::json;
@@ -128,8 +128,8 @@ pub fn create_relation(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(label.to_string()),
-                source,
-                target,
+                source: EntityReference::Existing(source),
+                target: EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({ "label": label }))),
             }),
         )),

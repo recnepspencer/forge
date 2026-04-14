@@ -1,6 +1,7 @@
 use crate::{
     authority::digest_from_string,
     authority::{FetchedAuthoritativeCommit, PersistedAuthoritativeCommit},
+    snapshot::{SnapshotId, SnapshotImageBundle},
     wal::WalRecord,
 };
 use forge_relational::facade::history::{BranchId, CommitId};
@@ -94,6 +95,23 @@ pub struct EmbeddedCheckpointRecord {
     pub metadata: Value,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotBasisRecord {
+    pub snapshot_id: SnapshotId,
+    pub snapshot_branch_id: BranchId,
+    pub snapshot_frontier_commit_id: CommitId,
+    pub snapshot_history_range: Vec<CommitId>,
+    pub snapshot_canonicalization_version: u32,
+    pub snapshot_authority_digest: String,
+    pub snapshot_image_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotImageRecord {
+    pub snapshot_id: SnapshotId,
+    pub image: SnapshotImageBundle,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct StoreState {
     pub canonicalization_version: u32,
@@ -106,6 +124,12 @@ pub(crate) struct StoreState {
     pub authoritative_artifact_digests: BTreeMap<String, AuthoritativeArtifactDigestRecord>,
     #[serde(default)]
     pub embedded_checkpoint_records: BTreeMap<String, EmbeddedCheckpointRecord>,
+    #[serde(default)]
+    pub next_snapshot_id: u64,
+    #[serde(default)]
+    pub snapshot_basis_records: BTreeMap<u64, SnapshotBasisRecord>,
+    #[serde(default)]
+    pub snapshot_image_records: BTreeMap<u64, SnapshotImageRecord>,
     #[serde(default)]
     pub next_durable_mutation_id: u64,
     #[serde(default)]

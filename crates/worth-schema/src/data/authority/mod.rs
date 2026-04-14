@@ -1,4 +1,5 @@
 mod commit_flow;
+mod gateway;
 mod geometry_binding;
 mod interpretation;
 mod precision_fallback;
@@ -6,8 +7,12 @@ mod topology_class;
 
 pub use commit_flow::{
     CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    PersistedTopologyTruthBatch, RawWorthTopologyIntent, WorthMutationOrigin,
-    WorthTopologyMutation, WorthTopologyMutationBatch, WorthTopologyReadArtifact,
+    PersistedTopologyTruthBatch, RawWorthTopologyIntent, WorthCreateKey,
+    WorthEntityReference, WorthMutationOrigin, WorthTopologyMutation,
+    WorthTopologyMutationBatch, WorthTopologyReadArtifact,
+};
+pub use gateway::{
+    VerifiedTopologyCommit, WorthTopologyAuthority, WorthTopologyAuthorityError,
 };
 pub use geometry_binding::{
     WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind,

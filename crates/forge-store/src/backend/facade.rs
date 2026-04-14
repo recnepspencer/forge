@@ -6,6 +6,10 @@ use crate::{
     evidence::{CanonicalizationMetrics, StoreCounterSnapshot},
     failure::StoreError,
     recovery::{DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution},
+    snapshot::{
+        PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+    },
     wal::{DurableMutationId, DurablePublicationPhase},
 };
 use forge_relational::facade::history::{BranchId, CommitId};
@@ -138,6 +142,58 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.fetch_embedded_checkpoint(checkpoint_id),
             Self::Sqlite(backend) => backend.fetch_embedded_checkpoint(checkpoint_id),
+        }
+    }
+
+    pub fn capture_snapshot(
+        &mut self,
+        request: SnapshotCaptureRequest,
+    ) -> Result<PublishedSnapshotHandle, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.capture_snapshot(request),
+            Self::Sqlite(backend) => backend.capture_snapshot(request),
+        }
+    }
+
+    pub fn read_snapshot(
+        &self,
+        request: SnapshotReadRequest,
+    ) -> Result<SnapshotReadResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.read_snapshot(request),
+            Self::Sqlite(backend) => backend.read_snapshot(request),
+        }
+    }
+
+    pub fn restore_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+        target_commit_id: CommitId,
+    ) -> Result<SnapshotRestoreOutcome, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.restore_snapshot(snapshot_id, target_commit_id),
+            Self::Sqlite(backend) => backend.restore_snapshot(snapshot_id, target_commit_id),
+        }
+    }
+
+    pub fn rebuild_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotImageBundle, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.rebuild_snapshot(snapshot_id),
+            Self::Sqlite(backend) => backend.rebuild_snapshot(snapshot_id),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn remove_snapshot_image_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.remove_snapshot_image_for_test(snapshot_id),
+            Self::Sqlite(backend) => backend.remove_snapshot_image_for_test(snapshot_id),
         }
     }
 

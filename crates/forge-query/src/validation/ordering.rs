@@ -18,13 +18,13 @@ pub(crate) fn validate_ordering_entries(
 
     for entry in ordering {
         counters.record_schema_lookup();
-        let Some(field) = schema_view.field(&entry.aspect, &entry.field) else {
+        let Some(field) = schema_view.field(entry.aspect.as_str(), entry.field.as_str()) else {
             counters.record_rejection();
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnknownOrderingField {
-                    aspect: entry.aspect.clone(),
-                    field: entry.field.clone(),
+                    aspect: entry.aspect.to_string(),
+                    field: entry.field.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -36,8 +36,8 @@ pub(crate) fn validate_ordering_entries(
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::UnsupportedStructuredContentOrdering {
-                    aspect: entry.aspect.clone(),
-                    field: entry.field.clone(),
+                    aspect: entry.aspect.to_string(),
+                    field: entry.field.to_string(),
                     direction: direction_name(entry),
                 },
                 counters.clone(),
@@ -50,8 +50,8 @@ pub(crate) fn validate_ordering_entries(
             rejection_matrix.record_ordering_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::NonOrderableField {
-                    aspect: entry.aspect.clone(),
-                    field: entry.field.clone(),
+                    aspect: entry.aspect.to_string(),
+                    field: entry.field.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -69,8 +69,8 @@ pub(crate) fn validate_ordering_entries(
             projected,
         ));
         events.push(ValidationEvent::OrderingValidated {
-            aspect: entry.aspect.clone(),
-            field: entry.field.clone(),
+            aspect: entry.aspect.to_string(),
+            field: entry.field.to_string(),
             direction: direction_name(entry),
             field_kind: format!("{:?}", field.kind()),
             projected,

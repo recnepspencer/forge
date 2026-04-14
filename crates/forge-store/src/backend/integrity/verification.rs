@@ -6,6 +6,7 @@ impl StoreState {
         self.verify_wal_record_family()?;
         self.verify_commit_record_family()?;
         self.verify_branch_record_family()?;
+        self.verify_snapshot_record_family()?;
         Ok(())
     }
 }

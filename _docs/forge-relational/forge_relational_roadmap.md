@@ -31,6 +31,8 @@ The current shipped baseline includes:
 - savepoint and rollback substrate
 - MVCC snapshots and version/history substrate
 - deterministic patch, diagnostics, and replay publication
+- same-commit graph creation with symbolic endpoint resolution for entity and
+  relation creation inside one authoritative commit
 - lineage, query, and index foundations
 - proof-driven parallel preparation and post-commit scaling
 - `forge-harness` parity and certification substrate

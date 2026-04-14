@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use super::{
-    AspectFieldSelector, CollectionQueryBuilder, DetailQueryBuilder, OrderingSelector,
-    PredicateSelector, TraversalSelector,
+    AspectFieldKey, AspectFieldSelector, CollectionQueryBuilder, DetailQueryBuilder,
+    OrderingSelector, PredicateSelector, TraversalSelector,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -144,10 +144,12 @@ impl RawAuthoredQuery {
         &self.ordering
     }
 
-    pub fn projection_field_set(&self) -> BTreeSet<(String, String)> {
+    pub fn projection_field_set(&self) -> BTreeSet<AspectFieldKey> {
         self.projection
             .iter()
-            .map(|entry| (entry.aspect().to_string(), entry.field().to_string()))
+            .map(|entry| {
+                AspectFieldKey::from_parts(entry.aspect_name().clone(), entry.field_name().clone())
+            })
             .collect()
     }
 }

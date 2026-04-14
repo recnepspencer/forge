@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authority::intent_merge::{
-    canonical_intent_key, detect_conflicting_updates, validate_intent,
+    canonical_intent_key, collect_created_entity_refs, detect_conflicting_updates, validate_intent,
 };
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
 use crate::history::data::{BranchId, CommitId};
@@ -44,6 +44,7 @@ impl<'a> RelationalTransaction<'a> {
         mut intents: Vec<MutationIntent>,
     ) -> Result<(MergedCommitPlan, MergedPlanPreparationTiming), CommitConflict> {
         let history = self.runtime.history();
+        let created_entities = collect_created_entity_refs(&intents);
         let branch_basis_version_id = self
             .options
             .target_branch
@@ -58,6 +59,7 @@ impl<'a> RelationalTransaction<'a> {
                 self.runtime.runtime_config().storage.cross_context_policy,
                 self.runtime.runtime_instrumentation(),
                 branch_basis_version_id,
+                &created_entities,
                 intent,
             )?;
         }

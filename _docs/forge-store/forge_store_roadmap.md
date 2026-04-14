@@ -245,6 +245,8 @@ transactionally-coupled artifacts after this.
 
 ## Milestone 4: Snapshot Persistence And Point-In-Time Restore
 
+Engineering spec: [milestone-4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-4.md)
+
 ### Goal
 
 Make immutable snapshots and snapshot-plus-tail restore first-class derived

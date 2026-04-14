@@ -160,8 +160,8 @@ fn cross_context_relations_respect_relation_kind_policy() {
                 partition_id: PartitionId(29),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("bridge".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: None,
             }),
         )),
@@ -221,3 +221,4 @@ fn partition_registry_and_stats_expose_partition_owned_state() {
         1
     );
 }
+

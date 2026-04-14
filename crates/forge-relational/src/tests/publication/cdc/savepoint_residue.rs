@@ -89,8 +89,8 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("abandoned-r".to_string()),
-                source: anchor,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(anchor),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"abandoned-label"}),
                 )),
@@ -138,8 +138,8 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("surviving-r".to_string()),
-                source: anchor,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(anchor),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"label":"surviving-label"}),
                 )),
@@ -270,8 +270,8 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("illegal".to_string()),
-                source,
-                target: source,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(source),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"illegal"}))),
             }),
         )),
@@ -283,8 +283,8 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("surviving".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"surviving"}))),
             }),
         )),
@@ -386,3 +386,4 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::RelationEndpointDeletionIntegrityViolation));
 }
+

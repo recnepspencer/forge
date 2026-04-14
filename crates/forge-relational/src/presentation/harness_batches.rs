@@ -3,7 +3,7 @@ use crate::facade::identity::PartitionId;
 use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::symbols::data::InternedString;
-use crate::transactions::data::{EntitySpec, RelationSpec};
+use crate::transactions::data::{EntityReference, EntitySpec, RelationSpec};
 
 use super::harness_data::RelationalHarnessError;
 
@@ -47,8 +47,8 @@ pub(super) fn relation_fixture_batch(
                     partition_id: PartitionId::main(),
                     kind_id: relation.kind_id,
                     client_key: InternedString::Raw(relation.client_key.clone()),
-                    source,
-                    target,
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
                     payload: Some(RecordPayload::StructuredJson(relation.payload.clone())),
                 },
             )));

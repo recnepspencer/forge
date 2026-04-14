@@ -14,7 +14,10 @@ fn legal_detail_bundle_validates_deterministically() {
     assert_eq!(left.query().schema_basis(), right.query().schema_basis());
     assert_eq!(left.query().digest(), right.query().digest());
     assert_eq!(left.result_shape().digest(), right.result_shape().digest());
-    assert_eq!(left.equivalence_to(&right), CanonicalEquivalence::Equivalent);
+    assert_eq!(
+        left.equivalence_to(&right),
+        CanonicalEquivalence::Equivalent
+    );
     assert_eq!(left.counters().validated_projection_entry_count(), 2);
     assert_eq!(left.counters().validated_traversal_clause_count(), 1);
     assert_eq!(left.counters().validated_result_shape_binding_count(), 2);
@@ -23,8 +26,14 @@ fn legal_detail_bundle_validates_deterministically() {
     assert_eq!(left.counters().projection_widening_denial_count(), 0);
     assert_eq!(left.report().rejection_matrix().projection_rejections(), 0);
     assert_eq!(left.report().rejection_matrix().traversal_rejections(), 0);
-    assert_eq!(left.report().rejection_matrix().result_shape_rejections(), 0);
-    assert_eq!(left.report().rejection_matrix().compatibility_rejections(), 0);
+    assert_eq!(
+        left.report().rejection_matrix().result_shape_rejections(),
+        0
+    );
+    assert_eq!(
+        left.report().rejection_matrix().compatibility_rejections(),
+        0
+    );
     assert!(left
         .report()
         .events()

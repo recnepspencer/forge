@@ -2,6 +2,7 @@ mod counters;
 mod milestone_1;
 mod milestone_2;
 mod milestone_3;
+mod milestone_4;
 
 pub(crate) use counters::StoreCounters;
 pub use counters::{CanonicalizationMetrics, StoreCounterSnapshot};
@@ -12,3 +13,4 @@ pub use milestone_2::{
     OperatingModeLane, PersistedModeLaneEvidence,
 };
 pub use milestone_3::{Milestone3CertificationBundle, ObservedRecoveryFailure};
+pub use milestone_4::Milestone4CertificationBundle;

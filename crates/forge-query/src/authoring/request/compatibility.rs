@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
-
-use crate::authoring::{QueryFamily, RawAuthoredQuery, RawAuthoredResultShape, ResultShapeFamily};
+use crate::authoring::{
+    AspectFieldKey, QueryFamily, RawAuthoredQuery, RawAuthoredResultShape, ResultShapeFamily,
+};
 
 use super::error::AuthoredBundleError;
 
@@ -27,11 +27,11 @@ pub(super) fn enforce_shape_projection_compatibility(
     query: &RawAuthoredQuery,
     result_shape: &RawAuthoredResultShape,
 ) -> Result<(), AuthoredBundleError> {
-    let projection_field_set: BTreeSet<(String, String)> = query.projection_field_set();
+    let projection_field_set = query.projection_field_set();
     for field in result_shape.fields() {
-        let key = (
-            field.source_aspect().to_string(),
-            field.source_field().to_string(),
+        let key = AspectFieldKey::from_parts(
+            field.source_aspect_name().clone(),
+            field.source_field_name().clone(),
         );
         if !projection_field_set.contains(&key) {
             return Err(AuthoredBundleError::UnprojectedShapeField {

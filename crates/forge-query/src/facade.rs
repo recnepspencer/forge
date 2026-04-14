@@ -32,6 +32,14 @@ pub use crate::identity::{
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
 };
+pub use crate::typed::{
+    TypedCollectionQuery, TypedCollectionQueryBuilder, TypedCollectionResultShape,
+    TypedCollectionResultShapeBuilder, TypedDetailQuery, TypedDetailQueryBuilder,
+    TypedDetailResultShape, TypedDetailResultShapeBuilder, TypedEqualityField,
+    TypedGuidedAuthoringPath, TypedIntegerComparableField, TypedMembershipField,
+    TypedOrderableField, TypedPresenceField, TypedProjectableField, TypedSchemaField,
+    TypedSchemaRoot, TypedStringContainsField, TypedTraversalRelation,
+};
 pub use crate::validation::{
     validate_canonical_bundle, QueryValidationCounters, QueryValidationError,
     QueryValidationReport, ValidatedOrderingEntry, ValidatedOrderingSet, ValidatedPredicateEntry,

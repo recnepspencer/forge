@@ -682,9 +682,10 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
 #[test]
 fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
     let baseline_hint_count = crate::indexes::logic::index_query_scratch_hint_count();
+    let runtime_id;
     {
         let mut runtime = runtime_with_test_schema();
-        let runtime_id = runtime.runtime_instance_id();
+        runtime_id = runtime.runtime_instance_id();
         let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
         let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
         let index = runtime.index_authority().register(DerivedIndexDefinition {
@@ -753,9 +754,9 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
         assert!(crate::indexes::logic::index_query_scratch_hint_count() >= baseline_hint_count);
     }
 
-    assert_eq!(
-        crate::indexes::logic::index_query_scratch_hint_count(),
-        baseline_hint_count
+    assert!(
+        !crate::indexes::logic::index_query_scratch_hint_exists(runtime_id),
+        "runtime drop should release its own scratch hint even if other tests create hints concurrently"
     );
 }
 
@@ -980,8 +981,8 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("edge".to_string()),
-                source: changed_entities(&feature_source)[0],
-                target: changed_entities(&feature_target)[0],
+                source: crate::transactions::data::EntityReference::Existing(changed_entities(&feature_source)[0]),
+                target: crate::transactions::data::EntityReference::Existing(changed_entities(&feature_target)[0]),
                 payload: Some(RecordPayload::StructuredJson(
                     serde_json::json!({"label":"edge"}),
                 )),

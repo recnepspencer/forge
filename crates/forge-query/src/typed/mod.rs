@@ -1,0 +1,22 @@
+mod collection;
+mod detail;
+mod guided_path;
+mod query_family;
+mod result_shape_family;
+mod traits;
+mod utils;
+
+pub use collection::{
+    TypedCollectionQuery, TypedCollectionQueryBuilder, TypedCollectionResultShape,
+    TypedCollectionResultShapeBuilder,
+};
+pub use detail::{
+    TypedDetailQuery, TypedDetailQueryBuilder, TypedDetailResultShape,
+    TypedDetailResultShapeBuilder,
+};
+pub use guided_path::TypedGuidedAuthoringPath;
+pub use traits::{
+    TypedEqualityField, TypedIntegerComparableField, TypedMembershipField, TypedOrderableField,
+    TypedPresenceField, TypedProjectableField, TypedSchemaField, TypedSchemaRoot,
+    TypedStringContainsField, TypedTraversalRelation,
+};

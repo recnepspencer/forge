@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::snapshots::SnapshotHandle;
 use serde::{Deserialize, Serialize};
@@ -12,6 +13,25 @@ use crate::data::authority::{
 use crate::data::entities::WorthEntityKind;
 use crate::data::relations::WorthRelationKind;
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct WorthCreateKey(pub String);
+
+impl WorthCreateKey {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WorthEntityReference {
+    Existing(EntityId),
+    Created(WorthCreateKey),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum WorthMutationOrigin {
     Seed,
@@ -22,6 +42,16 @@ pub enum WorthMutationOrigin {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorthTopologyMutation {
+    CreateEntity {
+        create_key: WorthCreateKey,
+        kind: WorthEntityKind,
+    },
+    CreateRelation {
+        create_key: WorthCreateKey,
+        kind: WorthRelationKind,
+        source: WorthEntityReference,
+        target: WorthEntityReference,
+    },
     UpsertEntity {
         entity_id: EntityId,
         kind: WorthEntityKind,
@@ -66,12 +96,14 @@ pub struct CanonicalTopologyMutationBatch {
 pub struct PersistedTopologyTruthBatch {
     pub batch: WorthTopologyMutationBatch,
     pub snapshot: SnapshotHandle,
+    pub branch_id: BranchId,
     pub mutation_origin: WorthMutationOrigin,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DerivedTopologyReadBasis {
     pub snapshot: SnapshotHandle,
+    pub branch_id: BranchId,
     pub touched_aspects: BTreeSet<WorthAspect>,
     pub mutation_origin: WorthMutationOrigin,
     pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
@@ -140,11 +172,18 @@ impl DerivedTopologyReadBasis {
     pub fn from_persisted_truth(batch: &PersistedTopologyTruthBatch) -> Self {
         Self {
             snapshot: batch.snapshot.clone(),
+            branch_id: batch.branch_id.clone(),
             touched_aspects: batch.batch.touched_aspects.clone(),
             mutation_origin: batch.mutation_origin,
             precision_fallbacks: batch.batch.precision_fallbacks.clone(),
             precision_budget_fallbacks: batch.batch.precision_budget_fallbacks.clone(),
         }
+    }
+
+    pub fn replay_of(&self) -> Self {
+        let mut replay = self.clone();
+        replay.mutation_origin = WorthMutationOrigin::Replay;
+        replay
     }
 }
 

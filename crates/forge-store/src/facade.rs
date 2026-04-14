@@ -6,11 +6,15 @@ use crate::{
     },
     backend::{records::EmbeddedCheckpointRecord, StoreBackend, StoreBackendMode},
     evidence::{
-        Milestone1CertificationBundle, OperatingModeLane, PersistedModeLaneEvidence,
-        StoreCounterSnapshot,
+        Milestone1CertificationBundle, Milestone4CertificationBundle, OperatingModeLane,
+        PersistedModeLaneEvidence, StoreCounterSnapshot,
     },
     failure::StoreError,
     recovery::{DurableRecoveryOutcome, DurableRecoveryPlan},
+    snapshot::{
+        PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+    },
     wal::{DurableMutationId, DurablePublicationPhase},
 };
 use forge_relational::facade::{
@@ -230,9 +234,60 @@ impl ForgeStore {
         self.backend.export_bundle()
     }
 
+    pub fn capture_snapshot(
+        &mut self,
+        request: SnapshotCaptureRequest,
+    ) -> Result<PublishedSnapshotHandle, StoreError> {
+        self.backend.capture_snapshot(request)
+    }
+
+    pub fn read_snapshot(
+        &self,
+        request: SnapshotReadRequest,
+    ) -> Result<SnapshotReadResult, StoreError> {
+        self.backend.read_snapshot(request)
+    }
+
+    pub fn restore_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+        target_commit_id: CommitId,
+    ) -> Result<SnapshotRestoreOutcome, StoreError> {
+        self.backend.restore_snapshot(snapshot_id, target_commit_id)
+    }
+
+    pub fn rebuild_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotImageBundle, StoreError> {
+        self.backend.rebuild_snapshot(snapshot_id)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn remove_snapshot_image_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        self.backend.remove_snapshot_image_for_test(snapshot_id)
+    }
+
     pub fn milestone_1_certification_bundle(&self) -> Milestone1CertificationBundle {
         let export = self.export_authoritative_records();
         Milestone1CertificationBundle::from_export(&export, self.counters())
+    }
+
+    pub fn milestone_4_certification_bundle(
+        &self,
+        truth_image: &SnapshotImageBundle,
+        restored_image: &SnapshotImageBundle,
+        rebuilt_image: &SnapshotImageBundle,
+    ) -> Milestone4CertificationBundle {
+        Milestone4CertificationBundle::new(
+            truth_image,
+            restored_image,
+            rebuilt_image,
+            self.counters(),
+        )
     }
 
     pub(crate) fn milestone_2_lane_evidence(

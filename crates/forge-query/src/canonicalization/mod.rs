@@ -14,7 +14,8 @@ mod traversal;
 pub use artifacts::{
     CanonicalOrderingEntry, CanonicalPredicateEntry, CanonicalPredicateFamily,
     CanonicalPredicateOperand, CanonicalProjectionEntry, CanonicalQueryArtifact,
-    CanonicalResultField, CanonicalResultShapeArtifact, CanonicalTraversalEntry,
+    CanonicalResultField, CanonicalResultShapeArtifact, CanonicalScalarSet,
+    CanonicalTraversalEntry,
 };
 pub use bundle_state::CanonicalQueryBundle;
 pub use errors::{CanonicalizationFailureClass, QueryCanonicalizationError};

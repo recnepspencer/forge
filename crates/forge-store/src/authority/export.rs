@@ -2,9 +2,9 @@ use crate::backend::records::{
     AuthoritativeArtifactDigestRecord, BranchHeadRecord, BranchRecord, CommitParentRecord,
     StoredCommitEnvelope,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthoritativeExportBundle {
     pub(crate) canonicalization_version: u32,
     pub(crate) branch_records: Vec<BranchRecord>,

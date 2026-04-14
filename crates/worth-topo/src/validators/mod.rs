@@ -11,5 +11,6 @@ mod radial;
 
 pub use error::WorthTopologyValidationError;
 pub use facade::{
-    validate_named_topology_truth, validate_topology_view, WorthTopologyValidator,
+    topology_validation_report, validate_named_topology_truth, validate_topology_view,
+    WorthTopologyValidationReport, WorthTopologyValidationRow, WorthTopologyValidator,
 };

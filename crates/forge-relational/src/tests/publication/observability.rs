@@ -149,8 +149,8 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("one-way".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"one-way"}))),
             },
         ))),
@@ -186,8 +186,14 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         json!("paired_twin")
     );
     assert_eq!(entry.fields["violation"]["relation_kind_id"], json!(2));
-    assert_eq!(entry.fields["violation"]["source"], json!(source));
-    assert_eq!(entry.fields["violation"]["target"], json!(target));
+    assert_eq!(
+        entry.fields["violation"]["source"],
+        json!(crate::transactions::data::EntityReference::Existing(source))
+    );
+    assert_eq!(
+        entry.fields["violation"]["target"],
+        json!(crate::transactions::data::EntityReference::Existing(target))
+    );
     assert_eq!(
         entry.fields["proof_boundary"]["scope_class"],
         json!("PartitionScope")
@@ -220,8 +226,8 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("forward".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"forward"}))),
             },
         ))),
@@ -232,8 +238,8 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("reverse".to_string()),
-                source: target,
-                target: source,
+                source: crate::transactions::data::EntityReference::Existing(target),
+                target: crate::transactions::data::EntityReference::Existing(source),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"reverse"}))),
             }),
         )),
@@ -299,8 +305,8 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("self-edge".to_string()),
-                source,
-                target: source,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(source),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"self-edge"}))),
             },
         ))),
@@ -1855,3 +1861,4 @@ fn cross_order_equivalent_mutations_converge() {
         runtime_b.publication().diagnostics()
     );
 }
+

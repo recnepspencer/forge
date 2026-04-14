@@ -51,7 +51,7 @@ impl CustomInvariantRule for NamingCoverageRule {
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
         let name_kind = naming_relation_kind();
         for (entity_id, kind_id) in &scope.topology_entities {
-            let incoming = scope.incoming_kind(*entity_id, name_kind);
+            let incoming = scope.incoming_kind(entity_id, name_kind);
             if incoming.len() != 1 {
                 return Err(CustomInvariantExecutionError::new(format!(
                     "topology entity {:?} of kind {} must have exactly one persistent-name attachment, found {}",

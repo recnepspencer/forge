@@ -1,3 +1,5 @@
+use crate::authoring::{AspectName, FieldName};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SchemaFieldKind {
     String,
@@ -9,8 +11,8 @@ pub enum SchemaFieldKind {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SchemaFieldView {
-    aspect: String,
-    field: String,
+    aspect: AspectName,
+    field: FieldName,
     kind: SchemaFieldKind,
     queryable: bool,
     orderable: bool,
@@ -23,8 +25,10 @@ pub struct SchemaFieldView {
 impl SchemaFieldView {
     pub fn new(aspect: impl Into<String>, field: impl Into<String>, kind: SchemaFieldKind) -> Self {
         Self {
-            aspect: aspect.into(),
-            field: field.into(),
+            aspect: AspectName::new(aspect)
+                .expect("schema field aspect must be non-empty at construction"),
+            field: FieldName::new(field)
+                .expect("schema field name must be non-empty at construction"),
             kind,
             queryable: true,
             orderable: true,
@@ -73,10 +77,18 @@ impl SchemaFieldView {
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.aspect.as_str()
     }
 
     pub fn field(&self) -> &str {
+        self.field.as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        &self.aspect
+    }
+
+    pub fn field_name(&self) -> &FieldName {
         &self.field
     }
 

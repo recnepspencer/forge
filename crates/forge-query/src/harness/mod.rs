@@ -17,6 +17,8 @@ mod reporting;
 #[cfg(test)]
 mod semantics;
 #[cfg(test)]
+mod typed;
+#[cfg(test)]
 mod validation_cases;
 #[cfg(test)]
 mod validation_certification;

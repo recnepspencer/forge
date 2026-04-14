@@ -120,12 +120,12 @@ pub enum ExistingRecordTarget {
     Relation(RelationId),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct RelationIdentity {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub source: EntityId,
-    pub target: EntityId,
+    pub source: EntityReference,
+    pub target: EntityReference,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -148,13 +148,35 @@ pub struct EntitySpec {
     pub payload: RecordPayload,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct CreatedEntityRef {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_key: InternedString,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum EntityReference {
+    Existing(EntityId),
+    Created(CreatedEntityRef),
+}
+
+impl EntityReference {
+    pub fn partition_id(&self) -> PartitionId {
+        match self {
+            Self::Existing(entity_id) => entity_id.partition_id,
+            Self::Created(created) => created.partition_id,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationSpec {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
     pub client_key: InternedString,
-    pub source: EntityId,
-    pub target: EntityId,
+    pub source: EntityReference,
+    pub target: EntityReference,
     pub payload: Option<RecordPayload>,
 }
 
@@ -199,8 +221,8 @@ pub enum PlannedLineageTransition {
     CreateRelation {
         partition_id: PartitionId,
         kind_id: KindId,
-        source: EntityId,
-        target: EntityId,
+        source: EntityReference,
+        target: EntityReference,
         client_key: InternedString,
     },
     DeleteRelation {

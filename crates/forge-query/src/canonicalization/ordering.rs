@@ -6,8 +6,8 @@ pub(super) fn canonicalize_ordering(ordering: &[OrderingSelector]) -> Vec<Canoni
     let mut normalized: Vec<_> = ordering
         .iter()
         .map(|entry| CanonicalOrderingEntry {
-            aspect: entry.aspect().to_string(),
-            field: entry.field().to_string(),
+            aspect: entry.aspect_name().clone(),
+            field: entry.field_name().clone(),
             direction: entry.direction(),
         })
         .collect();

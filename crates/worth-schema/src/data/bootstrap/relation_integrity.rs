@@ -174,18 +174,15 @@ fn cardinality_limits(kind: WorthRelationKind) -> (Option<u64>, Option<u64>, Opt
         | WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace)
+        | WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge)
+        | WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop) => {
             (None, Some(1), Some(1))
         }
         WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev)
         | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex)
         | WorthRelationKind::Geometry(WorthGeometryRelationKind::FaceUsesSurfaceBinding)
         | WorthRelationKind::Geometry(WorthGeometryRelationKind::EdgeUsesCurveBinding)
         | WorthRelationKind::Geometry(WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding)
@@ -194,6 +191,11 @@ fn cardinality_limits(kind: WorthRelationKind) -> (Option<u64>, Option<u64>, Opt
         | WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::WireHasInterpretation)
         | WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::ShellHasInterpretation) => {
             (Some(1), Some(1), Some(1))
+        }
+        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge)
+        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
+        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex) => {
+            (Some(1), None, Some(1))
         }
     }
 }

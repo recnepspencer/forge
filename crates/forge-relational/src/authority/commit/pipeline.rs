@@ -126,7 +126,7 @@ fn summarize_bulk_mutation_telemetry(
                 relation_target_count += 1;
                 normalized_client_key_count += 1;
                 lineage_transition_count += 1;
-                if spec.source.partition_id != spec.target.partition_id {
+                if spec.source.partition_id() != spec.target.partition_id() {
                     cross_partition_relation_count += 1;
                 }
             }
@@ -137,7 +137,7 @@ fn summarize_bulk_mutation_telemetry(
                 cross_partition_relation_count += spec
                     .endpoints
                     .iter()
-                    .filter(|(source, target)| source.partition_id != target.partition_id)
+                    .filter(|(source, target)| source.partition_id() != target.partition_id())
                     .count();
             }
             MutationIntent::Entity(EntityMutationIntent::Update(_))

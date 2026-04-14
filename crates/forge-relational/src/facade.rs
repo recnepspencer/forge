@@ -411,26 +411,42 @@ pub mod bridge {
                             error.to_string(),
                         )
                     })?;
-                let RecordRef::Entity(entity_id) = record_ref else {
-                    return Err(forge_runtime_bridge::facade::BridgeSnapshotReadError::new(
-                        "relational bridge snapshot reader currently supports entity record identities only",
-                    ));
+                let payload = match record_ref {
+                    RecordRef::Entity(entity_id) => {
+                        let record = projection.entity_record(entity_id).ok_or_else(|| {
+                            forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
+                                "relational bridge snapshot reader could not find entity `{}` in authoritative snapshot `{}`",
+                                read.entity_identity(),
+                                self.snapshot_identity.as_str()
+                            ))
+                        })?;
+                        payload_bytes_for_entity_aspect(&record, read.aspect_label()).ok_or_else(|| {
+                            forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
+                                "relational bridge snapshot reader could not resolve aspect `{}` on entity `{}` in authoritative snapshot `{}`",
+                                read.aspect_label(),
+                                read.entity_identity(),
+                                self.snapshot_identity.as_str()
+                            ))
+                        })?
+                    }
+                    RecordRef::Relation(relation_id) => {
+                        let record = projection.relation_record(relation_id).ok_or_else(|| {
+                            forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
+                                "relational bridge snapshot reader could not find relation `{}` in authoritative snapshot `{}`",
+                                read.entity_identity(),
+                                self.snapshot_identity.as_str()
+                            ))
+                        })?;
+                        payload_bytes_for_relation_aspect(&record, read.aspect_label()).ok_or_else(|| {
+                            forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
+                                "relational bridge snapshot reader could not resolve aspect `{}` on relation `{}` in authoritative snapshot `{}`",
+                                read.aspect_label(),
+                                read.entity_identity(),
+                                self.snapshot_identity.as_str()
+                            ))
+                        })?
+                    }
                 };
-                let record = projection.entity_record(entity_id).ok_or_else(|| {
-                    forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
-                        "relational bridge snapshot reader could not find entity `{}` in authoritative snapshot `{}`",
-                        read.entity_identity(),
-                        self.snapshot_identity.as_str()
-                    ))
-                })?;
-                let payload = payload_bytes_for_aspect(&record.payload, read.aspect_label()).ok_or_else(|| {
-                    forge_runtime_bridge::facade::BridgeSnapshotReadError::new(format!(
-                        "relational bridge snapshot reader could not resolve aspect `{}` on entity `{}` in authoritative snapshot `{}`",
-                        read.aspect_label(),
-                        read.entity_identity(),
-                        self.snapshot_identity.as_str()
-                    ))
-                })?;
                 records.push(SnapshotReadRecord::new(read.request_key(), payload));
             }
 
@@ -704,11 +720,32 @@ pub mod bridge {
         Ok(observed_version_id)
     }
 
-    fn payload_bytes_for_aspect(
-        payload: &crate::payloads::data::RecordPayload,
+    fn payload_bytes_for_entity_aspect(
+        record: &crate::storage::data::EntityReadRecord,
         aspect_label: &str,
     ) -> Option<Vec<u8>> {
-        let value = payload.as_json()?;
+        if aspect_label == "lifecycle" {
+            return serde_json::to_vec(&record.lifecycle).ok();
+        }
+        payload_bytes_for_payload(record.payload.as_json()?, aspect_label)
+    }
+
+    fn payload_bytes_for_relation_aspect(
+        record: &crate::storage::data::RelationReadRecord,
+        aspect_label: &str,
+    ) -> Option<Vec<u8>> {
+        match aspect_label {
+            "source" => Some(record_ref_identity(&RecordRef::Entity(record.source)).into_bytes()),
+            "target" => Some(record_ref_identity(&RecordRef::Entity(record.target)).into_bytes()),
+            "lifecycle" => serde_json::to_vec(&record.lifecycle).ok(),
+            _ => payload_bytes_for_payload(record.payload.as_ref()?.as_json()?, aspect_label),
+        }
+    }
+
+    fn payload_bytes_for_payload(
+        value: &serde_json::Value,
+        aspect_label: &str,
+    ) -> Option<Vec<u8>> {
         let scoped = json_value_for_aspect(value, aspect_label)
             .or_else(|| json_value_for_terminal_field(value, aspect_label))
             .or_else(|| structural_snapshot_value(value, aspect_label))?;
@@ -1329,6 +1366,15 @@ pub mod runtime {
         StorageStats, TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
         VisibilityRetentionAuthority,
     };
+    pub use crate::validation::data::{
+        CustomInvariantDescriptor, CustomInvariantExecutionContext,
+        CustomInvariantExecutionError, CustomInvariantOperationalMetadata,
+        CustomInvariantPreparationError, CustomInvariantRegistration,
+        CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantRuleId,
+        CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
+        InvariantGroup, InvariantGroupSet, StructuralRelationRecord, StructuralRelationView,
+    };
     pub use crate::presentation::api::RelationalRuntimeApi;
     pub use crate::presentation::contracts::{
         ImmutableReadContract, RelationalBoundaryContract, SerializedAuthorityContract,
@@ -1455,15 +1501,15 @@ pub mod transactions {
         CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
         CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
         CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
-        CommitTraceEvent, ConflictClass, CreateIntent, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntitySpec,
-        LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
-        MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
-        NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
-        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
-        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+        CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef,
+        CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
+        EntityReference, EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan,
+        MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
+        MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PatchVsTruthDeltaReport,
+        PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+        RecordRef, RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent,
+        RollbackEffect, RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError,
+        TransactionId, TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

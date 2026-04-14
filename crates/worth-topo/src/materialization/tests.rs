@@ -1,16 +1,13 @@
 #[cfg(test)]
 mod materializer_tests {
-    use forge_relational::facade::runtime::RelationalRuntimeApi;
-    use worth_schema::facade::{seed_minimal_topology, worth_bootstrap_schema_registry};
+    use worth_schema::facade::seed_minimal_topology;
 
     use crate::materialization::WorthTopologyMaterializer;
 
     #[test]
     fn materialize_from_truth_reads_bootstrap_worth_structure_from_relational_snapshot() {
-        let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
+            .expect("worth milestone one runtime builder")
             .build();
 
         let seeded = seed_minimal_topology(&mut runtime, "topo").expect("seed worth topology");

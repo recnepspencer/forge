@@ -268,7 +268,7 @@ fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutationLocalityFoo
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
                 relation_target_count += 1;
-                if spec.source.partition_id != spec.target.partition_id {
+                if spec.source.partition_id() != spec.target.partition_id() {
                     cross_partition_relation_count += 1;
                 }
             }
@@ -277,7 +277,7 @@ fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutationLocalityFoo
                 cross_partition_relation_count += spec
                     .endpoints
                     .iter()
-                    .filter(|(source, target)| source.partition_id != target.partition_id)
+                    .filter(|(source, target)| source.partition_id() != target.partition_id())
                     .count();
             }
             MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
@@ -348,14 +348,14 @@ fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan 
                 }
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
-                transitions.push(PlannedLineageTransition::CreateRelation {
-                    partition_id: spec.partition_id,
-                    kind_id: spec.kind_id,
-                    source: spec.source,
-                    target: spec.target,
-                    client_key: spec.client_key.clone(),
-                });
-            }
+                    transitions.push(PlannedLineageTransition::CreateRelation {
+                        partition_id: spec.partition_id,
+                        kind_id: spec.kind_id,
+                        source: spec.source.clone(),
+                        target: spec.target.clone(),
+                        client_key: spec.client_key.clone(),
+                    });
+                }
             MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
                 for (client_key, (source, target)) in
                     spec.client_keys.iter().zip(spec.endpoints.iter())
@@ -363,8 +363,8 @@ fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan 
                     transitions.push(PlannedLineageTransition::CreateRelation {
                         partition_id: spec.partition_id,
                         kind_id: spec.kind_id,
-                        source: *source,
-                        target: *target,
+                        source: source.clone(),
+                        target: target.clone(),
                         client_key: client_key.clone(),
                     });
                 }
@@ -670,7 +670,10 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_keys: vec![InternedString::Raw("edge".to_string())],
-                    endpoints: vec![(source, target)],
+                    endpoints: vec![(
+                        crate::transactions::data::EntityReference::Existing(source),
+                        crate::transactions::data::EntityReference::Existing(target),
+                    )],
                     payloads: vec![Some(RecordPayload::StructuredJson(
                         serde_json::json!({"label":"edge"}),
                     ))],

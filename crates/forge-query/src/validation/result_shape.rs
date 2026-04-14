@@ -18,15 +18,16 @@ pub(crate) fn validate_result_shape_bindings(
 
     for field in fields {
         counters.record_schema_lookup();
-        let Some(schema_field) = schema_view.field(&field.source_aspect, &field.source_field)
+        let Some(schema_field) =
+            schema_view.field(field.source_aspect.as_str(), field.source_field.as_str())
         else {
             counters.record_rejection();
             rejection_matrix.record_result_shape_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalResultShapeBinding {
-                    aspect: field.source_aspect.clone(),
-                    field: field.source_field.clone(),
-                    delivered_name: field.delivered_name.clone(),
+                    aspect: field.source_aspect.to_string(),
+                    field: field.source_field.to_string(),
+                    delivered_name: field.delivered_name.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -38,9 +39,9 @@ pub(crate) fn validate_result_shape_bindings(
             rejection_matrix.record_result_shape_rejection();
             return Err(ValidationFailureArtifact::new(
                 QueryValidationError::IllegalResultShapeBinding {
-                    aspect: field.source_aspect.clone(),
-                    field: field.source_field.clone(),
-                    delivered_name: field.delivered_name.clone(),
+                    aspect: field.source_aspect.to_string(),
+                    field: field.source_field.to_string(),
+                    delivered_name: field.delivered_name.to_string(),
                 },
                 counters.clone(),
                 rejection_matrix.clone(),
@@ -67,9 +68,9 @@ pub(crate) fn validate_result_shape_bindings(
             schema_field.kind().clone(),
         ));
         events.push(ValidationEvent::ResultShapeBindingValidated {
-            aspect: field.source_aspect.clone(),
-            field: field.source_field.clone(),
-            delivered_name: field.delivered_name.clone(),
+            aspect: field.source_aspect.to_string(),
+            field: field.source_field.to_string(),
+            delivered_name: field.delivered_name.to_string(),
             field_kind: format!("{:?}", schema_field.kind()),
         });
     }

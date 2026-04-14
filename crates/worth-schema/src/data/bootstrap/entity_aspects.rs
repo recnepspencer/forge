@@ -12,7 +12,7 @@ use crate::data::entities::{WorthDiagnosticsEntityKind, WorthEntityKind};
 
 pub fn entity_aspects(kind: WorthEntityKind) -> KindAspectDeclarations {
     KindAspectDeclarations::new(vec![
-        entity_payload_aspect(domain_aspect(kind), "label"),
+        entity_payload_aspect(domain_aspect(kind), domain_field(kind)),
         lifecycle_aspect(),
     ])
 }
@@ -37,6 +37,18 @@ fn entity_payload_aspect(aspect: WorthAspect, field: &str) -> DeclaredAspect {
         },
         comparator: AspectComparator::JsonScalarEquality,
         precision: AspectPrecision::Structured,
+    }
+}
+
+fn domain_field(kind: WorthEntityKind) -> &'static str {
+    match kind {
+        WorthEntityKind::Topology(_) => "structure",
+        WorthEntityKind::Geometry(_) => "binding",
+        WorthEntityKind::Naming(_) => "persistent_name",
+        WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation)
+        | WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation) => {
+            "interpretations"
+        }
     }
 }
 

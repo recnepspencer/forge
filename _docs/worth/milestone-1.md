@@ -138,6 +138,9 @@ The following decisions are locked in this milestone:
 - topology truth and persistent naming truth must admit parameterized primitive
   families, not only showcase parts
 - the first bridge-facing topology and naming aspect vocabulary is frozen here
+- authoritative topology creation must publish one coherent same-commit graph
+  mutation, including relations that target entities created inside that same
+  commit, rather than forcing an orphan-entity intermediate publish
 
 Normative consequence:
 
@@ -202,7 +205,7 @@ Milestone-1 admitted class boundaries are:
   more branch vertices, with deterministic branch partitioning and no silent
   fallback to generic NMT ambiguity
 - `SheetDisk(n)` for arbitrary `n >= 3`
-- `SheetPatch(f)` for arbitrary admitted face count `f >= 1`
+- `SheetPatch(f)` for arbitrary admitted face count `f >= 2`
 - `SolidShell(f)` for arbitrary admitted face count `f >= 4` within the
   milestone's closed, orientable, genus-0 shell class
 - `NmtEdgeFan(k)` for arbitrary admitted radial valence `k >= 3` within the
@@ -973,6 +976,9 @@ Required work:
 - define persisted topology truth proofs
 - define derived read-basis proofs
 - define certified topology interpretation proofs
+- define same-commit graph mutation semantics so entity creation and relation
+  creation may target symbolic created endpoints inside one authoritative
+  commit boundary
 - make `VerifiedTopologyCommit` mean commit-boundary validator ownership has
   already been satisfied by the frozen Phase 3 validator families
 - freeze mutation-origin semantics for:
@@ -988,6 +994,8 @@ Exit condition:
 - skipped proof transitions are structurally out of spec
 - the proof-bearing authority path is defined in terms of already-frozen
   commit-boundary legality
+- admitted topology creation does not require a second publish step just to
+  attach relations to entities created in the same workflow
 
 Implementation targets:
 
@@ -996,6 +1004,8 @@ Implementation targets:
     persisted-truth-batch, and read-basis type modules
   - seal constructors so only the proving modules can mint stronger proof types
   - encode mutation-origin and touched-aspect contracts in the authority path
+  - encode symbolic created-endpoint references so one authoritative commit can
+    carry entity and relation creation for the same topology graph
 - `worth-topo`
   - consume proof-bearing types only; do not accept weaker raw collections once
     stronger forms exist
@@ -1225,12 +1235,16 @@ Required machine-checkable outputs:
 
 - `topology_truth_digest`
 - `topology_validation_digest`
+- `topology_validation_report`
 - `naming_truth_digest`
 - `topology_localization_report`
 - `naming_attachment_report`
+- `milestone_1_counter_report`
 - `primitive_family_coverage_matrix`
+- `primitive_corpus_parity_report`
 - `branch_local_topology_report`
 - `milestone_1_replay_parity_report`
+- `bridge_proof_report`
 
 Milestone-specific proof obligations:
 

@@ -18,6 +18,8 @@ pub fn interpret_shells(view: &WorthTopologyView) -> Vec<WorthShellInterpretatio
         .map(|shell| {
             let shell_face_ids: BTreeSet<_> = shell.face_ids.iter().copied().collect();
             let shell_half_edges = shell_boundary_half_edges(view, &shell_face_ids);
+            let boundary_component_count =
+                count_boundary_components(&shell_half_edges, &half_edge_map);
 
             let mut boundary_half_edge_count = 0;
             let mut non_manifold_edge_ids = BTreeSet::new();
@@ -53,6 +55,8 @@ pub fn interpret_shells(view: &WorthTopologyView) -> Vec<WorthShellInterpretatio
                         WorthShellInterpretationClass::OpenNonManifold
                     }
                 },
+                face_count: shell.face_ids.len(),
+                boundary_component_count,
                 boundary_half_edge_count,
                 non_manifold_edge_ids: non_manifold_edge_ids.into_iter().collect(),
             }
@@ -98,4 +102,49 @@ fn walk_radial_ring_len(
     }
 
     count
+}
+
+fn count_boundary_components(
+    shell_half_edges: &BTreeSet<EntityId>,
+    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
+) -> usize {
+    let boundary_half_edges = shell_half_edges
+        .iter()
+        .filter_map(|half_edge_id| half_edge_map.get(half_edge_id).copied())
+        .filter(|half_edge| half_edge.radial_next_half_edge_id == Some(half_edge.entity_id))
+        .collect::<Vec<_>>();
+
+    let boundary_ids: BTreeSet<EntityId> = boundary_half_edges
+        .iter()
+        .map(|half_edge| half_edge.entity_id)
+        .collect();
+    let mut seen = BTreeSet::new();
+    let mut components = 0usize;
+
+    for half_edge in boundary_half_edges {
+        if !seen.insert(half_edge.entity_id) {
+            continue;
+        }
+        components += 1;
+
+        let mut cursor = half_edge.next_half_edge_id;
+        while let Some(cursor_id) = cursor {
+            if !boundary_ids.contains(&cursor_id) {
+                let Some(record) = half_edge_map.get(&cursor_id).copied() else {
+                    break;
+                };
+                cursor = record.next_half_edge_id;
+                continue;
+            }
+            if !seen.insert(cursor_id) {
+                break;
+            }
+            let Some(record) = half_edge_map.get(&cursor_id).copied() else {
+                break;
+            };
+            cursor = record.next_half_edge_id;
+        }
+    }
+
+    components
 }

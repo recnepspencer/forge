@@ -10,6 +10,8 @@ Run a long deterministic workload containing:
 
 creates
 
+same-commit graph creation where relations target entities created in the same authoritative commit
+
 updates
 
 deletes
@@ -336,6 +338,8 @@ Run workloads with:
 entity updates
 
 relation updates
+
+same-commit graph creation where CDC must describe one coherent publish boundary rather than an orphan-entity intermediate state
 
 relation-kind changes
 

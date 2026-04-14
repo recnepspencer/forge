@@ -21,9 +21,7 @@ pub(super) fn reordered_legal_detail_bundle() -> crate::facade::CanonicalQueryBu
 }
 
 fn predicate_bundle(
-    configure: impl FnOnce(
-        crate::authoring::DetailQueryBuilder,
-    ) -> crate::authoring::DetailQueryBuilder,
+    configure: impl FnOnce(crate::authoring::DetailQueryBuilder) -> crate::authoring::DetailQueryBuilder,
 ) -> crate::facade::CanonicalQueryBundle {
     let root = RootEntityKey::new("user").unwrap();
     let query = configure(
@@ -92,15 +90,21 @@ pub(super) fn reordered_less_than_bundle() -> crate::facade::CanonicalQueryBundl
 pub(super) fn redundant_greater_than_bundle() -> crate::facade::CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
-            .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap())
-            .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap())
+            .where_greater_than(
+                IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+            )
+            .where_greater_than(
+                IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+            )
     })
 }
 
 pub(super) fn bounded_range_bundle() -> crate::facade::CanonicalQueryBundle {
     predicate_bundle(|query| {
         query
-            .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap())
+            .where_greater_than(
+                IntegerComparisonPredicate::greater_than("profile", "age", 18).unwrap(),
+            )
             .where_less_than(IntegerComparisonPredicate::less_than("profile", "age", 65).unwrap())
     })
 }
@@ -122,7 +126,8 @@ pub(super) fn reordered_bounded_range_bundle() -> crate::facade::CanonicalQueryB
 
 pub(super) fn legal_contains_bundle() -> crate::facade::CanonicalQueryBundle {
     predicate_bundle(|query| {
-        query.where_contains(StringContainsPredicate::new("profile", "display_name", "est").unwrap())
+        query
+            .where_contains(StringContainsPredicate::new("profile", "display_name", "est").unwrap())
     })
 }
 
@@ -146,7 +151,10 @@ pub(super) fn legal_membership_bundle() -> crate::facade::CanonicalQueryBundle {
             SetMembershipPredicate::new(
                 "profile",
                 "age",
-                [ScalarPredicateValue::Integer(21), ScalarPredicateValue::Integer(34)],
+                [
+                    ScalarPredicateValue::Integer(21),
+                    ScalarPredicateValue::Integer(34),
+                ],
             )
             .unwrap(),
         )
@@ -160,7 +168,10 @@ pub(super) fn reordered_membership_bundle() -> crate::facade::CanonicalQueryBund
             SetMembershipPredicate::new(
                 "profile",
                 "age",
-                [ScalarPredicateValue::Integer(34), ScalarPredicateValue::Integer(21)],
+                [
+                    ScalarPredicateValue::Integer(34),
+                    ScalarPredicateValue::Integer(21),
+                ],
             )
             .unwrap(),
         )
@@ -218,6 +229,50 @@ pub(super) fn reordered_presence_bundle() -> crate::facade::CanonicalQueryBundle
     let root = RootEntityKey::new("user").unwrap();
     let query = crate::authoring::DetailQueryBuilder::new(root)
         .where_present(PresencePredicate::is_present("profile", "display_name").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .build()
+        .unwrap();
+    let result_shape = crate::authoring::DetailResultShapeBuilder::new()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
+}
+
+pub(super) fn legal_structured_content_bundle() -> crate::facade::CanonicalQueryBundle {
+    crate::harness::fixtures::schema_view::legal_structured_content_bundle()
+}
+
+pub(super) fn reordered_legal_structured_content_bundle() -> crate::facade::CanonicalQueryBundle {
+    let root = RootEntityKey::new("user").unwrap();
+    let query = crate::authoring::DetailQueryBuilder::new(root)
+        .project(AspectFieldSelector::new("content", "bio").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .build()
+        .unwrap();
+    let result_shape = crate::authoring::DetailResultShapeBuilder::new()
+        .field(AuthoredResultShapeField::new("content", "bio", "bio").unwrap())
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    GuidedAuthoringPath::canonicalize_detail(query, result_shape).unwrap()
+}
+
+pub(super) fn legal_workflow_predicate_bundle() -> crate::facade::CanonicalQueryBundle {
+    crate::harness::fixtures::schema_view::legal_workflow_predicate_bundle()
+}
+
+pub(super) fn reordered_legal_workflow_predicate_bundle() -> crate::facade::CanonicalQueryBundle {
+    let root = RootEntityKey::new("user").unwrap();
+    let query = crate::authoring::DetailQueryBuilder::new(root)
+        .where_equal(
+            EqualityPredicate::new(
+                "workflow",
+                "status",
+                ScalarPredicateValue::String("done".to_string()),
+            )
+            .unwrap(),
+        )
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .build()
         .unwrap();

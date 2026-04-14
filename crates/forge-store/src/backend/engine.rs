@@ -9,6 +9,10 @@ use crate::{
         build_recovery_plan, evaluate_recovery_for_mutation, DurableRecoveryDecision,
         DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution, RecoveryAction,
     },
+    snapshot::{
+        PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+    },
     wal::{
         DurableMutationId, DurablePublicationPhase, RecoveryDecisionClass, WalRecord,
         WalRecordPayload,
@@ -303,6 +307,105 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
 
     pub fn counters(&self) -> &StoreCounters {
         &self.counters
+    }
+
+    pub fn capture_snapshot(
+        &mut self,
+        request: SnapshotCaptureRequest,
+    ) -> Result<PublishedSnapshotHandle, StoreError> {
+        let (next, handle, record_count) = self.state.stage_snapshot_capture(request)?;
+        self.commit_state(next)?;
+        self.counters.record_snapshot_capture(record_count);
+        Ok(handle)
+    }
+
+    pub fn read_snapshot(
+        &self,
+        request: SnapshotReadRequest,
+    ) -> Result<SnapshotReadResult, StoreError> {
+        match self.state.read_snapshot(request) {
+            Ok((result, record_count)) => {
+                self.counters.record_snapshot_read(record_count);
+                Ok(result)
+            }
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::SnapshotReadBasisMismatch
+                        | StoreErrorKind::SnapshotRestoreTargetIllegal
+                        | StoreErrorKind::SnapshotTailRangeGap
+                ) {
+                    self.counters.record_snapshot_basis_mismatch();
+                }
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::SnapshotDigestMismatch
+                        | StoreErrorKind::SnapshotIntegrityFailure
+                        | StoreErrorKind::SnapshotPublicationStateGap
+                ) {
+                    self.counters.record_snapshot_integrity_failure();
+                }
+                Err(error)
+            }
+        }
+    }
+
+    pub fn restore_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+        target_commit_id: CommitId,
+    ) -> Result<SnapshotRestoreOutcome, StoreError> {
+        match self.state.restore_snapshot(snapshot_id, target_commit_id) {
+            Ok((outcome, tail_commit_count)) => {
+                self.counters.record_snapshot_restore(tail_commit_count);
+                Ok(outcome)
+            }
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::SnapshotReadBasisMismatch
+                        | StoreErrorKind::SnapshotRestoreTargetIllegal
+                        | StoreErrorKind::SnapshotTailRangeGap
+                ) {
+                    self.counters.record_snapshot_basis_mismatch();
+                }
+                Err(error)
+            }
+        }
+    }
+
+    pub fn rebuild_snapshot(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotImageBundle, StoreError> {
+        match self.state.rebuild_snapshot(snapshot_id) {
+            Ok((image, record_count)) => {
+                self.counters.record_snapshot_rebuild(record_count);
+                Ok(image)
+            }
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::SnapshotDigestMismatch
+                        | StoreErrorKind::SnapshotIntegrityFailure
+                        | StoreErrorKind::SnapshotPublicationStateGap
+                        | StoreErrorKind::SnapshotRebuildParityViolation
+                ) {
+                    self.counters.record_snapshot_integrity_failure();
+                }
+                Err(error)
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub fn remove_snapshot_image_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        let mut next = self.state.clone();
+        next.remove_snapshot_image(snapshot_id);
+        self.commit_state(next)
     }
 
     pub fn admit_durable_mutation(

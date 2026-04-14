@@ -23,7 +23,7 @@ pub struct PriorSubscriptionSlice {
 }
 
 impl PriorSubscriptionSlice {
-    pub(crate) fn from_parts(
+    pub fn from_parts(
         prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
         entity_identity: impl Into<Arc<str>>,
         aspect_label: impl Into<Arc<str>>,

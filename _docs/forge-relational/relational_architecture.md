@@ -259,6 +259,42 @@ The main public transaction-side types are:
 - `ReplaceEntityIntent`
 - `RecordRef`
 
+### Same-commit graph creation
+
+The transaction model now supports same-commit graph creation as a first-class
+authority capability.
+
+The important public types are:
+
+- `CreatedEntityRef`
+- `EntityReference`
+
+`EntityReference` is the endpoint form used by relation creation. It can point
+to:
+
+- an already-existing `EntityId`
+- a `CreatedEntityRef` representing an entity created in the same commit
+
+This matters because graph-shaped authority creation must not require an
+intermediate invalid publication step.
+
+The runtime now supports one authoritative commit that:
+
+- creates entities
+- creates relations that target those created entities
+- runs commit-boundary invariants against that full intended graph shape
+- publishes one canonical patch and snapshot boundary
+
+The runtime should no longer be described as requiring:
+
+- one commit to create entities
+- a readback to discover generated IDs
+- a second commit to connect the graph
+
+That older shape is architecturally wrong for graph truth because it forces an
+intermediate broken authority state and weakens both invariant enforcement and
+downstream bridge/signal atomicity.
+
 ### Bulk-first write shape
 
 Bulk work is represented explicitly in the public intent model. That matters

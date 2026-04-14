@@ -203,6 +203,7 @@ say so explicitly and require clean failure outside the admitted class.
   - feature-intent truth
   - lineage-bearing authoritative history
   - commit-time invariant authority
+  - same-commit graph creation semantics for entity and relation publication
 - `forge-signal` owns:
   - topology materializations
   - geometry materializations

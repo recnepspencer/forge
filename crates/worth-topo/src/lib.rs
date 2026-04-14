@@ -8,9 +8,12 @@
 #![forbid(unsafe_code)]
 
 mod certification;
+mod bridge;
 mod data;
 mod interpretation;
 mod materialization;
+mod reader;
+mod runtime_invariants;
 mod validators;
 
 pub mod facade;

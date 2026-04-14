@@ -1,5 +1,6 @@
 use crate::authoring::{
-    OrderingDirection, PredicateSelector, QueryFamily, ResultShapeFamily, RootEntityKey,
+    AspectFieldKey, AspectName, DeliveredFieldName, FieldName, OrderingDirection,
+    PredicateSelector, QueryFamily, RelationName, ResultShapeFamily, RootEntityKey,
     ScalarPredicateValue,
 };
 use crate::binding::IdentityBindingDescriptor;
@@ -8,8 +9,8 @@ use crate::result_shape::{canonical_result_field_digest_part, source_projection_
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalProjectionEntry {
-    pub(crate) aspect: String,
-    pub(crate) field: String,
+    pub(crate) aspect: AspectName,
+    pub(crate) field: FieldName,
 }
 
 impl CanonicalProjectionEntry {
@@ -20,14 +21,14 @@ impl CanonicalProjectionEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalTraversalEntry {
-    pub(crate) relation: String,
+    pub(crate) relation: RelationName,
     pub(crate) depth: u8,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalPredicateEntry {
-    pub(crate) aspect: String,
-    pub(crate) field: String,
+    pub(crate) aspect: AspectName,
+    pub(crate) field: FieldName,
     pub(crate) family: CanonicalPredicateFamily,
     pub(crate) operand: CanonicalPredicateOperand,
 }
@@ -36,14 +37,14 @@ impl CanonicalPredicateEntry {
     pub(crate) fn from_authored(predicate: &PredicateSelector) -> Self {
         match predicate {
             PredicateSelector::Equality(predicate) => Self {
-                aspect: predicate.aspect().to_string(),
-                field: predicate.field().to_string(),
+                aspect: predicate.aspect_name().clone(),
+                field: predicate.field_name().clone(),
                 family: CanonicalPredicateFamily::Equality,
                 operand: CanonicalPredicateOperand::Scalar(predicate.value().clone()),
             },
             PredicateSelector::IntegerComparison(predicate) => Self {
-                aspect: predicate.aspect().to_string(),
-                field: predicate.field().to_string(),
+                aspect: predicate.aspect_name().clone(),
+                field: predicate.field_name().clone(),
                 family: match predicate.operator() {
                     crate::authoring::IntegerComparisonOperator::GreaterThan => {
                         CanonicalPredicateFamily::IntegerGreaterThan
@@ -57,27 +58,24 @@ impl CanonicalPredicateEntry {
                 )),
             },
             PredicateSelector::StringContains(predicate) => Self {
-                aspect: predicate.aspect().to_string(),
-                field: predicate.field().to_string(),
+                aspect: predicate.aspect_name().clone(),
+                field: predicate.field_name().clone(),
                 family: CanonicalPredicateFamily::StringContains,
                 operand: CanonicalPredicateOperand::Scalar(ScalarPredicateValue::String(
                     predicate.value().to_string(),
                 )),
             },
-            PredicateSelector::SetMembership(predicate) => {
-                let mut values = predicate.values().to_vec();
-                values.sort();
-                values.dedup();
-                Self {
-                    aspect: predicate.aspect().to_string(),
-                    field: predicate.field().to_string(),
-                    family: CanonicalPredicateFamily::ScalarMembership,
-                    operand: CanonicalPredicateOperand::ScalarSet(values),
-                }
-            }
+            PredicateSelector::SetMembership(predicate) => Self {
+                aspect: predicate.aspect_name().clone(),
+                field: predicate.field_name().clone(),
+                family: CanonicalPredicateFamily::ScalarMembership,
+                operand: CanonicalPredicateOperand::ScalarSet(CanonicalScalarSet::new(
+                    predicate.values().iter().cloned(),
+                )),
+            },
             PredicateSelector::Presence(predicate) => Self {
-                aspect: predicate.aspect().to_string(),
-                field: predicate.field().to_string(),
+                aspect: predicate.aspect_name().clone(),
+                field: predicate.field_name().clone(),
                 family: CanonicalPredicateFamily::PresenceIsPresent,
                 operand: CanonicalPredicateOperand::Presence(predicate.kind().digest_key()),
             },
@@ -98,7 +96,7 @@ impl CanonicalPredicateEntry {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum CanonicalPredicateOperand {
     Scalar(ScalarPredicateValue),
-    ScalarSet(Vec<ScalarPredicateValue>),
+    ScalarSet(CanonicalScalarSet),
     Presence(&'static str),
 }
 
@@ -106,16 +104,80 @@ impl CanonicalPredicateOperand {
     pub(crate) fn digest_part(&self) -> String {
         match self {
             Self::Scalar(value) => scalar_digest_part(value),
-            Self::ScalarSet(values) => format!(
-                "set:[{}]",
-                values
-                    .iter()
-                    .map(scalar_digest_part)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
+            Self::ScalarSet(values) => values.digest_part(),
             Self::Presence(kind) => format!("presence:{kind}"),
         }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CanonicalScalarSet(Vec<ScalarPredicateValue>);
+
+impl CanonicalScalarSet {
+    pub(crate) fn new(values: impl IntoIterator<Item = ScalarPredicateValue>) -> Self {
+        let mut values: Vec<_> = values.into_iter().collect();
+        values.sort();
+        values.dedup();
+        Self(values)
+    }
+
+    pub(crate) fn as_slice(&self) -> &[ScalarPredicateValue] {
+        &self.0
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub(crate) fn first(&self) -> Option<&ScalarPredicateValue> {
+        self.0.first()
+    }
+
+    pub(crate) fn contains(&self, value: &ScalarPredicateValue) -> bool {
+        self.0.binary_search(value).is_ok()
+    }
+
+    pub(crate) fn intersect(&self, other: &Self) -> Self {
+        let mut intersection = Vec::with_capacity(self.len().min(other.len()));
+        let mut left_index = 0;
+        let mut right_index = 0;
+        let left = self.as_slice();
+        let right = other.as_slice();
+
+        while left_index < left.len() && right_index < right.len() {
+            match left[left_index].cmp(&right[right_index]) {
+                std::cmp::Ordering::Less => left_index += 1,
+                std::cmp::Ordering::Greater => right_index += 1,
+                std::cmp::Ordering::Equal => {
+                    intersection.push(left[left_index].clone());
+                    left_index += 1;
+                    right_index += 1;
+                }
+            }
+        }
+
+        Self(intersection)
+    }
+
+    pub(crate) fn filtered(&self, mut keep: impl FnMut(&ScalarPredicateValue) -> bool) -> Self {
+        let mut reduced = Vec::with_capacity(self.len());
+        reduced.extend(self.0.iter().filter(|value| keep(value)).cloned());
+        Self(reduced)
+    }
+
+    fn digest_part(&self) -> String {
+        format!(
+            "set:[{}]",
+            self.0
+                .iter()
+                .map(scalar_digest_part)
+                .collect::<Vec<_>>()
+                .join(",")
+        )
     }
 }
 
@@ -158,8 +220,8 @@ impl CanonicalTraversalEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalOrderingEntry {
-    pub(crate) aspect: String,
-    pub(crate) field: String,
+    pub(crate) aspect: AspectName,
+    pub(crate) field: FieldName,
     pub(crate) direction: OrderingDirection,
 }
 
@@ -174,9 +236,9 @@ impl CanonicalOrderingEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct CanonicalResultField {
-    pub(crate) source_aspect: String,
-    pub(crate) source_field: String,
-    pub(crate) delivered_name: String,
+    pub(crate) source_aspect: AspectName,
+    pub(crate) source_field: FieldName,
+    pub(crate) delivered_name: DeliveredFieldName,
 }
 
 impl CanonicalResultField {
@@ -188,7 +250,7 @@ impl CanonicalResultField {
         )
     }
 
-    pub(crate) fn source_projection_key(&self) -> (String, String) {
+    pub(crate) fn source_projection_key(&self) -> AspectFieldKey {
         source_projection_key(&self.source_aspect, &self.source_field)
     }
 }
@@ -312,9 +374,37 @@ impl CanonicalResultShapeArtifact {
         delivered_name: impl Into<String>,
     ) {
         if let Some(field) = self.fields.first_mut() {
-            field.source_aspect = source_aspect.into();
-            field.source_field = source_field.into();
-            field.delivered_name = delivered_name.into();
+            field.source_aspect = AspectName::new(source_aspect)
+                .expect("test rewrite must keep non-empty source aspect");
+            field.source_field = FieldName::new(source_field)
+                .expect("test rewrite must keep non-empty source field");
+            field.delivered_name = DeliveredFieldName::new(delivered_name)
+                .expect("test rewrite must keep non-empty delivered name");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CanonicalScalarSet;
+    use crate::authoring::ScalarPredicateValue;
+
+    #[test]
+    fn canonical_scalar_set_normalizes_order_and_duplicates() {
+        let set = CanonicalScalarSet::new([
+            ScalarPredicateValue::Integer(3),
+            ScalarPredicateValue::Integer(1),
+            ScalarPredicateValue::Integer(3),
+            ScalarPredicateValue::Integer(2),
+        ]);
+
+        assert_eq!(
+            set.as_slice(),
+            &[
+                ScalarPredicateValue::Integer(1),
+                ScalarPredicateValue::Integer(2),
+                ScalarPredicateValue::Integer(3),
+            ]
+        );
     }
 }

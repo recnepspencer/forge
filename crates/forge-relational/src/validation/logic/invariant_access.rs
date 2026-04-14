@@ -560,8 +560,8 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: InternedString::Raw("planned".to_string()),
-                    source,
-                    target,
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target),
                     payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
                 },
             ))],
@@ -630,8 +630,8 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: InternedString::Raw("missing-twin".to_string()),
-                    source,
-                    target,
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target),
                     payload: Some(RecordPayload::StructuredJson(
                         json!({"label":"missing-twin"}),
                     )),
@@ -652,8 +652,14 @@ mod tests {
         );
         assert_eq!(fields["contract_id"], json!("paired_twin"));
         assert_eq!(fields["relation_kind_id"], json!(2));
-        assert_eq!(fields["source"], json!(source));
-        assert_eq!(fields["target"], json!(target));
+        assert_eq!(
+            fields["source"],
+            json!(crate::transactions::data::EntityReference::Existing(source))
+        );
+        assert_eq!(
+            fields["target"],
+            json!(crate::transactions::data::EntityReference::Existing(target))
+        );
         assert_eq!(fields["mode"], json!("paired"));
     }
 
@@ -727,8 +733,8 @@ mod tests {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(2),
                             client_key: InternedString::Raw("accepted".to_string()),
-                            source,
-                            target: target_a,
+                            source: crate::transactions::data::EntityReference::Existing(source),
+                            target: crate::transactions::data::EntityReference::Existing(target_a),
                             payload: Some(RecordPayload::StructuredJson(
                                 json!({"label":"accepted"}),
                             )),
@@ -745,8 +751,8 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_key: InternedString::Raw("overflow".to_string()),
-                    source,
-                    target: target_b,
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target_b),
                     payload: Some(RecordPayload::StructuredJson(json!({"label":"overflow"}))),
                 },
             ))],
@@ -765,7 +771,10 @@ mod tests {
         );
         assert_eq!(fields["contract_id"], json!("source_max_one"));
         assert_eq!(fields["relation_kind_id"], json!(2));
-        assert_eq!(fields["entity_id"], json!(source));
+        assert_eq!(
+            fields["entity_id"],
+            json!(crate::transactions::data::EntityReference::Existing(source))
+        );
         assert_eq!(fields["boundary"], json!("source"));
         assert_eq!(fields["count"], json!(2));
         assert_eq!(fields["limit"], json!(1));
@@ -795,7 +804,16 @@ mod tests {
                         InternedString::Raw("edge-a".to_string()),
                         InternedString::Raw("edge-b".to_string()),
                     ],
-                    endpoints: vec![(source_a, target_a), (source_b, target_b)],
+                    endpoints: vec![
+                        (
+                            crate::transactions::data::EntityReference::Existing(source_a),
+                            crate::transactions::data::EntityReference::Existing(target_a),
+                        ),
+                        (
+                            crate::transactions::data::EntityReference::Existing(source_b),
+                            crate::transactions::data::EntityReference::Existing(target_b),
+                        ),
+                    ],
                     payloads: vec![
                         Some(RecordPayload::StructuredJson(json!({"label":"edge-a"}))),
                         Some(RecordPayload::StructuredJson(json!({"label":"edge-b"}))),

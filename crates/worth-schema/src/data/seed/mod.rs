@@ -1,11 +1,19 @@
+mod authoring;
 mod labels;
 mod lookup;
 mod minimal_topology;
-mod naming_creation;
-mod relation_creation;
+mod primitive_corpus;
 mod types;
 
+pub use authoring::{created_ref, WorthTopologyCreateBatchBuilder};
 pub use minimal_topology::seed_minimal_topology;
+pub use primitive_corpus::{
+    build_milestone_one_primitive_intent, milestone_one_default_primitive_corpus,
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
+    WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
+    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
+    WorthMilestoneOnePrimitiveScenario,
+};
 pub use types::WorthMinimalTopologySeed;
 
 #[cfg(test)]

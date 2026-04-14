@@ -1,9 +1,8 @@
-use super::AuthoringError;
+use super::{AspectFieldKey, AspectName, AuthoringError, FieldName};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct AspectFieldSelector {
-    aspect: String,
-    field: String,
+    key: AspectFieldKey,
 }
 
 impl AspectFieldSelector {
@@ -11,19 +10,24 @@ impl AspectFieldSelector {
         aspect: impl Into<String>,
         field: impl Into<String>,
     ) -> Result<Self, AuthoringError> {
-        let aspect = aspect.into();
-        let field = field.into();
-        if aspect.trim().is_empty() || field.trim().is_empty() {
-            return Err(AuthoringError::EmptyProjectionSelector);
-        }
-        Ok(Self { aspect, field })
+        Ok(Self {
+            key: AspectFieldKey::new(aspect, field)?,
+        })
     }
 
     pub fn aspect(&self) -> &str {
-        &self.aspect
+        self.key.aspect().as_str()
     }
 
     pub fn field(&self) -> &str {
-        &self.field
+        self.key.field().as_str()
+    }
+
+    pub fn aspect_name(&self) -> &AspectName {
+        self.key.aspect()
+    }
+
+    pub fn field_name(&self) -> &FieldName {
+        self.key.field()
     }
 }

@@ -15,7 +15,7 @@ use crate::facade::schema::SchemaRegistryError;
 use crate::facade::storage::RecordLifecycleState;
 use crate::facade::transactions::{
     AuthorityMode, CommitPatchBudgetSummary, CommitPhase, CommitTopology, CommitTraceEvent,
-    MutationIntent,
+    EntitySpec, MutationIntent, RelationSpec, TransactionCommitError,
 };
 use crate::tests::support::*;
 
@@ -898,8 +898,8 @@ fn duplicate_relation_identity_is_rejected() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("r2".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
             },
         ))),
@@ -1204,7 +1204,10 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
                     client_keys: vec![InternedString::Raw("cross-edge".to_string())],
-                    endpoints: vec![(source, target)],
+                    endpoints: vec![(
+                        crate::transactions::data::EntityReference::Existing(source),
+                        crate::transactions::data::EntityReference::Existing(target),
+                    )],
                     payloads: vec![Some(RecordPayload::StructuredJson(
                         json!({"label":"cross"}),
                     ))],
@@ -1326,7 +1329,10 @@ fn bulk_mutation_commit_records_admission_counters() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_keys: vec![InternedString::Raw("edge-a".to_string())],
-                endpoints: vec![(source, target)],
+                endpoints: vec![(
+                    crate::transactions::data::EntityReference::Existing(source),
+                    crate::transactions::data::EntityReference::Existing(target),
+                )],
                 payloads: vec![Some(RecordPayload::StructuredJson(
                     json!({"label":"edge-a"}),
                 ))],
@@ -1370,6 +1376,151 @@ fn bulk_mutation_commit_records_admission_counters() {
             .bulk_mutation_provenance_record_count,
         1
     );
+}
+
+#[test]
+fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
+    let mut runtime = runtime_with_test_schema();
+    let source_key = InternedString::Raw("same-commit-source".to_string());
+    let target_key = InternedString::Raw("same-commit-target".to_string());
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("same-commit-graph")
+            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: source_key.clone(),
+                payload: RecordPayload::StructuredJson(json!({"name":"same-commit-source"})),
+            })))
+            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: target_key.clone(),
+                payload: RecordPayload::StructuredJson(json!({"name":"same-commit-target"})),
+            })))
+            .push(MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("same-commit-edge".to_string()),
+                source: crate::facade::transactions::EntityReference::Created(
+                    crate::facade::transactions::CreatedEntityRef {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: source_key.clone(),
+                    },
+                ),
+                target: crate::facade::transactions::EntityReference::Created(
+                    crate::facade::transactions::CreatedEntityRef {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: target_key.clone(),
+                    },
+                ),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"same-commit"}))),
+            }))),
+    );
+
+    let outcome = txn.commit().expect("same-commit graph creation should succeed");
+    let created_entities = changed_entities(&outcome);
+    let created_relations = changed_relations(&outcome);
+
+    assert_eq!(created_entities.len(), 2);
+    assert_eq!(created_relations.len(), 1);
+}
+
+#[test]
+fn bulk_relation_create_can_target_same_commit_created_entities() {
+    let mut runtime = runtime_with_test_schema();
+    let source_key = InternedString::Raw("bulk-created-source".to_string());
+    let target_key = InternedString::Raw("bulk-created-target".to_string());
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("bulk-graph")
+            .push(MutationIntent::Create(CreateIntent::BulkEntities(
+                crate::facade::transactions::BulkEntityCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_keys: vec![source_key.clone(), target_key.clone()],
+                    payloads: vec![
+                        RecordPayload::StructuredJson(json!({"name":"bulk-created-source"})),
+                        RecordPayload::StructuredJson(json!({"name":"bulk-created-target"})),
+                    ],
+                },
+            )))
+            .push(MutationIntent::Create(CreateIntent::BulkRelations(
+                crate::facade::transactions::BulkRelationCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_keys: vec![InternedString::Raw("bulk-created-edge".to_string())],
+                    endpoints: vec![(
+                        crate::facade::transactions::EntityReference::Created(
+                            crate::facade::transactions::CreatedEntityRef {
+                                partition_id: PartitionId::main(),
+                                kind_id: KindId(1),
+                                client_key: source_key.clone(),
+                            },
+                        ),
+                        crate::facade::transactions::EntityReference::Created(
+                            crate::facade::transactions::CreatedEntityRef {
+                                partition_id: PartitionId::main(),
+                                kind_id: KindId(1),
+                                client_key: target_key.clone(),
+                            },
+                        ),
+                    )],
+                    payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"bulk"})))],
+                },
+            ))),
+    );
+
+    let outcome = txn
+        .commit()
+        .expect("bulk relation create against created refs should succeed");
+
+    assert_eq!(changed_entities(&outcome).len(), 2);
+    assert_eq!(changed_relations(&outcome).len(), 1);
+}
+
+#[test]
+fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
+    let mut runtime = runtime_with_test_schema();
+    let missing_key = InternedString::Raw("missing-created-endpoint".to_string());
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("invalid-created-ref").push(MutationIntent::Create(
+            CreateIntent::Relation(RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: InternedString::Raw("invalid-created-edge".to_string()),
+                source: crate::facade::transactions::EntityReference::Created(
+                    crate::facade::transactions::CreatedEntityRef {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: missing_key.clone(),
+                    },
+                ),
+                target: crate::facade::transactions::EntityReference::Created(
+                    crate::facade::transactions::CreatedEntityRef {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: missing_key,
+                    },
+                ),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"invalid"}))),
+            }),
+        )),
+    );
+
+    let error = txn.commit().expect_err("missing created ref should fail closed");
+    match error {
+        TransactionCommitError::Conflict { error, .. } => {
+            assert_eq!(error.code(), DiagnosticCode::InvalidRelationEndpoint);
+        }
+        other => panic!("expected invalid relation endpoint conflict, got {:?}", other),
+    }
 }
 
 #[test]

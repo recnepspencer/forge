@@ -23,8 +23,9 @@ use crate::authority::mutation::record_changes::{
     allocate_relation, reserve_bulk_relation_capacity,
 };
 use crate::authority::mutation::MutationWorkspace;
-use crate::symbols::data::InternedString;
-use crate::transactions::data::{BulkRelationCreateIntent, CommitConflict, RelationSpec};
+use crate::transactions::data::{
+    BulkRelationCreateIntent, CommitConflict, ConflictClass, EntityReference,
+};
 use crate::validation::data::InvariantGroupSet;
 
 pub(super) fn apply(
@@ -62,7 +63,7 @@ fn for_each_staged_bulk_relation_row(
             1,
             strategy_for_parallel_packets(workspace.execution_model(), 1),
         );
-        for (offset, (source, target)) in intent.endpoints.iter().copied().enumerate() {
+        for (offset, (source, target)) in intent.endpoints.iter().cloned().enumerate() {
             let payload = intent.payloads.get(offset).cloned().unwrap_or(None);
             apply_staged_relation_row(
                 intent, workspace, outcome, version_id, source, target, payload,
@@ -106,7 +107,7 @@ fn for_each_staged_bulk_relation_row(
             },
             rows: endpoints
                 .iter()
-                .copied()
+                .cloned()
                 .enumerate()
                 .map(|(offset, (source, target))| ImportStagedRow::Relation {
                     source,
@@ -152,20 +153,22 @@ fn apply_staged_relation_row(
     workspace: &mut MutationWorkspace<'_>,
     outcome: &mut MutationOutcome,
     version_id: crate::identity::data::VersionId,
-    source: crate::identity::data::EntityId,
-    target: crate::identity::data::EntityId,
+    source: EntityReference,
+    target: EntityReference,
     payload: Option<crate::payloads::data::RecordPayload>,
 ) -> Result<(), CommitConflict> {
-    let spec = RelationSpec {
-        partition_id: intent.partition_id,
-        kind_id: intent.kind_id,
-        client_key: InternedString::from("bulk"),
-        source,
-        target,
-        payload,
-    };
+    let source_id = resolve_entity_reference(workspace, &source)?;
+    let target_id = resolve_entity_reference(workspace, &target)?;
     let relation_id = workspace.with_context(|context| {
-        let relation_id = allocate_relation(context.state, version_id, &spec);
+        let relation_id = allocate_relation(
+            context.state,
+            version_id,
+            intent.partition_id,
+            intent.kind_id,
+            source_id,
+            target_id,
+            payload.clone(),
+        );
         context.state.mark_relation_slot_touched(
             relation_id.partition_id,
             relation_id.local_slot.0 as usize,
@@ -175,11 +178,23 @@ fn apply_staged_relation_row(
     outcome.record_change(RecordMutation::RelationCreated {
         relation_id,
         kind_id: intent.kind_id,
-        source: spec.source,
-        target: spec.target,
-        payload: spec.payload.clone(),
+        source: source_id,
+        target: target_id,
+        payload: payload.clone(),
     });
     Ok(())
+}
+
+fn resolve_entity_reference(
+    workspace: &MutationWorkspace<'_>,
+    entity_reference: &EntityReference,
+) -> Result<crate::identity::data::EntityId, CommitConflict> {
+    workspace
+        .resolve_entity_reference(entity_reference)
+        .ok_or_else(|| CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
+            detail: "relation endpoints must resolve within the same authoritative commit scope"
+                .to_string(),
+        }))
 }
 
 fn stage_import_packets(

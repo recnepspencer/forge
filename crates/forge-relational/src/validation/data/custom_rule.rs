@@ -8,7 +8,8 @@ use crate::logic::runtime::RelationalRuntime;
 use crate::payloads::data::RecordPayload;
 use crate::symbols::data::InternedString;
 use crate::transactions::data::{
-    CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent, RelationMutationIntent,
+    CreateIntent, EntityMutationIntent, EntityReference, MergedCommitPlan, MutationIntent,
+    RelationMutationIntent,
 };
 use crate::validation::engine::state_view::{InvariantStateView, VisibleRelationMetadata};
 use crate::validation::engine::{InvariantObservation, InvariantObservationKind};
@@ -164,8 +165,8 @@ pub struct PlannedRelationCreate {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
     pub client_key: InternedString,
-    pub source: EntityId,
-    pub target: EntityId,
+    pub source: EntityReference,
+    pub target: EntityReference,
     pub payload: Option<RecordPayload>,
 }
 
@@ -966,14 +967,14 @@ fn collect_touched_structural_set(
                     }
                 }
                 MutationIntent::Create(CreateIntent::Relation(spec)) => {
-                    visible_entities.insert(spec.source);
-                    visible_entities.insert(spec.target);
+                    include_existing_entity_reference(&mut visible_entities, &spec.source);
+                    include_existing_entity_reference(&mut visible_entities, &spec.target);
                     planned_relation_creates.push(PlannedRelationCreate {
                         partition_id: spec.partition_id,
                         kind_id: spec.kind_id,
                         client_key: spec.client_key.clone(),
-                        source: spec.source,
-                        target: spec.target,
+                        source: spec.source.clone(),
+                        target: spec.target.clone(),
                         payload: spec.payload.clone(),
                     });
                 }
@@ -983,14 +984,14 @@ fn collect_touched_structural_set(
                         .iter()
                         .zip(spec.client_keys.iter().zip(&spec.payloads))
                     {
-                        visible_entities.insert(*source);
-                        visible_entities.insert(*target);
+                        include_existing_entity_reference(&mut visible_entities, source);
+                        include_existing_entity_reference(&mut visible_entities, target);
                         planned_relation_creates.push(PlannedRelationCreate {
                             partition_id: spec.partition_id,
                             kind_id: spec.kind_id,
                             client_key: client_key.clone(),
-                            source: *source,
-                            target: *target,
+                            source: source.clone(),
+                            target: target.clone(),
                             payload: payload.clone(),
                         });
                     }
@@ -1040,6 +1041,15 @@ fn collect_touched_structural_set(
         touched_partitions: touched_partitions.into_iter().collect::<Vec<_>>().into(),
         planned_entity_creates: planned_entity_creates.into(),
         planned_relation_creates: planned_relation_creates.into(),
+    }
+}
+
+fn include_existing_entity_reference(
+    visible_entities: &mut BTreeSet<EntityId>,
+    entity_reference: &EntityReference,
+) {
+    if let EntityReference::Existing(entity_id) = entity_reference {
+        visible_entities.insert(*entity_id);
     }
 }
 

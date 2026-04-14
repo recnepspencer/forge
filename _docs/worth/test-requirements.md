@@ -184,6 +184,9 @@ Run deterministic truth workloads containing:
 - wires with arbitrary admitted segment counts
 - radial fanout spanning the admitted NMT valence class
 - branch-local seeded histories and local admitted truth edits
+- same-commit graph creation where topology entities and topology relations are
+  authored together in one authoritative publish boundary using symbolic
+  created-endpoint resolution rather than a second repair commit
 
 Milestone-1 workload generation must stay inside the milestone's admitted class:
 
@@ -198,25 +201,41 @@ Milestone-1 workload generation must stay inside the milestone's admitted class:
   publication
 - commit-boundary invariants reject illegal wire-branch and illegal solid-shell
   states before publication
+- same-commit graph creation preserves one coherent authoritative publish
+  boundary for admitted topology creation rather than emitting orphan-entity
+  intermediate truth
 - derived topology interpretation classifies admitted shell, wire, boundary,
   wire-branch, solid-shell, and radial structure deterministically
 - persistent names are authoritative truth, not regenerated labels
+- certification emits named counter surfaces for the milestone-1 authority,
+  interpretation, and replay boundaries
+- closeout includes one machine-checkable bridge proof path from committed
+  Worth truth through route and historical evaluation
 - rejected and accepted paths both emit replayable diagnostic evidence
 
 ### Required verification output
 
 - topology_truth_digest
 - topology_validation_digest
+- topology_validation_report
 - naming_truth_digest
 - topology_localization_report
 - naming_attachment_report
+- milestone_1_counter_report
+- primitive_family_coverage_matrix
+- primitive_corpus_parity_report
+- branch_local_topology_report
+- milestone_1_replay_parity_report
+- bridge_proof_report
 
 ### Closeout condition
 
 Milestone `1` closes only when admitted topology truth and persistent naming
 work generically across the milestone's admitted workflow surface, including
 `WireBranch(k)` and `SolidShell(f)` as fully robust admitted families rather
-than toy examples or partial subsets.
+than toy examples or partial subsets, and when admitted topology creation
+publishes as one coherent same-commit graph mutation rather than a staged
+authority workaround.
 
 ## Milestone 2: Derived Topology Materialization And Bridge-Causal Validation
 

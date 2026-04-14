@@ -43,8 +43,8 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("r1".to_string()),
-                source,
-                target,
+                source: crate::transactions::data::EntityReference::Existing(source),
+                target: crate::transactions::data::EntityReference::Existing(target),
                 payload: Some(RecordPayload::StructuredJson(
                     json!({"weight": 1, "name": "r1"}),
                 )),
@@ -414,3 +414,5 @@ fn geometry_profile_does_not_force_retention_pass_on_each_commit() {
     let plan = runtime.retention().inspect_plan();
     assert!(plan.reclaimable_entities >= 1);
 }
+
+

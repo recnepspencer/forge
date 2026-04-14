@@ -1,3 +1,4 @@
+mod builder;
 mod domain_registry;
 mod entity_aspects;
 mod invariant_plan;
@@ -8,6 +9,7 @@ mod runtime_invariants;
 mod schema_identity;
 mod tracing_plan;
 
+pub use builder::{WorthSchemaBuildError, WorthSchemaBuilder};
 pub use invariant_plan::{worth_bootstrap_invariant_plan, WorthBootstrapInvariantPlan};
 pub use registry::worth_bootstrap_schema_registry;
 pub use runtime_invariants::{
