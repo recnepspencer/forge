@@ -1,7 +1,7 @@
 use crate::{ForgeStoreBuilder, StoreErrorKind};
 use forge_relational::facade::history::BranchId;
 
-use super::support::{
+use super::harness::fixtures::runtime::{
     create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch,
 };
 

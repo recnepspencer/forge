@@ -5,10 +5,16 @@ use crate::{
     },
     evidence::{CanonicalizationMetrics, StoreCounterSnapshot},
     failure::StoreError,
-    recovery::{DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution},
+    media::DurableMediaReport,
+    publication::PublicationWriteOutcome,
+    recovery::{
+        BackupRestoreCompatibilityReport, DurableRecoveryOutcome, DurableRecoveryPlan,
+        DurableRetryResolution, MaintenanceRecoveryReport, SnapshotMaintenanceRecoveryReport,
+    },
     snapshot::{
         PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
-        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome, SnapshotRestorePlan,
+        SnapshotRestoreRequest,
     },
     wal::{DurableMutationId, DurablePublicationPhase},
 };
@@ -125,6 +131,64 @@ impl StoreBackend {
         }
     }
 
+    pub fn durable_media_report(&self) -> DurableMediaReport {
+        match self {
+            Self::Embedded(backend) => backend.durable_media_report(),
+            Self::Sqlite(backend) => backend.durable_media_report(),
+        }
+    }
+
+    pub fn classify_durable_publication(
+        &self,
+        durable_mutation_id: DurableMutationId,
+        expected_commit_id: Option<CommitId>,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.classify_durable_publication(durable_mutation_id, expected_commit_id)
+            }
+            Self::Sqlite(backend) => {
+                backend.classify_durable_publication(durable_mutation_id, expected_commit_id)
+            }
+        }
+    }
+
+    pub fn classify_snapshot_publication(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.classify_snapshot_publication(snapshot_id),
+            Self::Sqlite(backend) => backend.classify_snapshot_publication(snapshot_id),
+        }
+    }
+
+    pub fn classify_snapshot_maintenance_recovery(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotMaintenanceRecoveryReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.classify_snapshot_maintenance_recovery(snapshot_id),
+            Self::Sqlite(backend) => backend.classify_snapshot_maintenance_recovery(snapshot_id),
+        }
+    }
+
+    pub fn maintenance_recovery_report(&self) -> Result<MaintenanceRecoveryReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.maintenance_recovery_report(),
+            Self::Sqlite(backend) => backend.maintenance_recovery_report(),
+        }
+    }
+
+    pub fn backup_restore_compatibility_report(
+        &self,
+    ) -> Result<BackupRestoreCompatibilityReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.backup_restore_compatibility_report(),
+            Self::Sqlite(backend) => backend.backup_restore_compatibility_report(),
+        }
+    }
+
     pub fn persist_embedded_checkpoint(
         &mut self,
         record: EmbeddedCheckpointRecord,
@@ -165,14 +229,23 @@ impl StoreBackend {
         }
     }
 
-    pub fn restore_snapshot(
+    pub fn plan_snapshot_restore(
         &self,
-        snapshot_id: SnapshotId,
-        target_commit_id: CommitId,
+        request: SnapshotRestoreRequest,
+    ) -> Result<SnapshotRestorePlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.plan_snapshot_restore(request),
+            Self::Sqlite(backend) => backend.plan_snapshot_restore(request),
+        }
+    }
+
+    pub fn execute_snapshot_restore(
+        &self,
+        plan: SnapshotRestorePlan,
     ) -> Result<SnapshotRestoreOutcome, StoreError> {
         match self {
-            Self::Embedded(backend) => backend.restore_snapshot(snapshot_id, target_commit_id),
-            Self::Sqlite(backend) => backend.restore_snapshot(snapshot_id, target_commit_id),
+            Self::Embedded(backend) => backend.execute_snapshot_restore(plan),
+            Self::Sqlite(backend) => backend.execute_snapshot_restore(plan),
         }
     }
 
@@ -194,6 +267,36 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.remove_snapshot_image_for_test(snapshot_id),
             Self::Sqlite(backend) => backend.remove_snapshot_image_for_test(snapshot_id),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn remove_snapshot_basis_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.remove_snapshot_basis_for_test(snapshot_id),
+            Self::Sqlite(backend) => backend.remove_snapshot_basis_for_test(snapshot_id),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn clear_branch_heads_for_test(&mut self) -> Result<(), StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.clear_branch_heads_for_test(),
+            Self::Sqlite(backend) => backend.clear_branch_heads_for_test(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn corrupt_snapshot_basis_digest_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.corrupt_snapshot_basis_digest_for_test(snapshot_id),
+            Self::Sqlite(backend) => backend.corrupt_snapshot_basis_digest_for_test(snapshot_id),
         }
     }
 

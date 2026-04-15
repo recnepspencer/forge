@@ -1,10 +1,11 @@
 use crate::{
+    evidence::{Milestone36CertificationBundle, ObservedRecoveryFailure356},
     evidence::{OperatingModeLane, PersistedModeLaneEvidence},
     facade::{ForgeStore, ForgeStoreBuilder},
     failure::{StoreError, StoreErrorKind},
     modes::lifecycle::{DurableModeConstructionPlan, HostedRuntimeOwnershipProof},
     publication::{default_runtime_session_id, execute_durable_publication},
-    recovery::{DurableRecoveryOutcome, DurableRecoveryPlan},
+    recovery::{DurableRecoveryOutcome, DurableRecoveryPlan, RecoveryStatusReport},
     wal::DurableMutationId,
 };
 use forge_relational::facade::{history::CommitId, runtime::RelationalRuntime};
@@ -103,7 +104,7 @@ impl DurableRecoveryHandle {
     }
 
     pub fn recover(mut self) -> Result<DurableStoreHandle, StoreError> {
-        let _plan = self.plan();
+        let plan = self.plan();
         let recovery = self
             .store
             .recover_durable_runtime(&self.runtime_session_id)?;
@@ -111,6 +112,7 @@ impl DurableRecoveryHandle {
             store: self.store,
             ownership: self.ownership,
             runtime_session_id: self.runtime_session_id,
+            last_recovery_plan: plan,
             last_recovery: recovery,
         })
     }
@@ -121,10 +123,18 @@ pub struct DurableStoreHandle {
     store: ForgeStore,
     ownership: HostedRuntimeOwnershipProof,
     runtime_session_id: String,
+    last_recovery_plan: DurableRecoveryPlan,
     last_recovery: DurableRecoveryOutcome,
 }
 
 impl DurableStoreHandle {
+    fn recovery_status_report_from_maintenance(
+        &self,
+        maintenance: crate::MaintenanceRecoveryReport,
+    ) -> RecoveryStatusReport {
+        RecoveryStatusReport::new(&self.last_recovery_plan, &self.last_recovery, maintenance)
+    }
+
     pub fn execute_mutation<F>(
         &mut self,
         request: DurableMutationRequest<F>,
@@ -173,11 +183,34 @@ impl DurableStoreHandle {
         &self.last_recovery
     }
 
+    pub fn recovery_status_report(&self) -> Result<RecoveryStatusReport, StoreError> {
+        Ok(self.recovery_status_report_from_maintenance(self.store.maintenance_recovery_report()?))
+    }
+
     pub fn resolve_retry(
         &self,
         durable_mutation_id: DurableMutationId,
     ) -> Result<crate::DurableRetryResolution, StoreError> {
         self.store.resolve_durable_retry(durable_mutation_id)
+    }
+
+    pub fn milestone_3_6_certification_bundle(
+        &self,
+        failures: &[ObservedRecoveryFailure356],
+    ) -> Result<Milestone36CertificationBundle, StoreError> {
+        let maintenance = self.store.maintenance_recovery_report()?;
+        let status = self.recovery_status_report_from_maintenance(maintenance.clone());
+        let compatibility = self.store.backup_restore_compatibility_report()?;
+        Ok(Milestone36CertificationBundle::new(
+            &self.store.export_authoritative_records(),
+            status,
+            self.last_recovery.source_reports.clone(),
+            maintenance,
+            self.last_recovery.degraded_state_report(),
+            compatibility,
+            self.store.counters(),
+            failures,
+        ))
     }
 
     pub fn shutdown(self) -> (ForgeStore, RelationalRuntime) {

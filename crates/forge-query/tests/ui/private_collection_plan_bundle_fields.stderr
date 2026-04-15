@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/private_collection_plan_bundle_fields.rs:6:25
+  |
+5 |         planning_context: todo!(),
+  |                           ------- any code following this expression is unreachable
+6 |         ordering_basis: todo!(),
+  |                         ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot construct `CollectionPlanBundle` with struct literal syntax due to private fields
+  --> tests/ui/private_collection_plan_bundle_fields.rs:4:13
+   |
+ 4 |     let _ = CollectionPlanBundle {
+   |             ^^^^^^^^^^^^^^^^^^^^
+ 5 |         planning_context: todo!(),
+   |         ------------------------- private field
+ 6 |         ordering_basis: todo!(),
+   |         ----------------------- private field
+ 7 |         window_policy: todo!(),
+   |         ---------------------- private field
+ 8 |         cursor_contract: todo!(),
+   |         ------------------------ private field
+ 9 |         traversal_bound: todo!(),
+   |         ------------------------ private field
+10 |         post_read_shaping: todo!(),
+   |         -------------------------- private field
+   |
+   = note: ...and other private field `digest` that was not provided

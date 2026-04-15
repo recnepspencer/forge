@@ -1,8 +1,12 @@
 use crate::facade::{QueryValidationCounters, QueryValidationReport, ValidationRejectionMatrix};
 
+use super::super::certification::{
+    CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,
+    RejectionCertificationRow, RequiredAssertionClass, digest_parts,
+};
 use super::super::profiles::CertificationProfile;
 use super::completeness::bundle_completeness_report;
-use super::digests::{bundle_digest_parts, coverage_digest_parts, digest_parts};
+use super::digests::{bundle_digest_parts, coverage_digest_parts};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidationCertificationBundle {
@@ -38,44 +42,20 @@ pub enum ValidationPerturbationClass {
     ForbiddenWidening,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ValidationHostileExpectation {
-    EquivalentToControl,
-    DistinctFromControl,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ValidationParityAnchor {
-    Control,
-    Hostile,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidationCertificationRow {
-    pub row_name: &'static str,
-    pub perturbation_class: ValidationPerturbationClass,
-    pub hostile_expectation: ValidationHostileExpectation,
-    pub parity_anchor: ValidationParityAnchor,
-    pub control_lane: ValidationCertificationBundle,
-    pub hostile_lane: ValidationCertificationBundle,
-    pub parity_lane: ValidationCertificationBundle,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidationRejectionCertificationRow {
-    pub row_name: &'static str,
-    pub perturbation_class: ValidationPerturbationClass,
-    pub control_lane: ValidationCertificationBundle,
-    pub hostile_lane: ValidationRejectionCertificationBundle,
-    pub parity_lane: ValidationCertificationBundle,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ValidationCertificationMatrix {
-    pub suite_name: &'static str,
-    pub rows: Vec<ValidationCertificationRow>,
-    pub rejection_rows: Vec<ValidationRejectionCertificationRow>,
-}
+pub type ValidationHostileExpectation = HostileExpectation;
+pub type ValidationParityAnchor = ParityAnchor;
+pub type ValidationCertificationRow =
+    CanonicalCertificationRow<ValidationPerturbationClass, ValidationCertificationBundle>;
+pub type ValidationRejectionCertificationRow = RejectionCertificationRow<
+    ValidationPerturbationClass,
+    ValidationCertificationBundle,
+    ValidationRejectionCertificationBundle,
+>;
+pub type ValidationCertificationMatrix = CertificationMatrix<
+    ValidationPerturbationClass,
+    ValidationCertificationBundle,
+    ValidationRejectionCertificationBundle,
+>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidationBundleCompletenessReport {
@@ -88,6 +68,7 @@ pub struct ValidationBundleCompletenessReport {
     pub all_lanes_emit_required_outputs: bool,
     pub all_rows_have_hostile_coverage: bool,
     pub unmet_required_rows: Vec<&'static str>,
+    pub unmet_required_assertion_classes: Vec<RequiredAssertionClass>,
     pub covers_all_currently_implemented_normative_scenarios: bool,
     pub covers_full_milestone_two_spec_matrix: bool,
     pub offline_analysis_ready: bool,
@@ -145,12 +126,12 @@ impl ValidationCertificationRow {
 
     pub(crate) fn has_hostile_coverage(&self) -> bool {
         let hostile_relation = match self.hostile_expectation {
-            ValidationHostileExpectation::EquivalentToControl => {
+            HostileExpectation::EquivalentToControl => {
                 self.control_lane.validated_query_digest == self.hostile_lane.validated_query_digest
                     && self.control_lane.validated_result_shape_digest
                         == self.hostile_lane.validated_result_shape_digest
             }
-            ValidationHostileExpectation::DistinctFromControl => {
+            HostileExpectation::DistinctFromControl => {
                 self.control_lane.validated_query_digest != self.hostile_lane.validated_query_digest
                     || self.control_lane.validated_result_shape_digest
                         != self.hostile_lane.validated_result_shape_digest
@@ -158,12 +139,12 @@ impl ValidationCertificationRow {
         };
 
         let parity_relation = match self.parity_anchor {
-            ValidationParityAnchor::Control => {
+            ParityAnchor::Control => {
                 self.control_lane.validated_query_digest == self.parity_lane.validated_query_digest
                     && self.control_lane.validated_result_shape_digest
                         == self.parity_lane.validated_result_shape_digest
             }
-            ValidationParityAnchor::Hostile => {
+            ParityAnchor::Hostile => {
                 self.hostile_lane.validated_query_digest == self.parity_lane.validated_query_digest
                     && self.hostile_lane.validated_result_shape_digest
                         == self.parity_lane.validated_result_shape_digest

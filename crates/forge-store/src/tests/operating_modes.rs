@@ -5,13 +5,10 @@ use crate::{
 };
 use serde_json::json;
 
-use super::support::{create_entity_commit, latest_envelope, runtime_with_demo_schema};
-
-fn create_alpha_commit(
-    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
-) -> Result<forge_relational::facade::history::CommitId, crate::StoreError> {
-    Ok(create_entity_commit(runtime, "alpha"))
-}
+use super::harness::{
+    fixtures::runtime::{create_entity_commit, latest_envelope, runtime_with_demo_schema},
+    scenarios::modes::create_alpha_commit,
+};
 
 #[test]
 fn durable_and_embedded_modes_persist_equivalent_canonical_artifacts() {

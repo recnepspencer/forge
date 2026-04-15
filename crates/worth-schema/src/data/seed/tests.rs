@@ -11,7 +11,10 @@ use crate::data::authority::{
     RawWorthTopologyIntent, WorthMutationOrigin, WorthPrecisionFallbackRecord,
     WorthTopologyMutationBatch,
 };
-use crate::data::seed::seed_minimal_topology;
+use crate::data::seed::{
+    milestone_one_admitted_range_sweep_out_of_class_scenarios,
+    milestone_one_admitted_range_sweep_scenarios, seed_minimal_topology,
+};
 use std::collections::BTreeSet;
 
 #[test]
@@ -34,9 +37,12 @@ fn seed_minimal_topology_commits_a_readable_bootstrap_snapshot() {
     assert!(read_view.get_entity(seeded.half_edge).is_some());
     assert_eq!(seeded.persistent_name_ids.len(), 11);
     assert_eq!(seeded.persisted_truth.snapshot, seeded.snapshot);
-    assert_eq!(seeded.read_basis.snapshot, seeded.snapshot);
+    assert_eq!(seeded.read_basis.snapshot(), &seeded.snapshot);
     assert_eq!(seeded.read_artifact.snapshot, seeded.snapshot);
-    assert_eq!(seeded.certified_interpretation.read_basis.snapshot, seeded.snapshot);
+    assert_eq!(
+        seeded.certified_interpretation.read_basis.snapshot(),
+        &seeded.snapshot
+    );
     for name_id in &seeded.persistent_name_ids {
         assert!(read_view.get_entity(*name_id).is_some());
     }
@@ -72,5 +78,51 @@ fn precision_fallback_record_threads_through_authority_flow() {
 
     assert_eq!(read_basis.precision_fallbacks, vec![fallback.clone()]);
     assert_eq!(certified.precision_fallbacks, vec![fallback]);
-    assert_eq!(read_basis.touched_aspects, touched_aspects);
+    assert_eq!(read_basis.touched_aspects(), &touched_aspects);
+    assert_eq!(
+        read_basis.authoritative_mutation_origin(),
+        WorthMutationOrigin::Seed
+    );
+    assert_eq!(read_basis.derivation_origin(), WorthMutationOrigin::Seed);
+    let replay_basis = read_basis.replay_of();
+    assert_eq!(
+        replay_basis.authoritative_mutation_origin(),
+        WorthMutationOrigin::Seed
+    );
+    assert_eq!(replay_basis.derivation_origin(), WorthMutationOrigin::Replay);
+    assert_eq!(read_basis.authority.truth_basis_identity.touched_aspect_count, 3);
+    assert!(!read_basis
+        .authority
+        .truth_basis_identity
+        .mutation_batch_digest_hex
+        .is_empty());
+}
+
+#[test]
+fn admitted_range_sweep_generators_cover_the_declared_milestone_one_ranges() {
+    let scenarios = milestone_one_admitted_range_sweep_scenarios();
+    let out_of_class = milestone_one_admitted_range_sweep_out_of_class_scenarios();
+
+    let unique_cases = scenarios.iter().fold(BTreeSet::new(), |mut acc, scenario| {
+        acc.insert(format!("{}::{:?}", scenario.family, scenario.primitive));
+        acc
+    });
+
+    assert_eq!(unique_cases.len(), scenarios.len());
+    assert_eq!(scenarios.iter().filter(|s| s.family == "WireOpen(n)").count(), 12);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "WireClosed(n)").count(), 10);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "WireBranch(k)").count(), 10);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "SheetDisk(n)").count(), 10);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "SheetPatch(f)").count(), 9);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "SolidShell(f)").count(), 7);
+    assert_eq!(scenarios.iter().filter(|s| s.family == "NmtEdgeFan(k)").count(), 8);
+
+    assert_eq!(out_of_class.len(), 7);
+    assert!(out_of_class.iter().all(|scenario| {
+        scenario.expected_outcome
+            == crate::facade::WorthMilestoneOnePrimitiveExpectedOutcome::Reject
+    }));
+    assert!(out_of_class.iter().all(|scenario| {
+        scenario.role == crate::facade::WorthMilestoneOnePrimitiveRole::OutOfClass
+    }));
 }

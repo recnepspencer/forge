@@ -2,16 +2,21 @@ use crate::failure::{StoreError, StoreErrorKind};
 use forge_relational::facade::history::BranchId;
 
 use crate::backend::{
-    integrity::{branch_key, stable_structural_digest},
+    integrity::{branch_key, digest_artifact_key, stable_structural_digest},
     records::{AuthoritativeArtifactFamily, BranchHeadRecord, BranchRecord, StoreState},
 };
 
+#[derive(Debug)]
+pub(crate) struct AppliedBranchCreation {
+    branch_identity: String,
+}
+
 impl StoreState {
-    pub fn stage_branch_creation(
-        &self,
+    pub fn apply_branch_creation_in_place(
+        &mut self,
         new_branch: BranchId,
         from_branch: Option<&BranchId>,
-    ) -> Result<Self, StoreError> {
+    ) -> Result<AppliedBranchCreation, StoreError> {
         let new_branch_key = branch_key(&new_branch);
         if self.branch_records.contains_key(&new_branch_key) {
             return Err(StoreError::new(
@@ -20,9 +25,8 @@ impl StoreState {
             ));
         }
 
-        let mut next = self.clone();
         let source_head = match from_branch {
-            Some(source) => next
+            Some(source) => self
                 .branch_head_records
                 .get(&branch_key(source))
                 .cloned()
@@ -37,10 +41,10 @@ impl StoreState {
 
         let created_at_commit_sequence = source_head
             .head_commit_id
-            .and_then(|commit_id| next.commit_envelopes.get(&commit_id.0))
+            .and_then(|commit_id| self.commit_envelopes.get(&commit_id.0))
             .map(|record| record.commit_sequence);
 
-        next.branch_records.insert(
+        self.branch_records.insert(
             new_branch_key.clone(),
             BranchRecord {
                 branch_id: new_branch.clone(),
@@ -49,8 +53,8 @@ impl StoreState {
                 created_at_commit_sequence,
             },
         );
-        next.branch_head_records.insert(
-            new_branch_key,
+        self.branch_head_records.insert(
+            new_branch_key.clone(),
             BranchHeadRecord {
                 branch_id: new_branch.clone(),
                 head_commit_id: source_head.head_commit_id,
@@ -58,16 +62,44 @@ impl StoreState {
                 head_update_sequence: source_head.head_update_sequence,
             },
         );
-        next.upsert_digest_record(
+        self.upsert_digest_record(
             AuthoritativeArtifactFamily::BranchRecord,
-            branch_key(&new_branch),
-            stable_structural_digest(&next.branch_records[&branch_key(&new_branch)])?,
+            new_branch_key.clone(),
+            stable_structural_digest(&self.branch_records[&new_branch_key])?,
         );
-        next.upsert_digest_record(
+        self.upsert_digest_record(
             AuthoritativeArtifactFamily::BranchHeadRecord,
-            branch_key(&new_branch),
-            stable_structural_digest(&next.branch_head_records[&branch_key(&new_branch)])?,
+            new_branch_key.clone(),
+            stable_structural_digest(&self.branch_head_records[&new_branch_key])?,
         );
-        Ok(next)
+        Ok(AppliedBranchCreation {
+            branch_identity: new_branch_key,
+        })
+    }
+
+    pub fn rollback_branch_creation(&mut self, applied: AppliedBranchCreation) {
+        self.branch_records.remove(&applied.branch_identity);
+        self.branch_head_records.remove(&applied.branch_identity);
+        self.authoritative_artifact_digests
+            .remove(&digest_artifact_key(
+                &AuthoritativeArtifactFamily::BranchRecord,
+                &applied.branch_identity,
+                self.canonicalization_version,
+            ));
+        self.authoritative_artifact_digests
+            .remove(&digest_artifact_key(
+                &AuthoritativeArtifactFamily::BranchHeadRecord,
+                &applied.branch_identity,
+                self.canonicalization_version,
+            ));
+    }
+
+    pub fn verify_applied_branch_creation(
+        &self,
+        applied: &AppliedBranchCreation,
+    ) -> Result<(), StoreError> {
+        self.verify_branch_record(&applied.branch_identity)?;
+        self.verify_branch_head_record(&applied.branch_identity)?;
+        Ok(())
     }
 }

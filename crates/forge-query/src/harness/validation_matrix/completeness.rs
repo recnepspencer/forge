@@ -1,21 +1,11 @@
+use super::super::certification::{
+    RequiredAssertionClass, covered_perturbation_classes, milestone_two_requirements,
+    unmet_required_assertion_classes, unmet_required_rows,
+};
 use super::model::{
     ValidationBundleCompletenessReport, ValidationCertificationMatrix, ValidationCertificationRow,
     ValidationRejectionCertificationRow,
 };
-
-const REQUIRED_MILESTONE_TWO_ROWS: &[&str] = &[
-    "legal-detail-query-parity",
-    "equivalent-builder-composed-legal-query",
-    "legal-structured-content-query-parity",
-    "legal-workflow-predicate-parity",
-    "unknown-aspect-projection",
-    "incompatible-predicate-family",
-    "illegal-traversal-edge-or-depth",
-    "invalid-result-shape-binding",
-    "structured-content-illegality",
-    "workflow-context-illegality",
-    "forbidden-widening-case",
-];
 
 pub(crate) fn bundle_completeness_report(
     matrix: &ValidationCertificationMatrix,
@@ -51,15 +41,29 @@ pub(crate) fn bundle_completeness_report(
             .iter()
             .all(ValidationRejectionCertificationRow::has_hostile_coverage);
     let covered_perturbation_classes = covered_perturbation_classes(matrix);
-    let unmet_required_rows = unmet_required_rows(matrix);
+    let requirements = milestone_two_requirements();
+    let unmet_required_rows = unmet_required_rows(
+        matrix,
+        requirements.required_canonical_rows,
+        requirements.required_rejection_rows,
+    );
+    let covered_assertion_classes =
+        covered_assertion_classes(matrix, zero_fallback_lane_count, supported_lane_count);
+    let unmet_required_assertion_classes = unmet_required_assertion_classes(
+        &covered_assertion_classes,
+        requirements.required_assertion_classes,
+    );
     let covers_all_currently_implemented_normative_scenarios =
         covers_all_currently_implemented_normative_scenarios(matrix);
     let covers_full_milestone_two_spec_matrix =
-        covers_all_currently_implemented_normative_scenarios && unmet_required_rows.is_empty();
+        covers_all_currently_implemented_normative_scenarios
+            && unmet_required_rows.is_empty()
+            && unmet_required_assertion_classes.is_empty();
     let offline_analysis_ready = all_lanes_emit_required_outputs
         && all_rows_have_hostile_coverage
         && zero_fallback_lane_count == supported_lane_count
-        && covers_all_currently_implemented_normative_scenarios;
+        && covers_all_currently_implemented_normative_scenarios
+        && unmet_required_assertion_classes.is_empty();
 
     ValidationBundleCompletenessReport {
         canonical_row_count: matrix.rows.len(),
@@ -71,29 +75,11 @@ pub(crate) fn bundle_completeness_report(
         all_lanes_emit_required_outputs,
         all_rows_have_hostile_coverage,
         unmet_required_rows,
+        unmet_required_assertion_classes,
         covers_all_currently_implemented_normative_scenarios,
         covers_full_milestone_two_spec_matrix,
         offline_analysis_ready,
     }
-}
-
-fn covered_perturbation_classes(
-    matrix: &ValidationCertificationMatrix,
-) -> Vec<super::model::ValidationPerturbationClass> {
-    let mut classes: Vec<_> = matrix
-        .rows
-        .iter()
-        .map(|row| row.perturbation_class)
-        .chain(
-            matrix
-                .rejection_rows
-                .iter()
-                .map(|row| row.perturbation_class),
-        )
-        .collect();
-    classes.sort();
-    classes.dedup();
-    classes
 }
 
 fn contains_row(matrix: &ValidationCertificationMatrix, row_name: &str) -> bool {
@@ -102,14 +88,6 @@ fn contains_row(matrix: &ValidationCertificationMatrix, row_name: &str) -> bool 
             .rejection_rows
             .iter()
             .any(|row| row.row_name == row_name)
-}
-
-fn unmet_required_rows(matrix: &ValidationCertificationMatrix) -> Vec<&'static str> {
-    REQUIRED_MILESTONE_TWO_ROWS
-        .iter()
-        .copied()
-        .filter(|row_name| !contains_row(matrix, row_name))
-        .collect()
 }
 
 fn covers_all_currently_implemented_normative_scenarios(
@@ -138,4 +116,38 @@ fn covers_all_currently_implemented_normative_scenarios(
         && contains_row(matrix, "structured-content-illegality")
         && contains_row(matrix, "workflow-context-illegality")
         && contains_row(matrix, "forbidden-widening-case")
+}
+
+fn covered_assertion_classes(
+    matrix: &ValidationCertificationMatrix,
+    zero_fallback_lane_count: usize,
+    supported_lane_count: usize,
+) -> Vec<RequiredAssertionClass> {
+    let mut covered = Vec::new();
+
+    if matrix
+        .rows
+        .iter()
+        .any(|row| row.hostile_expectation == super::model::ValidationHostileExpectation::EquivalentToControl)
+    {
+        covered.push(RequiredAssertionClass::Equality);
+    }
+
+    if matrix
+        .rows
+        .iter()
+        .any(|row| row.hostile_expectation == super::model::ValidationHostileExpectation::DistinctFromControl)
+    {
+        covered.push(RequiredAssertionClass::Inequality);
+    }
+
+    if !matrix.rejection_rows.is_empty() {
+        covered.push(RequiredAssertionClass::TypedFailure);
+    }
+
+    if zero_fallback_lane_count == supported_lane_count {
+        covered.push(RequiredAssertionClass::ZeroResidue);
+    }
+
+    covered
 }

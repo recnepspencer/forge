@@ -15,6 +15,8 @@ This document defines the certification-grade query test requirements for:
 - Milestone 9
 - Milestone 10
 - Milestone 11
+- Milestone 12
+- Milestone 13
 
 Unlike the bridge roadmap, the query roadmap still builds major foundational
 surface area in Milestone 1 onward. The certification rules therefore start at
@@ -38,6 +40,7 @@ The query layer makes claims about:
 - scopes, templates, saved queries, and view-shape semantics
 - policy masking, tenant schema variation, and relationship-proof denial
 - store-backed durability, pushdown, and artifact portability
+- blob-backed delivery and upload-associated query semantics
 
 Those are adversarial surfaces. They need certification tests, not just feature
 checks.
@@ -237,6 +240,8 @@ Must verify
 - equivalent runs produce identical plan and result semantics
 - executor does not rediscover planner-owned legality or scope decisions
 - type-bound descriptors round-trip to the same canonical plan
+- intentionally different admitted runtime route shapes produce distinct
+  canonical plan/result evidence
 - admitted runtime/store path pairs compare equal
 
 Required verification output
@@ -420,7 +425,6 @@ Scenario
 - compare direct query construction to:
   - scope-composed queries
   - template-instantiated queries
-  - saved-query reload where admitted
 - run admitted view shapes including:
   - table/detail
   - one grouped or temporal view
@@ -432,7 +436,6 @@ Must verify
   construction
 - view shapes affect planning, invalidation, delivery, and patch semantics
 - shipped view shapes do not exist only as cosmetic typing
-- saved-query reload preserves canonical identity where admitted
 
 Required verification output
 
@@ -485,31 +488,103 @@ Policy and tenant boundaries are structural, typed, and non-leaking.
 
 ## Milestone 10 Named Certification Suites
 
-### 10. Store-Backed Query Durability And Portability Test
+### 10. Store-Backed Execution And Historical Parity Test
 
 Purpose
 
-Prove that store-backed execution, durable saved-query reload, durable cursor
-continuation, and import/export portability preserve canonical query meaning.
+Prove that store-backed execution and historical restore preserve canonical
+query meaning for admitted shared capability families.
 
 Scenario
 
 - execute admitted query families through runtime-backed and store-backed lanes
-- persist and reload saved queries
-- resume durable query-shaped cursors/checkpoints where admitted
-- export/import portable query artifacts and re-run them
+- restore admitted historical bases through persisted store state
+- compare store-backed diff execution to runtime-backed diff execution where
+  both paths are admitted
 
 Must verify
 
 - store-backed and runtime-backed results compare equal for admitted paths
-- durable saved-query reload preserves canonical identity
-- durable cursor continuation resumes the same query-shaped progression
-- imported/exported artifacts preserve basis and query meaning
+- restored historical bases preserve explicit basis identity
+- store-backed diff outputs remain query-shaped rather than raw storage deltas
 
 Required verification output
 
 - `query_digest`
 - `plan_digest`
+- `result_digest`
+- `basis_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Store-backed execution and admitted historical restore remain parity-safe with
+runtime-backed execution for the same canonical query and basis.
+
+## Milestone 11 Named Certification Suites
+
+### 11. Durable Query Artifact And Continuation Parity Test
+
+Purpose
+
+Prove that saved queries, durable cursors, and restart-stable query artifacts
+preserve canonical query meaning across reload and continuation.
+
+Scenario
+
+- persist and reload saved queries
+- resume durable query-shaped cursors/checkpoints where admitted
+- export/import portable query artifacts and re-run them
+- compare pre-restart and post-restart continuation semantics
+
+Must verify
+
+- durable saved-query reload preserves canonical identity
+- durable cursor continuation resumes the same query-shaped progression
+- imported/exported artifacts preserve basis and query meaning
+- restart and replay do not alter parameter binding or continuation semantics
+
+Required verification output
+
+- `query_digest`
+- `replay_digest`
+- `artifact_freeze_digest`
+- `artifact_binding_matrix`
+- `counter_snapshot`
+
+Pass condition
+
+Durable query artifacts and continuations remain parity-safe across restart,
+reload, and portability boundaries.
+
+## Milestone 12 Named Certification Suites
+
+### 12. Blob-Backed Query Delivery And Upload Parity Test
+
+Purpose
+
+Prove that blob/media-backed query results and upload-associated query
+semantics remain canonical, policy-safe, and basis-honest.
+
+Scenario
+
+- query blob/media-backed result shapes where the schema admits them
+- compare scalar-only and blob-bearing variants of the same canonical query
+- exercise upload-associated query results where the platform admits them
+- replay or reload durable blob handles where admitted
+
+Must verify
+
+- blob/media-backed query results preserve canonical query identity
+- policy masking and basis identity apply equally to blob-backed aspects
+- upload-associated query results remain replay-safe and basis-honest
+- durable blob handles preserve the semantics they claim where the platform
+  admits restart/export survival
+
+Required verification output
+
+- `query_digest`
 - `result_digest`
 - `delivery_digest`
 - `replay_digest`
@@ -517,12 +592,12 @@ Required verification output
 
 Pass condition
 
-Durable query artifacts and store-backed execution remain parity-safe and
-portable.
+Blob-backed delivery and upload-associated query semantics remain parity-safe,
+query-shaped, and non-leaking.
 
-## Milestone 11 Named Certification Suites
+## Milestone 13 Named Certification Suites
 
-### 11. Query Certification Matrix Sufficiency Test
+### 13. Query Certification Matrix Sufficiency Test
 
 Purpose
 
@@ -531,7 +606,7 @@ roadmap capability row in the query vision coverage appendix.
 
 Scenario
 
-- run a mixed milestone 1-10 certification matrix
+- run a mixed milestone 1-12 certification matrix
 - emit canonical certification bundles only
 - compare coverage against the roadmap's Vision Coverage Appendix
 
@@ -562,7 +637,7 @@ reference truth, artifact lifecycle, schema evolution behavior, diagnostics
 sufficiency, and beta support claims remain honest as the feature surface
 widens.
 
-### 12. Admitted Query Family Boundary Test
+### 14. Admitted Query Family Boundary Test
 
 Purpose
 
@@ -599,7 +674,7 @@ Pass condition
 Admitted combinations pass canonically, and non-admitted combinations fail
 explicitly before semantic drift.
 
-### 13. Fallback Non-Leakage / No Silent Widening Test
+### 15. Fallback Non-Leakage / No Silent Widening Test
 
 Purpose
 
@@ -636,7 +711,7 @@ Pass condition
 
 Fallback is explicit, typed, diagnosable, and non-leaking.
 
-### 14. Cross-Feature Composition Matrix Test
+### 16. Cross-Feature Composition Matrix Test
 
 Purpose
 
@@ -674,7 +749,7 @@ Pass condition
 Cross-feature composition remains canonical where admitted and fail-closed
 where not admitted.
 
-### 15. Reference Semantics Test
+### 17. Reference Semantics Test
 
 Purpose
 
@@ -714,7 +789,7 @@ Pass condition
 The main query system agrees with the independent semantic oracle for the
 bounded admitted subset.
 
-### 16. Saved Artifact Semantic Freeze Test
+### 18. Saved Artifact Semantic Freeze Test
 
 Purpose
 
@@ -750,7 +825,7 @@ Pass condition
 Saved query artifacts remain semantically frozen unless an intentionally
 meaning-changing rebinding occurs.
 
-### 17. Schema Evolution Compatibility Test
+### 19. Schema Evolution Compatibility Test
 
 Purpose
 
@@ -787,7 +862,7 @@ Pass condition
 Schema evolution is compatibility-classified, semantically honest, and fail-
 closed when meaning changes incompatibly.
 
-### 18. Diagnostic Sufficiency Test
+### 20. Diagnostic Sufficiency Test
 
 Purpose
 
@@ -825,7 +900,7 @@ Pass condition
 Rejected and drifting cases are mechanically localizable from canonical bundles
 alone.
 
-### 19. Beta Support Matrix Enforcement Test
+### 21. Beta Support Matrix Enforcement Test
 
 Purpose
 
@@ -875,7 +950,7 @@ Together, these tests prove that `forge-query` is:
   surfaces as certified support
 - certifiable through canonical artifacts rather than by visual inspection
 
-## Milestone 1-10 Certification Rule
+## Milestone 1-13 Certification Rule
 
 No query milestone should be considered closed until its named certification
 suite emits canonical machine-checkable outputs and passes across:

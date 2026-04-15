@@ -98,6 +98,9 @@ pub struct EmbeddedCheckpointRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotBasisRecord {
     pub snapshot_id: SnapshotId,
+    pub snapshot_family_version: u32,
+    pub snapshot_basis_version: u32,
+    pub snapshot_image_format_version: u32,
     pub snapshot_branch_id: BranchId,
     pub snapshot_frontier_commit_id: CommitId,
     pub snapshot_history_range: Vec<CommitId>,

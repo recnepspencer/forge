@@ -1,8 +1,9 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
 use crate::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, BindingFailureClass, IdentityBindingDescriptor,
-    NonIdentityBindingMetadata, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
-    RootEntityKey,
+    derive_binding_requirements, resolve_bindings, AspectFieldSelector, AuthoredResultShapeField,
+    BindingFailureClass, BindingResolutionError, BoundBinding, BoundBindings,
+    IdentityBindingDescriptor, NonIdentityBindingMetadata, QueryBindingDescriptor,
+    QueryBindingSlot, QueryBindingSubject, RootEntityKey,
 };
 
 #[test]
@@ -155,5 +156,110 @@ fn conflicting_binding_descriptor_subject_fails_explicitly() {
     assert!(matches!(
         error,
         crate::facade::QueryCanonicalizationError::DuplicateBindingDescriptorConflict { .. }
+    ));
+}
+
+#[test]
+fn validated_bundle_derives_binding_requirements() {
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("task").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .build()
+        .unwrap();
+    let shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    let bindings = QueryBindingDescriptor::new().with_identity(IdentityBindingDescriptor::new(
+        QueryBindingSlot::new("root").unwrap(),
+        QueryBindingSubject::RootEntity,
+    ));
+
+    let request =
+        crate::facade::GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings)
+            .unwrap();
+    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let schema = crate::harness::fixtures::schema_view::detail_schema_view();
+    let validated = crate::facade::validate_canonical_bundle(canonical, schema).unwrap();
+
+    let requirements = derive_binding_requirements(&validated);
+    assert_eq!(requirements.requirements().len(), 1);
+    assert_eq!(requirements.requirements()[0].slot().as_str(), "root");
+    assert_eq!(
+        requirements.requirements()[0].subject(),
+        &QueryBindingSubject::RootEntity
+    );
+    assert!(requirements.requirements()[0].identity_bearing());
+}
+
+#[test]
+fn binding_resolution_requires_exact_slot_match() {
+    let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("task").unwrap())
+        .project(AspectFieldSelector::new("identity", "id").unwrap())
+        .build()
+        .unwrap();
+    let shape = RawAuthoredResultShape::detail_builder()
+        .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .build()
+        .unwrap();
+    let bindings = QueryBindingDescriptor::new().with_identity(IdentityBindingDescriptor::new(
+        QueryBindingSlot::new("root").unwrap(),
+        QueryBindingSubject::RootEntity,
+    ));
+
+    let request =
+        crate::facade::GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings)
+            .unwrap();
+    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let schema = crate::harness::fixtures::schema_view::detail_schema_view();
+    let validated = crate::facade::validate_canonical_bundle(canonical, schema).unwrap();
+    let requirements = derive_binding_requirements(&validated);
+
+    let ok = resolve_bindings(
+        requirements.clone(),
+        BoundBindings::new(vec![BoundBinding::new(
+            QueryBindingSlot::new("root").unwrap(),
+            QueryBindingSubject::RootEntity,
+            "task-1",
+        )]),
+    )
+    .unwrap();
+    assert_eq!(ok.bindings().bindings().len(), 1);
+
+    let missing = resolve_bindings(requirements.clone(), BoundBindings::new(vec![])).unwrap_err();
+    assert!(matches!(
+        missing,
+        BindingResolutionError::MissingBindingSlot { .. }
+    ));
+
+    let extra = resolve_bindings(
+        requirements.clone(),
+        BoundBindings::new(vec![
+            BoundBinding::new(
+                QueryBindingSlot::new("root").unwrap(),
+                QueryBindingSubject::RootEntity,
+                "task-1",
+            ),
+            BoundBinding::new(
+                QueryBindingSlot::new("extra").unwrap(),
+                QueryBindingSubject::RootEntity,
+                "task-2",
+            ),
+        ]),
+    )
+    .unwrap_err();
+    assert!(matches!(extra, BindingResolutionError::ExtraBindingSlot { .. }));
+
+    let wrong_subject = resolve_bindings(
+        requirements,
+        BoundBindings::new(vec![BoundBinding::new(
+            QueryBindingSlot::new("root").unwrap(),
+            QueryBindingSubject::TraversalRoot,
+            "task-1",
+        )]),
+    )
+    .unwrap_err();
+    assert!(matches!(
+        wrong_subject,
+        BindingResolutionError::ConflictingBindingSubjects { .. }
     ));
 }

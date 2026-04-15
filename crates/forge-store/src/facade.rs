@@ -1,19 +1,26 @@
 use crate::{
     authority::{
         canonicalize, AuthoritativeBranchHeadRecord, AuthoritativeExportBundle,
-        FetchedAuthoritativeCommit, PersistedAuthoritativeCommit, RawRuntimeCommitEnvelope,
-        CURRENT_CANONICALIZATION_VERSION,
+        AuthoritativeExportRestoreRequest, FetchedAuthoritativeCommit,
+        PersistedAuthoritativeCommit, RawRuntimeCommitEnvelope, CURRENT_CANONICALIZATION_VERSION,
     },
     backend::{records::EmbeddedCheckpointRecord, StoreBackend, StoreBackendMode},
     evidence::{
-        Milestone1CertificationBundle, Milestone4CertificationBundle, OperatingModeLane,
+        Milestone1CertificationBundle, Milestone35CertificationBundle,
+        Milestone4CertificationBundle, ObservedPublicationFailure, OperatingModeLane,
         PersistedModeLaneEvidence, StoreCounterSnapshot,
     },
     failure::StoreError,
-    recovery::{DurableRecoveryOutcome, DurableRecoveryPlan},
+    media::DurableMediaReport,
+    publication::PublicationWriteOutcome,
+    recovery::{
+        BackupRestoreCompatibilityReport, DurableRecoveryOutcome, DurableRecoveryPlan,
+        MaintenanceRecoveryReport, SnapshotMaintenanceRecoveryReport,
+    },
     snapshot::{
         PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
-        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome, SnapshotRestorePlan,
+        SnapshotRestoreRequest,
     },
     wal::{DurableMutationId, DurablePublicationPhase},
 };
@@ -197,6 +204,15 @@ impl ForgeStore {
         self.backend.record_durable_commit_acknowledged();
     }
 
+    pub(crate) fn classify_durable_publication(
+        &self,
+        durable_mutation_id: DurableMutationId,
+        expected_commit_id: Option<CommitId>,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        self.backend
+            .classify_durable_publication(durable_mutation_id, expected_commit_id)
+    }
+
     pub fn create_branch(
         &mut self,
         new_branch: BranchId,
@@ -234,6 +250,44 @@ impl ForgeStore {
         self.backend.export_bundle()
     }
 
+    pub fn durable_media_report(&self) -> DurableMediaReport {
+        self.backend.durable_media_report()
+    }
+
+    pub fn durable_publication_report(
+        &self,
+        durable_mutation_id: DurableMutationId,
+        expected_commit_id: Option<CommitId>,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        self.backend
+            .classify_durable_publication(durable_mutation_id, expected_commit_id)
+    }
+
+    pub fn snapshot_publication_report(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        self.backend.classify_snapshot_publication(snapshot_id)
+    }
+
+    pub fn snapshot_maintenance_recovery_report(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotMaintenanceRecoveryReport, StoreError> {
+        self.backend
+            .classify_snapshot_maintenance_recovery(snapshot_id)
+    }
+
+    pub fn maintenance_recovery_report(&self) -> Result<MaintenanceRecoveryReport, StoreError> {
+        self.backend.maintenance_recovery_report()
+    }
+
+    pub fn backup_restore_compatibility_report(
+        &self,
+    ) -> Result<BackupRestoreCompatibilityReport, StoreError> {
+        self.backend.backup_restore_compatibility_report()
+    }
+
     pub fn capture_snapshot(
         &mut self,
         request: SnapshotCaptureRequest,
@@ -248,12 +302,28 @@ impl ForgeStore {
         self.backend.read_snapshot(request)
     }
 
+    pub fn plan_snapshot_restore(
+        &self,
+        request: SnapshotRestoreRequest,
+    ) -> Result<SnapshotRestorePlan, StoreError> {
+        self.backend.plan_snapshot_restore(request)
+    }
+
+    pub fn execute_snapshot_restore(
+        &self,
+        plan: SnapshotRestorePlan,
+    ) -> Result<SnapshotRestoreOutcome, StoreError> {
+        self.backend.execute_snapshot_restore(plan)
+    }
+
     pub fn restore_snapshot(
         &self,
         snapshot_id: SnapshotId,
         target_commit_id: CommitId,
     ) -> Result<SnapshotRestoreOutcome, StoreError> {
-        self.backend.restore_snapshot(snapshot_id, target_commit_id)
+        let plan =
+            self.plan_snapshot_restore(SnapshotRestoreRequest::new(snapshot_id, target_commit_id))?;
+        self.execute_snapshot_restore(plan)
     }
 
     pub fn rebuild_snapshot(
@@ -271,9 +341,44 @@ impl ForgeStore {
         self.backend.remove_snapshot_image_for_test(snapshot_id)
     }
 
+    #[cfg(test)]
+    pub(crate) fn remove_snapshot_basis_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        self.backend.remove_snapshot_basis_for_test(snapshot_id)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn clear_branch_heads_for_test(&mut self) -> Result<(), StoreError> {
+        self.backend.clear_branch_heads_for_test()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn corrupt_snapshot_basis_digest_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        self.backend
+            .corrupt_snapshot_basis_digest_for_test(snapshot_id)
+    }
+
     pub fn milestone_1_certification_bundle(&self) -> Milestone1CertificationBundle {
         let export = self.export_authoritative_records();
         Milestone1CertificationBundle::from_export(&export, self.counters())
+    }
+
+    pub fn milestone_3_5_certification_bundle(
+        &self,
+        ack_boundary_report: PublicationWriteOutcome,
+        failures: &[ObservedPublicationFailure],
+    ) -> Milestone35CertificationBundle {
+        Milestone35CertificationBundle::new(
+            self.durable_media_report(),
+            ack_boundary_report,
+            self.counters(),
+            failures,
+        )
     }
 
     pub fn milestone_4_certification_bundle(
@@ -298,11 +403,11 @@ impl ForgeStore {
         PersistedModeLaneEvidence::from_export(lane, &export, self.counters())
     }
 
-    pub fn rebuild_from_authoritative_export(
-        bundle: AuthoritativeExportBundle,
+    pub fn restore_from_authoritative_export(
+        request: AuthoritativeExportRestoreRequest,
     ) -> Result<Self, StoreError> {
         Ok(Self {
-            backend: StoreBackend::from_export_bundle(bundle)?,
+            backend: StoreBackend::from_export_bundle(request.into_bundle())?,
         })
     }
 }

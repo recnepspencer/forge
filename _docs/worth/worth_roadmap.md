@@ -18,6 +18,18 @@ The operating rule is:
 
 `commit spec, topology, naming, and binding truth canonically once, derive everything else honestly`
 
+## Current Roadmap State
+
+- `Milestone 1`: Complete
+- `Milestone 2`: Complete
+- `Milestone 3`: Active
+- Milestones `4+`: Planned
+
+Milestone 1 closeout record:
+- [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
+Milestone 2 closeout record:
+- [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+
 ## Global Adversarial Constraint
 
 Worth must survive this hostile condition:
@@ -225,6 +237,25 @@ say so explicitly and require clean failure outside the admitted class.
   - interaction semantics
   - certification interpretation specific to the geometry domain
 
+## Worth Crate Boundary Rule
+
+The Worth crate split must stay explicit as the roadmap widens:
+
+- `worth-topo` owns topology truth semantics, topology editing, topology
+  certification, and topology hostility proof
+- `worth-topo` must remain geometry-free apart from explicitly permitted opaque
+  handles and topology-safe identifiers
+- `worth-spatial` owns topology/geometry interaction semantics, including
+  geometry binding, exact planar classification contracts, and later
+  intersection-facing spatial contracts
+- `worth-kernel` owns primitive construction, body construction, and higher
+  engine programs that consume `worth-topo` and `worth-spatial` contracts
+- booleans require both `worth-spatial` and `worth-kernel`; they are not
+  purely topo work
+
+This boundary should be CI-enforced once the corresponding crates and contract
+surfaces exist.
+
 ## Validator Family Progression
 
 Worth should not treat "validation" as one bucket.
@@ -241,22 +272,28 @@ These must be closed by `Milestone 1` and `Milestone 2`:
 - persistent naming uniqueness and dangling-reference checks
 - basic determinism guards for canonical ordering and replay stability
 
-### Topology And Planar Proof Validators
+### Topology, Primitive, And Planar Contract Validators
 
-These must be closed by `Milestone 3`, `Milestone 4`, and `Milestone 5`:
+These must be closed by `Milestone 3`, `Milestone 4`, `Milestone 5`, and
+`Milestone 6`:
 
 - shell / body closure and orientation
 - region / cellular topology invariants
 - Euler / genus / generalized characteristic checks
 - degeneracy classification consistency
-- numerical / predicate pipeline validators
+- primitive-construction topology closure validators
+- topology-to-spatial contract completeness validators
+- exact planar / predicate pipeline validators
 - stronger determinism validators for chain-hostile replay and ordering
 
-### Geometry Binding And Curved Validators
+### Boolean And Curved Validators
 
-These must be closed by `Milestone 6`, `Milestone 7`, and `Milestone 8`:
+These must be closed by `Milestone 7`, `Milestone 8`, and `Milestone 9`:
 
-- parametric binding invariants
+- boolean boundary certification
+- split / classify / assemble consistency
+- EMBER / B-rep parity or explicit divergence classification
+- boolean corruption-localization and brutality-tier determinism
 - trim loop closure in UV
 - p-curve / coedge sense consistency
 - UV domain and seam accounting checks
@@ -266,7 +303,7 @@ These must be closed by `Milestone 6`, `Milestone 7`, and `Milestone 8`:
 
 ### Feature And Regeneration Validators
 
-These must be closed by `Milestone 9` and `Milestone 10`:
+These must be closed by `Milestone 10` and `Milestone 11`:
 
 - feature dependency determinism
 - regeneration replay exactness
@@ -275,7 +312,7 @@ These must be closed by `Milestone 9` and `Milestone 10`:
 
 ### Freeform Validators
 
-These must be closed by `Milestone 11` and `Milestone 12`:
+These must be closed by `Milestone 12` and `Milestone 13`:
 
 - freeform binding and trim integrity
 - freeform escalation and unsupported-case classification consistency
@@ -283,7 +320,7 @@ These must be closed by `Milestone 11` and `Milestone 12`:
 
 ### Specialized Feature Validators
 
-These must be closed by `Milestone 13` through `Milestone 16`:
+These must be closed by `Milestone 14` through `Milestone 17`:
 
 - edge-modification consistency validators
 - blend collapse / overflow / continuity validators
@@ -292,7 +329,7 @@ These must be closed by `Milestone 13` through `Milestone 16`:
 
 ### History / Merge / Interaction Validators
 
-These must be closed by `Milestone 17` through `Milestone 19`:
+These must be closed by `Milestone 18` through `Milestone 20`:
 
 - historical lookup determinism
 - name survival through split / merge
@@ -314,27 +351,43 @@ These should be admitted by `Milestone 3`:
 - radial splice and radial repair operators for admitted NMT states
 - shell / wire membership edits
 
-### Planar Boolean And Topology Repair Operators
+### Primitive Construction Operators
 
-These should be widened across `Milestone 4` and `Milestone 5`:
+These should be widened across `Milestone 4`:
 
-- planar split / classify / assemble operators
-- coplanar overlap resolution operators
-- thin-feature and degeneracy repair operators
-- chain-safe rollback / repair flows for hostile planar cases
+- primitive-body construction programs
+- topology-certified construction chains
+- shell / wire composition programs for admitted primitive families
 
-### Geometry Binding And Curved Operators
+### Spatial Contract And Planar Operators
 
-These should be widened across `Milestone 6` through `Milestone 8`:
+These should be widened across `Milestone 5` and `Milestone 6`:
 
-- binding / rebinding operators
+- topology-to-spatial binding / rebinding operators
+- exact planar classification operators
+- planar structural identity / fingerprint operators
+- typed planar clean-fail and ambiguity exits
+
+### Boolean Operators
+
+These should be widened across `Milestone 7` and `Milestone 8`:
+
+- EMBER boolean pipeline operators
+- B-rep boolean pipeline operators
+- split / classify / assemble / postprocess operators
+- brutality-tier replay and corruption-localization operators
+
+### Curved Operators
+
+These should be widened across `Milestone 9`:
+
 - anchored curve and trim operators
 - curved split / classify / assemble operators
 - tangent / drift repair or fail-closed operators
 
 ### Feature And Regeneration Operators
 
-These should be widened across `Milestone 9` and `Milestone 10`:
+These should be widened across `Milestone 10` and `Milestone 11`:
 
 - feature authoring operators
 - parameter rewrite operators
@@ -343,7 +396,7 @@ These should be widened across `Milestone 9` and `Milestone 10`:
 
 ### Freeform Operators
 
-These should be widened across `Milestone 11` and `Milestone 12`:
+These should be widened across `Milestone 12` and `Milestone 13`:
 
 - freeform surface authoring operators
 - freeform trim / intersection operators
@@ -351,7 +404,7 @@ These should be widened across `Milestone 11` and `Milestone 12`:
 
 ### Specialized Edge And Blend Operators
 
-These should be widened across `Milestone 13` through `Milestone 16`:
+These should be widened across `Milestone 14` through `Milestone 17`:
 
 - chamfer operators
 - constant-radius fillet operators
@@ -361,7 +414,7 @@ These should be widened across `Milestone 13` through `Milestone 16`:
 
 ### History, Merge, And Intent Operators
 
-These should be widened across `Milestone 17` through `Milestone 19`:
+These should be widened across `Milestone 18` through `Milestone 20`:
 
 - history inspection operators
 - merge and reconciliation operators
@@ -381,16 +434,20 @@ Critical path:
 Parallel tracks:
 
 - manufacturing and domain-analysis derived programs can deepen in parallel
-  after `Milestone 8` once geometry certification boundaries are explicit
-- collaborative interaction workflows in `Milestone 19` can overlap late
-  `Milestone 18` once merge and identity semantics are frozen
-- certification harness expansion can overlap late `Milestone 18` once hostile
+  after `Milestone 9` once boolean and curved geometry certification
+  boundaries are explicit
+- collaborative interaction workflows in `Milestone 20` can overlap late
+  `Milestone 19` once merge and identity semantics are frozen
+- certification harness expansion can overlap late `Milestone 19` once hostile
   replay and merge semantics are stable
 
 ## Milestone 1: NMT Topology Truth And Naming Foundation
 
 Engineering spec:
 [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1.md)
+
+Closeout:
+[milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 
 ### Goal
 
@@ -532,6 +589,14 @@ being honest.
 
 ## Milestone 2: Derived Topology Materialization And Bridge-Causal Validation
 
+> **Status:** Complete
+
+Engineering spec:
+[milestone-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2.md)
+
+Closeout:
+[milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+
 ### Goal
 
 Make topology interpretation and validation incrementally derived, branch-safe,
@@ -635,6 +700,8 @@ derived topology surface and diagnostic story.
 
 ## Milestone 3: Topology Editing Core
 
+> **Status:** Active
+
 ### Goal
 
 Establish the first honest topology-editing substrate for Worth instead of
@@ -657,6 +724,10 @@ and replayability without requiring later re-foundation of the topology model.
 - full boolean programs
 - geometry-aware edit semantics
 - broad healing and import-recovery operator families
+
+Milestone 3 is explicitly `worth-topo` work. It must not import geometry
+semantics that belong in `worth-spatial` or construction programs that belong
+in `worth-kernel`.
 
 ### Workflow Surface
 
@@ -730,35 +801,241 @@ silently depending on toy topology.
 This belongs before planar hostile proof because the hostile proof must target a
 real edit-capable substrate, not only seeded fixtures.
 
-## Milestone 4: Planar Exactness And Structural Identity
+## Milestone 4: Topology-Certified Primitive Construction
 
 ### Goal
 
-Make the planar/topological core exact enough and identity-rich enough that
-later curved, feature, and blend work inherit a trustworthy substrate.
+Prove that Worth can construct the primitive and body classes enabled by the
+topology architecture through an explicit kernel-to-topology pipeline before
+booleans are allowed to claim readiness.
+
+### Adversarial Constraint
+
+Primitive and body construction must not smuggle geometry semantics into
+`worth-topo`, must not bypass topology authority, and must not claim closure
+from a cube, tetrahedron, or a few curated solids while general construction
+classes remain unproven.
+
+### Admitted Surface
+
+- topology-certified primitive construction workflows authored by `worth-kernel`
+- generic admitted construction families such as:
+  - simplex-like solids
+  - orthotope / box-like solids
+  - prisms
+  - pyramids
+  - holed shells
+  - wire bodies
+- direct topology certification of constructed results
+
+This is the first milestone where `worth-kernel` becomes a required crate in
+the dependency story, but `worth-topo` still remains geometry-free and
+topology-authoritative.
+
+### Excluded Surface
+
+- full boolean programs
+- exact geometric classification beyond topology-safe contracts
+- curved or freeform primitive construction classes
+
+### Workflow Surface
+
+Milestone 4 is not done because one tetrahedron, cube, prism, or showcase body
+can be built.
+
+It is only done when primitive construction operates generically over admitted
+workflow classes such as:
+
+- arbitrary admitted shell-building workflows over arbitrary admitted face
+  counts
+- arbitrary admitted body-construction workflows over the admitted primitive
+  family ladder
+- arbitrary admitted wire-body and shell-with-hole construction workflows
+- arbitrary admitted replayed and branch-local primitive construction histories
+
+### Operator Closure
+
+- primitive construction programs in `worth-kernel`
+- topology-certified construction chains
+- admitted shell / wire composition and assembly operators
+
+### Validator Closure
+
+- primitive construction results satisfy all topology validators
+- primitive construction topology legality is proven independently from any
+  geometry assumptions
+- naming and replay closure remain intact across constructed bodies
+
+### Replay Closure
+
+- admitted primitive construction workflows replay identically
+- admitted rejected primitive construction workflows replay identically
+
+### Diagnostics Closure
+
+- construction failures localize to exact topology or kernel-contract boundaries
+- diagnostics show whether failure came from construction intent, topology
+  legality, or out-of-class admission
+
+### Determinism Closure
+
+- construction workflows produce stable topology truth and stable certification
+  artifacts for the same admitted input history
+
+### Complexity / Proof Closure
+
+- name primitive construction and certification contracts
+- expose exact counters for construction breadth, assembly breadth, and
+  certification breadth
+
+### Allowed Debt
+
+- curved and freeform primitive classes may remain `Debt`
+- topology-certified primitive closure over the admitted family ladder may not
+
+### Milestone Done When
+
+Milestone 4 is done only when admitted primitive and body construction
+workflows operate generically over the admitted family ladder, certify through
+the topology substrate honestly, and fail cleanly outside the admitted class.
+
+### Sequencing Notes
+
+This belongs before spatial binding, planar boolean contracts, and all boolean
+pipelines because booleans need a real construction substrate, not only seeded
+fixtures.
+
+## Milestone 5: Spatial Binding And Topology-To-Geometry Contracts
+
+### Goal
+
+Freeze the honest topology/geometry interaction boundary in `worth-spatial`
+before exact planar work and boolean pipelines depend on it.
+
+### Adversarial Constraint
+
+Topology replacement, local rebuild, rebinding pressure, and primitive-body
+construction must not erase the distinction between topology authority,
+spatial/binding truth, and later kernel orchestration.
+
+### Admitted Surface
+
+- authoritative geometry-binding truth
+- topology-to-geometry anchoring rules
+- explicit binding semantics for:
+  - surface bindings
+  - curve bindings
+  - coedge bindings
+  - vertex geometry bindings
+- diagnostics for rebinding and continuity decisions
+
+This milestone belongs primarily to `worth-spatial`. It exists specifically so
+geometry-facing contracts do not leak into `worth-topo`.
+
+### Excluded Surface
+
+- full boolean programs
+- broad curved certification and tangent-hostility programs
+- freeform / NURBS bindings beyond explicitly admitted classes
+
+### Workflow Surface
+
+Milestone 5 is not done because one body can be rebound to one surface.
+
+It is only done when admitted binding workflows operate generically over:
+
+- arbitrary admitted shell and face counts
+- arbitrary admitted edge / coedge / vertex binding counts
+- local topology replacement and rebuild workflows within the admitted binding
+  class
+- admitted historical and branch-local binding inspection workflows
+
+### Operator Closure
+
+- binding authoring operators for admitted carriers
+- rebinding operators for admitted topology replacement workflows
+- continuity-inspection operators over binding history
+
+### Validator Closure
+
+- geometry-binding legality stays separate from topology legality
+- topology-to-geometry identity separation is explicit
+- binding completeness for admitted entity classes is closed
+- naming continuity inspectability remains independent from binding state
+
+### Replay Closure
+
+- admitted rebinding histories must replay identically
+- historical reads over admitted binding workflows must preserve the same
+  continuity conclusions
+
+### Diagnostics Closure
+
+- rebinding and continuity decisions must be localizable
+- diagnostics must show whether a failure arose from topology legality,
+  geometry-binding legality, or continuity ambiguity
+
+### Determinism Closure
+
+- binding lookup and rebinding outcomes must be deterministic
+- identity separation between topology, naming, and geometry binding must be
+  stable under replay
+
+### Complexity / Proof Closure
+
+- name geometry binding lookup and rebinding evaluation contracts
+- expose exact counters for binding traversals and rebinding breadth
+
+### Allowed Debt
+
+- richer curved certification may remain `Debt`
+- the authority boundary between topology truth and geometry binding may not
+
+### Milestone Done When
+
+Milestone 5 is done only when topology-to-geometry binding is an honest truth
+surface over the admitted workflow class, with generic rebinding coverage,
+stable identity separation, and clean failure where continuity is unjustified.
+
+### Sequencing Notes
+
+This belongs before exact planar contracts and before booleans because both
+EMBER and B-rep boolean pipelines need an honest topology-to-spatial boundary.
+
+## Milestone 6: Spatially Exact Planar Contracts And Structural Identity
+
+### Goal
+
+Make the planar and identity substrate exact enough, and explicit enough, that
+both boolean pipelines inherit a trustworthy spatial contract instead of a pile
+of heuristics.
 
 ### Adversarial Constraint
 
 Coplanar storms, high-valence degeneracy, thin-feature pressure, and long
-planar histories must not drift, shred topology, or silently corrupt naming or
-replay conclusions.
+planar histories must not drift, shred topology, or silently corrupt binding,
+naming, replay, or structural-identity conclusions.
 
 ### Admitted Surface
 
 - exact-planar decision surfaces for topology-critical classifications
 - structural identity and fingerprint surfaces for Worth topology
 - explicit clean-fail surfaces for impossible or policy-gated planar cases
+- spatially exact topology/geometry decisions required by later boolean work
+
+This milestone should be driven primarily by `worth-spatial`, with `worth-topo`
+consuming the resulting contracts rather than reimplementing geometric logic.
 
 ### Excluded Surface
 
+- full hostile boolean certification
 - curved approximation and tangent-heavy geometry programs
 - freeform surface classes
-- broad planar hostile-program certification beyond this milestone's admitted
-  exactness substrate
 
 ### Workflow Surface
 
-Milestone 4 is not done because a few planar booleans work on cubes or prisms.
+Milestone 6 is not done because a few planar cuts or coplanar cases work on
+boxes or prisms.
 
 It is only done when the admitted planar exactness and identity surfaces apply
 generically over:
@@ -810,371 +1087,234 @@ generically over:
 
 ### Milestone Done When
 
-Milestone 4 is done only when exact-planar classification and structural
+Milestone 6 is done only when exact-planar classification and structural
 identity hold generically over the admitted planar workflow surface, with
 clean-fail behavior outside the admitted class and without collapsing identity
 into naming or lineage.
 
 ### Sequencing Notes
 
-This belongs before hostile planar proof and before curved geometry.
+This belongs after spatial binding and before boolean pipelines because booleans
+need an honest exact-planar and identity substrate first.
 
-## Milestone 5: Hostile Planar Proof Program
+## Milestone 7: Boolean Foundation With EMBER And B-Rep Pipelines
 
 ### Goal
 
-Prove the planar layer under hostile workloads before the curved layer is
-allowed to widen the kernel surface.
+Establish the first honest boolean foundation with both required pipeline
+families:
+
+- EMBER
+- B-rep
+
+Neither pipeline may be treated as a demo-only side path.
 
 ### Adversarial Constraint
 
-High-genus, high-valence, scale-separated, chained planar workloads must either
-succeed exactly or fail with exact localized proof.
+Boolean work must not start from a topology or spatial substrate that is still
+under-resolved, and the two boolean pipelines must not silently disagree about
+classification, topology assembly, or failure surfaces.
 
 ### Admitted Surface
 
-- hostile planar proof harnesses over the admitted planar exactness surface
-- chain-safe checkpoint and replay diagnostics for long planar histories
-- hostile-topology trace bundles with exact trigger localization
+- first admitted planar boolean workflow classes
+- explicit EMBER boolean pipeline
+- explicit B-rep boolean pipeline
+- explicit typed divergence or parity surfaces between the two pipelines
+- typed clean-fail outcomes for unsupported or policy-gated boolean cases
+
+This milestone belongs to `worth-kernel` over `worth-topo` plus `worth-spatial`
+contracts. Booleans are not a pure-topology milestone.
 
 ### Excluded Surface
 
-- curved hostile programs
-- freeform hostile programs
-- blend hostility beyond planar contributors already in scope
+- full hostile boolean certification
+- broad curved boolean classes
+- freeform boolean classes
 
 ### Workflow Surface
 
-Milestone 5 is not done because one stress test or one deep planar history
-passes.
+Milestone 7 is not done because one union, subtract, or intersect works on one
+pair of boxes.
 
-It is only done when hostile proof covers workflow classes such as:
+It is only done when admitted boolean workflows operate generically over:
 
-- long planar history chains of arbitrary admitted length
-- cancellation and return-to-prior-state workflows
-- coplanar overlap storms over arbitrary admitted shell sizes
-- high-valence and scale-separated planar workloads within the admitted class
+- arbitrary admitted planar body pairs
+- arbitrary admitted coplanar and near-coplanar planar interactions within the
+  milestone's class
+- arbitrary admitted boolean replay histories
+- both EMBER and B-rep executions over the same admitted workflow surface
 
 ### Operator Closure
 
-- hostile planar replay and checkpoint operators
-- causal localization operators for admitted planar failures
-- typed outcome classification into exact success or exact structured failure
+- EMBER boolean split / classify / assemble / postprocess pipeline
+- B-rep boolean split / classify / assemble / postprocess pipeline
+- typed pipeline divergence or parity classification
 
 ### Validator Closure
 
-- corruption-localization validators for hostile planar chains
-- deterministic replay validators for hostile planar histories
-- planar cancellation-parity validators for admitted cancellation workflows
+- boolean boundary certification for admitted cases
+- split / classify / assemble consistency for admitted cases
+- topology legality of boolean results remains subordinate to topology truth
 
 ### Replay Closure
 
-- replay parity for admitted planar workflows
-- replay parity for accepted and rejected hostile planar cases
+- admitted EMBER boolean histories replay identically
+- admitted B-rep boolean histories replay identically
+- same admitted input history yields either parity or explicit typed divergence
+
+### Diagnostics Closure
+
+- boolean failures localize to exact phase and affected scope
+- diagnostics must distinguish topology failure, spatial/predicate failure, and
+  pipeline divergence
+
+### Determinism Closure
+
+- each admitted pipeline must be deterministic under replay
+- parity or typed divergence classification must be deterministic
+
+### Complexity / Proof Closure
+
+- name EMBER and B-rep boolean contracts
+- expose exact counters for split breadth, classify breadth, assemble breadth,
+  and postprocess breadth
+
+### Allowed Debt
+
+- full brutality closure may remain `Debt`
+- the existence of both pipeline families and their typed relation may not
+
+### Milestone Done When
+
+Milestone 7 is done only when both EMBER and B-rep boolean pipelines operate
+honestly over the admitted planar workflow surface, with deterministic internal
+behavior and explicit parity or divergence surfaces.
+
+### Sequencing Notes
+
+This belongs before hostile boolean proof and before curved geometry because
+both boolean pipeline families must exist before we can torture them honestly.
+
+## Milestone 8: Hostile Boolean Proof Program
+
+### Goal
+
+Prove the boolean layer under hostile workloads before curved surfaces, freeform
+surfaces, fillets, or other advanced geometry are allowed to widen the system.
+
+### Adversarial Constraint
+
+If the old boolean brutality families can still punch holes in the system, then
+Worth is not ready to move on to curved surfaces.
+
+This milestone must therefore absorb the brutality bar represented by the
+legacy suites under
+`crates/forge-kernel/src/operations/boolean/_deprecated/brutality/`, including:
+
+- manifold tiers
+- numerical tiers
+- adversarial tiers
+- MB1 through MB8 scenario families
+
+### Admitted Surface
+
+- hostile boolean proof harnesses over the admitted planar boolean foundation
+- replay-safe corruption-localization and checkpoint diagnostics
+- parity or typed-divergence proof between EMBER and B-rep boolean pipelines
+
+### Excluded Surface
+
+- curved boolean classes
+- freeform boolean classes
+- blend hostility beyond boolean contributors already admitted
+
+### Workflow Surface
+
+Milestone 8 is not done because one deep boolean chain or one pathological
+coplanar case passes.
+
+It is only done when hostile proof covers workflow classes such as:
+
+- coplanar apocalypse and overlap storms
+- thin labyrinth and micro-feature avalanche cases
+- cancellation chains and deep boolean histories
+- scale-separated and halfspace-storm cases
+- singularity-star and ultimate-degeneracy cases
+- accepted and rejected hostile workloads across both EMBER and B-rep pipelines
+
+### Operator Closure
+
+- hostile boolean replay and checkpoint operators
+- brutality-tier causal localization operators
+- typed outcome classification into exact success, exact structured failure, or
+  exact typed pipeline divergence
+
+### Validator Closure
+
+- corruption-localization validators for hostile boolean chains
+- deterministic replay validators for hostile boolean histories
+- parity or divergence validators between EMBER and B-rep boolean runs
+
+### Replay Closure
+
+- replay parity for admitted hostile boolean workflows
+- replay parity for accepted and rejected hostile boolean cases
 - checkpointed and non-checkpointed hostile runs must converge to the same
   outcome class
 
 ### Diagnostics Closure
 
-- chain-safe checkpoint and replay diagnostics for long planar histories
-- hostile-topology trace bundles with exact trigger localization
-- every hostile failure must identify exact trigger step and affected scope
+- chain-safe checkpoint and replay diagnostics for hostile boolean histories
+- brutality-tier trace bundles with exact trigger localization
+- every hostile failure must identify exact trigger step, phase, and affected
+  scope
 
 ### Determinism Closure
 
-- hostile planar suites must produce stable outcome classes
-- localization bundles must be deterministic for the same hostile input history
+- hostile boolean suites must produce stable outcome classes
+- localization bundles and parity/divergence bundles must be deterministic for
+  the same hostile input history
 
 ### Complexity / Proof Closure
 
-- name chain replay and corruption-localization contracts
-- expose exact counters for chain checkpoint breadth and localization scope
-- satisfy the first hostile planar proof suites in
-  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
+- name boolean brutality, chain replay, and corruption-localization contracts
+- expose exact counters for split breadth, classification breadth, checkpoint
+  breadth, and localization scope
+- satisfy the boolean brutality suites before curved surfaces are allowed to
+  widen the roadmap
 
 ### Allowed Debt
 
 - some extreme hostile cases may remain typed `Debt`
-- clean localization may not
+- the brutality gate before curved surfaces may not
 
 ### Milestone Done When
 
-Milestone 5 is done only when hostile planar workloads across the admitted
+Milestone 8 is done only when hostile boolean workloads across the admitted
 workflow surface either succeed exactly or fail with exact localized proof,
 with replay-safe outcome classification and no silent corruption, crash, or
-hang.
+hang across either EMBER or B-rep paths.
 
 ### Sequencing Notes
 
-This belongs before curved geometry because the planar layer must be certified
-before we broaden the geometric problem space.
-
-## Milestone 6: Geometry Binding And Topology-To-Geometry Identity
-
-### Goal
-
-Freeze the authoritative topology-to-geometry contract before richer curved
-geometry and regeneration programs depend on it.
-
-### Adversarial Constraint
-
-Topology replacement, local rebuild, and rebinding pressure must not erase the
-distinction between topological authority, geometry binding truth, and naming
-continuity.
-
-### Admitted Surface
-
-- authoritative geometry-binding truth
-- topology-to-geometry anchoring rules
-- explicit binding semantics for:
-  - surface bindings
-  - curve bindings
-  - coedge bindings
-  - vertex geometry bindings
-- diagnostics for rebinding and continuity decisions
-
-### Excluded Surface
-
-- broad curved certification and tangent-hostility programs
-- freeform / NURBS bindings beyond explicitly admitted classes
-- broad feature-regeneration semantics over yet-unfrozen geometry bindings
-
-### Workflow Surface
-
-Milestone 6 is not done because one body can be rebound to one new surface.
-
-It is only done when the admitted binding workflows operate generically over:
-
-- arbitrary admitted shell and face counts
-- arbitrary admitted edge / coedge / vertex binding counts
-- local topology replacement and rebuild workflows within the admitted binding
-  class
-- admitted historical and branch-local binding inspection workflows
-
-### Operator Closure
-
-- binding authoring operators for admitted carriers
-- rebinding operators for admitted topology replacement workflows
-- continuity-inspection operators over binding history
-
-### Validator Closure
-
-- geometry-binding legality separate from topology legality
-- topology-to-geometry identity separation
-- binding completeness for admitted entity classes
-- naming continuity inspectability independent from binding state
-
-### Replay Closure
-
-- admitted rebinding histories must replay identically
-- historical reads over admitted binding workflows must preserve the same
-  continuity conclusions
-
-### Diagnostics Closure
-
-- rebinding and continuity decisions must be localizable
-- diagnostics must show whether a failure arose from topology legality,
-  geometry-binding legality, or continuity ambiguity
-
-### Determinism Closure
-
-- binding lookup and rebinding outcomes must be deterministic
-- identity separation between topology, naming, and geometry binding must be
-  stable under replay
-
-### Complexity / Proof Closure
-
-- name geometry binding lookup and rebinding evaluation contracts
-- expose exact counters for binding traversals and rebinding breadth
-
-### Allowed Debt
-
-- richer geometry certification may remain `Debt`
-- the authority boundary between topology truth and geometry binding may not
-
-### Milestone Done When
-
-Milestone 6 is done only when topology-to-geometry binding is an honest truth
-surface over the admitted workflow class, with generic rebinding coverage,
-stable identity separation, and clean failure where continuity is unjustified.
-
-### Sequencing Notes
-
-This belongs before curved geometry, regeneration, and fillets because all of
-them must target an already-honest topology-to-geometry contract.
-
-## Milestone 7: Curved Geometry Foundation
-
-### Goal
-
-Establish the first honest curved geometry substrate, including anchoring and
-certified approximation surfaces, without yet pretending the hostile curved
-program is solved.
-
-### Adversarial Constraint
-
-Tangent grazes, scale separation, and anchored curve pressure must not turn
-approximation into silent truth.
-
-### Admitted Surface
-
-- certified approximation and escalation surfaces for admitted curved geometry
-  classes
-- curved anchoring and anti-drift semantics
-- diagnostics for tangency, escalation, snapping, and policy-required outcomes
-- explicit boundary between geometry binding and geometry certification
-
-### Excluded Surface
-
-- hostile curved certification across the full curved problem space
-- general freeform / NURBS surfaces
-- specialized blend programs built on uncertified curved families
-
-### Workflow Surface
-
-Milestone 7 is not done because one cylinder cut, one tangent case, or one
-anchored edge path works.
-
-It is only done when admitted curved workflows operate generically over:
-
-- arbitrary admitted curved edge counts and trim counts
-- arbitrary admitted tangent and near-tangent events within the milestone's
-  curved class
-- arbitrary admitted local chained curved rebuilds of bounded depth
-- admitted anti-drift workflows over the admitted anchored geometry surface
-
-### Operator Closure
-
-- approximation and escalation operators for admitted curved classes
-- curved anchoring operators
-- typed policy-required or unsupported-case exits for unresolved curved inputs
-
-### Validator Closure
-
-- visible approximation and escalation legality
-- anti-drift and anchoring consistency for admitted curved classes
-- explicit separation between binding legality and curved certification
-
-### Replay Closure
-
-- admitted curved histories must replay to the same bounded outcomes
-- escalation and policy-required outcomes must replay identically
-
-### Diagnostics Closure
-
-- tangency, escalation, snapping, and policy-required outcomes must be
-  localizable and inspectable
-
-### Determinism Closure
-
-- escalation stage selection and final outcome class must be deterministic for
-  the same admitted curved input
-
-### Complexity / Proof Closure
-
-- name approximation escalation and tangency classification contracts
-- expose exact counters for approximation escalation and tangent fallback
-  breadth
-
-### Allowed Debt
-
-- broad curved coverage may remain `Debt`
-- explicit escalation and clean-fail behavior may not
-
-### Milestone Done When
-
-Milestone 7 is done only when admitted curved geometry workflows are bounded,
-visible, replay-safe, and generic across the admitted curved workflow class,
-without allowing approximation to silently become truth.
-
-### Sequencing Notes
-
-This belongs before curved hostile proof, regeneration, and fillets.
-
-## Milestone 8: Curved Hostile Proof Program
-
-### Goal
-
-Prove the curved layer under hostile workloads before blend features and
-specialized high-level geometry build on it.
-
-### Adversarial Constraint
-
-Scale-separated, tangent-heavy, chained curved workloads must either succeed
-within declared bounds or fail with exact structured diagnostics.
-
-### Admitted Surface
-
-- hostile curved proof harnesses over the admitted curved foundation
-- chain-local degradation diagnostics for curved histories
-- anchored or symbolic drift-localization surfaces
-
-### Excluded Surface
-
-- freeform hostile programs
-- blend hostility beyond curved contributors already admitted
-- unsupported curved families outside the admitted hostile-proof surface
-
-### Workflow Surface
-
-Milestone 8 is not done because one long curved history passes.
-
-It is only done when hostile proof covers workflow classes such as:
-
-- tangent-heavy curved histories of arbitrary admitted length
-- scale-separated curved workloads within the admitted class
-- anchored or symbolic drift-sensitive workloads over arbitrary admitted chain
-  depth
-
-### Operator Closure
-
-- hostile curved replay and checkpoint operators
-- drift-localization and degradation-localization operators
-- typed exact-success versus exact-structured-failure classification
-
-### Validator Closure
-
-- chain-stability validators for admitted curved histories
-- drift-localization validators for admitted anchored or symbolic workflows
-- deterministic hostile replay validators
-
-### Replay Closure
-
-- replay parity for admitted curved workflows
-- replay parity for accepted and rejected hostile curved cases
-
-### Diagnostics Closure
-
-- every hostile curved failure must identify trigger step, degradation scope,
-  and drift scope when applicable
-
-### Determinism Closure
-
-- hostile curved suites must produce stable outcome classes and stable
-  localization artifacts
-
-### Complexity / Proof Closure
-
-- name chain-stability and drift-localization contracts
-- expose exact counters for chain-local degradation checks and drift scope
-- satisfy the first curved hostile proof suites in
-  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
-
-### Allowed Debt
-
-- some extreme hostile cases may remain typed `Debt`
-- clean localization may not
-
-### Milestone Done When
-
-Milestone 8 is done only when hostile curved workloads across the admitted
-workflow surface either succeed within declared bounds or fail with exact,
-replay-safe localization, with no silent drift, crash, or hang.
-
-### Sequencing Notes
-
-This belongs before regeneration and fillets because those programs must not be
-built on an uncertified curved layer.
+This belongs before curved geometry. Worth is not allowed to move on to curved
+surfaces until the boolean brutality bar is satisfied.
+
+## Sequencing Correction Note
+
+The corrected dependency chain through the boolean gate is now:
+
+- `Milestone 3`: topology editing
+- `Milestone 4`: topology-certified primitive construction
+- `Milestone 5`: spatial binding and topology-to-geometry contracts
+- `Milestone 6`: spatially exact planar contracts and structural identity
+- `Milestone 7`: boolean foundation with EMBER and B-rep pipelines
+- `Milestone 8`: hostile boolean proof gate
+
+The milestones that follow in this roadmap were originally written against the
+older sequence and should now be read as provisional placeholders until they
+are renumbered and re-specified against this corrected dependency chain.
 
 ## Milestone 9: Feature Intent Core And Spec Truth
 

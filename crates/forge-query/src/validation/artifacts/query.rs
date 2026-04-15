@@ -1,3 +1,5 @@
+use crate::authoring::QueryFamily;
+use crate::binding::IdentityBindingDescriptor;
 use crate::canonicalization::CanonicalQueryArtifact;
 use crate::identity::{CanonicalQueryDigest, SchemaBasisDigest, ValidatedQueryDigest};
 
@@ -10,6 +12,8 @@ pub struct ValidatedQueryArtifact {
     digest: ValidatedQueryDigest,
     canonical_query_digest: CanonicalQueryDigest,
     schema_basis: SchemaBasisDigest,
+    family: QueryFamily,
+    identity_bindings: Vec<IdentityBindingDescriptor>,
     projection: Vec<ValidatedProjectionEntry>,
     traversal: Vec<ValidatedTraversalEntry>,
     predicates: ValidatedPredicateSet,
@@ -29,8 +33,16 @@ impl ValidatedQueryArtifact {
         &self.schema_basis
     }
 
+    pub fn family(&self) -> &QueryFamily {
+        &self.family
+    }
+
     pub fn projection(&self) -> &[ValidatedProjectionEntry] {
         &self.projection
+    }
+
+    pub fn identity_bindings(&self) -> &[IdentityBindingDescriptor] {
+        &self.identity_bindings
     }
 
     pub fn traversal(&self) -> &[ValidatedTraversalEntry] {
@@ -75,6 +87,8 @@ pub(crate) fn build_validated_query_artifact(
         digest: ValidatedQueryDigest::from_parts(&parts),
         canonical_query_digest: canonical_query.digest().clone(),
         schema_basis: schema_basis.clone(),
+        family: canonical_query.family().clone(),
+        identity_bindings: canonical_query.identity_bindings().to_vec(),
         projection,
         traversal,
         predicates,

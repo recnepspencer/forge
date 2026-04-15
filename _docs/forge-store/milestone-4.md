@@ -1,6 +1,6 @@
 # Milestone 4 Engineering Spec: Snapshot Persistence And Point-In-Time Restore
 
-> **Status:** Draft
+> **Status:** Closed 2026-04-14
 >
 > **Roadmap parent:** [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)
 >

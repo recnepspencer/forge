@@ -1,8 +1,17 @@
 use crate::{ForgeStoreBuilder, StoreErrorKind};
-use rusqlite::Connection;
 
-use super::support::{
-    create_entity, latest_envelope, runtime_with_demo_schema, unique_test_store_path,
+use super::harness::{
+    corruption::authoritative::{
+        corrupt_local_file_branch_head_digest, corrupt_local_file_commit_digest,
+        corrupt_sqlite_authoritative_digest, corrupt_sqlite_branch_head_digest,
+        corrupt_sqlite_envelope_payload, delete_sqlite_parent_row,
+    },
+    fixtures::{
+        runtime::{
+            create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch,
+        },
+        stores::unique_test_store_path,
+    },
 };
 
 #[test]
@@ -76,22 +85,7 @@ fn sqlite_corrupted_digest_record_is_rejected_on_open() {
         store.append_canonical_commit(envelope).unwrap();
     }
 
-    let connection = Connection::open(&path).unwrap();
-    connection
-        .execute(
-            "
-            UPDATE authoritative_artifact_digests
-            SET artifact_digest = 'corrupted-digest'
-            WHERE rowid = (
-                SELECT rowid
-                FROM authoritative_artifact_digests
-                WHERE artifact_family = 'CommitEnvelope'
-                LIMIT 1
-            )
-            ",
-            [],
-        )
-        .unwrap();
+    corrupt_sqlite_authoritative_digest(&path);
 
     let error = ForgeStoreBuilder::new()
         .sqlite_file(path)
@@ -115,21 +109,7 @@ fn sqlite_branch_head_digest_drift_is_rejected_on_open() {
         store.append_canonical_commit(envelope).unwrap();
     }
 
-    let connection = Connection::open(&path).unwrap();
-    connection
-        .execute(
-            "
-            UPDATE branch_head_records
-            SET head_commit_digest = 'drifted-digest'
-            WHERE rowid = (
-                SELECT rowid
-                FROM branch_head_records
-                LIMIT 1
-            )
-            ",
-            [],
-        )
-        .unwrap();
+    corrupt_sqlite_branch_head_digest(&path);
 
     let error = ForgeStoreBuilder::new()
         .sqlite_file(path)
@@ -143,7 +123,7 @@ fn sqlite_missing_parent_row_is_rejected_on_open() {
     let mut runtime = runtime_with_demo_schema();
     let entity_id = create_entity(&mut runtime, "alpha");
     let first = latest_envelope(&runtime);
-    super::support::update_entity_on_branch(&mut runtime, entity_id, "beta", None);
+    update_entity_on_branch(&mut runtime, entity_id, "beta", None);
     let second = latest_envelope(&runtime);
     let path = unique_test_store_path("forge-store-sqlite-missing-parent").with_extension("sqlite");
 
@@ -156,20 +136,7 @@ fn sqlite_missing_parent_row_is_rejected_on_open() {
         store.append_canonical_commit(second).unwrap();
     }
 
-    let connection = Connection::open(&path).unwrap();
-    connection
-        .execute(
-            "
-            DELETE FROM commit_parent_records
-            WHERE rowid = (
-                SELECT rowid
-                FROM commit_parent_records
-                LIMIT 1
-            )
-            ",
-            [],
-        )
-        .unwrap();
+    delete_sqlite_parent_row(&path);
 
     let error = ForgeStoreBuilder::new()
         .sqlite_file(path)
@@ -193,21 +160,7 @@ fn sqlite_malformed_envelope_payload_is_rejected_on_open() {
         store.append_canonical_commit(envelope).unwrap();
     }
 
-    let connection = Connection::open(&path).unwrap();
-    connection
-        .execute(
-            "
-            UPDATE commit_envelopes
-            SET envelope_payload = '{not-json'
-            WHERE rowid = (
-                SELECT rowid
-                FROM commit_envelopes
-                LIMIT 1
-            )
-            ",
-            [],
-        )
-        .unwrap();
+    corrupt_sqlite_envelope_payload(&path);
 
     let error = ForgeStoreBuilder::new()
         .sqlite_file(path)
@@ -231,27 +184,7 @@ fn corrupted_persisted_digest_record_is_rejected_on_open() {
         store.append_canonical_commit(envelope).unwrap();
     }
 
-    let raw = std::fs::read_to_string(&path).unwrap();
-    let persisted: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    let digests = persisted
-        .get("authoritative_artifact_digests")
-        .and_then(serde_json::Value::as_object)
-        .unwrap();
-    let commit_digest_key = digests
-        .keys()
-        .find(|key| key.starts_with("CommitEnvelope:commit:"))
-        .cloned()
-        .unwrap();
-    let artifact_digest = digests[&commit_digest_key]
-        .get("artifact_digest")
-        .and_then(serde_json::Value::as_str)
-        .unwrap();
-    let corrupted = raw.replacen(
-        &format!("\"artifact_digest\": \"{artifact_digest}\""),
-        "\"artifact_digest\": \"corrupted-digest\"",
-        1,
-    );
-    std::fs::write(&path, corrupted).unwrap();
+    corrupt_local_file_commit_digest(&path);
 
     let error = ForgeStoreBuilder::new()
         .local_file(path)
@@ -275,13 +208,7 @@ fn branch_head_digest_drift_is_rejected_on_open() {
         store.append_canonical_commit(envelope).unwrap();
     }
 
-    let raw = std::fs::read_to_string(&path).unwrap();
-    let corrupted = raw.replacen(
-        "\"head_commit_digest\": \"",
-        "\"head_commit_digest\": \"drifted-",
-        1,
-    );
-    std::fs::write(&path, corrupted).unwrap();
+    corrupt_local_file_branch_head_digest(&path);
 
     let error = ForgeStoreBuilder::new()
         .local_file(path)

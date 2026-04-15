@@ -1,4 +1,5 @@
 use crate::materialization::WorthTopologyMaterializationError;
+use crate::reader::WorthTopologyReadError;
 use crate::validators::WorthTopologyValidationError;
 use worth_schema::facade::WorthMilestoneOnePrimitiveAuthoringError;
 
@@ -32,6 +33,16 @@ impl From<WorthTopologyMaterializationError> for WorthMilestoneOneCertificationE
 impl From<WorthTopologyValidationError> for WorthMilestoneOneCertificationError {
     fn from(value: WorthTopologyValidationError) -> Self {
         Self::Validation(value)
+    }
+}
+
+impl From<WorthTopologyReadError> for WorthMilestoneOneCertificationError {
+    fn from(value: WorthTopologyReadError) -> Self {
+        match value {
+            WorthTopologyReadError::ReadView(error) => Self::ReadView(error),
+            WorthTopologyReadError::Materialization(error) => Self::Materialization(error),
+            WorthTopologyReadError::Validation(error) => Self::Validation(error),
+        }
     }
 }
 

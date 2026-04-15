@@ -11,7 +11,7 @@ already closed elsewhere.
 
 It governs milestone closeout for:
 
-- Milestone 1 through Milestone 18
+- Milestone 1 through Milestone 18, including Milestone 3.5 and Milestone 3.6
 - the generic certification program in Milestone 19
 - the domain certification program in Milestone 20
 
@@ -153,6 +153,8 @@ The following do not count as certification:
 | M1 | Durable artifact authority equivalence test |
 | M2 | Operating mode contract parity test |
 | M3 | WAL crash boundary exactness test |
+| M3.5 | Durable media and write-path certification test |
+| M3.6 | Adversarial crash recovery and recovery source precedence test |
 | M4 | Snapshot-plus-tail restore equivalence test |
 | M5 | Branch delta proportionality and replay parity test |
 | M6 | Aspect-layout narrowing and structural-block dedup integrity test |
@@ -578,6 +580,141 @@ Pass condition
 
 Durable acknowledgment is exact and crash-safe.
 
+### 3.5. Durable Media And Write-Path Certification Test
+
+Purpose
+
+Prove that admitted backend families expose real durable media semantics rather
+than optimistic write folklore.
+
+Scenario
+
+- write representative durable publication units through at least two admitted
+  backend families
+- inject:
+  - truncated tail
+  - torn record
+  - partial publication marker durability
+  - directory-entry durability gap where relevant
+  - unsupported durable family version
+- compare startup scan and acknowledgment classification across lanes
+
+Must verify
+
+- record framing distinguishes clean, truncated, torn, and unsupported states
+- acknowledgment never outruns the declared backend-family barrier classes
+- backend variation changes mechanics only, not retained truth meaning
+- integrity-valid but authenticity-invalid lanes fail explicitly and typed
+- the certification bundle carries typed observed media and source-admission
+  failures rather than only a rolled-up failure digest
+- startup tail handling never silently rewrites or normalizes damaged media
+  into a clean state
+
+Required verification output
+
+- `truth_digest`
+- `artifact_digest`
+- `write_path_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Required additional bundle content for this suite
+
+- `ack_boundary_report`
+- `certification_summary`
+- `media_barrier_matrix`
+- `tail_validation_report`
+- `observed_failures`
+
+Required counter assertions
+
+- `durable_frame_scan_count` exactly matches the scanned framing work for the
+  representative startup lanes
+- `durable_truncated_tail_count` increments only for truncated-tail lanes
+- `durable_torn_write_count` increments only for torn-write lanes
+- `durable_ack_barrier_violation_count` remains zero in clean admitted lanes
+  and increments in explicit barrier-violation lanes
+
+Pass condition
+
+Durable acknowledgment depends on declared barrier classes and framed durable
+bytes, not ambient platform optimism.
+
+### 3.6. Adversarial Crash Recovery And Recovery Source Precedence Test
+
+Purpose
+
+Prove that crash recovery chooses the right source of truth, handles
+interrupted maintenance honestly, and becomes quiescent once work is closed.
+
+Scenario
+
+- run crash-restart lanes with:
+  - authoritative artifacts intact and WAL incomplete
+  - WAL intact and authoritative publication incomplete
+  - interrupted snapshot publication
+  - interrupted compaction publication
+  - interrupted reclaim publication
+  - interrupted capsule publication
+  - same-scope conflicting recovery sources
+  - quarantine-required damaged-media lanes
+  - salvage-admitted lanes where policy allows them
+- repeat restart after a terminal recovery conclusion has already been emitted
+- compare crash recovery, authoritative rebuild, quarantine, and salvage lanes
+  where admitted
+
+Must verify
+
+- recovery source choice follows the declared precedence rules
+- lower-precedence or newer-looking derived artifacts never outrank higher
+  precedence authority
+- interrupted maintenance output does not displace the last known-good input
+  before complete publication
+- repeated restart becomes quiescent for already-terminal work
+- quarantine and salvage remain explicit degraded outcomes rather than silent
+  ordinary success
+- retained-without-acknowledgment lanes remain explicit degraded outcomes with
+  operator-visible follow-up action rather than being collapsed into clean
+  success
+- backup/restore and disaster-recovery inputs honor compatibility and admitted
+  source rules
+
+Required verification output
+
+- `truth_digest`
+- `restore_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Required additional bundle content for this suite
+
+- `recovery_source_report`
+- `maintenance_recovery_report`
+- `degraded_state_report`
+- `certification_summary`
+- `compatibility_digest`
+- `quiescence_report`
+- `recovery_status_report`
+- `observed_failures`
+
+Required counter assertions
+
+- `recovery_source_precedence_resolution_count` exactly matches the number of
+  precedence decisions exercised in the representative hostile lanes
+- `recovery_quiescent_restart_count` increments on second and later restarts of
+  already-terminal work
+- `recovery_non_quiescent_restart_count` remains zero once the lane should be
+  quiescent
+- `interrupted_maintenance_recovery_count` increments only for the admitted
+  interrupted-maintenance lanes
+- `recovery_quarantine_count` and `recovery_salvage_count` distinguish degraded
+  recovery classes without fabricating clean restart work
+
+Pass condition
+
+Recovery is deterministic, precedence-driven, degraded-state honest, and
+quiescent once work is closed.
+
 ### 4. Snapshot-Plus-Tail Restore Equivalence Test
 
 Purpose
@@ -589,13 +726,23 @@ Scenario
 
 - capture snapshots
 - restore from snapshot plus suffix history
-- delete and rebuild snapshots
+- compare at least one structurally distinct backend family lane
+- delete a snapshot image and rebuild from authoritative artifacts
+- inject at least these hostile snapshot failure lanes:
+  - corrupted snapshot image
+  - missing published snapshot image with basis still present
+  - unsupported snapshot family or basis version
 
 Must verify
 
 - snapshot restore matches canonical replay
 - rebuilt snapshots match original snapshot-visible truth
 - snapshots remain derived, not authoritative
+- backend variation does not change snapshot-visible truth
+- delete-and-rebuild lanes converge to the same truth-visible result as the
+  originally published snapshot family
+- hostile snapshot failure lanes fail explicitly and typed rather than
+  broadening into fallback authority
 
 Required verification output
 
@@ -603,6 +750,18 @@ Required verification output
 - `restore_digest`
 - `artifact_digest`
 - `counter_snapshot`
+- `failure_digest`
+
+Required counter assertions
+
+- `snapshot_read_tail_commit_count` and `snapshot_read_tail_replay_count`
+  exactly match the admitted suffix width for representative snapshot-tail
+  reads
+- `snapshot_restore_tail_commit_count` and
+  `snapshot_restore_tail_replay_count` exactly match the admitted suffix width
+  for representative restores
+- hostile snapshot failure lanes increment the appropriate integrity or basis
+  mismatch counters without fabricating successful restore work
 
 Pass condition
 

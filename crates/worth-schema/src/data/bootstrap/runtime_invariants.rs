@@ -6,16 +6,18 @@ pub enum WorthBootstrapRuntimeInvariant {
     LoopWiring,
     RadialSurface,
     WireConnectivity,
+    VertexBranching,
     ShellClosureSurface,
     NamingCoverage,
 }
 
 impl WorthBootstrapRuntimeInvariant {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::OwnershipSurface,
         Self::LoopWiring,
         Self::RadialSurface,
         Self::WireConnectivity,
+        Self::VertexBranching,
         Self::ShellClosureSurface,
         Self::NamingCoverage,
     ];

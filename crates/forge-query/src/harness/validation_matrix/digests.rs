@@ -1,5 +1,3 @@
-use sha2::{Digest, Sha256};
-
 use crate::facade::QueryValidationCounters;
 
 use super::super::profiles::CertificationProfile;
@@ -61,15 +59,6 @@ pub(crate) fn coverage_digest_parts(matrix: &ValidationCertificationMatrix) -> V
     }
 
     parts
-}
-
-pub(crate) fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = Sha256::new();
-    for part in parts {
-        hasher.update(part.as_bytes());
-        hasher.update([0x1f]);
-    }
-    format!("{:x}", hasher.finalize())
 }
 
 fn validation_bundle_digest_parts(

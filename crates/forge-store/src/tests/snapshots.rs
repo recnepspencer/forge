@@ -1,41 +1,9 @@
 use crate::{ForgeStoreBuilder, SnapshotCaptureRequest, SnapshotReadRequest, StoreErrorKind};
 
-use super::support::{
-    create_entity, latest_envelope, runtime_with_demo_schema, unique_test_sqlite_path,
-    update_entity_on_branch,
+use super::harness::{
+    fixtures::stores::unique_test_sqlite_path,
+    scenarios::snapshots::append_three_mainline_commits_for_store,
 };
-
-fn append_three_mainline_commits(
-    store: &mut crate::ForgeStore,
-) -> (
-    forge_relational::facade::history::CommitId,
-    forge_relational::facade::history::CommitId,
-    forge_relational::facade::history::CommitId,
-) {
-    let mut runtime = runtime_with_demo_schema();
-    let entity_id = create_entity(&mut runtime, "alpha");
-    let first = latest_envelope(&runtime);
-    let first_id = first.commit.commit_id;
-    store
-        .append_canonical_commit(first)
-        .expect("first commit should append");
-
-    update_entity_on_branch(&mut runtime, entity_id, "beta", None);
-    let second = latest_envelope(&runtime);
-    let second_id = second.commit.commit_id;
-    store
-        .append_canonical_commit(second)
-        .expect("second commit should append");
-
-    update_entity_on_branch(&mut runtime, entity_id, "gamma", None);
-    let third = latest_envelope(&runtime);
-    let third_id = third.commit.commit_id;
-    store
-        .append_canonical_commit(third)
-        .expect("third commit should append");
-
-    (first_id, second_id, third_id)
-}
 
 #[test]
 fn snapshot_plus_tail_restore_matches_direct_point_in_time_read() {
@@ -43,7 +11,7 @@ fn snapshot_plus_tail_restore_matches_direct_point_in_time_read() {
         .in_memory()
         .build()
         .expect("store should build");
-    let (_, second_id, third_id) = append_three_mainline_commits(&mut store);
+    let (_, second_id, third_id) = append_three_mainline_commits_for_store(&mut store);
 
     let snapshot = store
         .capture_snapshot(SnapshotCaptureRequest::new(
@@ -64,8 +32,14 @@ fn snapshot_plus_tail_restore_matches_direct_point_in_time_read() {
             third_id,
         ))
         .expect("snapshot-plus-tail read should succeed");
+    let plan = store
+        .plan_snapshot_restore(crate::SnapshotRestoreRequest::new(
+            snapshot.snapshot_id,
+            third_id,
+        ))
+        .expect("snapshot restore plan should succeed");
     let restored = store
-        .restore_snapshot(snapshot.snapshot_id, third_id)
+        .execute_snapshot_restore(plan.clone())
         .expect("snapshot restore should succeed");
 
     assert_eq!(
@@ -73,11 +47,20 @@ fn snapshot_plus_tail_restore_matches_direct_point_in_time_read() {
         restored.restored_image.canonical_json()
     );
     assert_ne!(pure.image.canonical_json(), tailed.image.canonical_json());
+    assert_eq!(plan.tail_commit_ids().len(), 1);
+    assert_eq!(store.counters().snapshot_read_count, 2);
+    assert_eq!(
+        store.counters().snapshot_read_tail_commit_count,
+        1,
+        "snapshot-tail reads must expose exactly the replay suffix width they consumed"
+    );
+    assert_eq!(store.counters().snapshot_read_tail_replay_count, 1);
     assert_eq!(
         store.counters().snapshot_restore_tail_commit_count,
         1,
         "restore should count exactly one tail commit beyond the snapshot frontier"
     );
+    assert_eq!(store.counters().snapshot_restore_tail_replay_count, 1);
 }
 
 #[test]
@@ -86,7 +69,7 @@ fn snapshot_rebuild_uses_basis_when_image_is_missing() {
         .in_memory()
         .build()
         .expect("store should build");
-    let (_, second_id, _) = append_three_mainline_commits(&mut store);
+    let (_, second_id, _) = append_three_mainline_commits_for_store(&mut store);
 
     let snapshot = store
         .capture_snapshot(SnapshotCaptureRequest::new(
@@ -130,7 +113,7 @@ fn snapshot_restore_rejects_pre_snapshot_target() {
         .in_memory()
         .build()
         .expect("store should build");
-    let (first_id, second_id, _) = append_three_mainline_commits(&mut store);
+    let (first_id, second_id, _) = append_three_mainline_commits_for_store(&mut store);
 
     let snapshot = store
         .capture_snapshot(SnapshotCaptureRequest::new(
@@ -154,7 +137,7 @@ fn sqlite_snapshot_reopen_preserves_pure_read() {
             .sqlite_file(path.clone())
             .build()
             .expect("sqlite store should build");
-        let (_, second_id, _) = append_three_mainline_commits(&mut store);
+        let (_, second_id, _) = append_three_mainline_commits_for_store(&mut store);
         let snapshot_id = store
             .capture_snapshot(SnapshotCaptureRequest::new(
                 forge_relational::facade::history::BranchId("main".to_string()),

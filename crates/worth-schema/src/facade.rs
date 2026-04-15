@@ -5,17 +5,20 @@ pub use crate::data::aspects::{
     WorthNamingAspect, WorthTopologyAspect,
 };
 pub use crate::data::authority::{
-    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    PersistedTopologyTruthBatch, RawWorthTopologyIntent, WorthCoedgeCurveKind, WorthCreateKey,
-    WorthCurveBindingKind, WorthCurveProvenanceKind, WorthEntityReference,
+    AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
+    RawWorthTopologyIntent, WorthCoedgeCurveKind, WorthCreateKey, WorthCurveBindingKind,
+    WorthCurveProvenanceKind, WorthDerivedInvalidationTarget,
+    WorthDerivedTruthBasisIdentity, WorthDerivedTruthSurfaceKind, WorthEntityReference,
     WorthFallbackDisposition, WorthFallbackProofClass, WorthMutationOrigin,
     WorthPrecisionBudgetFallbackRecord, WorthPrecisionEscalationCause,
     WorthPrecisionFallbackRecord, WorthPrecisionRegime, WorthShellInterpretationClass,
     WorthShellInterpretationRecord, WorthSurfaceBindingKind, WorthSurfaceRelationKind,
     WorthTopologyClass, WorthTopologyInterpretationRecordSet, WorthTopologyAuthority,
     WorthTopologyAuthorityError, WorthTopologyMutation, WorthTopologyMutationBatch,
-    WorthTopologyReadArtifact, VerifiedTopologyCommit, WorthVertexGeometryProvenanceKind,
-    WorthVertexToleranceRegime,
+    WorthTopologyReadArtifact, WorthTruthToDerivedInvalidationDeclaration,
+    VerifiedTopologyCommit, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,
+    worth_milestone_two_invalidation_declarations,
     WorthWireInterpretationClass, WorthWireInterpretationRecord,
 };
 pub use crate::data::bootstrap::{
@@ -38,8 +41,11 @@ pub use crate::data::relations::{
     WorthRelationKind, WorthTopologyRelationKind,
 };
 pub use crate::data::seed::{
-    build_milestone_one_primitive_intent, created_ref, milestone_one_default_primitive_corpus,
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
+    build_milestone_one_primitive_intent, created_ref,
+    milestone_one_admitted_range_sweep_out_of_class_scenarios,
+    milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
+    milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
+    seed_milestone_one_primitive_on_branch,
     seed_minimal_topology, WorthMilestoneOnePrimitiveAuthoringError,
     WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
     WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,

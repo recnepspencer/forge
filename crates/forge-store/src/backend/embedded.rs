@@ -1,4 +1,8 @@
-use crate::{failure::StoreError, AuthoritativeExportBundle};
+use crate::{
+    failure::StoreError,
+    media::{DurabilityBarrierClass, DurableBackendFamily, DurableMediaReport},
+    AuthoritativeExportBundle,
+};
 use std::path::PathBuf;
 
 use super::{
@@ -43,10 +47,30 @@ impl StatePersistence for EmbeddedPersistence {
         }
     }
 
-    fn persist_state(&mut self, state: &StoreState) -> Result<(), StoreError> {
+    fn persist_state(&mut self, state: &StoreState) -> Result<DurableMediaReport, StoreError> {
         match &self.mode {
-            EmbeddedBackendMode::InMemory => Ok(()),
-            EmbeddedBackendMode::LocalFile(path) => persist_state_atomic(path, state),
+            EmbeddedBackendMode::InMemory => Ok(self.durable_media_report()),
+            EmbeddedBackendMode::LocalFile(path) => {
+                persist_state_atomic(path, state)?;
+                Ok(self.durable_media_report())
+            }
+        }
+    }
+
+    fn durable_media_report(&self) -> DurableMediaReport {
+        match &self.mode {
+            EmbeddedBackendMode::InMemory => DurableMediaReport::new(
+                DurableBackendFamily::InMemory,
+                DurabilityBarrierClass::ProcessBufferOnly,
+                DurabilityBarrierClass::ProcessBufferOnly,
+                DurabilityBarrierClass::ProcessBufferOnly,
+            ),
+            EmbeddedBackendMode::LocalFile(_) => DurableMediaReport::new(
+                DurableBackendFamily::LocalFileAtomicRewrite,
+                DurabilityBarrierClass::FileContentDurable,
+                DurabilityBarrierClass::RenameOrPublicationMarkerDurable,
+                DurabilityBarrierClass::FileContentDurable,
+            ),
         }
     }
 }

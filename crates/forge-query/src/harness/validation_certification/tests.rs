@@ -124,6 +124,10 @@ fn schema_aware_rejection_and_projection_legality_artifact_is_offline_ready_for_
         .bundle_completeness_report
         .unmet_required_rows
         .is_empty());
+    assert!(artifact
+        .bundle_completeness_report
+        .unmet_required_assertion_classes
+        .is_empty());
     assert!(artifact.bundle_completeness_report.offline_analysis_ready);
 }
 

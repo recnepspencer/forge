@@ -216,6 +216,166 @@ pub fn milestone_one_default_primitive_corpus() -> Vec<WorthMilestoneOnePrimitiv
     ]
 }
 
+pub fn milestone_one_admitted_range_sweep_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario> {
+    use WorthMilestoneOnePrimitiveCase as Case;
+    use WorthMilestoneOnePrimitiveExpectedOutcome as Outcome;
+    use WorthMilestoneOnePrimitiveRole as Role;
+
+    let mut scenarios = Vec::new();
+    for half_edge_count in 1..=12 {
+        scenarios.push(scenario(
+            "WireOpen(n)",
+            Role::Generic,
+            Case::WireOpen { half_edge_count },
+            Outcome::Admit,
+        ));
+    }
+    for half_edge_count in 3..=12 {
+        scenarios.push(scenario(
+            "WireClosed(n)",
+            Role::Generic,
+            Case::WireClosed { half_edge_count },
+            Outcome::Admit,
+        ));
+    }
+    for branch_count in 3..=12 {
+        scenarios.push(scenario(
+            "WireBranch(k)",
+            Role::Generic,
+            Case::WireBranch { branch_count },
+            Outcome::Admit,
+        ));
+    }
+    for edge_count in 3..=12 {
+        scenarios.push(scenario(
+            "SheetDisk(n)",
+            Role::Generic,
+            Case::SheetDisk { edge_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 2..=10 {
+        scenarios.push(scenario(
+            "SheetPatch(f)",
+            Role::Generic,
+            Case::SheetPatch { face_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 4..=10 {
+        scenarios.push(scenario(
+            "SolidShell(f)",
+            Role::Generic,
+            Case::SolidShell { face_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 3..=10 {
+        scenarios.push(scenario(
+            "NmtEdgeFan(k)",
+            Role::Generic,
+            Case::NmtEdgeFan { face_count },
+            Outcome::Admit,
+        ));
+    }
+
+    scenarios
+}
+
+pub fn milestone_one_admitted_range_sweep_out_of_class_scenarios(
+) -> Vec<WorthMilestoneOnePrimitiveScenario> {
+    use WorthMilestoneOnePrimitiveCase as Case;
+    use WorthMilestoneOnePrimitiveExpectedOutcome as Outcome;
+    use WorthMilestoneOnePrimitiveRole as Role;
+
+    vec![
+        scenario(
+            "WireOpen(n)",
+            Role::OutOfClass,
+            Case::WireOpen { half_edge_count: 0 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "WireClosed(n)",
+            Role::OutOfClass,
+            Case::WireClosed { half_edge_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "WireBranch(k)",
+            Role::OutOfClass,
+            Case::WireBranch { branch_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SheetDisk(n)",
+            Role::OutOfClass,
+            Case::SheetDisk { edge_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SheetPatch(f)",
+            Role::OutOfClass,
+            Case::SheetPatch { face_count: 1 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SolidShell(f)",
+            Role::OutOfClass,
+            Case::SolidShell { face_count: 3 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "NmtEdgeFan(k)",
+            Role::OutOfClass,
+            Case::NmtEdgeFan { face_count: 2 },
+            Outcome::Reject,
+        ),
+    ]
+}
+
+pub fn milestone_one_heavy_branch_local_sweep_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario> {
+    use WorthMilestoneOnePrimitiveCase as Case;
+    use WorthMilestoneOnePrimitiveExpectedOutcome as Outcome;
+    use WorthMilestoneOnePrimitiveRole as Role;
+
+    let mut scenarios = Vec::new();
+    for branch_count in 3..=12 {
+        scenarios.push(scenario(
+            "WireBranch(k)",
+            Role::Generic,
+            Case::WireBranch { branch_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 2..=10 {
+        scenarios.push(scenario(
+            "SheetPatch(f)",
+            Role::Generic,
+            Case::SheetPatch { face_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 4..=10 {
+        scenarios.push(scenario(
+            "SolidShell(f)",
+            Role::Generic,
+            Case::SolidShell { face_count },
+            Outcome::Admit,
+        ));
+    }
+    for face_count in 3..=10 {
+        scenarios.push(scenario(
+            "NmtEdgeFan(k)",
+            Role::Generic,
+            Case::NmtEdgeFan { face_count },
+            Outcome::Admit,
+        ));
+    }
+
+    scenarios
+}
+
 fn scenario(
     family: &str,
     role: WorthMilestoneOnePrimitiveRole,

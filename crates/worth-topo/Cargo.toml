@@ -9,10 +9,8 @@ description = "Worth topology materialization and structural interpretation"
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 serde = { workspace = true, features = ["derive"] }
-worth-schema.workspace = true
-
-[dev-dependencies]
 serde_json.workspace = true
+worth-schema.workspace = true
 
 [lints]
 workspace = true

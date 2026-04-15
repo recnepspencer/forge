@@ -19,6 +19,18 @@ mod materializer_tests {
         let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
             .expect("worth topology materialization");
 
+        assert!(topology.report().whole_view_materialization);
+        assert_eq!(
+            topology.report().fallback_class,
+            Some(crate::materialization::MaterializationFallbackClass::WholeViewRebuild)
+        );
+        assert_eq!(topology.report().breadth.entity_count, read_view.entities().len());
+        assert_eq!(topology.report().breadth.relation_count, read_view.relations().len());
+        assert_eq!(topology.report().breadth.topology_entity_count, 11);
+        assert_eq!(topology.report().breadth.topology_relation_count, 14);
+
+        let topology = topology.topology();
+
         assert_eq!(topology.models.len(), 1);
         assert_eq!(topology.bodies.len(), 1);
         assert_eq!(topology.lumps.len(), 1);
@@ -69,3 +81,4 @@ mod materializer_tests {
         assert_eq!(topology.half_edges[0].face_id, Some(seeded.face));
     }
 }
+

@@ -4,7 +4,7 @@ use crate::{
     StoreErrorKind,
 };
 
-use super::support::{create_entity, latest_envelope, runtime_with_demo_schema};
+use super::harness::fixtures::runtime::{create_entity, latest_envelope, runtime_with_demo_schema};
 
 #[test]
 fn unsupported_canonicalization_version_is_rejected() {

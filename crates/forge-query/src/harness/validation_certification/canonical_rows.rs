@@ -1,6 +1,5 @@
 use crate::harness::fixtures::schema_view::{
-    alternate_detail_schema_view, detail_schema_view, legal_detail_bundle,
-    legal_ordering_only_bundle, structured_content_queryable_schema_view,
+    alternate_detail_schema_view, detail_schema_view, legal_ordering_only_bundle, structured_content_queryable_schema_view,
     workflow_queryable_schema_view,
 };
 use crate::validation::validate_canonical_bundle;
@@ -14,14 +13,16 @@ use super::bundles::to_bundle;
 use super::fixtures::*;
 
 pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
-    let legal_control =
-        validate_canonical_bundle(legal_detail_bundle(), detail_schema_view()).unwrap();
+    let legal_control = crate::harness::fixtures::validated_bundles::legal_detail_bundle();
     let legal_hostile =
         validate_canonical_bundle(reordered_legal_detail_bundle(), detail_schema_view()).unwrap();
-    let legal_parity =
-        validate_canonical_bundle(legal_detail_bundle(), detail_schema_view()).unwrap();
+    let legal_parity = crate::harness::fixtures::validated_bundles::legal_detail_bundle();
     let schema_variation_hostile =
-        validate_canonical_bundle(legal_detail_bundle(), alternate_detail_schema_view()).unwrap();
+        validate_canonical_bundle(
+            crate::harness::fixtures::canonical_bundles::legal_detail_bundle(),
+            alternate_detail_schema_view(),
+        )
+        .unwrap();
     let ordering_only_hostile =
         validate_canonical_bundle(legal_ordering_only_bundle(), detail_schema_view()).unwrap();
     let greater_than_control =
@@ -104,8 +105,11 @@ pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
             ),
             to_bundle(
                 CertificationProfile::ReplayParity,
-                &validate_canonical_bundle(legal_detail_bundle(), alternate_detail_schema_view())
-                    .unwrap(),
+                &validate_canonical_bundle(
+                    crate::harness::fixtures::canonical_bundles::legal_detail_bundle(),
+                    alternate_detail_schema_view(),
+                )
+                .unwrap(),
             ),
         ),
         row(
@@ -268,11 +272,7 @@ pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
             ),
             to_bundle(
                 CertificationProfile::ReplayParity,
-                &validate_canonical_bundle(
-                    legal_structured_content_bundle(),
-                    structured_content_queryable_schema_view(),
-                )
-                .unwrap(),
+                &crate::harness::fixtures::validated_bundles::structured_content_bundle(),
             ),
         ),
         row(
@@ -284,11 +284,7 @@ pub(super) fn canonical_rows() -> Vec<ValidationCertificationRow> {
             to_bundle(CertificationProfile::BuilderReordering, &workflow_hostile),
             to_bundle(
                 CertificationProfile::ReplayParity,
-                &validate_canonical_bundle(
-                    legal_workflow_predicate_bundle(),
-                    workflow_queryable_schema_view(),
-                )
-                .unwrap(),
+                &crate::harness::fixtures::validated_bundles::workflow_bundle(),
             ),
         ),
     ]

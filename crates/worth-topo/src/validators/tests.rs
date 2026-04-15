@@ -15,7 +15,8 @@ mod validator_tests {
         WorthTopologyShell, WorthTopologyVertex, WorthTopologyView,
     };
     use crate::facade::{
-        validate_named_topology_truth, validate_topology_view, WorthTopologyMaterializer,
+        validate_interpreted_topology, validate_named_topology_truth, validate_topology_view,
+        WorthTopologyMaterializer,
     };
 
     #[test]
@@ -35,7 +36,23 @@ mod validator_tests {
         let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
             .expect("worth topology materialization");
 
-        validate_topology_view(&topology).expect("seeded topology should validate");
+        let interpreted = crate::facade::interpret_topology_view(&topology);
+        let report = validate_interpreted_topology(&topology, &interpreted)
+            .expect("seeded topology should validate");
+        assert!(report.rows.iter().any(|row| {
+            row.validator == "ownership"
+                && matches!(
+                    row.phase,
+                    crate::facade::WorthTopologyValidationPhase::DerivedMaterialization
+                )
+        }));
+        assert!(report.rows.iter().any(|row| {
+            row.validator == "shell_closure"
+                && matches!(
+                    row.phase,
+                    crate::facade::WorthTopologyValidationPhase::DerivedInterpretation
+                )
+        }));
         validate_named_topology_truth(&read_view).expect("seeded topology should be fully named");
     }
 
@@ -98,9 +115,9 @@ mod validator_tests {
 
         let mut topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
             .expect("worth topology materialization");
-        topology.half_edges[0].prev_half_edge_id = None;
+        topology.topology_mut().half_edges[0].prev_half_edge_id = None;
 
-        let error = validate_topology_view(&topology).expect_err("validator should reject missing prev");
+        let error = validate_topology_view(topology.topology()).expect_err("validator should reject missing prev");
         assert_eq!(error.validator(), "loop_wiring.prev_next_symmetry");
     }
 
@@ -268,6 +285,8 @@ mod validator_tests {
 
         WorthTopologyMaterializer::materialize_from_truth(&read_view)
             .expect("worth topology materialization")
+            .topology()
+            .clone()
     }
 
     fn closed_shell_view() -> WorthTopologyView {

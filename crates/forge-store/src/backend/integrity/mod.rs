@@ -6,4 +6,6 @@ mod snapshot_records;
 mod verification;
 
 pub(crate) use digest_records::stable_structural_digest;
-pub(crate) use identity::{branch_key, commit_artifact_id, parent_artifact_id};
+pub(crate) use identity::{
+    branch_key, commit_artifact_id, digest_artifact_key, parent_artifact_id,
+};

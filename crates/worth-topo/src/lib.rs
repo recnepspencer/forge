@@ -10,8 +10,11 @@
 mod certification;
 mod bridge;
 mod data;
+mod diagnostics;
+mod fixtures;
 mod interpretation;
 mod materialization;
+mod parity;
 mod reader;
 mod runtime_invariants;
 mod validators;

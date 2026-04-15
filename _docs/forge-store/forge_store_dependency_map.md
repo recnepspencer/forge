@@ -235,7 +235,9 @@ If you want the shortest possible version:
 
 - `M1` unlocks `M2` and early `M7`
 - `M2` unlocks `M3`
-- `M3` unlocks `M4`, `M5`, and durable `M7`
+- `M3` unlocks `M3.5`
+- `M3.5` unlocks `M3.6`
+- `M3.6` unlocks `M4`, `M5`, and durable `M7`
 - `M5` unlocks `M6` and `M9`
 - `M6 + M7` unlock `M8`
 - `M4 + M5 + M6` unlock `M10`

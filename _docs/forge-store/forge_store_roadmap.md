@@ -36,6 +36,10 @@ If any supported path:
   policy said must survive
 - lets approximate or advisory derived artifacts masquerade as exact durable
   truth
+- treats storage-media durability, authenticity, or crash recovery as ambient
+  platform behavior instead of a first-class verified contract
+- allows multi-tenant isolation, quota boundaries, or repair actions to become
+  ambiguous under failure or operator pressure
 
 then the store has failed.
 
@@ -54,6 +58,14 @@ then the store has failed.
 - Every milestone must declare its own adversarial constraint.
 - Every hot-path milestone must declare named complexity contracts and exact
   counter proof obligations.
+- Security, authenticity, backup/restore, and disaster-recovery posture must
+  appear as explicit milestone scope somewhere in the roadmap rather than
+  remaining implied by integrity language.
+- Extensibility must never weaken authority, replay, compatibility, retention,
+  or certification boundaries.
+- Tenant isolation, quota enforcement, and blast-radius control must remain
+  visible as first-class platform concerns even when they are enabled by
+  deeper Forge graph semantics.
 - Any knowingly incomplete first ship must be marked as explicit debt rather
   than implied completeness.
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
@@ -76,9 +88,11 @@ The roadmap preserves all three operating modes explicitly:
 
 Critical path:
 
-- `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> (`Milestone 4` and
-  `Milestone 5`) -> `Milestone 6` -> (`Milestone 7` and `Milestone 8`) ->
-  `Milestone 10` -> `Milestone 12` -> `Milestone 17` -> certification
+- `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 3.5` ->
+  `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
+  (`Milestone 7` and `Milestone 8`) -> `Milestone 10` -> `Milestone 10.5` ->
+  `Milestone 11.5` -> `Milestone 12` -> `Milestone 12.5` -> `Milestone 17` ->
+  `Milestone 18.5` -> certification
 
 Parallel tracks:
 
@@ -86,6 +100,9 @@ Parallel tracks:
   model is honest enough for canonical chunking.
 - `Milestone 11` can start after `Milestone 10` stabilizes rebuild and
   retention rules.
+- `Milestone 12.5` can begin once replication and rebuild contracts are stable,
+  but must close before advanced derived-family proliferation makes extension
+  containment ambiguous.
 - `Milestone 13`, `Milestone 14`, `Milestone 15`, and `Milestone 16` are late
   platform programs and can progress in parallel once replication, integrity,
   and rebuild contracts are stable.
@@ -243,9 +260,139 @@ locked.
 `Milestone 4` and `Milestone 5` start after this. `Milestone 7` may integrate
 transactionally-coupled artifacts after this.
 
+## Milestone 3.5: Durable Media Semantics And Write-Path Certification
+
+Engineering spec: [milestone-3.5-3.6.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-3.5-3.6.md)
+
+Closeout: [milestone-3.5-3.6-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-3.5-3.6-closeout.md)
+
+### Goal
+
+Make backend durability semantics exact enough that acknowledged truth does not
+depend on optimistic filesystem folklore.
+
+### Adversarial Constraint
+
+Torn writes, truncated tails, reordered persistence, incomplete rename
+durability, backend-specific flush semantics, and directory-entry loss must not
+allow the store to acknowledge truth it cannot later localize, reject, or
+recover honestly.
+
+### Must Ship
+
+- explicit record framing and tail/truncation detection for durable media paths
+- backend-specific durability-barrier contracts:
+  - append
+  - flush
+  - directory entry persistence
+  - rename or equivalent publication boundary
+- typed torn-write, partial-write, and truncated-tail failure families
+- exact acknowledgment preconditions per backend family
+- machine-checkable write-path certification for embedded-file and SQLite
+  families
+
+### Must Preserve
+
+- authoritative commit meaning remains above physical write layout
+- backend variation may change mechanics, not durable acknowledgment meaning
+- integrity and authenticity remain distinct concepts: valid bytes are not
+  automatically trusted bytes
+
+### Complexity / Proof Obligations
+
+- name append-frame scan, durable flush, and startup-tail validation contracts
+- expose exact counters for truncated-tail detection, torn-write detection,
+  startup write-path rejection, and acknowledged writes by backend barrier class
+
+### Allowed Debt
+
+- backend-specific performance tuning may remain `Debt`; durability semantics
+  and acknowledgment barriers may not
+
+### Sequencing Notes
+
+This belongs immediately after the initial WAL milestone because later crash,
+snapshot, retention, and replication stories are only as honest as the media
+contract beneath them.
+
+### Parallelization Notes
+
+This stays on the authority path. Later milestones may not claim crash exactness
+without it.
+
+## Milestone 3.6: Adversarial Crash Recovery And Recovery Source Precedence
+
+Engineering spec: [milestone-3.5-3.6.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-3.5-3.6.md)
+
+Closeout: [milestone-3.5-3.6-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-3.5-3.6-closeout.md)
+
+### Goal
+
+Promote crash recovery from "WAL restart works" to a full recovery program with
+explicit source precedence, salvage boundaries, and interrupted-maintenance
+recovery rules.
+
+### Adversarial Constraint
+
+Crashes during WAL publication, snapshot publication, compaction, reclaim,
+replication capsule creation, or background maintenance must converge to one
+typed recovery conclusion without reopening closed work, inventing shadow
+authority, or trusting the wrong source of truth.
+
+### Must Ship
+
+- explicit crash-class taxonomy
+- explicit recovery source precedence across:
+  - canonical authoritative artifacts
+  - WAL artifacts
+  - snapshot families
+  - compaction products
+  - replication/import capsules
+  - other derived durable families
+- typed recovery-mode matrix:
+  - automatic crash restart
+  - authoritative rebuild
+  - integrity-audit rebuild
+  - salvage/quarantine
+  - snapshot-plus-tail fast restore
+  - replication/bootstrap recovery
+- interrupted-maintenance recovery rules for snapshot, compaction, reclaim, and
+  replication publication paths
+- restart quiescence guarantees for already-closed work
+- operator-visible recovery source and degraded-state reporting
+
+### Must Preserve
+
+- recovery remains subordinate to canonical authority
+- derived families never outrank authoritative truth during recovery
+- recovery decisions remain deterministic and machine-checkable
+
+### Complexity / Proof Obligations
+
+- name crash restart, salvage evaluation, and interrupted-maintenance recovery
+  contracts
+- expose exact counters for restart scans, salvage invocations, quiescent
+  restarts, degraded recoveries, and source-precedence fallbacks
+
+### Allowed Debt
+
+- advanced operator ergonomics may remain `Debt`; recovery source precedence and
+  quiescent restart semantics may not
+
+### Sequencing Notes
+
+This belongs before snapshots and branch-delta physical programs because the
+system needs a complete recovery story before derived storage families multiply.
+
+### Parallelization Notes
+
+This stays on the critical path with `Milestone 3.5`.
+
 ## Milestone 4: Snapshot Persistence And Point-In-Time Restore
 
 Engineering spec: [milestone-4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-4.md)
+
+Closeout: [milestone-4-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-4-closeout.md)
 
 ### Goal
 
@@ -556,6 +703,103 @@ artifact programs.
 
 Depends on `Milestone 4`, `Milestone 5`, and `Milestone 6`.
 
+## Milestone 10.5: Background Maintenance Isolation And Scheduling Contracts
+
+### Goal
+
+Make compaction, rebuild, snapshotting, replication preparation, and other
+maintenance programs operationally safe under foreground load.
+
+### Adversarial Constraint
+
+Background maintenance must not silently steal foreground latency, create
+hidden starvation, or allow debt growth to become the real scheduler of truth
+visibility.
+
+### Must Ship
+
+- explicit maintenance work classes and priorities
+- bounded pacing for compaction, rebuild, snapshot, and replication-prep work
+- foreground vs background isolation rules
+- starvation and debt-escalation policy triggers
+- operator-visible maintenance debt and scheduling state
+
+### Must Preserve
+
+- maintenance remains derived and policy-driven
+- foreground truth mutation and foreground reads do not inherit hidden
+  background cost by default
+
+### Complexity / Proof Obligations
+
+- name maintenance pacing, foreground isolation, and debt-escalation contracts
+- expose exact counters for background queue depth, deferred work, policy
+  trigger causes, and foreground work broadened by maintenance interference
+
+### Allowed Debt
+
+- heuristic policy tuning may remain `Debt`; bounded isolation and policy
+  visibility may not
+
+### Sequencing Notes
+
+This belongs immediately after retention/compaction because large-scale store
+correctness is not enough without operational isolation.
+
+### Parallelization Notes
+
+Can progress alongside late `Milestone 11`.
+
+## Milestone 11.5: Artifact Format Evolution And Rolling Compatibility
+
+### Goal
+
+Make authoritative and derived artifact families evolvable across rolling
+upgrades without semantic ambiguity.
+
+### Adversarial Constraint
+
+Old artifacts with new code, new artifacts with old readers, mixed-version
+replicas, and rolling upgrades must either remain semantically exact or fail
+explicitly and typed without partial truth acceptance.
+
+### Must Ship
+
+- authoritative artifact format evolution contracts
+- derived artifact compatibility and explicit rebuild invalidation rules
+- rolling upgrade and mixed-version store/replica compatibility rules
+- typed incompatibility and explicit reader rejection surfaces
+- machine-checkable version-skew and compatibility reporting
+- backup/restore compatibility posture and disaster-recovery version rules
+
+### Must Preserve
+
+- older authoritative meaning may not drift when new fields are introduced
+- deserialization success may not be treated as compatibility proof
+- backup and restore must preserve authoritative meaning across admitted version
+  windows
+
+### Complexity / Proof Obligations
+
+- name compatibility-check, rolling-upgrade, and restore-version contracts
+- expose exact counters for compatibility accepts, typed rejects, rebuilds
+  forced by version drift, and version-skew lanes exercised
+
+### Allowed Debt
+
+- optional convenience migration tooling may remain `Debt`; compatibility truth
+  may not
+
+### Sequencing Notes
+
+This belongs before replication and late artifact families because forever
+systems need explicit format evolution before they spread artifacts widely.
+
+### Parallelization Notes
+
+Can progress in parallel with late `Milestone 10.5` once retention and rebuild
+rules are stable.
+
 ## Milestone 11: Tiering And Durable Working-Set Intelligence
 
 ### Goal
@@ -642,6 +886,63 @@ This belongs after retention and rebuild rules are stable.
 ### Parallelization Notes
 
 Depends on `Milestone 10` and `Milestone 8`.
+
+## Milestone 12.5: Extensible Durable Artifact Families And Storage Strategies
+
+### Goal
+
+Turn Forge Store into a durable-artifact platform by allowing new derived
+storage families and storage strategies to plug in without weakening authority
+or certification.
+
+### Adversarial Constraint
+
+An extension-defined artifact family that is stale, buggy, non-deterministic,
+or over-privileged must not become accidental authority, bypass rebuild rules,
+skip retention policy, or evade compatibility and certification boundaries.
+
+### Must Ship
+
+- extension registration for derived durable artifact families
+- declared contracts per family for:
+  - authority classification
+  - accuracy class
+  - rebuild basis
+  - retention and compaction participation
+  - replication/export participation
+  - compatibility/versioning
+  - diagnostics and certification outputs
+- storage-strategy containment rules
+- extension authenticity and trust-boundary rules for shipped artifacts
+- machine-checkable extension-family certification and rejection surfaces
+
+### Must Preserve
+
+- extensions may not create authoritative truth families
+- extensions may not bypass replay, rebuild, retention, or compatibility rules
+- extensibility changes platform breadth, not authority shape
+
+### Complexity / Proof Obligations
+
+- name extension registration, rebuild, and export/retention participation
+  contracts
+- expose exact counters for extension-family rebuilds, typed extension-family
+  rejection, stale-extension detection, and extension-caused fallback breadth
+
+### Allowed Debt
+
+- additional extension ergonomics may remain `Debt`; extension containment and
+  declared contracts may not
+
+### Sequencing Notes
+
+This belongs after replication/integrity and compatibility rules are explicit,
+because extensibility without those guardrails would harden drift into the
+platform.
+
+### Parallelization Notes
+
+Can begin once `Milestone 11.5` and `Milestone 12` are stable.
 
 ## Milestone 13: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
 
@@ -918,6 +1219,56 @@ and tiers they govern.
 Can proceed in parallel with late `Milestone 17`, but should close after major
 artifact families and tiers are known.
 
+## Milestone 18.5: Operator Repair, Audit, And Forensic Recovery Tooling
+
+### Goal
+
+Make the store operable under real corruption, recovery, and compliance
+pressure by giving operators explicit audit, repair, and quarantine tools.
+
+### Adversarial Constraint
+
+When corruption, drift, version mismatch, tenant pressure, or damaged media are
+present, the operator must be able to determine what truth is still trusted,
+what can be rebuilt, what must be quarantined, and what repair action is
+admissible without reading ambiguous logs or improvising on production data.
+
+### Must Ship
+
+- offline audit and integrity-walk surfaces
+- repair-plan generation and typed repair-action contracts
+- quarantine and salvage modes
+- explicit trusted-truth / degraded-derived reporting
+- machine-checkable forensic bundles for operator and certification use
+- tenant-scoped blast-radius and quota diagnostics for repair and recovery work
+- authenticity-aware audit surfaces in addition to raw integrity reporting
+
+### Must Preserve
+
+- repair tooling may not mutate authority implicitly
+- operator actions must remain auditable artifacts
+- tenant isolation and quota boundaries remain visible during repair and
+  recovery
+
+### Complexity / Proof Obligations
+
+- name audit-walk, repair-plan, and quarantine contracts
+- expose exact counters for audited artifacts, proposed repairs, quarantined
+  families, tenant-scoped repair actions, and operator-visible degraded states
+
+### Allowed Debt
+
+- operator UX polish may remain `Debt`; typed audit and repair contracts may not
+
+### Sequencing Notes
+
+This belongs before final certification because trust-grade systems need
+operator-grade recovery and forensic truth, not just internal correctness.
+
+### Parallelization Notes
+
+Can progress alongside late `Milestone 18`, but must close before certification.
+
 ## Milestone 19: Generic Store Certification Program
 
 ### Goal
@@ -986,6 +1337,11 @@ meant to serve.
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
   to pass with machine-checkable evidence
 - generic and domain certification both pass with machine-checkable evidence
+- media durability, crash recovery, repair/audit, compatibility, and extension
+  containment are all explicit, tested, and operator-visible
+- tenant isolation, quota boundaries, authenticity checks, backup/restore, and
+  disaster-recovery posture are explicit platform contracts rather than
+  implied side effects of lower-level integrity work
 
 ## Companion Documents
 

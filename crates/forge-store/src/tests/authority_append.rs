@@ -1,7 +1,8 @@
 use crate::{ForgeStoreBuilder, StoreErrorKind};
 
-use super::support::{
-    create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch,
+use super::harness::{
+    fixtures::runtime::{create_entity, latest_envelope, runtime_with_demo_schema},
+    scenarios::authority::append_two_commits_in_memory,
 };
 
 #[test]
@@ -43,11 +44,9 @@ fn identical_duplicate_append_is_idempotent() {
 
 #[test]
 fn conflicting_duplicate_commit_identity_is_rejected() {
-    let mut runtime = runtime_with_demo_schema();
-    let entity_id = create_entity(&mut runtime, "alpha");
-    let first = latest_envelope(&runtime);
-    update_entity_on_branch(&mut runtime, entity_id, "beta", None);
-    let mut conflicting = latest_envelope(&runtime);
+    let (_store, scenario) = append_two_commits_in_memory();
+    let first = scenario.first;
+    let mut conflicting = scenario.second;
     conflicting.commit.commit_id = first.commit.commit_id;
 
     let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();

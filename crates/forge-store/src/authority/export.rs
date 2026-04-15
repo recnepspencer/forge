@@ -14,6 +14,11 @@ pub struct AuthoritativeExportBundle {
     pub(crate) authoritative_artifact_digests: Vec<AuthoritativeArtifactDigestRecord>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthoritativeExportRestoreRequest {
+    bundle: AuthoritativeExportBundle,
+}
+
 impl AuthoritativeExportBundle {
     pub(crate) fn canonicalize_order(&mut self) {
         self.branch_records
@@ -39,5 +44,15 @@ impl AuthoritativeExportBundle {
     pub fn canonical_json(&self) -> String {
         serde_json::to_string(&self.clone().into_canonicalized())
             .expect("canonical authoritative export serialization")
+    }
+
+    pub fn admit_restore(self) -> AuthoritativeExportRestoreRequest {
+        AuthoritativeExportRestoreRequest { bundle: self }
+    }
+}
+
+impl AuthoritativeExportRestoreRequest {
+    pub(crate) fn into_bundle(self) -> AuthoritativeExportBundle {
+        self.bundle
     }
 }

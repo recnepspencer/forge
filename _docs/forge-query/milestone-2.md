@@ -1,6 +1,6 @@
 # Milestone 2 Engineering Spec: Schema-Aware Validation, Predicate Legality, And Projection Semantics
 
-> **Status:** Draft engineering spec
+> **Status:** Closed engineering spec
 >
 > **Roadmap parent:** [forge_query_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_roadmap.md)
 >
@@ -9,6 +9,8 @@
 > **Prior milestone:** [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-1.md)
 >
 > **Prior closeout:** [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-1-closeout.md)
+>
+> **Closeout:** [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-2-closeout.md)
 >
 > **Test requirements:** [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
 >

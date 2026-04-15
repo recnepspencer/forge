@@ -1,4 +1,7 @@
-use crate::failure::{StoreError, StoreErrorKind};
+use crate::{
+    failure::{StoreError, StoreErrorKind},
+    media::{DurabilityBarrierClass, DurableBackendFamily, DurableMediaReport},
+};
 use rusqlite::{params, Connection, OptionalExtension, Transaction};
 use std::path::PathBuf;
 
@@ -31,8 +34,18 @@ impl StatePersistence for SqlitePersistence {
         load_state(&self.connection)
     }
 
-    fn persist_state(&mut self, state: &StoreState) -> Result<(), StoreError> {
-        persist_state(&mut self.connection, state)
+    fn persist_state(&mut self, state: &StoreState) -> Result<DurableMediaReport, StoreError> {
+        persist_state(&mut self.connection, state)?;
+        Ok(self.durable_media_report())
+    }
+
+    fn durable_media_report(&self) -> DurableMediaReport {
+        DurableMediaReport::new(
+            DurableBackendFamily::SqliteTransactional,
+            DurabilityBarrierClass::TransactionalCommitDurable,
+            DurabilityBarrierClass::TransactionalCommitDurable,
+            DurabilityBarrierClass::TransactionalCommitDurable,
+        )
     }
 }
 
@@ -114,6 +127,9 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
 
             CREATE TABLE IF NOT EXISTS snapshot_basis_records (
                 snapshot_id INTEGER PRIMARY KEY,
+                snapshot_family_version INTEGER NOT NULL,
+                snapshot_basis_version INTEGER NOT NULL,
+                snapshot_image_format_version INTEGER NOT NULL,
                 snapshot_branch_id TEXT NOT NULL,
                 snapshot_frontier_commit_id INTEGER NOT NULL,
                 snapshot_history_range_payload TEXT NOT NULL,
@@ -488,7 +504,8 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
         let mut statement = connection
             .prepare(
                 "
-                SELECT snapshot_id, snapshot_branch_id, snapshot_frontier_commit_id, snapshot_history_range_payload,
+                SELECT snapshot_id, snapshot_family_version, snapshot_basis_version, snapshot_image_format_version,
+                       snapshot_branch_id, snapshot_frontier_commit_id, snapshot_history_range_payload,
                        snapshot_canonicalization_version, snapshot_authority_digest, snapshot_image_digest
                 FROM snapshot_basis_records
                 ORDER BY snapshot_id
@@ -497,30 +514,33 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             .map_err(sqlite_error)?;
         let rows = statement
             .query_map([], |row| {
-                let history_range_payload: String = row.get(3)?;
+                let history_range_payload: String = row.get(6)?;
                 let history_range = serde_json::from_str::<Vec<u64>>(&history_range_payload)
                     .map_err(|error| {
                         rusqlite::Error::FromSqlConversionFailure(
-                            3,
+                            6,
                             rusqlite::types::Type::Text,
                             Box::new(error),
                         )
                     })?;
                 Ok(super::records::SnapshotBasisRecord {
                     snapshot_id: crate::snapshot::SnapshotId(row.get::<_, i64>(0)? as u64),
+                    snapshot_family_version: row.get::<_, i64>(1)? as u32,
+                    snapshot_basis_version: row.get::<_, i64>(2)? as u32,
+                    snapshot_image_format_version: row.get::<_, i64>(3)? as u32,
                     snapshot_branch_id: forge_relational::facade::history::BranchId(
-                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(4)?,
                     ),
                     snapshot_frontier_commit_id: forge_relational::facade::history::CommitId(
-                        row.get::<_, i64>(2)? as u64,
+                        row.get::<_, i64>(5)? as u64,
                     ),
                     snapshot_history_range: history_range
                         .into_iter()
                         .map(forge_relational::facade::history::CommitId)
                         .collect(),
-                    snapshot_canonicalization_version: row.get::<_, i64>(4)? as u32,
-                    snapshot_authority_digest: row.get(5)?,
-                    snapshot_image_digest: row.get(6)?,
+                    snapshot_canonicalization_version: row.get::<_, i64>(7)? as u32,
+                    snapshot_authority_digest: row.get(8)?,
+                    snapshot_image_digest: row.get(9)?,
                 })
             })
             .map_err(sqlite_error)?;
@@ -902,16 +922,22 @@ fn persist_snapshot_basis_records(
                 "
                 INSERT INTO snapshot_basis_records(
                     snapshot_id,
+                    snapshot_family_version,
+                    snapshot_basis_version,
+                    snapshot_image_format_version,
                     snapshot_branch_id,
                     snapshot_frontier_commit_id,
                     snapshot_history_range_payload,
                     snapshot_canonicalization_version,
                     snapshot_authority_digest,
                     snapshot_image_digest
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
                 ",
                 params![
                     as_i64_u64(record.snapshot_id.0),
+                    record.snapshot_family_version as i64,
+                    record.snapshot_basis_version as i64,
+                    record.snapshot_image_format_version as i64,
                     record.snapshot_branch_id.0,
                     as_i64(record.snapshot_frontier_commit_id),
                     history_range_payload,

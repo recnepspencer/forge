@@ -3,12 +3,6 @@ use crate::failure::{StoreError, StoreErrorKind};
 use crate::wal::{DurableMutationId, WalRecord};
 
 impl StoreState {
-    pub fn allocate_durable_mutation_id(&mut self) -> DurableMutationId {
-        let id = DurableMutationId(self.next_durable_mutation_id);
-        self.next_durable_mutation_id += 1;
-        id
-    }
-
     pub fn append_wal_record(&mut self, record: WalRecord) -> Result<(), StoreError> {
         if record.wal_sequence != self.next_wal_sequence {
             return Err(StoreError::new(

@@ -616,11 +616,11 @@ mod tests {
         assert!(read.get_entity(seeded.vertex).is_none());
         assert!(verified
             .read_basis
-            .touched_aspects
+            .touched_aspects()
             .contains(&WorthAspect::Topology(WorthTopologyAspect::Structure))
             || verified
                 .read_basis
-                .touched_aspects
+                .touched_aspects()
                 .contains(&WorthAspect::Topology(WorthTopologyAspect::Boundary)));
     }
 
@@ -651,7 +651,7 @@ mod tests {
 
         assert_eq!(verified.branch_id.0, "feature");
         assert_eq!(verified.persisted_truth.branch_id.0, "feature");
-        assert_eq!(verified.read_basis.branch_id.0, "feature");
+        assert_eq!(verified.read_basis.branch_id().0, "feature");
         let history = runtime.history();
         let feature_head = history
             .branch_head(&BranchId("feature".to_string()))

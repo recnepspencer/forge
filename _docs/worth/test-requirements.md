@@ -165,6 +165,10 @@ Prove that Worth can represent shell, wire, loop, halfedge, radial, and
 persistent-name truth authoritatively without collapsing truth, validation, and
 continuity into overlapping pseudo-authority layers.
 
+Milestone 1 closeout is recorded in:
+
+- [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
+
 ### Required workload surface
 
 Run deterministic truth workloads containing:
@@ -201,6 +205,8 @@ Milestone-1 workload generation must stay inside the milestone's admitted class:
   publication
 - commit-boundary invariants reject illegal wire-branch and illegal solid-shell
   states before publication
+- commit-boundary illegal topology attempts emit structured rejection artifacts
+  with localized rejection class and diagnostic evidence
 - same-commit graph creation preserves one coherent authoritative publish
   boundary for admitted topology creation rather than emitting orphan-entity
   intermediate truth
@@ -224,16 +230,47 @@ Milestone-1 workload generation must stay inside the milestone's admitted class:
 - milestone_1_counter_report
 - primitive_family_coverage_matrix
 - primitive_corpus_parity_report
+- admitted_range_sweep_report
+- illegal_topology_rejection_report
+- failure_locality_report
+- bridge_family_coverage_report
 - branch_local_topology_report
 - milestone_1_replay_parity_report
 - bridge_proof_report
+
+These outputs must be emitted as direct closeout surfaces for the milestone,
+not only as nested seeded or per-case reports that require downstream
+reconstruction by convention.
+The bridge proof output must also exercise multiple admitted topology families,
+not just one showcase commit.
+The closeout artifact should also expose aggregate validator-family coverage
+and rejection-class distribution so the machine-checkable proof can explain
+what passed and what rejected without per-case reconstruction.
+Validator coverage must stay attributable by primitive family, not only in
+global totals, so the proof surface can detect one admitted family lagging
+while another family exercises the same validator successfully.
+Failure locality must stay attributable by primitive family and role with
+localized entity/relation counts, so admitted-family regressions cannot hide in
+one generic rejection bucket.
+The primitive-family coverage and parity matrices must keep explicit rows for
+every canonical milestone-1 admitted family, including families that are
+missing or currently failing, so a missing family cannot disappear silently
+from the closeout artifact.
+Branch-local parity is not complete unless the proof surface demonstrates a
+real cross-branch partition; matching counts on a single branch are
+insufficient.
+Admitted-range sweeps are required closeout evidence, not optional secondary
+checks, and each canonical family must keep an explicit out-of-class boundary
+neighbor in the sweep proof surface.
 
 ### Closeout condition
 
 Milestone `1` closes only when admitted topology truth and persistent naming
 work generically across the milestone's admitted workflow surface, including
 `WireBranch(k)` and `SolidShell(f)` as fully robust admitted families rather
-than toy examples or partial subsets, and when admitted topology creation
+than toy examples or partial subsets, when the required admitted-range sweeps
+pass across every admitted family with visible out-of-class boundary rejection
+evidence, and when admitted topology creation
 publishes as one coherent same-commit graph mutation rather than a staged
 authority workaround.
 
@@ -250,9 +287,10 @@ truth basis.
 Run repeated executions over:
 
 - primitive-corpus coverage for the milestone-1 admitted families under replay
-  and branch-local reads
+  and branch-local reads, including `Smallest`, `Generic`,
+  `HostileAdmitted`, and `OutOfClass` members for each admitted family
 - arbitrary admitted seeded topology truth
-- arbitrary admitted local topology edits from milestone `1`
+- arbitrary admitted local authoritative truth mutations from milestone `1`
 - arbitrary admitted shell, wire, and radial counts
 - branch-local reads, mainline reads, and replayed reads of the same truth
   history
@@ -263,19 +301,44 @@ Run repeated executions over:
 - bridge invalidation remains parity-safe and deterministic
 - derived topology validators classify admitted structure identically across
   replay and branch-local reads
+- family-attributed derived coverage and parity remain explicit, so one
+  admitted family cannot hide behind another family's totals
+- reuse or rebuild-suppression claims are backed by an explicit equivalence
+  contract
 - no derived cache becomes authority
 
 ### Required verification output
 
-- topology_view_digest
+- materialized_topology_digest
+- interpreted_topology_digest
+- derived_validation_digest
+- derived_truth_basis_digest
 - bridge_routing_digest
-- topo_diagnostics_digest
-- replay_parity_report
+- bridge_historical_evaluation_digest
+- derived_family_coverage_matrix
+- derived_family_parity_matrix
+- derived_validator_coverage_report
+- derived_invalidation_report
+- derived_rebuild_report
+- derived_equivalence_contract_report
+- derived_fallback_report
+- derived_failure_locality_report
+- derived_branch_local_parity_report
+- derived_replay_parity_report
+- derived_bridge_family_coverage_report
+- milestone_2_counter_report
 
 ### Closeout condition
 
 Milestone `2` closes only when derived topology is a deterministic, rebuildable
-layer over the admitted topology truth workflows.
+layer over the admitted topology truth workflows, with corpus-shaped proof over
+the canonical admitted families rather than one recompute showcase path. These
+outputs must be emitted as direct closeout surfaces for the milestone, not
+only as nested helper artifacts or Milestone-1 compatibility fields.
+Derived validator coverage must stay attributable by admitted primitive family,
+validator family, and derived phase, so one validator can not silently stop
+exercising one admitted family while aggregate derived family coverage still
+looks healthy.
 
 ## Milestone 3: Topology Editing Core
 

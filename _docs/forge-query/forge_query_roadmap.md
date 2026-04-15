@@ -128,9 +128,12 @@ cross-feature proof gates before final certification:
 - `Milestone 9` must prove tenant schema variation + validation + delivery-
   shape parity, and policy masking + historical reads + saved/scope-composed
   queries where those surfaces already exist
-- `Milestone 10` must prove store-backed durability for saved queries,
-  historical reads, and query-shaped delivery cursors without changing query
-  meaning
+- `Milestone 10` must prove store-backed execution and historical parity for
+  admitted shared capability families
+- `Milestone 11` must prove durable saved-query, cursor, and artifact reload
+  semantics without changing canonical query meaning
+- `Milestone 12` must prove blob-backed delivery and large-object query
+  semantics without collapsing query meaning into ad hoc file plumbing
 
 ## Critical Path And Store Dependencies
 
@@ -141,28 +144,29 @@ Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 4` ->
   `Milestone 5` -> `Milestone 6` -> `Milestone 7` -> `Milestone 8` ->
-  `Milestone 9` -> `Milestone 10` -> `Milestone 11`
+  `Milestone 9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
+  `Milestone 13`
 
 Store-gated completion tracks:
 
-- `Milestone 3` can ship an in-memory/runtime-backed execution path first, but
-  full store-pushdown and store-parity are blocked on `forge-store`
-- `Milestone 6` can ship branch/head and retained-history reads that the
-  runtime can already expose, but durable point-in-time restore, snapshot-plus-
-  tail parity, and restart-stable historical execution are blocked on
-  `forge-store`
-- `Milestone 8` can begin once the core query language is stable, but saved
-  query persistence and workspace portability cannot be completed until
-  `forge-store` can persist query artifacts honestly
-- `Milestone 9` can ship policy-aware narrowing before store completion, but
-  durable cursor resume and persisted delivery metadata stay blocked on
-  `forge-store`
-- `Milestone 10` is intentionally late because it depends on both the query
-  language and the store-backed durability story being honest
+- `Milestone 3` can ship a runtime-backed execution path first, but full
+  store-pushdown and store-parity are blocked on `forge-store`
+- `Milestone 6` can ship runtime-backed branch/head and admitted basis-
+  variation semantics first, but durable point-in-time restore and snapshot-
+  plus-tail parity are postponed to `Milestone 10`
+- `Milestone 8` can ship scopes, templates, and view semantics first, but
+  durable saved-query reload is postponed to `Milestone 11`
+- `Milestone 9` can ship policy-aware narrowing and delivery-shape semantics
+  first, but durable cursor resume and persisted delivery metadata are
+  postponed to `Milestone 11`
+- `Milestone 10` is the first intentionally store-gated execution milestone
+- `Milestone 11` is the intentionally store-gated durable artifact milestone
+- `Milestone 12` is the intentionally store-gated blob/media milestone
 
-The roadmap is therefore ordered by build dependency, while also naming which
-completion bars are temporarily unavailable because `forge-store` is not done
-yet.
+The roadmap is therefore split intentionally between runtime/semantic
+milestones that can progress now against canonical runtime truth, and late
+store-backed milestones that close parity, durability, portability, and
+blob-backed delivery once `forge-store` is ready.
 
 ## Milestone 1: Typed Query Expression And Result Shape Foundation
 
@@ -354,6 +358,11 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 3: Query Planning And Snapshot-Backed Execution
 
+Status:
+Closed on 2026-04-14 for runtime-backed one-shot execution. Store-backed
+parity, store pushdown, and durable snapshot-plus-tail semantics remain
+explicit debt until `forge-store` can support them honestly.
+
 ### Goal
 
 Lower typed query intent into executable plans that read canonical truth
@@ -411,6 +420,8 @@ actual query subsystem.
 - expose exact counters for planned read breadth, projected aspect count,
   traversal breadth, fallback broadening count, and snapshot basis resolution
 - prove runtime-backed/store-backed parity where both paths are admitted
+- prove an admitted runtime route/plan distinction through certification so
+  planner-owned route semantics do not collapse into one happy-path lane
 
 ### Allowed Debt
 
@@ -456,6 +467,12 @@ This milestone is complete only when `forge-query` can prove:
   the same truth basis where store support exists
 
 ## Milestone 4: Collection Semantics, Ordering, Pagination, And Bounded Traversal
+
+Status:
+Closed on 2026-04-14 for runtime-backed collection semantics. Live
+maintenance, historical collection replay, durable cursor continuation, and
+store-backed collection parity remain intentionally deferred to later
+milestones.
 
 ### Goal
 
@@ -827,7 +844,7 @@ This milestone is complete only when `forge-query` can prove:
 - lineage-aware reads over replayed or restored truth match original query
   meaning for the same lineage basis
 
-## Milestone 8: Scopes, Templates, Saved Queries, And View Shapes
+## Milestone 8: Scopes, Templates, And View Shapes
 
 ### Goal
 
@@ -836,7 +853,7 @@ host to rebuild domain vocabulary and presentation intent locally.
 
 ### Adversarial Constraint
 
-Reusable scopes, templates, saved queries, and admitted view shapes must expand
+Reusable scopes, templates, and admitted view shapes must expand
 to the same canonical query meaning as direct construction, and view-shape
 semantics must affect planning and live maintenance structurally rather than
 surviving only as cosmetic type tags.
@@ -845,8 +862,8 @@ surviving only as cosmetic type tags.
 
 Typed query primitives are necessary, but not sufficient. Developers need
 schema-validated reuse surfaces such as named scopes, parameterized templates,
-saved definitions, and intent-driven view shapes if Forge Query is going to be
-the normal way people ask for truth.
+and intent-driven view shapes if Forge Query is going to be the normal way
+people ask for truth.
 
 ### Must Ship
 
@@ -859,7 +876,6 @@ the normal way people ask for truth.
   - grouped/kanban-style collections
   - timeline/chart-style results where admitted
   - inspector-style detail projection with live aspect focus
-- canonical saved-query artifact shape
 - diagnostics for invalid parameter binding, incompatible scope composition,
   and unsupported view-shape/query combinations
 - query-shape metadata that higher layers can use for delivery and live-patch
@@ -886,24 +902,21 @@ the normal way people ask for truth.
 
 #### Store-Gated Completion Debt
 
-- saved-query persistence, portability, and restart-stable workspace artifacts
-  remain incomplete until `forge-store` can persist canonical query artifacts
-  honestly
+- durable saved-query persistence, portability, and restart-stable workspace
+  artifacts are postponed to `Milestone 11`
 
 ### Must Preserve
 
 - scopes and templates remain typed query artifacts rather than macro-like
   string substitution
-- saved query meaning remains identical to the underlying canonical query
 - view shapes do not become presentation-owned shadow query languages
 - host layers consume query-shape metadata instead of redefining the query
 
 ### Complexity / Proof Obligations
 
-- name scope expansion, template binding, view-shape lowering, and saved-query
-  reload contracts
+- name scope expansion, template binding, and view-shape lowering contracts
 - expose exact counters for scope fragments expanded, template parameters
-  bound, view-shape-specific patch events, and saved-query reload parity checks
+  bound, and view-shape-specific patch events
 - prove view-shape-specific live semantics for at least table/detail plus one
   grouped or temporal view
 
@@ -912,7 +925,7 @@ the normal way people ask for truth.
 - absent view-shape families may remain explicit `Debt`
 - any shipped view shape that lacks planning, invalidation, delivery, and live
   semantics may not ship as debt
-- saved-query durability may remain `Debt` until `forge-store` completes
+- durable saved-query semantics are intentionally deferred to `Milestone 11`
 
 ### Sequencing Notes
 
@@ -927,9 +940,10 @@ Milestones 4 through 6 have stabilized collection, live, and basis behavior.
 ### Store Dependency
 
 - Scopes, templates, and view-shape semantics are not blocked on `forge-store`.
-- Saved-query persistence, portability, and restart-stable workspace artifacts
-  are blocked on `forge-store`; until then, saved queries may exist only as
-  ephemeral or host-local artifacts and must not be marketed as complete.
+- Durable saved-query persistence, portability, and restart-stable workspace
+  artifacts are blocked on `forge-store`; until then, any saved-query-like
+  surfaces may exist only as ephemeral or host-local artifacts and must not be
+  marketed as complete.
 
 ### Acceptance Evidence
 
@@ -944,8 +958,6 @@ This milestone is complete only when `forge-query` can prove:
 - admitted view shapes affect planning, invalidation narrowing, delivery
   formatting, and live patch semantics rather than only surfacing as type tags
 - inspector/detail live projection remains aspect-focused under change
-- where saved-query persistence exists, reloading the artifact yields the same
-  canonical query identity and result meaning
 
 ## Milestone 9: Policy-Aware Narrowing, Tenant Scope, And Delivery Contracts
 
@@ -1073,39 +1085,32 @@ This milestone is complete only when `forge-query` can prove:
 - the same policy basis produces the same query narrowing for one-shot, live,
   and historical execution
 
-## Milestone 10: Store-Backed Query Durability, Pushdown, And Artifact Portability
+## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
 ### Goal
 
-Finish the parts of Forge Query that cannot be completed honestly until
-`forge-store` exists as a real durable substrate.
+Close the store-backed execution and historical parity claims that runtime-only
+milestones intentionally left open.
 
 ### Adversarial Constraint
 
-Store-backed execution, saved-query reload, durable cursor continuation, and
-import/export portability must preserve the exact same canonical query meaning,
-basis identity, and result/delivery semantics as the runtime-backed path for
-the same admitted capability.
+Store-backed execution and historical restore must preserve the exact same
+canonical query meaning, basis identity, and result semantics as the
+runtime-backed path for the same admitted capability.
 
 ### Why This Milestone Exists
 
-Several important query features can be prototyped against the runtime before
-the store is ready, but they cannot be called complete until queries can rely
-on durable, restart-stable, store-backed truth artifacts. This milestone keeps
-that dependency explicit instead of pretending the query layer is done early.
+Milestones 4 through 9 can build the semantic query surface against runtime
+truth first. This milestone exists to close the backend-parity boundary later,
+once `forge-store` can participate honestly in execution and basis restore.
 
 ### Must Ship
 
 - store-backed execution parity for admitted query families
 - honest pushdown of projections, predicates, ordering, and bounded traversal
   where `forge-store` can support them without changing query meaning
-- durable saved-query artifact persistence and reload
-- durable cursor/checkpoint persistence for query-shaped delivery where the
-  server/runtime contract admits it
 - store-backed historical and diff execution over persisted snapshots, deltas,
   and retained history where supported
-- portability of saved-query and delivery artifacts across restart and
-  import/export capsule boundaries
 - diagnostics that distinguish runtime-backed execution from store-backed
   execution and explain any fallback
 
@@ -1113,21 +1118,17 @@ that dependency explicit instead of pretending the query layer is done early.
 
 - `forge-store` remains the owner of persistence and durable artifact survival
 - pushdown must not change query semantics, policy narrowing, or result shape
-- saved queries remain canonical query artifacts, not backend-shaped blobs
-- durable cursors must not outlive or misidentify the truth basis they claim to
-  acknowledge
 - unsupported store capabilities fail explicitly instead of being faked by host
   glue
 
 ### Complexity / Proof Obligations
 
-- name store-backed plan admission, pushdown execution, durable saved-query
-  reload, and durable cursor continuation contracts
-- expose exact counters for pushdown admissions, pushdown fallbacks, durable
-  cursor resume steps, saved-query reload checks, and artifact portability
-  validations
-- prove store-backed parity for execution, saved-query identity, and durable
-  continuation semantics
+- name store-backed plan admission, pushdown execution, historical restore, and
+  store-backed diff execution contracts
+- expose exact counters for pushdown admissions, pushdown fallbacks,
+  historical restore steps, diff input breadth, and backend parity checks
+- prove store-backed parity for execution and admitted historical/diff
+  semantics
 
 ### Allowed Debt
 
@@ -1138,13 +1139,13 @@ that dependency explicit instead of pretending the query layer is done early.
 
 ### Sequencing Notes
 
-This belongs late because it depends on both the canonical query surface and
-the honest durable artifact model from `forge-store`.
+This belongs late because it is the first milestone that truly depends on
+`forge-store` as an execution substrate rather than merely as future debt.
 
 ### Parallelization Notes
 
 Can progress incrementally as `forge-store` milestones land, but final closure
-must wait for durable snapshots, retained history, and artifact portability.
+must wait for durable snapshots, retained history, and honest backend parity.
 
 ### Store Dependency
 
@@ -1155,8 +1156,7 @@ It depends materially on:
 - canonical commit persistence
 - snapshots and point-in-time restore
 - structural delta layering and retained-history survivability
-- durable schema/lineage/cursor artifacts
-- import/export and integrity-verifiable artifact identity
+- durable basis identity sufficient for runtime/store parity
 
 ### Acceptance Evidence
 
@@ -1168,26 +1168,211 @@ This milestone is complete only when `forge-query` can prove:
 
 - store-backed execution returns the same results as runtime-backed execution
   for the same declared basis and query shape
-- persisted saved queries reload to the same canonical query identity
-- durable delivery cursors resume to the same query-shaped continuation point
 - historical and diff queries survive restart and restore without changing
   meaning
-- imported/exported query artifacts preserve canonical query identity and basis
-  meaning where the platform admits them
 
-## Milestone 11: Generic And Domain Query Certification
+## Milestone 11: Durable Query Artifacts, Saved Queries, And Delivery Continuations
 
 ### Goal
 
-Prove the completed query layer under hostile read, history, policy, and live
-maintenance scenarios rather than only through milestone-local demos.
+Close the durable artifact and continuation claims that cannot be honest until
+`forge-store` can persist canonical query artifacts and delivery checkpoints.
+
+### Adversarial Constraint
+
+Saved queries, durable cursors, replay checkpoints, and imported/exported query
+artifacts must preserve the same canonical query meaning, parameter semantics,
+basis semantics, and continuation point they claimed before restart, transfer,
+or reload.
+
+### Why This Milestone Exists
+
+The runtime-backed query model can become structurally sound long before the
+store can preserve query artifacts across restart. This milestone exists to
+keep artifact durability explicit instead of letting "saved query" or "cursor
+resume" become host-local convenience surfaces with undefined semantics.
+
+### Must Ship
+
+- durable saved-query persistence and reload
+- durable query-template and scope-composed artifact persistence where the
+  platform admits them
+- durable cursor/checkpoint persistence for query-shaped delivery where the
+  server/runtime contract admits it
+- portability of saved-query and delivery artifacts across restart and
+  import/export capsule boundaries
+- diagnostics that distinguish runtime-backed ephemeral artifacts from
+  durable/reloaded artifacts and explain any incompatibility
+
+### Must Preserve
+
+- saved queries remain canonical query artifacts, not backend-shaped blobs
+- durable cursors must not outlive or misidentify the truth basis they claim to
+  acknowledge
+- imported/exported artifacts must preserve semantic identity rather than only
+  enough data to "mostly work"
+- unsupported durability classes fail explicitly instead of degrading into
+  host-local caches
+
+### Complexity / Proof Obligations
+
+- name durable saved-query reload, durable cursor continuation, artifact
+  portability, and restart/replay contracts
+- expose exact counters for saved-query reload checks, durable cursor resume
+  steps, artifact import/export validation, and restart-stable continuation
+  proofs
+- prove durable artifact identity and continuation parity across restart
+
+### Allowed Debt
+
+- unsupported durable artifact classes may remain explicit `Debt` while
+  admitted classes are parity-proven
+- host-local saved-query or cursor shims may not ship as debt once the
+  milestone claims durability
+
+### Sequencing Notes
+
+This belongs after store-backed execution parity because durable artifacts only
+matter once the backend can preserve the bases and execution semantics those
+artifacts refer to.
+
+### Parallelization Notes
+
+Can progress incrementally as `forge-store` lands persistent artifact support,
+but final closure must wait for restart-stable artifact identity and
+continuation semantics.
+
+### Store Dependency
+
+This milestone is intentionally blocked on `forge-store`.
+
+It depends materially on:
+
+- durable artifact storage
+- restart-stable schema/basis identity
+- durable cursor/checkpoint survival
+- import/export and integrity-verifiable artifact identity
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Durable Query Artifact And Continuation Parity Test` in
+  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+  passes with canonical machine-checkable artifacts
+
+- persisted saved queries reload to the same canonical query identity
+- durable delivery cursors resume to the same query-shaped continuation point
+- imported/exported query artifacts preserve canonical query identity and basis
+  meaning where the platform admits them
+- restart and replay do not alter parameter binding or continuation semantics
+
+## Milestone 12: Blob-Backed Query Delivery And Large-Object Semantics
+
+### Goal
+
+Make blob/media-backed query results first-class, query-shaped, and
+basis-honest instead of forcing hosts to smuggle large-object handling around
+the query system.
+
+### Adversarial Constraint
+
+Blob-backed projections, structured-content media references, large-object
+delivery handles, and upload-associated query results must preserve the same
+canonical query meaning, policy masking, basis identity, and replay semantics
+as non-blob query surfaces, without degrading into opaque file plumbing.
+
+### Why This Milestone Exists
+
+Most query systems treat blobs as an embarrassing side channel: the query
+returns metadata and some other system handles the "real file." Forge Query can
+do better, but only once the store can persist large objects, stable handles,
+and replay-safe basis identity honestly.
+
+### Must Ship
+
+- blob/media reference projections as first-class query result semantics where
+  the schema admits them
+- basis-honest delivery handles for large objects and media payloads
+- query-shaped blob upload/result association semantics where the platform
+  admits upload-backed truth
+- policy-aware masking and non-leakage for blob-backed aspects
+- diagnostics for unsupported blob delivery classes, expired handles, upload/
+  basis mismatch, and portability failures
+
+### Must Preserve
+
+- blobs remain store-owned persisted objects, not query-owned authority
+- query meaning must remain identical whether the result shape includes scalar
+  fields, structured content, or blob/media references
+- delivery handles must never bypass policy masking or basis identity
+- uploads must not introduce a second ad hoc query semantics path
+
+### Complexity / Proof Obligations
+
+- name blob-handle derivation, upload association, replay-safe delivery, and
+  portability contracts
+- expose exact counters for blob handle resolutions, large-object delivery
+  admissions, denied blob projections, and upload/query association checks
+- prove blob-backed results remain parity-safe with the same canonical query
+  and policy basis
+
+### Allowed Debt
+
+- unsupported large-object delivery classes may remain explicit `Debt`
+- opaque host-side blob handling may not ship as the claimed query solution
+
+### Sequencing Notes
+
+This belongs after durable query artifacts because blob/media semantics depend
+on stable persisted handles, replay-safe basis identity, and durable artifact
+ports.
+
+### Parallelization Notes
+
+Can begin once `forge-store` blob/object support is structurally honest, but
+final closure should follow durable query-artifact identity so blob handles can
+compose with saved queries, history, and delivery continuations honestly.
+
+### Store Dependency
+
+This milestone is intentionally blocked on `forge-store`.
+
+It depends materially on:
+
+- durable blob/object persistence
+- replay-safe blob handle identity
+- policy-safe object retrieval
+- import/export support for blob-backed artifacts where admitted
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Blob-Backed Query Delivery And Upload Parity Test` in
+  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+  passes with canonical machine-checkable artifacts
+
+- blob/media-backed query results preserve canonical query identity and policy
+  masking
+- upload-associated query results remain basis-honest and replay-safe
+- durable blob handles survive restart/export semantics where the platform
+  claims they do
+
+## Milestone 13: Generic And Domain Query Certification
+
+### Goal
+
+Prove the completed query layer under hostile read, history, policy, live
+maintenance, durability, and blob-backed delivery scenarios rather than only
+through milestone-local demos.
 
 ### Adversarial Constraint
 
 Every admitted query capability, across runtime-backed and store-backed paths,
 must survive hostile replay, basis variation, policy variation, live
-maintenance, and domain-specific workloads without changing canonical query
-meaning or certification artifacts.
+maintenance, durable reload, blob-backed delivery, and domain-specific
+workloads without changing canonical query meaning or certification artifacts.
 
 ### Why This Milestone Exists
 
@@ -1214,13 +1399,15 @@ developers.
   - policy-masking and tenant-scope correctness
   - tenant schema variation + validation + delivery-shape parity
   - store-backed execution parity where admitted
+  - durable artifact and continuation parity where admitted
+  - blob-backed query delivery parity where admitted
 - domain certification suites covering at minimum:
   - geometry/topology neighborhood query truth
   - AI/speculative-branch comparison reads
   - web collection/detail/live workflow reads
   - chip/netlist cone and historical diff reads
-- machine-checkable artifact bundles for plans, results, diagnostics, and live
-  patch evolution
+- machine-checkable artifact bundles for plans, results, diagnostics, live
+  patch evolution, durable reload, and blob-backed delivery
 
 ### Must Preserve
 
@@ -1244,7 +1431,7 @@ developers.
 
 - none on coverage or machine-checkable certification artifacts
 - missing store-backed suites may remain blocked, but they may not be silently
-  omitted once Milestone 10 claims support
+  omitted once Milestones 10 through 12 claim support
 
 ### Sequencing Notes
 
@@ -1254,14 +1441,16 @@ for discovering what should have been architected earlier.
 ### Parallelization Notes
 
 Runtime-backed certification can begin before `forge-store` is complete.
-Store-backed suites close in parallel as Milestone 10 support becomes honest.
+Store-backed and durable/blob-backed suites close in parallel as Milestones 10
+through 12 become honest.
 
 ### Store Dependency
 
 - Runtime-backed certification can begin before `forge-store` is finished.
-- Full roadmap completion for this milestone is blocked on `Milestone 10`,
-  because the final certification program must include store-backed durability
-  and restore scenarios once those exist.
+- Full roadmap completion for this milestone is blocked on `Milestones 10`
+  through `12`, because the final certification program must include
+  store-backed execution, durable artifact, and blob-backed delivery scenarios
+  once those exist.
 
 ### Acceptance Evidence
 
@@ -1316,7 +1505,7 @@ would be dishonest without durable storage support.
 - typed query expression, validation, planning, execution, collection
   semantics, live promotion, historical reads, lineage traversal, composition,
   and policy-aware narrowing are all shipped
-- every store-gated completion item is either shipped through `Milestone 10`
+- every store-gated completion item is either shipped through `Milestone 12`
   or still explicitly marked as blocked rather than implied
 - runtime-backed and store-backed query execution remain parity-safe for every
   admitted shared capability
@@ -1335,53 +1524,54 @@ answer is "store-gated" or "shared with another subsystem."
 
 | Vision Capability | Roadmap Home | Canonical Artifact(s) | Acceptance Proof | Certification Path |
 | --- | --- | --- | --- | --- |
-| Typed composable query expressions | Milestone 1 | Canonical query AST, query digest, facade-normalized query artifact | Equivalent builders normalize identically | Milestone 11 query normalization parity |
-| Aspect-aware projection | Milestones 1-2 | Projection descriptors, validated aspect masks | Legal projection lowers deterministically | Milestone 11 normalization + execution parity |
-| Filter and predicate expressions | Milestone 2 | Typed predicate nodes | Schema-invalid predicates reject early | Milestone 11 validation rejection |
-| Workflow-aware predicates | Milestone 2 | Workflow predicate nodes in canonical query artifact | Workflow predicates validate and normalize canonically | Milestone 11 validation rejection + web workflow domain suite |
-| Ordering | Milestones 2 and 4 | Ordering descriptors in plan/result metadata | Ordered reads preserve declared basis | Milestone 11 collection/pagination stability |
-| Pagination and opaque cursors | Milestone 4; durable completion in Milestone 10 | Cursor descriptors, page metadata, durable cursors | Page advancement stable for one basis; durable resume later | Milestone 11 collection/pagination stability + store-backed parity |
-| Bounded result sets | Milestone 4 | Bound/limit descriptors in plan metadata | Truncation stays explicit and basis-honest | Milestone 11 collection stability |
-| Bounded relational materialization | Milestone 4 | Relation materialization descriptors, traversal bounds | Eager materialization stays within declared scope | Milestone 11 execution parity + geometry/chip domain suites |
-| Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 11 geometry/chip domain suites |
-| Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 11 validation rejection + domain suites |
-| Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 11 execution parity |
-| Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 11 live + policy masking parity and aggregation cases |
-| Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 11 execution parity + domain suites |
-| Query-time derived fields | Milestone 4 | Derived-field declarations in canonical query/result shape | Derived fields are planned, not host-postprocessed | Milestone 11 execution parity |
-| CDC-shaped output | Milestone 4; durable portability in Milestone 10 | Query-shaped CDC result families, delivery metadata | CDC-shaped output matches ordinary query meaning | Milestone 11 execution parity + store-backed parity |
-| Snapshot-backed execution | Milestone 3 | Proof-carrying execution plan, snapshot basis metadata | Same query/context lowers to same plan and result | Milestone 11 snapshot-backed execution parity |
-| Type-bound execution / generalized route-model binding | Milestone 3, shared integration with server/cloud | Type-bound execution descriptors tied to canonical plans | Bound descriptors round-trip to same plan as direct execution | Milestone 11 normalization parity; server/cloud integration suites later |
-| Live read-to-subscribe promotion | Milestone 5 | Live execution context, query-to-signal lowering metadata | One-shot and live execution preserve semantics | Milestone 11 live-promotion equivalence |
-| Incremental result maintenance | Milestone 5 | Query-shaped live patch artifacts, suppression metadata | Live patches preserve ordering/membership/projection | Milestone 11 live-promotion equivalence |
-| Query-to-signal bridging | Milestone 5, shared with runtime bridge | Query relevance metadata, bridge-facing invalidation descriptors | Truth changes map to query-shaped maintenance honestly | Milestone 11 live equivalence + bridge-adjacent suites |
-| Branch-scoped reads | Milestone 6 | Branch-targeting query context metadata | Same query shape runs against different branches honestly | Milestone 11 historical/diff parity |
-| Time-travel reads | Milestone 6; durable completion in Milestone 10 | Historical basis descriptors, snapshot/commit targets | Historical basis is explicit and parity-safe | Milestone 11 historical/diff parity + store-backed parity |
-| Diff queries | Milestone 6 | Structured diff query artifacts, comparison-basis metadata | Diff results align with declared projection/scope | Milestone 11 historical + diff + result-shape parity |
-| Branch comparison views | Milestone 6 with Milestone 8 view-shape semantics | Comparison basis metadata, view-shape metadata | Branch comparisons preserve basis identity and result meaning | Milestone 11 historical + diff parity |
-| Lineage traversal queries | Milestone 7 | Lineage traversal descriptors, lineage-basis metadata | Lineage results stay typed and explainable | Milestone 11 lineage/correspondence parity |
-| Correspondence queries | Milestone 7 | Correspondence descriptors, ambiguity/rejection metadata | Ambiguous correspondence stays explicit | Milestone 11 lineage/correspondence parity |
-| Inspector-pattern detail with live aspect projection | Milestones 5 and 8 | Inspector/detail view-shape metadata, aspect-focused live patch artifacts | Inspector live projection proves narrow invalidation | Milestone 11 live equivalence + view-shape cross-feature suites |
-| View shapes: table/detail | Milestone 8 | View-shape descriptors, delivery/live-patch metadata | View shape affects planning and live semantics, not only typing | Milestone 11 web/detail workflow suites |
-| View shapes: kanban/grouped | Milestone 8 | Grouped view metadata, group-splice patch artifacts | Group membership changes preserve view semantics | Milestone 11 view-shape cross-feature suites |
-| View shapes: timeline/chart | Milestones 4 and 8 | Temporal/grouping metadata, tolerance/suppression metadata | Temporal/chart semantics stay explicit and basis-honest | Milestone 11 historical/diff + aggregation suites |
-| Named scopes | Milestone 8 | Scope fragments in canonical query artifact | Scope expansion equals direct construction | Milestone 11 normalization parity |
-| Query templates with parameter slots | Milestone 8 | Template descriptors, parameter binding metadata | Parameterized instantiation preserves canonical meaning | Milestone 11 normalization parity |
-| Saved and named query definitions | Milestone 8; durable completion in Milestone 10 | Saved-query canonical artifact, durable saved-query records | Reloaded saved query preserves identity and meaning | Milestone 11 normalization parity + store-backed parity |
-| Result shape declarations for delivery contracts | Milestones 1 and 9 | Typed result shapes, delivery-shape metadata | Delivery metadata remains identical to canonical masked/projected result | Milestone 11 delivery-shape parity |
-| Policy-aware aspect masking | Milestone 9 | Policy masks in plan metadata | Masked aspects never enter execution plan | Milestone 11 live + policy masking parity |
-| Branch-level access scoping | Milestone 9 | Branch-access validation metadata | Denied branches fail before reads execute | Milestone 11 policy/tenant correctness |
-| Automatic tenant branch scoping | Milestone 9 | Tenant branch-resolution metadata | Tenant context narrows truth basis explicitly | Milestone 11 policy/tenant correctness |
-| Tenant-scoped schema awareness | Milestone 9 | Tenant schema-basis metadata, tenant-aware validation artifacts | Validation uses tenant schema rather than a global default | Milestone 11 tenant schema variation + validation parity |
-| Graph-native relationship proofs | Milestone 9, shared with schema/platform policy authority | Relationship-proof predicate/query nodes, denial metadata | Broken proof chains deny explicitly without data leakage | Milestone 11 policy/tenant correctness |
-| Multi-tenant query architecture | Milestone 9; durable completion in Milestone 10 | Tenant basis metadata, durable tenant/query artifacts | Tenant-scoped reads remain parity-safe across restart where supported | Milestone 11 policy/tenant correctness + store-backed parity |
-| Structured content aspect queries | Milestone 2; live/update consequences in Milestones 5 and 10 | Structured content projection/predicate descriptors | Structured content legality and live narrowing stay explicit | Milestone 11 validation rejection + live equivalence |
-| Query planning and optimization | Milestone 3; store-aware completion in Milestone 10 | Proof-carrying execution plans, store pushdown diagnostics | Planner lowers once; executor does not rediscover semantics | Milestone 11 snapshot parity + store-backed parity |
-| Delivery contracts for integrations | Milestones 4, 9, and 10 | CDC/result delivery metadata, durable delivery cursors | Delivery contracts remain query-shaped and basis-honest | Milestone 11 delivery-shape + store-backed parity |
-| Store-backed pushdown and execution parity | Milestone 10 | Store-backed plan variants, fallback diagnostics | Store-backed results equal runtime-backed results | Milestone 11 store-backed execution parity |
-| Durable saved queries and cursors | Milestone 10 | Durable saved-query records, durable cursor/checkpoint records | Restart preserves canonical identity and continuation point | Milestone 11 store-backed parity |
-| Import/export portability of query artifacts | Milestone 10 | Portable query artifact bundles and basis identity | Imported/exported artifacts preserve canonical meaning | Milestone 11 store-backed parity |
-| Query certification matrix | Milestone 11 | Certification bundles for plans, results, diagnostics, and live evolution | Every capability has hostile proof, not just local demos | Milestone 11 completion itself |
+| Typed composable query expressions | Milestone 1 | Canonical query AST, query digest, facade-normalized query artifact | Equivalent builders normalize identically | Milestone 13 query normalization parity |
+| Aspect-aware projection | Milestones 1-2 | Projection descriptors, validated aspect masks | Legal projection lowers deterministically | Milestone 13 normalization + execution parity |
+| Filter and predicate expressions | Milestone 2 | Typed predicate nodes | Schema-invalid predicates reject early | Milestone 13 validation rejection |
+| Workflow-aware predicates | Milestone 2 | Workflow predicate nodes in canonical query artifact | Workflow predicates validate and normalize canonically | Milestone 13 validation rejection + web workflow domain suite |
+| Ordering | Milestones 2 and 4 | Ordering descriptors in plan/result metadata | Ordered reads preserve declared basis | Milestone 13 collection/pagination stability |
+| Pagination and opaque cursors | Milestone 4; durable completion in Milestone 11 | Cursor descriptors, page metadata, durable cursors | Page advancement stable for one basis; durable resume later | Milestone 13 collection/pagination stability + store-backed parity |
+| Bounded result sets | Milestone 4 | Bound/limit descriptors in plan metadata | Truncation stays explicit and basis-honest | Milestone 13 collection stability |
+| Bounded relational materialization | Milestone 4 | Relation materialization descriptors, traversal bounds | Eager materialization stays within declared scope | Milestone 13 execution parity + geometry/chip domain suites |
+| Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 13 geometry/chip domain suites |
+| Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 13 validation rejection + domain suites |
+| Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
+| Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
+| Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
+| Query-time derived fields | Milestone 4 | Derived-field declarations in canonical query/result shape | Derived fields are planned, not host-postprocessed | Milestone 13 execution parity |
+| CDC-shaped output | Milestone 4; durable portability in Milestone 10 | Query-shaped CDC result families, delivery metadata | CDC-shaped output matches ordinary query meaning | Milestone 13 execution parity + store-backed parity |
+| Snapshot-backed execution | Milestone 3 | Proof-carrying execution plan, snapshot basis metadata | Same query/context lowers to same plan and result | Milestone 13 snapshot-backed execution parity |
+| Type-bound execution / generalized route-model binding | Milestone 3, shared integration with server/cloud | Type-bound execution descriptors tied to canonical plans | Bound descriptors round-trip to same plan as direct execution | Milestone 13 normalization parity; server/cloud integration suites later |
+| Live read-to-subscribe promotion | Milestone 5 | Live execution context, query-to-signal lowering metadata | One-shot and live execution preserve semantics | Milestone 13 live-promotion equivalence |
+| Incremental result maintenance | Milestone 5 | Query-shaped live patch artifacts, suppression metadata | Live patches preserve ordering/membership/projection | Milestone 13 live-promotion equivalence |
+| Query-to-signal bridging | Milestone 5, shared with runtime bridge | Query relevance metadata, bridge-facing invalidation descriptors | Truth changes map to query-shaped maintenance honestly | Milestone 13 live equivalence + bridge-adjacent suites |
+| Branch-scoped reads | Milestone 6 | Branch-targeting query context metadata | Same query shape runs against different branches honestly | Milestone 13 historical/diff parity |
+| Time-travel reads | Milestone 6; durable completion in Milestone 10 | Historical basis descriptors, snapshot/commit targets | Historical basis is explicit and parity-safe | Milestone 13 historical/diff parity + store-backed parity |
+| Diff queries | Milestone 6 | Structured diff query artifacts, comparison-basis metadata | Diff results align with declared projection/scope | Milestone 13 historical + diff + result-shape parity |
+| Branch comparison views | Milestone 6 with Milestone 8 view-shape semantics | Comparison basis metadata, view-shape metadata | Branch comparisons preserve basis identity and result meaning | Milestone 13 historical + diff parity |
+| Lineage traversal queries | Milestone 7 | Lineage traversal descriptors, lineage-basis metadata | Lineage results stay typed and explainable | Milestone 13 lineage/correspondence parity |
+| Correspondence queries | Milestone 7 | Correspondence descriptors, ambiguity/rejection metadata | Ambiguous correspondence stays explicit | Milestone 13 lineage/correspondence parity |
+| Inspector-pattern detail with live aspect projection | Milestones 5 and 8 | Inspector/detail view-shape metadata, aspect-focused live patch artifacts | Inspector live projection proves narrow invalidation | Milestone 13 live equivalence + view-shape cross-feature suites |
+| View shapes: table/detail | Milestone 8 | View-shape descriptors, delivery/live-patch metadata | View shape affects planning and live semantics, not only typing | Milestone 13 web/detail workflow suites |
+| View shapes: kanban/grouped | Milestone 8 | Grouped view metadata, group-splice patch artifacts | Group membership changes preserve view semantics | Milestone 13 view-shape cross-feature suites |
+| View shapes: timeline/chart | Milestones 4 and 8 | Temporal/grouping metadata, tolerance/suppression metadata | Temporal/chart semantics stay explicit and basis-honest | Milestone 13 historical/diff + aggregation suites |
+| Named scopes | Milestone 8 | Scope fragments in canonical query artifact | Scope expansion equals direct construction | Milestone 13 normalization parity |
+| Query templates with parameter slots | Milestone 8 | Template descriptors, parameter binding metadata | Parameterized instantiation preserves canonical meaning | Milestone 13 normalization parity |
+| Saved and named query definitions | Milestone 8; durable completion in Milestone 11 | Saved-query canonical artifact, durable saved-query records | Reloaded saved query preserves identity and meaning | Milestone 13 normalization parity + store-backed parity |
+| Result shape declarations for delivery contracts | Milestones 1 and 9 | Typed result shapes, delivery-shape metadata | Delivery metadata remains identical to canonical masked/projected result | Milestone 13 delivery-shape parity |
+| Policy-aware aspect masking | Milestone 9 | Policy masks in plan metadata | Masked aspects never enter execution plan | Milestone 13 live + policy masking parity |
+| Branch-level access scoping | Milestone 9 | Branch-access validation metadata | Denied branches fail before reads execute | Milestone 13 policy/tenant correctness |
+| Automatic tenant branch scoping | Milestone 9 | Tenant branch-resolution metadata | Tenant context narrows truth basis explicitly | Milestone 13 policy/tenant correctness |
+| Tenant-scoped schema awareness | Milestone 9 | Tenant schema-basis metadata, tenant-aware validation artifacts | Validation uses tenant schema rather than a global default | Milestone 13 tenant schema variation + validation parity |
+| Graph-native relationship proofs | Milestone 9, shared with schema/platform policy authority | Relationship-proof predicate/query nodes, denial metadata | Broken proof chains deny explicitly without data leakage | Milestone 13 policy/tenant correctness |
+| Multi-tenant query architecture | Milestone 9; durable completion in Milestone 11 | Tenant basis metadata, durable tenant/query artifacts | Tenant-scoped reads remain parity-safe across restart where supported | Milestone 13 policy/tenant correctness + store-backed parity |
+| Structured content aspect queries | Milestone 2; live/update consequences in Milestones 5 and 10 | Structured content projection/predicate descriptors | Structured content legality and live narrowing stay explicit | Milestone 13 validation rejection + live equivalence |
+| Query planning and optimization | Milestone 3; store-aware completion in Milestone 10 | Proof-carrying execution plans, store pushdown diagnostics | Planner lowers once; executor does not rediscover semantics | Milestone 13 snapshot parity + store-backed parity |
+| Delivery contracts for integrations | Milestones 4, 9, and 11 | CDC/result delivery metadata, durable delivery cursors | Delivery contracts remain query-shaped and basis-honest | Milestone 13 delivery-shape + store-backed parity |
+| Store-backed pushdown and execution parity | Milestone 10 | Store-backed plan variants, fallback diagnostics | Store-backed results equal runtime-backed results | Milestone 13 store-backed execution parity |
+| Durable saved queries and cursors | Milestone 11 | Durable saved-query records, durable cursor/checkpoint records | Restart preserves canonical identity and continuation point | Milestone 13 durable artifact parity |
+| Import/export portability of query artifacts | Milestone 11 | Portable query artifact bundles and basis identity | Imported/exported artifacts preserve canonical meaning | Milestone 13 durable artifact parity |
+| Blob/media-backed query delivery | Milestone 12 | Blob/media reference projections, durable delivery handles, upload-associated result metadata | Blob-backed results preserve canonical query meaning and policy masking | Milestone 13 blob-backed delivery parity |
+| Query certification matrix | Milestone 13 | Certification bundles for plans, results, diagnostics, live evolution, durable reload, and blob-backed delivery | Every capability has hostile proof, not just local demos | Milestone 13 completion itself |
 
 If a future query capability is added to `forge_query_vision.md`, this appendix
 must gain a row in the same patch or the roadmap is incomplete.

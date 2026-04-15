@@ -10,21 +10,77 @@ pub use crate::certification::{
     certify_milestone_one_default_primitive_corpus,
     certify_milestone_one_primitive_corpus, certify_milestone_one_primitive_scenarios,
     certify_milestone_one_read_view, certify_verified_topology_commit,
-    WorthBridgeProofReport, WorthMilestoneOneCertificationError, WorthMilestoneOneCertificationHarness,
-    WorthMilestoneOneCloseoutReport, WorthMilestoneOneCertificationReport, WorthPrimitiveCorpusCaseReport,
-    WorthPrimitiveCorpusRejectedCaseReport, WorthPrimitiveCorpusReport, WorthPrimitiveRejectionReport,
+    certify_milestone_two_default_derived_corpus, certify_milestone_two_read_view,
+    certify_milestone_two_verified_topology_commit, certify_milestone_two_closeout,
+    milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
+    milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
+    WorthCertificationBridgeExpectation,
+    WorthCertificationCanonicalRow, WorthCertificationParityRow,
+    WorthCertificationRejectionRow, WorthCertificationRequiredOutput,
+    WorthCertificationSuiteDefinition, WorthCertificationSuiteRequirements,
+    WorthCertificationValidatorExpectation,
+    WorthAdmittedRangeSweepReport, WorthAdmittedRangeSweepRow,
+    WorthBranchLocalTopologyReport, WorthBridgeFamilyCoverageReport,
+    WorthBridgeFamilyCoverageRow, WorthBridgeProofReport, WorthDeterministicDigest,
+    WorthFailureLocalityReport, WorthFailureLocalityRow,
+    WorthIllegalTopologyRejectionCaseReport, WorthIllegalTopologyRejectionReport,
+    WorthMilestoneOneBranchLocalAggregateReport, WorthMilestoneOneCertificationError,
+    WorthMilestoneOneCertificationHarness, WorthMilestoneOneCertificationReport,
+    WorthMilestoneOneCloseoutReport, WorthMilestoneOneCounters,
+    WorthMilestoneOneReplayAggregateReport, WorthMilestoneOneRejectionClassReport,
+    WorthMilestoneOneRejectionClassRow, WorthMilestoneOneValidationAggregateReport,
+    WorthMilestoneOneValidationAggregateRow, WorthMilestoneOneValidatorCoverageReport,
+    WorthMilestoneOneValidatorCoverageRow, WorthNamingAttachmentAggregateReport,
+    WorthNamingAttachmentAggregateRow, WorthNamingAttachmentReport, WorthNamingAttachmentRow,
+    WorthPrimitiveCorpusCaseReport, WorthPrimitiveCorpusCoverageEntry,
+    WorthPrimitiveCorpusCoverageMatrix, WorthPrimitiveCorpusParityEntry,
+    WorthPrimitiveCorpusParityReport, WorthPrimitiveCorpusRejectedCaseReport,
+    WorthPrimitiveCorpusReport, WorthPrimitiveFamilyCoverageEntry,
+    WorthPrimitiveFamilyCoverageMatrix, WorthPrimitiveRejectionReport,
+    WorthReplayParityReport, WorthReplayParityStatus,
+    WorthDerivedFamilyCoverageMatrix, WorthDerivedFamilyCoverageRow,
+    WorthDerivedFamilyParityMatrix, WorthDerivedFamilyParityRow,
+    WorthDerivedValidatorCoverageReport, WorthDerivedValidatorCoverageRow,
+    WorthDerivedEquivalenceContractAggregateReport, WorthDerivedEquivalenceContractAggregateRow,
+    WorthDerivedFallbackAggregateReport, WorthDerivedFallbackAggregateRow,
+    WorthDerivedInvalidationAggregateReport, WorthDerivedInvalidationAggregateRow,
+    WorthDerivedRebuildAggregateReport, WorthDerivedRebuildAggregateRow,
+    WorthMilestoneTwoBranchLocalParityReport, WorthMilestoneTwoCloseoutReport,
+    WorthMilestoneTwoCounters, WorthMilestoneTwoDerivedCorpusReport,
+    WorthMilestoneTwoDerivedReadReport, WorthMilestoneTwoReplayParityReport,
+    WorthTopologyLocalizationAggregateEntityRow,
+    WorthTopologyLocalizationAggregateRelationRow, WorthTopologyLocalizationAggregateReport,
+    WorthTopologyLocalizationEntityRow, WorthTopologyLocalizationRelationRow,
+    WorthTopologyLocalizationReport,
 };
 pub use crate::data::topology_view::{
     WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,
     WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
     WorthTopologyShell, WorthTopologyVertex, WorthTopologyView, WorthTopologyWire,
 };
+pub use crate::diagnostics::{
+    build_derived_fallback_report, build_derived_invalidation_report,
+    build_derived_read_diagnostics, build_derived_rebuild_report,
+    WorthDerivedFallbackReport, WorthDerivedInvalidationReport,
+    WorthDerivedInvalidationTargetRow, WorthDerivedReadDiagnostics,
+    WorthDerivedRebuildReport,
+};
 pub use crate::interpretation::{
     build_topology_read_artifact, certify_topology_view, interpret_topology_view,
-    WorthShellInterpretation, WorthTopologyInterpretationSet, WorthTopologyInterpreter,
-    WorthWireInterpretation,
+    InterpretedTopologyView, InterpretationReport, WorthBoundaryInterpretationSummary,
+    WorthRadialInterpretationSummary, WorthShellInterpretation,
+    WorthTopologyInterpretationSet, WorthTopologyInterpreter, WorthWireInterpretation,
 };
-pub use crate::materialization::{WorthTopologyMaterializationError, WorthTopologyMaterializer};
+pub use crate::materialization::{
+    MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
+    MaterializedTopologyView, WorthTopologyMaterializationError, WorthTopologyMaterializer,
+};
+pub use crate::parity::{
+    build_derived_equivalence_contract, compare_derived_equivalence_contracts,
+    digest_derived_validation_report, digest_interpreted_topology_view,
+    digest_materialized_topology_view, WorthDerivedEquivalenceContractReport,
+    WorthDerivedParityComparisonReport,
+};
 pub use crate::reader::{WorthTopologyReadError, WorthTopologyReader};
 pub use crate::runtime_invariants::{
     build_worth_milestone_one_runtime, configure_worth_milestone_one_runtime_builder,
@@ -32,7 +88,9 @@ pub use crate::runtime_invariants::{
     WorthMilestoneOneRuntimeSetupError,
 };
 pub use crate::validators::{
-    topology_validation_report, validate_named_topology_truth, validate_topology_view,
-    WorthTopologyValidationError, WorthTopologyValidationReport, WorthTopologyValidationRow,
+    topology_validation_report, validate_interpreted_topology, validate_materialized_topology,
+    validate_named_topology_truth, validate_topology_view, DerivedTopologyValidationReport,
+    WorthTopologyValidationError, WorthTopologyValidationInputClass,
+    WorthTopologyValidationPhase, WorthTopologyValidationReport, WorthTopologyValidationRow,
     WorthTopologyValidator,
 };

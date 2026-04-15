@@ -2,7 +2,8 @@ mod digest;
 mod equivalence;
 
 pub use digest::{
-    CanonicalQueryDigest, CanonicalResultShapeDigest, SchemaBasisDigest, ValidatedQueryDigest,
+    BasisDigest, BindingFulfillmentDigest, CanonicalQueryDigest, CanonicalResultShapeDigest,
+    CollectionPlanDigest, PlanDigest, ResultDigest, SchemaBasisDigest, ValidatedQueryDigest,
     ValidatedResultShapeDigest,
 };
 pub use equivalence::CanonicalEquivalence;

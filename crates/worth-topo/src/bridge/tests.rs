@@ -5,7 +5,10 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use worth_schema::facade::seed_minimal_topology;
+use worth_schema::facade::{
+    seed_minimal_topology, worth_milestone_two_invalidation_declarations,
+    WorthDerivedInvalidationTarget, WorthDerivedTruthSurfaceKind,
+};
 
 use crate::bridge::{
     worth_milestone_one_bridge_aspect_registrations,
@@ -32,9 +35,58 @@ impl InvalidationSink for RecordingSink {
 fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
     let mappings = worth_milestone_one_bridge_mapping_registrations();
     let aspects = worth_milestone_one_bridge_aspect_registrations();
+    let declarations = worth_milestone_two_invalidation_declarations();
 
-    assert_eq!(mappings.len(), 8);
-    assert_eq!(aspects.len(), 8);
+    assert_eq!(mappings.len(), declarations.len());
+    assert_eq!(aspects.len(), declarations.len());
+    for declaration in declarations {
+        assert!(mappings.iter().any(|registration| {
+            registration.mapping_id().as_str() == format!("worth:m2:{}", declaration.declaration_id)
+                && registration.signal_scope().as_str() == declaration.target.bridge_scope()
+                && registration.truth_scope().aspect_selector()
+                    == &forge_runtime_bridge::facade::MappingSelector::exact(
+                        declaration.truth_patch_field,
+                    )
+        }));
+        assert!(aspects.iter().any(|registration| {
+            registration.registration_id().as_str()
+                == format!("worth:m2:aspect:{}", declaration.declaration_id)
+                && registration.truth_scope().aspect_selector()
+                    == &forge_runtime_bridge::facade::MappingSelector::exact(
+                        declaration.truth_patch_field,
+                    )
+                && registration.truth_surface_kind()
+                    == match declaration.truth_surface_kind {
+                        WorthDerivedTruthSurfaceKind::EntityField => {
+                            forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityField
+                        }
+                        WorthDerivedTruthSurfaceKind::EntityRelationEndpoint => {
+                            forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityRelationEndpoint
+                        }
+                    }
+        }));
+    }
+}
+
+#[test]
+fn milestone_two_bridge_target_vocabulary_remains_canonical() {
+    let declarations = worth_milestone_two_invalidation_declarations();
+
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyStructure));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyOwnership));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyBoundary));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyRadial));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::NamingPersistentName));
 }
 
 #[test]

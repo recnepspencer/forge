@@ -1,8 +1,10 @@
 # Milestone 1 Engineering Spec: NMT Topology Truth, Persistent Naming, And Validation Authority
 
-> **Status:** Planned
+> **Status:** Complete
 >
 > **Roadmap parent:** [worth_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth_roadmap.md)
+>
+> **Closeout note:** [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 >
 > **Vision parent:** [VISION.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/VISION.md)
 >
@@ -1242,9 +1244,37 @@ Required machine-checkable outputs:
 - `milestone_1_counter_report`
 - `primitive_family_coverage_matrix`
 - `primitive_corpus_parity_report`
+- `admitted_range_sweep_report`
+- `illegal_topology_rejection_report`
+- `failure_locality_report`
+- `bridge_family_coverage_report`
 - `branch_local_topology_report`
 - `milestone_1_replay_parity_report`
 - `bridge_proof_report`
+
+Closeout rule:
+
+- the milestone-1 closeout artifact must expose these outputs directly as
+  first-class aggregate surfaces; they may be derived from seeded and
+  primitive-corpus proof, but they must not exist only as nested per-case
+  reports that downstream consumers have to reconstruct by convention
+- the bridge proof must cover more than one admitted topology family so the
+  causal boundary is not only certified on a single showcase path
+- the closeout artifact should summarize validator-family coverage and
+  rejection-class distribution directly, so later milestones do not have to
+  reconstruct those boundaries from per-case trees
+- validator coverage must remain attributable by primitive family, not only in
+  aggregate, so one family cannot underexercise a validator while another
+  family makes the totals look healthy
+- failure locality must remain attributable by primitive family and role, with
+  localized entity/relation counts, so admitted-family regressions cannot hide
+  inside one generic rejection bucket
+- admitted-range sweeps are required closeout evidence, not optional secondary
+  checks, and the closeout artifact must expose their results directly,
+  including one explicit out-of-class boundary neighbor per canonical family
+- bridge proof must expose family-attributed bridge coverage and remain
+  complete only when every canonical milestone-1 admitted family has explicit
+  per-family routing and historical evaluation evidence
 
 Milestone-specific proof obligations:
 
@@ -1257,15 +1287,34 @@ Milestone-specific proof obligations:
   showcase star node
 - `SolidShell(f)` must prove arbitrary admitted closed-shell face counts, not
   one cube or prism
+- the primitive-family coverage and parity matrices must retain one row for
+  every canonical milestone-1 admitted family even when a family is missing or
+  broken, so missing coverage cannot disappear silently from the proof surface
 - every admitted primitive family must succeed or typed-fail uniformly across
   its declared admitted class; partial admitted subsets are forbidden
 - commit-boundary invariants reject impossible topology before publication
+- illegal admitted-surface topology attempts emit structured rejection artifacts
+  with localized rejection class and diagnostic evidence
 - persistent-name uniqueness and targeting legality are enforced at the truth
   boundary
 - derived topology interpretation reconstructs admitted shell, wire, boundary,
   and radial meaning deterministically from truth
 - branch-local history and replay preserve the same conclusions for the same
   authoritative truth basis
+- branch-local parity is not complete unless the proof surface demonstrates a
+  real cross-branch partition rather than only equal case counts on one branch
+- aggressive deterministic admitted-range sweeps must pass for every admitted
+  family:
+  - `WireOpen(n)` for `n = 1..=12`
+  - `WireClosed(n)` for `n = 3..=12`
+  - `WireBranch(k)` for `k = 3..=12`
+  - `SheetDisk(n)` for `n = 3..=12`
+  - `SheetPatch(f)` for `f = 2..=10`
+  - `SolidShell(f)` for `f = 4..=10`
+  - `NmtEdgeFan(k)` for `k = 3..=10`
+- every admitted-range sweep family must also include one explicit
+  just-below-boundary out-of-class case that clean-fails and remains visible in
+  the sweep report
 
 Milestone 1 is not closed by seeding one cube, one tetrahedron, or one hand-made
 NMT example.

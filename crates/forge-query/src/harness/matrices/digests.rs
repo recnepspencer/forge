@@ -2,11 +2,9 @@ use crate::facade::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
     CompatibilityEvidence, NormalizationEvent,
 };
-use sha2::{Digest, Sha256};
-
 use super::model::{
-    CanonicalCertificationBundle, CertificationPerturbationClass, HostileLaneExpectation,
-    ParityAnchor, RejectionCertificationBundle,
+    CanonicalCertificationBundle, CertificationMatrix, CertificationPerturbationClass,
+    HostileLaneExpectation, ParityAnchor, RejectionCertificationBundle,
 };
 
 pub(super) fn canonical_bundle_digest_parts(
@@ -38,13 +36,53 @@ pub(super) fn rejection_bundle_digest_parts(
     ]
 }
 
-pub(super) fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = Sha256::new();
-    for part in parts {
-        hasher.update(part.as_bytes());
-        hasher.update([0x1f]);
+pub(super) fn bundle_digest_parts(matrix: &CertificationMatrix) -> Vec<String> {
+    let mut parts = vec![format!("suite:{}", matrix.suite_name)];
+
+    for row in &matrix.rows {
+        parts.push(format!("row:{}", row.row_name));
+        parts.extend(canonical_bundle_digest_parts(&row.control_lane, "control"));
+        parts.extend(canonical_bundle_digest_parts(&row.hostile_lane, "hostile"));
+        parts.extend(canonical_bundle_digest_parts(&row.parity_lane, "parity"));
     }
-    format!("{:x}", hasher.finalize())
+
+    for row in &matrix.rejection_rows {
+        parts.push(format!("rejection-row:{}", row.row_name));
+        parts.extend(canonical_bundle_digest_parts(&row.control_lane, "control"));
+        parts.extend(rejection_bundle_digest_parts(&row.hostile_lane, "hostile"));
+        parts.extend(canonical_bundle_digest_parts(&row.parity_lane, "parity"));
+    }
+
+    parts
+}
+
+pub(super) fn coverage_digest_parts(matrix: &CertificationMatrix) -> Vec<String> {
+    let mut parts = vec![
+        format!("suite:{}", matrix.suite_name),
+        format!("canonical-rows:{}", matrix.rows.len()),
+        format!("rejection-rows:{}", matrix.rejection_rows.len()),
+    ];
+
+    for row in &matrix.rows {
+        parts.push(format!(
+            "row:{}:{}:{}:{}",
+            row.row_name,
+            perturbation_class_key(row.perturbation_class),
+            hostile_expectation_key(row.hostile_expectation),
+            parity_anchor_key(row.parity_anchor)
+        ));
+    }
+
+    for row in &matrix.rejection_rows {
+        parts.push(format!(
+            "rejection-row:{}:{}:control-hostile-parity",
+            row.row_name,
+            perturbation_class_key(row.perturbation_class)
+        ));
+        parts.push(format!("rejection-class:{}", row.hostile_lane.failure_class));
+    }
+
+    parts
 }
 
 pub(super) fn perturbation_class_key(class: CertificationPerturbationClass) -> &'static str {

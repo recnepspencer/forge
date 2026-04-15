@@ -281,6 +281,18 @@ fn canonical_query_normalization_certification_artifact_is_offline_ready() {
     assert!(
         artifact
             .bundle_completeness_report
+            .unmet_required_rows
+            .is_empty()
+    );
+    assert!(
+        artifact
+            .bundle_completeness_report
+            .unmet_required_assertion_classes
+            .is_empty()
+    );
+    assert!(
+        artifact
+            .bundle_completeness_report
             .covers_all_mutation_sensitivity_classes
     );
     assert!(

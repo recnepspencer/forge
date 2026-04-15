@@ -33,22 +33,28 @@ mod interpretation_tests {
             .expect("worth topology materialization");
         let interpretation = interpret_topology_view(&topology);
 
-        assert_eq!(interpretation.wires.len(), 1);
-        assert_eq!(interpretation.wires[0].connected_component_count, 1);
-        assert_eq!(interpretation.wires[0].terminal_vertex_ids.len(), 1);
+        assert_eq!(interpretation.report().interpreted_wire_count, 1);
+        assert_eq!(interpretation.report().interpreted_shell_count, 1);
+        assert_eq!(interpretation.report().boundary_interpretation_count, 1);
+        assert_eq!(interpretation.report().radial_interpretation_count, 1);
+        assert_eq!(interpretation.interpretations().wires.len(), 1);
+        assert_eq!(interpretation.interpretations().wires[0].connected_component_count, 1);
+        assert_eq!(interpretation.interpretations().wires[0].terminal_vertex_ids.len(), 1);
         assert_eq!(
-            interpretation.wires[0].class,
+            interpretation.interpretations().wires[0].class,
             WorthWireInterpretationClass::OpenChain
         );
 
-        assert_eq!(interpretation.shells.len(), 1);
+        assert_eq!(interpretation.interpretations().shells.len(), 1);
         assert_eq!(
-            interpretation.shells[0].class,
+            interpretation.interpretations().shells[0].class,
             WorthShellInterpretationClass::OpenSheet
         );
-        assert_eq!(interpretation.shells[0].face_count, 1);
-        assert_eq!(interpretation.shells[0].boundary_component_count, 1);
-        assert_eq!(interpretation.shells[0].boundary_half_edge_count, 1);
+        assert_eq!(interpretation.interpretations().shells[0].face_count, 1);
+        assert_eq!(interpretation.interpretations().shells[0].boundary_component_count, 1);
+        assert_eq!(interpretation.interpretations().shells[0].boundary_half_edge_count, 1);
+        assert_eq!(interpretation.boundary_summaries().len(), 1);
+        assert_eq!(interpretation.radial_summaries().len(), 1);
     }
 
     #[test]
@@ -67,23 +73,24 @@ mod interpretation_tests {
 
         let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
             .expect("worth topology materialization");
-        let read_artifact = build_topology_read_artifact(&seeded.read_basis, &topology);
-        let certified = certify_topology_view(seeded.read_basis.clone(), &topology);
+        let interpreted = interpret_topology_view(&topology);
+        let read_artifact = build_topology_read_artifact(&seeded.read_basis, &interpreted);
+        let certified = certify_topology_view(seeded.read_basis.clone(), &interpreted);
 
         assert_eq!(read_artifact.snapshot, seeded.snapshot);
         assert_eq!(read_artifact.interpretations.wires.len(), 1);
         assert_eq!(read_artifact.interpretations.shells.len(), 1);
-        assert_eq!(certified.read_basis.snapshot, seeded.snapshot);
+        assert_eq!(certified.read_basis.snapshot(), &seeded.snapshot);
         assert_eq!(certified.interpretations, read_artifact.interpretations);
     }
 
     #[test]
     fn closed_wire_cycle_interprets_as_closed_with_no_terminals() {
         let topology = closed_wire_cycle_view();
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.wires.len(), 1);
-        let wire = &interpretation.wires[0];
+        assert_eq!(interpretation.interpretations().wires.len(), 1);
+        let wire = &interpretation.interpretations().wires[0];
         assert_eq!(wire.connected_component_count, 1);
         assert_eq!(wire.class, WorthWireInterpretationClass::ClosedCycle);
         assert!(wire.terminal_vertex_ids.is_empty());
@@ -93,10 +100,10 @@ mod interpretation_tests {
     #[test]
     fn longer_open_wire_chain_interprets_as_open_chain_with_two_terminals() {
         let topology = open_wire_chain_view(4);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.wires.len(), 1);
-        let wire = &interpretation.wires[0];
+        assert_eq!(interpretation.interpretations().wires.len(), 1);
+        let wire = &interpretation.interpretations().wires[0];
         assert_eq!(wire.class, WorthWireInterpretationClass::OpenChain);
         assert_eq!(wire.connected_component_count, 1);
         assert_eq!(wire.terminal_vertex_ids.len(), 2);
@@ -106,10 +113,10 @@ mod interpretation_tests {
     #[test]
     fn larger_closed_wire_cycle_interprets_as_closed_cycle() {
         let topology = closed_wire_cycle_of_size(4);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.wires.len(), 1);
-        let wire = &interpretation.wires[0];
+        assert_eq!(interpretation.interpretations().wires.len(), 1);
+        let wire = &interpretation.interpretations().wires[0];
         assert_eq!(wire.class, WorthWireInterpretationClass::ClosedCycle);
         assert_eq!(wire.connected_component_count, 1);
         assert!(wire.terminal_vertex_ids.is_empty());
@@ -119,10 +126,10 @@ mod interpretation_tests {
     #[test]
     fn larger_connected_wire_branch_interprets_as_connected_branch() {
         let topology = connected_wire_branch_view(4);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.wires.len(), 1);
-        let wire = &interpretation.wires[0];
+        assert_eq!(interpretation.interpretations().wires.len(), 1);
+        let wire = &interpretation.interpretations().wires[0];
         assert_eq!(wire.class, WorthWireInterpretationClass::ConnectedBranch);
         assert_eq!(wire.connected_component_count, 1);
         assert_eq!(wire.branch_vertex_ids.len(), 1);
@@ -132,10 +139,10 @@ mod interpretation_tests {
     #[test]
     fn open_shell_with_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(3);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.shells.len(), 1);
-        let shell = &interpretation.shells[0];
+        assert_eq!(interpretation.interpretations().shells.len(), 1);
+        let shell = &interpretation.interpretations().shells[0];
         assert_eq!(shell.class, WorthShellInterpretationClass::OpenNonManifold);
         assert_eq!(shell.face_count, 3);
         assert!(shell.boundary_half_edge_count > 0);
@@ -145,10 +152,10 @@ mod interpretation_tests {
     #[test]
     fn larger_open_shell_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(4);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.shells.len(), 1);
-        let shell = &interpretation.shells[0];
+        assert_eq!(interpretation.interpretations().shells.len(), 1);
+        let shell = &interpretation.interpretations().shells[0];
         assert_eq!(shell.class, WorthShellInterpretationClass::OpenNonManifold);
         assert_eq!(shell.face_count, 4);
         assert!(shell.boundary_half_edge_count > 0);
@@ -158,10 +165,12 @@ mod interpretation_tests {
     #[test]
     fn single_face_open_sheet_interprets_as_sheet_disk_member() {
         let topology = single_face_sheet_disk_view(5);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.shells.len(), 1);
-        let shell = &interpretation.shells[0];
+        assert_eq!(interpretation.interpretations().shells.len(), 1);
+        let shell = &interpretation.interpretations().shells[0];
+        assert_eq!(interpretation.boundary_summaries().len(), 1);
+        assert_eq!(interpretation.boundary_summaries()[0].boundary_component_count, 1);
         assert_eq!(shell.class, WorthShellInterpretationClass::OpenSheet);
         assert_eq!(shell.face_count, 1);
         assert_eq!(shell.boundary_component_count, 1);
@@ -172,10 +181,12 @@ mod interpretation_tests {
     #[test]
     fn multi_face_open_shell_interprets_as_sheet_patch_member() {
         let topology = open_sheet_patch_view(3);
-        let interpretation = interpret_topology_view(&topology);
+        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
 
-        assert_eq!(interpretation.shells.len(), 1);
-        let shell = &interpretation.shells[0];
+        assert_eq!(interpretation.interpretations().shells.len(), 1);
+        let shell = &interpretation.interpretations().shells[0];
+        assert_eq!(interpretation.boundary_summaries().len(), 1);
+        assert!(interpretation.boundary_summaries()[0].boundary_component_count >= 1);
         assert_eq!(shell.class, WorthShellInterpretationClass::OpenSheet);
         assert_eq!(shell.face_count, 3);
         assert!(shell.boundary_component_count >= 1);
@@ -661,3 +672,4 @@ mod interpretation_tests {
         }
     }
 }
+

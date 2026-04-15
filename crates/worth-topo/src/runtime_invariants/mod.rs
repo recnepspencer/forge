@@ -6,6 +6,7 @@ mod shared;
 mod shell_closure;
 #[cfg(test)]
 mod tests;
+mod vertex_branching;
 mod wire_connectivity;
 
 use forge_relational::facade::runtime::{
@@ -41,6 +42,7 @@ pub fn worth_milestone_one_runtime_invariants(
         loop_wiring::registration()?,
         radial::registration()?,
         wire_connectivity::registration()?,
+        vertex_branching::registration()?,
         shell_closure::registration()?,
         naming::registration()?,
     ])

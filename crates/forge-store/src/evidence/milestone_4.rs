@@ -8,6 +8,7 @@ use serde::Serialize;
 pub struct Milestone4CertificationBundle {
     pub truth_digest: String,
     pub restore_digest: String,
+    pub artifact_digest: String,
     pub rebuild_digest: String,
     pub counter_snapshot: StoreCounterSnapshot,
 }
@@ -22,6 +23,11 @@ impl Milestone4CertificationBundle {
         Self {
             truth_digest: stable_snapshot_digest(truth_image),
             restore_digest: stable_snapshot_digest(restored_image),
+            artifact_digest: stable_snapshot_digest(
+                &truth_image
+                    .authoritative_export()
+                    .authoritative_artifact_digests,
+            ),
             rebuild_digest: stable_snapshot_digest(rebuilt_image),
             counter_snapshot,
         }

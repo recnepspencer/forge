@@ -272,6 +272,246 @@ mod runtime_invariant_tests {
         ));
     }
 
+    #[test]
+    fn runtime_invariants_block_illegal_wire_branch_with_non_distinct_edges() {
+        let mut runtime = worth_milestone_one_runtime_builder()
+            .expect("worth milestone one runtime builder")
+            .build();
+
+        let intent = RawWorthTopologyIntent::new(
+            vec![
+                entity("branch.model", WorthTopologyEntityKind::Model),
+                entity("branch.body", WorthTopologyEntityKind::Body),
+                entity("branch.lump", WorthTopologyEntityKind::Lump),
+                entity("branch.region", WorthTopologyEntityKind::Region),
+                entity("branch.shell", WorthTopologyEntityKind::Shell),
+                entity("branch.face", WorthTopologyEntityKind::Face),
+                entity("branch.loop", WorthTopologyEntityKind::Loop),
+                entity("branch.wire", WorthTopologyEntityKind::Wire),
+                entity("branch.he0", WorthTopologyEntityKind::HalfEdge),
+                entity("branch.he1", WorthTopologyEntityKind::HalfEdge),
+                entity("branch.he2", WorthTopologyEntityKind::HalfEdge),
+                entity("branch.edge0", WorthTopologyEntityKind::Edge),
+                entity("branch.edge2", WorthTopologyEntityKind::Edge),
+                entity("branch.center", WorthTopologyEntityKind::Vertex),
+                entity("branch.v1", WorthTopologyEntityKind::Vertex),
+                entity("branch.v2", WorthTopologyEntityKind::Vertex),
+                entity("branch.v3", WorthTopologyEntityKind::Vertex),
+                relation(
+                    "branch.model.owns_body",
+                    WorthTopologyRelationKind::ModelOwnsBody,
+                    "branch.model",
+                    "branch.body",
+                ),
+                relation(
+                    "branch.body.owns_lump",
+                    WorthTopologyRelationKind::BodyOwnsLump,
+                    "branch.body",
+                    "branch.lump",
+                ),
+                relation(
+                    "branch.lump.owns_region",
+                    WorthTopologyRelationKind::LumpOwnsRegion,
+                    "branch.lump",
+                    "branch.region",
+                ),
+                relation(
+                    "branch.region.owns_shell",
+                    WorthTopologyRelationKind::RegionOwnsShell,
+                    "branch.region",
+                    "branch.shell",
+                ),
+                relation(
+                    "branch.shell.owns_face",
+                    WorthTopologyRelationKind::ShellOwnsFace,
+                    "branch.shell",
+                    "branch.face",
+                ),
+                relation(
+                    "branch.face.outer_loop",
+                    WorthTopologyRelationKind::FaceOuterLoop,
+                    "branch.face",
+                    "branch.loop",
+                ),
+                relation(
+                    "branch.loop.owns_he0",
+                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    "branch.loop",
+                    "branch.he0",
+                ),
+                relation(
+                    "branch.loop.owns_he1",
+                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    "branch.loop",
+                    "branch.he1",
+                ),
+                relation(
+                    "branch.loop.owns_he2",
+                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    "branch.loop",
+                    "branch.he2",
+                ),
+                relation(
+                    "branch.wire.owns_he0",
+                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    "branch.wire",
+                    "branch.he0",
+                ),
+                relation(
+                    "branch.wire.owns_he1",
+                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    "branch.wire",
+                    "branch.he1",
+                ),
+                relation(
+                    "branch.wire.owns_he2",
+                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    "branch.wire",
+                    "branch.he2",
+                ),
+                relation(
+                    "branch.he0.next",
+                    WorthTopologyRelationKind::HalfEdgeNext,
+                    "branch.he0",
+                    "branch.he0",
+                ),
+                relation(
+                    "branch.he0.prev",
+                    WorthTopologyRelationKind::HalfEdgePrev,
+                    "branch.he0",
+                    "branch.he0",
+                ),
+                relation(
+                    "branch.he1.next",
+                    WorthTopologyRelationKind::HalfEdgeNext,
+                    "branch.he1",
+                    "branch.he1",
+                ),
+                relation(
+                    "branch.he1.prev",
+                    WorthTopologyRelationKind::HalfEdgePrev,
+                    "branch.he1",
+                    "branch.he1",
+                ),
+                relation(
+                    "branch.he2.next",
+                    WorthTopologyRelationKind::HalfEdgeNext,
+                    "branch.he2",
+                    "branch.he2",
+                ),
+                relation(
+                    "branch.he2.prev",
+                    WorthTopologyRelationKind::HalfEdgePrev,
+                    "branch.he2",
+                    "branch.he2",
+                ),
+                relation(
+                    "branch.he0.radial",
+                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    "branch.he0",
+                    "branch.he0",
+                ),
+                relation(
+                    "branch.he1.radial",
+                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    "branch.he1",
+                    "branch.he1",
+                ),
+                relation(
+                    "branch.he2.radial",
+                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    "branch.he2",
+                    "branch.he2",
+                ),
+                relation(
+                    "branch.he0.edge",
+                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    "branch.he0",
+                    "branch.edge0",
+                ),
+                relation(
+                    "branch.he1.edge",
+                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    "branch.he1",
+                    "branch.edge0",
+                ),
+                relation(
+                    "branch.he2.edge",
+                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    "branch.he2",
+                    "branch.edge2",
+                ),
+                relation(
+                    "branch.he0.start",
+                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    "branch.he0",
+                    "branch.center",
+                ),
+                relation(
+                    "branch.he0.end",
+                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    "branch.he0",
+                    "branch.v1",
+                ),
+                relation(
+                    "branch.he1.start",
+                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    "branch.he1",
+                    "branch.center",
+                ),
+                relation(
+                    "branch.he1.end",
+                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    "branch.he1",
+                    "branch.v2",
+                ),
+                relation(
+                    "branch.he2.start",
+                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    "branch.he2",
+                    "branch.center",
+                ),
+                relation(
+                    "branch.he2.end",
+                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    "branch.he2",
+                    "branch.v3",
+                ),
+            ]
+            .into_iter()
+            .chain(naming_bundle(&[
+                "branch.model",
+                "branch.body",
+                "branch.lump",
+                "branch.region",
+                "branch.shell",
+                "branch.face",
+                "branch.loop",
+                "branch.wire",
+                "branch.he0",
+                "branch.he1",
+                "branch.he2",
+                "branch.edge0",
+                "branch.edge2",
+                "branch.center",
+                "branch.v1",
+                "branch.v2",
+                "branch.v3",
+            ]))
+            .collect(),
+            WorthMutationOrigin::LocalEdit,
+        );
+
+        let error = WorthTopologyAuthority::new(&mut runtime)
+            .apply_topology_intent(intent)
+            .expect_err("branch vertex with reused edge identities must block commit");
+
+        assert!(matches!(
+            error,
+            WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
+        ));
+    }
+
     fn entity(create_key: &str, kind: WorthTopologyEntityKind) -> WorthTopologyMutation {
         WorthTopologyMutation::CreateEntity {
             create_key: WorthCreateKey::new(create_key),

@@ -1,13 +1,15 @@
 use crate::ForgeStore;
 
-use super::support::{create_entity, latest_envelope, runtime_with_demo_schema};
+use super::harness::fixtures::runtime::{
+    create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch,
+};
 
 #[test]
 fn canonical_export_rebuild_preserves_authoritative_truth() {
     let mut runtime = runtime_with_demo_schema();
     let entity_id = create_entity(&mut runtime, "alpha");
     let first = latest_envelope(&runtime);
-    super::support::update_entity_on_branch(&mut runtime, entity_id, "beta", None);
+    update_entity_on_branch(&mut runtime, entity_id, "beta", None);
     let second = latest_envelope(&runtime);
 
     let mut store = crate::ForgeStoreBuilder::new().in_memory().build().unwrap();
@@ -15,7 +17,7 @@ fn canonical_export_rebuild_preserves_authoritative_truth() {
     store.append_canonical_commit(second.clone()).unwrap();
 
     let export = store.export_authoritative_records();
-    let rebuilt = ForgeStore::rebuild_from_authoritative_export(export).unwrap();
+    let rebuilt = ForgeStore::restore_from_authoritative_export(export.admit_restore()).unwrap();
 
     let rebuilt_first = rebuilt
         .fetch_canonical_commit(first.commit.commit_id)
@@ -35,7 +37,7 @@ fn rebuilt_store_continues_local_commit_sequence_monotonically() {
     let mut runtime = runtime_with_demo_schema();
     let entity_id = create_entity(&mut runtime, "alpha");
     let first = latest_envelope(&runtime);
-    super::support::update_entity_on_branch(&mut runtime, entity_id, "beta", None);
+    update_entity_on_branch(&mut runtime, entity_id, "beta", None);
     let second = latest_envelope(&runtime);
 
     let mut store = crate::ForgeStoreBuilder::new().in_memory().build().unwrap();
@@ -43,9 +45,10 @@ fn rebuilt_store_continues_local_commit_sequence_monotonically() {
     let persisted_second = store.append_canonical_commit(second.clone()).unwrap();
 
     let export = store.export_authoritative_records();
-    let mut rebuilt = ForgeStore::rebuild_from_authoritative_export(export).unwrap();
+    let mut rebuilt =
+        ForgeStore::restore_from_authoritative_export(export.admit_restore()).unwrap();
 
-    super::support::update_entity_on_branch(&mut runtime, entity_id, "gamma", None);
+    update_entity_on_branch(&mut runtime, entity_id, "gamma", None);
     let third = latest_envelope(&runtime);
     let persisted_third = rebuilt.append_canonical_commit(third).unwrap();
 
@@ -67,7 +70,7 @@ fn duplicate_authoritative_export_records_are_rejected() {
     let duplicate = export.commit_envelopes[0].clone();
     export.commit_envelopes.push(duplicate);
 
-    let error = ForgeStore::rebuild_from_authoritative_export(export).unwrap_err();
+    let error = ForgeStore::restore_from_authoritative_export(export.admit_restore()).unwrap_err();
     assert_eq!(
         error.kind(),
         &crate::StoreErrorKind::DuplicateArtifactIdentity

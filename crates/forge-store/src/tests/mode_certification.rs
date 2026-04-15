@@ -1,85 +1,110 @@
 use crate::{
-    AbsentRuntimeWitness, CheckpointAuthorityReport, DurableMutationRequest,
-    EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope,
-    ExternalRuntimeCommitEnvelope, ForgeStoreBuilder, Milestone2CertificationBundle,
-    ObservedModeFailure,
+    CheckpointAuthorityReport, EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope,
+    ForgeStoreBuilder, Milestone2CertificationBundle, ObservedModeFailure,
 };
-use serde_json::json;
 
-use super::support::{create_entity_commit, latest_envelope, runtime_with_demo_schema};
+use super::harness::{
+    certification::{
+        assertions::{assert_all_equal, assert_rejection_payloads_present},
+        core::{AssertionClass, CanonicalRow, CertificationSuite, LaneResult, RejectionRow},
+        requirements::{evaluate_completeness, OPERATING_MODE_CONTRACT_PARITY_TEST},
+    },
+    fixtures::runtime::{create_entity_commit, latest_envelope, runtime_with_demo_schema},
+    scenarios::modes::mode_contract_parity,
+};
 
-fn create_alpha_commit(
-    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
-) -> Result<forge_relational::facade::history::CommitId, crate::StoreError> {
-    Ok(create_entity_commit(runtime, "alpha"))
-}
-
-#[test]
-fn milestone_2_certification_bundle_proves_mode_contract_parity() {
-    let mut embedded_runtime = runtime_with_demo_schema();
-    create_entity_commit(&mut embedded_runtime, "alpha");
-    let embedded_envelope = latest_envelope(&embedded_runtime);
+fn milestone_2_suite() -> CertificationSuite<String, String> {
+    let scenario = mode_contract_parity();
+    let _bundle = Milestone2CertificationBundle::new(
+        scenario.durable_lane.clone(),
+        scenario.embedded_lane.clone(),
+        scenario.absent_lane.clone(),
+        scenario.checkpoint_authority_report.clone(),
+        &[],
+    );
 
     let mut embedded = ForgeStoreBuilder::new()
         .in_memory()
         .embedded_mode()
         .build()
-        .expect("embedded mode should build");
-    embedded
-        .persist_external_commit(ExternalRuntimeCommitEnvelope::new(
+        .unwrap();
+    let error = embedded
+        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+            "checkpoint-authoritative",
             "embedded-runtime",
-            embedded_envelope,
+            EmbeddedCheckpointClassification::AuthoritativeCommitBundle,
         ))
-        .expect("embedded mode should persist external commit");
+        .unwrap_err();
 
-    let before_checkpoint_artifact_digest = embedded.milestone_2_lane_evidence().artifact_digest;
-    let checkpoint_receipt = embedded
-        .persist_external_checkpoint(
-            ExternalRuntimeCheckpointEnvelope::new(
-                "checkpoint-certified",
+    let mut embedded_runtime = runtime_with_demo_schema();
+    create_entity_commit(&mut embedded_runtime, "alpha");
+    let envelope = latest_envelope(&embedded_runtime);
+    embedded
+        .persist_external_commit(crate::ExternalRuntimeCommitEnvelope::new(
+            "embedded-runtime",
+            envelope,
+        ))
+        .unwrap();
+    let embedded_lane = embedded.milestone_2_lane_evidence();
+
+    let durable = ForgeStoreBuilder::new()
+        .in_memory()
+        .durable_mode(runtime_with_demo_schema())
+        .build()
+        .unwrap();
+    let durable_lane = durable.milestone_2_lane_evidence();
+    let absent_lane =
+        crate::AbsentRuntimeWitness::new(runtime_with_demo_schema()).milestone_2_lane_evidence();
+    let checkpoint_authority_report = CheckpointAuthorityReport::from_checkpoint(
+        embedded_lane.artifact_digest.clone(),
+        embedded_lane.artifact_digest.clone(),
+        &embedded
+            .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+                "checkpoint-derived",
                 "embedded-runtime",
                 EmbeddedCheckpointClassification::DerivedDurable,
-            )
-            .with_metadata(json!({"kind":"certified-checkpoint"})),
-        )
-        .expect("checkpoint should persist");
-    let embedded_lane = embedded.milestone_2_lane_evidence();
-    let checkpoint_authority_report = CheckpointAuthorityReport::from_checkpoint(
-        before_checkpoint_artifact_digest,
-        embedded_lane.artifact_digest.clone(),
-        &checkpoint_receipt,
+            ))
+            .unwrap(),
+    );
+    let failure_bundle = Milestone2CertificationBundle::new(
+        durable_lane,
+        embedded_lane,
+        absent_lane,
+        checkpoint_authority_report,
+        &[ObservedModeFailure::from_error(&error)],
     );
 
-    let durable_runtime = runtime_with_demo_schema();
-    let mut durable = ForgeStoreBuilder::new()
-        .in_memory()
-        .durable_mode(durable_runtime)
-        .build()
-        .expect("durable mode should build");
-    durable
-        .execute_mutation(DurableMutationRequest::new(
-            "create-alpha",
-            create_alpha_commit,
+    CertificationSuite::new(OPERATING_MODE_CONTRACT_PARITY_TEST.suite_name)
+        .with_canonical_row(CanonicalRow::new(
+            "mode_contract_parity",
+            vec![
+                LaneResult::new("durable", scenario.durable_lane.artifact_digest),
+                LaneResult::new("embedded", scenario.embedded_lane.artifact_digest),
+            ],
+            &[AssertionClass::Equality, AssertionClass::ExactCounter],
         ))
-        .expect("durable mode should execute hosted mutation");
-    let durable_lane = durable.milestone_2_lane_evidence();
+        .with_rejection_row(RejectionRow::new(
+            "typed_mode_failure",
+            vec![LaneResult::new("embedded", failure_bundle.failure_digest)],
+            &[AssertionClass::TypedFailure, AssertionClass::ExactCounter],
+        ))
+}
 
-    let absent_runtime = {
-        let mut runtime = runtime_with_demo_schema();
-        create_entity_commit(&mut runtime, "alpha");
-        runtime
-    };
-    let absent_lane = AbsentRuntimeWitness::new(absent_runtime).milestone_2_lane_evidence();
-
+#[test]
+fn milestone_2_certification_bundle_proves_mode_contract_parity() {
+    let scenario = mode_contract_parity();
     let bundle = Milestone2CertificationBundle::new(
-        durable_lane.clone(),
-        embedded_lane.clone(),
-        absent_lane.clone(),
-        checkpoint_authority_report.clone(),
+        scenario.durable_lane.clone(),
+        scenario.embedded_lane.clone(),
+        scenario.absent_lane.clone(),
+        scenario.checkpoint_authority_report.clone(),
         &[],
     );
 
-    assert_eq!(durable_lane.artifact_digest, embedded_lane.artifact_digest);
+    assert_eq!(
+        scenario.durable_lane.artifact_digest,
+        scenario.embedded_lane.artifact_digest
+    );
     assert!(bundle.mode_contract_matrix.durable_embedded_artifact_parity);
     assert!(bundle.mode_contract_matrix.absent_mode_is_no_store);
     assert!(bundle.mode_contract_matrix.zero_forbidden_cross_mode_work);
@@ -109,80 +134,16 @@ fn milestone_2_certification_bundle_proves_mode_contract_parity() {
             .absent_mode_store_touch_count,
         0
     );
+
+    let suite = milestone_2_suite();
+    assert_all_equal(&suite.canonical_rows()[0]);
+    let completeness = evaluate_completeness(&suite, &OPERATING_MODE_CONTRACT_PARITY_TEST);
+    assert!(completeness.missing_rows().is_empty());
+    assert!(completeness.missing_assertion_classes().is_empty());
 }
 
 #[test]
 fn milestone_2_certification_bundle_captures_typed_mode_failures() {
-    let mut embedded = ForgeStoreBuilder::new()
-        .in_memory()
-        .embedded_mode()
-        .build()
-        .expect("embedded mode should build");
-
-    let error = embedded
-        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
-            "checkpoint-authoritative",
-            "embedded-runtime",
-            EmbeddedCheckpointClassification::AuthoritativeCommitBundle,
-        ))
-        .expect_err("authoritative checkpoint classification must be rejected");
-
-    let mut embedded_runtime = runtime_with_demo_schema();
-    create_entity_commit(&mut embedded_runtime, "alpha");
-    let envelope = latest_envelope(&embedded_runtime);
-    embedded
-        .persist_external_commit(ExternalRuntimeCommitEnvelope::new(
-            "embedded-runtime",
-            envelope,
-        ))
-        .expect("embedded commit should persist");
-
-    let embedded_lane = embedded.milestone_2_lane_evidence();
-
-    let durable_runtime = runtime_with_demo_schema();
-    let durable = ForgeStoreBuilder::new()
-        .in_memory()
-        .durable_mode(durable_runtime)
-        .build()
-        .expect("durable mode should build");
-    let durable_lane = durable.milestone_2_lane_evidence();
-
-    let absent_lane =
-        AbsentRuntimeWitness::new(runtime_with_demo_schema()).milestone_2_lane_evidence();
-
-    let checkpoint_authority_report = CheckpointAuthorityReport::from_checkpoint(
-        embedded_lane.artifact_digest.clone(),
-        embedded_lane.artifact_digest.clone(),
-        &embedded
-            .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
-                "checkpoint-derived",
-                "embedded-runtime",
-                EmbeddedCheckpointClassification::DerivedDurable,
-            ))
-            .expect("derived checkpoint should persist"),
-    );
-
-    let bundle = Milestone2CertificationBundle::new(
-        durable_lane,
-        embedded_lane,
-        absent_lane,
-        checkpoint_authority_report,
-        &[ObservedModeFailure::from_error(&error)],
-    );
-
-    assert!(!bundle.failure_digest.is_empty());
-    assert_eq!(
-        bundle
-            .counter_snapshot
-            .embedded_lane
-            .mode_misuse_rejection_count,
-        1
-    );
-    assert_eq!(
-        bundle
-            .counter_snapshot
-            .embedded_lane
-            .embedded_checkpoint_authority_rejection_count,
-        1
-    );
+    let suite = milestone_2_suite();
+    assert_rejection_payloads_present(&suite.rejection_rows()[0]);
 }

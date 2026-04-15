@@ -11,11 +11,15 @@
 #![forbid(unsafe_code)]
 
 mod authoring;
+mod basis;
 mod binding;
 mod canonicalization;
+mod collection;
 mod diagnostics;
+mod execution;
 pub mod facade;
 mod identity;
+mod planning;
 mod result_shape;
 #[macro_use]
 mod schema_macro;

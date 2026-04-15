@@ -5,13 +5,23 @@ use crate::{
     },
     evidence::{CanonicalizationMetrics, StoreCounterSnapshot, StoreCounters},
     failure::{StoreError, StoreErrorKind},
+    media::DurableMediaReport,
+    publication::{
+        classify_durable_publication, classify_snapshot_publication, durable_publication_facts,
+        PublicationWriteOutcome,
+    },
     recovery::{
-        build_recovery_plan, evaluate_recovery_for_mutation, DurableRecoveryDecision,
-        DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution, RecoveryAction,
+        build_backup_restore_compatibility_report, build_maintenance_recovery_report,
+        build_recovery_plan, classify_snapshot_maintenance_recovery,
+        evaluate_recovery_for_mutation, BackupRestoreCompatibilityReport, DurableRecoveryDecision,
+        DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution,
+        MaintenanceRecoveryReport, RecoveryAction, RecoverySourceKind,
+        SnapshotMaintenanceRecoveryReport,
     },
     snapshot::{
         PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
-        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome, SnapshotRestorePlan,
+        SnapshotRestoreRequest,
     },
     wal::{
         DurableMutationId, DurablePublicationPhase, RecoveryDecisionClass, WalRecord,
@@ -27,7 +37,8 @@ use super::{
 
 pub(crate) trait StatePersistence: std::fmt::Debug {
     fn load_state(&mut self) -> Result<StoreState, StoreError>;
-    fn persist_state(&mut self, state: &StoreState) -> Result<(), StoreError>;
+    fn persist_state(&mut self, state: &StoreState) -> Result<DurableMediaReport, StoreError>;
+    fn durable_media_report(&self) -> DurableMediaReport;
 }
 
 #[derive(Debug)]
@@ -38,6 +49,45 @@ pub(crate) struct StateBackedStoreBackend<P> {
 }
 
 impl<P: StatePersistence> StateBackedStoreBackend<P> {
+    fn append_wal_record_committed(&mut self, record: WalRecord) -> Result<(), StoreError> {
+        let inserted_sequence = record.wal_sequence;
+        self.state.append_wal_record(record)?;
+
+        if let Err(error) = self.state.verify_wal_record_family() {
+            self.state.wal_records.remove(&inserted_sequence);
+            self.state.next_wal_sequence = inserted_sequence;
+            return Err(error);
+        }
+
+        let report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state.wal_records.remove(&inserted_sequence);
+                self.state.next_wal_sequence = inserted_sequence;
+                return Err(error);
+            }
+        };
+
+        if report.content_barrier() < report.ack_required_barrier() {
+            self.state.wal_records.remove(&inserted_sequence);
+            self.state.next_wal_sequence = inserted_sequence;
+            self.counters.record_durable_ack_barrier_violation();
+            return Err(StoreError::new(
+                StoreErrorKind::DurableBarrierContractViolation,
+                format!(
+                    "backend {:?} reported content barrier {:?} below required acknowledgment barrier {:?}",
+                    report.backend_family(),
+                    report.content_barrier(),
+                    report.ack_required_barrier()
+                ),
+            ));
+        }
+
+        self.counters.record_durable_barrier_verified();
+        self.counters.record_state_delta_apply(1, 1);
+        Ok(())
+    }
+
     pub fn open_with_persistence(mut persistence: P) -> Result<Self, StoreError> {
         let state = persistence.load_state()?;
         state.verify_integrity()?;
@@ -52,97 +102,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         mut persistence: P,
         bundle: AuthoritativeExportBundle,
     ) -> Result<Self, StoreError> {
-        let bundle = bundle.into_canonicalized();
-        let mut state = StoreState::default();
-        state.canonicalization_version = bundle.canonicalization_version;
-        for branch_record in bundle.branch_records {
-            let branch_id = branch_record.branch_id.0.clone();
-            if state
-                .branch_records
-                .insert(branch_id.clone(), branch_record)
-                .is_some()
-            {
-                return Err(StoreError::new(
-                    StoreErrorKind::DuplicateArtifactIdentity,
-                    format!("duplicate branch record `{branch_id}` in authoritative export"),
-                ));
-            }
-        }
-        for branch_head_record in bundle.branch_head_records {
-            let branch_id = branch_head_record.branch_id.0.clone();
-            if state
-                .branch_head_records
-                .insert(branch_id.clone(), branch_head_record)
-                .is_some()
-            {
-                return Err(StoreError::new(
-                    StoreErrorKind::DuplicateArtifactIdentity,
-                    format!("duplicate branch head record `{branch_id}` in authoritative export"),
-                ));
-            }
-        }
-        for commit_envelope in bundle.commit_envelopes {
-            let commit_id = commit_envelope.envelope.commit.commit_id.0;
-            if state
-                .commit_envelopes
-                .insert(commit_id, commit_envelope)
-                .is_some()
-            {
-                return Err(StoreError::duplicate_conflict(CommitId(commit_id)));
-            }
-        }
-        for parent_record in bundle.commit_parent_records {
-            let artifact_id = super::integrity::parent_artifact_id(
-                parent_record.commit_id,
-                parent_record.parent_position,
-            );
-            if state
-                .commit_parent_records
-                .insert(artifact_id.clone(), parent_record)
-                .is_some()
-            {
-                return Err(StoreError::new(
-                    StoreErrorKind::DuplicateArtifactIdentity,
-                    format!(
-                        "duplicate commit parent record `{artifact_id}` in authoritative export"
-                    ),
-                ));
-            }
-        }
-        for digest_record in bundle.authoritative_artifact_digests {
-            let artifact_key = format!(
-                "{:?}:{}:v{}",
-                digest_record.artifact_family,
-                digest_record.artifact_id,
-                digest_record.canonicalization_version
-            );
-            if state
-                .authoritative_artifact_digests
-                .insert(artifact_key.clone(), digest_record)
-                .is_some()
-            {
-                return Err(StoreError::new(
-                    StoreErrorKind::DuplicateArtifactIdentity,
-                    format!("duplicate digest record `{artifact_key}` in authoritative export"),
-                ));
-            }
-        }
-        state.next_commit_sequence = state
-            .commit_envelopes
-            .values()
-            .map(|record| record.commit_sequence)
-            .max()
-            .map(|sequence| sequence + 1)
-            .unwrap_or(1);
-        state.next_head_update_sequence = state
-            .branch_head_records
-            .values()
-            .map(|record| record.head_update_sequence)
-            .max()
-            .map(|sequence| sequence + 1)
-            .unwrap_or(1);
-        state.verify_integrity()?;
-        persistence.persist_state(&state)?;
+        let state = StoreState::from_authoritative_export_bundle(bundle)?;
+        let _ = persistence.persist_state(&state)?;
         Ok(Self {
             persistence,
             state,
@@ -156,8 +117,35 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         from_branch: Option<&BranchId>,
     ) -> Result<AuthoritativeBranchHeadRecord, StoreError> {
         let created_branch_id = new_branch.clone();
-        let next = self.state.stage_branch_creation(new_branch, from_branch)?;
-        self.commit_state(next)?;
+        let applied = self
+            .state
+            .apply_branch_creation_in_place(new_branch, from_branch)?;
+        if let Err(error) = self.state.verify_applied_branch_creation(&applied) {
+            self.state.rollback_branch_creation(applied);
+            return Err(error);
+        }
+        let report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state.rollback_branch_creation(applied);
+                return Err(error);
+            }
+        };
+        if report.content_barrier() < report.ack_required_barrier() {
+            self.state.rollback_branch_creation(applied);
+            self.counters.record_durable_ack_barrier_violation();
+            return Err(StoreError::new(
+                StoreErrorKind::DurableBarrierContractViolation,
+                format!(
+                    "backend {:?} reported content barrier {:?} below required acknowledgment barrier {:?}",
+                    report.backend_family(),
+                    report.content_barrier(),
+                    report.ack_required_barrier()
+                ),
+            ));
+        }
+        self.counters.record_durable_barrier_verified();
+        self.counters.record_state_delta_apply(2, 2);
         self.fetch_branch_head(&created_branch_id)
     }
 
@@ -183,8 +171,37 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         let digest_writes = verified.envelope().commit.parents.len() as u64
             + if branch_already_exists { 2 } else { 4 };
         let branch_head_writes = if branch_already_exists { 1 } else { 2 };
-        let next = self.state.stage_verified_append(&verified)?;
-        self.commit_state(next)?;
+        let applied = self.state.apply_verified_append_in_place(&verified)?;
+        if let Err(error) = self.state.verify_applied_authoritative_append(&applied) {
+            self.state.rollback_verified_append(applied);
+            return Err(error);
+        }
+        let report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state.rollback_verified_append(applied);
+                return Err(error);
+            }
+        };
+        if report.content_barrier() < report.ack_required_barrier() {
+            self.state.rollback_verified_append(applied);
+            self.counters.record_durable_ack_barrier_violation();
+            return Err(StoreError::new(
+                StoreErrorKind::DurableBarrierContractViolation,
+                format!(
+                    "backend {:?} reported content barrier {:?} below required acknowledgment barrier {:?}",
+                    report.backend_family(),
+                    report.content_barrier(),
+                    report.ack_required_barrier()
+                ),
+            ));
+        }
+        self.counters.record_durable_barrier_verified();
+        self.counters.record_state_delta_apply(
+            if branch_already_exists { 3 } else { 4 },
+            verified.envelope().commit.parents.len() as u64
+                + if branch_already_exists { 2 } else { 3 },
+        );
         self.counters.record_append(
             verified.envelope().commit.parents.len(),
             digest_writes,
@@ -260,6 +277,64 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.counters.snapshot()
     }
 
+    pub fn durable_media_report(&self) -> DurableMediaReport {
+        self.persistence.durable_media_report()
+    }
+
+    pub fn classify_durable_publication(
+        &self,
+        durable_mutation_id: DurableMutationId,
+        expected_commit_id: Option<CommitId>,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        let facts =
+            durable_publication_facts(&self.state, durable_mutation_id, expected_commit_id)?;
+        Ok(classify_durable_publication(
+            self.persistence.durable_media_report(),
+            facts,
+        ))
+    }
+
+    pub fn classify_snapshot_publication(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<PublicationWriteOutcome, StoreError> {
+        let basis = self
+            .state
+            .snapshot_basis_records
+            .get(&snapshot_id.0)
+            .cloned();
+        let image = self
+            .state
+            .snapshot_image_records
+            .get(&snapshot_id.0)
+            .cloned();
+        classify_snapshot_publication(self.persistence.durable_media_report(), basis, image)
+    }
+
+    pub fn classify_snapshot_maintenance_recovery(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Result<SnapshotMaintenanceRecoveryReport, StoreError> {
+        classify_snapshot_maintenance_recovery(
+            &self.state,
+            snapshot_id,
+            self.persistence.durable_media_report(),
+        )
+    }
+
+    pub fn maintenance_recovery_report(&self) -> Result<MaintenanceRecoveryReport, StoreError> {
+        build_maintenance_recovery_report(&self.state, self.persistence.durable_media_report())
+    }
+
+    pub fn backup_restore_compatibility_report(
+        &self,
+    ) -> Result<BackupRestoreCompatibilityReport, StoreError> {
+        build_backup_restore_compatibility_report(
+            &self.state,
+            self.persistence.durable_media_report().backend_family(),
+        )
+    }
+
     pub fn export_bundle(&self) -> AuthoritativeExportBundle {
         self.state.authoritative_export_bundle()
     }
@@ -282,10 +357,41 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             ));
         }
 
-        let mut next = self.state.clone();
-        next.embedded_checkpoint_records
+        self.state
+            .embedded_checkpoint_records
             .insert(record.checkpoint_id.clone(), record.clone());
-        self.commit_state(next)?;
+        if let Err(error) = self.state.verify_integrity() {
+            self.state
+                .embedded_checkpoint_records
+                .remove(&record.checkpoint_id);
+            return Err(error);
+        }
+        let report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state
+                    .embedded_checkpoint_records
+                    .remove(&record.checkpoint_id);
+                return Err(error);
+            }
+        };
+        if report.content_barrier() < report.ack_required_barrier() {
+            self.state
+                .embedded_checkpoint_records
+                .remove(&record.checkpoint_id);
+            self.counters.record_durable_ack_barrier_violation();
+            return Err(StoreError::new(
+                StoreErrorKind::DurableBarrierContractViolation,
+                format!(
+                    "backend {:?} reported content barrier {:?} below required acknowledgment barrier {:?}",
+                    report.backend_family(),
+                    report.content_barrier(),
+                    report.ack_required_barrier()
+                ),
+            ));
+        }
+        self.counters.record_durable_barrier_verified();
+        self.counters.record_state_delta_apply(1, 1);
         Ok(record)
     }
 
@@ -313,9 +419,36 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         request: SnapshotCaptureRequest,
     ) -> Result<PublishedSnapshotHandle, StoreError> {
-        let (next, handle, record_count) = self.state.stage_snapshot_capture(request)?;
-        self.commit_state(next)?;
-        self.counters.record_snapshot_capture(record_count);
+        let (applied, handle, record_count, byte_count) =
+            self.state.apply_snapshot_capture_in_place(request)?;
+        if let Err(error) = self.state.verify_applied_snapshot_capture(&applied) {
+            self.state.rollback_snapshot_capture(applied);
+            return Err(error);
+        }
+        let report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state.rollback_snapshot_capture(applied);
+                return Err(error);
+            }
+        };
+        if report.content_barrier() < report.ack_required_barrier() {
+            self.state.rollback_snapshot_capture(applied);
+            self.counters.record_durable_ack_barrier_violation();
+            return Err(StoreError::new(
+                StoreErrorKind::DurableBarrierContractViolation,
+                format!(
+                    "backend {:?} reported content barrier {:?} below required acknowledgment barrier {:?}",
+                    report.backend_family(),
+                    report.content_barrier(),
+                    report.ack_required_barrier()
+                ),
+            ));
+        }
+        self.counters.record_durable_barrier_verified();
+        self.counters.record_state_delta_apply(2, 2);
+        self.counters
+            .record_snapshot_capture(record_count, byte_count);
         Ok(handle)
     }
 
@@ -324,8 +457,12 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         request: SnapshotReadRequest,
     ) -> Result<SnapshotReadResult, StoreError> {
         match self.state.read_snapshot(request) {
-            Ok((result, record_count)) => {
-                self.counters.record_snapshot_read(record_count);
+            Ok((result, record_count, tail_commit_count, tail_replay_count)) => {
+                self.counters.record_snapshot_read(
+                    record_count,
+                    tail_commit_count,
+                    tail_replay_count,
+                );
                 Ok(result)
             }
             Err(error) => {
@@ -350,14 +487,34 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         }
     }
 
-    pub fn restore_snapshot(
+    pub fn plan_snapshot_restore(
         &self,
-        snapshot_id: SnapshotId,
-        target_commit_id: CommitId,
+        request: SnapshotRestoreRequest,
+    ) -> Result<SnapshotRestorePlan, StoreError> {
+        match self.state.plan_snapshot_restore(request) {
+            Ok(plan) => Ok(plan),
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::SnapshotReadBasisMismatch
+                        | StoreErrorKind::SnapshotRestoreTargetIllegal
+                        | StoreErrorKind::SnapshotTailRangeGap
+                ) {
+                    self.counters.record_snapshot_basis_mismatch();
+                }
+                Err(error)
+            }
+        }
+    }
+
+    pub fn execute_snapshot_restore(
+        &self,
+        plan: SnapshotRestorePlan,
     ) -> Result<SnapshotRestoreOutcome, StoreError> {
-        match self.state.restore_snapshot(snapshot_id, target_commit_id) {
-            Ok((outcome, tail_commit_count)) => {
-                self.counters.record_snapshot_restore(tail_commit_count);
+        match self.state.execute_snapshot_restore(plan) {
+            Ok((outcome, tail_commit_count, tail_replay_count)) => {
+                self.counters
+                    .record_snapshot_restore(tail_commit_count, tail_replay_count);
                 Ok(outcome)
             }
             Err(error) => {
@@ -405,7 +562,51 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     ) -> Result<(), StoreError> {
         let mut next = self.state.clone();
         next.remove_snapshot_image(snapshot_id);
-        self.commit_state(next)
+        let _ = self.persistence.persist_state(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub fn remove_snapshot_basis_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        let mut next = self.state.clone();
+        next.remove_snapshot_basis(snapshot_id);
+        let _ = self.persistence.persist_state(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub fn corrupt_snapshot_basis_digest_for_test(
+        &mut self,
+        snapshot_id: SnapshotId,
+    ) -> Result<(), StoreError> {
+        let mut next = self.state.clone();
+        let basis = next
+            .snapshot_basis_records
+            .get_mut(&snapshot_id.0)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::SnapshotBasisUnsupported,
+                    format!("snapshot {} basis not found", snapshot_id.0),
+                )
+            })?;
+        basis.snapshot_image_digest.push_str("-corrupt");
+        let _ = self.persistence.persist_state(&next)?;
+        self.state = next;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub fn clear_branch_heads_for_test(&mut self) -> Result<(), StoreError> {
+        let mut next = self.state.clone();
+        next.branch_head_records.clear();
+        let _ = self.persistence.persist_state(&next)?;
+        self.state = next;
+        Ok(())
     }
 
     pub fn admit_durable_mutation(
@@ -413,16 +614,18 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         runtime_session_id: &str,
         operation_name: &str,
     ) -> Result<DurableMutationId, StoreError> {
-        let mut next = self.state.clone();
-        let durable_mutation_id = next.allocate_durable_mutation_id();
+        let durable_mutation_id = DurableMutationId(self.state.next_durable_mutation_id);
         let record = WalRecord::durable_mutation_intent(
-            next.next_wal_sequence,
+            self.state.next_wal_sequence,
             durable_mutation_id,
             runtime_session_id,
             operation_name,
         )?;
-        next.append_wal_record(record)?;
-        self.commit_state(next)?;
+        self.state.next_durable_mutation_id += 1;
+        if let Err(error) = self.append_wal_record_committed(record) {
+            self.state.next_durable_mutation_id = durable_mutation_id.0;
+            return Err(error);
+        }
         self.counters.record_durable_mutation_admit();
         self.counters.record_wal_append();
         Ok(durable_mutation_id)
@@ -434,15 +637,13 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         durable_mutation_id: DurableMutationId,
         envelope: forge_relational::facade::replay::CanonicalCommitEnvelope,
     ) -> Result<(), StoreError> {
-        let mut next = self.state.clone();
         let record = WalRecord::hosted_runtime_commit_result(
-            next.next_wal_sequence,
+            self.state.next_wal_sequence,
             durable_mutation_id,
             runtime_session_id,
             envelope,
         )?;
-        next.append_wal_record(record)?;
-        self.commit_state(next)?;
+        self.append_wal_record_committed(record)?;
         self.counters.record_wal_append();
         Ok(())
     }
@@ -454,16 +655,14 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         phase: DurablePublicationPhase,
         commit_id: Option<CommitId>,
     ) -> Result<(), StoreError> {
-        let mut next = self.state.clone();
         let record = WalRecord::durable_publication_progress(
-            next.next_wal_sequence,
+            self.state.next_wal_sequence,
             durable_mutation_id,
             runtime_session_id,
             phase,
             commit_id,
         )?;
-        next.append_wal_record(record)?;
-        self.commit_state(next)?;
+        self.append_wal_record_committed(record)?;
         self.counters.record_wal_append();
         Ok(())
     }
@@ -522,9 +721,16 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         runtime_session_id: &str,
     ) -> Result<DurableRecoveryOutcome, StoreError> {
         let plan = self.plan_durable_recovery();
+        if plan.pending_durable_mutation_ids.is_empty() {
+            self.counters.record_recovery_quiescent_restart();
+        } else {
+            self.counters.record_recovery_non_quiescent_restart();
+        }
         let wal_sequences: Vec<u64> = self.state.wal_records.keys().copied().collect();
         self.counters.record_wal_scan(wal_sequences.len());
         let mut decisions = Vec::new();
+        let mut degraded = Vec::new();
+        let mut source_reports = Vec::new();
 
         for durable_mutation_id in plan.pending_durable_mutation_ids {
             let wal_records = self.state.wal_records_for_mutation(durable_mutation_id);
@@ -532,6 +738,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 &self.state,
                 durable_mutation_id,
                 &wal_records,
+                self.persistence.durable_media_report(),
             ) {
                 Ok(evaluation) => evaluation,
                 Err(error) => {
@@ -549,6 +756,14 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     return Err(error);
                 }
             };
+            self.counters.record_recovery_source_precedence_resolution();
+            if !matches!(
+                evaluation.source_kind,
+                RecoverySourceKind::PublishedAuthoritativeTruth
+            ) {
+                self.counters.record_recovery_source_precedence_fallback();
+            }
+            source_reports.push(evaluation.source_report.clone());
 
             let DurableRecoveryDecision {
                 durable_mutation_id,
@@ -581,6 +796,12 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 RecoveryAction::DiscardUnpublished => {
                     self.counters.record_durable_commit_unacknowledged_discard();
                 }
+                RecoveryAction::RequireRebuild => {
+                    self.counters.record_recovery_requires_full_rebuild();
+                }
+                RecoveryAction::RequireQuarantine => {
+                    self.counters.record_recovery_quarantine();
+                }
             }
 
             let decision = DurableRecoveryDecision {
@@ -588,28 +809,26 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 decision,
                 commit_id,
             };
+            if let Some(degraded_recovery) = evaluation.degraded {
+                degraded.push(degraded_recovery);
+            }
 
-            let mut next = self.state.clone();
             let record = WalRecord::recovery_decision(
-                next.next_wal_sequence,
+                self.state.next_wal_sequence,
                 durable_mutation_id,
                 runtime_session_id,
                 decision.decision,
                 decision.commit_id,
             )?;
-            next.append_wal_record(record)?;
-            self.commit_state(next)?;
+            self.append_wal_record_committed(record)?;
             self.counters.record_wal_append();
             decisions.push(decision);
         }
 
-        Ok(DurableRecoveryOutcome { decisions })
-    }
-
-    fn commit_state(&mut self, next: StoreState) -> Result<(), StoreError> {
-        next.verify_integrity()?;
-        self.persistence.persist_state(&next)?;
-        self.state = next;
-        Ok(())
+        Ok(DurableRecoveryOutcome {
+            decisions,
+            degraded,
+            source_reports,
+        })
     }
 }
