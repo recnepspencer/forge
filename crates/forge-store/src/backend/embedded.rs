@@ -29,6 +29,12 @@ impl EmbeddedStoreBackend {
         StateBackedStoreBackend::open_with_persistence(EmbeddedPersistence { mode })
     }
 
+    pub fn open_for_durable_recovery(mode: EmbeddedBackendMode) -> Result<Self, StoreError> {
+        StateBackedStoreBackend::open_with_persistence_for_durable_recovery(EmbeddedPersistence {
+            mode,
+        })
+    }
+
     pub fn from_export_bundle(bundle: AuthoritativeExportBundle) -> Result<Self, StoreError> {
         StateBackedStoreBackend::from_export_bundle_with_persistence(
             EmbeddedPersistence {

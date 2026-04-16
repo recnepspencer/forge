@@ -1,6 +1,7 @@
 use crate::backend::records::{
     AuthoritativeArtifactDigestRecord, BranchHeadRecord, BranchRecord, CommitParentRecord,
-    StoredCommitEnvelope,
+    CommitSupportSummaryRecord, DurableCursorIdentityRecord, LineageSupportRecord,
+    SchemaSupportRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +12,11 @@ pub struct AuthoritativeExportBundle {
     pub(crate) branch_head_records: Vec<BranchHeadRecord>,
     pub(crate) commit_envelopes: Vec<StoredCommitEnvelope>,
     pub(crate) commit_parent_records: Vec<CommitParentRecord>,
+    pub(crate) commit_support_summaries: Vec<CommitSupportSummaryRecord>,
+    pub(crate) schema_support_records: Vec<SchemaSupportRecord>,
+    pub(crate) lineage_support_records: Vec<LineageSupportRecord>,
+    pub(crate) durable_cursor_identity_records: Vec<DurableCursorIdentityRecord>,
+    pub(crate) subscriber_checkpoint_records: Vec<SubscriberCheckpointRecord>,
     pub(crate) authoritative_artifact_digests: Vec<AuthoritativeArtifactDigestRecord>,
 }
 
@@ -32,6 +38,19 @@ impl AuthoritativeExportBundle {
                 .cmp(&right.commit_id)
                 .then(left.parent_position.cmp(&right.parent_position))
                 .then(left.parent_commit_id.cmp(&right.parent_commit_id))
+        });
+        self.commit_support_summaries
+            .sort_by(|left, right| left.commit_id.cmp(&right.commit_id));
+        self.schema_support_records
+            .sort_by(|left, right| left.commit_id.cmp(&right.commit_id));
+        self.lineage_support_records
+            .sort_by(|left, right| left.commit_id.cmp(&right.commit_id));
+        self.durable_cursor_identity_records
+            .sort_by(|left, right| left.cursor_id.cmp(&right.cursor_id));
+        self.subscriber_checkpoint_records.sort_by(|left, right| {
+            left.cursor_id
+                .cmp(&right.cursor_id)
+                .then(left.checkpoint_sequence.cmp(&right.checkpoint_sequence))
         });
         self.authoritative_artifact_digests.sort();
     }

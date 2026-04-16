@@ -19,7 +19,7 @@ use super::harness::{
         runtime::{
             create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch,
         },
-        stores::unique_test_store_path,
+        stores::{unique_test_sqlite_path, unique_test_store_path},
     },
     scenarios::{
         publication::{create_alpha_commit, durable_publication_reports},
@@ -267,6 +267,50 @@ fn milestone_3_6_suite() -> CertificationSuite<String, String> {
         .unwrap();
     let second_status = second.recovery_status_report().unwrap();
 
+    let support_gap_local = {
+        let path = unique_test_store_path("forge-store-m36-support-gap-local");
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let envelope = latest_envelope(&runtime);
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(envelope).unwrap();
+        drop(store);
+        super::harness::corruption::local_file::force_first_lineage_support_gap(&path);
+        let recovered = ForgeStoreBuilder::new()
+            .local_file(path)
+            .durable_mode(runtime_with_demo_schema())
+            .build_pending()
+            .unwrap()
+            .recover()
+            .unwrap();
+        serde_json::to_string(recovered.last_support_artifact_recovery()).unwrap()
+    };
+
+    let support_gap_sqlite = {
+        let path = unique_test_sqlite_path("forge-store-m36-support-gap-sqlite");
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let envelope = latest_envelope(&runtime);
+        let mut store = ForgeStoreBuilder::new()
+            .sqlite_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(envelope).unwrap();
+        drop(store);
+        super::harness::corruption::sqlite::delete_first_sqlite_lineage_support_record(&path);
+        let recovered = ForgeStoreBuilder::new()
+            .sqlite_file(path)
+            .durable_mode(runtime_with_demo_schema())
+            .build_pending()
+            .unwrap()
+            .recover()
+            .unwrap();
+        serde_json::to_string(recovered.last_support_artifact_recovery()).unwrap()
+    };
+
     CertificationSuite::new(ADVERSARIAL_CRASH_RECOVERY_SOURCE_PRECEDENCE_TEST.suite_name)
         .with_canonical_row(CanonicalRow::new(
             "authoritative_truth_outranks_residue",
@@ -331,6 +375,14 @@ fn milestone_3_6_suite() -> CertificationSuite<String, String> {
             )],
             &[AssertionClass::ExactCounter],
         ))
+        .with_canonical_row(CanonicalRow::new(
+            "support_gap_backend_parity",
+            vec![
+                LaneResult::new("local_file", support_gap_local),
+                LaneResult::new("sqlite", support_gap_sqlite),
+            ],
+            &[AssertionClass::Equality],
+        ))
         .with_rejection_row(RejectionRow::new(
             "quarantine_required_lane",
             vec![LaneResult::new(
@@ -372,6 +424,10 @@ fn milestone_3_6_certification_harness_scaffolds_recovery_suite() {
         "retained_without_ack_lane"
     );
     assert_eq!(suite.canonical_rows()[3].name(), "quiescent_second_restart");
+    assert_eq!(
+        suite.canonical_rows()[4].name(),
+        "support_gap_backend_parity"
+    );
     assert_rejection_payloads_present(&suite.rejection_rows()[0]);
     let completeness =
         evaluate_completeness(&suite, &ADVERSARIAL_CRASH_RECOVERY_SOURCE_PRECEDENCE_TEST);
@@ -516,6 +572,18 @@ fn milestone_3_6_evidence_bundle_captures_recovery_reports() {
         0
     );
     assert_eq!(
+        bundle
+            .certification_summary
+            .support_artifact_rebuild_required_count,
+        0
+    );
+    assert_eq!(
+        bundle
+            .certification_summary
+            .support_artifact_quarantine_required_count,
+        0
+    );
+    assert_eq!(
         bundle.maintenance_recovery_report.entries().len(),
         maintenance_count
     );
@@ -657,6 +725,7 @@ fn recovery_status_report_elevates_snapshot_rebuild_requirement_to_operator_surf
         &plan,
         &outcome,
         store.maintenance_recovery_report().unwrap(),
+        store.support_artifact_recovery_report(),
     );
 
     assert_eq!(

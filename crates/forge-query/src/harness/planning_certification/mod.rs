@@ -1,6 +1,6 @@
 mod bundles;
-mod fixtures;
 mod canonical_rows;
+mod fixtures;
 mod rejection_rows;
 mod tests;
 

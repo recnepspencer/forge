@@ -5,6 +5,7 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
+use worth_schema::facade::WorthBridgeTraceAnchor;
 
 use crate::certification::error::WorthMilestoneOneCertificationError;
 use crate::certification::report::{
@@ -68,6 +69,10 @@ pub(crate) fn certify_milestone_one_bridge_proof(
     let mut source_snapshot = None;
     let mut route_rows = Vec::new();
     let mut historical_rows = Vec::new();
+    let mut route_identities = Vec::new();
+    let mut invalidation_identities = Vec::new();
+    let mut snapshot_identities = Vec::new();
+    let mut historical_record_identities = Vec::new();
     let mut family_rows = Vec::with_capacity(proof_cases.len());
 
     for (index, primitive) in proof_cases.iter().enumerate() {
@@ -122,6 +127,9 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         source_snapshot = Some(evaluation.snapshot_identity().as_str().to_string());
 
         route_rows.extend(route_records.iter().map(|record| {
+            route_identities.push(record.route_identity().as_str().to_string());
+            invalidation_identities.push(record.invalidation_identity().as_str().to_string());
+            snapshot_identities.push(record.source_snapshot().as_str().to_string());
             format!(
                 "route:{}:{}:{}:{}:{}",
                 record.route_identity().as_str(),
@@ -132,6 +140,8 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             )
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
+            historical_record_identities.push(record.record_identity().as_str().to_string());
+            snapshot_identities.push(record.decision_log().snapshot_identity().as_str().to_string());
             format!(
                 "historical:{}:{}:{}:{}:{:?}",
                 record.record_identity().as_str(),
@@ -152,6 +162,12 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         proof_case_count: proof_cases.len(),
         proved_families,
         family_coverage_report,
+        bridge_trace_anchor: WorthBridgeTraceAnchor::new(
+            route_identities,
+            invalidation_identities,
+            snapshot_identities,
+            historical_record_identities,
+        ),
         bridge_routing_digest,
         bridge_historical_evaluation_digest,
         route_record_count,

@@ -1,7 +1,7 @@
 use crate::{
-    AbsentRuntimeWitness, DurableMutationRequest, EmbeddedCheckpointClassification,
-    ExternalRuntimeCheckpointEnvelope, ExternalRuntimeCommitEnvelope, ForgeStoreBuilder,
-    StoreErrorKind,
+    AbsentRuntimeWitness, BasisBoundCheckpoint, DerivedDurableCheckpointKind,
+    DurableMutationRequest, EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope,
+    ExternalRuntimeCommitEnvelope, ForgeStoreBuilder, NoContainedCommits, StoreErrorKind,
 };
 use serde_json::json;
 
@@ -99,16 +99,18 @@ fn derived_embedded_checkpoint_persists_without_changing_authority() {
 
     let receipt = embedded
         .persist_external_checkpoint(
-            ExternalRuntimeCheckpointEnvelope::new(
-                "checkpoint-1",
-                "embedded-runtime",
-                EmbeddedCheckpointClassification::DerivedDurable,
-            )
-            .with_basis_branch(forge_relational::facade::history::BranchId(
-                "main".to_string(),
-            ))
-            .with_basis_commit(before_head.head_commit_id().expect("head commit"))
-            .with_metadata(json!({"kind":"session-checkpoint"})),
+            embedded
+                .admit_external_checkpoint(BasisBoundCheckpoint::<
+                    DerivedDurableCheckpointKind,
+                    NoContainedCommits,
+                >::new(
+                    "checkpoint-1",
+                    "embedded-runtime",
+                    forge_relational::facade::history::BranchId("main".to_string()),
+                    before_head.head_commit_id().expect("head commit"),
+                )
+                .with_metadata(json!({"kind":"session-checkpoint"})))
+                .unwrap(),
         )
         .expect("derived checkpoint should persist");
 
@@ -133,6 +135,11 @@ fn derived_embedded_checkpoint_persists_without_changing_authority() {
         .fetch_persisted_checkpoint("checkpoint-1")
         .expect("stored checkpoint should round-trip");
     assert_eq!(fetched.checkpoint_id(), "checkpoint-1");
+    assert_eq!(fetched.source_runtime_id(), "embedded-runtime");
+    assert_eq!(
+        fetched.basis_commit_id(),
+        before_head.head_commit_id()
+    );
 
     let counters = embedded.store().counters();
     assert_eq!(counters.external_checkpoint_intake_count, 1);
@@ -150,7 +157,7 @@ fn authoritative_checkpoint_classification_is_rejected() {
         .expect("embedded mode should build");
 
     let error = embedded
-        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+        .persist_external_checkpoint_unchecked(ExternalRuntimeCheckpointEnvelope::new(
             "checkpoint-authoritative",
             "embedded-runtime",
             EmbeddedCheckpointClassification::AuthoritativeCommitBundle,
@@ -201,7 +208,7 @@ fn embedded_checkpoint_requires_non_empty_identity_fields() {
         .expect("embedded mode should build");
 
     let empty_checkpoint_id = embedded
-        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+        .persist_external_checkpoint_unchecked(ExternalRuntimeCheckpointEnvelope::new(
             "",
             "embedded-runtime",
             EmbeddedCheckpointClassification::DerivedDurable,
@@ -213,7 +220,7 @@ fn embedded_checkpoint_requires_non_empty_identity_fields() {
     );
 
     let empty_runtime_id = embedded
-        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+        .persist_external_checkpoint_unchecked(ExternalRuntimeCheckpointEnvelope::new(
             "checkpoint-empty-runtime",
             "",
             EmbeddedCheckpointClassification::DerivedDurable,

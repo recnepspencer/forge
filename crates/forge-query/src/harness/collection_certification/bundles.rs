@@ -1,9 +1,9 @@
+use crate::collection::page_cursor_for_collection;
 use crate::facade::{
     execute_preflight_bundle, plan_validated_bundle, plan_validated_bundle_for_collection_family,
     planning_request_context_for_direct, BasisAuthorityFamily, CollectionResultFamily,
     ExecutionBasisIntent, PlanningError, SnapshotLineageClass,
 };
-use crate::collection::page_cursor_for_collection;
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
     plan_validated_bundle_for_requested_traversal_bound, RequestedAggregateFamily,
@@ -32,8 +32,7 @@ pub(super) fn to_bundle(
             "family:{:?}:cursor:{}:basis:{}:advance_count:{}",
             collection.planning_context().result_family(),
             cursor.boundary().as_str(),
-            preflight.basis().proof().digest().as_str()
-            ,
+            preflight.basis().proof().digest().as_str(),
             envelope.counters().cursor_advance_count()
         )
     } else {
@@ -41,7 +40,12 @@ pub(super) fn to_bundle(
     };
     CollectionCertificationBundle {
         profile,
-        query_digest: preflight.plan().query().validated_query_digest().as_str().to_string(),
+        query_digest: preflight
+            .plan()
+            .query()
+            .validated_query_digest()
+            .as_str()
+            .to_string(),
         plan_digest: preflight.plan().query().plan_digest().as_str().to_string(),
         result_digest: envelope.report().result_digest().as_str().to_string(),
         basis_digest: preflight.basis().proof().digest().as_str().to_string(),
@@ -104,10 +108,16 @@ pub(super) fn rejection_row(
                 _ => "other",
             },
             match hostile {
-                PlanningError::UnsupportedOrderingFamily => "unsupported-ordering-family".to_string(),
+                PlanningError::UnsupportedOrderingFamily => {
+                    "unsupported-ordering-family".to_string()
+                }
                 PlanningError::UnsupportedCursorShape => "unstable-cursor-shape".to_string(),
-                PlanningError::UnsupportedTraversalBound => "unsupported-traversal-bound".to_string(),
-                PlanningError::UnsupportedAggregateFamily => "unsupported-aggregate-family".to_string(),
+                PlanningError::UnsupportedTraversalBound => {
+                    "unsupported-traversal-bound".to_string()
+                }
+                PlanningError::UnsupportedAggregateFamily => {
+                    "unsupported-aggregate-family".to_string()
+                }
                 PlanningError::UnsupportedCollectionResultFamily => {
                     "unsupported-cdc-result-family".to_string()
                 }

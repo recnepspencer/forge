@@ -1420,6 +1420,8 @@ dependencies = [
 name = "forge-query"
 version = "0.1.0"
 dependencies = [
+ "forge-runtime-bridge",
+ "forge-signal",
  "sha2",
  "trybuild",
 ]
@@ -5204,8 +5206,11 @@ name = "worth-schema"
 version = "0.1.0"
 dependencies = [
  "forge-relational",
+ "forge-runtime-bridge",
+ "forge-signal",
  "serde",
  "serde_json",
+ "trybuild",
  "worth-math",
 ]
 
@@ -5217,6 +5222,7 @@ dependencies = [
  "forge-runtime-bridge",
  "serde",
  "serde_json",
+ "trybuild",
  "worth-schema",
 ]
 

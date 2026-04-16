@@ -106,10 +106,7 @@ impl CollectionOrderingEntry {
         )
     }
 
-    pub(crate) fn new(
-        key_path: OrderingKeyPath,
-        direction: CollectionOrderingDirection,
-    ) -> Self {
+    pub(crate) fn new(key_path: OrderingKeyPath, direction: CollectionOrderingDirection) -> Self {
         Self {
             key_path,
             direction,
@@ -693,7 +690,9 @@ impl CollectionPlanBundle {
             CollectionPlanningMode::Cdc => CollectionResultFamily::CdcCollection,
             CollectionPlanningMode::Ordinary
             | CollectionPlanningMode::AggregateRollupCount
-            | CollectionPlanningMode::DerivedDisplayLabel => CollectionResultFamily::OrdinaryCollection,
+            | CollectionPlanningMode::DerivedDisplayLabel => {
+                CollectionResultFamily::OrdinaryCollection
+            }
         });
         let ordering_basis = CollectionOrderingBasis::new(ordering_entries);
         let window_policy = CollectionWindowPolicy::FullSnapshotRead;

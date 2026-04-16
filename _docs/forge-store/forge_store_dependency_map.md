@@ -82,8 +82,16 @@ And, together with `Milestone 4`, you can fully move on to:
 
 Why:
 
+- shared-base creation, branch-delta reads, rewrite, rebuild, and control-lane
+  parity are now closed and machine-certified
+
+Why:
+
 - branch/delta storage is now honest enough for physical-layout and chunked
   work
+- Milestone 7 may continue in parallel because its schema/lineage/cursor and
+  checkpoint artifacts should bind to branch/frontier authority, not to
+  backend-local delta stack shape
 
 ### After Milestone 6: Aspect-Aware Physical Layout And Structural Blocks
 

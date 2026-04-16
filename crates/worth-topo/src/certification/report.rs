@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use worth_schema::facade::{
     CertifiedTopologyInterpretation, WorthMilestoneOnePrimitiveCase,
     WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
-    WorthMutationOrigin, WorthTopologyReadArtifact,
+    WorthBridgeTraceAnchor, WorthMutationOrigin, WorthTopologyReadArtifact,
 };
 use crate::diagnostics::{
     WorthDerivedFallbackReport, WorthDerivedInvalidationReport, WorthDerivedReadDiagnostics,
@@ -266,6 +266,7 @@ pub struct WorthBridgeProofReport {
     pub proof_case_count: usize,
     pub proved_families: Vec<String>,
     pub family_coverage_report: WorthBridgeFamilyCoverageReport,
+    pub bridge_trace_anchor: WorthBridgeTraceAnchor,
     pub bridge_routing_digest: WorthDeterministicDigest,
     pub bridge_historical_evaluation_digest: WorthDeterministicDigest,
     pub route_record_count: usize,

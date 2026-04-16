@@ -1,6 +1,7 @@
 use crate::{
-    CheckpointAuthorityReport, EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope,
-    ForgeStoreBuilder, Milestone2CertificationBundle, ObservedModeFailure,
+    BasisFreeCheckpoint, CheckpointAuthorityReport, DerivedDurableCheckpointKind,
+    EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope, ForgeStoreBuilder,
+    Milestone2CertificationBundle, NoContainedCommits, ObservedModeFailure,
 };
 
 use super::harness::{
@@ -29,7 +30,7 @@ fn milestone_2_suite() -> CertificationSuite<String, String> {
         .build()
         .unwrap();
     let error = embedded
-        .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
+        .persist_external_checkpoint_unchecked(ExternalRuntimeCheckpointEnvelope::new(
             "checkpoint-authoritative",
             "embedded-runtime",
             EmbeddedCheckpointClassification::AuthoritativeCommitBundle,
@@ -59,11 +60,14 @@ fn milestone_2_suite() -> CertificationSuite<String, String> {
         embedded_lane.artifact_digest.clone(),
         embedded_lane.artifact_digest.clone(),
         &embedded
-            .persist_external_checkpoint(ExternalRuntimeCheckpointEnvelope::new(
-                "checkpoint-derived",
-                "embedded-runtime",
-                EmbeddedCheckpointClassification::DerivedDurable,
-            ))
+            .persist_external_checkpoint(
+                embedded
+                    .admit_external_checkpoint(BasisFreeCheckpoint::<
+                        DerivedDurableCheckpointKind,
+                        NoContainedCommits,
+                    >::new("checkpoint-derived", "embedded-runtime"))
+                    .unwrap(),
+            )
             .unwrap(),
     );
     let failure_bundle = Milestone2CertificationBundle::new(

@@ -5,7 +5,10 @@ use crate::harness::planning_matrix::PlanningPerturbationClass;
 fn planner_executor_binding_parity_adapter_emits_named_matrix() {
     let matrix = MilestoneThreePlanningCertificationAdapter::planner_executor_binding_parity_test();
 
-    assert_eq!(matrix.suite_name, "Planner / Executor / Binding Parity Test");
+    assert_eq!(
+        matrix.suite_name,
+        "Planner / Executor / Binding Parity Test"
+    );
     assert!(matrix
         .rows
         .iter()
@@ -57,7 +60,10 @@ fn planner_executor_binding_parity_artifact_is_offline_ready_for_current_scope()
     let artifact =
         MilestoneThreePlanningCertificationAdapter::planner_executor_binding_parity_certification_artifact();
 
-    assert_eq!(artifact.suite_name, "Planner / Executor / Binding Parity Test");
+    assert_eq!(
+        artifact.suite_name,
+        "Planner / Executor / Binding Parity Test"
+    );
     assert!(!artifact.certification_bundle_digest.is_empty());
     assert!(!artifact.coverage_matrix_digest.is_empty());
     assert_eq!(
@@ -69,7 +75,9 @@ fn planner_executor_binding_parity_artifact_is_offline_ready_for_current_scope()
         artifact.bundle_completeness_report.supported_lane_count
     );
     assert_eq!(
-        artifact.bundle_completeness_report.zero_rediscovery_lane_count,
+        artifact
+            .bundle_completeness_report
+            .zero_rediscovery_lane_count,
         artifact.bundle_completeness_report.supported_lane_count
     );
     assert!(artifact
@@ -80,12 +88,16 @@ fn planner_executor_binding_parity_artifact_is_offline_ready_for_current_scope()
         .bundle_completeness_report
         .covered_perturbation_classes
         .contains(&PlanningPerturbationClass::BindingParity));
-    assert!(artifact
-        .bundle_completeness_report
-        .covers_all_currently_implemented_normative_scenarios);
-    assert!(artifact
-        .bundle_completeness_report
-        .covers_full_milestone_three_spec_matrix);
+    assert!(
+        artifact
+            .bundle_completeness_report
+            .covers_all_currently_implemented_normative_scenarios
+    );
+    assert!(
+        artifact
+            .bundle_completeness_report
+            .covers_full_milestone_three_spec_matrix
+    );
     assert!(artifact
         .bundle_completeness_report
         .unmet_required_rows

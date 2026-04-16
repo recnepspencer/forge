@@ -73,8 +73,9 @@ mod runtime_invariant_tests {
         );
 
         let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect_err("missing persistent-name coverage must block commit");
+            .apply_topology_intent_traced(intent)
+            .expect_err("missing persistent-name coverage must block commit")
+            .into_error();
 
         assert!(matches!(
             error,
@@ -263,8 +264,9 @@ mod runtime_invariant_tests {
         );
 
         let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect_err("disconnected wire graph must block commit");
+            .apply_topology_intent_traced(intent)
+            .expect_err("disconnected wire graph must block commit")
+            .into_error();
 
         assert!(matches!(
             error,
@@ -503,8 +505,9 @@ mod runtime_invariant_tests {
         );
 
         let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect_err("branch vertex with reused edge identities must block commit");
+            .apply_topology_intent_traced(intent)
+            .expect_err("branch vertex with reused edge identities must block commit")
+            .into_error();
 
         assert!(matches!(
             error,

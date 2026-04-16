@@ -1,6 +1,6 @@
 use super::super::certification::{
-    RequiredAssertionClass, covered_perturbation_classes, milestone_one_requirements,
-    unmet_required_assertion_classes, unmet_required_rows,
+    covered_perturbation_classes, milestone_one_requirements, unmet_required_assertion_classes,
+    unmet_required_rows, RequiredAssertionClass,
 };
 use super::model::{
     CertificationBundleCompletenessReport, CertificationMatrix, CertificationPerturbationClass,
@@ -24,24 +24,25 @@ pub(super) fn bundle_completeness_report(
         )
         .filter(|lane| lane.counter_snapshot.canonicalization_fallback_count == 0)
         .count();
-    let all_lanes_emit_required_outputs =
-        matrix.rows.iter().all(CertificationRow::has_required_outputs)
-            && matrix
-                .rejection_rows
-                .iter()
-                .all(RejectionCertificationRow::has_required_outputs);
-    let all_rows_have_hostile_coverage =
-        matrix.rows.iter().all(CertificationRow::has_hostile_coverage)
-            && matrix
-                .rejection_rows
-                .iter()
-                .all(RejectionCertificationRow::has_hostile_coverage);
+    let all_lanes_emit_required_outputs = matrix
+        .rows
+        .iter()
+        .all(CertificationRow::has_required_outputs)
+        && matrix
+            .rejection_rows
+            .iter()
+            .all(RejectionCertificationRow::has_required_outputs);
+    let all_rows_have_hostile_coverage = matrix
+        .rows
+        .iter()
+        .all(CertificationRow::has_hostile_coverage)
+        && matrix
+            .rejection_rows
+            .iter()
+            .all(RejectionCertificationRow::has_hostile_coverage);
     let covered_perturbation_classes = covered_perturbation_classes(matrix);
-    let covered_assertion_classes = covered_assertion_classes(
-        matrix,
-        zero_fallback_lane_count,
-        supported_lane_count,
-    );
+    let covered_assertion_classes =
+        covered_assertion_classes(matrix, zero_fallback_lane_count, supported_lane_count);
     let requirements = milestone_one_requirements();
     let unmet_required_rows = unmet_required_rows(
         matrix,
@@ -57,7 +58,8 @@ pub(super) fn bundle_completeness_report(
         && covered_perturbation_classes.contains(&CertificationPerturbationClass::MeaningChange)
         && covered_perturbation_classes
             .contains(&CertificationPerturbationClass::UnsupportedAuthoredForm)
-        && covered_perturbation_classes.contains(&CertificationPerturbationClass::ForbiddenFallback);
+        && covered_perturbation_classes
+            .contains(&CertificationPerturbationClass::ForbiddenFallback);
     let covers_all_milestone_one_normative_scenarios =
         covers_all_milestone_one_normative_scenarios(matrix);
     let offline_analysis_ready = all_lanes_emit_required_outputs
@@ -112,19 +114,15 @@ fn covered_assertion_classes(
 ) -> Vec<RequiredAssertionClass> {
     let mut covered = Vec::new();
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::HostileLaneExpectation::EquivalentToControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::HostileLaneExpectation::EquivalentToControl
+    }) {
         covered.push(RequiredAssertionClass::Equality);
     }
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::HostileLaneExpectation::DistinctFromControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::HostileLaneExpectation::DistinctFromControl
+    }) {
         covered.push(RequiredAssertionClass::Inequality);
     }
 

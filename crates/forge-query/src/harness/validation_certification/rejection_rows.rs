@@ -8,36 +8,31 @@ use super::fixtures::*;
 
 pub(super) fn rejection_rows() -> Vec<ValidationRejectionCertificationRow> {
     let legal_control = crate::harness::fixtures::validated_bundles::legal_detail_bundle();
-    let greater_than_control =
-        validate_canonical_bundle(
-            legal_greater_than_bundle(),
-            crate::harness::fixtures::schema_view::detail_schema_view(),
-        )
-        .unwrap();
-    let bounded_range_control =
-        validate_canonical_bundle(
-            bounded_range_bundle(),
-            crate::harness::fixtures::schema_view::detail_schema_view(),
-        )
-        .unwrap();
-    let contains_control =
-        validate_canonical_bundle(
-            legal_contains_bundle(),
-            crate::harness::fixtures::schema_view::detail_schema_view(),
-        )
-        .unwrap();
-    let membership_control =
-        validate_canonical_bundle(
-            legal_membership_bundle(),
-            crate::harness::fixtures::schema_view::detail_schema_view(),
-        )
-        .unwrap();
-    let presence_control =
-        validate_canonical_bundle(
-            legal_presence_bundle(),
-            crate::harness::fixtures::schema_view::detail_schema_view(),
-        )
-        .unwrap();
+    let greater_than_control = validate_canonical_bundle(
+        legal_greater_than_bundle(),
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap();
+    let bounded_range_control = validate_canonical_bundle(
+        bounded_range_bundle(),
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap();
+    let contains_control = validate_canonical_bundle(
+        legal_contains_bundle(),
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap();
+    let membership_control = validate_canonical_bundle(
+        legal_membership_bundle(),
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap();
+    let presence_control = validate_canonical_bundle(
+        legal_presence_bundle(),
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap();
 
     vec![
         rejection_row(

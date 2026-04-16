@@ -25,6 +25,30 @@ pub struct StoreCounterSnapshot {
     pub commit_parent_record_write_count: u64,
     pub branch_head_write_count: u64,
     pub authoritative_digest_write_count: u64,
+    pub commit_support_publication_count: u64,
+    pub commit_support_publication_gap_count: u64,
+    pub commit_support_summary_build_count: u64,
+    pub schema_boundary_fetch_count: u64,
+    pub schema_boundary_index_lookup_count: u64,
+    pub schema_boundary_rows_read: u64,
+    pub schema_boundary_resolution_count: u64,
+    pub lineage_lookup_count: u64,
+    pub lineage_identity_lookup_count: u64,
+    pub lineage_event_rows_read: u64,
+    pub lineage_resolution_breadth: u64,
+    pub cursor_resume_count: u64,
+    pub cursor_identity_lookup_count: u64,
+    pub cursor_resume_support_rows_read: u64,
+    pub cursor_resume_step_count: u64,
+    pub cursor_ack_count: u64,
+    pub cursor_equivalence_reject_count: u64,
+    pub cursor_regression_reject_count: u64,
+    pub subscriber_checkpoint_write_count: u64,
+    pub embedded_checkpoint_fetch_count: u64,
+    pub embedded_checkpoint_index_lookup_count: u64,
+    pub embedded_checkpoint_basis_read_count: u64,
+    pub checkpoint_shape_reject_count: u64,
+    pub support_artifact_recovery_gap_count: u64,
     pub state_delta_apply_count: u64,
     pub state_delta_touched_family_count: u64,
     pub state_delta_touched_record_count: u64,
@@ -71,6 +95,50 @@ pub struct StoreCounterSnapshot {
     pub snapshot_rebuild_record_count: u64,
     pub snapshot_integrity_failure_count: u64,
     pub snapshot_basis_mismatch_count: u64,
+    pub branch_create_count: u64,
+    pub branch_base_reuse_count: u64,
+    pub branch_base_copy_count: u64,
+    pub branch_hidden_full_base_materialization_count: u64,
+    pub branch_delta_read_count: u64,
+    pub branch_delta_layers_traversed_count: u64,
+    pub branch_delta_read_record_count: u64,
+    pub branch_delta_replay_commit_count: u64,
+    pub branch_delta_authority_replay_fallback_count: u64,
+    pub branch_delta_rewrite_count: u64,
+    pub branch_delta_rewrite_layers_replaced_count: u64,
+    pub branch_delta_rewrite_record_count: u64,
+    pub branch_delta_hidden_full_stack_rewrite_count: u64,
+    pub branch_delta_merge_path_search_count: u64,
+    pub branch_delta_rebuild_count: u64,
+    pub branch_delta_rebuild_record_count: u64,
+    pub branch_delta_integrity_failure_count: u64,
+    pub concurrent_artifact_boundary_rejection_count: u64,
+    pub aspect_layout_plan_count: u64,
+    pub aspect_layout_admitted_count: u64,
+    pub aspect_layout_fallback_count: u64,
+    pub aspect_layout_rejected_count: u64,
+    pub aspect_layout_slice_read_count: u64,
+    pub aspect_layout_block_decode_count: u64,
+    pub aspect_layout_control_replay_breadth: u64,
+    pub structural_block_reuse_admission_count: u64,
+    pub chunk_model_freeze_count: u64,
+    pub milestone_7_layout_reference_admission_count: u64,
+    pub milestone_9_physical_chunk_reference_admission_count: u64,
+    pub bulk_program_plan_count: u64,
+    pub bulk_source_manifest_member_count: u64,
+    pub bulk_source_manifest_stream_pass_count: u64,
+    pub bulk_transform_partition_count: u64,
+    pub bulk_chunk_plan_count: u64,
+    pub bulk_chunk_execute_count: u64,
+    pub bulk_checkpoint_write_count: u64,
+    pub bulk_chunk_witness_write_count: u64,
+    pub bulk_resume_index_lookup_count: u64,
+    pub bulk_chunk_resume_count: u64,
+    pub bulk_chunk_commit_count: u64,
+    pub bulk_chunk_width_units: u64,
+    pub bulk_peak_in_flight_memory_units: u64,
+    pub bulk_fallback_path_count: u64,
+    pub bulk_fallback_breadth_units: u64,
 }
 
 #[derive(Debug, Default)]
@@ -91,6 +159,30 @@ pub(crate) struct StoreCounters {
     commit_parent_record_write_count: AtomicU64,
     branch_head_write_count: AtomicU64,
     authoritative_digest_write_count: AtomicU64,
+    commit_support_publication_count: AtomicU64,
+    commit_support_publication_gap_count: AtomicU64,
+    commit_support_summary_build_count: AtomicU64,
+    schema_boundary_fetch_count: AtomicU64,
+    schema_boundary_index_lookup_count: AtomicU64,
+    schema_boundary_rows_read: AtomicU64,
+    schema_boundary_resolution_count: AtomicU64,
+    lineage_lookup_count: AtomicU64,
+    lineage_identity_lookup_count: AtomicU64,
+    lineage_event_rows_read: AtomicU64,
+    lineage_resolution_breadth: AtomicU64,
+    cursor_resume_count: AtomicU64,
+    cursor_identity_lookup_count: AtomicU64,
+    cursor_resume_support_rows_read: AtomicU64,
+    cursor_resume_step_count: AtomicU64,
+    cursor_ack_count: AtomicU64,
+    cursor_equivalence_reject_count: AtomicU64,
+    cursor_regression_reject_count: AtomicU64,
+    subscriber_checkpoint_write_count: AtomicU64,
+    embedded_checkpoint_fetch_count: AtomicU64,
+    embedded_checkpoint_index_lookup_count: AtomicU64,
+    embedded_checkpoint_basis_read_count: AtomicU64,
+    checkpoint_shape_reject_count: AtomicU64,
+    support_artifact_recovery_gap_count: AtomicU64,
     state_delta_apply_count: AtomicU64,
     state_delta_touched_family_count: AtomicU64,
     state_delta_touched_record_count: AtomicU64,
@@ -137,6 +229,50 @@ pub(crate) struct StoreCounters {
     snapshot_rebuild_record_count: AtomicU64,
     snapshot_integrity_failure_count: AtomicU64,
     snapshot_basis_mismatch_count: AtomicU64,
+    branch_create_count: AtomicU64,
+    branch_base_reuse_count: AtomicU64,
+    branch_base_copy_count: AtomicU64,
+    branch_hidden_full_base_materialization_count: AtomicU64,
+    branch_delta_read_count: AtomicU64,
+    branch_delta_layers_traversed_count: AtomicU64,
+    branch_delta_read_record_count: AtomicU64,
+    branch_delta_replay_commit_count: AtomicU64,
+    branch_delta_authority_replay_fallback_count: AtomicU64,
+    branch_delta_rewrite_count: AtomicU64,
+    branch_delta_rewrite_layers_replaced_count: AtomicU64,
+    branch_delta_rewrite_record_count: AtomicU64,
+    branch_delta_hidden_full_stack_rewrite_count: AtomicU64,
+    branch_delta_merge_path_search_count: AtomicU64,
+    branch_delta_rebuild_count: AtomicU64,
+    branch_delta_rebuild_record_count: AtomicU64,
+    branch_delta_integrity_failure_count: AtomicU64,
+    concurrent_artifact_boundary_rejection_count: AtomicU64,
+    aspect_layout_plan_count: AtomicU64,
+    aspect_layout_admitted_count: AtomicU64,
+    aspect_layout_fallback_count: AtomicU64,
+    aspect_layout_rejected_count: AtomicU64,
+    aspect_layout_slice_read_count: AtomicU64,
+    aspect_layout_block_decode_count: AtomicU64,
+    aspect_layout_control_replay_breadth: AtomicU64,
+    structural_block_reuse_admission_count: AtomicU64,
+    chunk_model_freeze_count: AtomicU64,
+    milestone_7_layout_reference_admission_count: AtomicU64,
+    milestone_9_physical_chunk_reference_admission_count: AtomicU64,
+    bulk_program_plan_count: AtomicU64,
+    bulk_source_manifest_member_count: AtomicU64,
+    bulk_source_manifest_stream_pass_count: AtomicU64,
+    bulk_transform_partition_count: AtomicU64,
+    bulk_chunk_plan_count: AtomicU64,
+    bulk_chunk_execute_count: AtomicU64,
+    bulk_checkpoint_write_count: AtomicU64,
+    bulk_chunk_witness_write_count: AtomicU64,
+    bulk_resume_index_lookup_count: AtomicU64,
+    bulk_chunk_resume_count: AtomicU64,
+    bulk_chunk_commit_count: AtomicU64,
+    bulk_chunk_width_units: AtomicU64,
+    bulk_peak_in_flight_memory_units: AtomicU64,
+    bulk_fallback_path_count: AtomicU64,
+    bulk_fallback_breadth_units: AtomicU64,
 }
 
 impl StoreCounters {
@@ -172,11 +308,13 @@ impl StoreCounters {
             .fetch_add(1, Ordering::Relaxed);
     }
 
+    #[cfg(test)]
     pub fn record_embedded_checkpoint_authority_rejection(&self) {
         self.embedded_checkpoint_authority_rejection_count
             .fetch_add(1, Ordering::Relaxed);
     }
 
+    #[cfg(test)]
     pub fn record_mode_misuse_rejection(&self) {
         self.mode_misuse_rejection_count
             .fetch_add(1, Ordering::Relaxed);
@@ -200,6 +338,93 @@ impl StoreCounters {
             .fetch_add(digest_writes, Ordering::Relaxed);
         self.branch_head_write_count
             .fetch_add(branch_head_writes, Ordering::Relaxed);
+    }
+
+    pub fn record_commit_support_publication(&self) {
+        self.commit_support_publication_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_commit_support_summary_build(&self) {
+        self.commit_support_summary_build_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_commit_support_publication_gap(&self) {
+        self.commit_support_publication_gap_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_schema_boundary_fetch(&self, index_lookups: u64, rows_read: u64) {
+        self.schema_boundary_fetch_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.schema_boundary_index_lookup_count
+            .fetch_add(index_lookups, Ordering::Relaxed);
+        self.schema_boundary_rows_read
+            .fetch_add(rows_read, Ordering::Relaxed);
+        self.schema_boundary_resolution_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_lineage_lookup(&self, identity_lookups: u64, event_rows_read: u64) {
+        self.lineage_lookup_count.fetch_add(1, Ordering::Relaxed);
+        self.lineage_identity_lookup_count
+            .fetch_add(identity_lookups, Ordering::Relaxed);
+        self.lineage_event_rows_read
+            .fetch_add(event_rows_read, Ordering::Relaxed);
+        self.lineage_resolution_breadth
+            .fetch_add(event_rows_read, Ordering::Relaxed);
+    }
+
+    pub fn record_cursor_resume(&self, support_rows_read: u64, step_count: u64) {
+        self.cursor_resume_count.fetch_add(1, Ordering::Relaxed);
+        self.cursor_resume_support_rows_read
+            .fetch_add(support_rows_read, Ordering::Relaxed);
+        self.cursor_resume_step_count
+            .fetch_add(step_count, Ordering::Relaxed);
+    }
+
+    pub fn record_cursor_identity_lookup(&self) {
+        self.cursor_identity_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_cursor_ack(&self) {
+        self.cursor_ack_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_cursor_equivalence_reject(&self) {
+        self.cursor_equivalence_reject_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_cursor_regression_reject(&self) {
+        self.cursor_regression_reject_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_subscriber_checkpoint_write(&self) {
+        self.subscriber_checkpoint_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_embedded_checkpoint_fetch(&self, basis_reads: u64) {
+        self.embedded_checkpoint_fetch_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.embedded_checkpoint_index_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.embedded_checkpoint_basis_read_count
+            .fetch_add(basis_reads, Ordering::Relaxed);
+    }
+
+    pub fn record_checkpoint_shape_reject(&self) {
+        self.checkpoint_shape_reject_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_support_artifact_recovery_gap(&self, count: u64) {
+        self.support_artifact_recovery_gap_count
+            .fetch_add(count, Ordering::Relaxed);
     }
 
     pub fn record_state_delta_apply(&self, touched_families: u64, touched_records: u64) {
@@ -351,6 +576,194 @@ impl StoreCounters {
             .fetch_add(1, Ordering::Relaxed);
     }
 
+    pub fn record_branch_create(&self) {
+        self.branch_create_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_branch_base_reuse(&self) {
+        self.branch_base_reuse_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_branch_delta_read(
+        &self,
+        layers_traversed: usize,
+        read_record_count: usize,
+        replay_commit_count: usize,
+        used_authority_replay_fallback: bool,
+    ) {
+        self.branch_delta_read_count.fetch_add(1, Ordering::Relaxed);
+        self.branch_delta_layers_traversed_count
+            .fetch_add(layers_traversed as u64, Ordering::Relaxed);
+        self.branch_delta_read_record_count
+            .fetch_add(read_record_count as u64, Ordering::Relaxed);
+        self.branch_delta_replay_commit_count
+            .fetch_add(replay_commit_count as u64, Ordering::Relaxed);
+        if used_authority_replay_fallback {
+            self.branch_delta_authority_replay_fallback_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub fn record_branch_delta_merge_path_search(&self) {
+        self.branch_delta_merge_path_search_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_branch_delta_integrity_failure(&self) {
+        self.branch_delta_integrity_failure_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_branch_delta_rewrite(
+        &self,
+        replaced_layer_count: usize,
+        rewrite_record_count: usize,
+        used_hidden_full_stack_rewrite: bool,
+    ) {
+        self.branch_delta_rewrite_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.branch_delta_rewrite_layers_replaced_count
+            .fetch_add(replaced_layer_count as u64, Ordering::Relaxed);
+        self.branch_delta_rewrite_record_count
+            .fetch_add(rewrite_record_count as u64, Ordering::Relaxed);
+        if used_hidden_full_stack_rewrite {
+            self.branch_delta_hidden_full_stack_rewrite_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    pub fn record_branch_delta_rebuild(&self, rebuilt_record_count: usize) {
+        self.branch_delta_rebuild_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.branch_delta_rebuild_record_count
+            .fetch_add(rebuilt_record_count as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_aspect_layout_plan(
+        &self,
+        admitted: bool,
+        fallback: bool,
+        rejected: bool,
+        slice_read_count: usize,
+        block_decode_count: usize,
+        control_replay_breadth: usize,
+    ) {
+        self.aspect_layout_plan_count.fetch_add(1, Ordering::Relaxed);
+        if admitted {
+            self.aspect_layout_admitted_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if fallback {
+            self.aspect_layout_fallback_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if rejected {
+            self.aspect_layout_rejected_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        self.aspect_layout_slice_read_count
+            .fetch_add(slice_read_count as u64, Ordering::Relaxed);
+        self.aspect_layout_block_decode_count
+            .fetch_add(block_decode_count as u64, Ordering::Relaxed);
+        self.aspect_layout_control_replay_breadth
+            .fetch_add(control_replay_breadth as u64, Ordering::Relaxed);
+    }
+
+    pub fn record_structural_block_reuse_admission(&self) {
+        self.structural_block_reuse_admission_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_chunk_model_freeze(&self) {
+        self.chunk_model_freeze_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_7_layout_reference_admission(&self) {
+        self.milestone_7_layout_reference_admission_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_9_physical_chunk_reference_admission(&self) {
+        self.milestone_9_physical_chunk_reference_admission_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_source_manifest(&self, member_count: u64, stream_pass_count: u64) {
+        self.bulk_program_plan_count.fetch_add(1, Ordering::Relaxed);
+        self.bulk_source_manifest_member_count
+            .fetch_add(member_count, Ordering::Relaxed);
+        self.bulk_source_manifest_stream_pass_count
+            .fetch_add(stream_pass_count, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_chunk_plan(&self, chunk_count: u64) {
+        self.bulk_chunk_plan_count
+            .fetch_add(chunk_count, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_transform_partition(&self, partition_count: u64) {
+        self.bulk_transform_partition_count
+            .fetch_add(partition_count, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_checkpoint_write(&self) {
+        self.bulk_checkpoint_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_chunk_witness_write(&self) {
+        self.bulk_chunk_witness_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_resume_index_lookup(&self) {
+        self.bulk_resume_index_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_chunk_resume(&self) {
+        self.bulk_chunk_resume_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_chunk_commit(&self) {
+        self.bulk_chunk_commit_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_bulk_chunk_execute(
+        &self,
+        width_units: u64,
+        memory_units: u64,
+        fallback_breadth_units: u64,
+        used_fallback_path: bool,
+    ) {
+        self.bulk_chunk_execute_count.fetch_add(1, Ordering::Relaxed);
+        self.bulk_chunk_width_units
+            .fetch_add(width_units, Ordering::Relaxed);
+
+        let mut current_peak = self
+            .bulk_peak_in_flight_memory_units
+            .load(Ordering::Relaxed);
+        while memory_units > current_peak {
+            match self.bulk_peak_in_flight_memory_units.compare_exchange(
+                current_peak,
+                memory_units,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current_peak = observed,
+            }
+        }
+
+        if used_fallback_path {
+            self.bulk_fallback_path_count.fetch_add(1, Ordering::Relaxed);
+            self.bulk_fallback_breadth_units
+                .fetch_add(fallback_breadth_units, Ordering::Relaxed);
+        }
+    }
+
     pub fn snapshot(&self) -> StoreCounterSnapshot {
         StoreCounterSnapshot {
             durable_mode_selection_count: self.durable_mode_selection_count.load(Ordering::Relaxed),
@@ -386,6 +799,60 @@ impl StoreCounters {
             branch_head_write_count: self.branch_head_write_count.load(Ordering::Relaxed),
             authoritative_digest_write_count: self
                 .authoritative_digest_write_count
+                .load(Ordering::Relaxed),
+            commit_support_publication_count: self
+                .commit_support_publication_count
+                .load(Ordering::Relaxed),
+            commit_support_publication_gap_count: self
+                .commit_support_publication_gap_count
+                .load(Ordering::Relaxed),
+            commit_support_summary_build_count: self
+                .commit_support_summary_build_count
+                .load(Ordering::Relaxed),
+            schema_boundary_fetch_count: self.schema_boundary_fetch_count.load(Ordering::Relaxed),
+            schema_boundary_index_lookup_count: self
+                .schema_boundary_index_lookup_count
+                .load(Ordering::Relaxed),
+            schema_boundary_rows_read: self.schema_boundary_rows_read.load(Ordering::Relaxed),
+            schema_boundary_resolution_count: self
+                .schema_boundary_resolution_count
+                .load(Ordering::Relaxed),
+            lineage_lookup_count: self.lineage_lookup_count.load(Ordering::Relaxed),
+            lineage_identity_lookup_count: self
+                .lineage_identity_lookup_count
+                .load(Ordering::Relaxed),
+            lineage_event_rows_read: self.lineage_event_rows_read.load(Ordering::Relaxed),
+            lineage_resolution_breadth: self.lineage_resolution_breadth.load(Ordering::Relaxed),
+            cursor_resume_count: self.cursor_resume_count.load(Ordering::Relaxed),
+            cursor_identity_lookup_count: self.cursor_identity_lookup_count.load(Ordering::Relaxed),
+            cursor_resume_support_rows_read: self
+                .cursor_resume_support_rows_read
+                .load(Ordering::Relaxed),
+            cursor_resume_step_count: self.cursor_resume_step_count.load(Ordering::Relaxed),
+            cursor_ack_count: self.cursor_ack_count.load(Ordering::Relaxed),
+            cursor_equivalence_reject_count: self
+                .cursor_equivalence_reject_count
+                .load(Ordering::Relaxed),
+            cursor_regression_reject_count: self
+                .cursor_regression_reject_count
+                .load(Ordering::Relaxed),
+            subscriber_checkpoint_write_count: self
+                .subscriber_checkpoint_write_count
+                .load(Ordering::Relaxed),
+            embedded_checkpoint_fetch_count: self
+                .embedded_checkpoint_fetch_count
+                .load(Ordering::Relaxed),
+            embedded_checkpoint_index_lookup_count: self
+                .embedded_checkpoint_index_lookup_count
+                .load(Ordering::Relaxed),
+            embedded_checkpoint_basis_read_count: self
+                .embedded_checkpoint_basis_read_count
+                .load(Ordering::Relaxed),
+            checkpoint_shape_reject_count: self
+                .checkpoint_shape_reject_count
+                .load(Ordering::Relaxed),
+            support_artifact_recovery_gap_count: self
+                .support_artifact_recovery_gap_count
                 .load(Ordering::Relaxed),
             state_delta_apply_count: self.state_delta_apply_count.load(Ordering::Relaxed),
             state_delta_touched_family_count: self
@@ -486,6 +953,108 @@ impl StoreCounters {
                 .load(Ordering::Relaxed),
             snapshot_basis_mismatch_count: self
                 .snapshot_basis_mismatch_count
+                .load(Ordering::Relaxed),
+            branch_create_count: self.branch_create_count.load(Ordering::Relaxed),
+            branch_base_reuse_count: self.branch_base_reuse_count.load(Ordering::Relaxed),
+            branch_base_copy_count: self.branch_base_copy_count.load(Ordering::Relaxed),
+            branch_hidden_full_base_materialization_count: self
+                .branch_hidden_full_base_materialization_count
+                .load(Ordering::Relaxed),
+            branch_delta_read_count: self.branch_delta_read_count.load(Ordering::Relaxed),
+            branch_delta_layers_traversed_count: self
+                .branch_delta_layers_traversed_count
+                .load(Ordering::Relaxed),
+            branch_delta_read_record_count: self
+                .branch_delta_read_record_count
+                .load(Ordering::Relaxed),
+            branch_delta_replay_commit_count: self
+                .branch_delta_replay_commit_count
+                .load(Ordering::Relaxed),
+            branch_delta_authority_replay_fallback_count: self
+                .branch_delta_authority_replay_fallback_count
+                .load(Ordering::Relaxed),
+            branch_delta_rewrite_count: self.branch_delta_rewrite_count.load(Ordering::Relaxed),
+            branch_delta_rewrite_layers_replaced_count: self
+                .branch_delta_rewrite_layers_replaced_count
+                .load(Ordering::Relaxed),
+            branch_delta_rewrite_record_count: self
+                .branch_delta_rewrite_record_count
+                .load(Ordering::Relaxed),
+            branch_delta_hidden_full_stack_rewrite_count: self
+                .branch_delta_hidden_full_stack_rewrite_count
+                .load(Ordering::Relaxed),
+            branch_delta_merge_path_search_count: self
+                .branch_delta_merge_path_search_count
+                .load(Ordering::Relaxed),
+            branch_delta_rebuild_count: self.branch_delta_rebuild_count.load(Ordering::Relaxed),
+            branch_delta_rebuild_record_count: self
+                .branch_delta_rebuild_record_count
+                .load(Ordering::Relaxed),
+            branch_delta_integrity_failure_count: self
+                .branch_delta_integrity_failure_count
+                .load(Ordering::Relaxed),
+            concurrent_artifact_boundary_rejection_count: self
+                .concurrent_artifact_boundary_rejection_count
+                .load(Ordering::Relaxed),
+            aspect_layout_plan_count: self.aspect_layout_plan_count.load(Ordering::Relaxed),
+            aspect_layout_admitted_count: self
+                .aspect_layout_admitted_count
+                .load(Ordering::Relaxed),
+            aspect_layout_fallback_count: self
+                .aspect_layout_fallback_count
+                .load(Ordering::Relaxed),
+            aspect_layout_rejected_count: self
+                .aspect_layout_rejected_count
+                .load(Ordering::Relaxed),
+            aspect_layout_slice_read_count: self
+                .aspect_layout_slice_read_count
+                .load(Ordering::Relaxed),
+            aspect_layout_block_decode_count: self
+                .aspect_layout_block_decode_count
+                .load(Ordering::Relaxed),
+            aspect_layout_control_replay_breadth: self
+                .aspect_layout_control_replay_breadth
+                .load(Ordering::Relaxed),
+            structural_block_reuse_admission_count: self
+                .structural_block_reuse_admission_count
+                .load(Ordering::Relaxed),
+            chunk_model_freeze_count: self.chunk_model_freeze_count.load(Ordering::Relaxed),
+            milestone_7_layout_reference_admission_count: self
+                .milestone_7_layout_reference_admission_count
+                .load(Ordering::Relaxed),
+            milestone_9_physical_chunk_reference_admission_count: self
+                .milestone_9_physical_chunk_reference_admission_count
+                .load(Ordering::Relaxed),
+            bulk_program_plan_count: self.bulk_program_plan_count.load(Ordering::Relaxed),
+            bulk_source_manifest_member_count: self
+                .bulk_source_manifest_member_count
+                .load(Ordering::Relaxed),
+            bulk_source_manifest_stream_pass_count: self
+                .bulk_source_manifest_stream_pass_count
+                .load(Ordering::Relaxed),
+            bulk_transform_partition_count: self
+                .bulk_transform_partition_count
+                .load(Ordering::Relaxed),
+            bulk_chunk_plan_count: self.bulk_chunk_plan_count.load(Ordering::Relaxed),
+            bulk_chunk_execute_count: self.bulk_chunk_execute_count.load(Ordering::Relaxed),
+            bulk_checkpoint_write_count: self
+                .bulk_checkpoint_write_count
+                .load(Ordering::Relaxed),
+            bulk_chunk_witness_write_count: self
+                .bulk_chunk_witness_write_count
+                .load(Ordering::Relaxed),
+            bulk_resume_index_lookup_count: self
+                .bulk_resume_index_lookup_count
+                .load(Ordering::Relaxed),
+            bulk_chunk_resume_count: self.bulk_chunk_resume_count.load(Ordering::Relaxed),
+            bulk_chunk_commit_count: self.bulk_chunk_commit_count.load(Ordering::Relaxed),
+            bulk_chunk_width_units: self.bulk_chunk_width_units.load(Ordering::Relaxed),
+            bulk_peak_in_flight_memory_units: self
+                .bulk_peak_in_flight_memory_units
+                .load(Ordering::Relaxed),
+            bulk_fallback_path_count: self.bulk_fallback_path_count.load(Ordering::Relaxed),
+            bulk_fallback_breadth_units: self
+                .bulk_fallback_breadth_units
                 .load(Ordering::Relaxed),
         }
     }

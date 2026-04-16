@@ -1,9 +1,9 @@
 use crate::facade::{
-    execute_preflight_bundle, planning_request_context_for_direct, plan_validated_bundle,
+    execute_preflight_bundle, plan_validated_bundle, planning_request_context_for_direct,
     resolve_snapshot_basis, validate_canonical_bundle, AspectFieldSelector,
-    AuthoredResultShapeField, BasisAuthorityFamily, BasisPreflightError,
-    BasisResolutionError, BasisResolutionMode, ExecutionBasisIntent, GuidedAuthoringPath,
-    PlanningError, ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
+    AuthoredResultShapeField, BasisAuthorityFamily, BasisPreflightError, BasisResolutionError,
+    BasisResolutionMode, ExecutionBasisIntent, GuidedAuthoringPath, PlanningError,
+    ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
 
 use super::super::planning_matrix::{
@@ -18,7 +18,12 @@ pub(super) fn to_bundle(
     let envelope = execute_preflight_bundle(preflight).unwrap();
     PlanningCertificationBundle {
         profile,
-        query_digest: preflight.plan().query().validated_query_digest().as_str().to_string(),
+        query_digest: preflight
+            .plan()
+            .query()
+            .validated_query_digest()
+            .as_str()
+            .to_string(),
         plan_digest: preflight.plan().query().plan_digest().as_str().to_string(),
         result_digest: envelope.report().result_digest().as_str().to_string(),
         basis_digest: preflight.basis().proof().digest().as_str().to_string(),
@@ -66,7 +71,9 @@ pub trait RejectionDigest {
 impl RejectionDigest for PlanningError {
     fn failure_class_name(&self) -> &'static str {
         match self {
-            PlanningError::MissingBindingResolutionForIdentityBoundQuery => "incomplete-planning-inputs",
+            PlanningError::MissingBindingResolutionForIdentityBoundQuery => {
+                "incomplete-planning-inputs"
+            }
             PlanningError::UnsupportedBackendParityRequest => "unsupported-backend-route",
             PlanningError::UnsupportedFallbackShape => "unsupported-fallback-shape",
             PlanningError::UnsupportedOrderingFamily => "unsupported-ordering-family",
@@ -140,10 +147,11 @@ impl RejectionDigest for BasisResolutionError {
 }
 
 pub(super) fn binding_conflict_hostile() -> Result<(), PlanningError> {
-    let query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .build()
-        .unwrap();
+    let query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .build()
+            .unwrap();
     let shape = crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .build()
@@ -179,10 +187,11 @@ pub(super) fn binding_conflict_hostile() -> Result<(), PlanningError> {
 }
 
 pub(super) fn unsupported_backend_route_hostile() -> Result<(), PlanningError> {
-    let query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .build()
-        .unwrap();
+    let query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .build()
+            .unwrap();
     let shape = crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .build()
@@ -207,10 +216,11 @@ pub(super) fn unsupported_backend_route_hostile() -> Result<(), PlanningError> {
 }
 
 pub(super) fn unsupported_fallback_shape_hostile() -> Result<(), PlanningError> {
-    let query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .build()
-        .unwrap();
+    let query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .build()
+            .unwrap();
     let shape = crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .build()
@@ -235,10 +245,11 @@ pub(super) fn unsupported_fallback_shape_hostile() -> Result<(), PlanningError> 
 }
 
 pub(super) fn snapshot_basis_resolution_failure_hostile() -> Result<(), BasisResolutionError> {
-    let query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .build()
-        .unwrap();
+    let query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .build()
+            .unwrap();
     let shape = crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .build()

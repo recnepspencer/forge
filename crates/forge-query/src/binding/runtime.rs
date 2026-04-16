@@ -5,14 +5,20 @@ use super::{QueryBindingSlot, QueryBindingSubject};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BindingResolutionError {
-    MissingBindingSlot { slot: String },
-    ExtraBindingSlot { slot: String },
+    MissingBindingSlot {
+        slot: String,
+    },
+    ExtraBindingSlot {
+        slot: String,
+    },
     ConflictingBindingSubjects {
         slot: String,
         expected: QueryBindingSubject,
         actual: QueryBindingSubject,
     },
-    DuplicateBindingSlot { slot: String },
+    DuplicateBindingSlot {
+        slot: String,
+    },
 }
 
 impl BindingResolutionError {
@@ -24,9 +30,7 @@ impl BindingResolutionError {
                 slot,
                 expected,
                 actual,
-            } => format!(
-                "conflicting-binding-subjects:{slot}:{expected:?}:{actual:?}"
-            ),
+            } => format!("conflicting-binding-subjects:{slot}:{expected:?}:{actual:?}"),
             Self::DuplicateBindingSlot { slot } => format!("duplicate-binding-slot:{slot}"),
         }
     }
@@ -193,11 +197,7 @@ pub fn derive_binding_requirements(bundle: &ValidatedQueryBundle) -> BindingRequ
         .identity_bindings()
         .iter()
         .map(|binding| {
-            BindingRequirement::new(
-                binding.slot().clone(),
-                binding.subject().clone(),
-                true,
-            )
+            BindingRequirement::new(binding.slot().clone(), binding.subject().clone(), true)
         })
         .collect();
     BindingRequirements::new(requirements)

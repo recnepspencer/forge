@@ -1,14 +1,17 @@
 use crate::{
     backend::records::StoreState,
+    bulk::BulkPlanKind,
     failure::{StoreError, StoreErrorKind},
     publication::{
         observe_durable_recovery_publication, DurableRecoveryPublicationObservation,
         PublicationClassification,
     },
-    wal::{DurableMutationId, WalRecord},
+    wal::{DurableMutationId, WalRecord, WalRecordPayload},
 };
 use forge_relational::facade::{history::CommitId, replay::CanonicalCommitEnvelope};
 use serde::Serialize;
+
+use super::DurableMutationIdentity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum RecoverySourceKind {
@@ -23,6 +26,7 @@ pub enum RecoverySourceKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RecoverySourceReport {
     durable_mutation_id: DurableMutationId,
+    mutation_identity: DurableMutationIdentity,
     source_kind: RecoverySourceKind,
     publication_classification: PublicationClassification,
     reason: String,
@@ -37,6 +41,10 @@ impl RecoverySourceReport {
         self.source_kind
     }
 
+    pub fn mutation_identity(&self) -> &DurableMutationIdentity {
+        &self.mutation_identity
+    }
+
     pub fn publication_classification(&self) -> PublicationClassification {
         self.publication_classification
     }
@@ -49,6 +57,7 @@ impl RecoverySourceReport {
 #[derive(Debug, Clone)]
 pub(crate) struct RecoverySourceSet {
     durable_mutation_id: DurableMutationId,
+    mutation_identity: DurableMutationIdentity,
     observation: DurableRecoveryPublicationObservation,
 }
 
@@ -59,6 +68,10 @@ impl RecoverySourceSet {
 
     pub(crate) fn observation(&self) -> &DurableRecoveryPublicationObservation {
         &self.observation
+    }
+
+    pub(crate) fn mutation_identity(&self) -> &DurableMutationIdentity {
+        &self.mutation_identity
     }
 }
 
@@ -100,6 +113,7 @@ pub(crate) fn build_recovery_source_set(
 ) -> Result<RecoverySourceSet, StoreError> {
     Ok(RecoverySourceSet {
         durable_mutation_id,
+        mutation_identity: mutation_identity_for_wal_records(durable_mutation_id, wal_records),
         observation: observe_durable_recovery_publication(
             state,
             durable_mutation_id,
@@ -232,6 +246,7 @@ pub(crate) fn select_recovery_source(
 
     let report = RecoverySourceReport {
         durable_mutation_id: source_set.durable_mutation_id(),
+        mutation_identity: source_set.mutation_identity().clone(),
         source_kind,
         publication_classification: classification,
         reason: format!(
@@ -250,5 +265,64 @@ pub(crate) fn select_recovery_source(
         canonical_envelope,
         acknowledgment_eligible,
         report,
+    })
+}
+
+fn mutation_identity_for_wal_records(
+    durable_mutation_id: DurableMutationId,
+    wal_records: &[&WalRecord],
+) -> DurableMutationIdentity {
+    let intent = wal_records.iter().find_map(|record| match &record.payload {
+        WalRecordPayload::DurableMutationIntent(intent) => Some(intent),
+        _ => None,
+    });
+    let Some(intent) = intent else {
+        return DurableMutationIdentity::GenericOperation {
+            operation_name: format!("durable-mutation-{}", durable_mutation_id.0),
+        };
+    };
+
+    if let Some(identity) =
+        parse_bulk_chunk_identity(&intent.runtime_session_id, &intent.operation_name)
+    {
+        return identity;
+    }
+
+    DurableMutationIdentity::GenericOperation {
+        operation_name: intent.operation_name.clone(),
+    }
+}
+
+fn parse_bulk_chunk_identity(
+    runtime_session_id: &str,
+    operation_name: &str,
+) -> Option<DurableMutationIdentity> {
+    let (plan_kind, chunk_ordinal) = if let Some(value) = operation_name
+        .strip_prefix("bulk-ingest-chunk-")
+        .and_then(|value| value.parse::<u64>().ok())
+    {
+        (BulkPlanKind::Ingest, value)
+    } else if let Some(value) = operation_name
+        .strip_prefix("bulk-transform-chunk-")
+        .and_then(|value| value.parse::<u64>().ok())
+    {
+        (BulkPlanKind::Transform, value)
+    } else {
+        return None;
+    };
+
+    let mut parts = runtime_session_id.splitn(3, ':');
+    let prefix = parts.next()?;
+    let program_id = parts.next()?;
+    let plan_id = parts.next()?;
+    if prefix != "bulk" || program_id.is_empty() || plan_id.is_empty() {
+        return None;
+    }
+
+    Some(DurableMutationIdentity::BulkChunk {
+        plan_kind,
+        program_id: program_id.to_string(),
+        plan_id: plan_id.to_string(),
+        chunk_ordinal,
     })
 }

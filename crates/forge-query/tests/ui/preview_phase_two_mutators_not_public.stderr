@@ -1,0 +1,20 @@
+warning: unreachable statement
+  --> tests/ui/preview_phase_two_mutators_not_public.rs:10:5
+   |
+ 9 |     let session: BridgePreviewSession<PreviewActive> = todo!();
+   |                                                        ------- any code following this expression is unreachable
+10 |     let execution_record = todo!();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0624]: method `with_binding_intent` is private
+  --> tests/ui/preview_phase_two_mutators_not_public.rs:19:6
+   |
+19 |     .with_binding_intent(PreviewBindingIntent::preview_with_live_lane())
+   |      ^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn with_binding_intent(mut self, binding_intent: PreviewBindingIntent) -> Self {
+   |     ----------------------------------------------------------------------------------------- private method defined here

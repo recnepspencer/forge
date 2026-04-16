@@ -1,8 +1,8 @@
 use crate::execution::ExecutionCounters;
 
 use super::super::certification::{
-    CanonicalCertificationRow, CertificationMatrix, HostileExpectation, RejectionCertificationRow,
-    RequiredAssertionClass, digest_parts,
+    digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation,
+    RejectionCertificationRow, RequiredAssertionClass,
 };
 use super::super::profiles::CertificationProfile;
 use super::completeness::bundle_completeness_report;

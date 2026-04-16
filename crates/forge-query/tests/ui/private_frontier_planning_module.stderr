@@ -1,0 +1,11 @@
+error[E0603]: module `frontier_planning` is private
+ --> tests/ui/private_frontier_planning_module.rs:1:18
+  |
+1 | use forge_query::frontier_planning::FrontierAwarePlan;
+  |                  ^^^^^^^^^^^^^^^^^ private module
+  |
+note: the module `frontier_planning` is defined here
+ --> src/lib.rs
+  |
+  | mod frontier_planning;
+  | ^^^^^^^^^^^^^^^^^^^^^

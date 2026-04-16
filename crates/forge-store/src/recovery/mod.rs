@@ -5,7 +5,9 @@ mod maintenance;
 mod planning;
 mod precedence;
 mod report;
+mod support;
 
+use crate::bulk::BulkPlanKind;
 use crate::wal::{DurableMutationId, RecoveryDecisionClass};
 use forge_relational::facade::history::CommitId;
 use serde::Serialize;
@@ -32,8 +34,15 @@ pub(crate) use planning::build_recovery_plan;
 pub(crate) use precedence::{build_recovery_source_set, select_recovery_source};
 pub use precedence::{RecoverySourceKind, RecoverySourceReport};
 pub use report::{
-    DurableRecoverySourceSummary, RecoveryOperatorAction, RecoveryOperatorActionKind,
-    RecoveryOperatorDisposition, RecoveryStatusReport,
+    BulkRecoveryDisposition, BulkRecoverySummary, DurableRecoverySourceSummary,
+    RecoveredBulkChunk, ResumeEligibleRecoveredBulkChunk,
+    RecoveryOperatorAction, RecoveryOperatorActionKind, RecoveryOperatorDisposition,
+    RecoveryStatusReport,
+};
+pub(crate) use support::build_support_artifact_recovery_report;
+pub use support::{
+    SupportArtifactFamily, SupportArtifactRecoveryDisposition, SupportArtifactRecoveryEntry,
+    SupportArtifactRecoveryReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -53,6 +62,31 @@ pub struct DurableRecoveryOutcome {
     pub decisions: Vec<DurableRecoveryDecision>,
     pub degraded: Vec<DurableDegradedRecovery>,
     pub source_reports: Vec<RecoverySourceReport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum DurableMutationIdentity {
+    GenericOperation {
+        operation_name: String,
+    },
+    BulkChunk {
+        plan_kind: BulkPlanKind,
+        program_id: String,
+        plan_id: String,
+        chunk_ordinal: u64,
+    },
+}
+
+impl DurableRecoveryOutcome {
+    pub(crate) fn mutation_identity(
+        &self,
+        durable_mutation_id: DurableMutationId,
+    ) -> Option<&DurableMutationIdentity> {
+        self.source_reports
+            .iter()
+            .find(|report| report.durable_mutation_id() == durable_mutation_id)
+            .map(|report| report.mutation_identity())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

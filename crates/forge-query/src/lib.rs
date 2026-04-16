@@ -18,8 +18,13 @@ mod collection;
 mod diagnostics;
 mod execution;
 pub mod facade;
+mod frontier_planning;
+mod frontier_signal_adapter;
 mod identity;
+mod live;
+mod live_performance;
 mod planning;
+mod preview;
 mod result_shape;
 #[macro_use]
 mod schema_macro;

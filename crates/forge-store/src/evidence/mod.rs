@@ -4,6 +4,9 @@ mod milestone_2;
 mod milestone_3;
 mod milestone_3_5_3_6;
 mod milestone_4;
+mod milestone_5;
+mod milestone_6;
+mod milestone_7;
 
 pub(crate) use counters::StoreCounters;
 pub use counters::{CanonicalizationMetrics, StoreCounterSnapshot};
@@ -19,3 +22,21 @@ pub use milestone_3_5_3_6::{
     ObservedRecoveryFailure356,
 };
 pub use milestone_4::Milestone4CertificationBundle;
+pub use milestone_5::{
+    Milestone5CertificationBundle, Milestone5DeltaStorageReport, Milestone5ReadPathReport,
+};
+pub use milestone_6::{
+    Milestone6AccessStructureClaim, Milestone6AccessStructureContract,
+    Milestone6AccessStructureVerification, Milestone6AccessStructureVerificationPath,
+    Milestone6CertificationBundle, Milestone6CertificationOrigin,
+    Milestone6CertificationSummary,
+    Milestone6ComplexityPathStatus, Milestone6ComplexitySurface,
+    Milestone6CounterContract, Milestone6LayoutMaterializationReport,
+    Milestone6LayoutReadReport, Milestone6PhysicalLayoutReport,
+};
+pub use milestone_7::{
+    Milestone7AccessStructureClaim, Milestone7AccessStructureContract,
+    Milestone7AccessStructureVerification, Milestone7AccessStructureVerificationPath,
+    Milestone7CertificationBundle, Milestone7ComplexityPathStatus, Milestone7ComplexitySurface,
+    Milestone7CounterContract, SupportDurabilityCertificationSummary,
+};

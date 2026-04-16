@@ -1,10 +1,10 @@
 use crate::facade::{CanonicalizationCounters, CanonicalizationReport};
 
 use super::super::certification::{
-    CanonicalCertificationRow as SharedCanonicalCertificationRow,
+    digest_parts, CanonicalCertificationRow as SharedCanonicalCertificationRow,
     CertificationMatrix as SharedCertificationMatrix, HostileExpectation,
     ParityAnchor as SharedParityAnchor,
-    RejectionCertificationRow as SharedRejectionCertificationRow, digest_parts,
+    RejectionCertificationRow as SharedRejectionCertificationRow,
 };
 use super::super::profiles::CertificationProfile;
 use super::completeness::bundle_completeness_report;

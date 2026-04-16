@@ -278,18 +278,14 @@ fn canonical_query_normalization_certification_artifact_is_offline_ready() {
             .bundle_completeness_report
             .all_rows_have_hostile_coverage
     );
-    assert!(
-        artifact
-            .bundle_completeness_report
-            .unmet_required_rows
-            .is_empty()
-    );
-    assert!(
-        artifact
-            .bundle_completeness_report
-            .unmet_required_assertion_classes
-            .is_empty()
-    );
+    assert!(artifact
+        .bundle_completeness_report
+        .unmet_required_rows
+        .is_empty());
+    assert!(artifact
+        .bundle_completeness_report
+        .unmet_required_assertion_classes
+        .is_empty());
     assert!(
         artifact
             .bundle_completeness_report

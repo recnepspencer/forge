@@ -15,10 +15,14 @@ pub enum ParityAnchor {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CanonicalCertificationRow<PerturbationClass, LaneBundle> {
+pub struct CanonicalCertificationRow<
+    PerturbationClass,
+    LaneBundle,
+    HostileExpectationClass = HostileExpectation,
+> {
     pub row_name: &'static str,
     pub perturbation_class: PerturbationClass,
-    pub hostile_expectation: HostileExpectation,
+    pub hostile_expectation: HostileExpectationClass,
     pub parity_anchor: ParityAnchor,
     pub control_lane: LaneBundle,
     pub hostile_lane: LaneBundle,
@@ -35,12 +39,17 @@ pub struct RejectionCertificationRow<PerturbationClass, LaneBundle, RejectionBun
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CertificationMatrix<PerturbationClass, LaneBundle, RejectionBundle> {
+pub struct CertificationMatrix<
+    PerturbationClass,
+    LaneBundle,
+    RejectionBundle,
+    HostileExpectationClass = HostileExpectation,
+> {
     pub suite_name: &'static str,
-    pub rows: Vec<CanonicalCertificationRow<PerturbationClass, LaneBundle>>,
-    pub rejection_rows: Vec<
-        RejectionCertificationRow<PerturbationClass, LaneBundle, RejectionBundle>,
-    >,
+    pub rows:
+        Vec<CanonicalCertificationRow<PerturbationClass, LaneBundle, HostileExpectationClass>>,
+    pub rejection_rows:
+        Vec<RejectionCertificationRow<PerturbationClass, LaneBundle, RejectionBundle>>,
 }
 
 pub fn digest_parts(parts: &[String]) -> String {
@@ -52,7 +61,7 @@ pub fn digest_parts(parts: &[String]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub fn contains_row<P, L, R>(matrix: &CertificationMatrix<P, L, R>, row_name: &str) -> bool {
+pub fn contains_row<P, L, R, H>(matrix: &CertificationMatrix<P, L, R, H>, row_name: &str) -> bool {
     matrix.rows.iter().any(|row| row.row_name == row_name)
         || matrix
             .rejection_rows
@@ -60,8 +69,8 @@ pub fn contains_row<P, L, R>(matrix: &CertificationMatrix<P, L, R>, row_name: &s
             .any(|row| row.row_name == row_name)
 }
 
-pub fn unmet_required_rows<P, L, R>(
-    matrix: &CertificationMatrix<P, L, R>,
+pub fn unmet_required_rows<P, L, R, H>(
+    matrix: &CertificationMatrix<P, L, R, H>,
     required_canonical_rows: &[&'static str],
     required_rejection_rows: &[&'static str],
 ) -> Vec<&'static str> {
@@ -73,9 +82,7 @@ pub fn unmet_required_rows<P, L, R>(
         .collect()
 }
 
-pub fn covered_perturbation_classes<P, L, R>(
-    matrix: &CertificationMatrix<P, L, R>,
-) -> Vec<P>
+pub fn covered_perturbation_classes<P, L, R, H>(matrix: &CertificationMatrix<P, L, R, H>) -> Vec<P>
 where
     P: Copy + Ord,
 {

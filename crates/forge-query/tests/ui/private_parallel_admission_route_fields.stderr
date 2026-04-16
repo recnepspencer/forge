@@ -1,0 +1,33 @@
+warning: unreachable expression
+ --> tests/ui/private_parallel_admission_route_fields.rs:6:24
+  |
+5 |         preflight: todo!(),
+  |                    ------- any code following this expression is unreachable
+6 |         frontier_plan: todo!(),
+  |                        ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot construct `ParallelAdmissionRoute` with struct literal syntax due to private fields
+ --> tests/ui/private_parallel_admission_route_fields.rs:4:13
+  |
+4 |     let _ = ParallelAdmissionRoute {
+  |             ^^^^^^^^^^^^^^^^^^^^^^
+5 |         preflight: todo!(),
+  |         ------------------ private field
+6 |         frontier_plan: todo!(),
+  |         ---------------------- private field
+7 |         decision: todo!(),
+  |         ----------------- private field
+  |
+  = note: ...and other private fields `report`, `counters` and `route_posture_digest` that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _ = ParallelAdmissionRoute {
+5 -         preflight: todo!(),
+6 -         frontier_plan: todo!(),
+7 -         decision: todo!(),
+8 -     };
+4 +     let _ = ParallelAdmissionRoute::new(_, _, _);
+  |

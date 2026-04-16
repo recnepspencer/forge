@@ -164,7 +164,10 @@ pub fn seed_milestone_one_primitive(
     primitive: &WorthMilestoneOnePrimitiveCase,
 ) -> Result<VerifiedTopologyCommit, WorthMilestoneOnePrimitiveAuthoringError> {
     let intent = build_milestone_one_primitive_intent(stem, primitive)?;
-    Ok(WorthTopologyAuthority::new(runtime).apply_topology_intent(intent)?)
+    Ok(WorthTopologyAuthority::new(runtime)
+        .apply_topology_intent_traced(intent)
+        .map(|traced| traced.into_primary_result())
+        .map_err(|failure| failure.into_error())?)
 }
 
 pub fn seed_milestone_one_primitive_on_branch(
@@ -176,7 +179,10 @@ pub fn seed_milestone_one_primitive_on_branch(
 ) -> Result<VerifiedTopologyCommit, WorthMilestoneOnePrimitiveAuthoringError> {
     let mut intent = build_milestone_one_primitive_intent(stem, primitive)?;
     intent.mutation_origin = mutation_origin;
-    Ok(WorthTopologyAuthority::new(runtime).apply_topology_intent_on_branch(intent, branch_id)?)
+    Ok(WorthTopologyAuthority::new(runtime)
+        .apply_topology_intent_on_branch_traced(intent, branch_id)
+        .map(|traced| traced.into_primary_result())
+        .map_err(|failure| failure.into_error())?)
 }
 
 pub fn milestone_one_default_primitive_corpus() -> Vec<WorthMilestoneOnePrimitiveScenario> {

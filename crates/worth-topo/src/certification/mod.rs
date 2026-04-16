@@ -20,9 +20,11 @@ pub use facade::{
     certify_milestone_one_closeout,
     certify_milestone_one_default_primitive_corpus,
     certify_milestone_one_primitive_corpus, certify_milestone_one_primitive_scenarios,
-    certify_milestone_one_read_view, certify_verified_topology_commit,
-    certify_milestone_two_default_derived_corpus, certify_milestone_two_read_view,
-    certify_milestone_two_verified_topology_commit, certify_milestone_two_closeout,
+    certify_milestone_one_read_view_traced,
+    certify_verified_topology_commit_traced,
+    certify_milestone_two_default_derived_corpus,
+    certify_milestone_two_read_view_traced, certify_milestone_two_verified_topology_commit_traced,
+    certify_milestone_two_closeout,
 };
 pub use core::{
     WorthCertificationBridgeExpectation, WorthCertificationCanonicalRow,
@@ -35,6 +37,7 @@ pub use requirements::{
     milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
 };
 pub use read_view::WorthMilestoneOneCertificationHarness;
+pub use read_view::WorthTracedMilestoneOneCertificationReport;
 pub use report::{
     WorthAdmittedRangeSweepReport, WorthAdmittedRangeSweepRow,
     WorthBranchLocalTopologyReport, WorthBridgeFamilyCoverageReport,
@@ -70,3 +73,4 @@ pub use report::{
     WorthTopologyLocalizationEntityRow, WorthTopologyLocalizationRelationRow,
     WorthTopologyLocalizationReport,
 };
+pub use milestone_two::WorthTracedMilestoneTwoDerivedReadReport;

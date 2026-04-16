@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/private_stream_lowered_delivery_contract_fields.rs:6:26
+  |
+5 |         query_digest: todo!(),
+  |                       ------- any code following this expression is unreachable
+6 |         locality_digest: todo!(),
+  |                          ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot construct `StreamLoweredDeliveryContract` with struct literal syntax due to private fields
+  --> tests/ui/private_stream_lowered_delivery_contract_fields.rs:4:13
+   |
+ 4 |     let _ = StreamLoweredDeliveryContract {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         query_digest: todo!(),
+   |         --------------------- private field
+ 6 |         locality_digest: todo!(),
+   |         ------------------------ private field
+ 7 |         delivery_digest: todo!(),
+   |         ------------------------ private field
+ 8 |         stream_contract_digest: todo!(),
+   |         ------------------------------- private field
+ 9 |         consumer_shape: todo!(),
+   |         ----------------------- private field
+10 |         member_count: todo!(),
+   |         --------------------- private field
+   |
+   = note: ...and other private fields `delivery_width` and `cost_posture` that were not provided

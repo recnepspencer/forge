@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `forge_query::facade::admit_preview_execution_comparison`
+ --> tests/ui/preview_comparison_requires_authoritative_candidate.rs:2:5
+  |
+2 |     admit_preview_execution_comparison, ExecutionPreflightBundle, ExecutionResultEnvelope,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_preview_execution_comparison` in `facade`

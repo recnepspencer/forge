@@ -1,5 +1,6 @@
 use crate::basis::ExecutionPreflightBundle;
 use crate::identity::{BasisDigest, PlanDigest, ResultDigest, ValidatedQueryDigest};
+use crate::planning::{ParallelAdmissionRoute, SerialFallbackRoute};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ExecutionCounters {
@@ -140,13 +141,21 @@ impl ExecutionCounters {
                 .map(|collection| collection.traversal_bound().edge_classes().len())
                 .unwrap_or(0),
             aggregate_input_count: collection
-                .map(|collection| collection.post_read_shaping().aggregate_shape().input_breadth().value())
+                .map(|collection| {
+                    collection
+                        .post_read_shaping()
+                        .aggregate_shape()
+                        .input_breadth()
+                        .value()
+                })
                 .unwrap_or(0),
             rollup_input_count: collection
-                .map(|collection| usize::from(!matches!(
-                    collection.post_read_shaping().rollup_shape().edge_class(),
-                    crate::collection::RollupEdgeClass::NoneAdmittedYet
-                )))
+                .map(|collection| {
+                    usize::from(!matches!(
+                        collection.post_read_shaping().rollup_shape().edge_class(),
+                        crate::collection::RollupEdgeClass::NoneAdmittedYet
+                    ))
+                })
                 .unwrap_or(0),
             derived_field_evaluation_count: collection
                 .map(|collection| {
@@ -157,10 +166,12 @@ impl ExecutionCounters {
                 })
                 .unwrap_or(0),
             cdc_output_count: collection
-                .map(|collection| usize::from(matches!(
-                    collection.post_read_shaping().result_family(),
-                    crate::collection::CollectionResultFamily::CdcCollection
-                )))
+                .map(|collection| {
+                    usize::from(matches!(
+                        collection.post_read_shaping().result_family(),
+                        crate::collection::CollectionResultFamily::CdcCollection
+                    ))
+                })
                 .unwrap_or(0),
             executor_semantic_rediscovery_count: 0,
         }
@@ -219,7 +230,9 @@ pub enum ExecutionError {
 impl ExecutionError {
     pub fn failure_class(&self) -> ExecutionFailureClass {
         match self {
-            Self::ExecutionInvariantViolation { .. } => ExecutionFailureClass::InternalInvariantBreak,
+            Self::ExecutionInvariantViolation { .. } => {
+                ExecutionFailureClass::InternalInvariantBreak
+            }
         }
     }
 }
@@ -290,19 +303,23 @@ pub fn execute_preflight_bundle(
     let is_count_rollup = collection
         .map(|collection| {
             matches!(
-                collection.post_read_shaping().aggregate_shape().function_family(),
+                collection
+                    .post_read_shaping()
+                    .aggregate_shape()
+                    .function_family(),
                 crate::collection::AggregateFunctionFamily::CountRows
             )
         })
         .unwrap_or(false);
-    let is_display_label_derived = collection
-        .map(|collection| {
-            matches!(
+    let is_display_label_derived =
+        collection
+            .map(|collection| {
+                matches!(
                 collection.post_read_shaping().derived_field_plan().computation_class(),
                 crate::collection::DerivedFieldComputationClass::DisplayLabelFromIdentityAndProfile
             )
-        })
-        .unwrap_or(false);
+            })
+            .unwrap_or(false);
     let payload: Vec<String> = (0..preflight.plan().result_shape().binding_count())
         .map(|index| {
             if is_cdc_collection {
@@ -385,4 +402,16 @@ pub fn execute_preflight_bundle(
     );
     let report = ExecutionReport::from_preflight(preflight, result_digest);
     ExecutionResultEnvelope::new(payload, report, counters)
+}
+
+pub fn execute_parallel_admission_route(
+    route: &ParallelAdmissionRoute,
+) -> Result<ExecutionResultEnvelope, ExecutionError> {
+    execute_preflight_bundle(route.preflight())
+}
+
+pub fn execute_serial_fallback_route(
+    route: &SerialFallbackRoute,
+) -> Result<ExecutionResultEnvelope, ExecutionError> {
+    execute_preflight_bundle(route.preflight())
 }

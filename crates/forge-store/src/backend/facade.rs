@@ -1,9 +1,31 @@
 use crate::{
     authority::{
         AuthoritativeBranchHeadRecord, AuthoritativeExportBundle, CanonicalizedCommitEnvelope,
-        FetchedAuthoritativeCommit, PersistedAuthoritativeCommit, VerifiedAuthoritativeAppend,
+        DurableCursorAcknowledgeRequest, DurableCursorResumePlan, DurableCursorResumeRequest,
+        FetchedAuthoritativeCommit, FetchedDurableCursorIdentity, FetchedLineageSupportArtifact,
+        FetchedSchemaSupportArtifact, HistoricalIdentityRequest, HistoricalIdentityResolution,
+        PersistedAuthoritativeCommit, PersistedSubscriberCheckpoint, VerifiedAuthoritativeAppend,
     },
-    evidence::{CanonicalizationMetrics, StoreCounterSnapshot},
+    bulk::{
+        BulkChunkCommitWitness, BulkExecutionPath, DeterministicChunkPlan,
+        FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition,
+        ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint, ResumeBoundaryCandidate,
+    },
+    delta::{
+        BranchDeltaAutoCompactOutcome, BranchDeltaReadPlan, BranchDeltaReadRequest,
+        BranchDeltaReadResult, BranchDeltaRebuildReceipt, BranchDeltaRewritePlan,
+        BranchDeltaRewriteReceipt, BranchDeltaRewriteRecommendation, BranchDeltaRewriteRequest,
+        SameBranchDescendantWitness, SharedBaseBranchCreationReceipt,
+        SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
+    },
+    layout::{
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
+        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
+        Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+    },
+    evidence::{
+        CanonicalizationMetrics, Milestone7AccessStructureVerification, StoreCounterSnapshot,
+    },
     failure::StoreError,
     media::DurableMediaReport,
     publication::PublicationWriteOutcome,
@@ -53,6 +75,22 @@ impl StoreBackend {
         }
     }
 
+    pub fn open_for_durable_recovery(mode: StoreBackendMode) -> Result<Self, StoreError> {
+        match mode {
+            StoreBackendMode::InMemory => Ok(Self::Embedded(
+                EmbeddedStoreBackend::open_for_durable_recovery(EmbeddedBackendMode::InMemory)?,
+            )),
+            StoreBackendMode::LocalFile(path) => Ok(Self::Embedded(
+                EmbeddedStoreBackend::open_for_durable_recovery(EmbeddedBackendMode::LocalFile(
+                    path,
+                ))?,
+            )),
+            StoreBackendMode::SqliteFile(path) => Ok(Self::Sqlite(
+                SqliteStoreBackend::open_for_durable_recovery(path)?,
+            )),
+        }
+    }
+
     pub fn from_export_bundle(bundle: AuthoritativeExportBundle) -> Result<Self, StoreError> {
         Ok(Self::Embedded(EmbeddedStoreBackend::from_export_bundle(
             bundle,
@@ -67,6 +105,26 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.create_branch(new_branch, from_branch),
             Self::Sqlite(backend) => backend.create_branch(new_branch, from_branch),
+        }
+    }
+
+    pub fn create_shared_base_branch(
+        &mut self,
+        request: SharedBaseBranchCreationRequest,
+    ) -> Result<SharedBaseBranchCreationReceipt, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.create_shared_base_branch(request),
+            Self::Sqlite(backend) => backend.create_shared_base_branch(request),
+        }
+    }
+
+    pub fn admit_shared_base_branch_creation(
+        &self,
+        request: SharedBaseBranchCreationRequest,
+    ) -> Result<SharedBaseBranchCreationWitness, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.admit_shared_base_branch_creation(request),
+            Self::Sqlite(backend) => backend.admit_shared_base_branch_creation(request),
         }
     }
 
@@ -110,10 +168,505 @@ impl StoreBackend {
         }
     }
 
+    pub fn plan_branch_delta_read(
+        &self,
+        request: BranchDeltaReadRequest,
+    ) -> Result<BranchDeltaReadPlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.plan_branch_delta_read(request),
+            Self::Sqlite(backend) => backend.plan_branch_delta_read(request),
+        }
+    }
+
+    pub fn admit_same_branch_descendant(
+        &self,
+        request: BranchDeltaReadRequest,
+    ) -> Result<SameBranchDescendantWitness, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.admit_same_branch_descendant(request),
+            Self::Sqlite(backend) => backend.admit_same_branch_descendant(request),
+        }
+    }
+
+    pub fn admit_milestone_7_independent_reference(
+        &self,
+        request: BranchDeltaReadRequest,
+    ) -> Result<crate::Milestone7IndependentReference, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.admit_milestone_7_independent_reference(request),
+            Self::Sqlite(backend) => backend.admit_milestone_7_independent_reference(request),
+        }
+    }
+
+    pub fn plan_aspect_layout_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<AspectLayoutReadPlanDecision, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.plan_aspect_layout_read(request),
+            Self::Sqlite(backend) => backend.plan_aspect_layout_read(request),
+        }
+    }
+
+    pub fn admit_structural_block_reuse(
+        &self,
+        plan: AdmittedAspectLayoutReadPlan,
+    ) -> Result<DedupAdmittedBlockReuse, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.admit_structural_block_reuse(plan),
+            Self::Sqlite(backend) => backend.admit_structural_block_reuse(plan),
+        }
+    }
+
+    pub fn freeze_chunk_model(
+        &self,
+        plan: AdmittedAspectLayoutReadPlan,
+    ) -> Result<ChunkModelFrozenPhysicalLayout, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.freeze_chunk_model(plan),
+            Self::Sqlite(backend) => backend.freeze_chunk_model(plan),
+        }
+    }
+
+    pub fn admit_milestone_7_independent_layout_reference(
+        &self,
+        plan: AdmittedAspectLayoutReadPlan,
+    ) -> Result<Milestone7IndependentLayoutReference, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.admit_milestone_7_independent_layout_reference(plan)
+            }
+            Self::Sqlite(backend) => backend.admit_milestone_7_independent_layout_reference(plan),
+        }
+    }
+
+    pub fn admit_milestone_9_physical_chunk_reference(
+        &self,
+        frozen: ChunkModelFrozenPhysicalLayout,
+    ) -> Result<Milestone9PhysicalChunkReference, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.admit_milestone_9_physical_chunk_reference(frozen),
+            Self::Sqlite(backend) => backend.admit_milestone_9_physical_chunk_reference(frozen),
+        }
+    }
+
+    pub fn materialize_milestone_6_layout_support(
+        &mut self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.materialize_milestone_6_layout_support(request),
+            Self::Sqlite(backend) => backend.materialize_milestone_6_layout_support(request),
+        }
+    }
+
+    pub fn fetch_milestone_6_layout_support(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_milestone_6_layout_support(request),
+            Self::Sqlite(backend) => backend.fetch_milestone_6_layout_support(request),
+        }
+    }
+
+    pub(crate) fn fetch_existing_milestone_6_layout_support(
+        &self,
+        artifact_id: &str,
+    ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
+            Self::Sqlite(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
+        }
+    }
+
+    pub fn read_branch_delta(
+        &self,
+        witness: SameBranchDescendantWitness,
+    ) -> Result<BranchDeltaReadResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.read_branch_delta(witness),
+            Self::Sqlite(backend) => backend.read_branch_delta(witness),
+        }
+    }
+
+    pub fn read_branch_delta_control(
+        &self,
+        witness: SameBranchDescendantWitness,
+    ) -> Result<BranchDeltaReadResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.read_branch_delta_control(witness),
+            Self::Sqlite(backend) => backend.read_branch_delta_control(witness),
+        }
+    }
+
+    pub fn read_branch_delta_control_from_milestone_7_reference(
+        &self,
+        reference: crate::Milestone7IndependentReference,
+    ) -> Result<BranchDeltaReadResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.read_branch_delta_control_from_milestone_7_reference(reference)
+            }
+            Self::Sqlite(backend) => {
+                backend.read_branch_delta_control_from_milestone_7_reference(reference)
+            }
+        }
+    }
+
+    pub fn plan_delta_rewrite(
+        &self,
+        request: BranchDeltaRewriteRequest,
+    ) -> Result<BranchDeltaRewritePlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.plan_delta_rewrite(request),
+            Self::Sqlite(backend) => backend.plan_delta_rewrite(request),
+        }
+    }
+
+    pub fn recommend_delta_rewrite(
+        &self,
+        request: BranchDeltaRewriteRequest,
+    ) -> Result<BranchDeltaRewriteRecommendation, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.recommend_delta_rewrite(request),
+            Self::Sqlite(backend) => backend.recommend_delta_rewrite(request),
+        }
+    }
+
+    pub fn auto_compact_branch_delta(
+        &mut self,
+        request: BranchDeltaRewriteRequest,
+    ) -> Result<BranchDeltaAutoCompactOutcome, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.auto_compact_branch_delta(request),
+            Self::Sqlite(backend) => backend.auto_compact_branch_delta(request),
+        }
+    }
+
+    pub fn rewrite_branch_delta(
+        &mut self,
+        plan: BranchDeltaRewritePlan,
+    ) -> Result<BranchDeltaRewriteReceipt, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.rewrite_branch_delta(plan),
+            Self::Sqlite(backend) => backend.rewrite_branch_delta(plan),
+        }
+    }
+
+    pub fn rebuild_branch_delta_artifacts(
+        &mut self,
+        branch_id: BranchId,
+    ) -> Result<BranchDeltaRebuildReceipt, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.rebuild_branch_delta_artifacts(branch_id),
+            Self::Sqlite(backend) => backend.rebuild_branch_delta_artifacts(branch_id),
+        }
+    }
+
+    pub fn fetch_schema_support(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<FetchedSchemaSupportArtifact, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_schema_support(commit_id),
+            Self::Sqlite(backend) => backend.fetch_schema_support(commit_id),
+        }
+    }
+
+    pub fn fetch_lineage_support(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<FetchedLineageSupportArtifact, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_lineage_support(commit_id),
+            Self::Sqlite(backend) => backend.fetch_lineage_support(commit_id),
+        }
+    }
+
+    pub fn fetch_lineage_history(
+        &self,
+        request: HistoricalIdentityRequest,
+    ) -> Result<HistoricalIdentityResolution, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_lineage_history(request),
+            Self::Sqlite(backend) => backend.fetch_lineage_history(request),
+        }
+    }
+
+    pub fn acknowledge_cursor(
+        &mut self,
+        request: DurableCursorAcknowledgeRequest,
+    ) -> Result<PersistedSubscriberCheckpoint, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.acknowledge_cursor(request),
+            Self::Sqlite(backend) => backend.acknowledge_cursor(request),
+        }
+    }
+
+    pub fn fetch_durable_cursor_identity(
+        &self,
+        cursor_id: &str,
+    ) -> Result<FetchedDurableCursorIdentity, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_durable_cursor_identity(cursor_id),
+            Self::Sqlite(backend) => backend.fetch_durable_cursor_identity(cursor_id),
+        }
+    }
+
+    pub fn plan_cursor_resume(
+        &self,
+        request: DurableCursorResumeRequest,
+    ) -> Result<DurableCursorResumePlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.plan_cursor_resume(request),
+            Self::Sqlite(backend) => backend.plan_cursor_resume(request),
+        }
+    }
+
     pub fn record_canonicalization(&self, metrics: CanonicalizationMetrics) {
         match self {
             Self::Embedded(backend) => backend.record_canonicalization(metrics),
             Self::Sqlite(backend) => backend.record_canonicalization(metrics),
+        }
+    }
+
+    pub fn record_bulk_source_manifest(&self, member_count: u64, stream_pass_count: u64) {
+        match self {
+            Self::Embedded(backend) => {
+                backend.record_bulk_source_manifest(member_count, stream_pass_count)
+            }
+            Self::Sqlite(backend) => backend.record_bulk_source_manifest(member_count, stream_pass_count),
+        }
+    }
+
+    pub fn record_bulk_chunk_plan(&self, chunk_count: u64) {
+        match self {
+            Self::Embedded(backend) => backend.record_bulk_chunk_plan(chunk_count),
+            Self::Sqlite(backend) => backend.record_bulk_chunk_plan(chunk_count),
+        }
+    }
+
+    pub fn record_bulk_checkpoint_publication_intent(
+        &mut self,
+        runtime_session_id: &str,
+        durable_mutation_id: DurableMutationId,
+        checkpoint_sequence: Option<u64>,
+    ) -> Result<(), StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.record_bulk_checkpoint_publication_intent(
+                runtime_session_id,
+                durable_mutation_id,
+                checkpoint_sequence,
+            ),
+            Self::Sqlite(backend) => backend.record_bulk_checkpoint_publication_intent(
+                runtime_session_id,
+                durable_mutation_id,
+                checkpoint_sequence,
+            ),
+        }
+    }
+
+    pub fn record_bulk_chunk_execute(
+        &self,
+        width_units: u64,
+        memory_units: u64,
+        fallback_breadth_units: u64,
+        execution_path: BulkExecutionPath,
+    ) {
+        let used_fallback_path = matches!(execution_path, BulkExecutionPath::ExplicitFallbackPath);
+        match self {
+            Self::Embedded(backend) => backend.record_bulk_chunk_execute(
+                width_units,
+                memory_units,
+                fallback_breadth_units,
+                used_fallback_path,
+            ),
+            Self::Sqlite(backend) => backend.record_bulk_chunk_execute(
+                width_units,
+                memory_units,
+                fallback_breadth_units,
+                used_fallback_path,
+            ),
+        }
+    }
+
+    pub fn record_bulk_chunk_resume(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_bulk_chunk_resume(),
+            Self::Sqlite(backend) => backend.record_bulk_chunk_resume(),
+        }
+    }
+
+    pub fn record_bulk_chunk_commit(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_bulk_chunk_commit(),
+            Self::Sqlite(backend) => backend.record_bulk_chunk_commit(),
+        }
+    }
+
+    pub fn persist_frozen_bulk_manifest(
+        &mut self,
+        manifest: FrozenBulkSourceManifest,
+    ) -> Result<FrozenBulkSourceManifest, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.persist_frozen_bulk_manifest(manifest),
+            Self::Sqlite(backend) => backend.persist_frozen_bulk_manifest(manifest),
+        }
+    }
+
+    pub fn persist_frozen_transform_basis(
+        &mut self,
+        basis: FrozenTransformBasis,
+    ) -> Result<FrozenTransformBasis, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.persist_frozen_transform_basis(basis),
+            Self::Sqlite(backend) => backend.persist_frozen_transform_basis(basis),
+        }
+    }
+
+    pub fn persist_frozen_transform_partition(
+        &mut self,
+        partition: FrozenTransformTargetPartition,
+    ) -> Result<FrozenTransformTargetPartition, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.persist_frozen_transform_partition(partition),
+            Self::Sqlite(backend) => backend.persist_frozen_transform_partition(partition),
+        }
+    }
+
+    pub fn persist_bulk_chunk_plan(
+        &mut self,
+        plan: DeterministicChunkPlan,
+    ) -> Result<DeterministicChunkPlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.persist_bulk_chunk_plan(plan),
+            Self::Sqlite(backend) => backend.persist_bulk_chunk_plan(plan),
+        }
+    }
+
+    pub fn fetch_frozen_bulk_manifest(
+        &self,
+        program_id: &str,
+        manifest_digest: &str,
+    ) -> Result<FrozenBulkSourceManifest, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_frozen_bulk_manifest(program_id, manifest_digest),
+            Self::Sqlite(backend) => backend.fetch_frozen_bulk_manifest(program_id, manifest_digest),
+        }
+    }
+
+    pub fn fetch_frozen_transform_basis(
+        &self,
+        program_id: &str,
+        basis_digest: &str,
+    ) -> Result<FrozenTransformBasis, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_frozen_transform_basis(program_id, basis_digest),
+            Self::Sqlite(backend) => backend.fetch_frozen_transform_basis(program_id, basis_digest),
+        }
+    }
+
+    pub fn fetch_frozen_transform_partition(
+        &self,
+        program_id: &str,
+        partition_digest: &str,
+    ) -> Result<FrozenTransformTargetPartition, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.fetch_frozen_transform_partition(program_id, partition_digest)
+            }
+            Self::Sqlite(backend) => {
+                backend.fetch_frozen_transform_partition(program_id, partition_digest)
+            }
+        }
+    }
+
+    pub fn find_frozen_transform_basis_for_plan(
+        &self,
+        program_id: &str,
+        target_branch_scope: &forge_relational::facade::history::BranchId,
+        basis_commit_id: forge_relational::facade::history::CommitId,
+    ) -> Result<FrozenTransformBasis, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.find_frozen_transform_basis_for_plan(
+                    program_id,
+                    target_branch_scope,
+                    basis_commit_id,
+                )
+            }
+            Self::Sqlite(backend) => {
+                backend.find_frozen_transform_basis_for_plan(
+                    program_id,
+                    target_branch_scope,
+                    basis_commit_id,
+                )
+            }
+        }
+    }
+
+    pub fn fetch_bulk_chunk_plan(
+        &self,
+        program_id: &str,
+        plan_id: &str,
+    ) -> Result<DeterministicChunkPlan, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_bulk_chunk_plan(program_id, plan_id),
+            Self::Sqlite(backend) => backend.fetch_bulk_chunk_plan(program_id, plan_id),
+        }
+    }
+
+    pub fn publish_bulk_chunk_witness(
+        &mut self,
+        witness: BulkChunkCommitWitness,
+    ) -> Result<BulkChunkCommitWitness, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.publish_bulk_chunk_witness(witness),
+            Self::Sqlite(backend) => backend.publish_bulk_chunk_witness(witness),
+        }
+    }
+
+    pub fn publish_bulk_progress_checkpoint(
+        &mut self,
+        witness: BulkChunkCommitWitness,
+    ) -> Result<PublishedBulkProgressCheckpoint, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.publish_bulk_progress_checkpoint(witness),
+            Self::Sqlite(backend) => backend.publish_bulk_progress_checkpoint(witness),
+        }
+    }
+
+    pub fn fetch_bulk_progress_checkpoint(
+        &self,
+        program_id: &str,
+        plan_id: &str,
+    ) -> Result<PublishedBulkProgressCheckpoint, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_bulk_progress_checkpoint(program_id, plan_id),
+            Self::Sqlite(backend) => backend.fetch_bulk_progress_checkpoint(program_id, plan_id),
+        }
+    }
+
+    pub fn fetch_program_chunk_witness_index(
+        &self,
+        program_id: &str,
+        plan_id: &str,
+    ) -> Result<ProgramChunkWitnessIndex, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_program_chunk_witness_index(program_id, plan_id),
+            Self::Sqlite(backend) => backend.fetch_program_chunk_witness_index(program_id, plan_id),
+        }
+    }
+
+    pub fn fetch_latest_resume_boundary(
+        &self,
+        program_id: &str,
+        plan_id: &str,
+    ) -> Result<ResumeBoundaryCandidate, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.fetch_latest_resume_boundary(program_id, plan_id),
+            Self::Sqlite(backend) => backend.fetch_latest_resume_boundary(program_id, plan_id),
         }
     }
 
@@ -135,6 +688,24 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.durable_media_report(),
             Self::Sqlite(backend) => backend.durable_media_report(),
+        }
+    }
+
+    pub fn milestone_7_access_structure_verification(
+        &self,
+    ) -> Milestone7AccessStructureVerification {
+        match self {
+            Self::Embedded(backend) => backend.milestone_7_access_structure_verification(),
+            Self::Sqlite(backend) => backend.milestone_7_access_structure_verification(),
+        }
+    }
+
+    pub fn milestone_6_access_structure_verification(
+        &self,
+    ) -> crate::Milestone6AccessStructureVerification {
+        match self {
+            Self::Embedded(backend) => backend.milestone_6_access_structure_verification(),
+            Self::Sqlite(backend) => backend.milestone_6_access_structure_verification(),
         }
     }
 
@@ -177,6 +748,47 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.maintenance_recovery_report(),
             Self::Sqlite(backend) => backend.maintenance_recovery_report(),
+        }
+    }
+
+    pub fn support_artifact_recovery_report(&self) -> crate::SupportArtifactRecoveryReport {
+        match self {
+            Self::Embedded(backend) => backend.support_artifact_recovery_report(),
+            Self::Sqlite(backend) => backend.support_artifact_recovery_report(),
+        }
+    }
+
+    pub fn record_support_artifact_recovery_gap(&self, count: u64) {
+        match self {
+            Self::Embedded(backend) => backend
+                .counters()
+                .record_support_artifact_recovery_gap(count),
+            Self::Sqlite(backend) => backend
+                .counters()
+                .record_support_artifact_recovery_gap(count),
+        }
+    }
+
+    pub(crate) fn milestone_5_delta_storage_report(
+        &self,
+        branch_id: BranchId,
+        target_commit_id: CommitId,
+        direct_plan: &BranchDeltaReadPlan,
+        control_plan: &BranchDeltaReadPlan,
+    ) -> Result<crate::Milestone5DeltaStorageReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.milestone_5_delta_storage_report(
+                branch_id,
+                target_commit_id,
+                direct_plan,
+                control_plan,
+            ),
+            Self::Sqlite(backend) => backend.milestone_5_delta_storage_report(
+                branch_id,
+                target_commit_id,
+                direct_plan,
+                control_plan,
+            ),
         }
     }
 
@@ -342,6 +954,7 @@ impl StoreBackend {
         }
     }
 
+    #[cfg(test)]
     pub fn record_embedded_checkpoint_authority_rejection(&self) {
         match self {
             Self::Embedded(backend) => backend
@@ -353,6 +966,7 @@ impl StoreBackend {
         }
     }
 
+    #[cfg(test)]
     pub fn record_mode_misuse_rejection(&self) {
         match self {
             Self::Embedded(backend) => backend.counters().record_mode_misuse_rejection(),

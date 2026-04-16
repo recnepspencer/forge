@@ -1,8 +1,8 @@
 use crate::facade::{QueryValidationCounters, QueryValidationReport, ValidationRejectionMatrix};
 
 use super::super::certification::{
-    CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,
-    RejectionCertificationRow, RequiredAssertionClass, digest_parts,
+    digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,
+    RejectionCertificationRow, RequiredAssertionClass,
 };
 use super::super::profiles::CertificationProfile;
 use super::completeness::bundle_completeness_report;

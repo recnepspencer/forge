@@ -7,10 +7,14 @@ description = "Worth truth vocabulary, aspects, and invariant declarations"
 
 [dependencies]
 forge-relational.workspace = true
+forge-runtime-bridge.workspace = true
+forge-signal.workspace = true
 worth-math.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 
 [dev-dependencies]
+trybuild.workspace = true
+
 [lints]
 workspace = true

@@ -284,14 +284,23 @@ pub fn resolve_snapshot_basis(
 
     let mode_matches_authority = matches!(
         (intent.authority_family(), &resolution_mode),
-        (BasisAuthorityFamily::Runtime, BasisResolutionMode::RuntimeDirect)
-            | (BasisAuthorityFamily::Store, BasisResolutionMode::StoreDirect)
+        (
+            BasisAuthorityFamily::Runtime,
+            BasisResolutionMode::RuntimeDirect
+        ) | (
+            BasisAuthorityFamily::Store,
+            BasisResolutionMode::StoreDirect
+        )
     );
     if !mode_matches_authority {
         return Err(BasisResolutionError::UnsupportedBasisKind);
     }
 
-    Ok(ResolvedSnapshotBasis::new(intent, identity, resolution_mode))
+    Ok(ResolvedSnapshotBasis::new(
+        intent,
+        identity,
+        resolution_mode,
+    ))
 }
 
 pub fn snapshot_resolution_report(basis: &ResolvedSnapshotBasis) -> SnapshotResolutionReport {

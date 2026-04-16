@@ -8,7 +8,15 @@ pub(super) fn load_state(path: &Path) -> Result<StoreState, StoreError> {
         return Ok(StoreState::default());
     }
     let raw = std::fs::read(path)?;
-    Ok(serde_json::from_slice(&raw)?)
+    let mut state: StoreState = serde_json::from_slice(&raw).map_err(store_state_decode_error)?;
+    state.backfill_missing_branch_delta_layer_artifacts()?;
+    Ok(state)
+}
+
+fn store_state_decode_error(error: serde_json::Error) -> StoreError {
+    StoreError::backend_integrity(format!(
+        "persisted store state failed validation during decode: {error}"
+    ))
 }
 
 pub(super) fn persist_state_atomic(path: &Path, state: &StoreState) -> Result<(), StoreError> {

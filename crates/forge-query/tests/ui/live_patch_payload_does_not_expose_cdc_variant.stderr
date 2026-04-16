@@ -1,0 +1,15 @@
+error[E0599]: no variant or associated item named `Cdc` found for enum `LivePatchPayload` in the current scope
+ --> tests/ui/live_patch_payload_does_not_expose_cdc_variant.rs:4:31
+  |
+4 |     let _ = LivePatchPayload::Cdc(todo!());
+  |                               ^^^ variant or associated item not found in `LivePatchPayload`
+
+warning: unreachable call
+ --> tests/ui/live_patch_payload_does_not_expose_cdc_variant.rs:4:13
+  |
+4 |     let _ = LivePatchPayload::Cdc(todo!());
+  |             ^^^^^^^^^^^^^^^^^^^^^ ------- any code following this expression is unreachable
+  |             |
+  |             unreachable call
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/promotion_preview_execution_requires_typed_binding.rs:7:5
+  |
+6 |     let binding: PreviewSessionPlanBinding = todo!();
+  |                                              ------- any code following this expression is unreachable
+7 |     let _ = execute_promotion_eligible_preview_session_plan(&binding);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/promotion_preview_execution_requires_typed_binding.rs:7:61
+  |
+7 |     let _ = execute_promotion_eligible_preview_session_plan(&binding);
+  |             ----------------------------------------------- ^^^^^^^^ expected `&...`, found `&PreviewSessionPlanBinding`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&PromotionEligiblePreviewSessionPlanBinding`
+             found reference `&PreviewSessionPlanBinding`
+note: function defined here
+ --> src/preview/mod.rs
+  |
+  | pub fn execute_promotion_eligible_preview_session_plan(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

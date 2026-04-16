@@ -25,4 +25,4 @@ error: cannot construct `ExecutionPlanBundle` with struct literal syntax due to 
 9 |         counters: todo!(),
   |         ----------------- private field
   |
-  = note: ...and other private field `collection` that was not provided
+  = note: ...and other private fields `collection` and `live_promotion` that were not provided

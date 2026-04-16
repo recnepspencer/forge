@@ -1,13 +1,12 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
 use crate::facade::{
     canonicalize_request, derive_binding_requirements, execute_preflight_bundle,
-    planning_request_context_for_bound, planning_request_context_for_direct,
-    plan_validated_bundle, preflight_execution_basis, resolve_bindings, resolve_snapshot_basis,
-    validate_canonical_bundle, AspectFieldSelector, AuthoredResultShapeField,
-    BasisAuthorityFamily, BasisResolutionError, BasisResolutionMode, BoundBinding, BoundBindings,
-    CollectionResultFamily, ExecutionBasisIntent, GuidedAuthoringPath,
-    IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
-    RootEntityKey, ResolvedSnapshotIdentity, SnapshotLineageClass,
+    plan_validated_bundle, planning_request_context_for_bound, planning_request_context_for_direct,
+    preflight_execution_basis, resolve_bindings, resolve_snapshot_basis, validate_canonical_bundle,
+    AspectFieldSelector, AuthoredResultShapeField, BasisAuthorityFamily, BasisResolutionError,
+    BasisResolutionMode, BoundBinding, BoundBindings, CollectionResultFamily, ExecutionBasisIntent,
+    GuidedAuthoringPath, IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot,
+    QueryBindingSubject, ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
@@ -27,8 +26,11 @@ fn direct_validated_bundle() -> crate::facade::ValidatedQueryBundle {
 
     let request = GuidedAuthoringPath::pair_detail(query, shape).unwrap();
     let canonical = canonicalize_request(request).unwrap();
-    validate_canonical_bundle(canonical, crate::harness::fixtures::schema_view::detail_schema_view())
-        .unwrap()
+    validate_canonical_bundle(
+        canonical,
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap()
 }
 
 fn bound_validated_bundle() -> crate::facade::ValidatedQueryBundle {
@@ -47,8 +49,11 @@ fn bound_validated_bundle() -> crate::facade::ValidatedQueryBundle {
 
     let request = GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings).unwrap();
     let canonical = canonicalize_request(request).unwrap();
-    validate_canonical_bundle(canonical, crate::harness::fixtures::schema_view::detail_schema_view())
-        .unwrap()
+    validate_canonical_bundle(
+        canonical,
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap()
 }
 
 fn expanded_validated_bundle() -> crate::facade::ValidatedQueryBundle {
@@ -65,16 +70,17 @@ fn collection_validated_bundle() -> crate::facade::ValidatedQueryBundle {
         .unwrap();
     let shape = RawAuthoredResultShape::collection_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .build()
         .unwrap();
 
     let request = GuidedAuthoringPath::pair_collection(query, shape).unwrap();
     let canonical = canonicalize_request(request).unwrap();
-    validate_canonical_bundle(canonical, crate::harness::fixtures::schema_view::detail_schema_view())
-        .unwrap()
+    validate_canonical_bundle(
+        canonical,
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap()
 }
 
 fn descending_collection_validated_bundle() -> crate::facade::ValidatedQueryBundle {
@@ -87,16 +93,17 @@ fn descending_collection_validated_bundle() -> crate::facade::ValidatedQueryBund
         .unwrap();
     let shape = RawAuthoredResultShape::collection_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .build()
         .unwrap();
 
     let request = GuidedAuthoringPath::pair_collection(query, shape).unwrap();
     let canonical = canonicalize_request(request).unwrap();
-    validate_canonical_bundle(canonical, crate::harness::fixtures::schema_view::detail_schema_view())
-        .unwrap()
+    validate_canonical_bundle(
+        canonical,
+        crate::harness::fixtures::schema_view::detail_schema_view(),
+    )
+    .unwrap()
 }
 
 fn runtime_basis_intent() -> ExecutionBasisIntent {
@@ -107,7 +114,9 @@ fn runtime_basis_intent() -> ExecutionBasisIntent {
     )
 }
 
-fn runtime_resolved_identity(schema_basis: crate::facade::SchemaBasisDigest) -> ResolvedSnapshotIdentity {
+fn runtime_resolved_identity(
+    schema_basis: crate::facade::SchemaBasisDigest,
+) -> ResolvedSnapshotIdentity {
     ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         Some("workspace-main".to_string()),
@@ -120,7 +129,8 @@ fn runtime_resolved_identity(schema_basis: crate::facade::SchemaBasisDigest) -> 
 #[test]
 fn direct_planning_request_context_requires_no_binding_resolution() {
     let bundle = direct_validated_bundle();
-    let request_context = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let request_context =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
     assert!(request_context.semantic().binding_resolution().is_none());
 }
 
@@ -174,9 +184,17 @@ fn direct_and_pre_resolved_bound_requests_seed_identical_plans_for_same_semantic
     assert_eq!(seeded_direct.counters().route_candidate_count(), 2);
     assert_eq!(seeded_direct.counters().planned_read_surface_count(), 1);
     assert_eq!(seeded_direct.counters().fallback_denial_count(), 0);
-    assert_eq!(seeded_direct.counters().planned_materialization_edge_class_count(), 0);
+    assert_eq!(
+        seeded_direct
+            .counters()
+            .planned_materialization_edge_class_count(),
+        0
+    );
     assert_eq!(seeded_direct.counters().planned_traversal_depth_limit(), 0);
-    assert_eq!(seeded_direct.counters().planned_aggregate_input_breadth(), 0);
+    assert_eq!(
+        seeded_direct.counters().planned_aggregate_input_breadth(),
+        0
+    );
     assert_eq!(seeded_direct.counters().planned_cdc_family_count(), 0);
 }
 
@@ -219,7 +237,11 @@ fn collection_queries_emit_collection_plan_artifacts() {
             .unwrap_or(0)
     );
     assert_eq!(
-        collection.post_read_shaping().aggregate_shape().input_breadth().value(),
+        collection
+            .post_read_shaping()
+            .aggregate_shape()
+            .input_breadth()
+            .value(),
         bundle.query().projection().len()
             + bundle.query().predicates().entries().len()
             + bundle.query().traversal().len()
@@ -234,11 +256,20 @@ fn collection_queries_emit_collection_plan_artifacts() {
         &crate::facade::CollectionWindowPolicy::FullSnapshotRead
     );
     assert!(!collection.digest().as_str().is_empty());
-    assert_eq!(planned.counters().planned_materialization_edge_class_count(), 1);
+    assert_eq!(
+        planned
+            .counters()
+            .planned_materialization_edge_class_count(),
+        1
+    );
     assert_eq!(planned.counters().planned_traversal_depth_limit(), 1);
     assert_eq!(
         planned.counters().planned_aggregate_input_breadth(),
-        collection.post_read_shaping().aggregate_shape().input_breadth().value()
+        collection
+            .post_read_shaping()
+            .aggregate_shape()
+            .input_breadth()
+            .value()
     );
     assert_eq!(planned.counters().planned_cdc_family_count(), 0);
 }
@@ -265,16 +296,28 @@ fn collection_ordering_changes_plan_and_collection_digests() {
         descending_plan.collection().unwrap().digest()
     );
     assert_ne!(
-        ascending_plan.collection().unwrap().ordering_basis().entries()[0].direction(),
-        descending_plan.collection().unwrap().ordering_basis().entries()[0].direction()
+        ascending_plan
+            .collection()
+            .unwrap()
+            .ordering_basis()
+            .entries()[0]
+            .direction(),
+        descending_plan
+            .collection()
+            .unwrap()
+            .ordering_basis()
+            .entries()[0]
+            .direction()
     );
 }
 
 #[test]
 fn repeated_collection_planning_preserves_collection_digest() {
     let bundle = collection_validated_bundle();
-    let first_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
-    let second_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let first_request =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let second_request =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
     let first = plan_validated_bundle(&bundle, first_request).unwrap();
     let second = plan_validated_bundle(&bundle, second_request).unwrap();
@@ -289,7 +332,8 @@ fn repeated_collection_planning_preserves_collection_digest() {
 #[test]
 fn cdc_collection_family_changes_collection_and_plan_digests() {
     let bundle = collection_validated_bundle();
-    let ordinary_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let ordinary_request =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
     let cdc_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
     let ordinary = plan_validated_bundle(&bundle, ordinary_request).unwrap();
@@ -306,7 +350,11 @@ fn cdc_collection_family_changes_collection_and_plan_digests() {
         cdc.collection().unwrap().digest()
     );
     assert_eq!(
-        ordinary.collection().unwrap().planning_context().result_family(),
+        ordinary
+            .collection()
+            .unwrap()
+            .planning_context()
+            .result_family(),
         &CollectionResultFamily::OrdinaryCollection
     );
     assert_eq!(
@@ -320,7 +368,8 @@ fn cdc_collection_family_changes_collection_and_plan_digests() {
 #[test]
 fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
     let bundle = collection_validated_bundle();
-    let ordinary_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let ordinary_request =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
     let aggregate_request =
         planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
@@ -332,7 +381,10 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
     )
     .unwrap();
 
-    assert_ne!(ordinary.query().plan_digest(), aggregate.query().plan_digest());
+    assert_ne!(
+        ordinary.query().plan_digest(),
+        aggregate.query().plan_digest()
+    );
     assert_ne!(
         ordinary.collection().unwrap().digest(),
         aggregate.collection().unwrap().digest()
@@ -360,7 +412,8 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
 #[test]
 fn derived_field_collection_family_changes_plan_and_derived_shape_semantics() {
     let bundle = collection_validated_bundle();
-    let ordinary_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
+    let ordinary_request =
+        planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
     let derived_request =
         planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
@@ -372,7 +425,10 @@ fn derived_field_collection_family_changes_plan_and_derived_shape_semantics() {
     )
     .unwrap();
 
-    assert_ne!(ordinary.query().plan_digest(), derived.query().plan_digest());
+    assert_ne!(
+        ordinary.query().plan_digest(),
+        derived.query().plan_digest()
+    );
     assert_ne!(
         ordinary.collection().unwrap().digest(),
         derived.collection().unwrap().digest()
@@ -443,7 +499,10 @@ fn store_backend_planning_is_rejected_until_parity_is_admitted() {
     );
     let request = planning_request_context_for_direct(&bundle, store_intent.clone()).unwrap();
     let error = plan_validated_bundle(&bundle, request).unwrap_err();
-    assert_eq!(error, crate::facade::PlanningError::UnsupportedBackendParityRequest);
+    assert_eq!(
+        error,
+        crate::facade::PlanningError::UnsupportedBackendParityRequest
+    );
 }
 
 #[test]
@@ -478,7 +537,10 @@ fn fallback_admission_is_rejected_until_supported_shape_exists() {
     )
     .unwrap();
     let error = plan_validated_bundle(&bundle, request).unwrap_err();
-    assert_eq!(error, crate::facade::PlanningError::UnsupportedFallbackShape);
+    assert_eq!(
+        error,
+        crate::facade::PlanningError::UnsupportedFallbackShape
+    );
 }
 
 #[test]
@@ -497,7 +559,10 @@ fn execution_is_deterministic_for_same_preflight_bundle() {
     let first = execute_preflight_bundle(&preflight).unwrap();
     let second = execute_preflight_bundle(&preflight).unwrap();
 
-    assert_eq!(first.report().result_digest(), second.report().result_digest());
+    assert_eq!(
+        first.report().result_digest(),
+        second.report().result_digest()
+    );
     assert_eq!(first.payload(), second.payload());
     assert_eq!(first.counters(), second.counters());
     assert_eq!(first.counters().executor_semantic_rediscovery_count(), 0);
@@ -520,7 +585,10 @@ fn execution_counters_reflect_planned_shape() {
     assert_eq!(envelope.counters().execution_read_operation_count(), 1);
     assert_eq!(envelope.counters().execution_records_examined_count(), 1);
     assert_eq!(envelope.counters().execution_records_emitted_count(), 1);
-    assert_eq!(envelope.counters().execution_result_shape_binding_count(), 1);
+    assert_eq!(
+        envelope.counters().execution_result_shape_binding_count(),
+        1
+    );
     assert_eq!(envelope.counters().page_width(), 1);
     assert_eq!(envelope.counters().page_truncation_count(), 0);
     assert_eq!(envelope.counters().cursor_advance_count(), 0);
@@ -599,7 +667,10 @@ fn cdc_collection_execution_emits_distinct_payload_and_cdc_counters() {
     let preflight = preflight_execution_basis(planned, basis).unwrap();
     let envelope = execute_preflight_bundle(&preflight).unwrap();
 
-    assert!(envelope.payload().iter().all(|entry| entry.starts_with("cdc:")));
+    assert!(envelope
+        .payload()
+        .iter()
+        .all(|entry| entry.starts_with("cdc:")));
     assert_eq!(envelope.counters().cursor_advance_count(), 1);
     assert_eq!(envelope.counters().cdc_output_count(), 1);
 }

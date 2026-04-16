@@ -1,0 +1,39 @@
+error[E0432]: unresolved import `forge_query::facade::SignalFrontierBundleEvidence`
+ --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:3:5
+  |
+3 |     SignalFrontierBundleEvidence, SignalFrontierSurfaceEvidence,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     no `SignalFrontierBundleEvidence` in `facade`
+  |     help: a similar name exists in the module: `SignalFrontierSurfaceEvidence`
+
+error[E0624]: method `to_parallel_admission_evidence` is private
+  --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:10:21
+   |
+10 |       let _ = surface.to_parallel_admission_evidence(
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/frontier_signal_adapter.rs
+   |
+   | /     pub(crate) fn to_parallel_admission_evidence(
+   | |         &self,
+   | |         basis_digest: &str,
+   | |         disjointness_class: FrontierDisjointnessClass,
+   | |     ) -> ParallelAdmissionEvidence {
+   | |__________________________________- private method defined here
+
+error[E0624]: method `to_serial_fallback_evidence` is private
+  --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:14:21
+   |
+14 |       let _ = surface.to_serial_fallback_evidence(
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/frontier_signal_adapter.rs
+   |
+   | /     pub(crate) fn to_serial_fallback_evidence(
+   | |         &self,
+   | |         basis_digest: &str,
+   | |         reason: SerialFallbackReason,
+   | |         drift_outcome: FrontierPredictionDriftOutcome,
+   | |     ) -> SerialFallbackEvidence {
+   | |_______________________________- private method defined here

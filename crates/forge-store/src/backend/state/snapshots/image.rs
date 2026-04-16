@@ -5,10 +5,16 @@ use forge_relational::facade::history::{BranchId, CommitId};
 use crate::{
     authority::AuthoritativeExportBundle,
     backend::{
-        integrity::{branch_key, commit_artifact_id, parent_artifact_id, stable_structural_digest},
+        integrity::{
+            branch_key, commit_artifact_id, commit_support_summary_artifact_id,
+            durable_cursor_identity_artifact_id, lineage_support_artifact_id, parent_artifact_id,
+            schema_support_artifact_id, stable_structural_digest,
+            subscriber_checkpoint_artifact_id,
+        },
         records::{
             AuthoritativeArtifactDigestRecord, AuthoritativeArtifactFamily, BranchHeadRecord,
-            CommitParentRecord, StoreState,
+            CommitParentRecord, CommitSupportSummaryRecord, DurableCursorIdentityRecord,
+            LineageSupportRecord, SchemaSupportRecord, StoreState, SubscriberCheckpointRecord,
         },
     },
     failure::{StoreError, StoreErrorKind},
@@ -143,6 +149,43 @@ impl StoreState {
             })
             .filter(|record| commit_set.contains(&record.parent_commit_id))
             .collect::<Vec<_>>();
+        let commit_support_summaries = history_range
+            .iter()
+            .filter_map(|commit_id| self.commit_support_summaries.get(&commit_id.0).cloned())
+            .collect::<Vec<CommitSupportSummaryRecord>>();
+        let schema_support_records = history_range
+            .iter()
+            .filter_map(|commit_id| {
+                self.schema_support_records
+                    .get(&schema_support_artifact_id(*commit_id))
+                    .cloned()
+            })
+            .collect::<Vec<SchemaSupportRecord>>();
+        let lineage_support_records = history_range
+            .iter()
+            .filter_map(|commit_id| {
+                self.lineage_support_records
+                    .get(&lineage_support_artifact_id(*commit_id))
+                    .cloned()
+            })
+            .collect::<Vec<LineageSupportRecord>>();
+        let durable_cursor_identity_records = self
+            .durable_cursor_identity_records
+            .values()
+            .filter(|record| {
+                record.branch_id == *branch_id
+                    && commit_set.contains(&record.latest_basis_commit_id)
+            })
+            .cloned()
+            .collect::<Vec<DurableCursorIdentityRecord>>();
+        let subscriber_checkpoint_records = self
+            .subscriber_checkpoint_records
+            .values()
+            .filter(|record| {
+                record.branch_id == *branch_id && commit_set.contains(&record.basis_commit_id)
+            })
+            .cloned()
+            .collect::<Vec<SubscriberCheckpointRecord>>();
 
         let branch_head_record = BranchHeadRecord {
             branch_id: branch_id.clone(),
@@ -221,12 +264,108 @@ impl StoreState {
                 },
             );
         }
+        for summary in &commit_support_summaries {
+            let digest = stable_structural_digest(summary)?;
+            let artifact_id = commit_support_summary_artifact_id(summary.commit_id);
+            authoritative_artifact_digests.insert(
+                format!(
+                    "{:?}:{}:v{}",
+                    AuthoritativeArtifactFamily::CommitSupportSummary,
+                    artifact_id,
+                    self.canonicalization_version
+                ),
+                AuthoritativeArtifactDigestRecord {
+                    artifact_family: AuthoritativeArtifactFamily::CommitSupportSummary,
+                    artifact_id,
+                    canonicalization_version: self.canonicalization_version,
+                    digest_algorithm: "sha256".to_string(),
+                    artifact_digest: digest,
+                },
+            );
+        }
+        for record in &schema_support_records {
+            let digest = stable_structural_digest(record)?;
+            authoritative_artifact_digests.insert(
+                format!(
+                    "{:?}:{}:v{}",
+                    AuthoritativeArtifactFamily::SchemaSupportRecord,
+                    record.artifact_id,
+                    self.canonicalization_version
+                ),
+                AuthoritativeArtifactDigestRecord {
+                    artifact_family: AuthoritativeArtifactFamily::SchemaSupportRecord,
+                    artifact_id: record.artifact_id.clone(),
+                    canonicalization_version: self.canonicalization_version,
+                    digest_algorithm: "sha256".to_string(),
+                    artifact_digest: digest,
+                },
+            );
+        }
+        for record in &lineage_support_records {
+            let digest = stable_structural_digest(record)?;
+            authoritative_artifact_digests.insert(
+                format!(
+                    "{:?}:{}:v{}",
+                    AuthoritativeArtifactFamily::LineageSupportRecord,
+                    record.artifact_id,
+                    self.canonicalization_version
+                ),
+                AuthoritativeArtifactDigestRecord {
+                    artifact_family: AuthoritativeArtifactFamily::LineageSupportRecord,
+                    artifact_id: record.artifact_id.clone(),
+                    canonicalization_version: self.canonicalization_version,
+                    digest_algorithm: "sha256".to_string(),
+                    artifact_digest: digest,
+                },
+            );
+        }
+        for record in &durable_cursor_identity_records {
+            let digest = stable_structural_digest(record)?;
+            authoritative_artifact_digests.insert(
+                format!(
+                    "{:?}:{}:v{}",
+                    AuthoritativeArtifactFamily::DurableCursorIdentityRecord,
+                    record.artifact_id,
+                    self.canonicalization_version
+                ),
+                AuthoritativeArtifactDigestRecord {
+                    artifact_family: AuthoritativeArtifactFamily::DurableCursorIdentityRecord,
+                    artifact_id: record.artifact_id.clone(),
+                    canonicalization_version: self.canonicalization_version,
+                    digest_algorithm: "sha256".to_string(),
+                    artifact_digest: digest,
+                },
+            );
+        }
+        for record in &subscriber_checkpoint_records {
+            let digest = stable_structural_digest(record)?;
+            authoritative_artifact_digests.insert(
+                format!(
+                    "{:?}:{}:v{}",
+                    AuthoritativeArtifactFamily::SubscriberCheckpointRecord,
+                    record.artifact_id,
+                    self.canonicalization_version
+                ),
+                AuthoritativeArtifactDigestRecord {
+                    artifact_family: AuthoritativeArtifactFamily::SubscriberCheckpointRecord,
+                    artifact_id: record.artifact_id.clone(),
+                    canonicalization_version: self.canonicalization_version,
+                    digest_algorithm: "sha256".to_string(),
+                    artifact_digest: digest,
+                },
+            );
+        }
         let mut bundle = AuthoritativeExportBundle {
             canonicalization_version: self.canonicalization_version,
             branch_records: vec![branch_record],
             branch_head_records: vec![branch_head_record],
             commit_envelopes,
             commit_parent_records,
+            commit_support_summaries,
+            schema_support_records,
+            lineage_support_records,
+            durable_cursor_identity_records,
+            subscriber_checkpoint_records,
             authoritative_artifact_digests: authoritative_artifact_digests.into_values().collect(),
         };
         bundle.canonicalize_order();
@@ -296,6 +435,100 @@ impl StoreState {
                         artifact_digest: digest,
                     });
             }
+            if let Some(summary) = self.commit_support_summaries.get(&commit_id.0).cloned() {
+                let digest = stable_structural_digest(&summary)?;
+                export.commit_support_summaries.push(summary.clone());
+                export
+                    .authoritative_artifact_digests
+                    .push(AuthoritativeArtifactDigestRecord {
+                        artifact_family: AuthoritativeArtifactFamily::CommitSupportSummary,
+                        artifact_id: commit_support_summary_artifact_id(*commit_id),
+                        canonicalization_version: self.canonicalization_version,
+                        digest_algorithm: "sha256".to_string(),
+                        artifact_digest: digest,
+                    });
+            }
+            if let Some(record) = self
+                .schema_support_records
+                .get(&schema_support_artifact_id(*commit_id))
+                .cloned()
+            {
+                let digest = stable_structural_digest(&record)?;
+                export.schema_support_records.push(record.clone());
+                export
+                    .authoritative_artifact_digests
+                    .push(AuthoritativeArtifactDigestRecord {
+                        artifact_family: AuthoritativeArtifactFamily::SchemaSupportRecord,
+                        artifact_id: record.artifact_id.clone(),
+                        canonicalization_version: self.canonicalization_version,
+                        digest_algorithm: "sha256".to_string(),
+                        artifact_digest: digest,
+                    });
+            }
+            if let Some(record) = self
+                .lineage_support_records
+                .get(&lineage_support_artifact_id(*commit_id))
+                .cloned()
+            {
+                let digest = stable_structural_digest(&record)?;
+                export.lineage_support_records.push(record.clone());
+                export
+                    .authoritative_artifact_digests
+                    .push(AuthoritativeArtifactDigestRecord {
+                        artifact_family: AuthoritativeArtifactFamily::LineageSupportRecord,
+                        artifact_id: record.artifact_id.clone(),
+                        canonicalization_version: self.canonicalization_version,
+                        digest_algorithm: "sha256".to_string(),
+                        artifact_digest: digest,
+                    });
+            }
+            for record in self
+                .durable_cursor_identity_records
+                .values()
+                .filter(|record| {
+                    record.branch_id == basis.snapshot_branch_id
+                        && record.latest_basis_commit_id == *commit_id
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+            {
+                let digest = stable_structural_digest(&record)?;
+                export.durable_cursor_identity_records.push(record.clone());
+                export
+                    .authoritative_artifact_digests
+                    .push(AuthoritativeArtifactDigestRecord {
+                        artifact_family: AuthoritativeArtifactFamily::DurableCursorIdentityRecord,
+                        artifact_id: durable_cursor_identity_artifact_id(&record.cursor_id),
+                        canonicalization_version: self.canonicalization_version,
+                        digest_algorithm: "sha256".to_string(),
+                        artifact_digest: digest,
+                    });
+            }
+            for record in self
+                .subscriber_checkpoint_records
+                .values()
+                .filter(|record| {
+                    record.branch_id == basis.snapshot_branch_id
+                        && record.basis_commit_id == *commit_id
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+            {
+                let digest = stable_structural_digest(&record)?;
+                export.subscriber_checkpoint_records.push(record.clone());
+                export
+                    .authoritative_artifact_digests
+                    .push(AuthoritativeArtifactDigestRecord {
+                        artifact_family: AuthoritativeArtifactFamily::SubscriberCheckpointRecord,
+                        artifact_id: subscriber_checkpoint_artifact_id(
+                            &record.cursor_id,
+                            record.checkpoint_sequence,
+                        ),
+                        canonicalization_version: self.canonicalization_version,
+                        digest_algorithm: "sha256".to_string(),
+                        artifact_digest: digest,
+                    });
+            }
         }
 
         let target_head = BranchHeadRecord {
@@ -326,6 +559,17 @@ impl StoreState {
 pub(crate) fn snapshot_image_record_count(image: &SnapshotImageBundle) -> usize {
     image.authoritative_export().commit_envelopes.len()
         + image.authoritative_export().commit_parent_records.len()
+        + image.authoritative_export().commit_support_summaries.len()
+        + image.authoritative_export().schema_support_records.len()
+        + image.authoritative_export().lineage_support_records.len()
+        + image
+            .authoritative_export()
+            .durable_cursor_identity_records
+            .len()
+        + image
+            .authoritative_export()
+            .subscriber_checkpoint_records
+            .len()
         + image.authoritative_export().branch_records.len()
         + image.authoritative_export().branch_head_records.len()
         + image

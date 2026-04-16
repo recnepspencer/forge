@@ -1,10 +1,11 @@
 use crate::facade::{
-    planning_request_context_for_bound, planning_request_context_for_direct, PlanningAmbientContext,
-    PlanningRequestContext, PlanningSemanticInputs, ValidatedQueryBundle,
+    planning_request_context_for_bound, planning_request_context_for_direct,
+    PlanningAmbientContext, PlanningRequestContext, PlanningSemanticInputs, ValidatedQueryBundle,
 };
 
 pub fn direct_runtime_request(bundle: &ValidatedQueryBundle) -> PlanningRequestContext {
-    planning_request_context_for_direct(bundle, super::resolved_bases::runtime_basis_intent()).unwrap()
+    planning_request_context_for_direct(bundle, super::resolved_bases::runtime_basis_intent())
+        .unwrap()
 }
 
 pub fn bound_runtime_request(bundle: &ValidatedQueryBundle, value: &str) -> PlanningRequestContext {
@@ -23,7 +24,9 @@ pub fn pre_resolved_bound_runtime_request(
 ) -> PlanningRequestContext {
     PlanningRequestContext::new(
         PlanningSemanticInputs::new(
-            Some(super::binding_resolutions::resolved_root_binding(bundle, value)),
+            Some(super::binding_resolutions::resolved_root_binding(
+                bundle, value,
+            )),
             super::resolved_bases::runtime_basis_intent(),
         ),
         PlanningAmbientContext::new(Vec::new()),

@@ -5,10 +5,28 @@ use crate::binding::{
 };
 use crate::collection::{CollectionPlanBundle, CollectionPlanningMode, CollectionResultFamily};
 use crate::identity::{
-    BindingFulfillmentDigest, CollectionPlanDigest, PlanDigest, ValidatedQueryDigest,
-    ValidatedResultShapeDigest,
+    BindingFulfillmentDigest, CanonicalQueryDigest, CanonicalResultShapeDigest,
+    CollectionPlanDigest, PlanDigest, ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
+use crate::live::LivePromotionDescriptor;
 use crate::validation::ValidatedQueryBundle;
+
+#[allow(unused_imports)]
+pub(crate) use crate::frontier_planning::{
+    BoundedMaterializationFrontierPreflight, BundleResolvedBasisDigest, FrontierAwarePlan,
+    FrontierBreadthPrediction,
+    FrontierBundlePlan, FrontierBundleRoutePlanningError,
+    FrontierComplexityContract, FrontierDisjointnessClass, FrontierPerformanceStatus,
+    FrontierPlanFamily, FrontierPlanningCounters, FrontierPlanningError, FrontierPlanningInput,
+    FrontierPlanningReport, FrontierPostureDigest, FrontierPredictionDriftOutcome,
+    FrontierPreflightAdmissionError, FrontierRouteCounters, FrontierRoutePlanningError,
+    FrontierRouteReport, FrontierSurfaceDigest, OrderedCollectionFrontierPreflight,
+    PacketEquivalenceContract, PacketMergeBoundary, PacketMergeContract,
+    ParallelAdmissionDecision, ParallelAdmissionEvidence, ParallelAdmissionRoute,
+    PlannedWorkPacket, PlannedWorkPacketDigest, PlannedWorkPacketFamily, PlannedWorkPacketSet,
+    SerialFallbackBundleEvidence, SerialFallbackBundleRoutes, SerialFallbackEvidence,
+    SerialFallbackReason, SerialFallbackRoute,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum PlannedExecutionRoute {
@@ -140,6 +158,7 @@ impl PlanningRequestContext {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlannedQueryArtifact {
     validated_query_digest: ValidatedQueryDigest,
+    canonical_query_digest: CanonicalQueryDigest,
     route: PlannedExecutionRoute,
     fallback: FallbackDisposition,
     projection_count: usize,
@@ -152,6 +171,10 @@ pub struct PlannedQueryArtifact {
 impl PlannedQueryArtifact {
     pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
         &self.validated_query_digest
+    }
+
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        &self.canonical_query_digest
     }
 
     pub fn route(&self) -> &PlannedExecutionRoute {
@@ -184,6 +207,7 @@ impl PlannedQueryArtifact {
 
     pub(crate) fn new(
         validated_query_digest: ValidatedQueryDigest,
+        canonical_query_digest: CanonicalQueryDigest,
         validated_result_shape_digest: &ValidatedResultShapeDigest,
         route: PlannedExecutionRoute,
         fallback: FallbackDisposition,
@@ -196,7 +220,10 @@ impl PlannedQueryArtifact {
     ) -> Self {
         let mut parts = vec![
             format!("validated_query:{}", validated_query_digest.as_str()),
-            format!("validated_result_shape:{}", validated_result_shape_digest.as_str()),
+            format!(
+                "validated_result_shape:{}",
+                validated_result_shape_digest.as_str()
+            ),
             format!("route:{}", route.as_str()),
             format!("fallback:{}", fallback.as_str()),
             format!("projection_count:{projection_count}"),
@@ -213,6 +240,7 @@ impl PlannedQueryArtifact {
 
         Self {
             validated_query_digest,
+            canonical_query_digest,
             route,
             fallback,
             projection_count,
@@ -227,6 +255,7 @@ impl PlannedQueryArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlannedResultShapeArtifact {
     validated_result_shape_digest: ValidatedResultShapeDigest,
+    canonical_result_shape_digest: CanonicalResultShapeDigest,
     binding_count: usize,
 }
 
@@ -235,13 +264,22 @@ impl PlannedResultShapeArtifact {
         &self.validated_result_shape_digest
     }
 
+    pub fn canonical_result_shape_digest(&self) -> &CanonicalResultShapeDigest {
+        &self.canonical_result_shape_digest
+    }
+
     pub fn binding_count(&self) -> usize {
         self.binding_count
     }
 
-    pub(crate) fn new(validated_result_shape_digest: ValidatedResultShapeDigest, binding_count: usize) -> Self {
+    pub(crate) fn new(
+        validated_result_shape_digest: ValidatedResultShapeDigest,
+        canonical_result_shape_digest: CanonicalResultShapeDigest,
+        binding_count: usize,
+    ) -> Self {
         Self {
             validated_result_shape_digest,
+            canonical_result_shape_digest,
             binding_count,
         }
     }
@@ -461,6 +499,7 @@ pub struct ExecutionPlanBundle {
     query: PlannedQueryArtifact,
     result_shape: PlannedResultShapeArtifact,
     collection: Option<CollectionPlanBundle>,
+    live_promotion: LivePromotionDescriptor,
     request_context: PlanningRequestContext,
     report: PlanningReport,
     counters: PlanningCounters,
@@ -477,6 +516,10 @@ impl ExecutionPlanBundle {
 
     pub fn collection(&self) -> Option<&CollectionPlanBundle> {
         self.collection.as_ref()
+    }
+
+    pub fn live_promotion(&self) -> &LivePromotionDescriptor {
+        &self.live_promotion
     }
 
     pub fn request_context(&self) -> &PlanningRequestContext {
@@ -512,25 +555,29 @@ impl ExecutionPlanBundle {
 
         if self.report.projection_count() != self.query.projection_count() {
             return Err(PlanningError::PlanningInvariantViolation {
-                message: "planning report projection count does not match planned query projection count",
+                message:
+                    "planning report projection count does not match planned query projection count",
             });
         }
 
         if self.report.traversal_count() != self.query.traversal_count() {
             return Err(PlanningError::PlanningInvariantViolation {
-                message: "planning report traversal count does not match planned query traversal count",
+                message:
+                    "planning report traversal count does not match planned query traversal count",
             });
         }
 
         if self.report.predicate_count() != self.query.predicate_count() {
             return Err(PlanningError::PlanningInvariantViolation {
-                message: "planning report predicate count does not match planned query predicate count",
+                message:
+                    "planning report predicate count does not match planned query predicate count",
             });
         }
 
         if self.report.ordering_count() != self.query.ordering_count() {
             return Err(PlanningError::PlanningInvariantViolation {
-                message: "planning report ordering count does not match planned query ordering count",
+                message:
+                    "planning report ordering count does not match planned query ordering count",
             });
         }
 
@@ -544,6 +591,7 @@ impl ExecutionPlanBundle {
     }
 
     pub(crate) fn new(
+        bundle: &ValidatedQueryBundle,
         query: PlannedQueryArtifact,
         result_shape: PlannedResultShapeArtifact,
         collection: Option<CollectionPlanBundle>,
@@ -566,10 +614,16 @@ impl ExecutionPlanBundle {
             query.ordering_count(),
             result_shape.binding_count(),
         );
+        let live_promotion = LivePromotionDescriptor::for_plan(
+            bundle,
+            query.plan_digest().clone(),
+            collection.as_ref(),
+        );
         let bundle = Self {
             query,
             result_shape,
             collection,
+            live_promotion,
             request_context,
             report,
             counters,
@@ -654,6 +708,7 @@ fn seed_execution_plan_for_collection_mode(
     let collection = CollectionPlanBundle::from_validated_bundle_for_mode(bundle, collection_mode);
     let query = PlannedQueryArtifact::new(
         bundle.query().digest().clone(),
+        bundle.query().canonical_query_digest().clone(),
         bundle.result_shape().digest(),
         route.clone(),
         fallback.clone(),
@@ -666,6 +721,10 @@ fn seed_execution_plan_for_collection_mode(
     );
     let result_shape = PlannedResultShapeArtifact::new(
         bundle.result_shape().digest().clone(),
+        bundle
+            .result_shape()
+            .canonical_result_shape_digest()
+            .clone(),
         bundle.result_shape().bindings().len(),
     );
     let counters = PlanningCounters::new(
@@ -691,18 +750,33 @@ fn seed_execution_plan_for_collection_mode(
             .unwrap_or(0),
         collection
             .as_ref()
-            .map(|collection| collection.post_read_shaping().aggregate_shape().input_breadth().value())
+            .map(|collection| {
+                collection
+                    .post_read_shaping()
+                    .aggregate_shape()
+                    .input_breadth()
+                    .value()
+            })
             .unwrap_or(0),
         collection
             .as_ref()
-            .map(|collection| usize::from(matches!(
-                collection.post_read_shaping().result_family(),
-                crate::collection::CollectionResultFamily::CdcCollection
-            )))
+            .map(|collection| {
+                usize::from(matches!(
+                    collection.post_read_shaping().result_family(),
+                    crate::collection::CollectionResultFamily::CdcCollection
+                ))
+            })
             .unwrap_or(0),
     );
 
-    ExecutionPlanBundle::new(query, result_shape, collection, request_context, counters)
+    ExecutionPlanBundle::new(
+        bundle,
+        query,
+        result_shape,
+        collection,
+        request_context,
+        counters,
+    )
 }
 
 fn reject_unsupported_collection_shape(
@@ -766,7 +840,74 @@ pub fn plan_validated_bundle_for_collection_family(
         CollectionResultFamily::OrdinaryCollection => CollectionPlanningMode::Ordinary,
         CollectionResultFamily::CdcCollection => CollectionPlanningMode::Cdc,
     };
-    seed_execution_plan_for_collection_mode(bundle, request_context, route, fallback, collection_mode)
+    seed_execution_plan_for_collection_mode(
+        bundle,
+        request_context,
+        route,
+        fallback,
+        collection_mode,
+    )
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn lower_execution_preflight_to_frontier_plan(
+    preflight: &crate::basis::ExecutionPreflightBundle,
+) -> Result<FrontierAwarePlan, FrontierPlanningError> {
+    crate::frontier_planning::lower_preflight_to_frontier_plan(preflight)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn lower_live_plan_to_frontier_plan(
+    live: &crate::live::LiveQueryPlan,
+) -> Result<FrontierAwarePlan, FrontierPlanningError> {
+    crate::frontier_planning::lower_live_plan_to_frontier_plan(live)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn lower_frontier_planning_bundle(
+    inputs: &[FrontierPlanningInput],
+) -> Result<FrontierBundlePlan, FrontierPlanningError> {
+    crate::frontier_planning::lower_frontier_bundle(inputs)
+}
+
+#[allow(dead_code)]
+pub fn lower_preflight_to_parallel_admission_route(
+    preflight: &OrderedCollectionFrontierPreflight,
+    evidence: &ParallelAdmissionEvidence,
+) -> Result<ParallelAdmissionRoute, FrontierRoutePlanningError> {
+    crate::frontier_planning::lower_preflight_to_parallel_admission_route(preflight, evidence)
+}
+
+#[allow(dead_code)]
+pub fn lower_preflight_to_serial_fallback_route(
+    preflight: &BoundedMaterializationFrontierPreflight,
+    evidence: &SerialFallbackEvidence,
+) -> Result<SerialFallbackRoute, FrontierRoutePlanningError> {
+    crate::frontier_planning::lower_preflight_to_serial_fallback_route(preflight, evidence)
+}
+
+#[allow(dead_code)]
+pub fn lower_preflight_bundle_to_serial_fallback_routes(
+    preflights: &[BoundedMaterializationFrontierPreflight],
+    evidences: &crate::frontier_planning::SerialFallbackBundleEvidence,
+) -> Result<SerialFallbackBundleRoutes, FrontierBundleRoutePlanningError> {
+    crate::frontier_planning::lower_preflight_bundle_to_serial_fallback_routes(
+        preflights, evidences,
+    )
+}
+
+#[allow(dead_code)]
+pub fn admit_ordered_collection_frontier_preflight(
+    preflight: crate::basis::ExecutionPreflightBundle,
+) -> Result<OrderedCollectionFrontierPreflight, FrontierPreflightAdmissionError> {
+    crate::frontier_planning::admit_ordered_collection_frontier_preflight(preflight)
+}
+
+#[allow(dead_code)]
+pub fn admit_bounded_materialization_frontier_preflight(
+    preflight: crate::basis::ExecutionPreflightBundle,
+) -> Result<BoundedMaterializationFrontierPreflight, FrontierPreflightAdmissionError> {
+    crate::frontier_planning::admit_bounded_materialization_frontier_preflight(preflight)
 }
 
 #[allow(dead_code)]
@@ -804,7 +945,9 @@ pub(crate) fn plan_validated_bundle_for_requested_aggregate_family(
                 CollectionPlanningMode::AggregateRollupCount,
             )
         }
-        RequestedAggregateFamily::GroupedIntegerSum => Err(PlanningError::UnsupportedAggregateFamily),
+        RequestedAggregateFamily::GroupedIntegerSum => {
+            Err(PlanningError::UnsupportedAggregateFamily)
+        }
     }
 }
 

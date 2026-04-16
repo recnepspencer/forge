@@ -1,6 +1,6 @@
 use super::super::certification::{
-    RequiredAssertionClass, covered_perturbation_classes, milestone_three_requirements,
-    unmet_required_assertion_classes, unmet_required_rows,
+    covered_perturbation_classes, milestone_three_requirements, unmet_required_assertion_classes,
+    unmet_required_rows, RequiredAssertionClass,
 };
 use super::model::{
     PlanningBundleCompletenessReport, PlanningCertificationMatrix, PlanningCertificationRow,
@@ -131,19 +131,15 @@ fn covered_assertion_classes(
 ) -> Vec<RequiredAssertionClass> {
     let mut covered = Vec::new();
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::PlanningHostileExpectation::EquivalentToControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::PlanningHostileExpectation::EquivalentToControl
+    }) {
         covered.push(RequiredAssertionClass::Equality);
     }
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::PlanningHostileExpectation::DistinctFromControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::PlanningHostileExpectation::DistinctFromControl
+    }) {
         covered.push(RequiredAssertionClass::Inequality);
     }
 

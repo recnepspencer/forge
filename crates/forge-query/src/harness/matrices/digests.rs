@@ -1,10 +1,10 @@
-use crate::facade::{
-    CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
-    CompatibilityEvidence, NormalizationEvent,
-};
 use super::model::{
     CanonicalCertificationBundle, CertificationMatrix, CertificationPerturbationClass,
     HostileLaneExpectation, ParityAnchor, RejectionCertificationBundle,
+};
+use crate::facade::{
+    CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
+    CompatibilityEvidence, NormalizationEvent,
 };
 
 pub(super) fn canonical_bundle_digest_parts(
@@ -79,7 +79,10 @@ pub(super) fn coverage_digest_parts(matrix: &CertificationMatrix) -> Vec<String>
             row.row_name,
             perturbation_class_key(row.perturbation_class)
         ));
-        parts.push(format!("rejection-class:{}", row.hostile_lane.failure_class));
+        parts.push(format!(
+            "rejection-class:{}",
+            row.hostile_lane.failure_class
+        ));
     }
 
     parts

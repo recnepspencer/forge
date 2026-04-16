@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:7:5
+  |
+6 |     let route: SerialFallbackRoute = todo!();
+  |                                      ------- any code following this expression is unreachable
+7 |     let _parallel: ParallelAdmissionRoute = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:8:46
+  |
+8 |     let _ = execute_parallel_admission_route(&route);
+  |             -------------------------------- ^^^^^^ expected `&ParallelAdmissionRoute`, found `&SerialFallbackRoute`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&ParallelAdmissionRoute`
+             found reference `&SerialFallbackRoute`
+note: function defined here
+ --> src/execution/mod.rs
+  |
+  | pub fn execute_parallel_admission_route(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

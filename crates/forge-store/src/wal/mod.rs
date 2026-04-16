@@ -20,6 +20,7 @@ pub struct DurableMutationId(pub u64);
 pub enum WalRecordFamily {
     DurableMutationIntent,
     HostedRuntimeCommitResult,
+    BulkCheckpointPublicationIntent,
     DurablePublicationProgress,
     RecoveryDecision,
 }
@@ -60,6 +61,14 @@ pub struct HostedRuntimeCommitResultRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BulkCheckpointPublicationIntentRecord {
+    pub durable_mutation_id: DurableMutationId,
+    pub runtime_session_id: String,
+    pub checkpoint_sequence: Option<u64>,
+    pub wal_version: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DurablePublicationProgressRecord {
     pub durable_mutation_id: DurableMutationId,
     pub runtime_session_id: String,
@@ -81,6 +90,7 @@ pub struct RecoveryDecisionRecord {
 pub enum WalRecordPayload {
     DurableMutationIntent(DurableMutationIntentRecord),
     HostedRuntimeCommitResult(HostedRuntimeCommitResultRecord),
+    BulkCheckpointPublicationIntent(BulkCheckpointPublicationIntentRecord),
     DurablePublicationProgress(DurablePublicationProgressRecord),
     RecoveryDecision(RecoveryDecisionRecord),
 }
@@ -136,6 +146,30 @@ impl WalRecord {
         Self::from_payload(
             wal_sequence,
             WalRecordFamily::HostedRuntimeCommitResult,
+            durable_mutation_id,
+            runtime_session_id,
+            payload,
+        )
+    }
+
+    pub fn bulk_checkpoint_publication_intent(
+        wal_sequence: u64,
+        durable_mutation_id: DurableMutationId,
+        runtime_session_id: impl Into<String>,
+        checkpoint_sequence: Option<u64>,
+    ) -> Result<Self, StoreError> {
+        let runtime_session_id = runtime_session_id.into();
+        let payload = WalRecordPayload::BulkCheckpointPublicationIntent(
+            BulkCheckpointPublicationIntentRecord {
+                durable_mutation_id,
+                runtime_session_id: runtime_session_id.clone(),
+                checkpoint_sequence,
+                wal_version: CURRENT_WAL_VERSION,
+            },
+        );
+        Self::from_payload(
+            wal_sequence,
+            WalRecordFamily::BulkCheckpointPublicationIntent,
             durable_mutation_id,
             runtime_session_id,
             payload,
@@ -309,7 +343,8 @@ impl WalRecord {
             }
             WalRecordPayload::DurablePublicationProgress(record) => record.commit_id,
             WalRecordPayload::RecoveryDecision(record) => record.commit_id,
-            WalRecordPayload::DurableMutationIntent(_) => None,
+            WalRecordPayload::DurableMutationIntent(_)
+            | WalRecordPayload::BulkCheckpointPublicationIntent(_) => None,
         }
     }
 

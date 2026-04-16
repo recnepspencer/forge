@@ -5,7 +5,7 @@ use crate::{
     publication::{ObservedPublicationFamilyState, PublicationWriteOutcome},
     recovery::{
         BackupRestoreCompatibilityReport, DegradedStateReport, MaintenanceRecoveryReport,
-        RecoverySourceReport, RecoveryStatusReport,
+        RecoverySourceReport, RecoveryStatusReport, SupportArtifactRecoveryReport,
     },
     DurabilityBarrierClass, DurableBackendFamily, DurableMediaReport,
 };
@@ -43,6 +43,7 @@ pub struct Milestone36CertificationBundle {
     pub artifact_digest: String,
     pub recovery_source_report: Vec<RecoverySourceReport>,
     pub maintenance_recovery_report: MaintenanceRecoveryReport,
+    pub support_artifact_recovery_report: SupportArtifactRecoveryReport,
     pub degraded_state_report: DegradedStateReport,
     pub certification_summary: RecoveryCertificationSummary,
     pub backup_restore_compatibility_report: BackupRestoreCompatibilityReport,
@@ -100,6 +101,8 @@ pub struct RecoveryCertificationSummary {
     pub degraded_retained_without_ack_count: usize,
     pub degraded_rebuild_required_count: usize,
     pub maintenance_rebuild_required_count: usize,
+    pub support_artifact_rebuild_required_count: usize,
+    pub support_artifact_quarantine_required_count: usize,
     pub recommended_action_count: usize,
 }
 
@@ -209,6 +212,7 @@ impl Milestone36CertificationBundle {
         recovery_status_report: RecoveryStatusReport,
         recovery_source_report: Vec<RecoverySourceReport>,
         maintenance_recovery_report: MaintenanceRecoveryReport,
+        support_artifact_recovery_report: SupportArtifactRecoveryReport,
         degraded_state_report: DegradedStateReport,
         backup_restore_compatibility_report: BackupRestoreCompatibilityReport,
         counter_snapshot: StoreCounterSnapshot,
@@ -267,6 +271,12 @@ impl Milestone36CertificationBundle {
                     )
                 })
                 .count(),
+            support_artifact_rebuild_required_count: support_artifact_recovery_report
+                .rebuilds()
+                .len(),
+            support_artifact_quarantine_required_count: support_artifact_recovery_report
+                .quarantines()
+                .len(),
             recommended_action_count: recovery_status_report.recommended_actions().len(),
         };
 
@@ -275,6 +285,7 @@ impl Milestone36CertificationBundle {
             artifact_digest,
             recovery_source_report,
             maintenance_recovery_report,
+            support_artifact_recovery_report,
             degraded_state_report,
             certification_summary,
             backup_restore_compatibility_report,

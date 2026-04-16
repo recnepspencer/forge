@@ -27,16 +27,19 @@ mod certification_tests {
         certify_milestone_one_branch_local_primitive_scenarios,
         certify_milestone_one_closeout,
         certify_milestone_one_default_primitive_corpus,
-        certify_milestone_one_primitive_corpus, certify_milestone_one_read_view,
-        certify_milestone_two_default_derived_corpus, certify_milestone_two_read_view,
-        certify_milestone_two_verified_topology_commit, certify_milestone_two_closeout,
-        certify_verified_topology_commit,
+        certify_milestone_one_primitive_corpus,
+        certify_milestone_one_read_view_traced,
+        certify_milestone_two_default_derived_corpus,
+        certify_milestone_two_read_view_traced,
+        certify_milestone_two_verified_topology_commit_traced, certify_milestone_two_closeout,
+        certify_verified_topology_commit_traced,
     };
     use crate::fixtures::authored_topology::milestone_one_default_corpus_scenarios;
     use crate::fixtures::branch_replay_cases::milestone_one_default_branch_local_admitted_scenarios;
     use crate::fixtures::validated_topology::{
         seeded_bootstrap, verified_primitive, verified_primitive_on_branch,
     };
+    use crate::reader::WorthTopologyReader;
 
     #[test]
     fn seeded_bootstrap_earns_milestone_one_certification_report() {
@@ -51,9 +54,9 @@ mod certification_tests {
             .read_snapshot(&seeded.snapshot)
             .expect("worth snapshot read");
 
-        let report =
-            certify_milestone_one_read_view(&read_view, seeded.read_basis.clone())
-                .expect("milestone one certification should succeed");
+        let report = certify_milestone_one_read_view_traced(&read_view, seeded.read_basis.clone())
+            .expect("milestone one certification should succeed")
+            .into_primary_result();
 
         assert!(report.named_truth_validated);
         assert!(report.topology_validated);
@@ -148,8 +151,9 @@ mod certification_tests {
             .read_snapshot(&seeded.snapshot)
             .expect("worth snapshot read");
 
-        let report = certify_milestone_two_read_view(&read_view, seeded.read_basis)
-            .expect("milestone two read certification should succeed");
+        let report = certify_milestone_two_read_view_traced(&read_view, seeded.read_basis)
+            .expect("milestone two read certification should succeed")
+            .into_primary_result();
 
         assert_eq!(report.materialized_topology_digest.algorithm, "fnv1a64");
         assert_eq!(report.interpreted_topology_digest.algorithm, "fnv1a64");
@@ -161,6 +165,122 @@ mod certification_tests {
         assert_eq!(
             report.read_artifact.interpretations,
             report.certified_interpretation.interpretations
+        );
+    }
+
+    #[test]
+    fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
+        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
+            .expect("worth milestone one runtime builder")
+            .build();
+
+        let seeded = seeded_bootstrap(&mut runtime, "cert-reader-parity")
+            .expect("seed worth topology");
+        let read_view = runtime
+            .read_truth()
+            .read_snapshot(&seeded.snapshot)
+            .expect("worth snapshot read");
+
+        let report = certify_milestone_one_read_view_traced(&read_view, seeded.read_basis.clone())
+            .expect("milestone one certification should succeed")
+            .into_primary_result();
+        let reader = WorthTopologyReader::new(&runtime);
+        let traced = reader
+            .diagnostics_traced(&seeded.read_basis)
+            .expect("traced reader diagnostics");
+
+        assert_eq!(&report.derived_read_diagnostics, traced.primary_result());
+        assert_eq!(
+            report
+                .derived_equivalence_contract_report
+                .materialized_topology_digest
+                .digest_hex,
+            traced
+                .decision_trace()
+                .derived
+                .as_ref()
+                .expect("derived trace")
+                .equivalence_digest
+                .clone()
+                .expect("equivalence digest")
+        );
+    }
+
+    #[test]
+    fn traced_certification_read_view_surfaces_schema_owned_trace() {
+        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
+            .expect("worth milestone one runtime builder")
+            .build();
+
+        let seeded = seeded_bootstrap(&mut runtime, "cert-traced-surface")
+            .expect("seed worth topology");
+        let read_view = runtime
+            .read_truth()
+            .read_snapshot(&seeded.snapshot)
+            .expect("worth snapshot read");
+
+        let traced = certify_milestone_one_read_view_traced(&read_view, seeded.read_basis.clone())
+            .expect("traced milestone one certification");
+
+        assert_eq!(
+            traced.integrity_markers().truth_basis_identity,
+            Some(seeded.read_basis.authority.truth_basis_identity.clone())
+        );
+        assert_eq!(
+            traced
+                .decision_trace()
+                .derived
+                .as_ref()
+                .expect("derived trace")
+                .invalidation_target_count,
+            traced
+                .primary_result()
+                .derived_invalidation_report
+                .triggered_target_count
+        );
+        assert!(traced
+            .performance_accounting()
+            .counters
+            .iter()
+            .any(|counter| counter.name == "certification.commit_boundary_validator_count"));
+    }
+
+    #[test]
+    fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
+        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
+            .expect("worth milestone one runtime builder")
+            .build();
+
+        let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced")
+            .expect("seed worth topology");
+        let read_view = runtime
+            .read_truth()
+            .read_snapshot(&seeded.snapshot)
+            .expect("worth snapshot read");
+
+        let traced = certify_milestone_two_read_view_traced(&read_view, seeded.read_basis)
+            .expect("traced milestone two read certification");
+
+        assert!(traced.decision_trace().derived.is_some());
+        assert!(traced
+            .performance_accounting()
+            .counters
+            .iter()
+            .any(|counter| counter.name == "certification.derived_invalidation_target_count"));
+        assert_eq!(
+            traced
+                .primary_result()
+                .derived_equivalence_contract_report
+                .materialized_topology_digest
+                .digest_hex,
+            traced
+                .decision_trace()
+                .derived
+                .as_ref()
+                .expect("derived trace")
+                .equivalence_digest
+                .clone()
+                .expect("equivalence digest")
         );
     }
 
@@ -177,8 +297,9 @@ mod certification_tests {
         )
         .expect("verified primitive");
 
-        let report = certify_milestone_two_verified_topology_commit(&mut runtime, &verified)
-            .expect("milestone two verified certification should succeed");
+        let report = certify_milestone_two_verified_topology_commit_traced(&mut runtime, &verified)
+            .expect("milestone two verified certification should succeed")
+            .into_primary_result();
 
         assert!(report.materialized_topology_digest.row_count > 0);
         assert!(report.interpreted_topology_digest.row_count > 0);
@@ -267,14 +388,16 @@ mod certification_tests {
         let _seeded = seeded_bootstrap(&mut runtime, "cert-verified-commit")
             .expect("seed worth topology");
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(RawWorthTopologyIntent::new(
+            .apply_topology_intent_traced(RawWorthTopologyIntent::new(
                 Vec::<WorthTopologyMutation>::new(),
                 WorthMutationOrigin::LocalEdit,
             ))
-            .expect("verified topology commit");
+            .expect("verified topology commit")
+            .into_primary_result();
 
-        let report = certify_verified_topology_commit(&mut runtime, &verified)
-            .expect("verified commit certification should succeed");
+        let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+            .expect("verified commit certification should succeed")
+            .into_primary_result();
 
         assert!(report.named_truth_validated);
         assert!(report.topology_validated);
@@ -311,14 +434,16 @@ mod certification_tests {
             .expect("feature branch");
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent_on_branch(
+            .apply_topology_intent_on_branch_traced(
                 RawWorthTopologyIntent::new(Vec::<WorthTopologyMutation>::new(), WorthMutationOrigin::BranchLocalApplication),
                 BranchId("feature".to_string()),
             )
-            .expect("branch-local verified topology commit");
+            .expect("branch-local verified topology commit")
+            .into_primary_result();
 
-        let report = certify_verified_topology_commit(&mut runtime, &verified)
-            .expect("branch-local certification should succeed");
+        let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+            .expect("branch-local certification should succeed")
+            .into_primary_result();
 
         assert!(report.named_truth_validated);
         assert!(report.topology_validated);
@@ -351,8 +476,9 @@ mod certification_tests {
         )
         .expect("verified admitted primitive commit");
 
-        let report = certify_verified_topology_commit(&mut runtime, &verified)
-            .expect("verified commit certification should succeed");
+        let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+            .expect("verified commit certification should succeed")
+            .into_primary_result();
 
         assert!(report
             .milestone_1_replay_parity_report
@@ -638,8 +764,9 @@ mod certification_tests {
                 .build();
             let verified = verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
             .expect("admitted primitive commit");
-            let report = certify_verified_topology_commit(&mut runtime, &verified)
-                .expect("swept primitive certification should succeed");
+            let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+                .expect("swept primitive certification should succeed")
+                .into_primary_result();
 
             assert!(report.named_truth_validated, "{family} should retain naming truth");
             assert!(report.topology_validated, "{family} should pass topology validation");
@@ -682,8 +809,9 @@ mod certification_tests {
                 WorthMutationOrigin::BranchLocalApplication,
             )
             .expect("branch-local admitted primitive commit");
-            let report = certify_verified_topology_commit(&mut runtime, &verified)
-                .expect("branch-local swept primitive certification should succeed");
+            let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+                .expect("branch-local swept primitive certification should succeed")
+                .into_primary_result();
 
             assert!(report.branch_local_topology_report.branch_local, "{family} should remain branch-local");
             assert_eq!(report.branch_local_topology_report.branch_id.0, "feature");
@@ -881,6 +1009,33 @@ mod certification_tests {
         assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "NmtEdgeFan(k)"));
         assert!(report.bridge_proof_report.route_record_count >= 1);
         assert!(report.bridge_proof_report.historical_evaluation_record_count >= 1);
+        assert_eq!(
+            report.bridge_proof_report.bridge_trace_anchor.route_identities.len(),
+            report.bridge_proof_report.route_record_count
+        );
+        assert_eq!(
+            report
+                .bridge_proof_report
+                .bridge_trace_anchor
+                .invalidation_identities
+                .len(),
+            report.bridge_proof_report.route_record_count
+        );
+        assert!(
+            !report
+                .bridge_proof_report
+                .bridge_trace_anchor
+                .snapshot_identities
+                .is_empty()
+        );
+        assert_eq!(
+            report
+                .bridge_proof_report
+                .bridge_trace_anchor
+                .historical_record_identities
+                .len(),
+            report.bridge_proof_report.historical_evaluation_record_count
+        );
         assert!(report.bridge_proof_report.bridge_routing_digest.row_count >= 1);
         assert!(report.bridge_proof_report.bridge_historical_evaluation_digest.row_count >= 1);
 

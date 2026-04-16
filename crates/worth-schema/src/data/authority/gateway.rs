@@ -21,6 +21,11 @@ use crate::data::authority::{
     RawWorthTopologyIntent, WorthCreateKey, WorthEntityReference, WorthTopologyMutation,
     WorthTopologyMutationBatch,
 };
+use crate::data::tracing::{
+    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
+    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers,
+    WorthPerformanceAccounting,
+};
 use crate::data::entities::{WorthDiagnosticsEntityKind, WorthEntityKind};
 use crate::data::relations::{
     WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
@@ -30,6 +35,7 @@ use crate::data::relations::{
 #[derive(Debug)]
 pub enum WorthTopologyAuthorityError {
     DuplicateCreateKey(WorthCreateKey),
+    DuplicateLiveEntityLabel(WorthCreateKey),
     MissingCreatedEntity(WorthCreateKey),
     UnsupportedIdentityEntityMutation(EntityId),
     UnsupportedIdentityRelationMutation(RelationId),
@@ -59,7 +65,7 @@ impl From<TransactionCommitError> for WorthTopologyAuthorityError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VerifiedTopologyCommit {
     pub canonical_batch: CanonicalTopologyMutationBatch,
     pub branch_id: BranchId,
@@ -67,6 +73,8 @@ pub struct VerifiedTopologyCommit {
     pub persisted_truth: PersistedTopologyTruthBatch,
     pub read_basis: DerivedTopologyReadBasis,
 }
+
+pub type WorthTracedTopologyCommit = WorthBoundaryEnvelope<VerifiedTopologyCommit>;
 
 pub struct WorthTopologyAuthority<'a> {
     runtime: &'a mut RelationalRuntime,
@@ -77,31 +85,33 @@ impl<'a> WorthTopologyAuthority<'a> {
         Self { runtime }
     }
 
-    pub fn apply_topology_intent(
+    pub fn apply_topology_intent_traced(
         &mut self,
         intent: RawWorthTopologyIntent,
-    ) -> Result<VerifiedTopologyCommit, WorthTopologyAuthorityError> {
-        self.apply_topology_intent_on_branch(intent, BranchId("main".to_string()))
+    ) -> Result<WorthTracedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
+        self.apply_topology_intent_on_branch_traced(intent, BranchId("main".to_string()))
     }
 
-    pub fn apply_topology_intent_on_branch(
+    pub fn apply_topology_intent_on_branch_traced(
         &mut self,
         intent: RawWorthTopologyIntent,
         branch_id: BranchId,
-    ) -> Result<VerifiedTopologyCommit, WorthTopologyAuthorityError> {
+    ) -> Result<WorthTracedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
         let snapshot = self.runtime.snapshots().snapshot();
         let read = self
             .runtime
             .read_truth()
             .read_snapshot(&snapshot);
 
-        let touched_aspects = touched_aspects_for_intent(read.as_ref(), &intent)?;
+        let touched_aspects = touched_aspects_for_intent(read.as_ref(), &intent)
+            .map_err(|error| authority_failure_for_intent(error, &branch_id, &intent))?;
         let canonical_batch = CanonicalTopologyMutationBatch {
             batch: WorthTopologyMutationBatch::from_raw_intent(intent, touched_aspects),
         };
 
-        let commits =
-            self.execute_canonical_batch(read.as_ref(), &canonical_batch.batch, &branch_id)?;
+        let commits = self
+            .execute_canonical_batch(read.as_ref(), &canonical_batch.batch, &branch_id)
+            .map_err(|error| authority_failure_for_batch(error, &branch_id, &canonical_batch.batch))?;
 
         let persisted_snapshot = commits
             .last()
@@ -114,14 +124,39 @@ impl<'a> WorthTopologyAuthority<'a> {
             mutation_origin: canonical_batch.batch.mutation_origin,
         };
         let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&persisted_truth);
-
-        Ok(VerifiedTopologyCommit {
+        let verified_commit = VerifiedTopologyCommit {
             canonical_batch,
-            branch_id,
+            branch_id: branch_id.clone(),
             commits,
             persisted_truth,
             read_basis,
-        })
+        };
+        let authority = WorthAuthorityTraceEvidence::from_commit_results(
+            branch_id.clone(),
+            &verified_commit.commits,
+        );
+        let authority_anchor = WorthAuthorityTraceAnchor::from_commit_results(
+            branch_id.clone(),
+            &verified_commit.commits,
+        );
+        let integrity_markers = integrity_markers_for_verified_commit(&verified_commit);
+        let performance_accounting = authority.performance_accounting();
+        Ok(WorthBoundaryEnvelope::success(
+            verified_commit,
+            Vec::new(),
+            WorthDecisionTrace {
+                authority_anchor: Some(authority_anchor),
+                bridge_anchor: None,
+                derived_anchor: None,
+                signal_anchor: None,
+                authority: Some(authority),
+                bridge: None,
+                derived: None,
+                signal: None,
+            },
+            integrity_markers,
+            performance_accounting,
+        ))
     }
 
     fn execute_canonical_batch(
@@ -163,6 +198,11 @@ impl<'a> WorthTopologyAuthority<'a> {
                 WorthTopologyMutation::CreateEntity { create_key, kind } => {
                     if !seen.insert(create_key.clone()) {
                         return Err(WorthTopologyAuthorityError::DuplicateCreateKey(create_key.clone()));
+                    }
+                    if read.is_some_and(|snapshot| live_entity_label_exists(snapshot, create_key.as_str())) {
+                        return Err(WorthTopologyAuthorityError::DuplicateLiveEntityLabel(
+                            create_key.clone(),
+                        ));
                     }
                     created_entities.insert(
                         create_key.clone(),
@@ -228,6 +268,90 @@ impl<'a> WorthTopologyAuthority<'a> {
 
         Ok(lowered)
     }
+}
+
+fn authority_failure_for_intent(
+    error: WorthTopologyAuthorityError,
+    branch_id: &BranchId,
+    intent: &RawWorthTopologyIntent,
+) -> WorthBoundaryFailure<WorthTopologyAuthorityError> {
+    WorthBoundaryFailure::failure(
+        error,
+        Vec::new(),
+        WorthDecisionTrace {
+            authority_anchor: None,
+            bridge_anchor: None,
+            derived_anchor: None,
+            signal_anchor: None,
+            authority: None,
+            bridge: None,
+            derived: None,
+            signal: None,
+        },
+        WorthIntegrityMarkers::new(
+            Some(branch_id.clone()),
+            BTreeSet::new(),
+            Some(intent.mutation_origin),
+            None,
+            intent.precision_fallbacks.len(),
+            intent.precision_budget_fallbacks.len(),
+        ),
+        WorthPerformanceAccounting::default(),
+    )
+}
+
+fn authority_failure_for_batch(
+    error: WorthTopologyAuthorityError,
+    branch_id: &BranchId,
+    batch: &WorthTopologyMutationBatch,
+) -> WorthBoundaryFailure<WorthTopologyAuthorityError> {
+    let authority = match &error {
+        WorthTopologyAuthorityError::Commit(commit_error) => Some(
+            WorthAuthorityTraceEvidence::from_commit_logs(
+                branch_id.clone(),
+                vec![commit_error.commit_log().clone()],
+            ),
+        ),
+        _ => None,
+    };
+    let performance_accounting = authority
+        .as_ref()
+        .map(WorthAuthorityTraceEvidence::performance_accounting)
+        .unwrap_or_default();
+    WorthBoundaryFailure::failure(
+        error,
+        Vec::new(),
+        WorthDecisionTrace {
+            authority_anchor: None,
+            bridge_anchor: None,
+            derived_anchor: None,
+            signal_anchor: None,
+            authority,
+            bridge: None,
+            derived: None,
+            signal: None,
+        },
+        WorthIntegrityMarkers::new(
+            Some(branch_id.clone()),
+            batch.touched_aspects.clone(),
+            Some(batch.mutation_origin),
+            None,
+            batch.precision_fallbacks.len(),
+            batch.precision_budget_fallbacks.len(),
+        ),
+        performance_accounting,
+    )
+}
+
+fn integrity_markers_for_verified_commit(commit: &VerifiedTopologyCommit) -> WorthIntegrityMarkers {
+    WorthIntegrityMarkers::new(
+        Some(commit.branch_id.clone()),
+        commit.canonical_batch.batch.touched_aspects.clone(),
+        Some(commit.canonical_batch.batch.mutation_origin),
+        Some(commit.read_basis.authority.truth_basis_identity.clone()),
+        commit.canonical_batch.batch.precision_fallbacks.len(),
+        commit.canonical_batch.batch.precision_budget_fallbacks.len(),
+    )
 }
 
 fn entity_create_payload(kind: WorthEntityKind, label: &str) -> serde_json::Value {
@@ -375,6 +499,20 @@ fn resolve_entity_reference(
     }
 }
 
+fn live_entity_label_exists(
+    read: &forge_relational::facade::runtime::RelationalReadView,
+    label: &str,
+) -> bool {
+    read.entities().iter().any(|record| {
+        record
+            .payload
+            .as_json()
+            .and_then(|json| json.get("label"))
+            .and_then(|value| value.as_str())
+            .is_some_and(|existing| existing == label)
+    })
+}
+
 fn touched_aspects_for_intent(
     read: Option<&forge_relational::facade::runtime::RelationalReadView>,
     intent: &RawWorthTopologyIntent,
@@ -519,8 +657,9 @@ mod tests {
         );
 
         let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .unwrap_err();
+            .apply_topology_intent_traced(intent)
+            .unwrap_err()
+            .into_error();
 
         assert!(matches!(
             error,
@@ -557,8 +696,9 @@ mod tests {
         );
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect("create batch should commit");
+            .apply_topology_intent_traced(intent)
+            .expect("create batch should commit")
+            .into_primary_result();
 
         assert_eq!(verified.commits.len(), 1);
         assert_eq!(verified.branch_id.0, "main");
@@ -589,6 +729,52 @@ mod tests {
     }
 
     #[test]
+    fn authority_traced_commit_surfaces_schema_owned_trace_envelope() {
+        let mut runtime = RelationalRuntimeApi::builder()
+            .schema_setup(|schema| {
+                schema.schema_registry(crate::facade::worth_bootstrap_schema_registry().unwrap());
+            })
+            .build();
+
+        let traced = WorthTopologyAuthority::new(&mut runtime)
+            .apply_topology_intent_traced(RawWorthTopologyIntent::new(
+                vec![WorthTopologyMutation::CreateEntity {
+                    create_key: WorthCreateKey::new("traced.model"),
+                    kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
+                }],
+                crate::data::authority::WorthMutationOrigin::Seed,
+            ))
+            .expect("traced create batch should commit");
+
+        assert_eq!(traced.primary_result().branch_id.0, "main");
+        assert_eq!(
+            traced
+                .decision_trace()
+                .authority
+                .as_ref()
+                .expect("authority trace evidence")
+                .commit_count,
+            1
+        );
+        assert_eq!(
+            traced.integrity_markers().truth_basis_identity,
+            Some(
+                traced
+                    .primary_result()
+                    .read_basis
+                    .authority
+                    .truth_basis_identity
+                    .clone()
+            )
+        );
+        assert!(traced
+            .performance_accounting()
+            .counters
+            .iter()
+            .any(|counter| counter.name == "authority.total_phase_count"));
+    }
+
+    #[test]
     fn authority_can_publish_existing_topology_deletions_into_verified_commit_artifacts() {
         let mut runtime = RelationalRuntimeApi::builder()
             .schema_setup(|schema| {
@@ -605,8 +791,9 @@ mod tests {
         );
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect("delete should commit");
+            .apply_topology_intent_traced(intent)
+            .expect("delete should commit")
+            .into_primary_result();
 
         assert_eq!(verified.commits.len(), 1);
         let read = runtime
@@ -646,8 +833,9 @@ mod tests {
         );
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent_on_branch(intent, BranchId("feature".to_string()))
-            .expect("branch-local delete should commit");
+            .apply_topology_intent_on_branch_traced(intent, BranchId("feature".to_string()))
+            .expect("branch-local delete should commit")
+            .into_primary_result();
 
         assert_eq!(verified.branch_id.0, "feature");
         assert_eq!(verified.persisted_truth.branch_id.0, "feature");
@@ -689,8 +877,9 @@ mod tests {
         );
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent(intent)
-            .expect("mixed create and existing mutations should commit together");
+            .apply_topology_intent_traced(intent)
+            .expect("mixed create and existing mutations should commit together")
+            .into_primary_result();
 
         assert_eq!(verified.commits.len(), 1);
         let read = runtime
@@ -702,5 +891,106 @@ mod tests {
                 == WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation)
                     .kind_id()
         }));
+    }
+
+    #[test]
+    fn authority_create_after_seed_preserves_existing_topology_and_names() {
+        let mut runtime = RelationalRuntimeApi::builder()
+            .schema_setup(|schema| {
+                schema.schema_registry(crate::facade::worth_bootstrap_schema_registry().unwrap());
+            })
+            .build();
+
+        let _seeded = seed_minimal_topology(&mut runtime, "authority-create-after-seed").unwrap();
+        let intent = RawWorthTopologyIntent::new(
+            vec![
+                WorthTopologyMutation::CreateEntity {
+                    create_key: WorthCreateKey::new("authority-create-after-seed.added_vertex"),
+                    kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                },
+                WorthTopologyMutation::CreateEntity {
+                    create_key: WorthCreateKey::new(
+                        "authority-create-after-seed.added_vertex.persistent_name",
+                    ),
+                    kind: WorthEntityKind::Naming(crate::data::entities::WorthNamingEntityKind::PersistentName),
+                },
+                WorthTopologyMutation::CreateRelation {
+                    create_key: WorthCreateKey::new(
+                        "authority-create-after-seed.added_vertex.persistent_name.targets",
+                    ),
+                    kind: WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity),
+                    source: WorthEntityReference::Created(WorthCreateKey::new(
+                        "authority-create-after-seed.added_vertex.persistent_name",
+                    )),
+                    target: WorthEntityReference::Created(WorthCreateKey::new(
+                        "authority-create-after-seed.added_vertex",
+                    )),
+                },
+            ],
+            crate::data::authority::WorthMutationOrigin::LocalEdit,
+        );
+
+        let verified = WorthTopologyAuthority::new(&mut runtime)
+            .apply_topology_intent_traced(intent)
+            .expect("post-seed create should commit")
+            .into_primary_result();
+
+        let read = runtime
+            .read_truth()
+            .read_snapshot(&verified.persisted_truth.snapshot)
+            .expect("verified snapshot should remain readable");
+
+        for label in [
+            "authority-create-after-seed.model",
+            "authority-create-after-seed.body",
+            "authority-create-after-seed.vertex",
+            "authority-create-after-seed.added_vertex",
+        ] {
+            assert!(read.entities().iter().any(|record| {
+                record
+                    .payload
+                    .as_json()
+                    .and_then(|json| json.get("label"))
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|entity_label| entity_label == label)
+            }));
+        }
+
+        let naming_targets = read
+            .relations()
+            .iter()
+            .filter(|record| {
+                record.kind.kind_id
+                    == WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity)
+                        .kind_id()
+            })
+            .count();
+        assert_eq!(naming_targets, 12);
+    }
+
+    #[test]
+    fn authority_rejects_create_key_that_collides_with_live_entity_label() {
+        let mut runtime = RelationalRuntimeApi::builder()
+            .schema_setup(|schema| {
+                schema.schema_registry(crate::facade::worth_bootstrap_schema_registry().unwrap());
+            })
+            .build();
+
+        let _seeded = seed_minimal_topology(&mut runtime, "authority-live-label").unwrap();
+        let error = WorthTopologyAuthority::new(&mut runtime)
+            .apply_topology_intent_traced(RawWorthTopologyIntent::new(
+                vec![WorthTopologyMutation::CreateEntity {
+                    create_key: WorthCreateKey::new("authority-live-label.vertex"),
+                    kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                }],
+                crate::data::authority::WorthMutationOrigin::LocalEdit,
+            ))
+            .expect_err("duplicate live entity label should be rejected")
+            .into_error();
+
+        assert!(matches!(
+            error,
+            WorthTopologyAuthorityError::DuplicateLiveEntityLabel(_)
+        ));
     }
 }

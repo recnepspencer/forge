@@ -1,8 +1,8 @@
 use crate::{
     evidence::{AbsentModeLaneEvidence, PersistedModeLaneEvidence},
-    AbsentRuntimeWitness, CheckpointAuthorityReport, DurableMutationRequest,
-    EmbeddedCheckpointClassification, ExternalRuntimeCheckpointEnvelope,
-    ExternalRuntimeCommitEnvelope, ForgeStoreBuilder,
+    AbsentRuntimeWitness, BasisFreeCheckpoint, CheckpointAuthorityReport,
+    DerivedDurableCheckpointKind, DurableMutationRequest, ExternalRuntimeCommitEnvelope,
+    ForgeStoreBuilder, NoContainedCommits,
 };
 use serde_json::json;
 
@@ -43,12 +43,13 @@ pub fn mode_contract_parity() -> ModeParityScenarioResult {
     let before_checkpoint_artifact_digest = embedded.milestone_2_lane_evidence().artifact_digest;
     let checkpoint_receipt = embedded
         .persist_external_checkpoint(
-            ExternalRuntimeCheckpointEnvelope::new(
-                "checkpoint-certified",
-                "embedded-runtime",
-                EmbeddedCheckpointClassification::DerivedDurable,
-            )
-            .with_metadata(json!({"kind":"certified-checkpoint"})),
+            embedded
+                .admit_external_checkpoint(BasisFreeCheckpoint::<
+                    DerivedDurableCheckpointKind,
+                    NoContainedCommits,
+                >::new("checkpoint-certified", "embedded-runtime")
+                .with_metadata(json!({"kind":"certified-checkpoint"})))
+                .unwrap(),
         )
         .unwrap();
     let embedded_lane = embedded.milestone_2_lane_evidence();

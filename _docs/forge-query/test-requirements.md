@@ -9,6 +9,12 @@ This document defines the certification-grade query test requirements for:
 - Milestone 3
 - Milestone 4
 - Milestone 5
+- Milestone 5.1
+- Milestone 5.2
+- Milestone 5.3
+- Milestone 5.4
+- Milestone 5.5
+- Milestone 5.6
 - Milestone 6
 - Milestone 7
 - Milestone 8
@@ -35,8 +41,13 @@ The query layer makes claims about:
 - proof-carrying planning and snapshot-backed execution
 - collection, pagination, traversal, aggregation, and CDC-shaped result truth
 - live promotion and incremental result maintenance
+- region-scoped invalidation and change-stream-backed delivery contracts
+- preview-session basis identity and branch workflow parity
+- frontier-aware planning and deterministic parallel admission
 - branch/history/diff parity
 - lineage/correspondence query meaning
+- query-authored mutation, merge, and writeback lowering
+- unified facade/configuration honesty
 - scopes, templates, saved queries, and view-shape semantics
 - policy masking, tenant schema variation, and relationship-proof denial
 - store-backed durability, pushdown, and artifact portability
@@ -312,7 +323,7 @@ Scenario
 - inject truth changes that are:
   - relevant
   - irrelevant
-  - suppressible by declared tolerance/policy
+  - suppressible by declared live suppression policy
 - compare live-maintained results to repeated fresh execution
 
 Must verify
@@ -333,6 +344,247 @@ Required verification output
 Pass condition
 
 Live promotion preserves canonical query meaning and converges under churn.
+
+## Milestone 5.1 Named Certification Suites
+
+### 5.1. Region-Scoped Live Narrowing And Stream Contract Test
+
+Purpose
+
+Prove that region- or partition-scoped live invalidation and stream-backed
+delivery contracts remain query-shaped, narrower than broad aspect invalidation
+where admitted, and parity-safe with the same canonical live query meaning.
+
+Scenario
+
+- promote admitted live queries with locality-sensitive scope
+- inject changes that:
+  - hit a relevant region
+  - miss the query's declared region
+  - require stream-contract admission or typed denial
+- compare region-narrowed live maintenance to fresh re-execution and to the
+  broader aspect-level control surface
+
+Must verify
+
+- region-scoped invalidation narrows below broad aspect invalidation where the
+  lower runtimes admit that narrowing
+- irrelevant off-region changes suppress before visible delivery
+- query-shaped live delivery can lower into formal stream contracts without
+  semantic drift
+- unsupported region/stream combinations fail typed and early
+
+Required verification output
+
+- `query_digest`
+- `delivery_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Region-scoped live narrowing and stream-backed delivery remain canonical,
+explicit, and non-leaking.
+
+## Milestone 5.2 Named Certification Suites
+
+### 5.2. Preview Session Basis And Promotion Parity Test
+
+Purpose
+
+Prove that preview-session-bound query contexts preserve explicit basis and
+lifecycle identity, and that preview-versus-promoted comparisons remain
+query-native rather than ambient host orchestration.
+
+Scenario
+
+- execute the same canonical query against:
+  - ordinary branch basis
+  - admitted preview session basis
+  - promoted-result comparison where the workflow admits it
+- vary preview session lifecycle state without changing the declared canonical
+  query shape
+
+Must verify
+
+- preview-session identity is explicit in the bundle
+- preview-bound results preserve the same query meaning apart from the
+  declared preview basis
+- preview-versus-promoted comparison remains typed and explicit
+- unsupported preview-session combinations fail typed and early
+
+Required verification output
+
+- `query_digest`
+- `basis_digest`
+- `result_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Preview-session query contexts remain basis-explicit, lifecycle-explicit, and
+parity-safe.
+
+## Milestone 5.3 Named Certification Suites
+
+### 5.3. Frontier Planning And Parallel Admission Parity Test
+
+Purpose
+
+Prove that frontier-aware planning and deterministic parallel admission alter
+cost posture, not canonical query meaning.
+
+Scenario
+
+- plan and execute admitted bulk/live query families through:
+  - frontier-aware serial route
+  - frontier-aware parallel-admitted route
+  - typed serial fallback where parallel admission is denied
+- compare predicted breadth to realized breadth
+
+Must verify
+
+- serial and parallel admitted routes produce identical canonical query/result
+  meaning
+- planning emits explicit frontier and parallel-admission posture
+- serial fallback remains explicit rather than hidden executor behavior
+- breadth posture stays mechanically visible in counters
+
+Required verification output
+
+- `query_digest`
+- `plan_digest`
+- `result_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Frontier-aware planning and deterministic parallel admission remain
+meaning-preserving and mechanically visible.
+
+## Milestone 5.4 Named Certification Suites
+
+### 5.4. Structural Correspondence And Historical Materialization Path Test
+
+Purpose
+
+Prove that structural correspondence and historical materialization-path
+artifacts remain explicit about ambiguity, advisability, and how historical
+truth was actually materialized.
+
+Scenario
+
+- run correspondence-aware queries over:
+  - lineage-backed cases
+  - structural-fingerprint-backed cases
+  - ambiguous disagreement cases
+- run admitted historical queries over:
+  - retained snapshot path
+  - delta replay path
+  - full reconstruction path where admitted
+
+Must verify
+
+- structural correspondence never silently upgrades into authoritative
+  continuity
+- ambiguous correspondence remains explicit and typed
+- historical result bundles expose materialization-path identity
+- unsupported correspondence or historical-path cases fail typed and early
+
+Required verification output
+
+- `query_digest`
+- `lineage_digest`
+- `basis_digest`
+- `result_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Correspondence and historical materialization-path semantics remain explicit,
+typed, and ambiguity-honest.
+
+## Milestone 5.5 Named Certification Suites
+
+### 5.5. Query Workflow Lowering And Writeback Boundary Test
+
+Purpose
+
+Prove that query-authored mutation, merge, branch-workflow, and writeback
+declarations lower into lower-crate authorities without `forge-query`
+becoming a second mutation engine.
+
+Scenario
+
+- declare admitted query-authored workflows for:
+  - mutation intent lowering
+  - preview / compare / merge intent
+  - conflict inspection
+  - post-merge inspection
+  - query-triggered writeback declaration
+- compare lowered artifacts and outcomes against authoritative lower-crate
+  control lanes
+
+Must verify
+
+- query-authored mutation intents lower into relational commit/merge surfaces
+  without semantic drift
+- query-triggered writeback declarations lower into bridge-owned writeback
+  surfaces without hiding causality or idempotence semantics
+- workflow bundles preserve explicit authority boundaries
+- unsupported workflow families fail typed and early
+
+Required verification output
+
+- `query_digest`
+- `plan_digest`
+- `result_digest`
+- `delivery_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Workflow lowering remains authority-preserving, typed, and non-duplicative.
+
+## Milestone 5.6 Named Certification Suites
+
+### 5.6. Unified Facade And Configuration Boundary Test
+
+Purpose
+
+Prove that the unified application facade and unified runtime configuration
+make `forge-query` a real daily-driver surface without erasing subsystem
+ownership or collapsing configuration into a bag.
+
+Scenario
+
+- exercise admitted application-facing surfaces through the unified facade
+- resolve unified configuration for admitted runtime-backed capability mixes
+- compare support metadata/capability advertisement to actual admission
+  behavior
+
+Must verify
+
+- the unified facade preserves lower-crate authority boundaries explicitly
+- unified configuration remains sectioned by subsystem ownership
+- unsupported composed capabilities fail typed and early
+- support metadata and executable admission behavior stay in sync
+
+Required verification output
+
+- `query_digest`
+- `plan_digest`
+- `support_matrix_digest`
+- `capability_registry_digest`
+- `counter_snapshot`
+
+Pass condition
+
+The unified facade/configuration surface is coherent for developers while
+remaining structurally honest about ownership and support.
 
 ## Milestone 6 Named Certification Suites
 
@@ -606,7 +858,8 @@ roadmap capability row in the query vision coverage appendix.
 
 Scenario
 
-- run a mixed milestone 1-12 certification matrix
+- run a mixed milestone 1-12 certification matrix plus any decimal insertion
+  milestones claimed as shipped
 - emit canonical certification bundles only
 - compare coverage against the roadmap's Vision Coverage Appendix
 
@@ -649,8 +902,11 @@ Scenario
 
 - exercise a curated admitted/non-admitted matrix including cases like:
   - supported detail + live + policy mask + historical basis
+  - supported preview-session basis + diff inspection + admitted merge workflow
   - unsupported grouped-view + lineage + CDC-shaped output + saved-query reload
   - supported rollup + tenant schema variant
+  - unsupported writeback declaration + masked aspect trigger + denied tenant
+    context
   - unsupported structured-content predicate inside an unshipped view-shape
     family
 - compare runtime capability advertisement against actual admission behavior
@@ -724,10 +980,12 @@ Scenario
   - scope + template + saved-query reload
   - scope + policy mask + historical basis
   - lineage + correspondence + diff
+  - preview-session basis + conflict inspection + merge intent lowering
   - inspector view + live promotion + aspect-focused projection
   - rollup + tenant schema variation
   - structured content + policy mask + live maintenance
   - CDC-shaped output + diff + branch basis
+  - query-triggered writeback + policy mask + branch workflow basis
   - relationship-proof denial + saved-query artifact reload
 
 Must verify
@@ -950,7 +1208,7 @@ Together, these tests prove that `forge-query` is:
   surfaces as certified support
 - certifiable through canonical artifacts rather than by visual inspection
 
-## Milestone 1-13 Certification Rule
+## Milestone Certification Rule
 
 No query milestone should be considered closed until its named certification
 suite emits canonical machine-checkable outputs and passes across:

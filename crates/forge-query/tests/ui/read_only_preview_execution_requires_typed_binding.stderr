@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/read_only_preview_execution_requires_typed_binding.rs:7:5
+  |
+6 |     let binding: PreviewSessionPlanBinding = todo!();
+  |                                              ------- any code following this expression is unreachable
+7 |     let _ = execute_read_only_preview_session_plan(&binding);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/read_only_preview_execution_requires_typed_binding.rs:7:52
+  |
+7 |     let _ = execute_read_only_preview_session_plan(&binding);
+  |             -------------------------------------- ^^^^^^^^ expected `&ReadOnlyPreviewSessionPlanBinding`, found `&PreviewSessionPlanBinding`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&ReadOnlyPreviewSessionPlanBinding`
+             found reference `&PreviewSessionPlanBinding`
+note: function defined here
+ --> src/preview/mod.rs
+  |
+  | pub fn execute_read_only_preview_session_plan(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

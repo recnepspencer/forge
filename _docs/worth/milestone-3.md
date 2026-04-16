@@ -405,6 +405,91 @@ Whole-view or whole-history fallback, when unavoidable in the first ship, must
 be explicit in the proof surfaces rather than hidden behind innocent helper
 APIs.
 
+## Performance Architecture Rule
+
+Performance in Milestone 3 is part of the architecture, not a later tuning
+pass.
+
+That means:
+
+- every admitted edit contract must declare expected breadth
+- every claimed local edit must expose the scope vocabulary that justifies that
+  locality
+- every widened invalidation or widened rebuild must be reported explicitly
+- every recompute suppression or artifact reuse claim must be justified by an
+  explicit equivalence or reuse contract
+
+Milestone 3 must not rely on:
+
+- hidden whole-topology scans behind ergonomic APIs
+- hidden whole-naming scans behind continuity helpers
+- hidden whole-view recompute behind derived read helpers
+- hand-wavy "it is probably local" assumptions that are not represented in the
+  proof surfaces
+
+## Fallback Taxonomy
+
+Milestone 3 should freeze the first explicit fallback classes for edit-driven
+derived work.
+
+At minimum, the architecture should distinguish:
+
+- `Localized`
+  - recompute stayed inside the declared changed and derived-region scope
+- `Widened`
+  - recompute exceeded the declared local scope but remained narrower than
+    whole-view
+- `WholeViewFallback`
+  - recompute widened to the full derived topology view
+- `WholeHistoryFallback`
+  - replay or historical comparison widened to the entire relevant history
+
+These names are semantic categories, not necessarily final type names.
+
+The important rule is:
+
+`fallback is allowed early; silent fallback is not`
+
+## Counter And Breadth Surface Rule
+
+Milestone 3 should make the following counters and breadth surfaces first-class
+when the corresponding stage exists:
+
+- edit-local validation breadth
+- naming continuity breadth
+- invalidation breadth
+- rebuild breadth
+- fallback count and fallback class
+- replay parity breadth
+- branch-local parity breadth
+- locality-claim versus actual-recompute comparison
+
+These counters are not optional benchmarking extras.
+They are part of the correctness story for a topology edit substrate that
+claims local reasoning.
+
+## No Hidden Broad Scan Rule
+
+Milestone 3 should explicitly forbid hidden broad scans inside admitted local
+edit workflows unless the broad scan is surfaced as fallback.
+
+If an implementation performs any of the following during an admitted local
+edit workflow:
+
+- whole topology search
+- whole naming scan
+- whole derived validation pass
+- whole derived topology recompute
+- whole relevant history replay
+
+then one of two things must be true:
+
+- the workflow contract declares that breadth honestly
+- or the runtime emits explicit fallback evidence
+
+No implementation should be considered Milestone-3-complete if it depends on
+hidden broad work while still advertising locality.
+
 ## Rejection Taxonomy
 
 Milestone 3 should freeze the first rejection classes instead of treating
@@ -526,6 +611,12 @@ The intended runtime shape is:
 - signal invalidates only the affected derived neighborhoods where possible
 - diagnostics and history explain why those nodes reran
 
+This phase should also freeze:
+
+- the first locality claim format
+- the first fallback classification format
+- the first invalidation-breadth and rebuild-breadth report surfaces
+
 This phase is done when admitted edit semantics are explicit enough that later
 certification is proving contracts, not reverse-engineering helper behavior.
 
@@ -596,6 +687,7 @@ And should expose direct supporting evidence for:
 - derived rebuild breadth
 - explicit fallback when whole-view recompute still happens
 - equivalence or reuse legality for any claimed recompute suppression
+- locality claim versus actual recompute breadth comparison
 
 This phase must also state explicit determinism rules for:
 
@@ -727,6 +819,7 @@ Milestone 3 closeout should also expose direct aggregate surfaces for:
 - explicit fallback reporting for edit-driven derived recompute
 - equivalence or reuse-legality reporting where recompute suppression is
   claimed
+- locality claim versus actual recompute comparison
 - counter and breadth reports for edit validation, continuity, and replay work
 
 And should keep direct machine-checkable rows for:
@@ -758,6 +851,8 @@ Must verify:
 - admitted edit histories replay identically
 - edit-driven derived fallout respects touched aspects and changed scope rather
   than widening silently to whole-topology recompute without explicit fallback
+- hidden broad scans do not exist inside admitted local workflows unless they
+  are surfaced as declared breadth or explicit fallback
 - hostile admitted edit workloads either succeed exactly or fail with exact
   structured localization
 
@@ -782,6 +877,11 @@ rather than implied.
     explicit
   - diagnostics and history for edit fallout
   - parity harnesses over edit-driven derived artifacts
+- performance surfaces should be wired as direct architectural products, not
+  left to benchmark scripts:
+  - breadth reports
+  - fallback reports
+  - locality claim versus actual recompute comparison
 - `forge-signal` should not be used as a second mutation authority or as the
   place where edit legality is first decided
 - topology editing should prefer explicit contract families over one giant

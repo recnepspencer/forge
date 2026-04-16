@@ -9,6 +9,8 @@ keywords = ["query", "canonicalization", "facade", "typed"]
 categories = ["data-structures", "science"]
 
 [dependencies]
+forge-runtime-bridge.workspace = true
+forge-signal.workspace = true
 sha2 = "0.10"
 
 [dev-dependencies]

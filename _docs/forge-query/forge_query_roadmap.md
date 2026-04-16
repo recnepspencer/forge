@@ -111,14 +111,61 @@ surfaces, even when a section heading still says `Must Ship` for readability:
 If a roadmap line item only names API surface but does not also name semantic
 or proof obligations, it is incomplete.
 
+## Platform Framework Stance
+
+`forge-query` is not a read-only helper crate. It is the intended
+platform-level framework surface for ordinary domain and application code.
+
+That means:
+
+- ordinary developers should be able to stay inside `forge-query` for the
+  majority of read, live, branch-workflow, mutation-orchestration, and
+  delivery-shape work they perform
+- `forge-query` may expose pass-through, lowering, orchestration, and unified
+  configuration surfaces over `forge-relational`, `forge-signal`, and the
+  runtime bridge
+- lower crates remain the semantic authorities for truth mutation, merge
+  semantics, reactive scheduling, preview-session lifecycle, writeback safety,
+  persistence, and durable transport contracts
+- "platform-level facade" therefore means one daily-driver import with
+  authority-preserving lowering, not one giant crate that steals ownership
+  from the runtimes below it
+
+The roadmap must stay honest to both halves of that claim:
+
+- if a domain developer would reasonably expect to do it through the query
+  framework, it needs an explicit roadmap home here
+- if the lower crate remains authoritative for the semantics, the roadmap must
+  say so explicitly instead of implying that `forge-query` became a second
+  truth, merge, or writeback engine
+
 ## Early Cross-Feature Proof Gates
 
 The hardest failures in `forge-query` live at feature intersections rather than
 inside isolated feature families. The roadmap therefore requires these
 cross-feature proof gates before final certification:
 
-- `Milestone 5` must prove live + ordering + projection parity, and live +
-  policy masking parity for admitted query families
+- `Milestone 5` must prove live + ordering + projection parity for admitted
+  query families, and must preserve the architectural seams that let
+  `Milestone 9` add live + policy masking parity without redefining live query
+  meaning
+- `Milestone 5.1` must prove region-scoped invalidation narrowing and
+  change-stream-backed delivery contracts without collapsing live query meaning
+  into raw partition events or transport-local stream glue
+- `Milestone 5.2` must prove preview-session query contexts preserve branch
+  workflow basis identity, preview lifecycle identity, and promoted-result
+  comparison semantics without ambient host orchestration
+- `Milestone 5.3` must prove frontier-aware planning and deterministic parallel
+  admission preserve canonical execution meaning while making planning cost
+  posture explicit
+- `Milestone 5.4` must prove structural correspondence and historical
+  materialization-path metadata remain explicit and ambiguity-honest
+- `Milestone 5.5` must prove query-authored mutation, merge, and writeback
+  declarations lower into lower-crate authorities without duplicating mutation
+  semantics or hiding branch-workflow truth behind host glue
+- `Milestone 5.6` must prove the unified facade and unified runtime
+  configuration remain authority-preserving rather than bag-shaped or
+  semantics-erasing
 - `Milestone 6` must prove historical + diff + result-shape parity for the
   same declared query shape
 - `Milestone 7` must prove lineage + correspondence + branch-scoped comparison
@@ -143,14 +190,28 @@ tracks.
 Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 4` ->
-  `Milestone 5` -> `Milestone 6` -> `Milestone 7` -> `Milestone 8` ->
-  `Milestone 9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
-  `Milestone 13`
+  `Milestone 5` -> `Milestone 5.1` -> `Milestone 5.2` -> `Milestone 5.3` ->
+  `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
+  `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 10` ->
+  `Milestone 11` -> `Milestone 12` -> `Milestone 13`
 
 Store-gated completion tracks:
 
 - `Milestone 3` can ship a runtime-backed execution path first, but full
   store-pushdown and store-parity are blocked on `forge-store`
+- `Milestone 5.1` can close runtime-backed region-scoped invalidation and
+  stream-contract semantics first, but durable stream continuation is still
+  postponed to `Milestone 11`
+- `Milestone 5.2` can ship runtime-backed preview-session query contexts and
+  branch-workflow basis semantics first, but durable preview replay and
+  persisted workflow artifacts remain dependent on later durable milestones
+- `Milestone 5.5` can ship runtime-backed mutation/merge/writeback lowering
+  first, but durable workflow continuation and persisted branch-workflow
+  artifacts remain postponed to `Milestone 11`
+- `Milestone 5.6` can ship the unified facade and unified configuration first,
+  but any configuration sections that claim durable resume or store-backed
+  guarantees must remain explicit debt until the relevant later milestones
+  close
 - `Milestone 6` can ship runtime-backed branch/head and admitted basis-
   variation semantics first, but durable point-in-time restore and snapshot-
   plus-tail parity are postponed to `Milestone 10`
@@ -577,6 +638,12 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 5: Live Query Promotion And Incremental Result Maintenance
 
+Status:
+Closed on 2026-04-15 for runtime-backed live promotion, query-shaped patching,
+replay parity, suppression, and policy-hardening. Historical/policy-composed
+live semantics, durable continuation, and store-backed live parity remain
+intentionally deferred to later milestones.
+
 ### Goal
 
 Make any admitted read query promotable to a live query without changing the
@@ -624,8 +691,9 @@ execution context rather than a parallel API surface.
   contracts
 - expose exact counters for invalidation breadth, live patch width, suppressed
   updates, and full re-execution fallbacks
-- prove live + ordering + projection parity, and live + policy masking parity
-  for admitted query families
+- prove live + ordering + projection parity for admitted query families, and
+  prove that later live + policy masking semantics can compose without
+  redefining live query meaning
 
 ### Allowed Debt
 
@@ -665,6 +733,506 @@ This milestone is complete only when `forge-query` can prove:
 - replaying the same canonical truth changes yields the same live query result
   evolution
 
+## Milestone 5.1: Region-Scoped Live Invalidation And Delivery Contracts
+
+### Goal
+
+Make live query narrowing and delivery contracts region-aware, stream-honest,
+and explicitly query-shaped instead of broad aspect-only invalidation or ad hoc
+CDC transport glue.
+
+### Adversarial Constraint
+
+When a truth change only affects a semantically bounded region or partition of
+the query's declared scope, live maintenance must narrow to that region and
+emit delivery metadata that preserves the same query meaning without widening
+to full-aspect or full-collection recomputation.
+
+### Why This Milestone Exists
+
+Milestone 5 closed the first honest live substrate, but it still leaves one
+important production-grade gap: the lower runtimes can already speak in region-
+and partition-scoped invalidation and change-stream contracts, while the query
+roadmap only guarantees broad live relevance and query-shaped patches.
+
+That is not enough for geometry-grade live delivery, integration-grade stream
+contracts, or query surfaces that want to narrow below whole-aspect scope.
+
+### Must Ship
+
+- region- or partition-aware live invalidation metadata for admitted live query
+  families
+- query-declared locality predicates or materially equivalent plan-owned region
+  narrowing surfaces
+- change-stream-backed delivery contract lowering for query-shaped CDC/live
+  output where the bridge admits it
+- diagnostics and counters explaining region matches, region suppressions, and
+  stream-contract admission or denial
+
+### Must Preserve
+
+- region-scoped narrowing remains derived from planner-owned query semantics and
+  lower-runtime locality contracts rather than host heuristics
+- delivery contracts stay query-shaped instead of exposing raw partition events
+  as the consumer contract
+- durable stream continuation remains deferred until later durable milestones
+
+### Complexity / Proof Obligations
+
+- name region-match, partition-narrowing, and change-stream lowering contracts
+- expose exact counters for matched regions, suppressed region changes,
+  stream-contract admissions, and region-widening denials
+- prove region-scoped live suppression and change-stream-backed delivery remain
+  parity-safe with the same canonical live query meaning
+
+### Allowed Debt
+
+- unsupported region families may remain explicit `Debt`
+- raw partition or raw CDC events masquerading as query delivery may not ship
+  as debt
+
+### Sequencing Notes
+
+This belongs immediately after Milestone 5 because it is live-maintenance
+hardening, not a later historical or policy feature.
+
+### Parallelization Notes
+
+Can progress in parallel with early preview-context and planning-hardening work
+once the Milestone 5 live substrate is frozen.
+
+### Store Dependency
+
+- Runtime-backed region narrowing and stream-contract semantics are not blocked
+  on `forge-store`.
+- Durable stream resume and persisted checkpoints remain deferred to
+  `Milestone 11`.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- region-scoped live invalidation stays narrower than broad aspect invalidation
+  when lower-runtime locality contracts admit that narrowing
+- query-shaped delivery contracts can lower into formal stream contracts
+  without changing query meaning
+- unsupported region or stream-contract combinations fail typed and early
+
+## Milestone 5.2: Preview Session Query Contexts And Branch Workflow Foundations
+
+### Goal
+
+Make speculation and preview sessions first-class query contexts so branch-
+native preview workflows stay inside the query framework instead of devolving
+into raw bridge orchestration.
+
+### Adversarial Constraint
+
+A query bound to a preview or speculative session must preserve explicit basis,
+preview-lifecycle identity, and preview-versus-promoted comparison semantics
+without ambient host glue deciding what session it really targeted or how the
+result should be interpreted.
+
+### Why This Milestone Exists
+
+The vision already wants AI, workflow, and geometry users to operate against
+branch-local truth and speculative branches. The runtime bridge already has a
+real preview-session lifecycle. If the query roadmap does not expose that as a
+native basis context, developers will drop out of query-land for one of the
+most important branch-native workflows in the product.
+
+### Must Ship
+
+- query contexts that can bind to `BridgePreviewSession` or materially
+  equivalent preview-session artifacts
+- explicit preview-session basis metadata and preview-lifecycle metadata on
+  query plans/results
+- distinction between read-only preview evaluation and promotable preview
+  evaluation
+- query-native comparison surfaces for preview result versus promoted result
+- branch-workflow foundation artifacts that later mutation/merge milestones can
+  extend without redefining preview semantics
+
+### Must Preserve
+
+- preview-session lifecycle authority remains owned by the runtime bridge
+- preview contexts do not become host-local branch aliases
+- preview queries preserve ordinary canonical query meaning apart from the
+  explicitly declared preview basis
+
+### Complexity / Proof Obligations
+
+- name preview-basis resolution, preview-lifecycle identity, and promoted-
+  result comparison contracts
+- expose exact counters for preview-session admissions, preview-basis
+  resolutions, preview/promotion comparison runs, and invalid preview-context
+  denials
+- prove preview-session query contexts remain parity-safe with the same
+  canonical query shape and declared preview basis
+
+### Allowed Debt
+
+- unsupported preview families may remain explicit `Debt`
+- ambient host orchestration that silently selects or rewrites the preview
+  basis may not ship as debt
+
+### Sequencing Notes
+
+This belongs before general branch/history expansion because preview workflows
+are a special but load-bearing form of basis identity that later branch and
+merge work must inherit.
+
+### Parallelization Notes
+
+Can progress in parallel with region-scoped live hardening and planning
+hardening once Milestone 5 proof-bearing live artifacts are stable.
+
+### Store Dependency
+
+- Runtime-backed preview-session query contexts are not blocked on
+  `forge-store`.
+- Durable preview replay and persisted branch-workflow artifacts remain later
+  durable work.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- preview-session-bound queries preserve explicit basis and lifecycle identity
+- preview-versus-promoted comparison remains query-native and typed
+- unsupported preview-session query combinations fail before semantic drift
+
+## Milestone 5.3: Frontier-Aware Planning And Deterministic Parallel Admission
+
+### Goal
+
+Make planning consume signal-frontier cost posture and deterministic parallel-
+admission knowledge instead of planning in isolation and hoping the executor
+figures it out later.
+
+### Adversarial Constraint
+
+Planning decisions for bulk queries, live maintenance, and multi-query bundles
+must preserve the same canonical query meaning whether they execute serially or
+in parallel, while breadth and parallel admission decisions remain explicit
+rather than rediscovered by runtime heuristics.
+
+### Why This Milestone Exists
+
+Milestone 3 established proof-bearing plans, but not yet the stronger planning
+story that a platform framework should have when `forge-signal` already owns
+frontier and deterministic parallel-admission machinery. Query should consume
+that structural knowledge at plan time instead of acting as if every cost
+decision is local and serial by default.
+
+### Must Ship
+
+- frontier-aware planning metadata for admitted query families
+- deterministic parallel-admission metadata on planned execution routes for
+  admitted bulk/live families
+- diagnostics that explain why a route admitted parallel execution or fell back
+  to serial execution
+- counters for predicted breadth, realized breadth, parallel admissions, and
+  serial fallbacks
+
+### Must Preserve
+
+- `forge-signal` remains authoritative for frontier and parallel-admission
+  semantics
+- the executor consumes lowered admission decisions instead of speculating
+  about parallel safety at runtime
+- serial and parallel lanes must preserve identical canonical query meaning
+
+### Complexity / Proof Obligations
+
+- name frontier-breadth, parallel-admission, and serial-fallback contracts
+- expose exact counters for frontier lookups, predicted breadth, realized
+  breadth, admitted parallel batches, and serial fallback decisions
+- prove deterministic serial/parallel parity for admitted planned families
+
+### Allowed Debt
+
+- unsupported query families may remain serial-only as explicit `Debt`
+- executor-side speculative parallel admission may not ship as debt
+
+### Sequencing Notes
+
+This belongs after Milestone 5 because it hardens planning using already-frozen
+live and query artifacts without reopening Milestone 3 itself.
+
+### Parallelization Notes
+
+Can progress in parallel with preview-session and correspondence/historical
+hardening once the required lower-runtime planning inputs are stable.
+
+### Store Dependency
+
+This milestone is not blocked on `forge-store`.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- frontier-aware planning decisions are explicit and digest-bearing
+- admitted serial and parallel lanes remain semantically identical
+- unsupported parallel families fail closed or remain explicit debt
+
+## Milestone 5.4: Structural Correspondence And Historical Evaluation Contracts
+
+### Goal
+
+Strengthen the branch/history/identity story so structural correspondence and
+historical materialization-path honesty become explicit query artifacts instead
+of implied bridge details.
+
+### Adversarial Constraint
+
+Correspondence and historical queries must stay explicit about whether they
+were resolved through lineage, structural fingerprinting, retained snapshots,
+delta replay, or full reconstruction, without silently collapsing ambiguity or
+materialization-path differences into one vague "comparison result."
+
+### Why This Milestone Exists
+
+The vision already mentions structural fingerprints and rich historical reads,
+but the current roadmap reads too lineage-centric and too generic about
+historical basis. This milestone closes that precision gap before later branch,
+history, and workflow milestones build more surface area on top.
+
+### Must Ship
+
+- structural-fingerprint-based correspondence as a first-class query artifact
+  beside lineage-based correspondence
+- query result metadata describing historical materialization path for admitted
+  historical reads
+- explicit compatibility/admission contracts for historical evaluation where
+  the lower runtimes cannot serve a request honestly
+- diagnostics for structural ambiguity, lineage/structural disagreement, and
+  unsupported historical materialization paths
+
+### Must Preserve
+
+- lineage remains authoritative continuity; structural correspondence remains
+  advisory unless explicitly promoted by lower-truth semantics
+- historical evaluation authority remains in lower runtimes, not host caches
+- ambiguity and materialization-path differences remain explicit in results
+
+### Complexity / Proof Obligations
+
+- name structural-correspondence, historical-materialization-path, and
+  compatibility-admission contracts
+- expose exact counters for structural candidates considered, ambiguity
+  denials, historical-path admissions, and path-compatibility denials
+- prove correspondence and historical artifacts remain typed, replay-safe, and
+  ambiguity-honest
+
+### Allowed Debt
+
+- unsupported structural families or historical materialization paths may
+  remain explicit `Debt`
+- silent collapse of ambiguity or hidden materialization-path substitution may
+  not ship as debt
+
+### Sequencing Notes
+
+This belongs before the broader current Milestone 6 and Milestone 7 work
+because those milestones should build on explicit correspondence and historical
+contracts rather than implying them.
+
+### Parallelization Notes
+
+Can progress in parallel with planning hardening and early branch-workflow
+surfaces once the required lower-runtime artifacts are stable.
+
+### Store Dependency
+
+- Runtime-backed structural correspondence and admitted historical-path
+  metadata are not blocked on `forge-store`.
+- Durable historical restore remains later store-backed work.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- structural correspondence is explicit and distinct from lineage continuity
+- historical query results expose materialization-path meaning where admitted
+- unsupported or ambiguous cases fail typed and early
+
+## Milestone 5.5: Query-Orchestrated Mutation, Merge, And Writeback Declarations
+
+### Goal
+
+Make `forge-query` a real platform workflow surface for domain developers by
+letting query-authored mutation, merge, and writeback declarations lower into
+relational and bridge authorities without forcing developers to drop into raw
+lower-crate APIs for common branch-native workflows.
+
+### Adversarial Constraint
+
+Mutation intents, merge intents, conflict preview, post-merge inspection, and
+query-triggered writeback declarations must all preserve explicit authority
+boundaries, conflict meaning, and replay/delivery honesty without turning
+`forge-query` into a second mutation engine or hiding branch-workflow truth
+behind host glue.
+
+### Why This Milestone Exists
+
+If `forge-query` is the daily-driver framework surface, it cannot stop at reads
+and live subscriptions. Domain developers need to stay inside the query facade
+for context resolution, preview, merge inspection, commit lowering, and
+writeback-trigger declaration. Otherwise the platform fractures precisely at
+the workflows branch-native products use most.
+
+### Must Ship
+
+- query-authored mutation intents that lower into relational commit strategy
+  requests
+- query-authored branch-workflow declarations for at least:
+  - preview / compare
+  - conflict inspection
+  - merge intent
+  - post-merge result inspection
+- query-triggered writeback declarations that lower into bridge writeback
+  declarations where admitted
+- diagnostics and counters for mutation-intent lowering, merge admission,
+  conflict classification, and writeback admission or denial
+
+### Must Preserve
+
+- `forge-relational` remains authoritative for commit strategy, merge
+  semantics, and mutation truth
+- the runtime bridge remains authoritative for preview-session lifecycle,
+  writeback safety, idempotence, causality, and replay artifacts
+- `forge-query` owns declaration, lowering, orchestration surface, and result
+  shaping, not a second mutation engine
+
+### Complexity / Proof Obligations
+
+- name mutation-intent lowering, merge-intent lowering, conflict-preview, and
+  writeback-declaration contracts
+- expose exact counters for lowered mutation intents, merge previews, merge
+  denials, writeback admissions, and writeback denials
+- prove branch-native workflow declarations lower into lower-crate authorities
+  without semantic drift or hidden host orchestration
+
+### Allowed Debt
+
+- unsupported mutation or writeback families may remain explicit `Debt`
+- host-local branch workflow glue that bypasses canonical lowering may not ship
+  as debt for any admitted workflow family
+
+### Sequencing Notes
+
+This belongs before later history/policy/store milestones because it corrects
+the biggest platform-level omission in the current roadmap: query as the
+application-facing workflow framework, not just the read surface.
+
+### Parallelization Notes
+
+Can progress in parallel with unified-facade/config work once the authority
+boundaries for commit, merge, preview, and writeback lowering are frozen.
+
+### Store Dependency
+
+- Runtime-backed mutation/merge/writeback lowering is not blocked on
+  `forge-store`.
+- Durable workflow continuation and persisted workflow artifacts remain later
+  work.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- admitted mutation and merge workflow declarations lower into relational
+  authorities without semantic drift
+- admitted writeback declarations lower into bridge authorities without hiding
+  causality or safety semantics
+- unsupported workflow families fail typed and early
+
+## Milestone 5.6: Unified Application Facade And Unified Runtime Configuration
+
+### Goal
+
+Make `forge-query` the explicit daily-driver facade and configuration surface
+for ordinary domain/application code without erasing lower-crate authority
+boundaries or collapsing configuration into a bag.
+
+### Adversarial Constraint
+
+A unified facade and unified runtime configuration must let developers use the
+platform through one coherent surface while preserving subsystem ownership,
+typed capability boundaries, and structurally sectioned configuration rather
+than flattening the stack into ambiguous pass-through glue.
+
+### Why This Milestone Exists
+
+The product story for `forge-query` only fully lands when developers can treat
+it as the main framework import instead of shopping among `forge-relational`,
+`forge-signal`, and the runtime bridge. But that facade must stay authority-
+preserving and architecture-shaped, or it just becomes a bag of convenience
+APIs and config fields.
+
+### Must Ship
+
+- one explicit application-facing facade posture for `forge-query`
+- pass-through or composed public surfaces for admitted lower-runtime
+  capabilities that application developers should access through query
+- unified `ForgeQueryConfig` or materially equivalent configuration surface
+  sectioned by subsystem ownership
+- capability advertisement and diagnostics explaining which composed surfaces
+  are admitted, deferred, or unsupported
+
+### Must Preserve
+
+- the facade is unified for developers but not semantics-erasing for the
+  underlying runtimes
+- configuration must mirror subsystem boundaries rather than becoming a flat
+  bag
+- unsupported composed capabilities remain explicit rather than implied by one
+  broad "platform config" type
+
+### Complexity / Proof Obligations
+
+- name facade composition, capability advertisement, and configuration-section
+  resolution contracts
+- expose exact counters for capability lookups, configuration-section
+  resolutions, and unsupported-composition denials
+- prove unified facade and unified configuration surfaces preserve lower-crate
+  authority and admitted capability boundaries
+
+### Allowed Debt
+
+- unsupported composed surfaces may remain explicit `Debt`
+- flat bag-shaped unified configuration and semantics-erasing facade shortcuts
+  may not ship as debt
+
+### Sequencing Notes
+
+This belongs after the workflow-composition milestone because the facade and
+config surfaces should compose real admitted platform capabilities, not merely
+promise them.
+
+### Parallelization Notes
+
+Can progress in parallel with the earliest branch/history/policy preparation as
+long as unsupported capabilities remain explicitly gated.
+
+### Store Dependency
+
+- Core unified facade and unified configuration work is not blocked on
+  `forge-store`.
+- Any config fields that claim durable resume, store-backed parity, or durable
+  artifact support remain gated by the later store-backed milestones.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- application-facing facade composition is explicit and authority-preserving
+- unified runtime configuration stays sectioned by subsystem responsibility
+- capability advertisement and support metadata remain in sync with admitted
+  composed surfaces
+
 ## Milestone 6: Branch-Scoped, Historical, And Diff Query Contexts
 
 ### Goal
@@ -691,6 +1259,8 @@ will be pushed back into ad hoc runtime calls that fracture the stack.
 - branch-scoped query contexts
 - historical query contexts targeting branch heads, commits, or admitted
   snapshots
+- compatibility with preview-session-derived bases and admitted historical
+  materialization-path metadata established by Milestones 5.2 and 5.4
 - diff-query expression families for comparing two declared truth bases
 - result metadata that names the basis used for every branch/historical/diff
   query
@@ -705,6 +1275,8 @@ will be pushed back into ad hoc runtime calls that fracture the stack.
   `forge-store`
 - historical queries do not mutate truth or fabricate history through host
   caches
+- preview-session basis identity and historical materialization-path identity
+  remain explicit rather than ambient host context
 - diff queries return query-shaped comparison artifacts rather than raw storage
   deltas
 - basis identity remains explicit end-to-end
@@ -726,13 +1298,15 @@ will be pushed back into ad hoc runtime calls that fracture the stack.
 
 ### Sequencing Notes
 
-This belongs after live promotion because basis identity across time and branch
-is the next major place where query meaning can fracture.
+This belongs after Milestones 5.2 and 5.4 because basis identity across time,
+preview lifecycle, and historical materialization path are the next major
+places where query meaning can fracture.
 
 ### Parallelization Notes
 
 Branch/head context work can begin earlier, but full historical/diff closure
-should follow stable Milestone 3 planning and Milestone 5 basis semantics.
+should follow stable Milestone 3 planning plus the preview-basis and
+historical-contract hardening from Milestones 5.2 and 5.4.
 
 ### Store Dependency
 
@@ -782,7 +1356,8 @@ subscribe to evolving truth honestly.
 
 - lineage traversal query expressions
 - correspondence-aware query expressions for cross-branch or cross-version
-  comparison where the runtime admits them
+  comparison where the runtime admits them, including structural-fingerprint-
+  backed correspondence where admitted
 - identity-evolution result shapes that distinguish:
   - current entity truth
   - historical antecedents
@@ -796,6 +1371,8 @@ subscribe to evolving truth honestly.
 
 - lineage semantics remain owned by `forge-relational`
 - correspondence must not silently become authoritative identity
+- structural correspondence must remain explicit about when it is advisory,
+  ambiguous, or rejected
 - ambiguous identity evolution fails or reports ambiguity explicitly
 - lineage-aware reads remain query-shaped and replay-honest
 
@@ -815,13 +1392,15 @@ subscribe to evolving truth honestly.
 
 ### Sequencing Notes
 
-This belongs after branch/history because identity evolution only becomes
-meaningful once basis-aware reads already exist.
+This belongs after Milestones 5.4 and 6 because identity evolution only
+becomes meaningful once basis-aware reads and explicit correspondence
+contracts already exist.
 
 ### Parallelization Notes
 
 Can progress in parallel with early view-shape and scope work once Milestone 6
-has frozen branch/history basis artifacts.
+has frozen branch/history basis artifacts and Milestone 5.4 has frozen the
+explicit correspondence vocabulary.
 
 ### Store Dependency
 
@@ -929,13 +1508,15 @@ people ask for truth.
 
 ### Sequencing Notes
 
-This belongs after lineage/history because composition and presentation intent
-must sit on top of already-honest query meaning rather than inventing it.
+This belongs after lineage/history and the workflow/facade insertions because
+composition and presentation intent must sit on top of already-honest query
+meaning and platform workflow surfaces rather than inventing either.
 
 ### Parallelization Notes
 
 Scopes/templates and view-shape semantics can progress in parallel once
-Milestones 4 through 6 have stabilized collection, live, and basis behavior.
+Milestones 4 through 6 plus 5.5 and 5.6 have stabilized collection, live,
+basis, and platform-facade behavior.
 
 ### Store Dependency
 
@@ -992,6 +1573,8 @@ invent incompatible policy behavior across read, live, and historical surfaces.
 - graph-native relationship-proof predicate/query families for admitted
   relationship-calculus style access or legality proofs
 - delivery-shape metadata for server-facing transport layers
+- policy composition rules for admitted mutation, merge, writeback, and
+  streamed-delivery declarations exposed through the query framework
 - diagnostics for masked aspects, denied branches, ambiguous tenant context,
   tenant-schema mismatch, relationship-proof denial, and policy/query
   incompatibility
@@ -1004,6 +1587,8 @@ invent incompatible policy behavior across read, live, and historical surfaces.
   host-local authorization callbacks
 - delivery-shape metadata must preserve the exact masked/projected result
   meaning seen by the caller
+- policy and tenant context must compose with admitted mutation, merge,
+  writeback, and stream-contract declarations without post-read repair
 - one-shot, live, historical, and saved/scope-composed queries must honor the
   same policy and tenant basis
 
@@ -1052,14 +1637,15 @@ invent incompatible policy behavior across read, live, and historical surfaces.
 
 ### Sequencing Notes
 
-This belongs after scopes and view shapes because policy and tenant narrowing
-must govern the full composed query surface, not just primitive query forms.
+This belongs after scopes, view shapes, and the workflow/facade insertions
+because policy and tenant narrowing must govern the full composed query and
+platform surface, not just primitive query forms.
 
 ### Parallelization Notes
 
 Relationship-proof and tenant-schema work can progress in parallel, but final
-closure should wait until scopes, saved queries, and delivery shapes are stable
-enough to prove parity across them.
+closure should wait until scopes, saved queries, delivery shapes, and admitted
+workflow/facade surfaces are stable enough to prove parity across them.
 
 ### Store Dependency
 
@@ -1391,6 +1977,12 @@ developers.
   - snapshot-backed execution parity
   - collection/pagination stability
   - live-promotion equivalence
+  - region-scoped live narrowing and stream-contract parity
+  - preview-session basis and promotion parity
+  - frontier-aware planning and deterministic parallel parity
+  - structural correspondence and historical materialization-path parity
+  - query-authored workflow/mutation lowering parity
+  - unified facade/configuration boundary parity
   - live + policy masking parity
   - historical/diff parity
   - historical + diff + result-shape parity
@@ -1404,6 +1996,8 @@ developers.
 - domain certification suites covering at minimum:
   - geometry/topology neighborhood query truth
   - AI/speculative-branch comparison reads
+  - geometry and workflow branch-preview/merge reads plus query-authored merge
+    lowering
   - web collection/detail/live workflow reads
   - chip/netlist cone and historical diff reads
 - machine-checkable artifact bundles for plans, results, diagnostics, live
@@ -1503,8 +2097,11 @@ would be dishonest without durable storage support.
 `forge-query` is roadmap-complete only when:
 
 - typed query expression, validation, planning, execution, collection
-  semantics, live promotion, historical reads, lineage traversal, composition,
-  and policy-aware narrowing are all shipped
+  semantics, live promotion, region-scoped live narrowing, preview-session
+  query contexts, frontier-aware planning, structural correspondence,
+  query-authored workflow/mutation lowering, unified facade/configuration,
+  historical reads, lineage traversal, composition, and policy-aware narrowing
+  are all shipped
 - every store-gated completion item is either shipped through `Milestone 12`
   or still explicitly marked as blocked rather than implied
 - runtime-backed and store-backed query execution remain parity-safe for every
@@ -1544,12 +2141,18 @@ answer is "store-gated" or "shared with another subsystem."
 | Live read-to-subscribe promotion | Milestone 5 | Live execution context, query-to-signal lowering metadata | One-shot and live execution preserve semantics | Milestone 13 live-promotion equivalence |
 | Incremental result maintenance | Milestone 5 | Query-shaped live patch artifacts, suppression metadata | Live patches preserve ordering/membership/projection | Milestone 13 live-promotion equivalence |
 | Query-to-signal bridging | Milestone 5, shared with runtime bridge | Query relevance metadata, bridge-facing invalidation descriptors | Truth changes map to query-shaped maintenance honestly | Milestone 13 live equivalence + bridge-adjacent suites |
+| Region-scoped live invalidation | Milestone 5.1 | Region/partition-aware invalidation metadata, locality predicates, region-scoped suppression metadata | Live narrowing stays below broad aspect scope where lower-runtime locality contracts admit it | Milestone 13 live equivalence + geometry domain suites |
+| Change-stream-backed delivery contracts | Milestones 5.1, 9, and 11 | Stream-lowered delivery declarations, delivery metadata, durable stream checkpoints | Query-shaped delivery lowers into formal stream contracts without semantic drift | Milestone 13 delivery-shape + durable continuation parity |
+| Preview-session query contexts | Milestone 5.2 | Preview-session basis metadata, preview-lifecycle metadata, preview/promotion comparison artifacts | Preview-bound queries preserve explicit basis and lifecycle meaning | Milestone 13 branch/history/workflow suites |
+| Frontier-aware planning | Milestone 5.3 | Frontier-derived planning metadata, breadth posture, parallel-admission posture | Planner consumes lower-runtime frontier posture without executor rediscovery | Milestone 13 planning parity + performance suites |
+| Deterministic parallel admission | Milestone 5.3 | Parallel-admission decisions on planned routes, serial fallback diagnostics | Serial and parallel admitted lanes remain semantically identical | Milestone 13 planning parity + performance suites |
 | Branch-scoped reads | Milestone 6 | Branch-targeting query context metadata | Same query shape runs against different branches honestly | Milestone 13 historical/diff parity |
 | Time-travel reads | Milestone 6; durable completion in Milestone 10 | Historical basis descriptors, snapshot/commit targets | Historical basis is explicit and parity-safe | Milestone 13 historical/diff parity + store-backed parity |
 | Diff queries | Milestone 6 | Structured diff query artifacts, comparison-basis metadata | Diff results align with declared projection/scope | Milestone 13 historical + diff + result-shape parity |
 | Branch comparison views | Milestone 6 with Milestone 8 view-shape semantics | Comparison basis metadata, view-shape metadata | Branch comparisons preserve basis identity and result meaning | Milestone 13 historical + diff parity |
+| Historical evaluation contracts | Milestone 5.4 with completion in Milestone 6 | Historical materialization-path metadata, compatibility/admission artifacts | Historical reads stay explicit about how truth was materialized and whether the request was honestly admissible | Milestone 13 historical/diff parity + diagnostics suites |
 | Lineage traversal queries | Milestone 7 | Lineage traversal descriptors, lineage-basis metadata | Lineage results stay typed and explainable | Milestone 13 lineage/correspondence parity |
-| Correspondence queries | Milestone 7 | Correspondence descriptors, ambiguity/rejection metadata | Ambiguous correspondence stays explicit | Milestone 13 lineage/correspondence parity |
+| Correspondence queries | Milestones 5.4 and 7 | Lineage-backed and structural-fingerprint-backed correspondence descriptors, ambiguity/rejection metadata | Ambiguous correspondence stays explicit and advisory correspondence never silently becomes continuity | Milestone 13 lineage/correspondence parity |
 | Inspector-pattern detail with live aspect projection | Milestones 5 and 8 | Inspector/detail view-shape metadata, aspect-focused live patch artifacts | Inspector live projection proves narrow invalidation | Milestone 13 live equivalence + view-shape cross-feature suites |
 | View shapes: table/detail | Milestone 8 | View-shape descriptors, delivery/live-patch metadata | View shape affects planning and live semantics, not only typing | Milestone 13 web/detail workflow suites |
 | View shapes: kanban/grouped | Milestone 8 | Grouped view metadata, group-splice patch artifacts | Group membership changes preserve view semantics | Milestone 13 view-shape cross-feature suites |
@@ -1567,6 +2170,11 @@ answer is "store-gated" or "shared with another subsystem."
 | Structured content aspect queries | Milestone 2; live/update consequences in Milestones 5 and 10 | Structured content projection/predicate descriptors | Structured content legality and live narrowing stay explicit | Milestone 13 validation rejection + live equivalence |
 | Query planning and optimization | Milestone 3; store-aware completion in Milestone 10 | Proof-carrying execution plans, store pushdown diagnostics | Planner lowers once; executor does not rediscover semantics | Milestone 13 snapshot parity + store-backed parity |
 | Delivery contracts for integrations | Milestones 4, 9, and 11 | CDC/result delivery metadata, durable delivery cursors | Delivery contracts remain query-shaped and basis-honest | Milestone 13 delivery-shape + store-backed parity |
+| Query-authored mutation intents | Milestone 5.5 | Mutation-intent declarations, lowered commit-strategy request descriptors, context-derived observation artifacts | Query-authored mutation workflows lower into relational authorities without semantic drift | Milestone 13 workflow/mutation suites |
+| Branch-native workflow orchestration | Milestones 5.2 and 5.5 | Preview/compare/merge workflow declarations, conflict inspection artifacts, post-merge inspection artifacts | Branch workflows stay inside the query framework while preserving lower-crate authority boundaries | Milestone 13 workflow/mutation + branch suites |
+| Query-triggered writeback declarations | Milestone 5.5 | Writeback-trigger declarations, lowered bridge writeback descriptors, causality/admission metadata | Query-triggered writeback stays declaration-owned by query and execution-owned by the bridge | Milestone 13 workflow/mutation + diagnostics suites |
+| Unified application facade | Milestone 5.6 | Authority-preserving public facade surface, capability registry, support metadata | Domain developers can use query as the daily-driver import without erasing lower-crate ownership | Milestone 13 support-matrix + certification suites |
+| Unified runtime configuration | Milestone 5.6 | Sectioned `ForgeQueryConfig`, subsystem-owned config sections, capability-gated config metadata | Unified config remains architecture-shaped rather than bag-shaped | Milestone 13 support-matrix + diagnostics suites |
 | Store-backed pushdown and execution parity | Milestone 10 | Store-backed plan variants, fallback diagnostics | Store-backed results equal runtime-backed results | Milestone 13 store-backed execution parity |
 | Durable saved queries and cursors | Milestone 11 | Durable saved-query records, durable cursor/checkpoint records | Restart preserves canonical identity and continuation point | Milestone 13 durable artifact parity |
 | Import/export portability of query artifacts | Milestone 11 | Portable query artifact bundles and basis identity | Imported/exported artifacts preserve canonical meaning | Milestone 13 durable artifact parity |

@@ -31,9 +31,10 @@ pub use model::{
     DisjointApplyGroup, DisjointApplyProof, EligibleTask, EligibleTaskAdmission, EvaluationPlan,
     ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
     LoweredApplyPlan, LoweredStagePlan, LoweredTask, MaybeStaleAdmission, MutationDomain,
-    PlanSummary, ReductionOrderingContract, ReductionWorkClass, SemanticSegmentId,
-    SemanticTaskRange, SerialApplyPlan, SharedSurfacePolicy, StageBarrier, StageExecutionOutcome,
-    StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+    ParallelAdmissionReason, PlanSummary, ReductionOrderingContract, ReductionWorkClass,
+    SemanticSegmentId, SemanticTaskRange, SerialApplyPlan, SharedSurfacePolicy, StageBarrier,
+    StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
+    TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]

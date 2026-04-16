@@ -17,7 +17,7 @@ pub use crate::data::authority::{
     WorthTopologyClass, WorthTopologyInterpretationRecordSet, WorthTopologyAuthority,
     WorthTopologyAuthorityError, WorthTopologyMutation, WorthTopologyMutationBatch,
     WorthTopologyReadArtifact, WorthTruthToDerivedInvalidationDeclaration,
-    VerifiedTopologyCommit, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,
+    VerifiedTopologyCommit, WorthTracedTopologyCommit, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,
     worth_milestone_two_invalidation_declarations,
     WorthWireInterpretationClass, WorthWireInterpretationRecord,
 };
@@ -31,6 +31,14 @@ pub use crate::data::bootstrap::{
 pub use crate::data::entities::{
     WorthDiagnosticsEntityKind, WorthEntityKind, WorthGeometryEntityKind,
     WorthNamingEntityKind, WorthTopologyEntityKind,
+};
+pub use crate::data::explanation::{
+    explain_authority_trace, explain_bridge_trace, explain_derived_trace,
+    explain_signal_trace, narrate_boundary_envelope, narrate_boundary_failure,
+    narrate_decision_trace,
+    WorthAuthorityNarrative, WorthBridgeHistoricalNarrative, WorthBridgeNarrative,
+    WorthBridgeRouteNarrative, WorthDerivedNarrative, WorthNarratedTrace,
+    WorthNarrativeLine, WorthSignalNarrative,
 };
 pub use crate::data::invariants::{
     WorthDiagnosticsInvariantGroup, WorthGeometryInvariantGroup, WorthInvariantGroup,
@@ -50,4 +58,11 @@ pub use crate::data::seed::{
     WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
     WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,
     WorthMinimalTopologySeed, WorthTopologyCreateBatchBuilder,
+};
+pub use crate::data::tracing::{
+    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
+    WorthBoundaryFailure, WorthBridgeTraceAnchor, WorthBridgeTraceEvidence,
+    WorthDecisionTrace, WorthDerivedTraceAnchor, WorthDerivedTraceEvidence,
+    WorthIntegrityMarkers, WorthNamedCounter, WorthPerformanceAccounting,
+    WorthSignalTraceAnchor, WorthSignalTraceEvidence, WorthTraceAvailability, WorthTraceWarning,
 };

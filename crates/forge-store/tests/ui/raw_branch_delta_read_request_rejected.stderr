@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/raw_branch_delta_read_request_rejected.rs:7:37
+  |
+7 |     let _ = store.read_branch_delta(request);
+  |                   ----------------- ^^^^^^^ expected `SameBranchDescendantWitness`, found `BranchDeltaReadRequest`
+  |                   |
+  |                   arguments to this method are incorrect
+  |
+note: method defined here
+ --> src/facade.rs
+  |
+  |     pub fn read_branch_delta(
+  |            ^^^^^^^^^^^^^^^^^

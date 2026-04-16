@@ -437,6 +437,10 @@ Can run in parallel with `Milestone 5` after `Milestone 3`.
 
 ## Milestone 5: Structural Delta Storage And Branch Delta Layering
 
+Engineering spec: [milestone-5.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-5.md)
+
+Closeout: [milestone-5-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-5-closeout.md)
+
 ### Goal
 
 Make branch persistence scale with semantic delta instead of copied full state.
@@ -467,8 +471,7 @@ change, not baseline state size, even under deep branch trees.
 
 ### Allowed Debt
 
-- advanced rewrite profitability may remain `Debt` if read-amplification truth
-  is already visible and tested
+- none remaining in the milestone 5 closeout lane
 
 ### Sequencing Notes
 
@@ -477,7 +480,10 @@ chunking.
 
 ### Parallelization Notes
 
-Can run in parallel with `Milestone 4` after `Milestone 3`.
+Can run in parallel with `Milestone 4` after `Milestone 3`. It should also be
+treated as concurrent with `Milestone 7` so long as branch-delta physical
+layout remains separate from schema, lineage, cursor, and checkpoint authority
+semantics.
 
 ## Milestone 6: Aspect-Aware Physical Layout And Content-Addressed Structural Blocks
 
@@ -520,6 +526,9 @@ an honest branch/delta model first.
 ### Parallelization Notes
 
 Can progress alongside late `Milestone 5` once delta identity is stable.
+`Milestone 9` may begin concurrently once this milestone freezes the chunk
+model honestly enough for canonical bulk chunking, but Milestone 6 still owns
+the physical chunk identity and non-authority contract.
 
 ## Milestone 7: Durable Schema, Lineage, Cursor, And Checkpoint Artifacts
 
@@ -656,7 +665,9 @@ canonical chunking.
 
 ### Parallelization Notes
 
-Can begin once `Milestone 6` stabilizes the chunk model.
+Can begin once `Milestone 6` stabilizes the chunk model and should be treated
+as concurrent with late `Milestone 6` work so long as Milestone 9 depends only
+on the stable chunk contract rather than backend-local layout internals.
 
 ## Milestone 10: Retention, Compaction, And Reclamation
 

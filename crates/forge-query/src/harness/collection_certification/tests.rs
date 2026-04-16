@@ -66,12 +66,19 @@ fn collection_certification_artifact_is_honest_about_current_gaps() {
     );
     assert!(!artifact.certification_bundle_digest.is_empty());
     assert!(!artifact.coverage_matrix_digest.is_empty());
-    assert!(artifact.bundle_completeness_report.unmet_required_rows.is_empty());
+    assert!(artifact
+        .bundle_completeness_report
+        .unmet_required_rows
+        .is_empty());
     assert!(artifact
         .bundle_completeness_report
         .unmet_required_assertion_classes
         .is_empty());
-    assert!(artifact.bundle_completeness_report.covers_full_milestone_four_spec_matrix);
+    assert!(
+        artifact
+            .bundle_completeness_report
+            .covers_full_milestone_four_spec_matrix
+    );
     assert!(artifact.bundle_completeness_report.offline_analysis_ready);
 }
 
@@ -82,8 +89,14 @@ fn collection_certification_artifact_is_deterministic() {
     let right = MilestoneFourCollectionCertificationAdapter::
         collection_cursor_rollup_and_cdc_shape_certification_artifact();
 
-    assert_eq!(left.certification_bundle_digest, right.certification_bundle_digest);
+    assert_eq!(
+        left.certification_bundle_digest,
+        right.certification_bundle_digest
+    );
     assert_eq!(left.coverage_matrix_digest, right.coverage_matrix_digest);
-    assert_eq!(left.bundle_completeness_report, right.bundle_completeness_report);
+    assert_eq!(
+        left.bundle_completeness_report,
+        right.bundle_completeness_report
+    );
     assert_eq!(left.counter_snapshot, right.counter_snapshot);
 }

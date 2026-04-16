@@ -727,6 +727,7 @@ pub(crate) fn durable_publication_facts(
                 published_commit_id =
                     published_commit_id.or(Some(result.canonical_envelope.commit.commit_id));
             }
+            crate::wal::WalRecordPayload::BulkCheckpointPublicationIntent(_) => {}
             crate::wal::WalRecordPayload::DurablePublicationProgress(progress) => {
                 if progress.phase == DurablePublicationPhase::AuthoritativeAppendPublished {
                     authoritative_progress_present = true;
@@ -794,6 +795,7 @@ pub(crate) fn observe_durable_recovery_publication<'a>(
                 }
                 commit_id = Some(result.canonical_envelope.commit.commit_id);
             }
+            crate::wal::WalRecordPayload::BulkCheckpointPublicationIntent(_) => {}
             crate::wal::WalRecordPayload::DurablePublicationProgress(progress) => {
                 if let Some(progress_commit_id) = progress.commit_id {
                     if let Some(existing) = commit_id {

@@ -1,6 +1,6 @@
 use super::super::certification::{
-    RequiredAssertionClass, covered_perturbation_classes, milestone_four_requirements,
-    unmet_required_assertion_classes, unmet_required_rows,
+    covered_perturbation_classes, milestone_four_requirements, unmet_required_assertion_classes,
+    unmet_required_rows, RequiredAssertionClass,
 };
 use super::model::{
     CollectionBundleCompletenessReport, CollectionCertificationMatrix, CollectionCertificationRow,

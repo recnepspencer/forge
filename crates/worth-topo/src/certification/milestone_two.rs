@@ -1,7 +1,10 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
-use worth_schema::facade::{DerivedTopologyReadBasis, VerifiedTopologyCommit};
+use worth_schema::facade::{
+    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthBoundaryEnvelope,
+    WorthBoundaryFailure,
+};
 
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::corpus::certify_milestone_one_default_primitive_corpus_impl;
@@ -24,20 +27,29 @@ use crate::certification::report::{
 };
 use crate::certification::shared::digest_rows;
 
-pub fn certify_milestone_two_read_view_impl(
+pub type WorthTracedMilestoneTwoDerivedReadReport =
+    WorthBoundaryEnvelope<WorthMilestoneTwoDerivedReadReport>;
+
+pub fn certify_milestone_two_read_view_traced_impl(
     read_view: &RelationalReadView,
     read_basis: DerivedTopologyReadBasis,
-) -> Result<WorthMilestoneTwoDerivedReadReport, WorthMilestoneOneCertificationError> {
-    let report = WorthMilestoneOneCertificationHarness::certify_read_view(read_view, read_basis)?;
-    Ok(build_milestone_two_read_report(&report))
+) -> Result<
+    WorthTracedMilestoneTwoDerivedReadReport,
+    WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
+> {
+    WorthMilestoneOneCertificationHarness::certify_read_view_traced(read_view, read_basis)
+        .map(|traced| traced.map_primary_result(|report| build_milestone_two_read_report(&report)))
 }
 
-pub fn certify_milestone_two_verified_commit_impl(
+pub fn certify_milestone_two_verified_commit_traced_impl(
     runtime: &mut RelationalRuntime,
     verified: &VerifiedTopologyCommit,
-) -> Result<WorthMilestoneTwoDerivedReadReport, WorthMilestoneOneCertificationError> {
-    let report = WorthMilestoneOneCertificationHarness::certify_verified_commit(runtime, verified)?;
-    Ok(build_milestone_two_read_report(&report))
+) -> Result<
+    WorthTracedMilestoneTwoDerivedReadReport,
+    WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
+> {
+    WorthMilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
+        .map(|traced| traced.map_primary_result(|report| build_milestone_two_read_report(&report)))
 }
 
 pub fn certify_milestone_two_default_derived_corpus_impl<F>(

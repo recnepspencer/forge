@@ -8,6 +8,11 @@ pub use canonicalization::{
 };
 pub use export::{AuthoritativeExportBundle, AuthoritativeExportRestoreRequest};
 pub use proofs::{
-    AuthoritativeBranchHeadRecord, CanonicalizedCommitEnvelope, FetchedAuthoritativeCommit,
-    PersistedAuthoritativeCommit, RawRuntimeCommitEnvelope, VerifiedAuthoritativeAppend,
+    AdvanceCursorWitness, AuthoritativeBranchHeadRecord, CanonicalizedCommitEnvelope,
+    CommitCoupledSupportAppendWitness, DurableCursorAcknowledgeRequest, DurableCursorResumePlan,
+    DurableCursorResumeRequest, FetchedAuthoritativeCommit, FetchedDurableCursorIdentity,
+    FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact,
+    HistoricalIdentityRequest, HistoricalIdentityResolution, PersistedAuthoritativeCommit,
+    PersistedEmbeddedCheckpoint, PersistedSubscriberCheckpoint, RawRuntimeCommitEnvelope,
+    ResumeAdmittedCursor, VerifiedAuthoritativeAppend, EmbeddedCheckpointFetchRequest,
 };

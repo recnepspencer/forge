@@ -14,7 +14,9 @@ fn bundle_parts(bundle: &CollectionCertificationBundle) -> Vec<String> {
         format!("cursor:{}", bundle.cursor_progress_report),
         format!(
             "counter:rediscovery:{}",
-            bundle.counter_snapshot.executor_semantic_rediscovery_count()
+            bundle
+                .counter_snapshot
+                .executor_semantic_rediscovery_count()
         ),
     ]
 }
@@ -63,7 +65,12 @@ pub(super) fn bundle_digest_parts(matrix: &CollectionCertificationMatrix) -> Vec
 
 pub(super) fn coverage_digest_parts(matrix: &CollectionCertificationMatrix) -> Vec<String> {
     let mut parts = vec![format!("suite:{}", matrix.suite_name)];
-    parts.extend(matrix.rows.iter().map(|row| format!("canonical:{}", row.row_name)));
+    parts.extend(
+        matrix
+            .rows
+            .iter()
+            .map(|row| format!("canonical:{}", row.row_name)),
+    );
     parts.extend(
         matrix
             .rejection_rows

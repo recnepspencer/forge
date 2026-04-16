@@ -5,7 +5,10 @@ use crate::{
     failure::{StoreError, StoreErrorKind},
     modes::lifecycle::{DurableModeConstructionPlan, HostedRuntimeOwnershipProof},
     publication::{default_runtime_session_id, execute_durable_publication},
-    recovery::{DurableRecoveryOutcome, DurableRecoveryPlan, RecoveryStatusReport},
+    recovery::{
+        DurableRecoveryOutcome, DurableRecoveryPlan, RecoveryStatusReport,
+        ResumeEligibleRecoveredBulkChunk,
+    },
     wal::DurableMutationId,
 };
 use forge_relational::facade::{history::CommitId, runtime::RelationalRuntime};
@@ -50,7 +53,7 @@ impl DurableModeBuilder {
 
     pub fn build_pending(self) -> Result<DurableRecoveryHandle, StoreError> {
         let (store_builder, ownership) = self.construction.into_parts();
-        let store = store_builder.build()?;
+        let store = store_builder.build_for_durable_recovery()?;
         store.record_durable_mode_selection();
         store.record_hosted_runtime_start();
         Ok(DurableRecoveryHandle {
@@ -108,12 +111,16 @@ impl DurableRecoveryHandle {
         let recovery = self
             .store
             .recover_durable_runtime(&self.runtime_session_id)?;
+        let support_artifact_recovery = self.store.support_artifact_recovery_report();
+        self.store
+            .record_support_artifact_recovery_gap(support_artifact_recovery.entries().len() as u64);
         Ok(DurableStoreHandle {
             store: self.store,
             ownership: self.ownership,
             runtime_session_id: self.runtime_session_id,
             last_recovery_plan: plan,
             last_recovery: recovery,
+            last_support_artifact_recovery: support_artifact_recovery,
         })
     }
 }
@@ -125,6 +132,7 @@ pub struct DurableStoreHandle {
     runtime_session_id: String,
     last_recovery_plan: DurableRecoveryPlan,
     last_recovery: DurableRecoveryOutcome,
+    last_support_artifact_recovery: crate::SupportArtifactRecoveryReport,
 }
 
 impl DurableStoreHandle {
@@ -132,7 +140,12 @@ impl DurableStoreHandle {
         &self,
         maintenance: crate::MaintenanceRecoveryReport,
     ) -> RecoveryStatusReport {
-        RecoveryStatusReport::new(&self.last_recovery_plan, &self.last_recovery, maintenance)
+        RecoveryStatusReport::new(
+            &self.last_recovery_plan,
+            &self.last_recovery,
+            maintenance,
+            self.last_support_artifact_recovery.clone(),
+        )
     }
 
     pub fn execute_mutation<F>(
@@ -183,6 +196,10 @@ impl DurableStoreHandle {
         &self.last_recovery
     }
 
+    pub fn last_support_artifact_recovery(&self) -> &crate::SupportArtifactRecoveryReport {
+        &self.last_support_artifact_recovery
+    }
+
     pub fn recovery_status_report(&self) -> Result<RecoveryStatusReport, StoreError> {
         Ok(self.recovery_status_report_from_maintenance(self.store.maintenance_recovery_report()?))
     }
@@ -192,6 +209,13 @@ impl DurableStoreHandle {
         durable_mutation_id: DurableMutationId,
     ) -> Result<crate::DurableRetryResolution, StoreError> {
         self.store.resolve_durable_retry(durable_mutation_id)
+    }
+
+    pub fn admit_recovered_bulk_chunk_resume(
+        &self,
+        recovered: &ResumeEligibleRecoveredBulkChunk,
+    ) -> Result<crate::RecoveredBulkChunkResume, StoreError> {
+        self.store.admit_recovered_bulk_chunk_resume(recovered)
     }
 
     pub fn milestone_3_6_certification_bundle(
@@ -206,6 +230,7 @@ impl DurableStoreHandle {
             status,
             self.last_recovery.source_reports.clone(),
             maintenance,
+            self.last_support_artifact_recovery.clone(),
             self.last_recovery.degraded_state_report(),
             compatibility,
             self.store.counters(),

@@ -53,12 +53,30 @@ pub fn ordered_collection_bundle() -> ValidatedQueryBundle {
     let shape = crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(crate::facade::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .field(
-            crate::facade::AuthoredResultShapeField::new(
-                "profile",
-                "display_name",
-                "display_name",
-            )
-            .unwrap(),
+            crate::facade::AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                .unwrap(),
+        )
+        .build()
+        .unwrap();
+    let request = crate::facade::GuidedAuthoringPath::pair_collection(query, shape).unwrap();
+    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    validate_canonical_bundle(canonical, super::schema_view::detail_schema_view()).unwrap()
+}
+
+pub fn ordered_collection_without_traversal_bundle() -> ValidatedQueryBundle {
+    let query = crate::authoring::RawAuthoredQuery::collection_builder(
+        crate::facade::RootEntityKey::new("user").unwrap(),
+    )
+    .project(crate::facade::AspectFieldSelector::new("identity", "id").unwrap())
+    .project(crate::facade::AspectFieldSelector::new("profile", "display_name").unwrap())
+    .order_by(crate::facade::OrderingSelector::ascending("profile", "display_name").unwrap())
+    .build()
+    .unwrap();
+    let shape = crate::authoring::RawAuthoredResultShape::collection_builder()
+        .field(crate::facade::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
+        .field(
+            crate::facade::AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                .unwrap(),
         )
         .build()
         .unwrap();
@@ -80,12 +98,8 @@ pub fn descending_collection_bundle() -> ValidatedQueryBundle {
     let shape = crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(crate::facade::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .field(
-            crate::facade::AuthoredResultShapeField::new(
-                "profile",
-                "display_name",
-                "display_name",
-            )
-            .unwrap(),
+            crate::facade::AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                .unwrap(),
         )
         .build()
         .unwrap();
@@ -106,12 +120,8 @@ pub fn unordered_collection_bundle() -> ValidatedQueryBundle {
     let shape = crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(crate::facade::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .field(
-            crate::facade::AuthoredResultShapeField::new(
-                "profile",
-                "display_name",
-                "display_name",
-            )
-            .unwrap(),
+            crate::facade::AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                .unwrap(),
         )
         .build()
         .unwrap();
@@ -134,12 +144,8 @@ pub fn multi_order_collection_bundle() -> ValidatedQueryBundle {
     let shape = crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(crate::facade::AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .field(
-            crate::facade::AuthoredResultShapeField::new(
-                "profile",
-                "display_name",
-                "display_name",
-            )
-            .unwrap(),
+            crate::facade::AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                .unwrap(),
         )
         .build()
         .unwrap();

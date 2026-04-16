@@ -19,6 +19,7 @@ pub use derived_invalidation::{
 };
 pub use gateway::{
     VerifiedTopologyCommit, WorthTopologyAuthority, WorthTopologyAuthorityError,
+    WorthTracedTopologyCommit,
 };
 pub use geometry_binding::{
     WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind,

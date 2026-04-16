@@ -217,13 +217,16 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    let rejection = match WorthTopologyAuthority::new(&mut runtime).apply_topology_intent(intent) {
+    let rejection = match WorthTopologyAuthority::new(&mut runtime)
+        .apply_topology_intent_traced(intent)
+        .map(|traced| traced.into_primary_result())
+    {
         Ok(_) => {
             return Err(WorthMilestoneOneCertificationError::ReadView(format!(
                 "illegal topology case `{name}` unexpectedly admitted"
             )))
         }
-        Err(error) => summarize_authority_rejection(&error, Some(role), validator_family),
+        Err(error) => summarize_authority_rejection(&error.into_error(), Some(role), validator_family),
     };
     cases.push(WorthIllegalTopologyRejectionCaseReport {
         name: name.to_string(),

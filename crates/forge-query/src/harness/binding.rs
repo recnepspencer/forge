@@ -247,7 +247,10 @@ fn binding_resolution_requires_exact_slot_match() {
         ]),
     )
     .unwrap_err();
-    assert!(matches!(extra, BindingResolutionError::ExtraBindingSlot { .. }));
+    assert!(matches!(
+        extra,
+        BindingResolutionError::ExtraBindingSlot { .. }
+    ));
 
     let wrong_subject = resolve_bindings(
         requirements,

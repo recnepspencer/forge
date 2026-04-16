@@ -1,0 +1,15 @@
+error[E0451]: fields `error`, `warnings`, `decision_trace`, `integrity_markers` and `performance_accounting` of struct `WorthBoundaryFailure` are private
+  --> tests/compile_fail/mint_boundary_failure.rs:7:9
+   |
+ 6 |     let _forged = WorthBoundaryFailure {
+   |                   -------------------- in this type
+ 7 |         error: "nope",
+   |         ^^^^^ private field
+ 8 |         warnings: Vec::new(),
+   |         ^^^^^^^^ private field
+ 9 |         decision_trace: WorthDecisionTrace::default(),
+   |         ^^^^^^^^^^^^^^ private field
+10 |         integrity_markers: WorthIntegrityMarkers::default(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         performance_accounting: WorthPerformanceAccounting::default(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field

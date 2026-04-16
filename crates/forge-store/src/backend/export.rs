@@ -14,6 +14,19 @@ impl StoreState {
             branch_head_records: self.branch_head_records.values().cloned().collect(),
             commit_envelopes: self.commit_envelopes.values().cloned().collect(),
             commit_parent_records: self.commit_parent_records.values().cloned().collect(),
+            commit_support_summaries: self.commit_support_summaries.values().cloned().collect(),
+            schema_support_records: self.schema_support_records.values().cloned().collect(),
+            lineage_support_records: self.lineage_support_records.values().cloned().collect(),
+            durable_cursor_identity_records: self
+                .durable_cursor_identity_records
+                .values()
+                .cloned()
+                .collect(),
+            subscriber_checkpoint_records: self
+                .subscriber_checkpoint_records
+                .values()
+                .cloned()
+                .collect(),
             authoritative_artifact_digests: self
                 .authoritative_artifact_digests
                 .values()
@@ -80,6 +93,81 @@ impl StoreState {
                     StoreErrorKind::DuplicateArtifactIdentity,
                     format!(
                         "duplicate commit parent record `{artifact_id}` in authoritative export"
+                    ),
+                ));
+            }
+        }
+        for summary in bundle.commit_support_summaries {
+            if state
+                .commit_support_summaries
+                .insert(summary.commit_id.0, summary.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate commit support summary for commit {} in authoritative export",
+                        summary.commit_id.0
+                    ),
+                ));
+            }
+        }
+        for record in bundle.schema_support_records {
+            if state
+                .schema_support_records
+                .insert(record.artifact_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate schema support artifact `{}` in authoritative export",
+                        record.artifact_id
+                    ),
+                ));
+            }
+        }
+        for record in bundle.lineage_support_records {
+            if state
+                .lineage_support_records
+                .insert(record.artifact_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate lineage support artifact `{}` in authoritative export",
+                        record.artifact_id
+                    ),
+                ));
+            }
+        }
+        for record in bundle.durable_cursor_identity_records {
+            if state
+                .durable_cursor_identity_records
+                .insert(record.artifact_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate durable cursor identity `{}` in authoritative export",
+                        record.cursor_id
+                    ),
+                ));
+            }
+        }
+        for record in bundle.subscriber_checkpoint_records {
+            if state
+                .subscriber_checkpoint_records
+                .insert(record.artifact_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate subscriber checkpoint artifact `{}` in authoritative export",
+                        record.artifact_id
                     ),
                 ));
             }

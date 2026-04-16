@@ -11,6 +11,13 @@ pub fn root_bound_bindings(value: &str) -> BoundBindings {
     )])
 }
 
-pub fn resolved_root_binding(bundle: &ValidatedQueryBundle, value: &str) -> crate::facade::BindingResolution {
-    resolve_bindings(derive_binding_requirements(bundle), root_bound_bindings(value)).unwrap()
+pub fn resolved_root_binding(
+    bundle: &ValidatedQueryBundle,
+    value: &str,
+) -> crate::facade::BindingResolution {
+    resolve_bindings(
+        derive_binding_requirements(bundle),
+        root_bound_bindings(value),
+    )
+    .unwrap()
 }

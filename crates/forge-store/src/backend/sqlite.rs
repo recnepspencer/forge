@@ -27,6 +27,18 @@ impl SqliteStoreBackend {
         create_schema(&connection)?;
         StateBackedStoreBackend::open_with_persistence(SqlitePersistence { connection })
     }
+
+    pub fn open_for_durable_recovery(path: PathBuf) -> Result<Self, StoreError> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let connection = Connection::open(path).map_err(sqlite_error)?;
+        configure_connection(&connection)?;
+        create_schema(&connection)?;
+        StateBackedStoreBackend::open_with_persistence_for_durable_recovery(SqlitePersistence {
+            connection,
+        })
+    }
 }
 
 impl StatePersistence for SqlitePersistence {
@@ -115,6 +127,92 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
                 PRIMARY KEY(artifact_family, artifact_id, canonicalization_version)
             );
 
+            CREATE TABLE IF NOT EXISTS commit_support_summaries (
+                commit_id INTEGER PRIMARY KEY,
+                branch_id TEXT NOT NULL,
+                schema_support_artifact_id TEXT,
+                lineage_support_artifact_id TEXT,
+                emitted_schema_artifact INTEGER NOT NULL,
+                emitted_lineage_artifact INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS schema_support_records (
+                artifact_id TEXT PRIMARY KEY,
+                commit_id INTEGER NOT NULL UNIQUE,
+                branch_id TEXT NOT NULL,
+                schema_version_id INTEGER NOT NULL,
+                descriptor_semantics_version INTEGER NOT NULL,
+                schema_transition_payload TEXT,
+                schema_continuation_descriptor_payload TEXT,
+                schema_reconciliation_descriptor_payload TEXT,
+                FOREIGN KEY(commit_id) REFERENCES commit_envelopes(commit_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS lineage_support_records (
+                artifact_id TEXT PRIMARY KEY,
+                commit_id INTEGER NOT NULL UNIQUE,
+                branch_id TEXT NOT NULL,
+                lineage_event_ids_payload TEXT NOT NULL,
+                lineage_events_payload TEXT NOT NULL,
+                lineage_digest_basis_payload TEXT NOT NULL,
+                event_batch_digest_basis_payload TEXT NOT NULL,
+                decision_log_digest_basis_payload TEXT NOT NULL,
+                lineage_artifact_counters_payload TEXT NOT NULL,
+                FOREIGN KEY(commit_id) REFERENCES commit_envelopes(commit_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS durable_cursor_identity_records (
+                artifact_id TEXT PRIMARY KEY,
+                cursor_id TEXT NOT NULL UNIQUE,
+                subscriber_id TEXT NOT NULL,
+                branch_id TEXT NOT NULL,
+                feed_shape_id TEXT NOT NULL,
+                schema_interpretation_id TEXT NOT NULL,
+                cursor_semantics_version INTEGER NOT NULL,
+                latest_checkpoint_sequence INTEGER NOT NULL,
+                latest_basis_commit_id INTEGER NOT NULL,
+                latest_schema_support_artifact_id TEXT,
+                FOREIGN KEY(latest_basis_commit_id) REFERENCES commit_envelopes(commit_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS subscriber_checkpoint_records (
+                artifact_id TEXT PRIMARY KEY,
+                cursor_id TEXT NOT NULL,
+                subscriber_id TEXT NOT NULL,
+                branch_id TEXT NOT NULL,
+                feed_shape_id TEXT NOT NULL,
+                schema_interpretation_id TEXT NOT NULL,
+                cursor_semantics_version INTEGER NOT NULL,
+                checkpoint_sequence INTEGER NOT NULL,
+                basis_commit_id INTEGER NOT NULL,
+                schema_support_artifact_id TEXT,
+                UNIQUE(cursor_id, checkpoint_sequence),
+                FOREIGN KEY(basis_commit_id) REFERENCES commit_envelopes(commit_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS branch_shared_base_records (
+                branch_id TEXT PRIMARY KEY,
+                source_branch_id TEXT NOT NULL,
+                source_frontier_commit_id INTEGER,
+                delta_family_version INTEGER NOT NULL,
+                authority_basis_digest TEXT NOT NULL,
+                FOREIGN KEY(branch_id) REFERENCES branch_records(branch_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS branch_delta_layer_records (
+                branch_delta_layer_id INTEGER PRIMARY KEY,
+                branch_id TEXT NOT NULL,
+                base_frontier_commit_id INTEGER,
+                target_frontier_commit_id INTEGER NOT NULL,
+                commit_ids_payload TEXT NOT NULL,
+                delta_family_version INTEGER NOT NULL,
+                authority_basis_digest TEXT NOT NULL,
+                artifacts_payload TEXT NOT NULL,
+                replacement_of_layer_ids_payload TEXT NOT NULL,
+                replacement_lineage_proof_payload TEXT NOT NULL,
+                FOREIGN KEY(branch_id) REFERENCES branch_records(branch_id)
+            );
+
             CREATE TABLE IF NOT EXISTS embedded_checkpoint_records (
                 checkpoint_id TEXT PRIMARY KEY,
                 source_runtime_id TEXT NOT NULL,
@@ -123,6 +221,96 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
                 classification TEXT NOT NULL,
                 contained_commit_ids_payload TEXT NOT NULL,
                 metadata_payload TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS milestone_6_layout_materialization_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS milestone_6_scope_slice_membership_records (
+                artifact_id TEXT PRIMARY KEY,
+                branch_id TEXT NOT NULL,
+                frontier_commit_id INTEGER NOT NULL,
+                scope_class TEXT NOT NULL,
+                projection_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS milestone_6_chunk_membership_records (
+                artifact_id TEXT PRIMARY KEY,
+                physical_chunk_id TEXT NOT NULL,
+                chunk_shape_version INTEGER NOT NULL,
+                determinism_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS milestone_6_structural_block_records (
+                artifact_id TEXT PRIMARY KEY,
+                structural_block_id TEXT NOT NULL,
+                branch_id TEXT NOT NULL,
+                frontier_commit_id INTEGER NOT NULL,
+                scope_class TEXT NOT NULL,
+                equivalence_contract_version INTEGER NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bulk_program_identity_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL UNIQUE,
+                kind TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS frozen_bulk_manifest_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                manifest_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS frozen_transform_basis_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                basis_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS frozen_transform_partition_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                partition_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bulk_deterministic_plan_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                plan_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bulk_progress_checkpoint_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                plan_id TEXT NOT NULL,
+                checkpoint_sequence INTEGER NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bulk_chunk_witness_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                plan_id TEXT NOT NULL,
+                chunk_ordinal INTEGER NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS program_chunk_witness_index_records (
+                artifact_id TEXT PRIMARY KEY,
+                program_id TEXT NOT NULL,
+                plan_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS snapshot_basis_records (
@@ -163,8 +351,59 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             CREATE INDEX IF NOT EXISTS idx_authoritative_artifact_digests_family_id
             ON authoritative_artifact_digests(artifact_family, artifact_id);
 
+            CREATE INDEX IF NOT EXISTS idx_commit_support_summaries_branch_commit
+            ON commit_support_summaries(branch_id, commit_id);
+
+            CREATE INDEX IF NOT EXISTS idx_schema_support_records_branch_commit
+            ON schema_support_records(branch_id, commit_id);
+
+            CREATE INDEX IF NOT EXISTS idx_lineage_support_records_branch_commit
+            ON lineage_support_records(branch_id, commit_id);
+
+            CREATE INDEX IF NOT EXISTS idx_durable_cursor_identity_records_cursor
+            ON durable_cursor_identity_records(cursor_id);
+
+            CREATE INDEX IF NOT EXISTS idx_subscriber_checkpoint_records_cursor_sequence
+            ON subscriber_checkpoint_records(cursor_id, checkpoint_sequence);
+
+            CREATE INDEX IF NOT EXISTS idx_branch_shared_base_records_source_branch
+            ON branch_shared_base_records(source_branch_id);
+
+            CREATE INDEX IF NOT EXISTS idx_branch_delta_layer_records_branch_target
+            ON branch_delta_layer_records(branch_id, target_frontier_commit_id);
+
             CREATE INDEX IF NOT EXISTS idx_embedded_checkpoint_records_basis_commit
             ON embedded_checkpoint_records(basis_commit_id);
+
+            CREATE INDEX IF NOT EXISTS idx_milestone_6_layout_materialization_records_artifact
+            ON milestone_6_layout_materialization_records(artifact_id);
+
+            CREATE INDEX IF NOT EXISTS idx_milestone_6_scope_slice_membership_records_scope
+            ON milestone_6_scope_slice_membership_records(branch_id, frontier_commit_id, scope_class, projection_digest);
+
+            CREATE INDEX IF NOT EXISTS idx_milestone_6_chunk_membership_records_chunk
+            ON milestone_6_chunk_membership_records(physical_chunk_id, chunk_shape_version, determinism_digest);
+
+            CREATE INDEX IF NOT EXISTS idx_milestone_6_structural_block_records_block
+            ON milestone_6_structural_block_records(structural_block_id, branch_id, frontier_commit_id, scope_class, equivalence_contract_version);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_manifest_program
+            ON frozen_bulk_manifest_records(program_id, manifest_digest);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_transform_basis_program
+            ON frozen_transform_basis_records(program_id, basis_digest);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_transform_partition_program
+            ON frozen_transform_partition_records(program_id, partition_digest);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_plan_program
+            ON bulk_deterministic_plan_records(program_id, plan_id);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_checkpoint_program
+            ON bulk_progress_checkpoint_records(program_id, plan_id, checkpoint_sequence);
+
+            CREATE INDEX IF NOT EXISTS idx_bulk_witness_program
+            ON bulk_chunk_witness_records(program_id, plan_id, chunk_ordinal);
 
             CREATE INDEX IF NOT EXISTS idx_snapshot_basis_branch_frontier
             ON snapshot_basis_records(snapshot_branch_id, snapshot_frontier_commit_id);
@@ -174,6 +413,7 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             ",
         )
         .map_err(sqlite_error)?;
+    ensure_branch_delta_layer_artifacts_column(connection)?;
     Ok(())
 }
 
@@ -209,6 +449,9 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
                         }
                         "HostedRuntimeCommitResult" => {
                             crate::wal::WalRecordFamily::HostedRuntimeCommitResult
+                        }
+                        "BulkCheckpointPublicationIntent" => {
+                            crate::wal::WalRecordFamily::BulkCheckpointPublicationIntent
                         }
                         "DurablePublicationProgress" => {
                             crate::wal::WalRecordFamily::DurablePublicationProgress
@@ -398,6 +641,21 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
                     "CommitParentRecord" => {
                         super::records::AuthoritativeArtifactFamily::CommitParentRecord
                     }
+                    "CommitSupportSummary" => {
+                        super::records::AuthoritativeArtifactFamily::CommitSupportSummary
+                    }
+                    "SchemaSupportRecord" => {
+                        super::records::AuthoritativeArtifactFamily::SchemaSupportRecord
+                    }
+                    "LineageSupportRecord" => {
+                        super::records::AuthoritativeArtifactFamily::LineageSupportRecord
+                    }
+                    "DurableCursorIdentityRecord" => {
+                        super::records::AuthoritativeArtifactFamily::DurableCursorIdentityRecord
+                    }
+                    "SubscriberCheckpointRecord" => {
+                        super::records::AuthoritativeArtifactFamily::SubscriberCheckpointRecord
+                    }
                     other => {
                         return Err(rusqlite::Error::FromSqlConversionFailure(
                             0,
@@ -426,6 +684,303 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             state.authoritative_artifact_digests.insert(key, record);
         }
     }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT commit_id, branch_id, schema_support_artifact_id, lineage_support_artifact_id,
+                       emitted_schema_artifact, emitted_lineage_artifact
+                FROM commit_support_summaries
+                ORDER BY commit_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok(super::records::CommitSupportSummaryRecord {
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(0)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(1)?,
+                    ),
+                    schema_support_artifact_id: row.get(2)?,
+                    lineage_support_artifact_id: row.get(3)?,
+                    emitted_schema_artifact: row.get::<_, i64>(4)? != 0,
+                    emitted_lineage_artifact: row.get::<_, i64>(5)? != 0,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .commit_support_summaries
+                .insert(record.commit_id.0, record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT artifact_id, commit_id, branch_id, schema_version_id, descriptor_semantics_version,
+                       schema_transition_payload, schema_continuation_descriptor_payload,
+                       schema_reconciliation_descriptor_payload
+                FROM schema_support_records
+                ORDER BY commit_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                let schema_transition = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaTransitionArtifact,
+                >(row.get(5)?)?;
+                let schema_continuation_descriptor = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaContinuationDescriptor,
+                >(row.get(6)?)?;
+                let schema_reconciliation_descriptor = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaReconciliationDescriptor,
+                >(row.get(7)?)?;
+                Ok(super::records::SchemaSupportRecord {
+                    artifact_id: row.get(0)?,
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(1)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(2)?,
+                    ),
+                    schema_version_id: forge_relational::facade::schema::SchemaVersionId(
+                        row.get::<_, i64>(3)? as u32,
+                    ),
+                    descriptor_semantics_version:
+                        forge_relational::facade::schema::DescriptorSemanticsVersion(
+                            row.get::<_, i64>(4)? as u32,
+                        ),
+                    schema_transition,
+                    schema_continuation_descriptor,
+                    schema_reconciliation_descriptor,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .schema_support_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT artifact_id, commit_id, branch_id, lineage_event_ids_payload, lineage_events_payload,
+                       lineage_digest_basis_payload, event_batch_digest_basis_payload,
+                       decision_log_digest_basis_payload, lineage_artifact_counters_payload
+                FROM lineage_support_records
+                ORDER BY commit_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok(super::records::LineageSupportRecord {
+                    artifact_id: row.get(0)?,
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(1)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(2)?,
+                    ),
+                    lineage_event_ids: deserialize_json(row.get(3)?)?,
+                    lineage_events: deserialize_json(row.get(4)?)?,
+                    lineage_digest_basis: deserialize_json(row.get(5)?)?,
+                    event_batch_digest_basis: deserialize_json(row.get(6)?)?,
+                    decision_log_digest_basis: deserialize_json(row.get(7)?)?,
+                    lineage_artifact_counters: deserialize_json(row.get(8)?)?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .lineage_support_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT artifact_id, cursor_id, subscriber_id, branch_id, feed_shape_id,
+                       schema_interpretation_id, cursor_semantics_version,
+                       latest_checkpoint_sequence, latest_basis_commit_id,
+                       latest_schema_support_artifact_id
+                FROM durable_cursor_identity_records
+                ORDER BY cursor_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok(super::records::DurableCursorIdentityRecord {
+                    artifact_id: row.get(0)?,
+                    cursor_id: row.get(1)?,
+                    subscriber_id: row.get(2)?,
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(3)?,
+                    ),
+                    feed_shape_id: row.get(4)?,
+                    schema_interpretation_id: row.get(5)?,
+                    cursor_semantics_version: row.get::<_, i64>(6)? as u32,
+                    latest_checkpoint_sequence: row.get::<_, i64>(7)? as u64,
+                    latest_basis_commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(8)? as u64,
+                    ),
+                    latest_schema_support_artifact_id: row.get(9)?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .durable_cursor_identity_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT artifact_id, cursor_id, subscriber_id, branch_id, feed_shape_id,
+                       schema_interpretation_id, cursor_semantics_version,
+                       checkpoint_sequence, basis_commit_id, schema_support_artifact_id
+                FROM subscriber_checkpoint_records
+                ORDER BY cursor_id, checkpoint_sequence
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok(super::records::SubscriberCheckpointRecord {
+                    artifact_id: row.get(0)?,
+                    cursor_id: row.get(1)?,
+                    subscriber_id: row.get(2)?,
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(3)?,
+                    ),
+                    feed_shape_id: row.get(4)?,
+                    schema_interpretation_id: row.get(5)?,
+                    cursor_semantics_version: row.get::<_, i64>(6)? as u32,
+                    checkpoint_sequence: row.get::<_, i64>(7)? as u64,
+                    basis_commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(8)? as u64,
+                    ),
+                    schema_support_artifact_id: row.get(9)?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .subscriber_checkpoint_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT branch_id, source_branch_id, source_frontier_commit_id, delta_family_version, authority_basis_digest
+                FROM branch_shared_base_records
+                ORDER BY branch_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok(super::records::BranchSharedBaseRecord {
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(0)?,
+                    ),
+                    source_branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(1)?,
+                    ),
+                    source_frontier_commit_id: row
+                        .get::<_, Option<i64>>(2)?
+                        .map(|value| forge_relational::facade::history::CommitId(value as u64)),
+                    delta_family_version: row.get::<_, i64>(3)? as u32,
+                    authority_basis_digest: row.get(4)?,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .branch_shared_base_records
+                .insert(record.branch_id.0.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT branch_delta_layer_id, branch_id, base_frontier_commit_id, target_frontier_commit_id,
+                       commit_ids_payload, delta_family_version, authority_basis_digest, artifacts_payload,
+                       replacement_of_layer_ids_payload, replacement_lineage_proof_payload
+                FROM branch_delta_layer_records
+                ORDER BY branch_delta_layer_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| {
+                let commit_ids: Vec<u64> = deserialize_json(row.get(4)?)?;
+                let artifacts = deserialize_json(row.get(7)?)?;
+                let replacement_of_layer_ids: Vec<u64> = deserialize_json(row.get(8)?)?;
+                let replacement_lineage_proof = deserialize_json(row.get(9)?)?;
+                Ok(super::records::BranchDeltaLayerRecord {
+                    branch_delta_layer_id: crate::delta::BranchDeltaLayerId(
+                        row.get::<_, i64>(0)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(1)?,
+                    ),
+                    base_frontier_commit_id: row
+                        .get::<_, Option<i64>>(2)?
+                        .map(|value| forge_relational::facade::history::CommitId(value as u64)),
+                    target_frontier_commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(3)? as u64,
+                    ),
+                    commit_ids: commit_ids
+                        .into_iter()
+                        .map(forge_relational::facade::history::CommitId)
+                        .collect(),
+                    delta_family_version: row.get::<_, i64>(5)? as u32,
+                    authority_basis_digest: row.get(6)?,
+                    artifacts,
+                    replacement_of_layer_ids: replacement_of_layer_ids
+                        .into_iter()
+                        .map(crate::delta::BranchDeltaLayerId)
+                        .collect(),
+                    replacement_lineage_proof,
+                })
+            })
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record = row.map_err(sqlite_error)?;
+            state
+                .branch_delta_layer_records
+                .insert(record.branch_delta_layer_id.0, record);
+        }
+    }
+    state.backfill_missing_branch_delta_layer_artifacts()?;
 
     {
         let mut statement = connection
@@ -497,6 +1052,262 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             state
                 .embedded_checkpoint_records
                 .insert(record.checkpoint_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM milestone_6_layout_materialization_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::Milestone6LayoutMaterializationRecord =
+                row.map_err(sqlite_error)?;
+            state
+                .milestone_6_layout_materialization_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM milestone_6_scope_slice_membership_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::Milestone6ScopeSliceMembershipRecord =
+                row.map_err(sqlite_error)?;
+            state
+                .milestone_6_scope_slice_membership_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM milestone_6_chunk_membership_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::Milestone6ChunkMembershipRecord =
+                row.map_err(sqlite_error)?;
+            state
+                .milestone_6_chunk_membership_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM milestone_6_structural_block_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::Milestone6StructuralBlockRecord =
+                row.map_err(sqlite_error)?;
+            state
+                .milestone_6_structural_block_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM bulk_program_identity_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::BulkProgramIdentityRecord = row.map_err(sqlite_error)?;
+            state
+                .bulk_program_identity_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM frozen_bulk_manifest_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::FrozenBulkManifestRecord = row.map_err(sqlite_error)?;
+            state
+                .frozen_bulk_manifest_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM frozen_transform_basis_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::FrozenTransformBasisRecord = row.map_err(sqlite_error)?;
+            state
+                .frozen_transform_basis_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM frozen_transform_partition_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::FrozenTransformPartitionRecord = row.map_err(sqlite_error)?;
+            state
+                .frozen_transform_partition_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM bulk_deterministic_plan_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::BulkDeterministicPlanRecord = row.map_err(sqlite_error)?;
+            state
+                .bulk_deterministic_plan_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM bulk_progress_checkpoint_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::BulkProgressCheckpointRecord = row.map_err(sqlite_error)?;
+            state
+                .bulk_progress_checkpoint_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM bulk_chunk_witness_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::BulkChunkWitnessRecord = row.map_err(sqlite_error)?;
+            state
+                .bulk_chunk_witness_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM program_chunk_witness_index_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::ProgramChunkWitnessIndexRecord = row.map_err(sqlite_error)?;
+            state
+                .program_chunk_witness_index_records
+                .insert(record.artifact_id.clone(), record);
         }
     }
 
@@ -623,6 +1434,15 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             .map(|value| value + 1)
             .unwrap_or(1)
     });
+    state.next_branch_delta_layer_id = load_meta_u64(connection, "next_branch_delta_layer_id")?
+        .unwrap_or_else(|| {
+            state
+                .branch_delta_layer_records
+                .keys()
+                .max()
+                .map(|value| value + 1)
+                .unwrap_or(1)
+        });
     state.next_wal_sequence =
         load_meta_u64(connection, "next_wal_sequence")?.unwrap_or_else(|| {
             state
@@ -645,7 +1465,26 @@ fn persist_state(connection: &mut Connection, state: &StoreState) -> Result<(), 
     persist_commit_parent_records(&transaction, state)?;
     persist_branch_head_records(&transaction, state)?;
     persist_digest_records(&transaction, state)?;
+    persist_commit_support_summaries(&transaction, state)?;
+    persist_schema_support_records(&transaction, state)?;
+    persist_lineage_support_records(&transaction, state)?;
+    persist_durable_cursor_identity_records(&transaction, state)?;
+    persist_subscriber_checkpoint_records(&transaction, state)?;
+    persist_branch_shared_base_records(&transaction, state)?;
+    persist_branch_delta_layer_records(&transaction, state)?;
     persist_embedded_checkpoint_records(&transaction, state)?;
+    persist_milestone_6_layout_materialization_records(&transaction, state)?;
+    persist_milestone_6_scope_slice_membership_records(&transaction, state)?;
+    persist_milestone_6_chunk_membership_records(&transaction, state)?;
+    persist_milestone_6_structural_block_records_impl(&transaction, state)?;
+    persist_bulk_program_identity_records(&transaction, state)?;
+    persist_frozen_bulk_manifest_records(&transaction, state)?;
+    persist_frozen_transform_basis_records(&transaction, state)?;
+    persist_frozen_transform_partition_records(&transaction, state)?;
+    persist_bulk_deterministic_plan_records(&transaction, state)?;
+    persist_bulk_progress_checkpoint_records(&transaction, state)?;
+    persist_bulk_chunk_witness_records(&transaction, state)?;
+    persist_program_chunk_witness_index_records(&transaction, state)?;
     persist_snapshot_basis_records(&transaction, state)?;
     persist_snapshot_image_records(&transaction, state)?;
     persist_wal_records(&transaction, state)?;
@@ -659,10 +1498,29 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             "
             DELETE FROM authoritative_artifact_digests;
             DELETE FROM branch_head_records;
+            DELETE FROM commit_support_summaries;
+            DELETE FROM schema_support_records;
+            DELETE FROM lineage_support_records;
+            DELETE FROM durable_cursor_identity_records;
+            DELETE FROM subscriber_checkpoint_records;
+            DELETE FROM branch_delta_layer_records;
+            DELETE FROM branch_shared_base_records;
             DELETE FROM commit_parent_records;
             DELETE FROM commit_envelopes;
             DELETE FROM branch_records;
             DELETE FROM embedded_checkpoint_records;
+            DELETE FROM milestone_6_layout_materialization_records;
+            DELETE FROM milestone_6_scope_slice_membership_records;
+            DELETE FROM milestone_6_chunk_membership_records;
+            DELETE FROM milestone_6_structural_block_records;
+            DELETE FROM bulk_program_identity_records;
+            DELETE FROM frozen_bulk_manifest_records;
+            DELETE FROM frozen_transform_basis_records;
+            DELETE FROM frozen_transform_partition_records;
+            DELETE FROM bulk_deterministic_plan_records;
+            DELETE FROM bulk_progress_checkpoint_records;
+            DELETE FROM bulk_chunk_witness_records;
+            DELETE FROM program_chunk_witness_index_records;
             DELETE FROM snapshot_image_records;
             DELETE FROM snapshot_basis_records;
             DELETE FROM wal_records;
@@ -698,6 +1556,11 @@ fn persist_meta(transaction: &Transaction<'_>, state: &StoreState) -> Result<(),
         transaction,
         "next_snapshot_id",
         state.next_snapshot_id.to_string(),
+    )?;
+    persist_meta_value(
+        transaction,
+        "next_branch_delta_layer_id",
+        state.next_branch_delta_layer_id.to_string(),
     )?;
     persist_meta_value(
         transaction,
@@ -864,6 +1727,301 @@ fn persist_digest_records(
     Ok(())
 }
 
+fn persist_commit_support_summaries(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.commit_support_summaries.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO commit_support_summaries(
+                    commit_id,
+                    branch_id,
+                    schema_support_artifact_id,
+                    lineage_support_artifact_id,
+                    emitted_schema_artifact,
+                    emitted_lineage_artifact
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ",
+                params![
+                    as_i64(record.commit_id),
+                    record.branch_id.0,
+                    record.schema_support_artifact_id,
+                    record.lineage_support_artifact_id,
+                    if record.emitted_schema_artifact { 1 } else { 0 },
+                    if record.emitted_lineage_artifact {
+                        1
+                    } else {
+                        0
+                    },
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_schema_support_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.schema_support_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO schema_support_records(
+                    artifact_id,
+                    commit_id,
+                    branch_id,
+                    schema_version_id,
+                    descriptor_semantics_version,
+                    schema_transition_payload,
+                    schema_continuation_descriptor_payload,
+                    schema_reconciliation_descriptor_payload
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                ",
+                params![
+                    record.artifact_id,
+                    as_i64(record.commit_id),
+                    record.branch_id.0,
+                    record.schema_version_id.0 as i64,
+                    record.descriptor_semantics_version.0 as i64,
+                    serialize_optional_json(&record.schema_transition)?,
+                    serialize_optional_json(&record.schema_continuation_descriptor)?,
+                    serialize_optional_json(&record.schema_reconciliation_descriptor)?,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_lineage_support_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.lineage_support_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO lineage_support_records(
+                    artifact_id,
+                    commit_id,
+                    branch_id,
+                    lineage_event_ids_payload,
+                    lineage_events_payload,
+                    lineage_digest_basis_payload,
+                    event_batch_digest_basis_payload,
+                    decision_log_digest_basis_payload,
+                    lineage_artifact_counters_payload
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                ",
+                params![
+                    record.artifact_id,
+                    as_i64(record.commit_id),
+                    record.branch_id.0,
+                    serde_json::to_string(&record.lineage_event_ids)?,
+                    serde_json::to_string(&record.lineage_events)?,
+                    serde_json::to_string(&record.lineage_digest_basis)?,
+                    serde_json::to_string(&record.event_batch_digest_basis)?,
+                    serde_json::to_string(&record.decision_log_digest_basis)?,
+                    serde_json::to_string(&record.lineage_artifact_counters)?,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_durable_cursor_identity_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.durable_cursor_identity_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO durable_cursor_identity_records(
+                    artifact_id,
+                    cursor_id,
+                    subscriber_id,
+                    branch_id,
+                    feed_shape_id,
+                    schema_interpretation_id,
+                    cursor_semantics_version,
+                    latest_checkpoint_sequence,
+                    latest_basis_commit_id,
+                    latest_schema_support_artifact_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                ",
+                params![
+                    record.artifact_id,
+                    record.cursor_id,
+                    record.subscriber_id,
+                    record.branch_id.0,
+                    record.feed_shape_id,
+                    record.schema_interpretation_id,
+                    record.cursor_semantics_version as i64,
+                    record.latest_checkpoint_sequence as i64,
+                    as_i64(record.latest_basis_commit_id),
+                    record.latest_schema_support_artifact_id,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_subscriber_checkpoint_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.subscriber_checkpoint_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO subscriber_checkpoint_records(
+                    artifact_id,
+                    cursor_id,
+                    subscriber_id,
+                    branch_id,
+                    feed_shape_id,
+                    schema_interpretation_id,
+                    cursor_semantics_version,
+                    checkpoint_sequence,
+                    basis_commit_id,
+                    schema_support_artifact_id
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                ",
+                params![
+                    record.artifact_id,
+                    record.cursor_id,
+                    record.subscriber_id,
+                    record.branch_id.0,
+                    record.feed_shape_id,
+                    record.schema_interpretation_id,
+                    record.cursor_semantics_version as i64,
+                    record.checkpoint_sequence as i64,
+                    as_i64(record.basis_commit_id),
+                    record.schema_support_artifact_id,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_branch_shared_base_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.branch_shared_base_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO branch_shared_base_records(
+                    branch_id,
+                    source_branch_id,
+                    source_frontier_commit_id,
+                    delta_family_version,
+                    authority_basis_digest
+                ) VALUES (?1, ?2, ?3, ?4, ?5)
+                ",
+                params![
+                    record.branch_id.0,
+                    record.source_branch_id.0,
+                    record.source_frontier_commit_id.map(as_i64),
+                    record.delta_family_version as i64,
+                    record.authority_basis_digest,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn persist_branch_delta_layer_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.branch_delta_layer_records.values() {
+        transaction
+            .execute(
+                "
+                INSERT INTO branch_delta_layer_records(
+                    branch_delta_layer_id,
+                    branch_id,
+                    base_frontier_commit_id,
+                    target_frontier_commit_id,
+                    commit_ids_payload,
+                    delta_family_version,
+                    authority_basis_digest,
+                    artifacts_payload,
+                    replacement_of_layer_ids_payload,
+                    replacement_lineage_proof_payload
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                ",
+                params![
+                    as_i64_u64(record.branch_delta_layer_id.0),
+                    record.branch_id.0,
+                    record.base_frontier_commit_id.map(as_i64),
+                    as_i64(record.target_frontier_commit_id),
+                    serde_json::to_string(
+                        &record
+                            .commit_ids
+                            .iter()
+                            .map(|commit_id| commit_id.0)
+                            .collect::<Vec<_>>()
+                    )?,
+                    record.delta_family_version as i64,
+                    record.authority_basis_digest,
+                    serde_json::to_string(&record.artifacts)?,
+                    serde_json::to_string(
+                        &record
+                            .replacement_of_layer_ids
+                            .iter()
+                            .map(|layer_id| layer_id.0)
+                            .collect::<Vec<_>>()
+                    )?,
+                    serde_json::to_string(&record.replacement_lineage_proof)?,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn ensure_branch_delta_layer_artifacts_column(connection: &Connection) -> Result<(), StoreError> {
+    let mut statement = connection
+        .prepare("PRAGMA table_info(branch_delta_layer_records)")
+        .map_err(sqlite_error)?;
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(sqlite_error)?;
+    let mut has_artifacts_column = false;
+    for row in rows {
+        if row.map_err(sqlite_error)? == "artifacts_payload" {
+            has_artifacts_column = true;
+            break;
+        }
+    }
+    if !has_artifacts_column {
+        let default_payload =
+            serde_json::to_string(&super::records::BranchDeltaLayerArtifacts::default())?;
+        connection
+            .execute(
+                &format!(
+                    "ALTER TABLE branch_delta_layer_records ADD COLUMN artifacts_payload TEXT NOT NULL DEFAULT '{}'",
+                    default_payload.replace('\'', "''")
+                ),
+                [],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
 fn persist_embedded_checkpoint_records(
     transaction: &Transaction<'_>,
     state: &StoreState,
@@ -902,6 +2060,307 @@ fn persist_embedded_checkpoint_records(
             )
             .map_err(sqlite_error)?;
     }
+    Ok(())
+}
+
+fn persist_milestone_6_layout_materialization_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.milestone_6_layout_materialization_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "milestone_6_layout_materialization_records",
+            &record.artifact_id,
+            Vec::new(),
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_milestone_6_scope_slice_membership_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.milestone_6_scope_slice_membership_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "milestone_6_scope_slice_membership_records",
+            &record.artifact_id,
+            vec![
+                ("branch_id".to_string(), record.branch_id.0.clone()),
+                (
+                    "frontier_commit_id".to_string(),
+                    record.frontier_commit_id.0.to_string(),
+                ),
+                ("scope_class".to_string(), record.scope_class.clone()),
+                (
+                    "projection_digest".to_string(),
+                    record.projection_digest.clone(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_milestone_6_chunk_membership_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.milestone_6_chunk_membership_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "milestone_6_chunk_membership_records",
+            &record.artifact_id,
+            vec![
+                (
+                    "physical_chunk_id".to_string(),
+                    record.physical_chunk_id.as_str().to_string(),
+                ),
+                (
+                    "chunk_shape_version".to_string(),
+                    record.chunk_shape_version.value().to_string(),
+                ),
+                (
+                    "determinism_digest".to_string(),
+                    record.determinism_digest.clone(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_milestone_6_structural_block_records_impl(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.milestone_6_structural_block_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "milestone_6_structural_block_records",
+            &record.artifact_id,
+            vec![
+                (
+                    "structural_block_id".to_string(),
+                    record.structural_block_id.as_str().to_string(),
+                ),
+                ("branch_id".to_string(), record.branch_id.0.clone()),
+                (
+                    "frontier_commit_id".to_string(),
+                    record.frontier_commit_id.0.to_string(),
+                ),
+                ("scope_class".to_string(), record.scope_class.clone()),
+                (
+                    "equivalence_contract_version".to_string(),
+                    record.equivalence_contract_version.value().to_string(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_bulk_program_identity_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.bulk_program_identity_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "bulk_program_identity_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("kind".to_string(), format!("{:?}", record.kind)),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_frozen_bulk_manifest_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.frozen_bulk_manifest_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "frozen_bulk_manifest_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                (
+                    "manifest_digest".to_string(),
+                    record.manifest.manifest_digest().to_string(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_frozen_transform_basis_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.frozen_transform_basis_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "frozen_transform_basis_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("basis_digest".to_string(), record.basis.basis_digest().to_string()),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_frozen_transform_partition_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.frozen_transform_partition_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "frozen_transform_partition_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                (
+                    "partition_digest".to_string(),
+                    record.partition.partition_digest().to_string(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_bulk_deterministic_plan_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.bulk_deterministic_plan_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "bulk_deterministic_plan_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("plan_id".to_string(), record.plan.plan_id().to_string()),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_bulk_progress_checkpoint_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.bulk_progress_checkpoint_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "bulk_progress_checkpoint_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("plan_id".to_string(), record.plan_id.clone()),
+                (
+                    "checkpoint_sequence".to_string(),
+                    record.checkpoint.checkpoint_sequence().to_string(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_bulk_chunk_witness_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.bulk_chunk_witness_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "bulk_chunk_witness_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("plan_id".to_string(), record.plan_id.clone()),
+                (
+                    "chunk_ordinal".to_string(),
+                    record.witness.chunk_ordinal().value().to_string(),
+                ),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_program_chunk_witness_index_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.program_chunk_witness_index_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "program_chunk_witness_index_records",
+            &record.artifact_id,
+            vec![
+                ("program_id".to_string(), record.program_id.clone()),
+                ("plan_id".to_string(), record.plan_id.clone()),
+            ],
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_bulk_json_record<T: serde::Serialize>(
+    transaction: &Transaction<'_>,
+    table: &str,
+    artifact_id: &str,
+    indexed_columns: Vec<(String, String)>,
+    record: &T,
+) -> Result<(), StoreError> {
+    let payload = serde_json::to_string(record)?;
+    let mut columns = vec!["artifact_id".to_string()];
+    let mut placeholders = vec!["?1".to_string()];
+    let mut values = vec![rusqlite::types::Value::Text(artifact_id.to_string())];
+    let mut payload_index = 2usize;
+    for (idx, (name, value)) in indexed_columns.iter().enumerate() {
+        columns.push(name.clone());
+        placeholders.push(format!("?{}", idx + 2));
+        values.push(rusqlite::types::Value::Text(value.clone()));
+        payload_index = idx + 3;
+    }
+    columns.push("payload_json".to_string());
+    placeholders.push(format!("?{}", payload_index));
+    values.push(rusqlite::types::Value::Text(payload));
+    let sql = format!(
+        "INSERT INTO {table}({}) VALUES ({})",
+        columns.join(", "),
+        placeholders.join(", ")
+    );
+    transaction
+        .execute(&sql, rusqlite::params_from_iter(values))
+        .map_err(sqlite_error)?;
     Ok(())
 }
 
@@ -1025,6 +2484,28 @@ fn load_meta_u64(connection: &Connection, key: &str) -> Result<Option<u64>, Stor
 
 fn load_meta_u32(connection: &Connection, key: &str) -> Result<Option<u32>, StoreError> {
     load_meta_u64(connection, key).map(|value| value.map(|value| value as u32))
+}
+
+fn deserialize_json<T: serde::de::DeserializeOwned>(payload: String) -> rusqlite::Result<T> {
+    serde_json::from_str(&payload).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error))
+    })
+}
+
+fn deserialize_optional_json<T: serde::de::DeserializeOwned>(
+    payload: Option<String>,
+) -> rusqlite::Result<Option<T>> {
+    payload.map(deserialize_json).transpose()
+}
+
+fn serialize_optional_json<T: serde::Serialize>(
+    value: &Option<T>,
+) -> Result<Option<String>, StoreError> {
+    value
+        .as_ref()
+        .map(serde_json::to_string)
+        .transpose()
+        .map_err(Into::into)
 }
 
 fn as_i64(commit_id: forge_relational::facade::history::CommitId) -> i64 {

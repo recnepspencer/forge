@@ -129,3 +129,71 @@ pub fn milestone_four_requirements() -> SuiteRequirements {
         missing_rows_block_offline_ready: true,
     }
 }
+
+pub fn milestone_five_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Live Promotion Convergence And Suppression Test",
+        required_canonical_rows: &[
+            "detail-live-convergence",
+            "ordered-collection-live-convergence",
+            "bounded-materialization-live-convergence",
+            "irrelevant-update-suppression",
+            "refresh-fallback-equivalence",
+            "coalesced-sequence-replay-parity",
+            "patch-width-budget-overflow-policy",
+            "work-avoided-counter-parity",
+        ],
+        required_rejection_rows: &[
+            "unsupported-live-family",
+            "unsupported-patch-family",
+            "raw-cdc-leakage-forbidden",
+            "invalid-live-basis-promotion",
+            "forbidden-refresh-escape-hatch",
+            "non-monotonic-change-sequence",
+            "forbidden-coalescing-class",
+            "forbidden-width-budget-overflow-behavior",
+        ],
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_five_point_one_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Region-Scoped Live Narrowing And Stream Contract Test",
+        required_canonical_rows:
+            crate::harness::region_live_certification::REGION_LIVE_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::region_live_certification::REGION_LIVE_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_five_point_two_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Preview Session Basis And Promotion Parity Test",
+        required_canonical_rows:
+            crate::harness::preview_certification::PREVIEW_MINIMUM_SPEC_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::preview_certification::PREVIEW_MINIMUM_SPEC_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}

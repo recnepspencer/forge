@@ -1,0 +1,26 @@
+warning: unreachable expression
+ --> tests/ui/private_live_query_plan_fields.rs:6:22
+  |
+5 |         descriptor: todo!(),
+  |                     ------- any code following this expression is unreachable
+6 |         start_basis: todo!(),
+  |                      ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `descriptor`, `start_basis`, `progress_basis`, `subscription_digest` and `baseline_result_digest` of struct `LiveQueryPlan` are private
+ --> tests/ui/private_live_query_plan_fields.rs:5:9
+  |
+4 |     let _ = LiveQueryPlan {
+  |             ------------- in this type
+5 |         descriptor: todo!(),
+  |         ^^^^^^^^^^ private field
+6 |         start_basis: todo!(),
+  |         ^^^^^^^^^^^ private field
+7 |         progress_basis: todo!(),
+  |         ^^^^^^^^^^^^^^ private field
+8 |         subscription_digest: todo!(),
+  |         ^^^^^^^^^^^^^^^^^^^ private field
+9 |         baseline_result_digest: todo!(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field

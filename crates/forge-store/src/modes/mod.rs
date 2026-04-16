@@ -11,7 +11,10 @@ pub use durable::{
     DurableStoreHandle,
 };
 pub use embedded::{
-    EmbeddedCheckpointClassification, EmbeddedCheckpointPersistenceReceipt, EmbeddedModeBuilder,
-    EmbeddedStoreHandle, ExternalRuntimeCheckpointEnvelope, ExternalRuntimeCommitEnvelope,
+    BasisBoundCheckpoint, BasisBoundCheckpointWitness, BasisFreeCheckpoint,
+    ContainsCanonicalCommits, DerivedDurableCheckpointKind, EmbeddedCheckpointClassification,
+    EmbeddedCheckpointPersistenceReceipt, EmbeddedModeBuilder, EmbeddedStoreHandle,
+    EphemeralCheckpointKind, ExternalRuntimeCheckpointEnvelope, ExternalRuntimeCommitEnvelope,
+    NoContainedCommits, VerifiedEmbeddedCheckpoint,
 };
 pub(crate) use lifecycle::HostedRuntimeOwnershipProof;

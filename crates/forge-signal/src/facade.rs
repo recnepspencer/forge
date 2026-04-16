@@ -192,9 +192,10 @@ pub mod specialist {
     pub use crate::logic::planner::{
         build_evaluation_plan, execute_prepared_plan, CandidateTask, EligibleTask, EvaluationPlan,
         ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
-        PlanSummary, ResolvedExecutionStrategy, ResolvedMaintenanceStrategy, SemanticSegmentId,
-        SemanticTaskRange, StageBarrier, StageExecutionOutcome, StageExecutionRecord,
-        StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+        ParallelAdmissionReason, PlanSummary, ResolvedExecutionStrategy,
+        ResolvedMaintenanceStrategy, SemanticSegmentId, SemanticTaskRange, StageBarrier,
+        StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
+        TaskExecutionRecord, TaskReason,
     };
     pub use crate::logic::prepared::ExecutionReadView as ReadView;
     pub use crate::logic::prepared::PreparedEvaluation as PlannedRun;

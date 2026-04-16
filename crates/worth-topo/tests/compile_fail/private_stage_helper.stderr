@@ -1,0 +1,11 @@
+error[E0603]: module `reader` is private
+ --> tests/compile_fail/private_stage_helper.rs:1:17
+  |
+1 | use worth_topo::reader::stage_topology_read_from_view_traced;
+  |                 ^^^^^^ private module
+  |
+note: the module `reader` is defined here
+ --> src/lib.rs
+  |
+  | mod reader;
+  | ^^^^^^^^^^

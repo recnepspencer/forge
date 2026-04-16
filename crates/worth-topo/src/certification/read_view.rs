@@ -6,11 +6,14 @@ use forge_relational::facade::replay::{
 };
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use worth_schema::facade::{
-    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthAspect, WorthEntityKind,
-    WorthFallbackDisposition, WorthMutationOrigin, WorthNamingEntityKind,
-    WorthNamingRelationKind, WorthRelationKind, WorthShellInterpretationClass,
-    WorthTopologyEntityKind, WorthTopologyMutationBatch, WorthTopologyRelationKind,
-    WorthWireInterpretationClass,
+    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthAspect,
+    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
+    WorthBoundaryFailure, WorthDecisionTrace, WorthDerivedTraceAnchor,
+    WorthDerivedTraceEvidence, WorthEntityKind, WorthFallbackDisposition,
+    WorthIntegrityMarkers, WorthNamedCounter, WorthPerformanceAccounting,
+    WorthMutationOrigin, WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind,
+    WorthShellInterpretationClass, WorthTopologyEntityKind, WorthTopologyMutationBatch,
+    WorthTopologyRelationKind, WorthWireInterpretationClass,
 };
 
 use crate::certification::error::WorthMilestoneOneCertificationError;
@@ -27,7 +30,10 @@ use crate::facade::{
     build_derived_equivalence_contract, compare_derived_equivalence_contracts,
     build_topology_read_artifact, certify_topology_view, validate_named_topology_truth,
 };
-use crate::reader::stage_topology_read_from_view;
+use crate::reader::stage_topology_read_from_view_traced;
+
+pub type WorthTracedMilestoneOneCertificationReport =
+    WorthBoundaryEnvelope<WorthMilestoneOneCertificationReport>;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct WorthMilestoneOneCertificationHarness;
@@ -37,7 +43,19 @@ impl WorthMilestoneOneCertificationHarness {
         read_view: &RelationalReadView,
         read_basis: DerivedTopologyReadBasis,
     ) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-        Self::certify_read_view_with_batch(read_view, read_basis, None, 0)
+        Self::certify_read_view_traced(read_view, read_basis)
+            .map(WorthBoundaryEnvelope::into_primary_result)
+            .map_err(WorthBoundaryFailure::into_error)
+    }
+
+    pub fn certify_read_view_traced(
+        read_view: &RelationalReadView,
+        read_basis: DerivedTopologyReadBasis,
+    ) -> Result<
+        WorthTracedMilestoneOneCertificationReport,
+        WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
+    > {
+        Self::certify_read_view_with_batch_traced(read_view, read_basis, None, 0)
     }
 
     pub(crate) fn certify_read_view_with_batch(
@@ -46,29 +64,59 @@ impl WorthMilestoneOneCertificationHarness {
         authority_batch: Option<&WorthTopologyMutationBatch>,
         replay_history_length: usize,
     ) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-        validate_named_topology_truth(read_view)?;
-        let staged = stage_topology_read_from_view(read_view)?;
+        Self::certify_read_view_with_batch_traced(
+            read_view,
+            read_basis,
+            authority_batch,
+            replay_history_length,
+        )
+        .map(WorthBoundaryEnvelope::into_primary_result)
+        .map_err(WorthBoundaryFailure::into_error)
+    }
+
+    pub(crate) fn certify_read_view_with_batch_traced(
+        read_view: &RelationalReadView,
+        read_basis: DerivedTopologyReadBasis,
+        authority_batch: Option<&WorthTopologyMutationBatch>,
+        replay_history_length: usize,
+    ) -> Result<
+        WorthTracedMilestoneOneCertificationReport,
+        WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
+    > {
+        validate_named_topology_truth(read_view).map_err(|error| {
+            traced_certification_failure(
+                error.into(),
+                &read_basis,
+                None,
+                replay_history_length,
+            )
+        })?;
+        let staged = stage_topology_read_from_view_traced(read_view, &read_basis)
+            .map_err(|failure| traced_certification_failure_from_read_failure(failure, &read_basis))?;
         let equivalence_contract = build_derived_equivalence_contract(
             &read_basis,
-            staged.materialized(),
-            staged.interpreted(),
-            staged.validation(),
+            staged.primary_result().materialized(),
+            staged.primary_result().interpreted(),
+            staged.primary_result().validation(),
         );
         let derived_read_diagnostics = build_derived_read_diagnostics(
             &read_basis,
-            staged.materialized(),
-            staged.interpreted(),
-            staged.validation(),
+            staged.primary_result().materialized(),
+            staged.primary_result().interpreted(),
+            staged.primary_result().validation(),
         );
-        let read_artifact = build_topology_read_artifact(&read_basis, staged.interpreted());
+        let read_artifact = build_topology_read_artifact(
+            &read_basis,
+            staged.primary_result().interpreted(),
+        );
         let certified_interpretation =
-            certify_topology_view(read_basis.clone(), staged.interpreted());
+            certify_topology_view(read_basis.clone(), staged.primary_result().interpreted());
         let replay_read_basis = read_basis.replay_of();
         let replay_equivalence_contract = build_derived_equivalence_contract(
             &replay_read_basis,
-            staged.materialized(),
-            staged.interpreted(),
-            staged.validation(),
+            staged.primary_result().materialized(),
+            staged.primary_result().interpreted(),
+            staged.primary_result().validation(),
         );
         let replay_comparison =
             compare_derived_equivalence_contracts(&equivalence_contract, &replay_equivalence_contract);
@@ -105,6 +153,7 @@ impl WorthMilestoneOneCertificationHarness {
         );
         let topology_validation_digest = digest_rows(
             staged
+                .primary_result()
                 .validation()
                 .rows
                 .iter()
@@ -124,6 +173,7 @@ impl WorthMilestoneOneCertificationHarness {
         );
         let replay_topology_validation_digest = digest_rows(
             staged
+                .primary_result()
                 .validation()
                 .rows
                 .iter()
@@ -159,20 +209,20 @@ impl WorthMilestoneOneCertificationHarness {
         };
         let counters = build_counter_report(
             authority_batch,
-            staged.validation(),
+            staged.primary_result().validation(),
             &naming_attachment_report,
             &primitive_family_coverage_matrix,
             &read_basis,
             replay_history_length,
         );
 
-        Ok(WorthMilestoneOneCertificationReport {
+        let report = WorthMilestoneOneCertificationReport {
             named_truth_validated: true,
             topology_validated: true,
             topology_truth_digest,
             naming_truth_digest,
             topology_validation_digest,
-            topology_validation_report: staged.validation().clone(),
+            topology_validation_report: staged.primary_result().validation().clone(),
             topology_localization_report,
             naming_attachment_report,
             primitive_family_coverage_matrix,
@@ -186,34 +236,86 @@ impl WorthMilestoneOneCertificationHarness {
             counters,
             read_artifact,
             certified_interpretation,
-        })
+        };
+
+        Ok(traced_certification_envelope(
+            report,
+            &read_basis,
+            None,
+            replay_history_length,
+            None,
+        ))
     }
 
     pub fn certify_verified_commit(
         runtime: &mut RelationalRuntime,
         verified: &VerifiedTopologyCommit,
     ) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
+        Self::certify_verified_commit_traced(runtime, verified)
+            .map(WorthBoundaryEnvelope::into_primary_result)
+            .map_err(WorthBoundaryFailure::into_error)
+    }
+
+    pub fn certify_verified_commit_traced(
+        runtime: &mut RelationalRuntime,
+        verified: &VerifiedTopologyCommit,
+    ) -> Result<
+        WorthTracedMilestoneOneCertificationReport,
+        WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
+    > {
         let read_view = runtime
             .read_truth()
             .read_snapshot(&verified.persisted_truth.snapshot)
             .ok_or_else(|| {
-                WorthMilestoneOneCertificationError::ReadView(format!(
+                traced_certification_failure(
+                    WorthMilestoneOneCertificationError::ReadView(format!(
                     "worth certification could not open verified snapshot {:?}",
                     verified.persisted_truth.snapshot
-                ))
+                )),
+                    &verified.read_basis,
+                    Some(&verified.commits),
+                    verified.commits.len(),
+                )
             })?;
-        let mut report = Self::certify_read_view_with_batch(
+        let traced = Self::certify_read_view_with_batch_traced(
             &read_view,
             verified.read_basis.clone(),
             Some(&verified.canonical_batch.batch),
             verified.commits.len(),
         )?;
+        let mut report = traced.primary_result().clone();
         let Some(replay_commit_id) = verified
             .commits
             .last()
             .map(|commit| commit.outcome.commit.commit_id.clone())
         else {
-            return Ok(report);
+            let integrity_markers =
+                certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+            let performance_accounting = certification_performance_accounting(
+                &report,
+                Some(&verified.commits),
+                verified.commits.len(),
+            );
+            return Ok(
+                traced
+                    .map_primary_result(|_| report)
+                    .map_decision_trace(|mut decision_trace| {
+                        decision_trace.authority_anchor =
+                            Some(WorthAuthorityTraceAnchor::from_commit_results(
+                                verified.branch_id.clone(),
+                                &verified.commits,
+                            ));
+                        decision_trace.authority = Some(
+                            WorthAuthorityTraceEvidence::from_commit_results(
+                                verified.branch_id.clone(),
+                                &verified.commits,
+                            ),
+                        );
+                        decision_trace
+                    })
+                    .with_integrity_markers(integrity_markers)
+                    .with_performance_accounting(performance_accounting),
+            );
         };
         let replay = runtime.replay_authority().replay_commit(RelationalReplayRequest {
             branch_id: verified.branch_id.clone(),
@@ -247,22 +349,228 @@ impl WorthMilestoneOneCertificationHarness {
                 WorthReplayParityStatus::Mismatch;
         }
 
-        Ok(report)
+        let integrity_markers =
+            certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+        let performance_accounting = certification_performance_accounting(
+            &report,
+            Some(&verified.commits),
+            verified.commits.len(),
+        );
+        Ok(traced
+            .map_primary_result(|_| report)
+            .map_decision_trace(|mut decision_trace| {
+                decision_trace.authority_anchor =
+                    Some(WorthAuthorityTraceAnchor::from_commit_results(
+                        verified.branch_id.clone(),
+                        &verified.commits,
+                    ));
+                decision_trace.authority = Some(WorthAuthorityTraceEvidence::from_commit_results(
+                    verified.branch_id.clone(),
+                    &verified.commits,
+                ));
+                decision_trace
+            })
+            .with_integrity_markers(integrity_markers)
+            .with_performance_accounting(performance_accounting))
     }
 }
 
-pub fn certify_milestone_one_read_view_impl(
+pub fn certify_milestone_one_read_view_traced_impl(
     read_view: &RelationalReadView,
     read_basis: DerivedTopologyReadBasis,
-) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-    WorthMilestoneOneCertificationHarness::certify_read_view(read_view, read_basis)
+) -> Result<WorthTracedMilestoneOneCertificationReport, WorthBoundaryFailure<WorthMilestoneOneCertificationError>>
+{
+    WorthMilestoneOneCertificationHarness::certify_read_view_traced(read_view, read_basis)
 }
 
-pub fn certify_verified_topology_commit_impl(
+pub fn certify_verified_topology_commit_traced_impl(
     runtime: &mut RelationalRuntime,
     verified: &VerifiedTopologyCommit,
-) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-    WorthMilestoneOneCertificationHarness::certify_verified_commit(runtime, verified)
+) -> Result<WorthTracedMilestoneOneCertificationReport, WorthBoundaryFailure<WorthMilestoneOneCertificationError>>
+{
+    WorthMilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
+}
+
+fn traced_certification_envelope(
+    report: WorthMilestoneOneCertificationReport,
+    read_basis: &DerivedTopologyReadBasis,
+    commit_results: Option<&[forge_relational::facade::transactions::CommitResult]>,
+    replay_history_length: usize,
+    warnings: Option<Vec<worth_schema::facade::WorthTraceWarning>>,
+) -> WorthTracedMilestoneOneCertificationReport {
+    WorthBoundaryEnvelope::success(
+        report.clone(),
+        warnings.unwrap_or_default(),
+        WorthDecisionTrace {
+            authority_anchor: commit_results.map(|commits| {
+                WorthAuthorityTraceAnchor::from_commit_results(read_basis.branch_id().clone(), commits)
+            }),
+            bridge_anchor: None,
+            derived_anchor: Some(WorthDerivedTraceAnchor::from_read_basis(read_basis)),
+            signal_anchor: None,
+            authority: commit_results
+                .map(|commits| WorthAuthorityTraceEvidence::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )),
+            bridge: None,
+            derived: Some(certification_derived_trace(&report)),
+            signal: None,
+        },
+        certification_integrity_markers(read_basis, commit_results),
+        certification_performance_accounting(&report, commit_results, replay_history_length),
+    )
+}
+
+fn traced_certification_failure(
+    error: WorthMilestoneOneCertificationError,
+    read_basis: &DerivedTopologyReadBasis,
+    commit_results: Option<&[forge_relational::facade::transactions::CommitResult]>,
+    replay_history_length: usize,
+) -> WorthBoundaryFailure<WorthMilestoneOneCertificationError> {
+    WorthBoundaryFailure::failure(
+        error,
+        Vec::new(),
+        WorthDecisionTrace {
+            authority_anchor: commit_results.map(|commits| {
+                WorthAuthorityTraceAnchor::from_commit_results(read_basis.branch_id().clone(), commits)
+            }),
+            bridge_anchor: None,
+            derived_anchor: Some(WorthDerivedTraceAnchor::from_read_basis(read_basis)),
+            signal_anchor: None,
+            authority: commit_results
+                .map(|commits| WorthAuthorityTraceEvidence::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )),
+            bridge: None,
+            derived: None,
+            signal: None,
+        },
+        certification_integrity_markers(read_basis, commit_results),
+        WorthPerformanceAccounting::new([
+            WorthNamedCounter::new(
+                "certification.replay_history_length",
+                replay_history_length as u64,
+            ),
+        ]),
+    )
+}
+
+fn traced_certification_failure_from_read_failure(
+    failure: WorthBoundaryFailure<crate::reader::WorthTopologyReadError>,
+    read_basis: &DerivedTopologyReadBasis,
+) -> WorthBoundaryFailure<WorthMilestoneOneCertificationError> {
+    failure
+        .map_error(Into::into)
+        .with_default_fallback(read_basis)
+}
+
+trait CertificationFailureExt {
+    fn with_default_fallback(self, read_basis: &DerivedTopologyReadBasis) -> Self;
+}
+
+impl CertificationFailureExt for WorthBoundaryFailure<WorthMilestoneOneCertificationError> {
+    fn with_default_fallback(self, read_basis: &DerivedTopologyReadBasis) -> Self {
+        if self.integrity_markers().branch_id.is_none() {
+            return self.with_integrity_markers(certification_integrity_markers(read_basis, None));
+        }
+        self
+    }
+}
+
+fn certification_integrity_markers(
+    read_basis: &DerivedTopologyReadBasis,
+    _commit_results: Option<&[forge_relational::facade::transactions::CommitResult]>,
+) -> WorthIntegrityMarkers {
+    WorthIntegrityMarkers::new(
+        Some(read_basis.branch_id().clone()),
+        read_basis.touched_aspects().iter().copied().collect(),
+        Some(read_basis.authoritative_mutation_origin()),
+        Some(read_basis.authority.truth_basis_identity.clone()),
+        read_basis.precision_fallbacks.len(),
+        read_basis.precision_budget_fallbacks.len(),
+    )
+}
+
+fn certification_derived_trace(
+    report: &WorthMilestoneOneCertificationReport,
+) -> WorthDerivedTraceEvidence {
+    WorthDerivedTraceEvidence {
+        availability: worth_schema::facade::WorthTraceAvailability::Present,
+        invalidation_target_count: report.derived_invalidation_report.triggered_target_count,
+        fallback_classes: report
+            .derived_fallback_report
+            .materialization_fallback_class
+            .map(|_| "WholeViewRebuild".to_string())
+            .into_iter()
+            .collect(),
+        equivalence_digest: Some(
+            report
+                .derived_equivalence_contract_report
+                .materialized_topology_digest
+                .digest_hex
+                .clone(),
+        ),
+    }
+}
+
+fn certification_performance_accounting(
+    report: &WorthMilestoneOneCertificationReport,
+    _commit_results: Option<&[forge_relational::facade::transactions::CommitResult]>,
+    replay_history_length: usize,
+) -> WorthPerformanceAccounting {
+    let counters = vec![
+        WorthNamedCounter::new(
+            "certification.topology_entity_upsert_count",
+            report.counters.topology_entity_upsert_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.topology_relation_upsert_count",
+            report.counters.topology_relation_upsert_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.topology_relation_remove_count",
+            report.counters.topology_relation_remove_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.commit_boundary_validator_count",
+            report.counters.commit_boundary_validator_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.commit_boundary_rejection_count",
+            report.counters.commit_boundary_rejection_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.derived_topology_interpretation_count",
+            report.counters.derived_topology_interpretation_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.derived_topology_full_fallback_count",
+            report.counters.derived_topology_full_fallback_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.naming_target_lookup_count",
+            report.counters.naming_target_lookup_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.primitive_family_member_count",
+            report.counters.primitive_family_member_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.replay_history_length",
+            replay_history_length as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.replay_interpretation_rerun_count",
+            report.counters.replay_interpretation_rerun_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.derived_invalidation_target_count",
+            report.derived_invalidation_report.triggered_target_count as u64,
+        ),
+    ];
+    WorthPerformanceAccounting::new(counters)
 }
 
 pub(crate) fn build_topology_localization_report(

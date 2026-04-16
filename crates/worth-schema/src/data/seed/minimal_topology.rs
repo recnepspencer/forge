@@ -17,8 +17,9 @@ pub fn seed_minimal_topology(
 ) -> Result<WorthMinimalTopologySeed, TransactionCommitError> {
     let labels = WorthMinimalTopologyLabels::new(stem);
     let verified = WorthTopologyAuthority::new(runtime)
-        .apply_topology_intent(build_minimal_topology_intent(&labels))
-        .map_err(|error| match error {
+        .apply_topology_intent_traced(build_minimal_topology_intent(&labels))
+        .map(|traced| traced.into_primary_result())
+        .map_err(|error| match error.into_error() {
             crate::data::authority::WorthTopologyAuthorityError::Commit(error) => error,
             other => panic!("worth minimal topology seed should author successfully: {other:?}"),
         })?;

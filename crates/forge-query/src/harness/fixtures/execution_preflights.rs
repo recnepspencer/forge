@@ -1,6 +1,7 @@
 use crate::facade::{
-    plan_validated_bundle, plan_validated_bundle_for_collection_family, preflight_execution_basis,
-    CollectionResultFamily, ExecutionPreflightBundle,
+    plan_validated_bundle, plan_validated_bundle_for_collection_family,
+    planning_request_context_for_direct, preflight_execution_basis, seed_execution_plan,
+    CollectionResultFamily, ExecutionPreflightBundle, FallbackDisposition, PlannedExecutionRoute,
 };
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
@@ -10,8 +11,35 @@ use crate::planning::{
 
 pub fn direct_runtime_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::runtime_detail_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::direct_runtime_request(&bundle)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
+}
+
+pub fn store_detail_preflight() -> ExecutionPreflightBundle {
+    let bundle = super::validated_bundles::runtime_detail_bundle();
+    let request =
+        planning_request_context_for_direct(&bundle, super::resolved_bases::store_basis_intent())
+            .unwrap();
+    let plan = seed_execution_plan(
+        &bundle,
+        request,
+        PlannedExecutionRoute::StoreSnapshotRead,
+        FallbackDisposition::Forbidden,
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::store_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn replay_runtime_preflight() -> ExecutionPreflightBundle {
@@ -20,20 +48,72 @@ pub fn replay_runtime_preflight() -> ExecutionPreflightBundle {
 
 pub fn alternate_basis_runtime_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::runtime_detail_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::direct_runtime_request(&bundle)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-2")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+    )
+    .unwrap()
+}
+
+pub fn alternate_basis_ordered_collection_preflight() -> ExecutionPreflightBundle {
+    let bundle = super::validated_bundles::ordered_collection_without_traversal_bundle();
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+    )
+    .unwrap()
+}
+
+pub fn alternate_basis_bounded_materialization_preflight() -> ExecutionPreflightBundle {
+    let bundle = super::validated_bundles::ordered_collection_bundle();
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-2"),
+    )
+    .unwrap()
 }
 
 pub fn expanded_runtime_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::legal_detail_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::direct_runtime_request(&bundle)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn bound_runtime_preflight(value: &str) -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::runtime_bound_detail_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::bound_runtime_request(&bundle, value)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::bound_runtime_request(&bundle, value),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn pre_resolved_bound_runtime_preflight(value: &str) -> ExecutionPreflightBundle {
@@ -43,13 +123,39 @@ pub fn pre_resolved_bound_runtime_preflight(value: &str) -> ExecutionPreflightBu
         super::planning_requests::pre_resolved_bound_runtime_request(&bundle, value),
     )
     .unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn ordered_collection_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::ordered_collection_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::direct_runtime_request(&bundle)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
+}
+
+pub fn ordered_collection_without_traversal_preflight() -> ExecutionPreflightBundle {
+    let bundle = super::validated_bundles::ordered_collection_without_traversal_bundle();
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn replay_ordered_collection_preflight() -> ExecutionPreflightBundle {
@@ -58,8 +164,16 @@ pub fn replay_ordered_collection_preflight() -> ExecutionPreflightBundle {
 
 pub fn descending_collection_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::descending_collection_bundle();
-    let plan = plan_validated_bundle(&bundle, super::planning_requests::direct_runtime_request(&bundle)).unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    let plan = plan_validated_bundle(
+        &bundle,
+        super::planning_requests::direct_runtime_request(&bundle),
+    )
+    .unwrap();
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn cdc_collection_preflight() -> ExecutionPreflightBundle {
@@ -70,7 +184,11 @@ pub fn cdc_collection_preflight() -> ExecutionPreflightBundle {
         CollectionResultFamily::CdcCollection,
     )
     .unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn aggregate_rollup_collection_preflight() -> ExecutionPreflightBundle {
@@ -81,7 +199,11 @@ pub fn aggregate_rollup_collection_preflight() -> ExecutionPreflightBundle {
         RequestedAggregateFamily::CountRows,
     )
     .unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn replay_aggregate_rollup_collection_preflight() -> ExecutionPreflightBundle {
@@ -96,7 +218,11 @@ pub fn derived_field_collection_preflight() -> ExecutionPreflightBundle {
         RequestedDerivedFieldFamily::DisplayLabel,
     )
     .unwrap();
-    preflight_execution_basis(plan, super::resolved_bases::runtime_basis(&bundle, "snapshot-1")).unwrap()
+    preflight_execution_basis(
+        plan,
+        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+    )
+    .unwrap()
 }
 
 pub fn replay_derived_field_collection_preflight() -> ExecutionPreflightBundle {

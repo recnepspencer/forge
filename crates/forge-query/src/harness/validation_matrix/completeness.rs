@@ -1,6 +1,6 @@
 use super::super::certification::{
-    RequiredAssertionClass, covered_perturbation_classes, milestone_two_requirements,
-    unmet_required_assertion_classes, unmet_required_rows,
+    covered_perturbation_classes, milestone_two_requirements, unmet_required_assertion_classes,
+    unmet_required_rows, RequiredAssertionClass,
 };
 use super::model::{
     ValidationBundleCompletenessReport, ValidationCertificationMatrix, ValidationCertificationRow,
@@ -55,10 +55,9 @@ pub(crate) fn bundle_completeness_report(
     );
     let covers_all_currently_implemented_normative_scenarios =
         covers_all_currently_implemented_normative_scenarios(matrix);
-    let covers_full_milestone_two_spec_matrix =
-        covers_all_currently_implemented_normative_scenarios
-            && unmet_required_rows.is_empty()
-            && unmet_required_assertion_classes.is_empty();
+    let covers_full_milestone_two_spec_matrix = covers_all_currently_implemented_normative_scenarios
+        && unmet_required_rows.is_empty()
+        && unmet_required_assertion_classes.is_empty();
     let offline_analysis_ready = all_lanes_emit_required_outputs
         && all_rows_have_hostile_coverage
         && zero_fallback_lane_count == supported_lane_count
@@ -125,19 +124,15 @@ fn covered_assertion_classes(
 ) -> Vec<RequiredAssertionClass> {
     let mut covered = Vec::new();
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::ValidationHostileExpectation::EquivalentToControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::ValidationHostileExpectation::EquivalentToControl
+    }) {
         covered.push(RequiredAssertionClass::Equality);
     }
 
-    if matrix
-        .rows
-        .iter()
-        .any(|row| row.hostile_expectation == super::model::ValidationHostileExpectation::DistinctFromControl)
-    {
+    if matrix.rows.iter().any(|row| {
+        row.hostile_expectation == super::model::ValidationHostileExpectation::DistinctFromControl
+    }) {
         covered.push(RequiredAssertionClass::Inequality);
     }
 

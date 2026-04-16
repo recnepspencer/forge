@@ -164,9 +164,8 @@ pub fn reordered_bounded_range_bundle() -> CanonicalQueryBundle {
 
 pub fn legal_contains_bundle() -> CanonicalQueryBundle {
     predicate_bundle(|query| {
-        query.where_contains(
-            StringContainsPredicate::new("profile", "display_name", "est").unwrap(),
-        )
+        query
+            .where_contains(StringContainsPredicate::new("profile", "display_name", "est").unwrap())
     })
 }
 

@@ -9,9 +9,11 @@ pub use crate::certification::{
     certify_milestone_one_closeout,
     certify_milestone_one_default_primitive_corpus,
     certify_milestone_one_primitive_corpus, certify_milestone_one_primitive_scenarios,
-    certify_milestone_one_read_view, certify_verified_topology_commit,
-    certify_milestone_two_default_derived_corpus, certify_milestone_two_read_view,
-    certify_milestone_two_verified_topology_commit, certify_milestone_two_closeout,
+    certify_milestone_one_read_view_traced,
+    certify_verified_topology_commit_traced,
+    certify_milestone_two_default_derived_corpus,
+    certify_milestone_two_read_view_traced,
+    certify_milestone_two_verified_topology_commit_traced, certify_milestone_two_closeout,
     milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
     milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
     WorthCertificationBridgeExpectation,
@@ -48,6 +50,7 @@ pub use crate::certification::{
     WorthMilestoneTwoBranchLocalParityReport, WorthMilestoneTwoCloseoutReport,
     WorthMilestoneTwoCounters, WorthMilestoneTwoDerivedCorpusReport,
     WorthMilestoneTwoDerivedReadReport, WorthMilestoneTwoReplayParityReport,
+    WorthTracedMilestoneOneCertificationReport, WorthTracedMilestoneTwoDerivedReadReport,
     WorthTopologyLocalizationAggregateEntityRow,
     WorthTopologyLocalizationAggregateRelationRow, WorthTopologyLocalizationAggregateReport,
     WorthTopologyLocalizationEntityRow, WorthTopologyLocalizationRelationRow,
@@ -65,6 +68,16 @@ pub use crate::diagnostics::{
     WorthDerivedInvalidationTargetRow, WorthDerivedReadDiagnostics,
     WorthDerivedRebuildReport,
 };
+pub use crate::edit::{
+    WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
+    WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion,
+    WorthTopologyEditAction, WorthTopologyEditApplicationMode, WorthTopologyEditApplied,
+    WorthTopologyEditBatch, WorthTopologyEditChangedScope, WorthTopologyEditContract,
+    WorthTopologyEditError, WorthTopologyEditFamily, WorthTopologyEditNamingOutcome,
+    WorthTopologyEditNamingReport, WorthTopologyEditNamingRow, WorthTopologyEditNamingScope,
+    WorthTopologyEditRunner, WorthTopologyEditRuntimeTrace, WorthTracedTopologyEditApplied,
+    WorthTracedTopologyEditCommit,
+};
 pub use crate::interpretation::{
     build_topology_read_artifact, certify_topology_view, interpret_topology_view,
     InterpretedTopologyView, InterpretationReport, WorthBoundaryInterpretationSummary,
@@ -81,7 +94,11 @@ pub use crate::parity::{
     digest_materialized_topology_view, WorthDerivedEquivalenceContractReport,
     WorthDerivedParityComparisonReport,
 };
-pub use crate::reader::{WorthTopologyReadError, WorthTopologyReader};
+pub use crate::reader::{
+    WorthTopologyReadError, WorthTopologyReader, WorthTracedCertifiedTopologyInterpretation,
+    WorthTracedDerivedEquivalenceContract, WorthTracedDerivedReadDiagnostics,
+    WorthTracedMaterializedTopologyView, WorthTracedTopologyReadArtifact,
+};
 pub use crate::runtime_invariants::{
     build_worth_milestone_one_runtime, configure_worth_milestone_one_runtime_builder,
     worth_milestone_one_runtime_builder, worth_milestone_one_runtime_invariants,

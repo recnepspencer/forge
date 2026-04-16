@@ -53,6 +53,21 @@ pub const SNAPSHOT_PLUS_TAIL_RESTORE_EQUIVALENCE_TEST: SuiteRequirement = SuiteR
     ],
 };
 
+pub const BRANCH_DELTA_PROPORTIONALITY_AND_REPLAY_PARITY_TEST: SuiteRequirement =
+    SuiteRequirement {
+        suite_name: "Branch Delta Proportionality And Replay Parity Test",
+        required_rows: &[
+            "backend_variation_parity",
+            "delta_growth_tracks_semantic_delta",
+            "rewritten_stack_control_lane_parity",
+        ],
+        required_assertion_classes: &[
+            AssertionClass::Equality,
+            AssertionClass::Inequality,
+            AssertionClass::ExactCounter,
+        ],
+    };
+
 pub const DURABLE_MEDIA_WRITE_PATH_CERTIFICATION_TEST: SuiteRequirement = SuiteRequirement {
     suite_name: "Durable Media And Write-Path Certification Test",
     required_rows: &[
@@ -74,6 +89,36 @@ pub const ADVERSARIAL_CRASH_RECOVERY_SOURCE_PRECEDENCE_TEST: SuiteRequirement = 
     ],
     required_assertion_classes: &[
         AssertionClass::Equality,
+        AssertionClass::TypedFailure,
+        AssertionClass::ExactCounter,
+    ],
+};
+
+pub const SCHEMA_LINEAGE_CURSOR_DURABILITY_TEST: SuiteRequirement = SuiteRequirement {
+    suite_name: "Schema/Lineage/Cursor Durability Test",
+    required_rows: &[
+        "support_artifact_restart_parity",
+        "support_gap_backend_parity",
+        "typed_support_gap_classification",
+    ],
+    required_assertion_classes: &[
+        AssertionClass::Equality,
+        AssertionClass::TypedFailure,
+        AssertionClass::ExactCounter,
+    ],
+};
+
+pub const ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST: SuiteRequirement = SuiteRequirement {
+    suite_name: "Aspect Layout Physical Certification Test",
+    required_rows: &[
+        "admitted_layout_truth_parity",
+        "admitted_layout_counter_contract_parity",
+        "scope_shape_changes_physical_truth",
+        "generalized_scope_requires_explicit_fallback",
+    ],
+    required_assertion_classes: &[
+        AssertionClass::Equality,
+        AssertionClass::Inequality,
         AssertionClass::TypedFailure,
         AssertionClass::ExactCounter,
     ],

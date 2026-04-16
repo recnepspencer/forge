@@ -100,7 +100,7 @@ pub struct PersistedTopologyTruthBatch {
     pub mutation_origin: WorthMutationOrigin,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorthDerivedTruthBasisIdentity {
     pub mutation_batch_digest_hex: String,
     pub touched_aspect_count: usize,

@@ -11,6 +11,7 @@ mod certification;
 mod bridge;
 mod data;
 mod diagnostics;
+mod edit;
 mod fixtures;
 mod interpretation;
 mod materialization;

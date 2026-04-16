@@ -1,9 +1,10 @@
 pub mod authored_requests;
-pub mod binding_resolutions;
 pub mod binding_descriptor_parity;
+pub mod binding_resolutions;
 pub mod canonical_bundles;
 pub mod execution_preflights;
 pub mod planning_requests;
+pub mod preview_bridge;
 pub mod query_parity;
 pub mod resolved_bases;
 pub mod result_shape_parity;

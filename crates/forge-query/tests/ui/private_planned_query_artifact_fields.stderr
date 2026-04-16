@@ -23,7 +23,7 @@ error: cannot construct `PlannedQueryArtifact` with struct literal syntax due to
 8 |         plan_digest: todo!(),
   |         -------------------- private field
   |
-  = note: ...and other private fields `projection_count`, `traversal_count`, `predicate_count` and `ordering_count` that were not provided
+  = note: ...and other private fields `canonical_query_digest`, `projection_count`, `traversal_count`, `predicate_count` and `ordering_count` that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     let _ = PlannedQueryArtifact {
@@ -32,5 +32,5 @@ help: you might have meant to use the `new` associated function
 7 -         fallback: todo!(),
 8 -         plan_digest: todo!(),
 9 -     };
-4 +     let _ = PlannedQueryArtifact::new(_, _, _, _, _, _, _, _, _, _);
+4 +     let _ = PlannedQueryArtifact::new(_, _, _, _, _, _, _, _, _, _, _);
   |
