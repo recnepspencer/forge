@@ -6,6 +6,7 @@ mod mutation;
 mod observation;
 mod observer;
 mod reconstructability;
+mod runtime_observation;
 mod runtime_state;
 
 pub(in crate::logic::transaction::runtime) use branching::BranchManager;
@@ -77,4 +78,10 @@ pub use reconstructability::{
 };
 #[allow(unused_imports)]
 pub use reconstructability::{CheckpointRecord, JournalSegment, ReconstructabilityRecord};
+pub(crate) use runtime_observation::RuntimeObservationRegistry;
+pub use runtime_observation::{
+    MatchingObserverSet, ObservationDeliveryMode, ObservationHandle, ObservationHandleId,
+    ObservationListener, ObservationNotice, ObservationPolicy, ObservationReadContext,
+    ObservationRegistrySummary, ObservationTrigger, ObservedNodeSet, ObserverId,
+};
 pub use runtime_state::SignalRuntime;

@@ -16,7 +16,9 @@ use crate::diagnostics::replay::{ReplayCursor, ReplayFrame};
 use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::summary::ExecutionHistorySummary;
 use crate::diagnostics::{FailureSummary, RollbackDiagnostic};
-use crate::logic::transaction::{ReconstructabilityProof, ReconstructabilityRecord};
+use crate::logic::transaction::{
+    ObservationBoundarySummary, ReconstructabilityProof, ReconstructabilityRecord,
+};
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
@@ -223,6 +225,7 @@ pub struct SignalSnapshotDiagnostics {
     pub latest_flow: Option<FlowSummary>,
     pub latest_failure: Option<FailureSummary>,
     pub latest_rollback: Option<RollbackDiagnostic>,
+    pub latest_observation: Option<ObservationBoundarySummary>,
     pub recent_history: VecDeque<ExecutionHistorySummary>,
     pub replay_frames: VecDeque<ReplayFrame>,
     pub explanation_facts: BTreeMap<crate::data::handle::NodeId, ExplanationFact>,

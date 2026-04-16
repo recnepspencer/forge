@@ -9,6 +9,7 @@ use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionReportSummary, ExplanationSummary,
 };
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport, StageExecutor};
 
 /// Structured summary of one upstream change input to signal execution.
@@ -61,6 +62,8 @@ pub struct FlowSummary {
     pub cause_samples: Vec<FlowCauseSample>,
     #[serde(default)]
     pub event_epochs: Vec<EventEpochSummary>,
+    #[serde(default)]
+    pub observation: Option<ObservationBoundarySummary>,
     pub rollback: Option<RollbackSummary>,
     pub explanation: Option<ExplanationSummary>,
 }
@@ -255,6 +258,7 @@ impl FlowSummary {
         apply: ApplySummary,
         cause_samples: Vec<FlowCauseSample>,
         event_epochs: Vec<EventEpochSummary>,
+        observation: Option<ObservationBoundarySummary>,
         rollback: Option<RollbackSummary>,
         explanation: Option<ExplanationSummary>,
     ) -> Self {
@@ -267,6 +271,7 @@ impl FlowSummary {
             apply,
             cause_samples,
             event_epochs,
+            observation,
             rollback,
             explanation,
         }

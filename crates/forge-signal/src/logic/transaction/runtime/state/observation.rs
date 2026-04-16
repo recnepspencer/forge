@@ -5,7 +5,14 @@ use crate::data::tier::TierPolicy;
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 
-use super::{runtime_state::SignalRuntime, RuntimeHistory, RuntimeMerge};
+use super::{
+    runtime_observation::{
+        MatchingObserverSet, ObservationHandle, ObservationListener, ObservationPolicy,
+        ObservationRegistrySummary, ObservedNodeSet,
+    },
+    runtime_state::SignalRuntime,
+    RuntimeHistory, RuntimeMerge,
+};
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -31,6 +38,29 @@ where
 
     pub fn merge(&mut self) -> RuntimeMerge<'_, D, I, E, Ctx, T> {
         RuntimeMerge::new(self)
+    }
+
+    pub fn observe_nodes(
+        &mut self,
+        policy: ObservationPolicy,
+        nodes: impl IntoIterator<Item = NodeId>,
+        listener: Box<dyn ObservationListener<D, I, E, Ctx, T>>,
+    ) -> ObservationHandle {
+        let observed_nodes = ObservedNodeSet::from_nodes(nodes);
+        self.observations_mut()
+            .register_nodes(policy, observed_nodes, listener)
+    }
+
+    pub fn unobserve(&mut self, handle: ObservationHandle) -> bool {
+        self.observations_mut().unsubscribe(handle)
+    }
+
+    pub fn observation_summary(&self) -> ObservationRegistrySummary {
+        self.observations().summary()
+    }
+
+    pub fn matching_observers_for_node(&self, node: NodeId) -> MatchingObserverSet {
+        self.observations().matching_observers_for_node(node)
     }
 
     /// Reset the runtime to the named diagnostics tier preset.

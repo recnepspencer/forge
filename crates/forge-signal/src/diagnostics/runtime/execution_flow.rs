@@ -53,6 +53,7 @@ pub(crate) fn record_semantic_execution(
         },
         Vec::new(),
         None,
+        None,
         explanation,
     );
     let history = if !retention_budget.retain_history_details {

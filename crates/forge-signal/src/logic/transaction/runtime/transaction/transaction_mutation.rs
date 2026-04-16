@@ -12,6 +12,9 @@ use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::mark_dirty_batch;
 
+use super::transaction_observation::{
+    ClassifiedObservationEventSummary, ObservationScratchSummary,
+};
 use super::transaction_types::{
     BatchChangeSession, SignalTransaction, StagedEventOperation, TransactionReplayEntry,
 };
@@ -29,6 +32,18 @@ where
 
     pub fn staged_graph(&self) -> &crate::data::graph::SignalGraph {
         self.graph
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn observation_scratch_summary(&self) -> ObservationScratchSummary {
+        self.scratch.observations.summary()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn classified_observation_summaries(
+        &self,
+    ) -> Vec<ClassifiedObservationEventSummary> {
+        self.scratch.observations.classified_summaries()
     }
 
     pub(in crate::logic::transaction::runtime) fn resolve_defined_node(
@@ -213,6 +228,7 @@ where
             self.scratch
                 .graph_patches
                 .stage_original(self.graph, node)?;
+            self.stage_observation_candidates_for_node(node);
             for &subscriber in self.graph.runtime_subscribers_of(node)? {
                 stack.push(subscriber);
             }
@@ -244,6 +260,7 @@ where
             self.scratch
                 .graph_patches
                 .stage_original(self.graph, current)?;
+            self.stage_observation_candidates_for_node(current);
             for dependency in self.graph.runtime_dependencies_of(current)? {
                 stack.push(dependency.source());
             }
@@ -279,6 +296,47 @@ where
                 execution_record_id: None,
                 semantic_segment_id: None,
             });
+    }
+
+    fn stage_observation_candidates_for_node(&mut self, node: NodeId) {
+        let before_candidate_count = self.scratch.observations.staged_candidate_count();
+        let mut staged_match_count = 0_u64;
+        self.observations
+            .for_each_matching_observer_for_node(node, |observer_id| {
+                staged_match_count += 1;
+                self.scratch
+                    .observations
+                    .stage_match(self.observations, observer_id, node);
+            });
+        let after_candidate_count = self.scratch.observations.staged_candidate_count();
+        self.telemetry.transaction.staged_observation_match_count += staged_match_count;
+        self.telemetry
+            .transaction
+            .staged_observation_candidate_count +=
+            after_candidate_count.saturating_sub(before_candidate_count) as u64;
+    }
+
+    pub(in crate::logic::transaction::runtime) fn lower_observation_classifications_from_report(
+        &mut self,
+        report: &crate::logic::planner::ExecutionReport,
+    ) -> Result<(), SignalError> {
+        let before_classified_count = self.scratch.observations.classified_event_count();
+        self.scratch
+            .observations
+            .lower_classifications(self.graph, report)?;
+        let summary = self.scratch.observations.summary();
+        let newly_classified = summary
+            .classified_event_count
+            .saturating_sub(before_classified_count);
+        self.telemetry.transaction.classified_observation_count += newly_classified as u64;
+        self.telemetry
+            .transaction
+            .observation_classification_breadth += report
+            .stages
+            .iter()
+            .map(|stage| stage.task_records.len() as u64)
+            .sum::<u64>();
+        Ok(())
     }
 }
 

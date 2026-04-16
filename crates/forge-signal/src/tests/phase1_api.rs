@@ -22,6 +22,11 @@ const HOT_REUSE_CONTEXT_SOURCE: &str =
 const HOT_INVALIDATION_ROUTING_SOURCE: &str = include_str!("../logic/invalidation/routing.rs");
 const HOT_INVALIDATION_SUBSCRIPTION_SOURCE: &str =
     include_str!("../logic/invalidation/subscription.rs");
+const HOT_TRANSACTION_OBSERVATION_MUTATION_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/transaction/transaction_mutation.rs");
+const HOT_EASY_OBSERVATION_SOURCE: &str = include_str!("../easy/observation.rs");
+const HOT_RUNTIME_OBSERVATION_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/runtime_observation.rs");
 const PROOF_SOURCE: &str = include_str!("../data/proof.rs");
 const PLANNER_MODEL_SOURCE: &str = include_str!("../logic/planner/model/mod.rs");
 const SEMANTIC_SOURCE: &str = include_str!("../logic/planner/semantic/mod.rs");
@@ -2212,4 +2217,156 @@ fn easy_mode_failed_batch_restores_downstream_invalidation_state() {
 
     assert_eq!(graph.get(source), 2);
     assert_eq!(graph.get(doubled), 4);
+}
+
+#[test]
+fn observation_hot_paths_use_index_iteration_without_snapshot_allocations() {
+    assert!(
+        HOT_TRANSACTION_OBSERVATION_MUTATION_SOURCE.contains("for_each_matching_observer_for_node("),
+        "transaction observation staging should iterate the node index directly instead of materializing temporary observer-id snapshots"
+    );
+    assert!(
+        !HOT_TRANSACTION_OBSERVATION_MUTATION_SOURCE.contains(
+            "matching_observers_for_node(node)"
+        ),
+        "transaction observation staging should not allocate matching-observer snapshots on the hot path"
+    );
+    assert!(
+        HOT_EASY_OBSERVATION_SOURCE.contains("for_each_matching_observer_for_node("),
+        "easy observation delivery should iterate the node index directly instead of materializing temporary observer-id snapshots"
+    );
+    assert!(
+        HOT_EASY_OBSERVATION_SOURCE.contains("has_matching_observers_for_node("),
+        "easy observation traversal should use the zero-allocation node-watch check instead of snapshotting observer ids"
+    );
+    assert!(
+        HOT_EASY_OBSERVATION_SOURCE.contains(".filter(|node| app.computed.contains_key(node))"),
+        "easy observation recompute prepass should narrow itself to impacted computed nodes instead of cloning the whole impacted set"
+    );
+}
+
+#[test]
+fn committed_observation_delivery_avoids_recloning_boundary_summaries() {
+    assert!(
+        HOT_RUNTIME_OBSERVATION_SOURCE.contains("for delivery in deliveries"),
+        "committed observation delivery should stream committed packets directly instead of rebuilding a second summary vector"
+    );
+    assert!(
+        !HOT_RUNTIME_OBSERVATION_SOURCE.contains(".collect::<Vec<_>>();\r\n        self.deliver_boundary_summaries(graph, &summaries)")
+            && !HOT_RUNTIME_OBSERVATION_SOURCE.contains(".collect::<Vec<_>>();\n        self.deliver_boundary_summaries(graph, &summaries)"),
+        "committed observation delivery should not clone whole boundary summaries into a second vector before listener dispatch"
+    );
+}
+
+#[test]
+fn easy_mode_watch_and_effect_use_observation_substrate() {
+    let mut graph = ReactiveGraph::new();
+    let count = graph.input(1_i32);
+    let doubled = graph.computed({
+        let count = count;
+        move |context| context.get(count) * 2
+    });
+
+    let watch_hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::<usize>::new()));
+    let watch_hits_clone = std::sync::Arc::clone(&watch_hits);
+    let effect_hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
+    let effect_hits_clone = std::sync::Arc::clone(&effect_hits);
+
+    let watch_handle = graph.watch(doubled, move |notice| {
+        watch_hits_clone
+            .lock()
+            .expect("easy watch mutex poisoned")
+            .push(notice.matched_nodes().len());
+        assert!(notice.trigger_matched());
+        assert!(notice.meaningful_change());
+    });
+    let effect_handle = graph.effect(doubled, move || {
+        *effect_hits_clone
+            .lock()
+            .expect("easy effect mutex poisoned") += 1;
+    });
+
+    graph.set(count, 2);
+    assert_eq!(graph.get(doubled), 4);
+
+    assert_eq!(
+        watch_hits.lock().expect("easy watch mutex poisoned").as_slice(),
+        &[1]
+    );
+    assert_eq!(*effect_hits.lock().expect("easy effect mutex poisoned"), 1);
+
+    assert!(graph.unobserve(watch_handle));
+    assert!(graph.unobserve(effect_handle));
+}
+
+#[test]
+fn easy_mode_meaningful_change_watch_suppresses_recomputed_but_unchanged_values() {
+    let mut graph = ReactiveGraph::new();
+    let count = graph.input(1_i32);
+    let parity = graph.computed({
+        let count = count;
+        move |context| context.get(count) % 2
+    });
+
+    let watch_hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
+    let effect_hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
+    let watch_hits_clone = std::sync::Arc::clone(&watch_hits);
+    let effect_hits_clone = std::sync::Arc::clone(&effect_hits);
+
+    let watch_handle = graph.watch(parity, move |notice| {
+        *watch_hits_clone
+            .lock()
+            .expect("easy meaningful-change watch mutex poisoned") += 1;
+        assert!(notice.recomputed());
+        assert!(notice.meaningful_change());
+    });
+    let effect_handle = graph.effect(parity, move || {
+        *effect_hits_clone
+            .lock()
+            .expect("easy meaningful-change effect mutex poisoned") += 1;
+    });
+
+    graph.set(count, 3);
+    assert_eq!(graph.get(parity), 1);
+
+    assert_eq!(
+        *watch_hits
+            .lock()
+            .expect("easy meaningful-change watch mutex poisoned"),
+        0
+    );
+    assert_eq!(
+        *effect_hits
+            .lock()
+            .expect("easy meaningful-change effect mutex poisoned"),
+        0
+    );
+
+    assert!(graph.unobserve(watch_handle));
+    assert!(graph.unobserve(effect_handle));
+}
+
+#[test]
+fn easy_mode_unobserve_stops_future_notifications() {
+    let mut graph = ReactiveGraph::new();
+    let count = graph.input(1_i32);
+    let doubled = graph.computed({
+        let count = count;
+        move |context| context.get(count) * 2
+    });
+
+    let hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
+    let hits_clone = std::sync::Arc::clone(&hits);
+    let handle = graph.watch(doubled, move |_notice| {
+        *hits_clone
+            .lock()
+            .expect("easy unobserve watch mutex poisoned") += 1;
+    });
+
+    graph.set(count, 2);
+    assert_eq!(*hits.lock().expect("easy unobserve watch mutex poisoned"), 1);
+
+    assert!(graph.unobserve(handle));
+    graph.set(count, 3);
+    assert_eq!(*hits.lock().expect("easy unobserve watch mutex poisoned"), 1);
 }

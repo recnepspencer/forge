@@ -9,6 +9,7 @@ use crate::facade::{
     AspectMask, BatchChange, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError,
     SignalGraph,
 };
+use crate::logic::transaction::RuntimeObservationRegistry;
 use crate::logic::prepared::PreparedEvaluation;
 
 use super::compute::{Computed, ErasedComputed, SignalContext};
@@ -19,9 +20,10 @@ use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
 /// This surface intentionally trades execution-model explicitness for ergonomics.
 /// It is not the canonical kernel-grade runtime interface.
 pub struct SignalApp {
-    graph: SignalGraph,
-    values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
-    computed: HashMap<NodeId, Box<dyn ErasedComputed>>,
+    pub(super) graph: SignalGraph,
+    pub(super) values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+    pub(super) computed: HashMap<NodeId, Box<dyn ErasedComputed>>,
+    pub(super) observations: RuntimeObservationRegistry<(), (), (), (), ()>,
     batch_depth: usize,
     batched_dirty_nodes: BTreeSet<NodeId>,
     batch_value_undo: HashMap<NodeId, Option<Box<dyn Any + Send + Sync>>>,
@@ -40,6 +42,7 @@ impl SignalApp {
             graph: SignalGraph::new(),
             values: HashMap::new(),
             computed: HashMap::new(),
+            observations: RuntimeObservationRegistry::default(),
             batch_depth: 0,
             batched_dirty_nodes: BTreeSet::new(),
             batch_value_undo: HashMap::new(),
@@ -65,7 +68,7 @@ impl SignalApp {
 
     pub fn computed<T, F>(&mut self, compute: F) -> ComputedSignal<T>
     where
-        T: Clone + Send + Sync + 'static,
+        T: Clone + PartialEq + Send + Sync + 'static,
         F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
     {
         let node = self.graph.node().on_demand().build();
@@ -131,6 +134,9 @@ impl SignalApp {
                 &mut self.graph,
                 &BatchChange::singleton(signal.node, DEFAULT_ASPECT, Vec::<ChangedRegion>::new()),
             )?;
+            let mut changed_nodes = BTreeSet::new();
+            changed_nodes.insert(signal.node);
+            super::observation::deliver_observation_boundary(self, changed_nodes)?;
         }
         Ok(())
     }
@@ -164,6 +170,7 @@ impl SignalApp {
 
         if self.batch_depth == 0 {
             let dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
+            let changed_nodes = dirty_nodes.clone();
             if let Err(err) = mark_dirty_batch(
                 &mut self.graph,
                 &BatchChange::from_sources(
@@ -173,14 +180,15 @@ impl SignalApp {
                 self.restore_batch_undo();
                 return Err(err);
             }
+            super::observation::deliver_observation_boundary(self, changed_nodes)?;
             self.clear_batch_undo();
         }
         Ok(())
     }
 
-    fn ensure_evaluated(&mut self, node: NodeId) -> Result<(), SignalError> {
+    pub(super) fn ensure_evaluated(&mut self, node: NodeId) -> Result<BTreeSet<NodeId>, SignalError> {
         if !self.computed.contains_key(&node) {
-            return Ok(());
+            return Ok(BTreeSet::new());
         }
 
         let plan = self.graph.build_evaluation_plan(
@@ -189,6 +197,7 @@ impl SignalApp {
         )?;
         let staged_values: Mutex<HashMap<NodeId, Box<dyn Any + Send + Sync>>> =
             Mutex::new(HashMap::new());
+        let meaningful_nodes: Mutex<BTreeSet<NodeId>> = Mutex::new(BTreeSet::new());
         let graph = &mut self.graph;
         let computed = &self.computed;
         let values = &self.values;
@@ -202,13 +211,21 @@ impl SignalApp {
                 let staged_guard = staged_values
                     .lock()
                     .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
-                let (value, prepared) =
-                    computed.precompute(values, &staged_guard, current_version)?;
+                let (value, prepared, meaningful_change) =
+                    computed.precompute(current, values, &staged_guard, current_version)?;
                 drop(staged_guard);
                 staged_values
                     .lock()
                     .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?
                     .insert(current, value);
+                if meaningful_change {
+                    meaningful_nodes
+                        .lock()
+                        .map_err(|_| {
+                            SignalError::internal("easy path meaningful-change mutex poisoned")
+                        })?
+                        .insert(current);
+                }
                 Ok(prepared)
             } else {
                 Ok(PreparedEvaluation::validated_clean())
@@ -218,10 +235,13 @@ impl SignalApp {
         let staged_values = staged_values
             .into_inner()
             .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
+        let meaningful_nodes = meaningful_nodes
+            .into_inner()
+            .map_err(|_| SignalError::internal("easy path meaningful-change mutex poisoned"))?;
         for (node, value) in staged_values {
             self.values.insert(node, value);
         }
-        Ok(())
+        Ok(meaningful_nodes)
     }
 
     fn seed_computed_if_possible(&mut self, node: NodeId) -> Result<(), SignalError> {
@@ -229,7 +249,9 @@ impl SignalApp {
             return Ok(());
         };
         let staged = HashMap::new();
-        let Ok((value, prepared)) = computed.precompute(&self.values, &staged, 0) else {
+        let Ok((value, prepared, _meaningful_change)) =
+            computed.precompute(node, &self.values, &staged, 0)
+        else {
             return Ok(());
         };
         self.values.insert(node, value);

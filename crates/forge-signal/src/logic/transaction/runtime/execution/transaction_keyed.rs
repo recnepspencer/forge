@@ -205,6 +205,7 @@ where
                 };
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
+                self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
                 return self.apply_result(Ok(()));
             }
@@ -251,6 +252,7 @@ where
             Ok(report) => {
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
+                self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
                 self.apply_result(Ok(()))
             }

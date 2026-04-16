@@ -1,6 +1,7 @@
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::facade::*;
+use crate::state::SignalSnapshotDiagnostics;
 use crate::tests::support::*;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -337,6 +338,7 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         Vec::new(),
         Vec::new(),
         None,
+        None,
         Some(explanation.diagnostics_summary(DiagnosticsTier::Development)),
     );
     let flow_clone = flow.clone();
@@ -364,6 +366,84 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
     let failure_summary_2 = failure.summarize(None, DiagnosticsTier::Forensic);
     assert!(!compare_failures(&failure_summary, &failure_summary_2).is_empty());
     assert!(render_failure_summary(&failure_summary).contains("FailureSummary"));
+}
+
+#[test]
+fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_with_flow() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compute = |ctx: &mut EvaluationContext<'_, ()>| Ok(ctx.finish(version_ab(2, 0)));
+    let plan = graph
+        .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    let report = graph.execute_prepared_plan(&plan, &(), &compute).unwrap();
+
+    let payload_observation = ObservationBoundarySummary {
+        classified_event_count: 1,
+        trigger_matched_event_count: 1,
+        delivered_event_count: 1,
+        rollback_suppressed_event_count: 0,
+        boundary_events: Vec::new(),
+    };
+    let current_observation = ObservationBoundarySummary {
+        classified_event_count: 2,
+        trigger_matched_event_count: 1,
+        delivered_event_count: 0,
+        rollback_suppressed_event_count: 1,
+        boundary_events: Vec::new(),
+    };
+
+    let mut payload_flow = FlowSummary::new(
+        DiagnosticsTier::Development,
+        ChangeInputSummary::new(vec![node], vec![ASPECT_A], 0, None),
+        InvalidationSummary::new(1, 0, 0, 0, 0),
+        PlanningSummary::from_plan(&plan, DiagnosticsTier::Development),
+        PrecomputeSummary::from_report(&report, DiagnosticsTier::Development),
+        ApplySummary::from_report(&report, DiagnosticsTier::Development),
+        Vec::new(),
+        Vec::new(),
+        Some(payload_observation.clone()),
+        None,
+        None,
+    );
+    payload_flow.observation = Some(payload_observation.clone());
+
+    let payload = SignalSnapshotDiagnostics {
+        latest_flow: Some(payload_flow),
+        latest_failure: None,
+        latest_rollback: None,
+        latest_observation: Some(payload_observation),
+        recent_history: Default::default(),
+        replay_frames: Default::default(),
+        explanation_facts: Default::default(),
+        provenance_facts: Default::default(),
+        lineage_records: Default::default(),
+        branch_catalog: graph.diagnostics_state().branch_catalog().clone(),
+        active_branch: graph.diagnostics_state().active_branch().id,
+        next_replay_cursor: 0,
+        next_snapshot_id: 0,
+        next_branch_id: 1,
+        next_lineage_artifact_id: 0,
+        next_lineage_sequence: 0,
+    };
+
+    graph
+        .diagnostics_state_mut()
+        .record_observation(current_observation.clone());
+    let current = graph.diagnostics_state().clone();
+    graph.diagnostics_state_mut()
+        .restore_snapshot_payload_preserving_history_from(payload, &current);
+
+    assert_eq!(
+        graph.diagnostics_state().latest_observation(),
+        Some(&current_observation)
+    );
+    assert_eq!(
+        graph.diagnostics_state()
+            .latest_flow()
+            .and_then(|flow| flow.observation.as_ref()),
+        Some(&current_observation)
+    );
 }
 
 #[test]

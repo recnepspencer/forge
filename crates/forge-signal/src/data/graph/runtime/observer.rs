@@ -23,6 +23,7 @@ use crate::diagnostics::replay::{
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::presentation::dot::to_dot;
 use crate::presentation::metrics::GraphMetrics;
 use crate::state::SignalBranchHandle;
@@ -150,6 +151,10 @@ impl<'a> GraphObserver<'a> {
 
     pub fn latest_rollback_diagnostics(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph.observation.diagnostics.latest_rollback()
+    }
+
+    pub fn latest_observation_summary(&self) -> Option<&'a ObservationBoundarySummary> {
+        self.graph.observation.diagnostics.latest_observation()
     }
 
     pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {

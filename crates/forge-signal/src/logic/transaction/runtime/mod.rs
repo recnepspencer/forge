@@ -63,12 +63,17 @@ pub use state::{
 };
 pub use state::{
     BoundedJournalSegment, CheckpointBoundary, CheckpointRecord, DependencyIndexRebuildProof,
-    JournalSegment, MergeSupportRebuildProof, PlannedRuntimeMerge, ReconstructabilityProof,
+    JournalSegment, MatchingObserverSet, MergeSupportRebuildProof, ObservationDeliveryMode,
+    ObservationHandle, ObservationHandleId, ObservationListener, ObservationNotice,
+    ObservationPolicy, ObservationReadContext, ObservationRegistrySummary, ObservationTrigger,
+    ObservedNodeSet, ObserverId, PlannedRuntimeMerge, ReconstructabilityProof,
     ReconstructabilityRecord, ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeHistory,
     RuntimeMaterializer, RuntimeMerge, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
 };
+pub(crate) use state::RuntimeObservationRegistry;
 pub use transaction::{
-    AdvisoryRecord, BatchChangeSession, DecisionDetail, DecisionLog, DecisionRecord,
-    DecisionSummary, EvaluationSummary, IntegrityMarkers, SignalTransaction, TransactionOutcome,
+    AdvisoryRecord, BatchChangeSession, CommittedObservationEventSummary, DecisionDetail,
+    DecisionLog, DecisionRecord, DecisionSummary, EvaluationSummary, IntegrityMarkers,
+    ObservationBoundaryOutcome, ObservationBoundarySummary, SignalTransaction, TransactionOutcome,
     TransactionReplayEntry, TransactionResult, TransactionTiming,
 };

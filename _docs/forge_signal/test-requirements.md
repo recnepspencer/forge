@@ -263,6 +263,203 @@ or cold artifact access must also prove the diagnostics-tier contract:
 - retained-envelope shaping must follow the active runtime policy budget rather than tier defaults alone
 - long-session branch/snapshot churn must remain bounded by retained history/detail/replay envelopes
 
+1A. The adversarial observation and delivery equivalence test
+Purpose
+
+Prove that runtime-local observation is truly:
+
+commit-bounded
+
+rollback-safe
+
+deterministic
+
+classification-stable
+
+replay-honest
+
+branch/restore coherent
+
+bounded by relevant change rather than graph size
+
+This is the substrate test that future watchers, effects, forms, resources, and
+UI adapters must inherit instead of redefining.
+
+Scenario
+
+Build a medium-large graph with all of the following present in one topology:
+
+aspect-scoped dependencies
+
+conditional gates
+
+comparator suppression
+
+partition-aware outputs
+
+structural memoization
+
+keyed query families
+
+multiple overlapping observer registrations
+
+observers interested in:
+
+touched change
+
+recomputed change
+
+meaningful change
+
+Then run this exact script:
+
+Start from a canonical baseline snapshot S0
+
+Register a deterministic observer set O1..On over overlapping node sets
+
+Apply a deterministic patch sequence P1..P20
+
+Include in that sequence:
+
+multiple writes to the same source before one commit
+
+recompute-without-meaningful-change cases
+
+rollback-triggering fault injection after observation staging but before final
+commit success
+
+unsubscribe during heavy churn
+
+branch fork
+
+branch-local edits
+
+snapshot restore
+
+branch restore
+
+merge-driven rewrites if the runtime surface admits them in the current phase
+
+Execute the full scenario in these modes:
+
+serial baseline
+
+parallel-capable runtime mode where admitted
+
+fresh-process replay from captured snapshots/logs
+
+event-by-event deterministic replay from recorded execution history
+
+What this probes
+
+It simultaneously probes:
+
+observer delivery boundary correctness
+
+rollback suppression
+
+per-observer transaction coalescing
+
+touched vs recomputed vs meaningful-change classification stability
+
+observer ordering determinism
+
+unsubscribe lifecycle correctness
+
+branch/restore delivery honesty
+
+replay parity of observer-visible semantic change
+
+bounded observer matching and delivery breadth
+
+Required verification output
+
+A. Observer delivery equivalence report
+
+For every tested mode, emit:
+
+observer ID
+
+transaction ordinal
+
+delivery count
+
+delivery classification set
+
+affected observed scope digest
+
+branch ID
+
+Pass condition
+
+Equivalent executions must produce semantically identical per-observer delivery
+streams after canonicalization. The runtime may not change observer-visible
+truth across execution mode, replay mode, or restart mode.
+
+B. Rollback suppression report
+
+For each injected failure:
+
+transaction ID
+
+observer packets staged before failure
+
+observer packets actually delivered
+
+post-rollback digest
+
+retry delivery digest
+
+Pass condition
+
+No normal observer delivery may escape from the failed transaction.
+The retry lane must match the no-failure control lane exactly.
+
+C. Coalescing and ordering report
+
+For each observer and transaction:
+
+matched node count
+
+coalesced packet count
+
+delivery ordinal
+
+Pass condition
+
+Each observer receives at most one normal delivery packet per committed
+transaction boundary, and ordering remains deterministic across equivalent
+executions.
+
+D. Boundedness report
+
+Emit:
+
+staged observation candidate count
+
+matching observer-set width
+
+delivered observation count
+
+coalesced observation count
+
+rollback-suppressed delivery count
+
+observation classification breadth
+
+Pass condition
+
+Delivery and matching breadth must scale with changed derived surface plus
+matching observers, not with total graph size or total active observer count.
+
+Why this is ultimate
+
+Because it proves the runtime owns committed derived-state observation as a real
+semantic substrate instead of leaving that job to adapter heuristics.
+
+If this fails, future watchers, effects, forms, and resources will be forced to
+invent their own truth model on top of the runtime.
+
 2. The adversarial granularity suppression test
 Purpose
 
@@ -1166,6 +1363,42 @@ performance does not degrade sharply after long uptime
 
 A lot of runtimes fail here before they fail anywhere else.
 
+8A. The observation and managed-resource long-session extension
+
+This extends the long-session requirement to runtime-managed observation
+resources and any future higher-level abstraction that lowers into them.
+
+Why it matters
+
+Observer populations, watchers, effects, and future category adapters like
+forms or resources can quietly become a second memory and breadth disaster even
+when snapshots, lineage, and diagnostics stay bounded.
+
+What to stress
+
+long run with thousands of observer registrations and teardowns
+
+mixed persistent and short-lived observer populations
+
+branch-local observer or watcher churn
+
+restore after large observer churn history
+
+observer index maintenance pressure
+
+What to verify
+
+disposed resources stop exerting semantic influence on future transaction
+boundaries
+
+matching breadth does not silently drift upward with historical churn
+
+delivery breadth stays bounded by active relevant observers, not by dead
+registrations that were never cleaned up honestly
+
+long-session observer churn remains attributable through named counters rather
+than inferred from latency alone
+
 9. The oscillation test
 
 This targets systems that flip back and forth between nearby states.
@@ -1199,6 +1432,88 @@ output suppression stays stable and does not “learn the wrong thing”
 replay reproduces oscillation exactly
 
 This flushes out state contamination bugs.
+
+9A. The future abstraction lifting rule
+
+Every future higher-level abstraction built on `forge-signal` must certify its
+truth by reduction to substrate invariants rather than by abstraction-local
+happy-path behavior alone.
+
+This includes, but is not limited to:
+
+forms
+
+resources
+
+outputs
+
+workflow projections
+
+UI adapters
+
+Normative consequence
+
+- a form layer is not considered honest because "dirty fields update correctly"
+- a resource layer is not considered honest because "loading and ready states
+  render correctly"
+- an effect layer is not considered honest because "callbacks fired in the
+  expected demo"
+
+Instead, each abstraction must prove which core runtime invariants it depends
+on and certify reduction to those invariants:
+
+commit-bounded delivery
+
+rollback suppression
+
+replay parity
+
+branch/restore parity
+
+suppression and classification truth
+
+resource lifecycle and teardown honesty
+
+boundedness counters
+
+If a future abstraction cannot describe itself in those substrate terms, the
+abstraction is trying to invent a second runtime truth model.
+
+9B. The future abstraction workload grammar
+
+Any future category-specific certification suite must instantiate the same
+hostile workload grammar before adding category-specific expectations.
+
+The grammar includes:
+
+multiple writes before commit
+
+recompute without meaningful output change
+
+rollback after staging work
+
+branch fork
+
+branch-local divergence
+
+snapshot restore
+
+branch restore
+
+merge or convergence where admitted
+
+subscribe or acquire
+
+unsubscribe or dispose
+
+long-session churn
+
+diagnostics-tier variation
+
+skewed hot-set pressure
+
+A future form or resource suite may add domain-specific assertions, but it must
+still prove itself against this substrate grammar first.
 
 10. The hostile domain adapter test
 
@@ -1266,6 +1581,44 @@ per-frame determinism
 bounded diagnostics across long sessions
 
 This gives you domain-shaped pressure before the actual domains add their own complexity.
+
+10A. The substrate boundedness and lifting test
+
+This proves that future abstractions can only become honest product surfaces by
+inheriting the runtime's semantic and boundedness contracts, not by hiding
+broader scans, extra coordination, or new truth semantics behind convenience
+APIs.
+
+Scenario
+
+Create at least one minimal representative harness for each admitted future
+category once it exists, such as:
+
+form
+
+resource
+
+output or view-model
+
+effect or watcher adapter
+
+Run each harness through the hostile workload grammar and emit:
+
+its lowered runtime footprint
+
+its observer or managed-resource count
+
+its matching breadth
+
+its delivery breadth
+
+its rollback and replay parity result
+
+Pass condition
+
+Every higher-level category must be demonstrably reducible to substrate
+contracts without introducing a second semantic engine or hiding a broader cost
+surface than the runtime counters admit.
 
 If I had to pick the highest-value additional set
 

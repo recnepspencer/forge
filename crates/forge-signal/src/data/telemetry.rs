@@ -83,6 +83,12 @@ pub struct TransactionTelemetry {
     pub staged_node_patch_count: u64,
     pub max_touched_nodes_in_txn: u64,
     pub transaction_mark_dirty_candidate_visits: u64,
+    pub staged_observation_candidate_count: u64,
+    pub staged_observation_match_count: u64,
+    pub classified_observation_count: u64,
+    pub observation_classification_breadth: u64,
+    pub delivered_observation_count: u64,
+    pub rollback_suppressed_observation_count: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

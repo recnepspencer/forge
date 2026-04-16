@@ -11,6 +11,7 @@ use super::super::transaction_types::{
     TransactionResult,
 };
 use crate::diagnostics::ExecutionFailurePhase;
+use crate::logic::transaction::runtime::transaction::ObservationBoundaryOutcome;
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -213,6 +214,7 @@ where
             .checkpoint
             .checkpoint_flush_nanos += self.scratch.staged_checkpoint_flush_nanos;
         let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph);
+        let touched_node_count = touched_nodes.len() as u32;
         for ((family_id, key_id, memo_key_id), result) in
             std::mem::take(&mut self.scratch.staged_memo_writes)
         {
@@ -247,11 +249,18 @@ where
                 execution_record_id: None,
                 semantic_segment_id: None,
             });
-        let touched_nodes = self.scratch.graph_patches.touched_nodes(self.graph).len() as u32;
+        let (deliveries, observation) = self
+            .scratch
+            .observations
+            .drain_delivery_boundary(ObservationBoundaryOutcome::Delivered);
+        let delivered_observation_count =
+            self.observations.deliver_committed(self.graph, &deliveries) as u64;
+        self.telemetry.transaction.delivered_observation_count += delivered_observation_count;
+        self.scratch.semantic_delta.observation = observation;
         Ok(self.finalize_semantic_delta(
             false,
             TransactionOutcome::Committed,
-            touched_nodes,
+            touched_node_count,
             commit_start.elapsed().as_nanos(),
         ))
     }

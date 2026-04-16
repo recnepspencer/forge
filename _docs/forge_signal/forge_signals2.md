@@ -61,6 +61,7 @@ These are not optional add-ons. They are the capabilities that make
 
 - aspect-aware invalidation and n-granularity dependency slices
 - conditional nodes and policy-aware evaluation gates
+- commit-bounded observation and extensible delivery strategies
 - maybe-stale state rather than crude dirty-only invalidation
 - transactional invalidation and hard rewind
 - lazy pull-based recomputation
@@ -108,8 +109,9 @@ The runtime must answer that question with these non-negotiable properties:
 3. Aspect-aware invalidation granularity
 4. Explicit separation from truth-state storage
 5. First-class runtime self-inspection into why recomputation happened
-6. Policy-aware execution for tolerance, priority, convergence, and cost
-7. Branchable and replayable execution state
+6. First-class observation semantics for committed derived-state change
+7. Policy-aware execution for tolerance, priority, convergence, and cost
+8. Branchable and replayable execution state
 
 Diagnostics are not optional polish. `forge-signal` must assume there will be
 runtime bugs, host bugs, policy mistakes, convergence pathologies, and
@@ -140,6 +142,11 @@ become native runtime strengths rather than scattered domain workarounds.
 - transactional invalidation and hard rewind on failure
 - node-scoped execution metadata such as aspects, conditions, comparator policy,
   priority, cost hints, and telemetry
+- observation semantics for derived-state change, including what counts as
+  delivery-worthy change, when notifications fire, and how change is coalesced
+- extensible observation and delivery strategies so higher layers can build
+  watchers, effects, host integrations, and UI adapters without redefining
+  core semantics
 - query-style incremental execution semantics
 - partial recomputation boundaries and changed-region reporting
 - future execution planning, staged execution, and parallel dispatch
@@ -154,6 +161,8 @@ become native runtime strengths rather than scattered domain workarounds.
 - host identity models, diffs, or lineage semantics
 - permanent fusion with relational storage
 - mandatory use of the bridge for standalone signal use
+- React hooks, frontend store adapters, and other app-facing ergonomics built
+  on top of runtime observation
 
 ### Structural rule
 
@@ -178,6 +187,8 @@ The provenance ladder should stay explicit:
   altered execution
 - recomputation provenance: whether work actually ran and what trace summary it
   produced
+- observation provenance: why a watcher or observer fired, what change policy
+  classified it as deliverable, and which transaction boundary committed it
 - host causality metadata: optional upstream provenance attached by host
   runtimes or bridge integration
 
@@ -209,6 +220,7 @@ This is the low-level runtime surface. It keeps all control explicit:
 - aspects
 - evaluation conditions
 - comparator policies
+- observation policies and delivery strategies
 - explicit invalidation and evaluation entrypoints
 - planners, schedulers, and execution modes
 - snapshot, replay, and inspection surfaces
@@ -225,6 +237,7 @@ should read as a clean execution pipeline:
 - mark dirty inputs and emit staged changes
 - plan evaluation under named policies
 - evaluate targets under deterministic or optimized execution modes
+- observe committed change under named delivery policies
 - commit or rollback deterministically
 
 ### `forge-signal-easy`
@@ -243,6 +256,37 @@ The easy surface should provide:
 
 The easy surface must compile down to the same runtime primitives as the core
 layer. It is a UX layer, not a separate execution engine.
+
+### Observation and delivery strategies
+
+`forge-signal` should treat runtime observation as a first-class,
+domain-agnostic capability rather than an adapter-only convenience.
+
+This category exists to answer a different question than evaluation:
+
+> A transaction committed. Which derived-state changes are observation-worthy,
+> for which observers, under which delivery policy, and with what causal
+> explanation?
+
+The foundational runtime should own:
+
+- what can be observed
+- what counts as a meaningful versus merely touched change
+- whether delivery is immediate, deferred, or transaction-coalesced
+- whether rollback suppresses delivery
+- how observer ordering stays deterministic
+- how observation provenance is retained for diagnostics
+
+The foundational runtime should not own frontend ergonomics. React hooks,
+browser-store adapters, and app-level resource or form abstractions belong in
+higher layers such as wasm bindings or dedicated UI adapters.
+
+The intended shape is:
+
+- core defines observation policies and extensible delivery/change strategies
+- easy mode exposes watchers/effects on top of those primitives
+- wasm and UI adapters translate them into host-friendly callback and store
+  models
 
 ## Capability Pillars
 

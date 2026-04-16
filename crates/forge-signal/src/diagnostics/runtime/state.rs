@@ -17,6 +17,7 @@ use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::replay::{ReplayCursor, ReplayEvent};
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::state::{
     SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
     SignalSnapshotMeta, SnapshotArtifactRetentionPolicy,
@@ -32,6 +33,8 @@ pub(crate) struct DiagnosticsState {
     latest_failure: Option<FailureSummary>,
     #[serde(default)]
     latest_rollback: Option<RollbackDiagnostic>,
+    #[serde(default)]
+    latest_observation: Option<ObservationBoundarySummary>,
     #[serde(default)]
     latest_graph_summary: Option<GraphSummary>,
     #[serde(default)]
@@ -99,6 +102,7 @@ impl DiagnosticsState {
             latest_flow: None,
             latest_failure: None,
             latest_rollback: None,
+            latest_observation: None,
             latest_graph_summary: None,
             pending_graph_summary: None,
             recent_history: VecDeque::new(),
@@ -187,6 +191,10 @@ impl DiagnosticsState {
 
     pub fn latest_rollback(&self) -> Option<&RollbackDiagnostic> {
         self.latest_rollback.as_ref()
+    }
+
+    pub fn latest_observation(&self) -> Option<&ObservationBoundarySummary> {
+        self.latest_observation.as_ref()
     }
 
     pub fn latest_graph_summary(&self) -> Option<&GraphSummary> {
@@ -360,6 +368,13 @@ impl DiagnosticsState {
 
     pub fn record_rollback(&mut self, rollback: RollbackDiagnostic) {
         self.latest_rollback = Some(rollback);
+    }
+
+    pub fn record_observation(&mut self, observation: ObservationBoundarySummary) {
+        self.latest_observation = Some(observation.clone());
+        if let Some(flow) = &mut self.latest_flow {
+            flow.observation = Some(observation);
+        }
     }
 
     pub fn clear_pending_input(&mut self) {
@@ -565,6 +580,7 @@ impl DiagnosticsState {
             latest_flow: self.latest_flow.clone(),
             latest_failure: self.latest_failure.clone(),
             latest_rollback: self.latest_rollback.clone(),
+            latest_observation: self.latest_observation.clone(),
             recent_history: self.recent_history.clone(),
             replay_frames: self.replay_events.clone(),
             explanation_facts: if artifact_retention.retains_explanation_facts() {
@@ -592,6 +608,7 @@ impl DiagnosticsState {
         self.latest_flow = payload.latest_flow;
         self.latest_failure = payload.latest_failure;
         self.latest_rollback = payload.latest_rollback;
+        self.latest_observation = payload.latest_observation;
         self.recent_history = payload.recent_history;
         self.replay_events = payload.replay_frames;
         self.explanation_facts = payload.explanation_facts;
@@ -620,6 +637,7 @@ impl DiagnosticsState {
         let current_branch_catalog = current.branch_catalog.clone();
         let current_latest_failure = current.latest_failure.clone();
         let current_latest_rollback = current.latest_rollback.clone();
+        let current_latest_observation = current.latest_observation.clone();
         let current_next_replay_cursor = current.next_replay_cursor;
         let current_next_snapshot_id = current.next_snapshot_id;
         let current_next_branch_id = current.next_branch_id;
@@ -661,6 +679,14 @@ impl DiagnosticsState {
         }
         if current_latest_rollback.is_some() {
             self.latest_rollback = current_latest_rollback;
+        }
+        if current_latest_observation.is_some() {
+            self.latest_observation = current_latest_observation.clone();
+            if let (Some(flow), Some(observation)) =
+                (&mut self.latest_flow, current_latest_observation)
+            {
+                flow.observation = Some(observation);
+            }
         }
         for (branch_id, branch_handle) in current_branch_catalog {
             match self.branch_catalog.get_mut(&branch_id) {
@@ -894,6 +920,7 @@ impl Default for DiagnosticsState {
             latest_flow: None,
             latest_failure: None,
             latest_rollback: None,
+            latest_observation: None,
             latest_graph_summary: None,
             pending_graph_summary: None,
             recent_history: VecDeque::new(),

@@ -7,6 +7,7 @@ use super::super::transaction_types::{
     CreatedNodeRollbackDelta, GraphPatchRollbackDelta, SignalTransaction,
     SubscriberRepairRollbackDelta, TransactionOutcome, TransactionReplayEntry, TransactionResult,
 };
+use crate::logic::transaction::runtime::transaction::ObservationBoundaryOutcome;
 
 impl<'a, D, I, E, Ctx, T> SignalTransaction<'a, D, I, E, Ctx, T>
 where
@@ -39,6 +40,15 @@ where
             self.scratch.semantic_delta.event_epochs.clone(),
         );
         self.scratch.semantic_delta.rollback = Some(rollback);
+        let (_, observation) = self
+            .scratch
+            .observations
+            .drain_delivery_boundary(ObservationBoundaryOutcome::RollbackSuppressed);
+        self.telemetry
+            .transaction
+            .rollback_suppressed_observation_count +=
+            u64::from(observation.rollback_suppressed_event_count);
+        self.scratch.semantic_delta.observation = observation;
         if self.poisoned {
             self.telemetry.transaction.transaction_poison_count += 1;
             self.scratch
@@ -131,6 +141,15 @@ where
         );
         let profile = self.graph.diagnostics_profile();
         self.scratch.semantic_delta.rollback = Some(rollback);
+        let (_, observation) = self
+            .scratch
+            .observations
+            .drain_delivery_boundary(ObservationBoundaryOutcome::RollbackSuppressed);
+        self.telemetry
+            .transaction
+            .rollback_suppressed_observation_count +=
+            u64::from(observation.rollback_suppressed_event_count);
+        self.scratch.semantic_delta.observation = observation;
         self.scratch.semantic_delta.failure_summary = Some(match &error {
             Some(err) => ExecutionFailureContext::from_error(failure_phase, err, None)
                 .summarize(self.scratch.semantic_delta.rollback.as_ref(), profile),

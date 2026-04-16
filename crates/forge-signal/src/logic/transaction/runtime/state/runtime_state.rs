@@ -17,6 +17,7 @@ use super::merge::{
 };
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
+use super::runtime_observation::RuntimeObservationRegistry;
 
 #[derive(Debug)]
 pub(in crate::logic::transaction::runtime) struct HeavyCaptureWitness(());
@@ -167,6 +168,8 @@ where
         FrozenDeletionPolicyRegistry,
     pub(in crate::logic::transaction::runtime) checkpoint: CheckpointRuntime<D, I>,
     pub(in crate::logic::transaction::runtime) event_bus: EventBus<E, D, Ctx>,
+    pub(in crate::logic::transaction::runtime) observations:
+        RuntimeObservationRegistry<D, I, E, Ctx, T>,
     pub(in crate::logic::transaction::runtime) telemetry: RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) branches: BranchManager<D, I, T>,
 }
@@ -490,6 +493,24 @@ where
         restored.transaction_mark_dirty_candidate_visits = restored
             .transaction_mark_dirty_candidate_visits
             .max(current.transaction_mark_dirty_candidate_visits);
+        restored.staged_observation_candidate_count = restored
+            .staged_observation_candidate_count
+            .max(current.staged_observation_candidate_count);
+        restored.staged_observation_match_count = restored
+            .staged_observation_match_count
+            .max(current.staged_observation_match_count);
+        restored.classified_observation_count = restored
+            .classified_observation_count
+            .max(current.classified_observation_count);
+        restored.observation_classification_breadth = restored
+            .observation_classification_breadth
+            .max(current.observation_classification_breadth);
+        restored.delivered_observation_count = restored
+            .delivered_observation_count
+            .max(current.delivered_observation_count);
+        restored.rollback_suppressed_observation_count = restored
+            .rollback_suppressed_observation_count
+            .max(current.rollback_suppressed_observation_count);
     }
 
     pub(crate) fn new(
@@ -517,6 +538,7 @@ where
             deletion_policy_registry: FrozenDeletionPolicyRegistry::built_in(),
             checkpoint,
             event_bus,
+            observations: RuntimeObservationRegistry::default(),
             telemetry: RuntimeTelemetry::default(),
             branches: BranchManager::<D, I, T>::new(),
         }
@@ -616,6 +638,14 @@ where
 
     pub fn event_bus_mut(&mut self) -> &mut EventBus<E, D, Ctx> {
         &mut self.event_bus
+    }
+
+    pub fn observations(&self) -> &RuntimeObservationRegistry<D, I, E, Ctx, T> {
+        &self.observations
+    }
+
+    pub fn observations_mut(&mut self) -> &mut RuntimeObservationRegistry<D, I, E, Ctx, T> {
+        &mut self.observations
     }
 
     pub fn telemetry(&self) -> &RuntimeTelemetry {
@@ -758,5 +788,38 @@ where
         let active_branch = self.graph.current_branch().id;
         self.branches
             .synchronize_catalogs(&branch_catalog, active_branch, &mut self.graph);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data::telemetry::TransactionTelemetry;
+
+    use super::SignalRuntime;
+
+    #[test]
+    fn merge_global_transaction_telemetry_preserves_observation_counters() {
+        let current = TransactionTelemetry {
+            staged_observation_candidate_count: 11,
+            staged_observation_match_count: 19,
+            classified_observation_count: 7,
+            observation_classification_breadth: 23,
+            delivered_observation_count: 5,
+            rollback_suppressed_observation_count: 3,
+            ..TransactionTelemetry::default()
+        };
+        let mut restored = TransactionTelemetry::default();
+
+        SignalRuntime::<(), (), (), (), ()>::merge_global_transaction_telemetry(
+            current,
+            &mut restored,
+        );
+
+        assert_eq!(restored.staged_observation_candidate_count, 11);
+        assert_eq!(restored.staged_observation_match_count, 19);
+        assert_eq!(restored.classified_observation_count, 7);
+        assert_eq!(restored.observation_classification_breadth, 23);
+        assert_eq!(restored.delivered_observation_count, 5);
+        assert_eq!(restored.rollback_suppressed_observation_count, 3);
     }
 }

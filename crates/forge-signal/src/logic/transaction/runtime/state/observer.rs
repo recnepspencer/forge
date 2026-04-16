@@ -15,9 +15,11 @@ use crate::diagnostics::{
     FailureSummary, FlowSummary, ReplayView, RollbackDiagnostic, SynthesizedReplaySlice,
 };
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::presentation::metrics::RuntimeMetrics;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
+use super::runtime_observation::{MatchingObserverSet, ObservationRegistrySummary};
 use super::runtime_state::SignalRuntime;
 use super::CheckpointRecord;
 
@@ -101,6 +103,14 @@ where
 
     pub fn diagnostics_profile(&self) -> DiagnosticsTier {
         self.graph().diagnostics_profile()
+    }
+
+    pub fn observation_summary(&self) -> ObservationRegistrySummary {
+        self.runtime.observations.summary()
+    }
+
+    pub fn matching_observers_for_node(&self, node: NodeId) -> MatchingObserverSet {
+        self.runtime.observations.matching_observers_for_node(node)
     }
 
     fn composed_checkpoint_telemetry(&self) -> crate::data::telemetry::CheckpointTelemetry {
@@ -250,6 +260,10 @@ where
 
     pub fn latest_rollback_diagnostics(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph().latest_rollback_diagnostics()
+    }
+
+    pub fn latest_observation_summary(&self) -> Option<&'a ObservationBoundarySummary> {
+        self.runtime.graph.diagnostics_state().latest_observation()
     }
 
     pub fn latest_frontier_execution_summary(&self) -> Option<&'a FrontierExecutionSummary> {

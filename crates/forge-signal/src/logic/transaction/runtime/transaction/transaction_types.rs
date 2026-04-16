@@ -21,7 +21,9 @@ use crate::logic::planner::{ExecutionRecordId, ExecutionReport, SemanticSegmentI
 use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
 use super::super::config::SignalRuntimeConfig;
-use super::super::state::{BranchManager, ReconstructabilityRecord};
+use super::super::state::{BranchManager, ReconstructabilityRecord, RuntimeObservationRegistry};
+use super::transaction_observation::{ObservationBoundarySummary, TransactionObservationScratch};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionOutcome {
     Committed,
@@ -57,6 +59,7 @@ pub struct TransactionResult {
     pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
     pub warnings: Vec<super::envelope::AdvisoryRecord>,
+    pub observation: ObservationBoundarySummary,
     pub decision_summary: super::envelope::DecisionSummary,
     pub decision_log: super::envelope::DecisionLog,
     pub integrity_markers: super::envelope::IntegrityMarkers,
@@ -110,6 +113,7 @@ pub(in crate::logic::transaction::runtime) struct TransactionSemanticDelta {
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
     pub replay_events: Vec<TransactionReplayEntry>,
     pub event_epochs: Vec<EventEpochSummary>,
+    pub observation: ObservationBoundarySummary,
 }
 
 pub(in crate::logic::transaction::runtime) enum StagedEventOperation<E> {
@@ -122,6 +126,7 @@ where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
 {
+    pub observations: TransactionObservationScratch,
     pub staged_dirty: BatchedDirtySet<D, I>,
     pub staged_checkpoint_flushes: u64,
     pub staged_checkpoint_flush_nanos: u128,
@@ -148,6 +153,7 @@ where
 {
     pub fn new() -> Self {
         Self {
+            observations: TransactionObservationScratch::default(),
             staged_dirty: BatchedDirtySet::new(),
             staged_checkpoint_flushes: 0,
             staged_checkpoint_flush_nanos: 0,
@@ -306,6 +312,8 @@ where
     T: Copy + Ord,
 {
     pub(in crate::logic::transaction::runtime) runtime_ctx: &'a mut Ctx,
+    pub(in crate::logic::transaction::runtime) observations:
+        &'a RuntimeObservationRegistry<D, I, E, Ctx, T>,
     pub(in crate::logic::transaction::runtime) config: &'a mut SignalRuntimeConfig<T>,
     pub(in crate::logic::transaction::runtime) graph: &'a mut crate::data::graph::SignalGraph,
     pub(in crate::logic::transaction::runtime) checkpoint: &'a mut CheckpointRuntime<D, I>,

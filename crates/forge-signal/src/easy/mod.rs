@@ -5,6 +5,7 @@
 //! integrations should prefer the prepared/runtime APIs directly.
 
 mod compute;
+mod observation;
 mod runtime;
 mod signal;
 

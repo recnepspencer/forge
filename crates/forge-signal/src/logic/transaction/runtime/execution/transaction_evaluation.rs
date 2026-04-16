@@ -233,6 +233,9 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
+        for stage in &plan.stages {
+            self.stage_task_candidates(&stage.tasks)?;
+        }
         let execution_start = RuntimeInstant::now();
         let report = match execute_plan_with_runtime_config(
             self.graph,
@@ -258,6 +261,7 @@ where
         };
         self.execution_state
             .record_report(&report, execution_start.elapsed().as_nanos());
+        self.lower_observation_classifications_from_report(&report)?;
         absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)
     }
@@ -501,6 +505,7 @@ where
         };
         self.execution_state
             .record_report(&report, execution_start.elapsed().as_nanos());
+        self.lower_observation_classifications_from_report(&report)?;
         absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)
     }

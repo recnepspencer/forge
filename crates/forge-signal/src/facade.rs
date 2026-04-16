@@ -122,6 +122,13 @@ pub mod runtime {
         SignalRuntimeBuilder, SignalTransaction, TransactionOutcome, TransactionResult,
         TransactionTiming,
     };
+    pub use crate::logic::transaction::{
+        CommittedObservationEventSummary, MatchingObserverSet, ObservationBoundaryOutcome,
+        ObservationBoundarySummary, ObservationDeliveryMode, ObservationHandle,
+        ObservationHandleId, ObservationListener, ObservationNotice, ObservationPolicy,
+        ObservationReadContext, ObservationRegistrySummary, ObservationTrigger, ObservedNodeSet,
+        ObserverId,
+    };
     pub use crate::schema::data::SignalSchemaRegistry;
     pub type BatchChange = ChangeBatch;
     pub type BatchChangeResult = ChangeBatchCommit;

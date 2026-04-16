@@ -10,15 +10,16 @@ use super::signal::{Signal, DEFAULT_ASPECT};
 pub(crate) trait ErasedComputed: Send + Sync {
     fn precompute(
         &self,
+        node: NodeId,
         values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         staged_values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         current_version: u64,
-    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError>;
+    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation, bool), SignalError>;
 }
 
 pub(crate) struct Computed<T, F>
 where
-    T: Clone + Send + Sync + 'static,
+    T: Clone + PartialEq + Send + Sync + 'static,
     F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
 {
     pub(crate) closure: F,
@@ -27,15 +28,16 @@ where
 
 impl<T, F> ErasedComputed for Computed<T, F>
 where
-    T: Clone + Send + Sync + 'static,
+    T: Clone + PartialEq + Send + Sync + 'static,
     F: Fn(&mut SignalContext<'_>) -> T + Send + Sync + 'static,
 {
     fn precompute(
         &self,
+        node: NodeId,
         values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         staged_values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         current_version: u64,
-    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError> {
+    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation, bool), SignalError> {
         let mut capture = PreparedDependencyCapture::default();
         let mut context = SignalContext {
             values,
@@ -43,11 +45,16 @@ where
             capture: &mut capture,
         };
         let value = (self.closure)(&mut context);
+        let meaningful_change = values
+            .get(&node)
+            .and_then(|existing| existing.downcast_ref::<T>())
+            .map(|existing| existing != &value)
+            .unwrap_or(true);
         let next_version = AspectVersion::zero().with(DEFAULT_ASPECT, current_version + 1);
         let prepared =
             PreparedEvaluation::from_result(NodeEvaluationResult::from_version(next_version))
                 .with_dependencies(capture);
-        Ok((Box::new(value), prepared))
+        Ok((Box::new(value), prepared, meaningful_change))
     }
 }
 

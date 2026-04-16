@@ -34,6 +34,7 @@ where
         self.config.sync_graph_capacity(&self.graph);
         SignalTransaction {
             runtime_ctx,
+            observations: &self.observations,
             config: &mut self.config,
             graph: &mut self.graph,
             checkpoint: &mut self.checkpoint,

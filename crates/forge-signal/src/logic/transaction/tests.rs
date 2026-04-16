@@ -11,6 +11,7 @@ use crate::schema::data::{
     SignalSchemaRegistry, SignalSchemaVersion,
 };
 use crate::tests::support::*;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Domain {
@@ -97,6 +98,73 @@ impl EventSubscriber for FailingSubscriber {
         _runtime: &mut Self::RuntimeContext,
     ) -> Result<(), SignalError> {
         Err(SignalError::internal("injected subscriber failure"))
+    }
+}
+
+struct NoopObservationListener;
+
+impl ObservationListener<Domain, Impact, Ev, (), Tier> for NoopObservationListener {
+    fn on_observation(
+        &self,
+        _ctx: ObservationReadContext<'_, Domain, Impact, Ev, (), Tier>,
+        _notice: &ObservationNotice<'_>,
+    ) {
+    }
+}
+
+struct RecordingObservationListener {
+    calls: Arc<Mutex<Vec<(u64, DiagnosticsTier)>>>,
+}
+
+impl ObservationListener<Domain, Impact, Ev, (), Tier> for RecordingObservationListener {
+    fn on_observation(
+        &self,
+        ctx: ObservationReadContext<'_, Domain, Impact, Ev, (), Tier>,
+        notice: &ObservationNotice<'_>,
+    ) {
+        let branch = ctx.current_branch();
+        let profile = ctx.diagnostics_profile();
+        self.calls
+            .lock()
+            .expect("observation preview mutex poisoned")
+            .push((branch.id.0, profile));
+        assert_eq!(notice.observer_id().get(), 1);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CommittedObservationRecord {
+    observer_id: u64,
+    handle_id: u64,
+    matched_node_count: usize,
+    touched: bool,
+    recomputed: bool,
+    meaningful_change: bool,
+    trigger_matched: bool,
+}
+
+struct Phase3RecordingObservationListener {
+    calls: Arc<Mutex<Vec<CommittedObservationRecord>>>,
+}
+
+impl ObservationListener<Domain, Impact, Ev, (), Tier> for Phase3RecordingObservationListener {
+    fn on_observation(
+        &self,
+        _ctx: ObservationReadContext<'_, Domain, Impact, Ev, (), Tier>,
+        notice: &ObservationNotice<'_>,
+    ) {
+        self.calls
+            .lock()
+            .expect("phase3 observation mutex poisoned")
+            .push(CommittedObservationRecord {
+                observer_id: notice.observer_id().get(),
+                handle_id: notice.handle_id().get(),
+                matched_node_count: notice.matched_nodes().len(),
+                touched: notice.touched(),
+                recomputed: notice.recomputed(),
+                meaningful_change: notice.meaningful_change(),
+                trigger_matched: notice.trigger_matched(),
+            });
     }
 }
 
@@ -1546,5 +1614,817 @@ fn rollback_restores_original_source_subscriber_membership_after_rewire() {
             .transaction
             .rollback_packet_subscriber_repair_count,
         1
+    );
+}
+
+#[test]
+fn observation_registry_assigns_deterministic_ids_and_indexes_nodes() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let c = graph.node().build();
+    let mut runtime = build_runtime(graph);
+
+    let first = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [b, a, b],
+        Box::new(NoopObservationListener),
+    );
+    let second = runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [c, b],
+        Box::new(NoopObservationListener),
+    );
+
+    let summary = runtime.observation_summary();
+    assert_eq!(summary.active_observer_count, 2);
+    assert_eq!(summary.indexed_node_count, 3);
+    assert_eq!(
+        summary
+            .ordered_observer_ids
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![first.observer_id().get(), second.observer_id().get()]
+    );
+
+    let matched_b = runtime.matching_observers_for_node(b);
+    assert_eq!(
+        matched_b.iter().map(|id| id.get()).collect::<Vec<_>>(),
+        vec![first.observer_id().get(), second.observer_id().get()]
+    );
+
+    let matched_a = runtime.observe().matching_observers_for_node(a);
+    assert_eq!(
+        matched_a.iter().map(|id| id.get()).collect::<Vec<_>>(),
+        vec![first.observer_id().get()]
+    );
+
+    let matched_c = runtime.matching_observers_for_node(c);
+    assert_eq!(
+        matched_c.iter().map(|id| id.get()).collect::<Vec<_>>(),
+        vec![second.observer_id().get()]
+    );
+}
+
+#[test]
+fn unobserve_removes_registration_and_cleans_node_indexes() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let mut runtime = build_runtime(graph);
+
+    let keep = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [a],
+        Box::new(NoopObservationListener),
+    );
+    let remove = runtime.observe_nodes(
+        ObservationPolicy::recomputed(),
+        [a, b],
+        Box::new(NoopObservationListener),
+    );
+
+    assert!(runtime.unobserve(remove));
+    assert!(
+        !runtime.unobserve(remove),
+        "stale handles must not unsubscribe again"
+    );
+
+    let summary = runtime.observation_summary();
+    assert_eq!(summary.active_observer_count, 1);
+    assert_eq!(summary.indexed_node_count, 1);
+    assert_eq!(
+        summary
+            .ordered_observer_ids
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![keep.observer_id().get()]
+    );
+    assert_eq!(
+        runtime
+            .matching_observers_for_node(a)
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![keep.observer_id().get()]
+    );
+    assert!(
+        runtime.matching_observers_for_node(b).is_empty(),
+        "node index should be cleaned when the final observer is removed"
+    );
+}
+
+#[test]
+fn observation_preview_uses_read_only_runtime_context() {
+    let mut runtime = build_runtime(crate::data::graph::SignalGraph::new());
+    let called = Arc::new(Mutex::new(Vec::<(u64, DiagnosticsTier)>::new()));
+    let called_clone = Arc::clone(&called);
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        std::iter::empty(),
+        Box::new(RecordingObservationListener {
+            calls: called_clone,
+        }),
+    );
+
+    assert!(
+        runtime
+            .observations()
+            .notify_preview(&runtime, handle.observer_id()),
+        "registered observer should be preview-notifiable"
+    );
+    assert_eq!(
+        called
+            .lock()
+            .expect("observation preview mutex poisoned")
+            .as_slice(),
+        &[(
+            runtime.observe().current_branch().id.0,
+            runtime.observe().diagnostics_profile(),
+        )]
+    );
+}
+
+#[test]
+fn observation_phase2_stages_candidates_without_dispatch() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph.node().build();
+    let mut runtime = build_runtime(graph);
+
+    runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source],
+        Box::new(NoopObservationListener),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
+
+    let summary = tx.observation_scratch_summary();
+    assert_eq!(summary.staged_candidate_observer_count, 1);
+    assert_eq!(summary.staged_candidate_match_count, 1);
+    assert_eq!(summary.classified_event_count, 0);
+}
+
+#[test]
+fn observation_phase2_lowers_recomputed_and_meaningful_change_from_report() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(NoopObservationListener),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_with_plan(
+        source,
+        &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    let summary = tx.observation_scratch_summary();
+    assert_eq!(summary.staged_candidate_observer_count, 1);
+    assert_eq!(summary.classified_event_count, 1);
+    assert_eq!(summary.touched_event_count, 1);
+    assert_eq!(summary.recomputed_event_count, 1);
+    assert_eq!(summary.meaningful_change_event_count, 1);
+
+    let classified = tx.classified_observation_summaries();
+    assert_eq!(classified.len(), 1);
+    assert_eq!(classified[0].observer_id, handle.observer_id());
+    assert_eq!(classified[0].handle_id, handle.handle_id());
+    assert_eq!(classified[0].policy, ObservationPolicy::meaningful_change());
+    assert!(classified[0].touched);
+    assert!(classified[0].recomputed);
+    assert!(classified[0].meaningful_change);
+    assert!(classified[0].trigger_matched);
+    assert_eq!(classified[0].matched_nodes.len(), 1);
+    assert_eq!(
+        classified[0]
+            .matched_nodes
+            .iter()
+            .collect::<Vec<_>>(),
+        vec![source]
+    );
+}
+
+#[test]
+fn observation_phase2_distinguishes_output_suppressed_from_meaningful_change() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(NoopObservationListener),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_with_plan(
+        source,
+        &|view| {
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(1, 0))
+                    .with_output_change(OutputChange::Unchanged),
+            ))
+        },
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    let summary = tx.observation_scratch_summary();
+    assert_eq!(summary.classified_event_count, 1);
+    assert_eq!(summary.recomputed_event_count, 1);
+    assert_eq!(summary.meaningful_change_event_count, 0);
+
+    let classified = tx.classified_observation_summaries();
+    assert_eq!(classified.len(), 1);
+    assert_eq!(classified[0].observer_id, handle.observer_id());
+    assert_eq!(classified[0].handle_id, handle.handle_id());
+    assert_eq!(classified[0].policy, ObservationPolicy::meaningful_change());
+    assert!(classified[0].touched);
+    assert!(classified[0].recomputed);
+    assert!(!classified[0].meaningful_change);
+    assert!(!classified[0].trigger_matched);
+    assert_eq!(
+        classified[0]
+            .matched_nodes
+            .iter()
+            .collect::<Vec<_>>(),
+        vec![source]
+    );
+}
+
+#[test]
+fn observation_phase2_coalesces_multiple_matching_nodes_into_one_classified_event() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let derived = graph.node().build();
+    graph.append_dependency(derived, source, ASPECT_A).unwrap();
+    let mut runtime = build_runtime(graph);
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source, derived],
+        Box::new(NoopObservationListener),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
+    tx.evaluate_dirty(&|view| {
+        if view.node() == source {
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        } else {
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+        }
+    })
+    .unwrap();
+
+    let summary = tx.observation_scratch_summary();
+    assert_eq!(summary.staged_candidate_observer_count, 1);
+    assert_eq!(summary.staged_candidate_match_count, 2);
+    assert_eq!(summary.classified_event_count, 1);
+
+    let classified = tx.classified_observation_summaries();
+    assert_eq!(classified.len(), 1);
+    assert_eq!(classified[0].observer_id, handle.observer_id());
+    assert_eq!(classified[0].handle_id, handle.handle_id());
+    assert_eq!(classified[0].policy, ObservationPolicy::touched());
+    assert_eq!(classified[0].matched_nodes.len(), 2);
+    assert!(classified[0].trigger_matched);
+    assert_eq!(
+        classified[0]
+            .matched_nodes
+            .iter()
+            .collect::<Vec<_>>(),
+        vec![source, derived]
+    );
+}
+
+#[test]
+fn observation_phase2_prepared_plan_execution_stages_and_classifies_observers() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(NoopObservationListener),
+    );
+
+    let plan = runtime
+        .build_evaluation_plan(&[source], EvaluationRequestMode::Default)
+        .unwrap();
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.execute_prepared_plan_with_executor(
+        &plan,
+        &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        StageExecutor::Serial,
+    )
+    .unwrap();
+
+    let summary = tx.observation_scratch_summary();
+    assert_eq!(summary.staged_candidate_observer_count, 1);
+    assert_eq!(summary.classified_event_count, 1);
+    assert_eq!(summary.meaningful_change_event_count, 1);
+    let classified = tx.classified_observation_summaries();
+    assert_eq!(classified.len(), 1);
+    assert_eq!(classified[0].observer_id, handle.observer_id());
+    assert_eq!(classified[0].handle_id, handle.handle_id());
+    assert_eq!(
+        classified[0]
+            .matched_nodes
+            .iter()
+            .collect::<Vec<_>>(),
+        vec![source]
+    );
+}
+
+#[test]
+fn observation_phase2_telemetry_counters_accumulate_across_transactions() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+
+    runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(NoopObservationListener),
+    );
+
+    for version in [1_u64, 2_u64] {
+        let mut ctx = ();
+        let mut tx = runtime.begin(&mut ctx);
+        tx.mark_dirty(source, ASPECT_A).unwrap();
+        tx.evaluate_with_plan(
+            source,
+            &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(version, 0)))),
+            EvaluationRequestMode::Default,
+        )
+        .unwrap();
+        tx.commit().unwrap();
+    }
+
+    let telemetry = runtime.telemetry().transaction;
+    assert_eq!(telemetry.staged_observation_candidate_count, 2);
+    assert_eq!(telemetry.classified_observation_count, 2);
+    assert!(telemetry.staged_observation_match_count >= 2);
+    assert!(telemetry.observation_classification_breadth >= 2);
+}
+
+#[test]
+fn observation_phase3_commit_dispatches_once_per_observer_per_transaction() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let derived = graph.node().build();
+    graph.append_dependency(derived, source, ASPECT_A).unwrap();
+    let mut runtime = build_runtime(graph);
+    let calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+
+    runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source, derived],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
+    tx.evaluate_dirty(&|view| {
+        if view.node() == source {
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        } else {
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+        }
+    })
+    .unwrap();
+
+    let result = tx.commit().unwrap();
+    let calls = calls.lock().expect("phase3 observation mutex poisoned");
+    assert_eq!(
+        calls.len(),
+        1,
+        "one delivery per observer per committed transaction"
+    );
+    assert_eq!(calls[0].matched_node_count, 2);
+    assert!(calls[0].touched);
+    assert!(calls[0].recomputed);
+    assert!(calls[0].meaningful_change);
+    assert!(calls[0].trigger_matched);
+    assert_eq!(result.observation.classified_event_count, 1);
+    assert_eq!(result.observation.trigger_matched_event_count, 1);
+    assert_eq!(result.observation.delivered_event_count, 1);
+    assert_eq!(result.observation.rollback_suppressed_event_count, 0);
+    assert_eq!(result.observation.boundary_events.len(), 1);
+    assert_eq!(
+        result.observation.boundary_events[0].matched_nodes.len(),
+        2
+    );
+    assert_eq!(
+        runtime.telemetry().transaction.delivered_observation_count,
+        1
+    );
+}
+
+#[test]
+fn observation_phase3_touched_observer_fires_for_commit_without_execution_report() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph.node().build();
+    let mut runtime = build_runtime(graph);
+    let calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let mut ctx = ();
+    let result = runtime
+        .transaction(&mut ctx, |tx| {
+            tx.mark_dirty(source, ASPECT_A)?;
+            Ok(())
+        })
+        .expect("touch-only transaction should commit");
+
+    let recorded = calls
+        .lock()
+        .expect("phase3 touch-only observation mutex poisoned")
+        .clone();
+    assert_eq!(recorded.len(), 1);
+    assert_eq!(
+        recorded[0],
+        CommittedObservationRecord {
+            observer_id: handle.observer_id().get(),
+            handle_id: handle.handle_id().get(),
+            matched_node_count: 1,
+            touched: true,
+            recomputed: false,
+            meaningful_change: false,
+            trigger_matched: true,
+        }
+    );
+    assert_eq!(result.observation.classified_event_count, 1);
+    assert_eq!(result.observation.trigger_matched_event_count, 1);
+    assert_eq!(result.observation.delivered_event_count, 1);
+    assert_eq!(result.observation.rollback_suppressed_event_count, 0);
+}
+
+#[test]
+fn observation_phase3_rollback_suppresses_normal_delivery_and_records_boundary_summary() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+    let calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+
+    runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_with_plan(
+        source,
+        &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    let result = tx.rollback().unwrap();
+    assert!(
+        calls
+            .lock()
+            .expect("phase3 observation mutex poisoned")
+            .is_empty(),
+        "rollback must not emit normal observation delivery"
+    );
+    assert_eq!(result.observation.classified_event_count, 1);
+    assert_eq!(result.observation.trigger_matched_event_count, 1);
+    assert_eq!(result.observation.delivered_event_count, 0);
+    assert_eq!(result.observation.rollback_suppressed_event_count, 1);
+    assert_eq!(result.observation.boundary_events.len(), 1);
+    assert!(matches!(
+        result.observation.boundary_events[0].outcome,
+        ObservationBoundaryOutcome::RollbackSuppressed
+    ));
+    assert_eq!(
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_suppressed_observation_count,
+        1
+    );
+}
+
+#[test]
+fn observation_phase3_failed_commit_suppresses_delivery_during_fail_and_rollback() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+    runtime
+        .event_bus_mut()
+        .subscribe(Box::new(FailingSubscriber))
+        .unwrap();
+    let calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+
+    runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_with_plan(
+        source,
+        &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+    tx.emit_event(Ev::Tick);
+    tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
+
+    let err = tx.commit().unwrap_err();
+    assert!(format!("{err}").contains("event bus flush failed"));
+    assert!(
+        calls
+            .lock()
+            .expect("phase3 observation mutex poisoned")
+            .is_empty(),
+        "failed commit rollback must suppress normal observation delivery"
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .transaction
+            .rollback_suppressed_observation_count,
+        1
+    );
+    assert_eq!(
+        runtime.telemetry().transaction.delivered_observation_count,
+        0
+    );
+}
+
+#[test]
+fn observation_phase4_diagnostics_surface_exposes_latest_boundary_summary() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+    let calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+
+    let handle = runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.evaluate_with_plan(
+        source,
+        &|view| Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0)))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    let result = tx.commit().unwrap();
+    let latest_observation = runtime
+        .observe()
+        .latest_observation_summary()
+        .expect("latest observation summary should be retained");
+    assert_eq!(latest_observation.delivered_event_count, 1);
+    assert_eq!(latest_observation.boundary_events.len(), 1);
+    assert_eq!(latest_observation.boundary_events[0].observer_id, handle.observer_id());
+    assert_eq!(latest_observation.boundary_events[0].handle_id, handle.handle_id());
+    assert_eq!(
+        latest_observation.boundary_events[0]
+            .matched_nodes
+            .iter()
+            .collect::<Vec<_>>(),
+        vec![source]
+    );
+
+    let latest_flow = runtime
+        .diagnostics()
+        .latest_flow()
+        .expect("flow diagnostics should exist after commit");
+    let flow_observation = latest_flow
+        .observation
+        .as_ref()
+        .expect("latest flow should carry observation summary");
+    assert_eq!(flow_observation, latest_observation);
+    assert_eq!(flow_observation, &result.observation);
+}
+
+#[test]
+fn observation_unobserve_does_not_resurrect_dead_listener_after_branch_restore_churn() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph
+        .node()
+        .authority_policy(AuthorityPolicy::AuthoritativeOnly)
+        .build();
+    let mut runtime = build_runtime(graph);
+    let keep_calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+    let removed_calls = Arc::new(Mutex::new(Vec::<CommittedObservationRecord>::new()));
+
+    let keep = runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&keep_calls),
+        }),
+    );
+    let removed = runtime.observe_nodes(
+        ObservationPolicy::touched(),
+        [source],
+        Box::new(Phase3RecordingObservationListener {
+            calls: Arc::clone(&removed_calls),
+        }),
+    );
+
+    let mut ctx = ();
+    runtime
+        .transaction(&mut ctx, |tx| {
+            tx.mark_dirty(source, ASPECT_A)?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        keep_calls
+            .lock()
+            .expect("keep observation mutex poisoned")
+            .as_slice(),
+        &[CommittedObservationRecord {
+            observer_id: keep.observer_id().get(),
+            handle_id: keep.handle_id().get(),
+            matched_node_count: 1,
+            touched: true,
+            recomputed: false,
+            meaningful_change: false,
+            trigger_matched: true,
+        }]
+    );
+    assert_eq!(
+        removed_calls
+            .lock()
+            .expect("removed observation mutex poisoned")
+            .as_slice(),
+        &[CommittedObservationRecord {
+            observer_id: removed.observer_id().get(),
+            handle_id: removed.handle_id().get(),
+            matched_node_count: 1,
+            touched: true,
+            recomputed: false,
+            meaningful_change: false,
+            trigger_matched: true,
+        }]
+    );
+
+    assert!(runtime.unobserve(removed));
+    assert_eq!(
+        runtime
+            .matching_observers_for_node(source)
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![keep.observer_id().get()],
+        "node index should immediately forget the removed observer"
+    );
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime.create_branch("feature-observation").unwrap();
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature_snapshot = runtime.capture_snapshot();
+    runtime.switch_branch(main).unwrap();
+    runtime
+        .restore_branch_snapshot(feature.clone(), &feature_snapshot)
+        .unwrap();
+    runtime.switch_branch(feature).unwrap();
+
+    let result = runtime
+        .transaction(&mut ctx, |tx| {
+            tx.mark_dirty(source, ASPECT_A)?;
+            Ok(())
+        })
+        .unwrap();
+
+    let keep_recorded = keep_calls
+        .lock()
+        .expect("keep observation mutex poisoned")
+        .clone();
+    let removed_recorded = removed_calls
+        .lock()
+        .expect("removed observation mutex poisoned")
+        .clone();
+    assert_eq!(
+        keep_recorded.len(),
+        2,
+        "surviving observer should still receive post-restore delivery"
+    );
+    assert_eq!(
+        removed_recorded.len(),
+        1,
+        "dead observer must not be resurrected by branch/snapshot churn"
+    );
+    assert_eq!(
+        runtime
+            .matching_observers_for_node(source)
+            .iter()
+            .map(|id| id.get())
+            .collect::<Vec<_>>(),
+        vec![keep.observer_id().get()],
+        "node index must remain free of the removed observer after restore churn"
+    );
+    assert_eq!(result.observation.delivered_event_count, 1);
+    assert_eq!(result.observation.boundary_events.len(), 1);
+    assert_eq!(
+        result.observation.boundary_events[0].observer_id.get(),
+        keep.observer_id().get(),
+        "committed observation summary must only name the surviving observer"
+    );
+
+    let latest_observation = runtime
+        .observe()
+        .latest_observation_summary()
+        .expect("latest observation summary should exist after the committed feature tx");
+    assert_eq!(latest_observation.delivered_event_count, 1);
+    assert_eq!(latest_observation.boundary_events.len(), 1);
+    assert_eq!(
+        latest_observation.boundary_events[0].observer_id.get(),
+        keep.observer_id().get(),
+        "retained diagnostics summary must not claim the removed observer fired"
+    );
+}
+
+#[test]
+fn committed_transaction_result_retains_touched_node_count_after_patch_commit() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph.node().build();
+    let mut runtime = build_runtime(graph);
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    tx.mark_dirty(source, ASPECT_A).unwrap();
+
+    let result = tx.commit().unwrap();
+
+    assert_eq!(
+        result.touched_nodes, 1,
+        "commit result must retain touched-node accounting after the patch buffer is cleared"
     );
 }

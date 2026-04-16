@@ -87,6 +87,7 @@ where
         }
         let rollback = self.scratch.semantic_delta.rollback.take();
         let failure_summary = self.scratch.semantic_delta.failure_summary.take();
+        let observation = std::mem::take(&mut self.scratch.semantic_delta.observation);
         let replay_events = std::mem::take(&mut self.scratch.semantic_delta.replay_events);
         let event_epochs = std::mem::take(&mut self.scratch.semantic_delta.event_epochs);
         let execution_report = self.execution_state.latest_report.take();
@@ -154,6 +155,7 @@ where
             event_epochs.clone(),
             rollback.clone(),
             failure_summary.clone(),
+            observation,
             *self.telemetry,
         );
         self.telemetry.transaction.decision_log_event_count +=
@@ -212,6 +214,9 @@ where
         self.graph
             .diagnostics_state_mut()
             .attach_event_epochs_to_latest_flow(event_epochs);
+        self.graph
+            .diagnostics_state_mut()
+            .record_observation(result.observation.clone());
         for entry in replay_events {
             record_transaction_semantic_event(
                 self.graph,

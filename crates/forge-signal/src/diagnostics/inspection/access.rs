@@ -18,6 +18,7 @@ use crate::diagnostics::history::{
 use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::logic::explain::NodeExplanation;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport};
 use crate::logic::transaction::SignalRuntime;
@@ -109,6 +110,10 @@ impl<'a> GraphDiagnostics<'a> {
 
     pub fn latest_rollback(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph.observe().latest_rollback_diagnostics()
+    }
+
+    pub fn latest_observation(&self) -> Option<&'a ObservationBoundarySummary> {
+        self.graph.observe().latest_observation_summary()
     }
 
     pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
@@ -218,6 +223,10 @@ impl<'a> GraphHealthDiagnostics<'a> {
 
     pub fn latest_rollback(&self) -> Option<&'a RollbackDiagnostic> {
         self.graph.observe().latest_rollback_diagnostics()
+    }
+
+    pub fn latest_observation(&self) -> Option<&'a ObservationBoundarySummary> {
+        self.graph.observe().latest_observation_summary()
     }
 
     pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {

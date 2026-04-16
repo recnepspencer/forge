@@ -8,6 +8,7 @@ use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::logic::planner::model::ParallelAdmissionReason;
 use crate::logic::planner::ExecutionReport;
+use crate::logic::transaction::runtime::transaction::ObservationBoundarySummary;
 
 use super::transaction_types::{
     EvaluationSummary, TransactionOutcome, TransactionReplayEntry, TransactionResult,
@@ -85,6 +86,7 @@ impl TransactionResult {
         event_epochs: Vec<EventEpochSummary>,
         rollback: Option<RollbackDiagnostic>,
         failure_summary: Option<FailureSummary>,
+        observation: ObservationBoundarySummary,
         performance_accounting: RuntimeTelemetry,
     ) -> Self {
         let rollback_reason = rollback
@@ -178,6 +180,7 @@ impl TransactionResult {
             event_epochs: event_epochs.clone(),
             rollback,
             warnings,
+            observation,
             decision_summary: summary,
             decision_log: DecisionLog { records },
             integrity_markers: IntegrityMarkers {
