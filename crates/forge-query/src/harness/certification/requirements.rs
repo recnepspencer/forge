@@ -214,3 +214,21 @@ pub fn milestone_five_point_three_requirements() -> SuiteRequirements {
         missing_rows_block_offline_ready: true,
     }
 }
+
+pub fn milestone_five_point_four_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Structural Correspondence And Historical Materialization Path Test",
+        required_canonical_rows: crate::harness::correspondence_history_certification::
+            CORRESPONDENCE_HISTORY_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows: crate::harness::correspondence_history_certification::
+            CORRESPONDENCE_HISTORY_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}

@@ -216,7 +216,8 @@ impl PreviewCertificationRow {
                         == self.hostile_lane.preview_live_subscription_digest
                     && self.control_lane.preview_live_subscription_digest
                         == self.parity_lane.preview_live_subscription_digest
-                    && self.control_lane.preview_live_family == self.hostile_lane.preview_live_family
+                    && self.control_lane.preview_live_family
+                        == self.hostile_lane.preview_live_family
                     && self.control_lane.preview_live_family == self.parity_lane.preview_live_family
             }
             HostileExpectation::DistinctFromControl => {
@@ -342,7 +343,10 @@ fn lane_digest_parts(bundle: &PreviewCertificationLane, label: &str) -> Vec<Stri
         parts.extend(comparison_counter_digest_parts(comparison_counters, label));
     }
     if let Some(preview_live_counters) = bundle.preview_live_counters.as_ref() {
-        parts.extend(preview_live_counter_digest_parts(preview_live_counters, label));
+        parts.extend(preview_live_counter_digest_parts(
+            preview_live_counters,
+            label,
+        ));
     }
     parts
 }

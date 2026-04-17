@@ -1,0 +1,7 @@
+error[E0308]: mismatched types
+ --> tests/ui/historical_path_collapsed_field_forbidden.rs:5:50
+  |
+5 |     let _resolved: ResolvedHistoricalPathClass = requested;
+  |                    ---------------------------   ^^^^^^^^^ expected `ResolvedHistoricalPathClass`, found `RequestedHistoricalPathClass`
+  |                    |
+  |                    expected due to this

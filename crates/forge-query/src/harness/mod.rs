@@ -11,6 +11,8 @@ mod collection_certification;
 #[cfg(test)]
 mod collection_matrix;
 #[cfg(test)]
+mod correspondence_history_certification;
+#[cfg(test)]
 pub(crate) mod fixtures;
 #[cfg(test)]
 mod frontier_certification;

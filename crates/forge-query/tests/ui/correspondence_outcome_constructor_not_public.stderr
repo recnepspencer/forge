@@ -1,0 +1,9 @@
+error[E0451]: fields `canonical_subject` and `canonical_counterpart` of struct `LineageContinuity` are private
+ --> tests/ui/correspondence_outcome_constructor_not_public.rs:5:9
+  |
+4 |     let _ = LineageContinuity {
+  |             ----------------- in this type
+5 |         canonical_subject: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ private field
+6 |         canonical_counterpart: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^ private field

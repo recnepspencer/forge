@@ -1,9 +1,9 @@
 use super::{
-    contains_row, milestone_five_point_one_requirements, milestone_five_point_two_requirements,
-    milestone_one_requirements, milestone_three_requirements, milestone_two_requirements,
-    unmet_required_assertion_classes, unmet_required_rows, CanonicalCertificationRow,
-    CertificationMatrix, HostileExpectation, ParityAnchor, RejectionCertificationRow,
-    RequiredAssertionClass,
+    contains_row, milestone_five_point_four_requirements, milestone_five_point_one_requirements,
+    milestone_five_point_two_requirements, milestone_one_requirements,
+    milestone_three_requirements, milestone_two_requirements, unmet_required_assertion_classes,
+    unmet_required_rows, CanonicalCertificationRow, CertificationMatrix, HostileExpectation,
+    ParityAnchor, RejectionCertificationRow, RequiredAssertionClass,
 };
 
 #[test]
@@ -13,6 +13,7 @@ fn requirements_registry_exposes_milestone_rows() {
     let milestone_three = milestone_three_requirements();
     let milestone_five_point_one = milestone_five_point_one_requirements();
     let milestone_five_point_two = milestone_five_point_two_requirements();
+    let milestone_five_point_four = milestone_five_point_four_requirements();
 
     assert_eq!(
         milestone_one.suite_name,
@@ -78,6 +79,22 @@ fn requirements_registry_exposes_milestone_rows() {
     assert!(milestone_five_point_two
         .required_assertion_classes
         .contains(&RequiredAssertionClass::Inequality));
+    assert_eq!(
+        milestone_five_point_four.suite_name,
+        "Structural Correspondence And Historical Materialization Path Test"
+    );
+    assert!(milestone_five_point_four
+        .required_canonical_rows
+        .contains(&"lineage-correspondence-authoritative"));
+    assert!(milestone_five_point_four
+        .required_canonical_rows
+        .contains(&"prediction-drift-explicit"));
+    assert!(milestone_five_point_four
+        .required_rejection_rows
+        .contains(&"hidden-materialization-path-substitution-forbidden"));
+    assert!(milestone_five_point_four
+        .required_rejection_rows
+        .contains(&"broad-candidate-scan-success-forbidden"));
 }
 
 #[test]

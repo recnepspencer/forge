@@ -1,0 +1,204 @@
+use forge_runtime_bridge::facade::{
+    BridgeHistoricalEvaluationDecisionLog, BridgeHistoricalMaterializationPath,
+    BridgeTruthViewKind, BridgeTruthViewPolicyResolution, HistoricalEvaluationDeclaration,
+    LoweredHistoricalEvaluationArtifact, ResolvedTruthViewPolicy, SourceMaterializationRecord,
+    TruthViewReplayCompatibility, TruthViewRetentionAdmission, TruthViewSourceCapability,
+};
+
+use super::contracts::HistoricalPathReuseDescriptor;
+use super::error::HistoricalEvaluationError;
+use super::path_classes::{
+    AdmittedHistoricalPathClass, RequestedHistoricalPathClass, ResolvedHistoricalPathClass,
+};
+use super::request::{HistoricalCapabilityDescriptor, HistoricalMaterializationDescriptor};
+
+pub(crate) fn lower_policy_resolution(
+    declaration: &HistoricalEvaluationDeclaration,
+    resolution: &BridgeTruthViewPolicyResolution,
+    source_record: Option<&SourceMaterializationRecord>,
+    requested_path_class: &RequestedHistoricalPathClass,
+) -> Result<HistoricalCapabilityDescriptor, HistoricalEvaluationError> {
+    match resolution {
+        BridgeTruthViewPolicyResolution::Admitted(policy) => {
+            Ok(lower_admitted_policy(
+                declaration,
+                policy,
+                source_record,
+                requested_path_class,
+            ))
+        }
+        BridgeTruthViewPolicyResolution::Rejected(rejection) => Err(
+            HistoricalEvaluationError::UnsupportedHistoricalPathRequest {
+                requested_path_class: requested_path_class.clone(),
+                reason: match rejection.kind() {
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::ReplayNotPermitted => {
+                        "replay was rejected by the lower runtime policy"
+                    }
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::UnavailableTruthView => {
+                        "truth view is unavailable for the requested historical evaluation"
+                    }
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::UnsupportedTruthViewSelector => {
+                        "truth view selector is unsupported for historical evaluation"
+                    }
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::SourceCapabilityMismatch => {
+                        "source capability does not match the requested historical evaluation"
+                    }
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::BranchMismatch => {
+                        "branch selector does not match the lower-runtime historical basis"
+                    }
+                    forge_runtime_bridge::facade::TruthViewPolicyRejectionKind::UnresolvedPolicyConflict => {
+                        "historical policy conflict was left unresolved by the lower runtime"
+                    }
+                },
+            },
+        ),
+    }
+}
+
+fn lower_admitted_policy(
+    declaration: &HistoricalEvaluationDeclaration,
+    policy: &ResolvedTruthViewPolicy,
+    source_record: Option<&SourceMaterializationRecord>,
+    requested_path_class: &RequestedHistoricalPathClass,
+) -> HistoricalCapabilityDescriptor {
+    let retention_available = matches!(
+        policy.retention_admission(),
+        TruthViewRetentionAdmission::SnapshotResident
+    );
+    let replay_permitted = declaration.replay_mode() != forge_runtime_bridge::facade::BridgeReplayMode::Disabled
+        && matches!(
+            policy.replay_compatibility(),
+            TruthViewReplayCompatibility::ReplayPermitted
+                | TruthViewReplayCompatibility::ReplayRequired
+        );
+    let replay_required = declaration.replay_mode()
+        == forge_runtime_bridge::facade::BridgeReplayMode::Required
+        && matches!(
+            policy.replay_compatibility(),
+            TruthViewReplayCompatibility::ReplayRequired
+        );
+    let historical_lookup_available = matches!(
+        policy.source_capability(),
+        TruthViewSourceCapability::HistoricalLookupAndSnapshotRead
+    );
+
+    let admitted_path_class = match requested_path_class {
+        RequestedHistoricalPathClass::RequestedRetainedSnapshotPath if retention_available => {
+            Some(AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath)
+        }
+        RequestedHistoricalPathClass::RequestedDeltaReplayPath if replay_permitted => {
+            Some(AdmittedHistoricalPathClass::AdmittedDeltaReplayPath)
+        }
+        RequestedHistoricalPathClass::RequestedFullReconstructionPath
+            if declaration.selector().view_kind() == BridgeTruthViewKind::BranchHead
+                && (replay_required || historical_lookup_available) =>
+        {
+            Some(AdmittedHistoricalPathClass::AdmittedFullReconstructionPath)
+        }
+        _ => None,
+    };
+
+    HistoricalCapabilityDescriptor::new(
+        declaration.declaration_identity().as_str(),
+        admitted_path_class,
+        replay_permitted,
+        replay_required,
+        retention_available,
+        historical_lookup_available,
+        lower_reuse_descriptor(source_record),
+    )
+}
+
+pub(crate) fn lower_materialization_from_decision_log(
+    decision_log: &BridgeHistoricalEvaluationDecisionLog,
+) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
+    lower_materialization_descriptor(
+        decision_log.declaration_identity().as_str(),
+        decision_log.materialization_path(),
+    )
+}
+
+pub(crate) fn lower_materialization_from_artifact(
+    artifact: &LoweredHistoricalEvaluationArtifact,
+    requested_path_class: &RequestedHistoricalPathClass,
+) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
+    let _ = requested_path_class;
+    lower_materialization_descriptor(
+        artifact.declaration_identity().as_str(),
+        artifact.materialization_path(),
+    )
+}
+
+fn lower_materialization_descriptor(
+    basis_identity: &str,
+    path: BridgeHistoricalMaterializationPath,
+) -> Result<HistoricalMaterializationDescriptor, HistoricalEvaluationError> {
+    let resolved_path_class = resolved_path_class_for(path)?;
+    let (actual_replay_span, actual_reconstruction_scope) = realized_work_for(path);
+    Ok(
+        HistoricalMaterializationDescriptor::new(basis_identity, resolved_path_class)
+            .with_realized_work(actual_replay_span, actual_reconstruction_scope),
+    )
+}
+
+fn resolved_path_class_for(
+    path: BridgeHistoricalMaterializationPath,
+) -> Result<ResolvedHistoricalPathClass, HistoricalEvaluationError> {
+    resolved_path_class_for_with_request(
+        path,
+        &RequestedHistoricalPathClass::RequestedRetainedSnapshotPath,
+    )
+}
+
+fn resolved_path_class_for_with_request(
+    path: BridgeHistoricalMaterializationPath,
+    _requested_path_class: &RequestedHistoricalPathClass,
+) -> Result<ResolvedHistoricalPathClass, HistoricalEvaluationError> {
+    match path {
+        BridgeHistoricalMaterializationPath::DirectSnapshotRead => {
+            Ok(ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath)
+        }
+        BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot => {
+            Ok(ResolvedHistoricalPathClass::ResolvedDeltaReplayPath)
+        }
+        BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot => {
+            Ok(ResolvedHistoricalPathClass::ResolvedFullReconstructionPath)
+        }
+    }
+}
+
+fn realized_work_for(path: BridgeHistoricalMaterializationPath) -> (usize, usize) {
+    match path {
+        BridgeHistoricalMaterializationPath::DirectSnapshotRead => (0, 0),
+        BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot => (1, 0),
+        BridgeHistoricalMaterializationPath::BranchHeadEnvelopeSnapshot => (0, 1),
+    }
+}
+
+fn lower_reuse_descriptor(
+    source_record: Option<&SourceMaterializationRecord>,
+) -> HistoricalPathReuseDescriptor {
+    let Some(record) = source_record else {
+        return HistoricalPathReuseDescriptor::no_reuse();
+    };
+
+    let retained_reuse = if record.materialization_paths().iter().any(|path| {
+        matches!(
+            path,
+            BridgeHistoricalMaterializationPath::DirectSnapshotRead
+        )
+    }) {
+        HistoricalPathReuseDescriptor::retained_reuse()
+    } else if record.materialization_paths().iter().any(|path| {
+        matches!(
+            path,
+            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot
+        )
+    }) {
+        HistoricalPathReuseDescriptor::with_replay_tail_reuse()
+    } else {
+        HistoricalPathReuseDescriptor::no_reuse()
+    };
+
+    retained_reuse
+}

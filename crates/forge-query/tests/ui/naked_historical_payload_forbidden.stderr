@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `payload` found for struct `HistoricalPathResolved` in the current scope
+ --> tests/ui/naked_historical_payload_forbidden.rs:4:75
+  |
+4 |     let _: fn(&HistoricalPathResolved) -> &[u8] = HistoricalPathResolved::payload;
+  |                                                                           ^^^^^^^ function or associated item not found in `HistoricalPathResolved`

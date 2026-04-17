@@ -38,6 +38,29 @@ pub use crate::collection::{
     OrderingTieBreakContract, PostReadShapingPlan, RollupEdgeClass, RollupShapeArtifact,
     StableOrderingContract, TraversalBoundContract, TraversalDepthLimit, TraversalEdgeClass,
 };
+pub use crate::correspondence::{
+    resolve_correspondence_evidence, AdvisoryStructuralAmbiguous, AdvisoryStructuralUnique,
+    CorrespondenceAmbiguityEnvelope, CorrespondenceCandidateSet, CorrespondenceComplexityContract,
+    CorrespondenceCostPosture, CorrespondenceCounterSnapshot, CorrespondenceDenied,
+    CorrespondenceDisagreementEnvelope, CorrespondenceEvaluationError,
+    CorrespondenceEvaluationFailureClass, CorrespondenceEvaluationRequest,
+    CorrespondenceEvidenceResolved, CorrespondenceOutcome, CorrespondencePerformanceStatusMarker,
+    CorrespondenceVocabularyReport, LineageContinuity, LineageStructuralDisagreement,
+    StructuralCandidateBudget, StructuralCandidateDiscoveryPlan,
+    StructuralCandidateOrderingContract, UniqueStructuralCorrespondenceWitness,
+};
+pub use crate::correspondence_history::{
+    compose_correspondence_historical_envelope, compose_historical_admission_denied_envelope,
+    compose_historical_path_denied_envelope,
+    CorrespondenceHistoricalAmbiguityEnvelope, CorrespondenceHistoricalDeniedEnvelope,
+    CorrespondenceHistoricalDisagreementEnvelope, CorrespondenceHistoricalEnvelope,
+    CorrespondenceHistoricalSuccessEnvelope, HistoricalPathAdmissionDeniedEnvelope,
+    HistoricalPathDeniedEnvelope, MetadataPreservingHistoricalResultView,
+};
+pub use crate::correspondence_history_parity::{
+    build_correspondence_historical_parity_bundle, CorrespondenceHistoricalParityBundle,
+    CorrespondenceHistoricalParityBundleError, CorrespondenceHistoricalParityVariant,
+};
 pub use crate::diagnostics::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
     CompatibilityEvidence, IdentityFreezeEvidence, NormalizationEvent,
@@ -61,9 +84,25 @@ pub use crate::frontier_planning::{
 pub use crate::frontier_signal_adapter::{
     SignalAdmissionEvidenceError, SignalFrontierSurfaceEvidence,
 };
+pub use crate::historical::{
+    admit_historical_evaluation_path, materialization_metadata_from_resolved,
+    resolve_historical_materialization_path, AdmittedHistoricalPathClass,
+    HistoricalCapabilityDescriptor, HistoricalCounterSnapshot, HistoricalEvaluationAdmission,
+    HistoricalEvaluationError, HistoricalEvaluationFailureClass, HistoricalEvaluationRequest,
+    HistoricalMaterializationDescriptor, HistoricalMaterializationPathMetadata,
+    HistoricalPathAdmitted, HistoricalPathCompatibilityOutcome, HistoricalPathComplexityContract,
+    HistoricalPathCostPosture, HistoricalPathRequested, HistoricalPathResolved,
+    HistoricalPathReuseDescriptor, HistoricalPathSubstitutionDenied,
+    HistoricalPathVocabularyReport, HistoricalPerformanceStatusMarker,
+    HistoricalReconstructionBudget, HistoricalReplaySpanBudget, PerformancePredictionDriftOutcome,
+    ReplayTailReuseEligibility, RequestedHistoricalPathClass, ResolvedHistoricalPathClass,
+    RetainedStateReuseEligibility,
+};
 pub use crate::identity::{
     BasisDigest, BindingFulfillmentDigest, CanonicalEquivalence, CanonicalQueryDigest,
-    CanonicalResultShapeDigest, CollectionPlanDigest, PlanDigest, ResultDigest, SchemaBasisDigest,
+    CanonicalResultShapeDigest, CollectionPlanDigest, CorrespondenceCostPostureDigest,
+    CorrespondenceOutcomeDigest, CounterSnapshotDigest, FailureDigest, HistoricalCostPostureDigest,
+    HistoricalPathClassDigest, LineageDigest, PlanDigest, ResultDigest, SchemaBasisDigest,
     ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
 pub use crate::live::{
@@ -118,25 +157,23 @@ pub use crate::planning::{
 pub use crate::preview::{
     admit_authoritative_preview_comparison_candidate, admit_preview_live_session_plan,
     admit_preview_promotion_parity_comparison, admit_preview_workflow_foundation,
-    admit_preview_workflow_foundation_request, assess_preview_live_drift,
+    admit_preview_workflow_foundation_request,
     admit_promotion_eligible_preview_session_plan_binding,
-    admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
-    execute_preview_live_session_plan, execute_promotion_eligible_preview_session_plan,
-    execute_read_only_preview_session_plan,
+    admit_read_only_preview_session_plan_binding, assess_preview_live_drift,
+    bind_preflight_to_preview_session, execute_preview_live_session_plan,
+    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
     AdmittedPreviewWorkflowFoundation, AuthoritativePreviewComparisonCandidate,
-    PreviewBindingCounters, PreviewBindingError, PreviewBindingFailureClass,
-    PreviewBindingReport, PreviewComparisonCounters, PreviewComparisonEligibilityArtifact,
-    PreviewComparisonError, PreviewComparisonFailureClass, PreviewComplexityContract,
-    PreviewEvaluationClass, PreviewExecutionCounters, PreviewExecutionError,
-    PreviewExecutionFailureClass, PreviewExecutionReport, PreviewLifecycleMetadata,
-    PreviewLiveAdmissionReport, PreviewLiveCounters, PreviewLiveDriftDenied,
-    PreviewLiveDriftOutcome, PreviewLiveError, PreviewLiveExecutionEnvelope,
-    PreviewLiveFailureClass, PreviewLiveMaintained,
-    PreviewLiveRebindArtifact, PreviewLiveSessionPlanBinding,
-    PreviewPerformanceStatusMarker, PreviewSessionBasis, PreviewSessionBindingTuple,
-    PreviewSessionPlanBinding, PreviewSessionQueryContext, PreviewWorkflowFoundationArtifact,
-    PreviewWorkflowFoundationError, PreviewWorkflowFoundationFailureClass,
-    PreviewWorkflowFoundationRequest,
+    PreviewBindingCounters, PreviewBindingError, PreviewBindingFailureClass, PreviewBindingReport,
+    PreviewComparisonCounters, PreviewComparisonEligibilityArtifact, PreviewComparisonError,
+    PreviewComparisonFailureClass, PreviewComplexityContract, PreviewEvaluationClass,
+    PreviewExecutionCounters, PreviewExecutionError, PreviewExecutionFailureClass,
+    PreviewExecutionReport, PreviewLifecycleMetadata, PreviewLiveAdmissionReport,
+    PreviewLiveCounters, PreviewLiveDriftDenied, PreviewLiveDriftOutcome, PreviewLiveError,
+    PreviewLiveExecutionEnvelope, PreviewLiveFailureClass, PreviewLiveMaintained,
+    PreviewLiveRebindArtifact, PreviewLiveSessionPlanBinding, PreviewPerformanceStatusMarker,
+    PreviewSessionBasis, PreviewSessionBindingTuple, PreviewSessionPlanBinding,
+    PreviewSessionQueryContext, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
+    PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
     PromotionEligiblePreviewEvaluation, PromotionEligiblePreviewExecutionEnvelope,
     PromotionEligiblePreviewSessionPlanBinding, PromotionParityPreviewComparisonAdmission,
     ReadOnlyPreviewEvaluation, ReadOnlyPreviewExecutionEnvelope, ReadOnlyPreviewSessionPlanBinding,

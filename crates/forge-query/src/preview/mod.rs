@@ -715,7 +715,8 @@ impl PreviewLiveExecutionEnvelope {
     pub fn check_invariants(&self) -> Result<(), PreviewExecutionError> {
         if self.counters.preview_live_admission_count() != 1 {
             return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
-                message: "preview-live execution must preserve exactly one preview-live admission proof",
+                message:
+                    "preview-live execution must preserve exactly one preview-live admission proof",
             });
         }
 
@@ -731,7 +732,8 @@ impl PreviewLiveExecutionEnvelope {
             || self.counters.preview_live_broad_fallback_denial_count() != 0
         {
             return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
-                message: "steady-state preview-live execution cannot smuggle drift or fallback counters",
+                message:
+                    "steady-state preview-live execution cannot smuggle drift or fallback counters",
             });
         }
 
@@ -2635,7 +2637,12 @@ pub fn admit_preview_live_session_plan(
     }
 
     if live_plan.start_basis().basis().proof().digest().as_str()
-        != preview_binding.preflight().basis().proof().digest().as_str()
+        != preview_binding
+            .preflight()
+            .basis()
+            .proof()
+            .digest()
+            .as_str()
     {
         return Err(PreviewLiveError {
             failure_class: PreviewLiveFailureClass::PreviewLiveBasisMismatch,
@@ -2673,7 +2680,10 @@ pub fn admit_preview_live_session_plan(
                 "preview_binding:{}",
                 preview_binding.basis().binding_tuple().digest()
             ),
-            format!("live_subscription:{}", live_plan.subscription_digest().as_str()),
+            format!(
+                "live_subscription:{}",
+                live_plan.subscription_digest().as_str()
+            ),
             format!("live_family:{}", live_descriptor.family().as_str()),
         ]),
         preview_binding_digest: preview_binding.basis().binding_tuple().digest().to_string(),
@@ -3039,11 +3049,10 @@ mod tests {
         admit_authoritative_preview_comparison_candidate, admit_preview_live_session_plan,
         admit_preview_promotion_parity_comparison, admit_preview_workflow_foundation,
         admit_preview_workflow_foundation_request,
-        assess_preview_live_drift,
         admit_promotion_eligible_preview_session_plan_binding,
-        admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
-        derive_preview_comparison_eligibility, execute_preview_live_session_plan,
-        execute_preview_session_plan,
+        admit_read_only_preview_session_plan_binding, assess_preview_live_drift,
+        bind_preflight_to_preview_session, derive_preview_comparison_eligibility,
+        execute_preview_live_session_plan, execute_preview_session_plan,
         execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
         PreviewBindingFailureClass, PreviewComparisonFailureClass, PreviewEvaluationClass,
         PreviewExecutionFailureClass, PreviewLiveDriftOutcome, PreviewLiveFailureClass,
@@ -3083,7 +3092,10 @@ mod tests {
             .expect("preview-live execution should succeed");
 
         assert_eq!(
-            preview_live.report().counters().preview_live_admission_count(),
+            preview_live
+                .report()
+                .counters()
+                .preview_live_admission_count(),
             1
         );
         assert_eq!(execution.counters().preview_live_execution_count(), 1);
@@ -3098,7 +3110,11 @@ mod tests {
         );
         assert_eq!(
             preview_live.report().preview_binding_digest(),
-            preview_live.preview_binding().basis().binding_tuple().digest()
+            preview_live
+                .preview_binding()
+                .basis()
+                .binding_tuple()
+                .digest()
         );
     }
 
@@ -3206,10 +3222,7 @@ mod tests {
 
         match outcome {
             PreviewLiveDriftOutcome::ExplicitRebindAvailable(rebind) => {
-                assert_eq!(
-                    rebind.counters().preview_live_rebind_available_count(),
-                    1
-                );
+                assert_eq!(rebind.counters().preview_live_rebind_available_count(), 1);
                 assert_ne!(
                     rebind.prior_preview_live_digest(),
                     rebind.rebound_preview_live().report().digest()
@@ -3386,7 +3399,10 @@ mod tests {
         assert_eq!(execution.counters().preview_live_admission_count(), 1);
         assert_eq!(execution.counters().preview_live_execution_count(), 1);
         assert_eq!(execution.counters().preview_live_lifecycle_check_count(), 0);
-        assert_eq!(execution.preview_live().report().digest(), preview_live.report().digest());
+        assert_eq!(
+            execution.preview_live().report().digest(),
+            preview_live.report().digest()
+        );
     }
 
     #[test]
@@ -4246,9 +4262,7 @@ mod tests {
             0
         );
         assert_eq!(
-            error
-                .counters()
-                .preview_workflow_foundation_denial_count(),
+            error.counters().preview_workflow_foundation_denial_count(),
             1
         );
         assert_eq!(

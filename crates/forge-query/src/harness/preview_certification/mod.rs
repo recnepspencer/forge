@@ -13,19 +13,17 @@ use crate::harness::fixtures::{
     },
 };
 use crate::preview::{
-    admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
-    admit_preview_live_session_plan,
-    admit_preview_workflow_foundation_request,
+    admit_authoritative_preview_comparison_candidate, admit_preview_live_session_plan,
+    admit_preview_promotion_parity_comparison, admit_preview_workflow_foundation_request,
     admit_promotion_eligible_preview_session_plan_binding,
-    admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
-    assess_preview_live_drift,
+    admit_read_only_preview_session_plan_binding, assess_preview_live_drift,
+    bind_preflight_to_preview_session, execute_preview_live_session_plan,
     execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
-    execute_preview_live_session_plan, PreviewBindingCounters, PreviewBindingError,
-    PreviewBindingFailureClass,
+    PreviewBindingCounters, PreviewBindingError, PreviewBindingFailureClass,
     PreviewComparisonCounters, PreviewComparisonError, PreviewComparisonFailureClass,
-    PreviewEvaluationClass, PreviewExecutionCounters, PreviewExecutionEnvelope, PreviewLiveCounters,
-    PreviewLiveDriftOutcome, PreviewLiveError, PreviewLiveFailureClass, PreviewSessionQueryContext,
-    PreviewWorkflowFoundationError,
+    PreviewEvaluationClass, PreviewExecutionCounters, PreviewExecutionEnvelope,
+    PreviewLiveCounters, PreviewLiveDriftOutcome, PreviewLiveError, PreviewLiveFailureClass,
+    PreviewSessionQueryContext, PreviewWorkflowFoundationError,
     PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
 };
 use model::{MilestoneFivePointTwoPreviewCertificationArtifact, PreviewCertificationMatrix};
@@ -440,8 +438,10 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         )
         .expect("parity promotion-eligible binding should succeed");
         let parity_promotable_execution = execute_promotion_eligible_preview_session_plan(
-            &admit_promotion_eligible_preview_session_plan_binding(parity_promotable_binding.clone())
-                .expect("parity promotion-eligible binding should admit"),
+            &admit_promotion_eligible_preview_session_plan_binding(
+                parity_promotable_binding.clone(),
+            )
+            .expect("parity promotion-eligible binding should admit"),
         )
         .expect("parity promotion-eligible preview execution should succeed");
         let preview_live_binding = admit_preview_live_session_plan(
@@ -619,20 +619,20 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             PreviewLiveDriftOutcome::ExplicitRebindAvailable(rebind) => rebind,
             other => panic!("preview-live drift should offer explicit rebind, got {other:?}"),
         };
-        let preview_live_rebind_preview_execution = execute_promotion_eligible_preview_session_plan(
-            &admit_promotion_eligible_preview_session_plan_binding(
-                preview_live_explicit_rebind
-                    .rebound_preview_live()
-                    .preview_binding()
-                    .clone(),
+        let preview_live_rebind_preview_execution =
+            execute_promotion_eligible_preview_session_plan(
+                &admit_promotion_eligible_preview_session_plan_binding(
+                    preview_live_explicit_rebind
+                        .rebound_preview_live()
+                        .preview_binding()
+                        .clone(),
+                )
+                .expect("rebound preview binding should admit"),
             )
-            .expect("rebound preview binding should admit"),
-        )
-        .expect("rebound preview execution should succeed");
-        let preview_live_rebind_execution = execute_preview_live_session_plan(
-            preview_live_explicit_rebind.rebound_preview_live(),
-        )
-        .expect("rebound preview-live execution should succeed");
+            .expect("rebound preview execution should succeed");
+        let preview_live_rebind_execution =
+            execute_preview_live_session_plan(preview_live_explicit_rebind.rebound_preview_live())
+                .expect("rebound preview-live execution should succeed");
 
         let active_lane =
             PreviewCertificationLane::from_execution(active_execution.as_preview_execution());
@@ -653,7 +653,10 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         let preview_live_rebind_lane = PreviewCertificationLane::from_execution(
             preview_live_rebind_preview_execution.as_preview_execution(),
         )
-        .with_preview_live_rebind(&preview_live_rebind_execution, &preview_live_explicit_rebind);
+        .with_preview_live_rebind(
+            &preview_live_rebind_execution,
+            &preview_live_explicit_rebind,
+        );
 
         PreviewCertificationMatrix {
             suite_name: "Preview Session Basis And Promotion Parity Test",
@@ -1100,17 +1103,14 @@ mod tests {
             expected_preview_live_counters.preview_live_rebind_available_count()
         );
         assert!(
-            expected_preview_live_counters
-                .preview_live_broad_fallback_denial_count()
-                > 0,
+            expected_preview_live_counters.preview_live_broad_fallback_denial_count() > 0,
             "artifact counter snapshot should retain preview-live broad-fallback denials"
         );
         assert_eq!(
             artifact
                 .preview_live_counter_snapshot
                 .preview_live_broad_fallback_denial_count(),
-            expected_preview_live_counters
-                .preview_live_broad_fallback_denial_count()
+            expected_preview_live_counters.preview_live_broad_fallback_denial_count()
         );
         assert!(
             expected_binding_counters.preview_invalid_basis_denial_count() > 0,

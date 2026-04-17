@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_ambiguity_bool` found for struct `CorrespondenceOutcome` in the current scope
+ --> tests/ui/raw_ambiguity_bool_forbidden.rs:4:71
+  |
+4 |     let _: fn(bool) -> CorrespondenceOutcome = CorrespondenceOutcome::from_ambiguity_bool;
+  |                                                                       ^^^^^^^^^^^^^^^^^^^ function or associated item not found in `CorrespondenceOutcome`

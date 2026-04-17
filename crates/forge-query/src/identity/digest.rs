@@ -130,6 +130,97 @@ impl ResultDigest {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct LineageDigest(String);
+
+impl LineageDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CorrespondenceOutcomeDigest(String);
+
+impl CorrespondenceOutcomeDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CorrespondenceCostPostureDigest(String);
+
+impl CorrespondenceCostPostureDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct HistoricalPathClassDigest(String);
+
+impl HistoricalPathClassDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct HistoricalCostPostureDigest(String);
+
+impl HistoricalCostPostureDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct FailureDigest(String);
+
+impl FailureDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CounterSnapshotDigest(String);
+
+impl CounterSnapshotDigest {
+    pub(crate) fn from_parts(parts: &[String]) -> Self {
+        Self(hash_parts(parts))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 pub(crate) fn hash_parts(parts: &[String]) -> String {
     let mut hasher = Sha256::new();
     for part in parts {

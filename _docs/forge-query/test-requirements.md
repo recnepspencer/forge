@@ -483,6 +483,13 @@ Scenario
   - retained snapshot path
   - delta replay path
   - full reconstruction path where admitted
+- compare admitted lanes where:
+  - structural candidate discovery stays within one bounded planner-owned
+    discovery class
+  - historical path execution stays within one admitted planner-owned cost
+    posture
+  - predicted breadth or span differs from realized work but remains
+    explicitly reported as drift rather than silent executor mutation
 
 Must verify
 
@@ -490,6 +497,14 @@ Must verify
   continuity
 - ambiguous correspondence remains explicit and typed
 - historical result bundles expose materialization-path identity
+- correspondence and historical result bundles expose planner-owned cost
+  posture identity where admitted
+- prediction drift between planned and realized correspondence/history work is
+  explicit and typed
+- execution never broadens structural candidate discovery into one successful
+  broad-scan lane when the plan denied that posture
+- execution never chooses replay versus reconstruction on its own after
+  planning
 - unsupported correspondence or historical-path cases fail typed and early
 
 Required verification output
