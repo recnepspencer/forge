@@ -11,19 +11,26 @@ pub use constants::{
 };
 pub use proofs::{
     AdmittedAspectLayoutReadPlan, AspectLayoutFallbackClass, AspectLayoutPerformanceEnvelope,
+    AspectLayoutControlTruth, AspectLayoutReadExecutionDecision,
+    AspectLayoutReadExecutionResult,
     AspectLayoutReadPlanDecision, AspectLayoutReadRequest, AspectLayoutSliceId,
     AspectLayoutTarget, AspectProjectionSet, AspectReadRegime, AspectScopeClass,
     CdcTouchedAspectScope, ChunkDeterminismWitness, ChunkModelFrozenPhysicalLayout,
     ChunkShapeVersion, DedupAdmittedBlockReuse, EntitySetUniformAspectScope,
     EquivalenceContractVersion, ExplicitBroadFallbackPlan, MaxAdmittedAspectSlicesPerRead,
     MaxAdmittedBlockDecodeBreadth, MaxAdmittedControlReplayBreadthForParity,
-    MaxDeterministicChunkWidth, Milestone7IndependentLayoutReference,
+    MaxDeterministicChunkWidth, Milestone6ChunkModelExport,
+    Milestone6DerivedArtifactRebuildReport,
+    Milestone7IndependentLayoutReference,
     Milestone6LayoutMaterialization, Milestone9PhysicalChunkReference, PhysicalChunkId,
-    RejectedAspectLayoutReadPlan,
+    RejectedAspectLayoutReadPlan, StructuralBlockLookup, StructuralBlockLookupResult,
+    DedupBackedReadResult,
     SingleEntityAspectScope, StructuralBlockId,
 };
 pub(crate) use proofs::{
     admit_milestone_7_reference_from_plan, admit_milestone_9_reference_from_frozen,
     chunk_membership_artifact_id, classify_layout_request, freeze_chunk_model_from_plan,
-    layout_materialization_artifact_id, layout_scope_membership_artifact_id, stable_layout_digest,
+    layout_materialization_artifact_id, layout_scope_membership_artifact_id,
+    published_layout_request_artifact_id, stable_layout_digest, stable_layout_truth_digest,
+    structural_block_artifact_id,
 };

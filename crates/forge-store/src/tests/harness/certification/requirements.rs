@@ -113,8 +113,17 @@ pub const ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST: SuiteRequirement = SuiteReq
     required_rows: &[
         "admitted_layout_truth_parity",
         "admitted_layout_counter_contract_parity",
+        "admitted_layout_artifact_parity",
+        "authority_rebuild_preserves_layout_identity",
+        "authority_rebuild_preserves_execution_surfaces",
+        "dedup_control_overlap_branch_parity",
+        "chunk_export_rebuild_parity",
+        "sqlite_legacy_seed_migration_parity",
         "scope_shape_changes_physical_truth",
         "generalized_scope_requires_explicit_fallback",
+        "commit_coupled_seed_corruption_requires_typed_failure",
+        "chunk_export_corruption_requires_typed_failure",
+        "chunk_export_boundary_mismatch_requires_typed_failure",
     ],
     required_assertion_classes: &[
         AssertionClass::Equality,

@@ -1,0 +1,14 @@
+error[E0308]: mismatched types
+  --> tests/ui/read_only_preview_denies_promotion_comparison.rs:11:9
+   |
+ 7 |       let _: fn(
+   |  ____________-
+ 8 | |         &ReadOnlyPreviewExecutionEnvelope,
+ 9 | |         &AuthoritativePreviewComparisonCandidate,
+10 | |     ) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> =
+   | |__________________________________________________________________________________- expected due to this
+11 |           admit_preview_promotion_parity_comparison;
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
+   |
+   = note: expected fn pointer `for<'a, 'b> fn(&'a ReadOnlyPreviewExecutionEnvelope, &'b AuthoritativePreviewComparisonCandidate) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError>`
+                 found fn item `for<'a, 'b> fn(&'a PromotionEligiblePreviewExecutionEnvelope, &'b AuthoritativePreviewComparisonCandidate) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> {admit_preview_promotion_parity_comparison}`

@@ -6,13 +6,14 @@ use crate::live::promote_preflight_bundle_to_live;
 use crate::planning::{
     admit_bounded_materialization_frontier_preflight, admit_ordered_collection_frontier_preflight,
     lower_execution_preflight_to_frontier_plan, lower_frontier_planning_bundle,
-    lower_live_plan_to_frontier_plan, lower_preflight_bundle_to_serial_fallback_routes,
-    lower_preflight_to_parallel_admission_route, lower_preflight_to_serial_fallback_route,
-    FrontierBundleRoutePlanningError, FrontierDisjointnessClass, FrontierPlanFamily,
-    FrontierPlanningError, FrontierPlanningInput, FrontierPredictionDriftOutcome,
-    FrontierPreflightAdmissionError, FrontierRoutePlanningError, FrontierSurfaceDigest,
-    PacketMergeContract, ParallelAdmissionEvidence, PlannedWorkPacketFamily,
-    SerialFallbackEvidence, SerialFallbackReason,
+    lower_live_plan_to_frontier_plan, lower_preflight_bundle_to_parallel_admission_routes,
+    lower_preflight_bundle_to_serial_fallback_routes, lower_preflight_to_parallel_admission_route,
+    lower_preflight_to_serial_fallback_route, FrontierBundleRoutePlanningError,
+    FrontierDisjointnessClass, FrontierPlanFamily, FrontierPlanningError, FrontierPlanningInput,
+    FrontierPredictionDriftOutcome, FrontierPreflightAdmissionError, FrontierRoutePlanningError,
+    FrontierSurfaceDigest, PacketMergeContract, ParallelAdmissionBundleEvidence,
+    ParallelAdmissionEvidence, PlannedWorkPacketFamily, SerialFallbackEvidence,
+    SerialFallbackReason,
 };
 use forge_signal::facade::adapters::{
     FrontierEntryClassification, FrontierExecutionCounters, FrontierExecutionSummary,
@@ -237,11 +238,11 @@ fn ordered_collection_lowers_into_parallel_route_with_typed_executor_entrypoint(
         crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
     let admitted = admit_ordered_collection_frontier_preflight(preflight.clone())
         .expect("ordered collection should admit on the ordered frontier lane");
-    let evidence = ParallelAdmissionEvidence::new(crate::frontier_planning::FrontierRouteEvidence::parallel_admission(
-        preflight.basis().proof().digest().as_str().to_string(),
+    let evidence = ParallelAdmissionEvidence::from_surface(
+        preflight.basis().proof().digest().as_str(),
         FrontierSurfaceDigest::from_label("ordered-collection-disjoint"),
         FrontierDisjointnessClass::CollectionWindowSurface,
-    ));
+    );
 
     let route = lower_preflight_to_parallel_admission_route(&admitted, &evidence)
         .expect("ordered collection should admit the parallel route");
@@ -270,16 +271,185 @@ fn ordered_collection_lowers_into_parallel_route_with_typed_executor_entrypoint(
 }
 
 #[test]
+fn same_basis_parallel_bundle_lowers_into_parallel_admission_routes() {
+    let first =
+        crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+    let second =
+        crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+    let first_admitted = admit_ordered_collection_frontier_preflight(first.clone())
+        .expect("first ordered collection should admit");
+    let second_admitted = admit_ordered_collection_frontier_preflight(second.clone())
+        .expect("second ordered collection should admit");
+    let evidence = ParallelAdmissionBundleEvidence::from_routes(
+        FrontierSurfaceDigest::from_label("parallel-bundle-surface"),
+        vec![
+            ParallelAdmissionEvidence::from_surface(
+                first.basis().proof().digest().as_str(),
+                FrontierSurfaceDigest::from_label("parallel-bundle-route-a"),
+                FrontierDisjointnessClass::CollectionWindowSurface,
+            ),
+            ParallelAdmissionEvidence::from_surface(
+                second.basis().proof().digest().as_str(),
+                FrontierSurfaceDigest::from_label("parallel-bundle-route-b"),
+                FrontierDisjointnessClass::CollectionWindowSurface,
+            ),
+        ],
+    )
+    .expect("parallel bundle evidence should carry one shared basis");
+
+    let bundle = lower_preflight_bundle_to_parallel_admission_routes(
+        &[first_admitted, second_admitted],
+        &evidence,
+    )
+    .expect("parallel bundle should lower");
+
+    assert_eq!(bundle.routes().len(), 2);
+    assert_eq!(
+        bundle.bundle_basis_digest(),
+        first.basis().proof().digest().as_str()
+    );
+    assert!(bundle
+        .routes()
+        .iter()
+        .all(|route| route.report().disjointness_class().is_some()));
+}
+
+#[test]
+fn parallel_bundle_rejects_mixed_basis_evidence() {
+    let first =
+        crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+    let second =
+        crate::harness::fixtures::execution_preflights::alternate_basis_ordered_collection_preflight();
+
+    let error = ParallelAdmissionBundleEvidence::from_routes(
+        FrontierSurfaceDigest::from_label("parallel-bundle-mixed-basis"),
+        vec![
+            ParallelAdmissionEvidence::from_surface(
+                first.basis().proof().digest().as_str(),
+                FrontierSurfaceDigest::from_label("parallel-bundle-mixed-a"),
+                FrontierDisjointnessClass::CollectionWindowSurface,
+            ),
+            ParallelAdmissionEvidence::from_surface(
+                second.basis().proof().digest().as_str(),
+                FrontierSurfaceDigest::from_label("parallel-bundle-mixed-b"),
+                FrontierDisjointnessClass::CollectionWindowSurface,
+            ),
+        ],
+    )
+    .expect_err("mixed-basis parallel bundle evidence must reject");
+
+    match error {
+        crate::frontier_planning::ParallelAdmissionBundleEvidenceError::MixedBasisDigest {
+            expected_basis_digest,
+            found_basis_digest,
+        } => {
+            assert_eq!(
+                expected_basis_digest,
+                first.basis().proof().digest().as_str()
+            );
+            assert_eq!(found_basis_digest, second.basis().proof().digest().as_str());
+        }
+        other => panic!("expected mixed-basis parallel bundle denial, got {other:?}"),
+    }
+}
+
+#[test]
+fn denied_by_drift_blocks_parallel_and_serial_route_lowering() {
+    let ordered =
+        crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+    let ordered_admitted = admit_ordered_collection_frontier_preflight(ordered.clone())
+        .expect("ordered collection should admit");
+    let parallel_error = lower_preflight_to_parallel_admission_route(
+        &ordered_admitted,
+        &ParallelAdmissionEvidence::from_surface_with_drift_for_test(
+            ordered.basis().proof().digest().as_str(),
+            FrontierSurfaceDigest::from_label("denied-by-drift-parallel"),
+            FrontierDisjointnessClass::CollectionWindowSurface,
+            FrontierPredictionDriftOutcome::DeniedByDrift,
+        ),
+    )
+    .expect_err("denied-by-drift must block parallel route lowering");
+    match parallel_error {
+        FrontierRoutePlanningError::PredictionDriftDenied { .. } => {}
+        other => panic!("expected prediction drift denial, got {other:?}"),
+    }
+
+    let bounded = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
+    let bounded_admitted = admit_bounded_materialization_frontier_preflight(bounded.clone())
+        .expect("bounded materialization should admit");
+    let denied = lower_preflight_to_serial_fallback_route(
+        &bounded_admitted,
+        &SerialFallbackEvidence::from_surface(
+            bounded.basis().proof().digest().as_str(),
+            FrontierSurfaceDigest::from_label("denied-by-drift-serial"),
+            SerialFallbackReason::PredictionDriftRequiresSerialRoute,
+            FrontierPredictionDriftOutcome::DeniedByDrift,
+        ),
+    )
+    .expect_err("denied-by-drift must block serial fallback route lowering");
+
+    match denied {
+        FrontierRoutePlanningError::PredictionDriftDenied { .. } => {}
+        other => panic!("expected prediction drift denial, got {other:?}"),
+    }
+}
+
+#[test]
+fn serial_fallback_required_denies_parallel_but_allows_serial_fallback() {
+    let ordered =
+        crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+    let ordered_admitted = admit_ordered_collection_frontier_preflight(ordered.clone())
+        .expect("ordered collection should admit");
+    let denied = lower_preflight_to_parallel_admission_route(
+        &ordered_admitted,
+        &ParallelAdmissionEvidence::from_surface_with_drift_for_test(
+            ordered.basis().proof().digest().as_str(),
+            FrontierSurfaceDigest::from_label("serial-fallback-required-parallel"),
+            FrontierDisjointnessClass::CollectionWindowSurface,
+            FrontierPredictionDriftOutcome::SerialFallbackRequired,
+        ),
+    )
+    .expect_err("serial-fallback-required must deny the parallel route");
+    match denied {
+        FrontierRoutePlanningError::ParallelAdmissionDenied { reason, .. } => {
+            assert_eq!(
+                reason,
+                SerialFallbackReason::PredictionDriftRequiresSerialRoute
+            );
+        }
+        other => panic!("expected parallel admission denial, got {other:?}"),
+    }
+
+    let bounded = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
+    let bounded_admitted = admit_bounded_materialization_frontier_preflight(bounded.clone())
+        .expect("bounded materialization should admit");
+    let route = lower_preflight_to_serial_fallback_route(
+        &bounded_admitted,
+        &SerialFallbackEvidence::from_surface(
+            bounded.basis().proof().digest().as_str(),
+            FrontierSurfaceDigest::from_label("serial-fallback-required-serial"),
+            SerialFallbackReason::PredictionDriftRequiresSerialRoute,
+            FrontierPredictionDriftOutcome::SerialFallbackRequired,
+        ),
+    )
+    .expect("serial fallback required should still allow serial route");
+    assert_eq!(
+        route.report().drift_outcome(),
+        &FrontierPredictionDriftOutcome::SerialFallbackRequired
+    );
+}
+
+#[test]
 fn bounded_materialization_lowers_into_serial_fallback_route_with_typed_executor_entrypoint() {
     let preflight = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
     let admitted = admit_bounded_materialization_frontier_preflight(preflight.clone())
         .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let evidence = SerialFallbackEvidence::new(crate::frontier_planning::FrontierRouteEvidence::serial_fallback(
-        preflight.basis().proof().digest().as_str().to_string(),
+    let evidence = SerialFallbackEvidence::from_surface(
+        preflight.basis().proof().digest().as_str(),
         FrontierSurfaceDigest::from_label("bounded-materialization-overlap"),
         SerialFallbackReason::DeterministicAdmissionDenied,
         FrontierPredictionDriftOutcome::WithinBudget,
-    ));
+    );
 
     let route = lower_preflight_to_serial_fallback_route(&admitted, &evidence)
         .expect("bounded materialization should lower into the serial fallback route");
@@ -310,8 +480,9 @@ fn bounded_materialization_lowers_into_serial_fallback_route_with_typed_executor
 #[test]
 fn bounded_materialization_parallel_route_is_typed_denial() {
     let preflight = crate::harness::fixtures::execution_preflights::ordered_collection_preflight();
-    let error = admit_ordered_collection_frontier_preflight(preflight)
-        .expect_err("bounded materialization should fail before the parallel lane is even callable");
+    let error = admit_ordered_collection_frontier_preflight(preflight).expect_err(
+        "bounded materialization should fail before the parallel lane is even callable",
+    );
 
     assert_eq!(
         error,
@@ -325,16 +496,16 @@ fn route_posture_digest_binds_frontier_evidence() {
         crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
     let admitted = admit_ordered_collection_frontier_preflight(preflight.clone())
         .expect("ordered collection should admit on the ordered frontier lane");
-    let first_evidence = ParallelAdmissionEvidence::new(crate::frontier_planning::FrontierRouteEvidence::parallel_admission(
-        preflight.basis().proof().digest().as_str().to_string(),
+    let first_evidence = ParallelAdmissionEvidence::from_surface(
+        preflight.basis().proof().digest().as_str(),
         FrontierSurfaceDigest::from_label("frontier-a"),
         FrontierDisjointnessClass::CollectionWindowSurface,
-    ));
-    let second_evidence = ParallelAdmissionEvidence::new(crate::frontier_planning::FrontierRouteEvidence::parallel_admission(
-        preflight.basis().proof().digest().as_str().to_string(),
+    );
+    let second_evidence = ParallelAdmissionEvidence::from_surface(
+        preflight.basis().proof().digest().as_str(),
         FrontierSurfaceDigest::from_label("frontier-b"),
         FrontierDisjointnessClass::CollectionWindowSurface,
-    ));
+    );
 
     let first = lower_preflight_to_parallel_admission_route(&admitted, &first_evidence)
         .expect("first frontier surface should admit");
@@ -541,7 +712,9 @@ fn same_basis_bundle_lowers_into_signal_backed_serial_fallback_routes() {
 
     let bundle = lower_preflight_bundle_to_serial_fallback_routes(
         &[first.clone(), second.clone()],
-        &bundle_evidence.bind_to_basis(first.as_preflight().basis().proof().digest().as_str()),
+        &bundle_evidence
+            .bind_to_basis(first.as_preflight().basis().proof().digest().as_str())
+            .expect("signal bundle evidence should bind to one shared basis"),
     )
     .expect("same-basis bounded bundle should lower into serial fallback routes");
 
@@ -582,7 +755,9 @@ fn signal_backed_serial_bundle_rejects_evidence_count_mismatch() {
 
     let error = lower_preflight_bundle_to_serial_fallback_routes(
         &[preflight.clone(), preflight],
-        &bundle_evidence.bind_to_basis("signal-bundle-evidence"),
+        &bundle_evidence
+            .bind_to_basis("signal-bundle-evidence")
+            .expect("single-route signal bundle evidence should bind"),
     )
     .expect_err("bundle lowering should reject missing second evidence");
 
@@ -597,40 +772,94 @@ fn signal_backed_serial_bundle_rejects_evidence_count_mismatch() {
 
 #[test]
 fn signal_backed_serial_bundle_rejects_basis_mismatch() {
-    let first = admit_bounded_materialization_frontier_preflight(
-        crate::harness::fixtures::execution_preflights::ordered_collection_preflight(),
-    )
-    .expect("bounded materialization should admit on the serial fallback frontier lane");
-    let second = admit_bounded_materialization_frontier_preflight(
-        crate::harness::fixtures::execution_preflights::ordered_collection_preflight(),
-    )
-    .expect("bounded materialization should admit on the serial fallback frontier lane");
     let route_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
         &sample_signal_frontier_summary(),
     );
     let bundle_evidence = SignalFrontierBundleEvidence::from_route_evidences(vec![
-        route_surface.to_serial_fallback_evidence(
-            first.as_preflight().basis().proof().digest().as_str(),
+        SerialFallbackEvidence::from_surface(
+            "basis-a",
+            route_surface.surface_digest().clone(),
             SerialFallbackReason::SerialExecutor,
             FrontierPredictionDriftOutcome::WithinBudget,
         ),
-        route_surface.to_serial_fallback_evidence(
-            second.as_preflight().basis().proof().digest().as_str(),
+        SerialFallbackEvidence::from_surface(
+            "basis-b",
+            route_surface.surface_digest().clone(),
             SerialFallbackReason::SerialExecutor,
             FrontierPredictionDriftOutcome::WithinBudget,
         ),
     ]);
 
-    let error = lower_preflight_bundle_to_serial_fallback_routes(
-        &[first.clone(), second],
-        &bundle_evidence.bind_to_basis("wrong-bundle-basis"),
+    let error = crate::frontier_planning::SerialFallbackBundleEvidence::from_routes(
+        bundle_evidence.bundle_surface_digest().clone(),
+        vec![
+            SerialFallbackEvidence::from_surface(
+                "basis-a",
+                route_surface.surface_digest().clone(),
+                SerialFallbackReason::SerialExecutor,
+                FrontierPredictionDriftOutcome::WithinBudget,
+            ),
+            SerialFallbackEvidence::from_surface(
+                "basis-b",
+                route_surface.surface_digest().clone(),
+                SerialFallbackReason::SerialExecutor,
+                FrontierPredictionDriftOutcome::WithinBudget,
+            ),
+        ],
     )
-    .expect_err("bundle lowering should reject signal bundle evidence bound to another basis");
+    .expect_err("mixed route bases must be rejected before bundle evidence is admitted");
 
     match error {
-        FrontierBundleRoutePlanningError::MixedBasisBundle { .. } => {}
-        other => panic!("expected mixed basis denial, got {other:?}"),
+        crate::frontier_planning::SerialFallbackBundleEvidenceError::MixedBasisDigest {
+            expected_basis_digest,
+            found_basis_digest,
+        } => {
+            assert_eq!(expected_basis_digest, "basis-a");
+            assert_eq!(found_basis_digest, "basis-b");
+        }
+        other => panic!("expected mixed basis evidence denial, got {other:?}"),
     }
+}
+
+#[test]
+fn signal_bundle_surface_digest_binds_member_basis_evidence() {
+    let route_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
+        &sample_signal_frontier_summary(),
+    );
+    let left = SignalFrontierBundleEvidence::from_route_evidences(vec![
+        SerialFallbackEvidence::from_surface(
+            "basis-a",
+            route_surface.surface_digest().clone(),
+            SerialFallbackReason::SerialExecutor,
+            FrontierPredictionDriftOutcome::WithinBudget,
+        ),
+        SerialFallbackEvidence::from_surface(
+            "basis-a",
+            route_surface.surface_digest().clone(),
+            SerialFallbackReason::SerialExecutor,
+            FrontierPredictionDriftOutcome::WithinBudget,
+        ),
+    ]);
+    let right = SignalFrontierBundleEvidence::from_route_evidences(vec![
+        SerialFallbackEvidence::from_surface(
+            "basis-a",
+            route_surface.surface_digest().clone(),
+            SerialFallbackReason::SerialExecutor,
+            FrontierPredictionDriftOutcome::WithinBudget,
+        ),
+        SerialFallbackEvidence::from_surface(
+            "basis-b",
+            route_surface.surface_digest().clone(),
+            SerialFallbackReason::SerialExecutor,
+            FrontierPredictionDriftOutcome::WithinBudget,
+        ),
+    ]);
+
+    assert_ne!(
+        left.bundle_surface_digest(),
+        right.bundle_surface_digest(),
+        "bundle surface digest must bind member basis evidence, not only surface and fallback shape"
+    );
 }
 
 fn sample_signal_frontier_plan() -> FrontierPlan {

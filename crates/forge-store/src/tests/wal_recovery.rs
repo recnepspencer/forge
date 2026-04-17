@@ -5,6 +5,7 @@ use crate::{
     ForgeStoreBuilder, RecoveryDecisionClass, RecoveryOperatorActionKind,
     RecoveryOperatorDisposition, RecoverySourceKind,
 };
+use forge_relational::facade::replay::CanonicalCommitEnvelope;
 
 use super::harness::{
     corruption::local_file::{force_branch_head_gap, force_publication_commit_id_conflict},
@@ -24,6 +25,69 @@ fn create_beta_commit(
     runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
 ) -> Result<forge_relational::facade::history::CommitId, crate::StoreError> {
     Ok(create_entity_commit(runtime, "beta"))
+}
+
+fn prepare_pending_bulk_ingest_mutation(
+    store: &mut ForgeStore,
+    program_id: &str,
+    source_identity: &str,
+    include_checkpoint_intent: bool,
+) -> (
+    crate::DeterministicChunkPlan,
+    CanonicalCommitEnvelope,
+    String,
+    crate::wal::DurableMutationId,
+) {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, &format!("{program_id}-entity"));
+    let envelope = latest_envelope(&runtime);
+    let manifest = store
+        .freeze_bulk_ingest_source(BulkIngestSourceRequest::new(
+            program_id,
+            source_identity,
+            envelope.branch_context.clone(),
+            vec![BulkSourceMember::new("a", 1)],
+        ))
+        .unwrap();
+    let plan = store
+        .plan_bulk_ingest(manifest, ChunkWidthBudget::new(1))
+        .unwrap();
+    let admitted = store
+        .admit_bulk_ingest_chunk(&plan, ChunkOrdinal::new(0), 1)
+        .unwrap();
+    let request = store
+        .admit_bulk_canonical_chunk_execution(admitted, envelope.clone())
+        .unwrap();
+    let runtime_session_id = request.runtime_session_id().to_string();
+    let operation_name = request.operation_name().to_string();
+    let durable_mutation_id = store
+        .admit_durable_mutation(&runtime_session_id, &operation_name)
+        .unwrap();
+    store
+        .record_hosted_runtime_commit_result(
+            &runtime_session_id,
+            durable_mutation_id,
+            request.canonical_envelope().clone(),
+        )
+        .unwrap();
+    if include_checkpoint_intent {
+        store
+            .record_bulk_checkpoint_publication_intent(
+                &runtime_session_id,
+                durable_mutation_id,
+                Some(1),
+            )
+            .unwrap();
+    }
+    store
+        .record_publication_phase(
+            &runtime_session_id,
+            durable_mutation_id,
+            DurablePublicationPhase::CanonicalCommitProduced,
+            Some(envelope.commit.commit_id),
+        )
+        .unwrap();
+    (plan, envelope, runtime_session_id, durable_mutation_id)
 }
 
 #[test]
@@ -702,4 +766,228 @@ fn retained_bulk_truth_with_checkpoint_intent_recovers_checkpoint_artifacts() {
     assert_eq!(checkpoint.checkpoint_sequence(), 1);
     let status = recovered.recovery_status_report().unwrap();
     assert_eq!(status.bulk_summary().already_published(), 1);
+}
+
+#[test]
+fn repeated_bulk_recovery_loops_converge_after_hosted_result_with_checkpoint_intent() {
+    let path = unique_test_store_path("forge-store-bulk-repeat-hosted-checkpoint");
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .expect("bulk store should build");
+    let (plan, envelope, _runtime_session_id, durable_mutation_id) =
+        prepare_pending_bulk_ingest_mutation(
+            &mut store,
+            "bulk-program-repeat-hosted",
+            "bulk-source-repeat-hosted",
+            true,
+        );
+    drop(store);
+
+    let recovered_once = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("recovery handle should build")
+        .recover()
+        .expect("first recovery should complete");
+    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
+        decision.durable_mutation_id == durable_mutation_id
+            && decision.decision == RecoveryDecisionClass::FinishPublicationFromCanonicalResult
+    }));
+    assert_eq!(
+        recovered_once
+            .store()
+            .fetch_program_chunk_witness_index("bulk-program-repeat-hosted", plan.plan_id())
+            .expect("witness index should be reconstructed")
+            .latest_checkpoint_sequence(),
+        Some(1)
+    );
+    assert_eq!(
+        recovered_once.resolve_retry(durable_mutation_id),
+        Ok(crate::DurableRetryResolution::PreviouslyAcknowledgedEquivalentCommit {
+            commit_id: envelope.commit.commit_id
+        })
+    );
+    let export_once = recovered_once.store().export_authoritative_records();
+    drop(recovered_once);
+
+    let recovered_twice = ForgeStoreBuilder::new()
+        .local_file(path)
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("second recovery handle should build")
+        .recover()
+        .expect("second recovery should complete");
+    assert!(recovered_twice.last_recovery().decisions.is_empty());
+    assert_eq!(
+        export_once.canonical_json(),
+        recovered_twice
+            .store()
+            .export_authoritative_records()
+            .canonical_json()
+    );
+}
+
+#[test]
+fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_witness_only() {
+    let path = unique_test_store_path("forge-store-bulk-repeat-published-witness");
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .expect("bulk store should build");
+    let (plan, envelope, runtime_session_id, durable_mutation_id) =
+        prepare_pending_bulk_ingest_mutation(
+            &mut store,
+            "bulk-program-repeat-published-witness",
+            "bulk-source-repeat-published-witness",
+            true,
+        );
+    store.append_canonical_commit(envelope.clone()).unwrap();
+    store
+        .record_publication_phase(
+            &runtime_session_id,
+            durable_mutation_id,
+            DurablePublicationPhase::AuthoritativeAppendPublished,
+            Some(envelope.commit.commit_id),
+        )
+        .unwrap();
+    let admitted = store
+        .admit_bulk_ingest_chunk(&plan, ChunkOrdinal::new(0), 1)
+        .unwrap();
+    store
+        .publish_bulk_chunk_witness(&admitted, envelope.commit.commit_id)
+        .unwrap();
+    drop(store);
+
+    let recovered_once = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("recovery handle should build")
+        .recover()
+        .expect("first recovery should complete");
+    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
+        decision.durable_mutation_id == durable_mutation_id
+            && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
+    }));
+    let witness_index = recovered_once
+        .store()
+        .fetch_program_chunk_witness_index("bulk-program-repeat-published-witness", plan.plan_id())
+        .expect("witness index should exist");
+    assert_eq!(witness_index.highest_committed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(witness_index.latest_checkpoint_sequence(), Some(1));
+    let export_once = recovered_once.store().export_authoritative_records();
+    drop(recovered_once);
+
+    let recovered_twice = ForgeStoreBuilder::new()
+        .local_file(path)
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("second recovery handle should build")
+        .recover()
+        .expect("second recovery should complete");
+    assert!(recovered_twice.last_recovery().decisions.is_empty());
+    assert_eq!(
+        export_once.canonical_json(),
+        recovered_twice
+            .store()
+            .export_authoritative_records()
+            .canonical_json()
+    );
+    assert_eq!(
+        recovered_twice
+            .store()
+            .fetch_bulk_progress_checkpoint("bulk-program-repeat-published-witness", plan.plan_id())
+            .expect("checkpoint should be reconstructed once")
+            .checkpoint_sequence(),
+        1
+    );
+}
+
+#[test]
+fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_witness_and_checkpoint()
+{
+    let path = unique_test_store_path("forge-store-bulk-repeat-published-checkpoint");
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .expect("bulk store should build");
+    let (plan, envelope, runtime_session_id, durable_mutation_id) =
+        prepare_pending_bulk_ingest_mutation(
+            &mut store,
+            "bulk-program-repeat-published-checkpoint",
+            "bulk-source-repeat-published-checkpoint",
+            true,
+        );
+    store.append_canonical_commit(envelope.clone()).unwrap();
+    store
+        .record_publication_phase(
+            &runtime_session_id,
+            durable_mutation_id,
+            DurablePublicationPhase::AuthoritativeAppendPublished,
+            Some(envelope.commit.commit_id),
+        )
+        .unwrap();
+    let admitted = store
+        .admit_bulk_ingest_chunk(&plan, ChunkOrdinal::new(0), 1)
+        .unwrap();
+    let witness = store
+        .publish_bulk_chunk_witness(&admitted, envelope.commit.commit_id)
+        .unwrap();
+    let checkpoint = store.publish_bulk_progress_checkpoint(&witness).unwrap();
+    assert_eq!(checkpoint.checkpoint_sequence(), 1);
+    drop(store);
+
+    let recovered_once = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("recovery handle should build")
+        .recover()
+        .expect("first recovery should complete");
+    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
+        decision.durable_mutation_id == durable_mutation_id
+            && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
+    }));
+    assert_eq!(
+        recovered_once
+            .store()
+            .fetch_program_chunk_witness_index(
+                "bulk-program-repeat-published-checkpoint",
+                plan.plan_id()
+            )
+            .expect("witness index should exist")
+            .latest_checkpoint_sequence(),
+        Some(1)
+    );
+    let export_once = recovered_once.store().export_authoritative_records();
+    drop(recovered_once);
+
+    let recovered_twice = ForgeStoreBuilder::new()
+        .local_file(path)
+        .durable_mode(runtime_with_demo_schema())
+        .build_pending()
+        .expect("second recovery handle should build")
+        .recover()
+        .expect("second recovery should complete");
+    assert!(recovered_twice.last_recovery().decisions.is_empty());
+    assert_eq!(
+        export_once.canonical_json(),
+        recovered_twice
+            .store()
+            .export_authoritative_records()
+            .canonical_json()
+    );
+    assert_eq!(
+        recovered_twice
+            .store()
+            .fetch_bulk_progress_checkpoint(
+                "bulk-program-repeat-published-checkpoint",
+                plan.plan_id()
+            )
+            .expect("checkpoint should still be singular and present")
+            .checkpoint_sequence(),
+        1
+    );
 }

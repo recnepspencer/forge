@@ -5,6 +5,12 @@ use crate::identity::{hash_parts, CollectionPlanDigest, PlanDigest, ValidatedQue
 use crate::live_performance::{IncrementalPatchEligibility, LivePerformanceReport};
 use crate::validation::ValidatedQueryBundle;
 
+mod region_scoped;
+pub use region_scoped::{
+    admit_region_scoped_live_plan, execute_region_scoped_live_change,
+    lower_region_scoped_execution_to_stream_contract,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum LiveQueryFamily {
     Detail,
@@ -1446,6 +1452,59 @@ impl LocalityAdmissionClass {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LocalitySemanticBasis {
+    DetailProjectionFields,
+    OrderedCollectionMembershipAndOrdering,
+    BoundedTraversalMaterialization,
+}
+
+impl LocalitySemanticBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::DetailProjectionFields => "detail_projection_fields",
+            Self::OrderedCollectionMembershipAndOrdering => {
+                "ordered_collection_membership_and_ordering"
+            }
+            Self::BoundedTraversalMaterialization => "bounded_traversal_materialization",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LocalityScopeAdmission {
+    RegionOnly,
+    PartitionOnly,
+    RegionOrPartition,
+}
+
+impl LocalityScopeAdmission {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RegionOnly => "region_only",
+            Self::PartitionOnly => "partition_only",
+            Self::RegionOrPartition => "region_or_partition",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum StreamLoweringAdmissionClass {
+    DetailCurrentStateOnly,
+    CollectionCdcProjectedPatchOnly,
+    DeferredBoundedMaterialization,
+}
+
+impl StreamLoweringAdmissionClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::DetailCurrentStateOnly => "detail_current_state_only",
+            Self::CollectionCdcProjectedPatchOnly => "collection_cdc_projected_patch_only",
+            Self::DeferredBoundedMaterialization => "deferred_bounded_materialization",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum LocalityCostPosture {
     SingleSliceNarrowing,
     PartitionScopedMembershipNarrowing,
@@ -1458,6 +1517,38 @@ impl LocalityCostPosture {
             Self::SingleSliceNarrowing => "single_slice_narrowing",
             Self::PartitionScopedMembershipNarrowing => "partition_scoped_membership_narrowing",
             Self::BoundedTraversalRegionNarrowing => "bounded_traversal_region_narrowing",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LocalityMaintenanceClass {
+    NarrowPatch,
+    OffRegionSuppression,
+    WideningDenied,
+    WideningAdmitted,
+}
+
+impl LocalityMaintenanceClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::NarrowPatch => "narrow_patch",
+            Self::OffRegionSuppression => "off_region_suppression",
+            Self::WideningDenied => "widening_denied",
+            Self::WideningAdmitted => "widening_admitted",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LocalityPerformanceStatus {
+    VerifiedNarrowing,
+}
+
+impl LocalityPerformanceStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::VerifiedNarrowing => "verified_narrowing",
         }
     }
 }
@@ -1489,6 +1580,21 @@ impl LocalityWideningBudget {
 
     fn deny_all() -> Self {
         Self { limit: 0 }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum LocalityWideningPolicy {
+    DenyAll,
+    AllowExactMatchWithSinglePeerSlice,
+}
+
+impl LocalityWideningPolicy {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::DenyAll => "deny_all",
+            Self::AllowExactMatchWithSinglePeerSlice => "allow_exact_match_with_single_peer_slice",
+        }
     }
 }
 
@@ -1528,17 +1634,230 @@ impl StreamMemberWidthBudget {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct StreamWindowWidthBudget {
+    limit: usize,
+}
+
+impl StreamWindowWidthBudget {
+    pub fn limit(&self) -> usize {
+        self.limit
+    }
+
+    fn single_window() -> Self {
+        Self { limit: 1 }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegionScopedSubscriptionIdentity {
+    digest: String,
+    query_digest: String,
+    locality_digest: String,
+    admission_class: LocalityAdmissionClass,
+}
+
+impl RegionScopedSubscriptionIdentity {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+
+    pub fn admission_class(&self) -> &LocalityAdmissionClass {
+        &self.admission_class
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalityAwareRelevanceContract {
+    digest: String,
+    locality_digest: String,
+    admission_class: LocalityAdmissionClass,
+    semantic_basis: LocalitySemanticBasis,
+    scope_admission: LocalityScopeAdmission,
+    maintenance_class: LocalityMaintenanceClass,
+    stream_lowering_admission: StreamLoweringAdmissionClass,
+    expected_slice_category: BridgeSliceCategory,
+}
+
+impl LocalityAwareRelevanceContract {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+
+    pub fn admission_class(&self) -> &LocalityAdmissionClass {
+        &self.admission_class
+    }
+
+    pub fn semantic_basis(&self) -> &LocalitySemanticBasis {
+        &self.semantic_basis
+    }
+
+    pub fn scope_admission(&self) -> &LocalityScopeAdmission {
+        &self.scope_admission
+    }
+
+    pub fn maintenance_class(&self) -> &LocalityMaintenanceClass {
+        &self.maintenance_class
+    }
+
+    pub fn stream_lowering_admission(&self) -> &StreamLoweringAdmissionClass {
+        &self.stream_lowering_admission
+    }
+
+    pub fn expected_slice_category(&self) -> &BridgeSliceCategory {
+        &self.expected_slice_category
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegionSliceMatch {
+    scope: String,
+    locality_digest: String,
+}
+
+impl RegionSliceMatch {
+    pub fn scope(&self) -> &str {
+        &self.scope
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PartitionSliceMatch {
+    scope: String,
+    locality_digest: String,
+}
+
+impl PartitionSliceMatch {
+    pub fn scope(&self) -> &str {
+        &self.scope
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalityMatchClass {
+    RegionMatch(RegionSliceMatch),
+    PartitionMatch(PartitionSliceMatch),
+    OffRegionSuppressed { locality_digest: String },
+}
+
+impl LocalityMatchClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RegionMatch(_) => "region_match",
+            Self::PartitionMatch(_) => "partition_match",
+            Self::OffRegionSuppressed { .. } => "off_region_suppressed",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalityWideningDecision {
+    Admitted {
+        matched_scope: String,
+        peer_scopes: Vec<String>,
+    },
+    Denied {
+        expected: String,
+        received: Vec<String>,
+    },
+}
+
+impl LocalityWideningDecision {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Admitted { .. } => "admitted",
+            Self::Denied { .. } => "denied",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegionScopedPlanningReport {
+    query_digest: String,
+    locality_digest: String,
+    subscription_identity_digest: String,
+    relevance_contract_digest: String,
+    semantic_basis: LocalitySemanticBasis,
+    scope_admission: LocalityScopeAdmission,
+    stream_lowering_admission: StreamLoweringAdmissionClass,
+    widening_policy: LocalityWideningPolicy,
+    performance_status: LocalityPerformanceStatus,
+}
+
+impl RegionScopedPlanningReport {
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+
+    pub fn subscription_identity_digest(&self) -> &str {
+        &self.subscription_identity_digest
+    }
+
+    pub fn relevance_contract_digest(&self) -> &str {
+        &self.relevance_contract_digest
+    }
+
+    pub fn semantic_basis(&self) -> &LocalitySemanticBasis {
+        &self.semantic_basis
+    }
+
+    pub fn scope_admission(&self) -> &LocalityScopeAdmission {
+        &self.scope_admission
+    }
+
+    pub fn stream_lowering_admission(&self) -> &StreamLoweringAdmissionClass {
+        &self.stream_lowering_admission
+    }
+
+    pub fn widening_policy(&self) -> &LocalityWideningPolicy {
+        &self.widening_policy
+    }
+
+    pub fn performance_status(&self) -> &LocalityPerformanceStatus {
+        &self.performance_status
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RegionScopedLivePlan {
     live: LiveQueryPlan,
     locality: LocalityPredicateContract,
     admission_class: LocalityAdmissionClass,
-    locality_subscription_digest: String,
+    subscription_identity: RegionScopedSubscriptionIdentity,
+    relevance_contract: LocalityAwareRelevanceContract,
+    planning_report: RegionScopedPlanningReport,
     locality_cost_posture: LocalityCostPosture,
+    locality_performance_status: LocalityPerformanceStatus,
     locality_breadth_budget: LocalityBreadthBudget,
+    locality_widening_policy: LocalityWideningPolicy,
     locality_widening_budget: LocalityWideningBudget,
     stream_lowering_cost_posture: StreamLoweringCostPosture,
     stream_member_width_budget: StreamMemberWidthBudget,
+    stream_window_width_budget: StreamWindowWidthBudget,
 }
 
 impl RegionScopedLivePlan {
@@ -1554,16 +1873,36 @@ impl RegionScopedLivePlan {
         &self.admission_class
     }
 
+    pub fn subscription_identity(&self) -> &RegionScopedSubscriptionIdentity {
+        &self.subscription_identity
+    }
+
     pub fn locality_subscription_digest(&self) -> &str {
-        &self.locality_subscription_digest
+        self.subscription_identity.digest()
+    }
+
+    pub fn relevance_contract(&self) -> &LocalityAwareRelevanceContract {
+        &self.relevance_contract
+    }
+
+    pub fn planning_report(&self) -> &RegionScopedPlanningReport {
+        &self.planning_report
     }
 
     pub fn locality_cost_posture(&self) -> &LocalityCostPosture {
         &self.locality_cost_posture
     }
 
+    pub fn locality_performance_status(&self) -> &LocalityPerformanceStatus {
+        &self.locality_performance_status
+    }
+
     pub fn locality_breadth_budget(&self) -> &LocalityBreadthBudget {
         &self.locality_breadth_budget
+    }
+
+    pub fn locality_widening_policy(&self) -> &LocalityWideningPolicy {
+        &self.locality_widening_policy
     }
 
     pub fn locality_widening_budget(&self) -> &LocalityWideningBudget {
@@ -1577,12 +1916,18 @@ impl RegionScopedLivePlan {
     pub fn stream_member_width_budget(&self) -> &StreamMemberWidthBudget {
         &self.stream_member_width_budget
     }
+
+    pub fn stream_window_width_budget(&self) -> &StreamWindowWidthBudget {
+        &self.stream_window_width_budget
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalityMatchKind {
     InRegionRegionScope,
     InRegionPartitionScope,
+    InRegionRegionScopeWithPeerWidening { peer_scopes: Vec<String> },
+    InRegionPartitionScopeWithPeerWidening { peer_scopes: Vec<String> },
     OffRegionSuppressed,
 }
 
@@ -1590,7 +1935,9 @@ pub enum LocalityMatchKind {
 pub struct RegionScopedExecutionReport {
     query_digest: String,
     locality_digest: String,
-    locality_outcome: String,
+    locality_outcome: DeliveryLocalityOutcome,
+    locality_match_class: LocalityMatchClass,
+    widening_decision: Option<LocalityWideningDecision>,
     result_digest: String,
     delivery_digest: String,
     replay_digest: String,
@@ -1605,8 +1952,16 @@ impl RegionScopedExecutionReport {
         &self.locality_digest
     }
 
-    pub fn locality_outcome(&self) -> &str {
+    pub fn locality_outcome(&self) -> &DeliveryLocalityOutcome {
         &self.locality_outcome
+    }
+
+    pub fn locality_match_class(&self) -> &LocalityMatchClass {
+        &self.locality_match_class
+    }
+
+    pub fn widening_decision(&self) -> Option<&LocalityWideningDecision> {
+        self.widening_decision.as_ref()
     }
 
     pub fn result_digest(&self) -> &str {
@@ -1626,8 +1981,8 @@ impl RegionScopedExecutionReport {
 pub struct RegionScopedLiveExecutionEnvelope {
     report: RegionScopedExecutionReport,
     patch_envelope: LivePatchEnvelope,
-    replay_bundle: LiveReplayBundle,
-    counters: LivePolicyCounters,
+    replay_bundle: RegionScopedReplayBundle,
+    counters: RegionScopedLiveCounters,
 }
 
 impl RegionScopedLiveExecutionEnvelope {
@@ -1640,10 +1995,18 @@ impl RegionScopedLiveExecutionEnvelope {
     }
 
     pub fn replay_bundle(&self) -> &LiveReplayBundle {
+        self.replay_bundle.live_replay_bundle()
+    }
+
+    pub fn region_scoped_replay_bundle(&self) -> &RegionScopedReplayBundle {
         &self.replay_bundle
     }
 
     pub fn counters(&self) -> &LivePolicyCounters {
+        self.counters.snapshot()
+    }
+
+    pub fn region_scoped_counters(&self) -> &RegionScopedLiveCounters {
         &self.counters
     }
 }
@@ -1668,9 +2031,17 @@ pub struct StreamLoweredDeliveryContract {
     query_digest: String,
     locality_digest: String,
     delivery_digest: String,
-    stream_contract_digest: String,
-    consumer_shape: StreamConsumerShape,
+    query_delivery_contract: QueryDeliveryContract,
+    stream_contract_digest: StreamContractDigest,
+    delivery_contract_lowering: DeliveryContractLowering,
+    request: StreamContractRequest,
+    admitted_consumer_contract: AdmittedStreamConsumerContract,
+    member_projection: StreamMemberProjection,
+    window_compatibility: StreamWindowCompatibility,
+    replay_record: DeliveryContractReplayRecord,
+    counter_snapshot: LivePolicyCounters,
     member_count: usize,
+    window_width: usize,
     delivery_width: usize,
     cost_posture: StreamLoweringCostPosture,
 }
@@ -1688,8 +2059,213 @@ impl StreamLoweredDeliveryContract {
         &self.delivery_digest
     }
 
+    pub fn query_delivery_contract(&self) -> &QueryDeliveryContract {
+        &self.query_delivery_contract
+    }
+
+    pub fn stream_contract_digest(&self) -> &str {
+        self.stream_contract_digest.as_str()
+    }
+
+    pub fn delivery_contract_lowering(&self) -> &DeliveryContractLowering {
+        &self.delivery_contract_lowering
+    }
+
+    pub fn consumer_shape(&self) -> &StreamConsumerShape {
+        self.request.consumer_shape()
+    }
+
+    pub fn request(&self) -> &StreamContractRequest {
+        &self.request
+    }
+
+    pub fn admitted_consumer_contract(&self) -> &AdmittedStreamConsumerContract {
+        &self.admitted_consumer_contract
+    }
+
+    pub fn member_projection(&self) -> &StreamMemberProjection {
+        &self.member_projection
+    }
+
+    pub fn window_compatibility(&self) -> &StreamWindowCompatibility {
+        &self.window_compatibility
+    }
+
+    pub fn replay_record(&self) -> &DeliveryContractReplayRecord {
+        &self.replay_record
+    }
+
+    pub fn counter_snapshot(&self) -> &LivePolicyCounters {
+        &self.counter_snapshot
+    }
+
+    pub fn member_count(&self) -> usize {
+        self.member_count
+    }
+
+    pub fn window_width(&self) -> usize {
+        self.window_width
+    }
+
+    pub fn delivery_width(&self) -> usize {
+        self.delivery_width
+    }
+
+    pub fn cost_posture(&self) -> &StreamLoweringCostPosture {
+        &self.cost_posture
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamContractRequest {
+    digest: String,
+    query_digest: String,
+    delivery_digest: String,
+    consumer_shape: StreamConsumerShape,
+}
+
+impl StreamContractRequest {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn delivery_digest(&self) -> &str {
+        &self.delivery_digest
+    }
+
+    pub fn consumer_shape(&self) -> &StreamConsumerShape {
+        &self.consumer_shape
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdmittedStreamConsumerContract {
+    digest: String,
+    consumer_shape: StreamConsumerShape,
+}
+
+impl AdmittedStreamConsumerContract {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn consumer_shape(&self) -> &StreamConsumerShape {
+        &self.consumer_shape
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct StreamContractDigest(String);
+
+impl StreamContractDigest {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeliveryLocalityOutcome {
+    InRegionRegion,
+    InRegionRegionWithPeerWidening { peer_scopes: Vec<String> },
+    InRegionPartition,
+    InRegionPartitionWithPeerWidening { peer_scopes: Vec<String> },
+    OffRegionSuppressed,
+}
+
+impl DeliveryLocalityOutcome {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::InRegionRegion => "in_region_region",
+            Self::InRegionRegionWithPeerWidening { .. } => "in_region_region_widened",
+            Self::InRegionPartition => "in_region_partition",
+            Self::InRegionPartitionWithPeerWidening { .. } => "in_region_partition_widened",
+            Self::OffRegionSuppressed => "off_region_suppressed",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryDeliveryContract {
+    digest: String,
+    query_digest: String,
+    locality_digest: String,
+    delivery_digest: String,
+    family: LiveQueryFamily,
+    locality_outcome: DeliveryLocalityOutcome,
+}
+
+impl QueryDeliveryContract {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+
+    pub fn delivery_digest(&self) -> &str {
+        &self.delivery_digest
+    }
+
+    pub fn family(&self) -> &LiveQueryFamily {
+        &self.family
+    }
+
+    pub fn locality_outcome(&self) -> &DeliveryLocalityOutcome {
+        &self.locality_outcome
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeliveryContractLowering {
+    digest: String,
+    query_delivery_digest: String,
+    request_digest: String,
+    admitted_consumer_contract_digest: String,
+    stream_contract_digest: String,
+}
+
+impl DeliveryContractLowering {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn query_delivery_digest(&self) -> &str {
+        &self.query_delivery_digest
+    }
+
+    pub fn request_digest(&self) -> &str {
+        &self.request_digest
+    }
+
+    pub fn admitted_consumer_contract_digest(&self) -> &str {
+        &self.admitted_consumer_contract_digest
+    }
+
     pub fn stream_contract_digest(&self) -> &str {
         &self.stream_contract_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamMemberProjection {
+    digest: String,
+    consumer_shape: StreamConsumerShape,
+    member_count: usize,
+    delivery_width: usize,
+}
+
+impl StreamMemberProjection {
+    pub fn digest(&self) -> &str {
+        &self.digest
     }
 
     pub fn consumer_shape(&self) -> &StreamConsumerShape {
@@ -1703,9 +2279,169 @@ impl StreamLoweredDeliveryContract {
     pub fn delivery_width(&self) -> usize {
         self.delivery_width
     }
+}
 
-    pub fn cost_posture(&self) -> &StreamLoweringCostPosture {
-        &self.cost_posture
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamWindowCompatibility {
+    digest: String,
+    consumer_shape: StreamConsumerShape,
+    window_width: usize,
+    budget_limit: usize,
+}
+
+impl StreamWindowCompatibility {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn consumer_shape(&self) -> &StreamConsumerShape {
+        &self.consumer_shape
+    }
+
+    pub fn window_width(&self) -> usize {
+        self.window_width
+    }
+
+    pub fn budget_limit(&self) -> usize {
+        self.budget_limit
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeliveryContractReplayRecord {
+    digest: String,
+    query_digest: String,
+    delivery_digest: String,
+    replay_digest: String,
+    locality_outcome: DeliveryLocalityOutcome,
+    stream_contract_digest: Option<String>,
+}
+
+impl DeliveryContractReplayRecord {
+    fn from_region_execution(
+        report: &RegionScopedExecutionReport,
+        replay_bundle: &LiveReplayBundle,
+    ) -> Self {
+        let locality_outcome = DeliveryLocalityOutcome::from_region_scoped_report(report);
+        Self {
+            digest: hash_parts(&[
+                format!("query:{}", report.query_digest()),
+                format!("delivery:{}", report.delivery_digest()),
+                format!("replay:{}", report.replay_digest()),
+                format!("locality_outcome:{}", locality_outcome.as_str()),
+                "stream_contract:none".to_string(),
+            ]),
+            query_digest: report.query_digest().to_string(),
+            delivery_digest: report.delivery_digest().to_string(),
+            replay_digest: replay_bundle.replay_digest().to_string(),
+            locality_outcome,
+            stream_contract_digest: None,
+        }
+    }
+
+    fn with_stream_contract_digest(&self, stream_contract_digest: &str) -> Self {
+        Self {
+            digest: hash_parts(&[
+                format!("query:{}", self.query_digest),
+                format!("delivery:{}", self.delivery_digest),
+                format!("replay:{}", self.replay_digest),
+                format!("locality_outcome:{}", self.locality_outcome.as_str()),
+                format!("stream_contract:{stream_contract_digest}"),
+            ]),
+            query_digest: self.query_digest.clone(),
+            delivery_digest: self.delivery_digest.clone(),
+            replay_digest: self.replay_digest.clone(),
+            locality_outcome: self.locality_outcome.clone(),
+            stream_contract_digest: Some(stream_contract_digest.to_string()),
+        }
+    }
+
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn delivery_digest(&self) -> &str {
+        &self.delivery_digest
+    }
+
+    pub fn replay_digest(&self) -> &str {
+        &self.replay_digest
+    }
+
+    pub fn locality_outcome(&self) -> &DeliveryLocalityOutcome {
+        &self.locality_outcome
+    }
+
+    pub fn stream_contract_digest(&self) -> Option<&str> {
+        self.stream_contract_digest.as_deref()
+    }
+}
+
+impl DeliveryLocalityOutcome {
+    fn from_region_scoped_report(report: &RegionScopedExecutionReport) -> Self {
+        match (report.locality_match_class(), report.widening_decision()) {
+            (LocalityMatchClass::RegionMatch(_), None) => Self::InRegionRegion,
+            (
+                LocalityMatchClass::RegionMatch(_),
+                Some(LocalityWideningDecision::Admitted { peer_scopes, .. }),
+            ) => Self::InRegionRegionWithPeerWidening {
+                peer_scopes: peer_scopes.clone(),
+            },
+            (LocalityMatchClass::PartitionMatch(_), None) => Self::InRegionPartition,
+            (
+                LocalityMatchClass::PartitionMatch(_),
+                Some(LocalityWideningDecision::Admitted { peer_scopes, .. }),
+            ) => Self::InRegionPartitionWithPeerWidening {
+                peer_scopes: peer_scopes.clone(),
+            },
+            (LocalityMatchClass::OffRegionSuppressed { .. }, None) => Self::OffRegionSuppressed,
+            (_, Some(LocalityWideningDecision::Denied { .. })) => {
+                unreachable!("widening denials do not produce admitted region-scoped deliveries")
+            }
+            (LocalityMatchClass::OffRegionSuppressed { .. }, Some(_)) => {
+                unreachable!("suppressed deliveries do not carry widening admissions")
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegionScopedReplayBundle {
+    locality_digest: String,
+    replay_record: DeliveryContractReplayRecord,
+    bundle: LiveReplayBundle,
+}
+
+impl RegionScopedReplayBundle {
+    pub fn locality_digest(&self) -> &str {
+        &self.locality_digest
+    }
+
+    pub fn replay_record(&self) -> &DeliveryContractReplayRecord {
+        &self.replay_record
+    }
+
+    pub fn live_replay_bundle(&self) -> &LiveReplayBundle {
+        &self.bundle
+    }
+
+    pub fn counter_snapshot(&self) -> &LivePolicyCounters {
+        self.bundle.counter_snapshot()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RegionScopedLiveCounters {
+    snapshot: LivePolicyCounters,
+}
+
+impl RegionScopedLiveCounters {
+    pub fn snapshot(&self) -> &LivePolicyCounters {
+        &self.snapshot
     }
 }
 
@@ -1720,6 +2456,10 @@ pub enum RegionScopedLiveError {
     WideningDenied {
         expected: String,
         received: Vec<String>,
+    },
+    StreamWindowWidthBudgetExceeded {
+        limit: usize,
+        actual: usize,
     },
     StreamMemberWidthBudgetExceeded {
         limit: usize,
@@ -1813,7 +2553,11 @@ pub struct LivePolicyCounters {
     locality_region_match_count: usize,
     locality_partition_match_count: usize,
     locality_off_region_suppression_count: usize,
+    locality_irrelevant_broad_control_count: usize,
+    locality_replay_change_count: usize,
+    locality_replay_divergence_count: usize,
     locality_breadth_budget_cross_count: usize,
+    locality_widening_admission_count: usize,
     locality_widening_budget_cross_count: usize,
     locality_widening_denial_count: usize,
     locality_bridge_slice_incompatibility_count: usize,
@@ -1821,7 +2565,9 @@ pub struct LivePolicyCounters {
     stream_contract_denial_count: usize,
     stream_lowered_delivery_count: usize,
     stream_lowered_delivery_member_count: usize,
+    stream_lowered_delivery_window_width: usize,
     stream_lowered_delivery_width: usize,
+    stream_window_width_budget_cross_count: usize,
     stream_member_width_budget_cross_count: usize,
     locality_work_avoided_by_region_narrowing_count: usize,
     locality_work_avoided_vs_broad_control_count: usize,
@@ -1955,8 +2701,24 @@ impl LivePolicyCounters {
         self.locality_off_region_suppression_count
     }
 
+    pub fn locality_irrelevant_broad_control_count(&self) -> usize {
+        self.locality_irrelevant_broad_control_count
+    }
+
+    pub fn locality_replay_change_count(&self) -> usize {
+        self.locality_replay_change_count
+    }
+
+    pub fn locality_replay_divergence_count(&self) -> usize {
+        self.locality_replay_divergence_count
+    }
+
     pub fn locality_breadth_budget_cross_count(&self) -> usize {
         self.locality_breadth_budget_cross_count
+    }
+
+    pub fn locality_widening_admission_count(&self) -> usize {
+        self.locality_widening_admission_count
     }
 
     pub fn locality_widening_budget_cross_count(&self) -> usize {
@@ -1987,8 +2749,16 @@ impl LivePolicyCounters {
         self.stream_lowered_delivery_member_count
     }
 
+    pub fn stream_lowered_delivery_window_width(&self) -> usize {
+        self.stream_lowered_delivery_window_width
+    }
+
     pub fn stream_lowered_delivery_width(&self) -> usize {
         self.stream_lowered_delivery_width
+    }
+
+    pub fn stream_window_width_budget_cross_count(&self) -> usize {
+        self.stream_window_width_budget_cross_count
     }
 
     pub fn stream_member_width_budget_cross_count(&self) -> usize {
@@ -2046,7 +2816,11 @@ impl LivePolicyCounters {
             || self.locality_region_match_count > 0
             || self.locality_partition_match_count > 0
             || self.locality_off_region_suppression_count > 0
+            || self.locality_irrelevant_broad_control_count > 0
+            || self.locality_replay_change_count > 0
+            || self.locality_replay_divergence_count > 0
             || self.locality_breadth_budget_cross_count > 0
+            || self.locality_widening_admission_count > 0
             || self.locality_widening_budget_cross_count > 0
             || self.locality_widening_denial_count > 0
             || self.locality_bridge_slice_incompatibility_count > 0
@@ -2054,7 +2828,9 @@ impl LivePolicyCounters {
             || self.stream_contract_denial_count > 0
             || self.stream_lowered_delivery_count > 0
             || self.stream_lowered_delivery_member_count > 0
+            || self.stream_lowered_delivery_window_width > 0
             || self.stream_lowered_delivery_width > 0
+            || self.stream_window_width_budget_cross_count > 0
             || self.stream_member_width_budget_cross_count > 0
             || self.locality_work_avoided_by_region_narrowing_count > 0
             || self.locality_work_avoided_vs_broad_control_count > 0
@@ -2184,8 +2960,24 @@ impl LivePolicyCounters {
                 self.locality_off_region_suppression_count
             ),
             format!(
+                "{label}_locality_irrelevant_broad_control_count:{}",
+                self.locality_irrelevant_broad_control_count
+            ),
+            format!(
+                "{label}_locality_replay_change_count:{}",
+                self.locality_replay_change_count
+            ),
+            format!(
+                "{label}_locality_replay_divergence_count:{}",
+                self.locality_replay_divergence_count
+            ),
+            format!(
                 "{label}_locality_breadth_budget_cross_count:{}",
                 self.locality_breadth_budget_cross_count
+            ),
+            format!(
+                "{label}_locality_widening_admission_count:{}",
+                self.locality_widening_admission_count
             ),
             format!(
                 "{label}_locality_widening_budget_cross_count:{}",
@@ -2216,8 +3008,16 @@ impl LivePolicyCounters {
                 self.stream_lowered_delivery_member_count
             ),
             format!(
+                "{label}_stream_lowered_delivery_window_width:{}",
+                self.stream_lowered_delivery_window_width
+            ),
+            format!(
                 "{label}_stream_lowered_delivery_width:{}",
                 self.stream_lowered_delivery_width
+            ),
+            format!(
+                "{label}_stream_window_width_budget_cross_count:{}",
+                self.stream_window_width_budget_cross_count
             ),
             format!(
                 "{label}_stream_member_width_budget_cross_count:{}",
@@ -2282,7 +3082,12 @@ impl LivePolicyCounters {
         self.locality_region_match_count += other.locality_region_match_count;
         self.locality_partition_match_count += other.locality_partition_match_count;
         self.locality_off_region_suppression_count += other.locality_off_region_suppression_count;
+        self.locality_irrelevant_broad_control_count +=
+            other.locality_irrelevant_broad_control_count;
+        self.locality_replay_change_count += other.locality_replay_change_count;
+        self.locality_replay_divergence_count += other.locality_replay_divergence_count;
         self.locality_breadth_budget_cross_count += other.locality_breadth_budget_cross_count;
+        self.locality_widening_admission_count += other.locality_widening_admission_count;
         self.locality_widening_budget_cross_count += other.locality_widening_budget_cross_count;
         self.locality_widening_denial_count += other.locality_widening_denial_count;
         self.locality_bridge_slice_incompatibility_count +=
@@ -2291,7 +3096,9 @@ impl LivePolicyCounters {
         self.stream_contract_denial_count += other.stream_contract_denial_count;
         self.stream_lowered_delivery_count += other.stream_lowered_delivery_count;
         self.stream_lowered_delivery_member_count += other.stream_lowered_delivery_member_count;
+        self.stream_lowered_delivery_window_width += other.stream_lowered_delivery_window_width;
         self.stream_lowered_delivery_width += other.stream_lowered_delivery_width;
+        self.stream_window_width_budget_cross_count += other.stream_window_width_budget_cross_count;
         self.stream_member_width_budget_cross_count += other.stream_member_width_budget_cross_count;
         self.locality_work_avoided_by_region_narrowing_count +=
             other.locality_work_avoided_by_region_narrowing_count;
@@ -2537,8 +3344,23 @@ impl LivePolicyCounters {
                 locality_work_avoided_vs_broad_control_count: 1,
                 ..Self::default()
             },
+            LocalityMatchKind::InRegionRegionScopeWithPeerWidening { .. } => Self {
+                locality_region_match_count: 1,
+                locality_widening_admission_count: 1,
+                locality_work_avoided_by_region_narrowing_count: 1,
+                locality_work_avoided_vs_broad_control_count: 1,
+                ..Self::default()
+            },
+            LocalityMatchKind::InRegionPartitionScopeWithPeerWidening { .. } => Self {
+                locality_partition_match_count: 1,
+                locality_widening_admission_count: 1,
+                locality_work_avoided_by_region_narrowing_count: 1,
+                locality_work_avoided_vs_broad_control_count: 1,
+                ..Self::default()
+            },
             LocalityMatchKind::OffRegionSuppressed => Self {
                 locality_off_region_suppression_count: 1,
+                locality_irrelevant_broad_control_count: 1,
                 live_suppressed_update_count: 1,
                 locality_work_avoided_by_region_narrowing_count: 1,
                 locality_work_avoided_vs_broad_control_count: 1,
@@ -2566,6 +3388,11 @@ impl LivePolicyCounters {
                 locality_widening_budget_cross_count: 1,
                 ..Self::default()
             },
+            RegionScopedLiveError::StreamWindowWidthBudgetExceeded { .. } => Self {
+                stream_contract_denial_count: 1,
+                stream_window_width_budget_cross_count: 1,
+                ..Self::default()
+            },
             RegionScopedLiveError::StreamMemberWidthBudgetExceeded { .. } => Self {
                 stream_contract_denial_count: 1,
                 stream_member_width_budget_cross_count: 1,
@@ -2588,6 +3415,7 @@ impl LivePolicyCounters {
             stream_contract_admission_count: 1,
             stream_lowered_delivery_count: 1,
             stream_lowered_delivery_member_count: contract.member_count(),
+            stream_lowered_delivery_window_width: contract.window_width(),
             stream_lowered_delivery_width: contract.delivery_width(),
             ..Self::default()
         }
@@ -2595,6 +3423,10 @@ impl LivePolicyCounters {
 
     pub(crate) fn add_replay_change_count(&mut self, replay_change_count: usize) {
         self.live_replay_change_count += replay_change_count;
+    }
+
+    pub(crate) fn add_locality_replay_change_count(&mut self, replay_change_count: usize) {
+        self.locality_replay_change_count += replay_change_count;
     }
 }
 
@@ -3717,270 +4549,6 @@ pub fn execute_live_change(
     }
 }
 
-pub fn admit_region_scoped_live_plan(
-    live: &LiveQueryPlan,
-    locality: LocalityPredicateContract,
-) -> Result<RegionScopedLivePlan, RegionScopedLiveError> {
-    let admission_class = match (live.descriptor().family(), locality.scope_kind()) {
-        (LiveQueryFamily::Detail, LocalityScopeKind::Region) => {
-            LocalityAdmissionClass::DetailRegion
-        }
-        (LiveQueryFamily::Detail, LocalityScopeKind::Partition) => {
-            LocalityAdmissionClass::DetailPartition
-        }
-        (LiveQueryFamily::OrderedCollection, LocalityScopeKind::Partition) => {
-            LocalityAdmissionClass::OrderedCollectionPartition
-        }
-        (LiveQueryFamily::BoundedMaterialization, LocalityScopeKind::Region) => {
-            LocalityAdmissionClass::BoundedMaterializationRegion
-        }
-        (LiveQueryFamily::OrderedCollection, LocalityScopeKind::Region)
-        | (LiveQueryFamily::BoundedMaterialization, LocalityScopeKind::Partition) => {
-            return Err(RegionScopedLiveError::UnsupportedLocalityPredicate);
-        }
-    };
-
-    let locality_subscription_digest = hash_parts(&[
-        format!("subscription:{}", live.subscription_digest().as_str()),
-        format!("locality:{}", locality.digest().as_str()),
-        format!("admission:{}", admission_class.as_str()),
-    ]);
-
-    let (
-        locality_cost_posture,
-        locality_breadth_budget,
-        locality_widening_budget,
-        stream_lowering_cost_posture,
-        stream_member_width_budget,
-    ) = match admission_class {
-        LocalityAdmissionClass::DetailRegion | LocalityAdmissionClass::DetailPartition => (
-            LocalityCostPosture::SingleSliceNarrowing,
-            LocalityBreadthBudget::single_surface(),
-            LocalityWideningBudget::deny_all(),
-            StreamLoweringCostPosture::SingleDetailCurrentStateMember,
-            StreamMemberWidthBudget::single_member(),
-        ),
-        LocalityAdmissionClass::OrderedCollectionPartition => (
-            LocalityCostPosture::PartitionScopedMembershipNarrowing,
-            LocalityBreadthBudget::single_surface(),
-            LocalityWideningBudget::deny_all(),
-            StreamLoweringCostPosture::CdcPatchWithProjectedDeltas,
-            StreamMemberWidthBudget::cdc_projected_patch(),
-        ),
-        LocalityAdmissionClass::BoundedMaterializationRegion => (
-            LocalityCostPosture::BoundedTraversalRegionNarrowing,
-            LocalityBreadthBudget::single_surface(),
-            LocalityWideningBudget::deny_all(),
-            StreamLoweringCostPosture::BoundedMaterializationDeferred,
-            StreamMemberWidthBudget::single_member(),
-        ),
-    };
-
-    Ok(RegionScopedLivePlan {
-        live: live.clone(),
-        locality,
-        admission_class,
-        locality_subscription_digest,
-        locality_cost_posture,
-        locality_breadth_budget,
-        locality_widening_budget,
-        stream_lowering_cost_posture,
-        stream_member_width_budget,
-    })
-}
-
-fn classify_locality_match(
-    plan: &RegionScopedLivePlan,
-    change: &BridgeChangeSummary,
-) -> Result<LocalityMatchKind, RegionScopedLiveError> {
-    let expected_category = match plan.locality.scope_kind() {
-        LocalityScopeKind::Region => BridgeSliceCategory::EntityRegion,
-        LocalityScopeKind::Partition => BridgeSliceCategory::EntityPartition,
-    };
-
-    let exact_match_count = change
-        .locality_slices()
-        .iter()
-        .filter(|slice| {
-            slice.category() == &expected_category && slice.scope() == plan.locality.scope()
-        })
-        .count();
-    if exact_match_count > plan.locality_breadth_budget().limit() {
-        return Err(RegionScopedLiveError::LocalityBreadthBudgetExceeded {
-            limit: plan.locality_breadth_budget().limit(),
-            actual: exact_match_count,
-        });
-    }
-    if exact_match_count > 0 {
-        return Ok(match plan.locality.scope_kind() {
-            LocalityScopeKind::Region => LocalityMatchKind::InRegionRegionScope,
-            LocalityScopeKind::Partition => LocalityMatchKind::InRegionPartitionScope,
-        });
-    }
-
-    let has_expected_category = change
-        .locality_slices()
-        .iter()
-        .any(|slice| slice.category() == &expected_category);
-    if has_expected_category {
-        return Ok(LocalityMatchKind::OffRegionSuppressed);
-    }
-
-    let has_coarse_fallback = change
-        .locality_slices()
-        .iter()
-        .any(|slice| slice.category() == &BridgeSliceCategory::CoarseFallback);
-    if has_coarse_fallback {
-        let received = change
-            .locality_slices()
-            .iter()
-            .map(|slice| format!("{}:{}", slice.category().as_str(), slice.scope()))
-            .collect();
-        return Err(RegionScopedLiveError::WideningDenied {
-            expected: format!("{}:{}", expected_category.as_str(), plan.locality.scope()),
-            received,
-        });
-    }
-
-    Err(RegionScopedLiveError::BridgeSliceIncompatibility)
-}
-
-pub fn execute_region_scoped_live_change(
-    plan: &RegionScopedLivePlan,
-    change: &BridgeChangeSummary,
-) -> Result<RegionScopedLiveExecutionEnvelope, RegionScopedLiveError> {
-    let locality_match = classify_locality_match(plan, change)?;
-    let locality_counters = LivePolicyCounters::from_locality_match(&locality_match);
-
-    match locality_match {
-        LocalityMatchKind::InRegionRegionScope | LocalityMatchKind::InRegionPartitionScope => {
-            let mut execution = execute_live_change(plan.live(), change)?;
-            let mut counters = execution.counters().clone();
-            counters.absorb(&locality_counters);
-            let report = RegionScopedExecutionReport {
-                query_digest: execution.report().query_digest().to_string(),
-                locality_digest: plan.locality().digest().as_str().to_string(),
-                locality_outcome: match locality_match {
-                    LocalityMatchKind::InRegionRegionScope => "in_region_region".to_string(),
-                    LocalityMatchKind::InRegionPartitionScope => "in_region_partition".to_string(),
-                    LocalityMatchKind::OffRegionSuppressed => unreachable!(),
-                },
-                result_digest: execution.report().result_digest().to_string(),
-                delivery_digest: execution.report().delivery_digest().to_string(),
-                replay_digest: execution.report().replay_digest().to_string(),
-            };
-            execution.counters = counters.clone();
-            let mut replay_bundle = execution.replay_bundle().clone();
-            replay_bundle.counter_snapshot = counters.clone();
-            Ok(RegionScopedLiveExecutionEnvelope {
-                report,
-                patch_envelope: execution.patch_envelope().clone(),
-                replay_bundle,
-                counters,
-            })
-        }
-        LocalityMatchKind::OffRegionSuppressed => {
-            let payload = LivePatchPayload::Suppressed(SuppressionReason::OffRegionChange {
-                scope_kind: plan.locality().scope_kind().clone(),
-                scope: plan.locality().scope().to_string(),
-                locality_digest: plan.locality().digest().as_str().to_string(),
-            });
-            let patch_envelope = patch_envelope_from_payload(
-                plan.live(),
-                payload,
-                "off_region_suppressed".to_string(),
-                format!("off_region:{}", plan.locality().digest().as_str()),
-                plan.live()
-                    .progress_basis()
-                    .current_basis()
-                    .proof()
-                    .digest()
-                    .as_str()
-                    .to_string(),
-                plan.live()
-                    .progress_basis()
-                    .replay_digest()
-                    .as_str()
-                    .to_string(),
-            );
-            let replay_bundle = replay_bundle_from_patch_envelope(
-                patch_envelope.clone(),
-                locality_counters.clone(),
-            );
-            Ok(RegionScopedLiveExecutionEnvelope {
-                report: RegionScopedExecutionReport {
-                    query_digest: plan.live().descriptor().query_digest().as_str().to_string(),
-                    locality_digest: plan.locality().digest().as_str().to_string(),
-                    locality_outcome: "off_region_suppressed".to_string(),
-                    result_digest: patch_envelope.result_digest().to_string(),
-                    delivery_digest: patch_envelope.delivery_digest().to_string(),
-                    replay_digest: patch_envelope.replay_digest().to_string(),
-                },
-                patch_envelope,
-                replay_bundle,
-                counters: locality_counters,
-            })
-        }
-    }
-}
-
-pub fn lower_region_scoped_execution_to_stream_contract(
-    plan: &RegionScopedLivePlan,
-    execution: &RegionScopedLiveExecutionEnvelope,
-    consumer_shape: StreamConsumerShape,
-) -> Result<StreamLoweredDeliveryContract, RegionScopedLiveError> {
-    match (plan.live().descriptor().family(), &consumer_shape) {
-        (LiveQueryFamily::Detail, StreamConsumerShape::DetailCurrentState)
-        | (LiveQueryFamily::OrderedCollection, StreamConsumerShape::CdcCollectionPatch) => {}
-        _ => return Err(RegionScopedLiveError::UnsupportedStreamConsumerShape),
-    }
-
-    let (member_count, delivery_width) =
-        stream_contract_widths(execution.patch_envelope().payload(), &consumer_shape);
-    if delivery_width > plan.stream_member_width_budget().limit() {
-        return Err(RegionScopedLiveError::StreamMemberWidthBudgetExceeded {
-            limit: plan.stream_member_width_budget().limit(),
-            actual: delivery_width,
-        });
-    }
-
-    Ok(StreamLoweredDeliveryContract {
-        query_digest: execution.report().query_digest().to_string(),
-        locality_digest: plan.locality().digest().as_str().to_string(),
-        delivery_digest: execution.report().delivery_digest().to_string(),
-        stream_contract_digest: hash_parts(&[
-            format!("query:{}", execution.report().query_digest()),
-            format!("locality:{}", plan.locality().digest().as_str()),
-            format!("delivery:{}", execution.report().delivery_digest()),
-            format!("consumer_shape:{}", consumer_shape.as_str()),
-            format!("members:{member_count}"),
-            format!("width:{delivery_width}"),
-            format!(
-                "cost_posture:{}",
-                plan.stream_lowering_cost_posture().as_str()
-            ),
-        ]),
-        consumer_shape,
-        member_count,
-        delivery_width,
-        cost_posture: plan.stream_lowering_cost_posture().clone(),
-    })
-}
-
-fn stream_contract_widths(
-    payload: &LivePatchPayload,
-    consumer_shape: &StreamConsumerShape,
-) -> (usize, usize) {
-    match (payload, consumer_shape) {
-        (LivePatchPayload::Detail(_), StreamConsumerShape::DetailCurrentState) => (1, 1),
-        (LivePatchPayload::OrderedCollection(patch), StreamConsumerShape::CdcCollectionPatch) => {
-            (1, 1 + patch.projected_field_deltas().len())
-        }
-        (LivePatchPayload::Suppressed(_), _) => (1, 1),
-        _ => (1, 1),
-    }
-}
-
 pub fn replay_live_sequence(
     live: &LiveQueryPlan,
     steps: &[LiveReplayStepInput],
@@ -4863,7 +5431,11 @@ mod tests {
             &LocalityCostPosture::SingleSliceNarrowing
         );
         assert_eq!(region_plan.locality_breadth_budget().limit(), 1);
-        assert_eq!(region_plan.locality_widening_budget().limit(), 0);
+        assert_eq!(
+            region_plan.locality_widening_policy(),
+            &LocalityWideningPolicy::AllowExactMatchWithSinglePeerSlice
+        );
+        assert_eq!(region_plan.locality_widening_budget().limit(), 1);
         assert_eq!(
             region_plan.stream_lowering_cost_posture(),
             &StreamLoweringCostPosture::SingleDetailCurrentStateMember
@@ -4907,12 +5479,19 @@ mod tests {
 
         assert_eq!(
             execution.report().locality_outcome(),
-            "off_region_suppressed"
+            &DeliveryLocalityOutcome::OffRegionSuppressed
         );
         assert_eq!(
             execution.counters().locality_off_region_suppression_count(),
             1
         );
+        assert_eq!(
+            execution
+                .counters()
+                .locality_irrelevant_broad_control_count(),
+            1
+        );
+        assert_eq!(execution.counters().locality_replay_change_count(), 1);
         match execution.patch_envelope().payload() {
             LivePatchPayload::Suppressed(SuppressionReason::OffRegionChange {
                 scope_kind,
@@ -4951,6 +5530,115 @@ mod tests {
             RegionScopedLiveError::WideningDenied { expected, received } => {
                 assert!(expected.contains("entity_partition"));
                 assert!(!received.is_empty());
+            }
+            other => panic!("expected widening denial, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn detail_region_exact_hit_can_admit_single_peer_widening() {
+        let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+        let live =
+            promote_preflight_bundle_to_live(&preflight).expect("detail preflight should promote");
+        let region_plan =
+            admit_region_scoped_live_plan(&live, LocalityPredicateContract::region("assembly-a"))
+                .expect("detail live plan should admit region scope");
+        let widened_change = BridgeChangeSummary::default()
+            .with_field_delta(BridgeFieldDelta::new(
+                "identity",
+                "id",
+                Some("user-1"),
+                Some("user-2"),
+            ))
+            .with_region_slice("assembly-a")
+            .with_region_slice("assembly-b");
+
+        let execution = execute_region_scoped_live_change(&region_plan, &widened_change)
+            .expect("detail region widening should admit one exact hit plus one peer slice");
+
+        assert_eq!(
+            execution.report().locality_outcome(),
+            &DeliveryLocalityOutcome::InRegionRegionWithPeerWidening {
+                peer_scopes: vec!["assembly-b".to_string()],
+            }
+        );
+        assert_eq!(execution.counters().locality_region_match_count(), 1);
+        assert_eq!(execution.counters().locality_widening_admission_count(), 1);
+        assert_eq!(execution.counters().locality_widening_denial_count(), 0);
+        assert_eq!(execution.counters().locality_replay_change_count(), 1);
+        match execution.report().widening_decision() {
+            Some(LocalityWideningDecision::Admitted {
+                matched_scope,
+                peer_scopes,
+            }) => {
+                assert_eq!(matched_scope, "assembly-a");
+                assert_eq!(peer_scopes, &vec!["assembly-b".to_string()]);
+            }
+            other => panic!("expected admitted widening decision, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn detail_region_multiple_peer_slices_cross_the_widening_budget() {
+        let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+        let live =
+            promote_preflight_bundle_to_live(&preflight).expect("detail preflight should promote");
+        let region_plan =
+            admit_region_scoped_live_plan(&live, LocalityPredicateContract::region("assembly-a"))
+                .expect("detail live plan should admit region scope");
+        let widened_change = BridgeChangeSummary::default()
+            .with_field_delta(BridgeFieldDelta::new(
+                "identity",
+                "id",
+                Some("user-1"),
+                Some("user-2"),
+            ))
+            .with_region_slice("assembly-a")
+            .with_region_slice("assembly-b")
+            .with_region_slice("assembly-c");
+
+        let error = execute_region_scoped_live_change(&region_plan, &widened_change).expect_err(
+            "detail region widening should reject peer width beyond the admitted budget",
+        );
+        let counters = LivePolicyCounters::from_region_scoped_error(&error);
+
+        match error {
+            RegionScopedLiveError::WideningDenied { expected, received } => {
+                assert_eq!(expected, "entity_region:assembly-a");
+                assert_eq!(received.len(), 3);
+            }
+            other => panic!("expected widening denial, got {other:?}"),
+        }
+        assert_eq!(counters.locality_widening_denial_count(), 1);
+        assert_eq!(counters.locality_widening_budget_cross_count(), 1);
+    }
+
+    #[test]
+    fn ordered_collection_exact_hit_with_peer_partition_still_denies_widening() {
+        let preflight =
+            crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
+        let live = promote_preflight_bundle_to_live(&preflight)
+            .expect("collection preflight should promote");
+        let partition_plan =
+            admit_region_scoped_live_plan(&live, LocalityPredicateContract::partition("tenant-a"))
+                .expect("ordered collection should admit partition scope");
+        let widened_change = BridgeChangeSummary::default()
+            .with_field_delta(BridgeFieldDelta::new(
+                "profile",
+                "display_name",
+                Some("Esther"),
+                Some("Ess"),
+            ))
+            .with_partition_slice("tenant-a")
+            .with_partition_slice("tenant-b");
+
+        let error = execute_region_scoped_live_change(&partition_plan, &widened_change)
+            .expect_err("ordered collection should still deny admitted widening");
+
+        match error {
+            RegionScopedLiveError::WideningDenied { expected, received } => {
+                assert_eq!(expected, "entity_partition:tenant-a");
+                assert_eq!(received.len(), 2);
             }
             other => panic!("expected widening denial, got {other:?}"),
         }
@@ -5019,6 +5707,35 @@ mod tests {
             contract.consumer_shape(),
             &StreamConsumerShape::DetailCurrentState
         );
+        assert_eq!(
+            contract.query_delivery_contract().family(),
+            &LiveQueryFamily::Detail
+        );
+        assert_eq!(
+            contract.query_delivery_contract().locality_outcome(),
+            &DeliveryLocalityOutcome::InRegionRegion
+        );
+        assert_eq!(
+            contract
+                .delivery_contract_lowering()
+                .query_delivery_digest(),
+            contract.query_delivery_contract().digest()
+        );
+        assert_eq!(
+            contract.delivery_contract_lowering().request_digest(),
+            contract.request().digest()
+        );
+        assert_eq!(
+            contract.member_projection().consumer_shape(),
+            &StreamConsumerShape::DetailCurrentState
+        );
+        assert_eq!(contract.member_projection().member_count(), 1);
+        assert_eq!(contract.window_compatibility().window_width(), 1);
+        assert_eq!(contract.window_compatibility().budget_limit(), 1);
+        assert_eq!(
+            contract.replay_record().stream_contract_digest(),
+            Some(contract.stream_contract_digest())
+        );
         assert_eq!(contract.member_count(), 1);
         assert_eq!(contract.delivery_width(), 1);
         assert_eq!(
@@ -5061,10 +5778,71 @@ mod tests {
             contract.consumer_shape(),
             &StreamConsumerShape::CdcCollectionPatch
         );
+        assert_eq!(
+            contract.query_delivery_contract().family(),
+            &LiveQueryFamily::OrderedCollection
+        );
+        assert_eq!(contract.member_projection().member_count(), 1);
+        assert_eq!(contract.member_projection().delivery_width(), 2);
+        assert_eq!(contract.window_compatibility().window_width(), 1);
         assert_eq!(contract.delivery_width(), 2);
         assert_eq!(
             contract.cost_posture(),
             &StreamLoweringCostPosture::CdcPatchWithProjectedDeltas
+        );
+    }
+
+    #[test]
+    fn region_scoped_replay_bundle_carries_locality_native_replay_record() {
+        let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+        let live =
+            promote_preflight_bundle_to_live(&preflight).expect("detail preflight should promote");
+        let region_plan =
+            admit_region_scoped_live_plan(&live, LocalityPredicateContract::region("assembly-a"))
+                .expect("detail live plan should admit region scope");
+        let in_region_change = BridgeChangeSummary::default()
+            .with_field_delta(BridgeFieldDelta::new(
+                "identity",
+                "id",
+                Some("user-1"),
+                Some("user-2"),
+            ))
+            .with_region_slice("assembly-a");
+
+        let execution = execute_region_scoped_live_change(&region_plan, &in_region_change)
+            .expect("in-region change should execute");
+        let replay_record = execution.region_scoped_replay_bundle().replay_record();
+
+        assert_eq!(
+            replay_record.query_digest(),
+            execution.report().query_digest()
+        );
+        assert_eq!(
+            replay_record.delivery_digest(),
+            execution.report().delivery_digest()
+        );
+        assert_eq!(
+            replay_record.replay_digest(),
+            execution.report().replay_digest()
+        );
+        assert_eq!(
+            replay_record.locality_outcome(),
+            &DeliveryLocalityOutcome::InRegionRegion
+        );
+        assert_eq!(replay_record.stream_contract_digest(), None);
+        assert_eq!(
+            execution
+                .region_scoped_replay_bundle()
+                .counter_snapshot()
+                .locality_replay_change_count(),
+            1
+        );
+        assert_eq!(
+            execution
+                .region_scoped_replay_bundle()
+                .counter_snapshot()
+                .locality_replay_divergence_count(),
+            0
         );
     }
 
@@ -5111,5 +5889,45 @@ mod tests {
         );
         assert_eq!(counters.stream_contract_denial_count(), 1);
         assert_eq!(counters.stream_member_width_budget_cross_count(), 1);
+    }
+
+    #[test]
+    fn widened_detail_stream_shape_rejects_window_width_overflow() {
+        let preflight = crate::harness::fixtures::execution_preflights::direct_runtime_preflight();
+        let live =
+            promote_preflight_bundle_to_live(&preflight).expect("detail preflight should promote");
+        let region_plan =
+            admit_region_scoped_live_plan(&live, LocalityPredicateContract::region("assembly-a"))
+                .expect("detail live plan should admit region scope");
+        let widened_change = BridgeChangeSummary::default()
+            .with_field_delta(BridgeFieldDelta::new(
+                "identity",
+                "id",
+                Some("user-1"),
+                Some("user-2"),
+            ))
+            .with_region_slice("assembly-a")
+            .with_region_slice("assembly-b");
+
+        let execution = execute_region_scoped_live_change(&region_plan, &widened_change)
+            .expect("detail region widening should execute before stream lowering");
+        let error = lower_region_scoped_execution_to_stream_contract(
+            &region_plan,
+            &execution,
+            StreamConsumerShape::DetailCurrentState,
+        )
+        .expect_err("peer-widened detail delivery should overflow the window width budget");
+        let counters = LivePolicyCounters::from_region_scoped_error(&error);
+
+        assert_eq!(
+            error,
+            RegionScopedLiveError::StreamWindowWidthBudgetExceeded {
+                limit: 1,
+                actual: 2
+            }
+        );
+        assert_eq!(counters.stream_contract_denial_count(), 1);
+        assert_eq!(counters.stream_window_width_budget_cross_count(), 1);
+        assert_eq!(counters.stream_member_width_budget_cross_count(), 0);
     }
 }

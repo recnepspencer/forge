@@ -120,8 +120,15 @@ pub struct StoreCounterSnapshot {
     pub aspect_layout_slice_read_count: u64,
     pub aspect_layout_block_decode_count: u64,
     pub aspect_layout_control_replay_breadth: u64,
+    pub aspect_layout_whole_state_fallback_count: u64,
+    pub structural_block_lookup_count: u64,
     pub structural_block_reuse_admission_count: u64,
+    pub structural_block_reuse_hit_count: u64,
+    pub structural_block_reuse_miss_count: u64,
     pub chunk_model_freeze_count: u64,
+    pub physical_chunk_export_count: u64,
+    pub physical_chunk_width_count: u64,
+    pub physical_chunk_determinism_violation_count: u64,
     pub milestone_7_layout_reference_admission_count: u64,
     pub milestone_9_physical_chunk_reference_admission_count: u64,
     pub bulk_program_plan_count: u64,
@@ -254,8 +261,15 @@ pub(crate) struct StoreCounters {
     aspect_layout_slice_read_count: AtomicU64,
     aspect_layout_block_decode_count: AtomicU64,
     aspect_layout_control_replay_breadth: AtomicU64,
+    aspect_layout_whole_state_fallback_count: AtomicU64,
+    structural_block_lookup_count: AtomicU64,
     structural_block_reuse_admission_count: AtomicU64,
+    structural_block_reuse_hit_count: AtomicU64,
+    structural_block_reuse_miss_count: AtomicU64,
     chunk_model_freeze_count: AtomicU64,
+    physical_chunk_export_count: AtomicU64,
+    physical_chunk_width_count: AtomicU64,
+    physical_chunk_determinism_violation_count: AtomicU64,
     milestone_7_layout_reference_admission_count: AtomicU64,
     milestone_9_physical_chunk_reference_admission_count: AtomicU64,
     bulk_program_plan_count: AtomicU64,
@@ -669,6 +683,18 @@ impl StoreCounters {
             .fetch_add(control_replay_breadth as u64, Ordering::Relaxed);
     }
 
+    pub fn record_structural_block_lookup(&self, hit: bool) {
+        self.structural_block_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
+        if hit {
+            self.structural_block_reuse_hit_count
+                .fetch_add(1, Ordering::Relaxed);
+        } else {
+            self.structural_block_reuse_miss_count
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
     pub fn record_structural_block_reuse_admission(&self) {
         self.structural_block_reuse_admission_count
             .fetch_add(1, Ordering::Relaxed);
@@ -676,6 +702,18 @@ impl StoreCounters {
 
     pub fn record_chunk_model_freeze(&self) {
         self.chunk_model_freeze_count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_physical_chunk_export(&self, chunk_width: u64) {
+        self.physical_chunk_export_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.physical_chunk_width_count
+            .fetch_add(chunk_width, Ordering::Relaxed);
+    }
+
+    pub fn record_physical_chunk_determinism_violation(&self) {
+        self.physical_chunk_determinism_violation_count
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_milestone_7_layout_reference_admission(&self) {
@@ -1015,10 +1053,31 @@ impl StoreCounters {
             aspect_layout_control_replay_breadth: self
                 .aspect_layout_control_replay_breadth
                 .load(Ordering::Relaxed),
+            aspect_layout_whole_state_fallback_count: self
+                .aspect_layout_whole_state_fallback_count
+                .load(Ordering::Relaxed),
+            structural_block_lookup_count: self
+                .structural_block_lookup_count
+                .load(Ordering::Relaxed),
             structural_block_reuse_admission_count: self
                 .structural_block_reuse_admission_count
                 .load(Ordering::Relaxed),
+            structural_block_reuse_hit_count: self
+                .structural_block_reuse_hit_count
+                .load(Ordering::Relaxed),
+            structural_block_reuse_miss_count: self
+                .structural_block_reuse_miss_count
+                .load(Ordering::Relaxed),
             chunk_model_freeze_count: self.chunk_model_freeze_count.load(Ordering::Relaxed),
+            physical_chunk_export_count: self
+                .physical_chunk_export_count
+                .load(Ordering::Relaxed),
+            physical_chunk_width_count: self
+                .physical_chunk_width_count
+                .load(Ordering::Relaxed),
+            physical_chunk_determinism_violation_count: self
+                .physical_chunk_determinism_violation_count
+                .load(Ordering::Relaxed),
             milestone_7_layout_reference_admission_count: self
                 .milestone_7_layout_reference_admission_count
                 .load(Ordering::Relaxed),

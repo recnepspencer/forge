@@ -14,18 +14,18 @@ use crate::validation::ValidatedQueryBundle;
 #[allow(unused_imports)]
 pub(crate) use crate::frontier_planning::{
     BoundedMaterializationFrontierPreflight, BundleResolvedBasisDigest, FrontierAwarePlan,
-    FrontierBreadthPrediction,
-    FrontierBundlePlan, FrontierBundleRoutePlanningError,
-    FrontierComplexityContract, FrontierDisjointnessClass, FrontierPerformanceStatus,
-    FrontierPlanFamily, FrontierPlanningCounters, FrontierPlanningError, FrontierPlanningInput,
-    FrontierPlanningReport, FrontierPostureDigest, FrontierPredictionDriftOutcome,
-    FrontierPreflightAdmissionError, FrontierRouteCounters, FrontierRoutePlanningError,
-    FrontierRouteReport, FrontierSurfaceDigest, OrderedCollectionFrontierPreflight,
-    PacketEquivalenceContract, PacketMergeBoundary, PacketMergeContract,
-    ParallelAdmissionDecision, ParallelAdmissionEvidence, ParallelAdmissionRoute,
-    PlannedWorkPacket, PlannedWorkPacketDigest, PlannedWorkPacketFamily, PlannedWorkPacketSet,
-    SerialFallbackBundleEvidence, SerialFallbackBundleRoutes, SerialFallbackEvidence,
-    SerialFallbackReason, SerialFallbackRoute,
+    FrontierBreadthPrediction, FrontierBundlePlan, FrontierBundleRoutePlanningError,
+    FrontierComplexityContract, FrontierCounterSnapshot, FrontierDisjointnessClass,
+    FrontierParityBundle, FrontierParityBundleError, FrontierPerformanceStatus, FrontierPlanFamily,
+    FrontierPlanningCounters, FrontierPlanningError, FrontierPlanningInput, FrontierPlanningReport,
+    FrontierPostureDigest, FrontierPredictionDriftOutcome, FrontierPreflightAdmissionError,
+    FrontierRouteCounters, FrontierRoutePlanningError, FrontierRouteReport, FrontierSurfaceDigest,
+    OrderedCollectionFrontierPreflight, PacketEquivalenceContract, PacketMergeBoundary,
+    PacketMergeContract, ParallelAdmissionBundleEvidence, ParallelAdmissionDecision,
+    ParallelAdmissionEvidence, ParallelAdmissionRoute, ParallelAdmissionRouteSet,
+    PlannedRouteFamily, PlannedWorkPacket, PlannedWorkPacketDigest, PlannedWorkPacketFamily,
+    PlannedWorkPacketSet, SerialFallbackBundleEvidence, SerialFallbackBundleRoutes,
+    SerialFallbackEvidence, SerialFallbackReason, SerialFallbackRoute,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -884,6 +884,16 @@ pub fn lower_preflight_to_serial_fallback_route(
     evidence: &SerialFallbackEvidence,
 ) -> Result<SerialFallbackRoute, FrontierRoutePlanningError> {
     crate::frontier_planning::lower_preflight_to_serial_fallback_route(preflight, evidence)
+}
+
+#[allow(dead_code)]
+pub fn lower_preflight_bundle_to_parallel_admission_routes(
+    preflights: &[OrderedCollectionFrontierPreflight],
+    evidences: &crate::frontier_planning::ParallelAdmissionBundleEvidence,
+) -> Result<ParallelAdmissionRouteSet, FrontierBundleRoutePlanningError> {
+    crate::frontier_planning::lower_preflight_bundle_to_parallel_admission_routes(
+        preflights, evidences,
+    )
 }
 
 #[allow(dead_code)]

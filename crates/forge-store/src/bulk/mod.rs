@@ -5,7 +5,7 @@ mod receipts;
 mod witnesses;
 
 pub use checkpointing::{
-    PublishedBulkProgressCheckpoint, RecoveredBulkChunkResume, ResumeBoundaryCandidate,
+    BulkCheckpointPolicy, PublishedBulkProgressCheckpoint, RecoveredBulkChunkResume, ResumeBoundaryCandidate,
     ResumeReadyBulkProgram,
 };
 pub(crate) use checkpointing::BulkProgressCheckpointRecordInput;

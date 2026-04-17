@@ -820,6 +820,12 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 5.2: Preview Session Query Contexts And Branch Workflow Foundations
 
+Status:
+Closed on 2026-04-16 for runtime-backed preview-session query contexts,
+promotion-parity comparison, preview-live composition, and workflow-foundation
+artifacts. Durable preview replay reload, persisted workflow artifacts, and
+store-backed preview parity remain intentionally deferred.
+
 ### Goal
 
 Make speculation and preview sessions first-class query contexts so branch-
@@ -850,6 +856,8 @@ most important branch-native workflows in the product.
 - distinction between read-only preview evaluation and promotable preview
   evaluation
 - query-native comparison surfaces for preview result versus promoted result
+- preview-live admission, maintenance, drift denial, and explicit rebind over
+  the corresponding admitted Milestone 5 and 5.1 live families
 - branch-workflow foundation artifacts that later mutation/merge milestones can
   extend without redefining preview semantics
 
@@ -859,14 +867,17 @@ most important branch-native workflows in the product.
 - preview contexts do not become host-local branch aliases
 - preview queries preserve ordinary canonical query meaning apart from the
   explicitly declared preview basis
+- preview-live may not silently fall back to authoritative live truth
 
 ### Complexity / Proof Obligations
 
 - name preview-basis resolution, preview-lifecycle identity, and promoted-
   result comparison contracts
+- name preview-live admission, drift, and explicit-rebind contracts
 - expose exact counters for preview-session admissions, preview-basis
-  resolutions, preview/promotion comparison runs, and invalid preview-context
-  denials
+  resolutions, preview/promotion comparison runs, preview-live admissions,
+  preview-live drift denials, preview-live explicit rebinds, and invalid
+  preview-context denials
 - prove preview-session query contexts remain parity-safe with the same
   canonical query shape and declared preview basis
 
@@ -900,6 +911,8 @@ This milestone is complete only when `forge-query` can prove:
 
 - preview-session-bound queries preserve explicit basis and lifecycle identity
 - preview-versus-promoted comparison remains query-native and typed
+- preview-live remains basis-explicit and either maintained, denied, or
+  explicitly rebound without silent retargeting
 - unsupported preview-session query combinations fail before semantic drift
 
 ## Milestone 5.3: Frontier-Aware Planning And Deterministic Parallel Admission
@@ -2143,7 +2156,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Query-to-signal bridging | Milestone 5, shared with runtime bridge | Query relevance metadata, bridge-facing invalidation descriptors | Truth changes map to query-shaped maintenance honestly | Milestone 13 live equivalence + bridge-adjacent suites |
 | Region-scoped live invalidation | Milestone 5.1 | Region/partition-aware invalidation metadata, locality predicates, region-scoped suppression metadata | Live narrowing stays below broad aspect scope where lower-runtime locality contracts admit it | Milestone 13 live equivalence + geometry domain suites |
 | Change-stream-backed delivery contracts | Milestones 5.1, 9, and 11 | Stream-lowered delivery declarations, delivery metadata, durable stream checkpoints | Query-shaped delivery lowers into formal stream contracts without semantic drift | Milestone 13 delivery-shape + durable continuation parity |
-| Preview-session query contexts | Milestone 5.2 | Preview-session basis metadata, preview-lifecycle metadata, preview/promotion comparison artifacts | Preview-bound queries preserve explicit basis and lifecycle meaning | Milestone 13 branch/history/workflow suites |
+| Preview-session query contexts | Milestone 5.2 | Preview-session basis metadata, preview-lifecycle metadata, preview/promotion comparison artifacts, preview-live admission and drift artifacts | Preview-bound queries preserve explicit basis and lifecycle meaning, and preview-live remains basis-explicit under maintenance, denial, and explicit rebind | Milestone 13 branch/history/workflow suites |
 | Frontier-aware planning | Milestone 5.3 | Frontier-derived planning metadata, breadth posture, parallel-admission posture | Planner consumes lower-runtime frontier posture without executor rediscovery | Milestone 13 planning parity + performance suites |
 | Deterministic parallel admission | Milestone 5.3 | Parallel-admission decisions on planned routes, serial fallback diagnostics | Serial and parallel admitted lanes remain semantically identical | Milestone 13 planning parity + performance suites |
 | Branch-scoped reads | Milestone 6 | Branch-targeting query context metadata | Same query shape runs against different branches honestly | Milestone 13 historical/diff parity |

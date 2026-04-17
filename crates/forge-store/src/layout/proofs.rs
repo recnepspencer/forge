@@ -721,6 +721,8 @@ pub struct Milestone6LayoutMaterialization {
     frozen_layout: ChunkModelFrozenPhysicalLayout,
     milestone_7_reference: Milestone7IndependentLayoutReference,
     milestone_9_reference: Milestone9PhysicalChunkReference,
+    semantic_truth_digest: String,
+    authoritative_commit_count: usize,
 }
 
 impl Milestone6LayoutMaterialization {
@@ -731,6 +733,8 @@ impl Milestone6LayoutMaterialization {
         frozen_layout: ChunkModelFrozenPhysicalLayout,
         milestone_7_reference: Milestone7IndependentLayoutReference,
         milestone_9_reference: Milestone9PhysicalChunkReference,
+        semantic_truth_digest: String,
+        authoritative_commit_count: usize,
     ) -> Self {
         Self {
             artifact_id,
@@ -739,6 +743,8 @@ impl Milestone6LayoutMaterialization {
             frozen_layout,
             milestone_7_reference,
             milestone_9_reference,
+            semantic_truth_digest,
+            authoritative_commit_count,
         }
     }
 
@@ -765,6 +771,311 @@ impl Milestone6LayoutMaterialization {
     pub fn milestone_9_reference(&self) -> &Milestone9PhysicalChunkReference {
         &self.milestone_9_reference
     }
+
+    pub fn semantic_truth_digest(&self) -> &str {
+        &self.semantic_truth_digest
+    }
+
+    pub fn authoritative_commit_count(&self) -> usize {
+        self.authoritative_commit_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StructuralBlockLookup {
+    structural_block_id: StructuralBlockId,
+}
+
+impl StructuralBlockLookup {
+    pub fn new(structural_block_id: StructuralBlockId) -> Self {
+        Self { structural_block_id }
+    }
+
+    pub fn structural_block_id(&self) -> &StructuralBlockId {
+        &self.structural_block_id
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct StructuralBlockLookupResult {
+    structural_block_id: StructuralBlockId,
+    scope_class: String,
+    equivalence_contract_version: EquivalenceContractVersion,
+    slice_ids: Vec<AspectLayoutSliceId>,
+    supporting_layout_materialization_artifact_ids: Vec<String>,
+}
+
+impl StructuralBlockLookupResult {
+    pub(crate) fn new(
+        structural_block_id: StructuralBlockId,
+        scope_class: String,
+        equivalence_contract_version: EquivalenceContractVersion,
+        slice_ids: Vec<AspectLayoutSliceId>,
+        supporting_layout_materialization_artifact_ids: Vec<String>,
+    ) -> Self {
+        Self {
+            structural_block_id,
+            scope_class,
+            equivalence_contract_version,
+            slice_ids,
+            supporting_layout_materialization_artifact_ids,
+        }
+    }
+
+    pub fn structural_block_id(&self) -> &StructuralBlockId {
+        &self.structural_block_id
+    }
+
+    pub fn scope_class(&self) -> &str {
+        &self.scope_class
+    }
+
+    pub fn equivalence_contract_version(&self) -> EquivalenceContractVersion {
+        self.equivalence_contract_version
+    }
+
+    pub fn slice_ids(&self) -> &[AspectLayoutSliceId] {
+        &self.slice_ids
+    }
+
+    pub fn supporting_layout_materialization_artifact_ids(&self) -> &[String] {
+        &self.supporting_layout_materialization_artifact_ids
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AspectLayoutReadExecutionResult {
+    plan: AdmittedAspectLayoutReadPlan,
+    scope_membership_artifact_id: String,
+    structural_block_artifact_id: String,
+    chunk_membership_artifact_id: String,
+    layout_materialization_artifact_id: String,
+    semantic_truth_digest: String,
+    authoritative_commit_count: usize,
+}
+
+impl AspectLayoutReadExecutionResult {
+    pub(crate) fn new(
+        plan: AdmittedAspectLayoutReadPlan,
+        scope_membership_artifact_id: String,
+        structural_block_artifact_id: String,
+        chunk_membership_artifact_id: String,
+        layout_materialization_artifact_id: String,
+        semantic_truth_digest: String,
+        authoritative_commit_count: usize,
+    ) -> Self {
+        Self {
+            plan,
+            scope_membership_artifact_id,
+            structural_block_artifact_id,
+            chunk_membership_artifact_id,
+            layout_materialization_artifact_id,
+            semantic_truth_digest,
+            authoritative_commit_count,
+        }
+    }
+
+    pub fn plan(&self) -> &AdmittedAspectLayoutReadPlan {
+        &self.plan
+    }
+
+    pub fn scope_membership_artifact_id(&self) -> &str {
+        &self.scope_membership_artifact_id
+    }
+
+    pub fn structural_block_artifact_id(&self) -> &str {
+        &self.structural_block_artifact_id
+    }
+
+    pub fn chunk_membership_artifact_id(&self) -> &str {
+        &self.chunk_membership_artifact_id
+    }
+
+    pub fn layout_materialization_artifact_id(&self) -> &str {
+        &self.layout_materialization_artifact_id
+    }
+
+    pub fn semantic_truth_digest(&self) -> &str {
+        &self.semantic_truth_digest
+    }
+
+    pub fn authoritative_commit_count(&self) -> usize {
+        self.authoritative_commit_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AspectLayoutControlTruth {
+    branch_id: BranchId,
+    frontier_commit_id: CommitId,
+    scope_class: String,
+    projection_digest: String,
+    authoritative_truth_digest: String,
+    authoritative_commit_count: usize,
+}
+
+impl AspectLayoutControlTruth {
+    pub(crate) fn new(
+        branch_id: BranchId,
+        frontier_commit_id: CommitId,
+        scope_class: String,
+        projection_digest: String,
+        authoritative_truth_digest: String,
+        authoritative_commit_count: usize,
+    ) -> Self {
+        Self {
+            branch_id,
+            frontier_commit_id,
+            scope_class,
+            projection_digest,
+            authoritative_truth_digest,
+            authoritative_commit_count,
+        }
+    }
+
+    pub fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+
+    pub fn frontier_commit_id(&self) -> CommitId {
+        self.frontier_commit_id
+    }
+
+    pub fn scope_class(&self) -> &str {
+        &self.scope_class
+    }
+
+    pub fn projection_digest(&self) -> &str {
+        &self.projection_digest
+    }
+
+    pub fn authoritative_truth_digest(&self) -> &str {
+        &self.authoritative_truth_digest
+    }
+
+    pub fn authoritative_commit_count(&self) -> usize {
+        self.authoritative_commit_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum AspectLayoutReadExecutionDecision {
+    Admitted(AspectLayoutReadExecutionResult),
+    Fallback(ExplicitBroadFallbackPlan),
+    Rejected(RejectedAspectLayoutReadPlan),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DedupBackedReadResult {
+    read: AspectLayoutReadExecutionResult,
+    structural_block_lookup: StructuralBlockLookupResult,
+}
+
+impl DedupBackedReadResult {
+    pub(crate) fn new(
+        read: AspectLayoutReadExecutionResult,
+        structural_block_lookup: StructuralBlockLookupResult,
+    ) -> Self {
+        Self {
+            read,
+            structural_block_lookup,
+        }
+    }
+
+    pub fn read(&self) -> &AspectLayoutReadExecutionResult {
+        &self.read
+    }
+
+    pub fn structural_block_lookup(&self) -> &StructuralBlockLookupResult {
+        &self.structural_block_lookup
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Milestone6DerivedArtifactRebuildReport {
+    layout_materialization_count: usize,
+    scope_membership_count: usize,
+    structural_block_count: usize,
+    chunk_membership_count: usize,
+}
+
+impl Milestone6DerivedArtifactRebuildReport {
+    pub(crate) fn new(
+        layout_materialization_count: usize,
+        scope_membership_count: usize,
+        structural_block_count: usize,
+        chunk_membership_count: usize,
+    ) -> Self {
+        Self {
+            layout_materialization_count,
+            scope_membership_count,
+            structural_block_count,
+            chunk_membership_count,
+        }
+    }
+
+    pub fn layout_materialization_count(&self) -> usize {
+        self.layout_materialization_count
+    }
+
+    pub fn scope_membership_count(&self) -> usize {
+        self.scope_membership_count
+    }
+
+    pub fn structural_block_count(&self) -> usize {
+        self.structural_block_count
+    }
+
+    pub fn chunk_membership_count(&self) -> usize {
+        self.chunk_membership_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Milestone6ChunkModelExport {
+    physical_chunk_id: PhysicalChunkId,
+    chunk_membership_artifact_id: String,
+    determinism_digest: String,
+    chunk_member_count: usize,
+    layout_materialization_artifact_id: String,
+}
+
+impl Milestone6ChunkModelExport {
+    pub(crate) fn new(
+        physical_chunk_id: PhysicalChunkId,
+        chunk_membership_artifact_id: String,
+        determinism_digest: String,
+        chunk_member_count: usize,
+        layout_materialization_artifact_id: String,
+    ) -> Self {
+        Self {
+            physical_chunk_id,
+            chunk_membership_artifact_id,
+            determinism_digest,
+            chunk_member_count,
+            layout_materialization_artifact_id,
+        }
+    }
+
+    pub fn physical_chunk_id(&self) -> &PhysicalChunkId {
+        &self.physical_chunk_id
+    }
+
+    pub fn chunk_membership_artifact_id(&self) -> &str {
+        &self.chunk_membership_artifact_id
+    }
+
+    pub fn determinism_digest(&self) -> &str {
+        &self.determinism_digest
+    }
+
+    pub fn chunk_member_count(&self) -> usize {
+        self.chunk_member_count
+    }
+
+    pub fn layout_materialization_artifact_id(&self) -> &str {
+        &self.layout_materialization_artifact_id
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -780,6 +1091,25 @@ pub fn stable_layout_digest<T: Serialize + ?Sized>(value: &T) -> String {
     let mut hasher = Sha256::new();
     hasher.update(canonical);
     format!("{:x}", hasher.finalize())
+}
+
+pub(crate) fn stable_layout_truth_digest(
+    export: &crate::AuthoritativeExportBundle,
+) -> String {
+    #[derive(Serialize)]
+    struct LayoutTruthDigestBasis<'a> {
+        branch_records: &'a [crate::backend::records::BranchRecord],
+        branch_head_records: &'a [crate::backend::records::BranchHeadRecord],
+        commit_envelopes: &'a [crate::backend::records::StoredCommitEnvelope],
+        commit_parent_records: &'a [crate::backend::records::CommitParentRecord],
+    }
+
+    stable_layout_digest(&LayoutTruthDigestBasis {
+        branch_records: &export.branch_records,
+        branch_head_records: &export.branch_head_records,
+        commit_envelopes: &export.commit_envelopes,
+        commit_parent_records: &export.commit_parent_records,
+    })
 }
 
 fn canonicalize_strings(values: &[String]) -> Vec<String> {
@@ -811,8 +1141,6 @@ pub(crate) fn canonical_slice_ids(
         .map(|member| {
             AspectLayoutSliceId::new(stable_layout_digest(&(
                 request.scope_class.label(),
-                &request.target.branch_id,
-                request.target.frontier_commit_id,
                 &projection_digest,
                 &member,
                 CHUNK_SHAPE_VERSION.value(),
@@ -830,8 +1158,6 @@ pub(crate) fn structural_block_id_for_plan(
     let scope_key = request.scope_class.canonical_scope_key()?;
     Ok(StructuralBlockId::new(stable_layout_digest(&(
         request.scope_class.label(),
-        &request.target.branch_id,
-        request.target.frontier_commit_id,
         &projection_digest,
         CHUNK_SHAPE_VERSION.value(),
         EQUIVALENCE_CONTRACT_VERSION.value(),
@@ -1028,4 +1354,24 @@ pub(crate) fn chunk_membership_artifact_id(
         "layout-chunk-membership:{}",
         frozen.witness().physical_chunk_id().as_str()
     )
+}
+
+pub(crate) fn structural_block_artifact_id(
+    structural_block_id: &StructuralBlockId,
+) -> String {
+    format!("layout-structural-block:{}", structural_block_id.as_str())
+}
+
+pub(crate) fn published_layout_request_artifact_id(
+    request: &AspectLayoutReadRequest,
+) -> Result<String, StoreError> {
+    Ok(format!(
+        "layout-published-request:{}",
+        stable_layout_digest(&(
+            request.target().branch_id().clone(),
+            request.target().frontier_commit_id(),
+            request.scope_class().label(),
+            aspect_projection_digest(request.projection_set())?,
+        ))
+    ))
 }

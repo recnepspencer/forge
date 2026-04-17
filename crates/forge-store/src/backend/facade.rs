@@ -19,9 +19,11 @@ use crate::{
         SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
     },
     layout::{
-        AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
-        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
+        AspectLayoutReadPlanDecision, AspectLayoutReadRequest, ChunkModelFrozenPhysicalLayout,
+        DedupAdmittedBlockReuse, DedupBackedReadResult,
         Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+        StructuralBlockLookup, StructuralBlockLookupResult,
     },
     evidence::{
         CanonicalizationMetrics, Milestone7AccessStructureVerification, StoreCounterSnapshot,
@@ -277,6 +279,62 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
             Self::Sqlite(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
+        }
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_materializations(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.rebuild_milestone_6_derived_artifacts_from_materializations()
+            }
+            Self::Sqlite(backend) => {
+                backend.rebuild_milestone_6_derived_artifacts_from_materializations()
+            }
+        }
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_authority(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        match self {
+            Self::Embedded(backend) => {
+                backend.rebuild_milestone_6_derived_artifacts_from_authority()
+            }
+            Self::Sqlite(backend) => {
+                backend.rebuild_milestone_6_derived_artifacts_from_authority()
+            }
+        }
+    }
+
+    pub fn structural_block_lookup(
+        &self,
+        lookup: StructuralBlockLookup,
+    ) -> Result<StructuralBlockLookupResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.structural_block_lookup(lookup),
+            Self::Sqlite(backend) => backend.structural_block_lookup(lookup),
+        }
+    }
+
+    pub fn execute_aspect_layout_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<AspectLayoutReadExecutionDecision, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.execute_aspect_layout_read(request),
+            Self::Sqlite(backend) => backend.execute_aspect_layout_read(request),
+        }
+    }
+
+    pub fn execute_dedup_backed_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<DedupBackedReadResult, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.execute_dedup_backed_read(request),
+            Self::Sqlite(backend) => backend.execute_dedup_backed_read(request),
         }
     }
 
@@ -674,6 +732,13 @@ impl StoreBackend {
         match self {
             Self::Embedded(backend) => backend.counter_snapshot(),
             Self::Sqlite(backend) => backend.counter_snapshot(),
+        }
+    }
+
+    pub(crate) fn record_physical_chunk_export(&self, chunk_width: u64) {
+        match self {
+            Self::Embedded(backend) => backend.record_physical_chunk_export(chunk_width),
+            Self::Sqlite(backend) => backend.record_physical_chunk_export(chunk_width),
         }
     }
 

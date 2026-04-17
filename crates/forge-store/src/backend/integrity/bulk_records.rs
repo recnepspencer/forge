@@ -52,6 +52,12 @@ impl StoreState {
                     record.artifact_id
                 )));
             }
+            if !record.manifest.has_valid_digest()? {
+                return Err(StoreError::backend_integrity(format!(
+                    "bulk manifest `{}` digest no longer matched its payload",
+                    record.artifact_id
+                )));
+            }
             let program_id = self
                 .bulk_program_identity_records
                 .get(&bulk_program_artifact_id(&record.program_id))
@@ -94,6 +100,12 @@ impl StoreState {
                     record.artifact_id
                 )));
             }
+            if !record.basis.has_valid_digest()? {
+                return Err(StoreError::backend_integrity(format!(
+                    "bulk transform basis `{}` digest no longer matched its payload",
+                    record.artifact_id
+                )));
+            }
         }
 
         for (stored_key, record) in &self.frozen_transform_partition_records {
@@ -116,6 +128,12 @@ impl StoreState {
                         record.program_id
                     ),
                 ));
+            }
+            if !record.partition.has_valid_digest()? {
+                return Err(StoreError::backend_integrity(format!(
+                    "bulk transform partition `{}` digest no longer matched its payload",
+                    record.artifact_id
+                )));
             }
             let basis = self
                 .frozen_transform_basis_records
@@ -158,6 +176,12 @@ impl StoreState {
             if record.program_id != record.plan.program_id() {
                 return Err(StoreError::backend_integrity(format!(
                     "bulk plan `{}` did not preserve program linkage",
+                    record.artifact_id
+                )));
+            }
+            if !record.plan.has_valid_plan_id()? {
+                return Err(StoreError::backend_integrity(format!(
+                    "bulk plan `{}` id no longer matched its payload",
                     record.artifact_id
                 )));
             }

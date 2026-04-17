@@ -63,7 +63,7 @@ pub enum LiveFailureClass {
     RawStreamMemberLeakageForbidden,
     ForbiddenLocalityWidening,
     ForbiddenBroadSuccessLane,
-    ForbiddenStreamWidthOverflowSuccess,
+    ForbiddenStreamWindowOverflowSuccess,
     BridgeSliceIncompatibilityDenied,
 }
 
@@ -89,7 +89,9 @@ impl LiveFailureClass {
             Self::RawStreamMemberLeakageForbidden => "raw-stream-member-leakage-forbidden",
             Self::ForbiddenLocalityWidening => "forbidden-locality-widening",
             Self::ForbiddenBroadSuccessLane => "forbidden-broad-success-lane",
-            Self::ForbiddenStreamWidthOverflowSuccess => "forbidden-stream-width-overflow-success",
+            Self::ForbiddenStreamWindowOverflowSuccess => {
+                "forbidden-stream-window-overflow-success"
+            }
             Self::BridgeSliceIncompatibilityDenied => "bridge-slice-incompatibility-denied",
         }
     }
@@ -150,6 +152,7 @@ pub enum LivePerturbationClass {
     BroadVsRegionParity,
     StreamContractParity,
     CdcStreamLoweredParity,
+    LocalityWideningAdmissionParity,
     LocalityBreadthBudgetEnforcement,
     StreamMemberWidthBudgetEnforcement,
     LocalityWorkAvoidedParity,
@@ -162,6 +165,7 @@ pub enum LivePerturbationClass {
     ForbiddenLocalityWideningRejection,
     ForbiddenBroadSuccessLaneRejection,
     ForbiddenStreamWidthOverflowSuccessRejection,
+    ForbiddenStreamWindowOverflowSuccessRejection,
     BridgeSliceIncompatibilityRejection,
 }
 
@@ -352,6 +356,10 @@ impl LiveRejectionRow {
                     .hostile_lane
                     .counter_snapshot
                     .locality_bridge_slice_incompatibility_count()
+                + self
+                    .hostile_lane
+                    .counter_snapshot
+                    .stream_window_width_budget_cross_count()
                 + self
                     .hostile_lane
                     .counter_snapshot

@@ -1,6 +1,6 @@
 use crate::frontier_planning::{
-    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, FrontierRouteEvidence,
-    FrontierSurfaceDigest, ParallelAdmissionEvidence, SerialFallbackBundleEvidence,
+    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, FrontierSurfaceDigest,
+    ParallelAdmissionEvidence, SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError,
     SerialFallbackEvidence, SerialFallbackReason,
 };
 use forge_signal::facade::adapters::{
@@ -116,11 +116,11 @@ impl SignalFrontierSurfaceEvidence {
         basis_digest: &str,
         disjointness_class: FrontierDisjointnessClass,
     ) -> ParallelAdmissionEvidence {
-        ParallelAdmissionEvidence::new(FrontierRouteEvidence::parallel_admission(
-            basis_digest.to_string(),
+        ParallelAdmissionEvidence::from_surface(
+            basis_digest,
             self.surface_digest.clone(),
             disjointness_class,
-        ))
+        )
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -130,12 +130,12 @@ impl SignalFrontierSurfaceEvidence {
         reason: SerialFallbackReason,
         drift_outcome: FrontierPredictionDriftOutcome,
     ) -> SerialFallbackEvidence {
-        SerialFallbackEvidence::new(FrontierRouteEvidence::serial_fallback(
-            basis_digest.to_string(),
+        SerialFallbackEvidence::from_surface(
+            basis_digest,
             self.surface_digest.clone(),
             reason,
             drift_outcome,
-        ))
+        )
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -171,13 +171,10 @@ impl SignalFrontierBundleEvidence {
     pub(crate) fn from_route_evidences(route_evidences: Vec<SerialFallbackEvidence>) -> Self {
         let mut parts = vec![format!("route_count:{}", route_evidences.len())];
         for (index, route) in route_evidences.iter().enumerate() {
+            parts.push(format!("route[{index}].basis:{}", route.basis_digest()));
             parts.push(format!(
                 "route[{index}].surface:{}",
                 route.surface_digest().as_str()
-            ));
-            parts.push(format!(
-                "route[{index}].drift:{}",
-                route.drift_outcome().as_str()
             ));
             parts.push(format!(
                 "route[{index}].drift:{}",
@@ -232,11 +229,25 @@ impl SignalFrontierBundleEvidence {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn bind_to_basis(&self, basis_digest: &str) -> SerialFallbackBundleEvidence {
-        SerialFallbackBundleEvidence::new(
-            basis_digest.to_string(),
+    pub(crate) fn bind_to_basis(
+        &self,
+        basis_digest: &str,
+    ) -> Result<SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError> {
+        let rebound_routes = self
+            .route_evidences
+            .iter()
+            .map(|route| {
+                SerialFallbackEvidence::from_surface(
+                    basis_digest.to_string(),
+                    route.surface_digest().clone(),
+                    route.reason().clone(),
+                    route.drift_outcome().clone(),
+                )
+            })
+            .collect();
+        SerialFallbackBundleEvidence::from_routes(
             self.bundle_surface_digest.clone(),
-            self.route_evidences.clone(),
+            rebound_routes,
         )
     }
 }

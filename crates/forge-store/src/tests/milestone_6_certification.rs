@@ -12,9 +12,15 @@ use super::harness::{
         core::{AssertionClass, CanonicalRow, CertificationSuite, LaneResult, RejectionRow},
         requirements::{evaluate_completeness, ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST},
     },
+    corruption::local_file::force_clear_milestone_6_derived_access_structures,
+    corruption::local_file::force_clear_milestone_6_materializations_and_derived_access_structures,
+    corruption::local_file::force_milestone_6_chunk_membership_boundary_drift,
+    corruption::local_file::force_milestone_6_commit_support_summary_seed_gap,
+    corruption::local_file::force_milestone_6_layout_materialization_chunk_member_count_drift,
+    corruption::sqlite::simulate_legacy_milestone_6_commit_coupled_layout_seed_storage,
     fixtures::{
-        runtime::{create_entity, latest_envelope, runtime_with_demo_schema},
-        stores::{build_store_for_lane, unique_test_store_path, StoreLane},
+        runtime::{create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch},
+        stores::{build_store_for_lane, unique_test_sqlite_path, unique_test_store_path, StoreLane},
     },
 };
 
@@ -102,6 +108,88 @@ fn fallback_surface(
     })
 }
 
+fn rebuild_identity_surface(bundle: &crate::Milestone6CertificationBundle) -> serde_json::Value {
+    serde_json::json!({
+        "truth_digest": bundle.truth_digest,
+        "artifact_digest": bundle.artifact_digest,
+        "structural_block_id": bundle.physical_layout_report.structural_block_id,
+        "physical_chunk_id": bundle.physical_layout_report.physical_chunk_id,
+        "determinism_digest": bundle.physical_layout_report.determinism_digest,
+    })
+}
+
+fn chunk_export_surface(export: &crate::Milestone6ChunkModelExport) -> serde_json::Value {
+    serde_json::json!({
+        "physical_chunk_id": export.physical_chunk_id().as_str(),
+        "chunk_membership_artifact_id": export.chunk_membership_artifact_id(),
+        "determinism_digest": export.determinism_digest(),
+        "chunk_member_count": export.chunk_member_count(),
+        "layout_materialization_artifact_id": export.layout_materialization_artifact_id(),
+    })
+}
+
+fn execution_surface(
+    read: &crate::AspectLayoutReadExecutionResult,
+    dedup: &crate::DedupBackedReadResult,
+) -> serde_json::Value {
+    serde_json::json!({
+        "request_scope_class": read.plan().request().scope_class().label(),
+        "layout_materialization_artifact_id": read.layout_materialization_artifact_id(),
+        "scope_membership_artifact_id": read.scope_membership_artifact_id(),
+        "chunk_membership_artifact_id": read.chunk_membership_artifact_id(),
+        "semantic_truth_digest": read.semantic_truth_digest(),
+        "authoritative_commit_count": read.authoritative_commit_count(),
+        "structural_block_id": dedup.structural_block_lookup().structural_block_id().as_str(),
+        "structural_block_slice_ids": dedup.structural_block_lookup().slice_ids(),
+    })
+}
+
+fn overlap_branch_parity_surface(
+    read: &crate::AspectLayoutReadExecutionResult,
+    dedup: &crate::DedupBackedReadResult,
+    control: &crate::AspectLayoutControlTruth,
+) -> serde_json::Value {
+    serde_json::json!({
+        "execution_branch_id": read.plan().request().target().branch_id().0,
+        "execution_frontier_commit_id": read.plan().request().target().frontier_commit_id().0,
+        "execution_scope_class": read.plan().request().scope_class().label(),
+        "execution_slice_ids": read.plan().slice_ids(),
+        "execution_semantic_truth_digest": read.semantic_truth_digest(),
+        "execution_authoritative_commit_count": read.authoritative_commit_count(),
+        "dedup_semantic_truth_digest": dedup.read().semantic_truth_digest(),
+        "dedup_authoritative_commit_count": dedup.read().authoritative_commit_count(),
+        "dedup_structural_block_id": dedup.structural_block_lookup().structural_block_id().as_str(),
+        "dedup_slice_ids": dedup.structural_block_lookup().slice_ids(),
+        "control_branch_id": control.branch_id().0,
+        "control_frontier_commit_id": control.frontier_commit_id().0,
+        "control_scope_class": control.scope_class(),
+        "control_authoritative_truth_digest": control.authoritative_truth_digest(),
+        "control_authoritative_commit_count": control.authoritative_commit_count(),
+    })
+}
+
+fn canonical_row_by_name<'a, T: Eq + serde::Serialize, E: Eq + serde::Serialize>(
+    suite: &'a CertificationSuite<T, E>,
+    name: &str,
+) -> &'a CanonicalRow<T> {
+    suite
+        .canonical_rows()
+        .iter()
+        .find(|row| row.name() == name)
+        .unwrap_or_else(|| panic!("missing canonical row `{name}`"))
+}
+
+fn rejection_row_by_name<'a, T: Eq + serde::Serialize, E: Eq + serde::Serialize>(
+    suite: &'a CertificationSuite<T, E>,
+    name: &str,
+) -> &'a RejectionRow<E> {
+    suite
+        .rejection_rows()
+        .iter()
+        .find(|row| row.name() == name)
+        .unwrap_or_else(|| panic!("missing rejection row `{name}`"))
+}
+
 fn assert_complexity_debt(
     path: &crate::Milestone6ComplexityPathStatus,
     verification: &crate::Milestone6AccessStructureVerificationPath,
@@ -145,6 +233,14 @@ fn milestone_6_suite() -> CertificationSuite<String, String> {
         })
         .collect::<Vec<_>>();
 
+    let admitted_artifact_parity = [StoreLane::InMemory, StoreLane::LocalFile, StoreLane::Sqlite]
+        .into_iter()
+        .map(|lane| {
+            let bundle = entity_set_bundle_for_lane(lane);
+            LaneResult::new(lane.label(), bundle.artifact_digest.clone())
+        })
+        .collect::<Vec<_>>();
+
     let scope_shape_divergence = vec![
         LaneResult::new(
             "single_entity",
@@ -179,6 +275,365 @@ fn milestone_6_suite() -> CertificationSuite<String, String> {
         )]
     };
 
+    let authority_rebuild_parity = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-authority-rebuild");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request.clone())
+            .unwrap();
+        let before = store.milestone_6_certification_bundle(request.clone()).unwrap();
+        drop(store);
+
+        force_clear_milestone_6_materializations_and_derived_access_structures(&path);
+
+        let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+        reopened
+            .rebuild_milestone_6_derived_artifacts_from_authority()
+            .unwrap();
+        let after = reopened.milestone_6_certification_bundle(request).unwrap();
+        vec![
+            LaneResult::new(
+                "before_rebuild",
+                serde_json::to_string(&rebuild_identity_surface(&before)).unwrap(),
+            ),
+            LaneResult::new(
+                "after_rebuild",
+                serde_json::to_string(&rebuild_identity_surface(&after)).unwrap(),
+            ),
+        ]
+    };
+
+    let chunk_export_rebuild_parity = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-chunk-export");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request.clone())
+            .unwrap();
+        let before = store.export_milestone_6_chunk_model(request.clone()).unwrap();
+        drop(store);
+
+        force_clear_milestone_6_materializations_and_derived_access_structures(&path);
+
+        let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+        reopened
+            .rebuild_milestone_6_derived_artifacts_from_authority()
+            .unwrap();
+        let after = reopened.export_milestone_6_chunk_model(request).unwrap();
+        vec![
+            LaneResult::new(
+                "before_rebuild",
+                serde_json::to_string(&chunk_export_surface(&before)).unwrap(),
+            ),
+            LaneResult::new(
+                "after_rebuild",
+                serde_json::to_string(&chunk_export_surface(&after)).unwrap(),
+            ),
+        ]
+    };
+
+    let authority_rebuild_execution_parity = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-rebuild-execution");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request.clone())
+            .unwrap();
+        let before_read = match store.execute_aspect_layout_read(request.clone()).unwrap() {
+            crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+            other => panic!("expected admitted execution result before rebuild, got {other:?}"),
+        };
+        let before_dedup = store.execute_dedup_backed_read(request.clone()).unwrap();
+        drop(store);
+
+        force_clear_milestone_6_materializations_and_derived_access_structures(&path);
+
+        let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+        reopened
+            .rebuild_milestone_6_derived_artifacts_from_authority()
+            .unwrap();
+        let after_read = match reopened.execute_aspect_layout_read(request.clone()).unwrap() {
+            crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+            other => panic!("expected admitted execution result after rebuild, got {other:?}"),
+        };
+        let after_dedup = reopened.execute_dedup_backed_read(request).unwrap();
+        vec![
+            LaneResult::new(
+                "before_rebuild",
+                serde_json::to_string(&execution_surface(&before_read, &before_dedup)).unwrap(),
+            ),
+            LaneResult::new(
+                "after_rebuild",
+                serde_json::to_string(&execution_surface(&after_read, &after_dedup)).unwrap(),
+            ),
+        ]
+    };
+
+    let sqlite_legacy_seed_migration_parity = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_sqlite_path("forge-store-m6-suite-legacy-seed");
+        let mut store = ForgeStoreBuilder::new()
+            .sqlite_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request.clone())
+            .unwrap();
+        let before = store.milestone_6_certification_bundle(request.clone()).unwrap();
+        drop(store);
+
+        simulate_legacy_milestone_6_commit_coupled_layout_seed_storage(&path);
+
+        let reopened = ForgeStoreBuilder::new().sqlite_file(path).build().unwrap();
+        let after = reopened.milestone_6_certification_bundle(request).unwrap();
+        vec![
+            LaneResult::new(
+                "before_migration",
+                serde_json::to_string(&rebuild_identity_surface(&before)).unwrap(),
+            ),
+            LaneResult::new(
+                "after_migration",
+                serde_json::to_string(&rebuild_identity_surface(&after)).unwrap(),
+            ),
+        ]
+    };
+
+    let dedup_control_overlap_branch_parity = [StoreLane::InMemory, StoreLane::LocalFile, StoreLane::Sqlite]
+        .into_iter()
+        .map(|lane| {
+            let mut runtime = runtime_with_demo_schema();
+            let entity_id = create_entity(&mut runtime, "alpha");
+            let root = latest_envelope(&runtime);
+            update_entity_on_branch(&mut runtime, entity_id, "beta", None);
+            let main_head = latest_envelope(&runtime);
+            let main_branch = main_head.branch_context.clone();
+            let feature_branch = BranchId("m6-suite-dedup-feature".to_string());
+
+            let mut store = match lane {
+                StoreLane::InMemory => ForgeStoreBuilder::new().in_memory().build().unwrap(),
+                _ => build_store_for_lane(lane, &format!("milestone-6-dedup-overlap-{}", lane.label())),
+            };
+            store.append_canonical_commit(root).unwrap();
+            store.append_canonical_commit(main_head.clone()).unwrap();
+            store
+                .create_shared_base_branch(crate::SharedBaseBranchCreationRequest::new(
+                    feature_branch.clone(),
+                    main_branch.clone(),
+                ))
+                .unwrap();
+            runtime
+                .history_authority()
+                .create_branch(feature_branch.clone(), &main_branch)
+                .unwrap();
+            update_entity_on_branch(
+                &mut runtime,
+                entity_id,
+                "feature-only",
+                Some(feature_branch.clone()),
+            );
+            let feature_head = latest_envelope(&runtime);
+            let request = request_for_scope(
+                &feature_head,
+                AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                    "entity-a".to_string(),
+                    "entity-b".to_string(),
+                ])),
+                &["profile", "status"],
+            );
+            store.append_canonical_commit(feature_head).unwrap();
+            store
+                .materialize_milestone_6_layout_support(request.clone())
+                .unwrap();
+
+            let aspect_read = match store.execute_aspect_layout_read(request.clone()).unwrap() {
+                crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+                other => panic!("expected admitted overlap execution result, got {other:?}"),
+            };
+            let dedup_read = store.execute_dedup_backed_read(request.clone()).unwrap();
+            let control = store.read_aspect_layout_control_truth(request).unwrap();
+            assert_eq!(
+                aspect_read.semantic_truth_digest(),
+                control.authoritative_truth_digest()
+            );
+            assert_eq!(
+                aspect_read.authoritative_commit_count(),
+                control.authoritative_commit_count()
+            );
+            assert_eq!(
+                dedup_read.read().semantic_truth_digest(),
+                control.authoritative_truth_digest()
+            );
+            LaneResult::new(
+                lane.label(),
+                serde_json::to_string(&overlap_branch_parity_surface(
+                    &aspect_read,
+                    &dedup_read,
+                    &control,
+                ))
+                .unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let commit_coupled_seed_corruption = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-seed-corruption");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request)
+            .unwrap();
+        drop(store);
+
+        force_milestone_6_commit_support_summary_seed_gap(&path);
+        let error = ForgeStoreBuilder::new().local_file(path).build().unwrap_err();
+        vec![LaneResult::new(
+            "commit_coupled_seed_gap",
+            serde_json::to_string(&serde_json::json!({
+                "error_kind": format!("{:?}", error.kind()),
+                "message": error.message(),
+            }))
+            .unwrap(),
+        )]
+    };
+
+    let chunk_export_corruption = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-chunk-corruption");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request)
+            .unwrap();
+        drop(store);
+
+        force_milestone_6_layout_materialization_chunk_member_count_drift(&path);
+        let error = ForgeStoreBuilder::new().local_file(path).build().unwrap_err();
+        vec![LaneResult::new(
+            "chunk_member_drift",
+            serde_json::to_string(&serde_json::json!({
+                "error_kind": format!("{:?}", error.kind()),
+                "message": error.message(),
+            }))
+            .unwrap(),
+        )]
+    };
+
+    let chunk_export_boundary_mismatch = {
+        let mut runtime = runtime_with_demo_schema();
+        create_entity(&mut runtime, "alpha");
+        let root = latest_envelope(&runtime);
+        let request = request_for_scope(
+            &root,
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            &["profile", "status"],
+        );
+        let path = unique_test_store_path("forge-store-m6-suite-chunk-boundary");
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        store.append_canonical_commit(root).unwrap();
+        store
+            .materialize_milestone_6_layout_support(request)
+            .unwrap();
+        drop(store);
+
+        force_milestone_6_chunk_membership_boundary_drift(&path);
+        let error = ForgeStoreBuilder::new().local_file(path).build().unwrap_err();
+        vec![LaneResult::new(
+            "chunk_boundary_drift",
+            serde_json::to_string(&serde_json::json!({
+                "error_kind": format!("{:?}", error.kind()),
+                "message": error.message(),
+            }))
+            .unwrap(),
+        )]
+    };
+
     CertificationSuite::new(ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST.suite_name)
         .with_canonical_row(CanonicalRow::new(
             "admitted_layout_truth_parity",
@@ -191,6 +646,36 @@ fn milestone_6_suite() -> CertificationSuite<String, String> {
             &[AssertionClass::Equality, AssertionClass::ExactCounter],
         ))
         .with_canonical_row(CanonicalRow::new(
+            "admitted_layout_artifact_parity",
+            admitted_artifact_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
+            "authority_rebuild_preserves_layout_identity",
+            authority_rebuild_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
+            "authority_rebuild_preserves_execution_surfaces",
+            authority_rebuild_execution_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
+            "dedup_control_overlap_branch_parity",
+            dedup_control_overlap_branch_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
+            "chunk_export_rebuild_parity",
+            chunk_export_rebuild_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
+            "sqlite_legacy_seed_migration_parity",
+            sqlite_legacy_seed_migration_parity,
+            &[AssertionClass::Equality],
+        ))
+        .with_canonical_row(CanonicalRow::new(
             "scope_shape_changes_physical_truth",
             scope_shape_divergence,
             &[AssertionClass::Inequality],
@@ -200,15 +685,69 @@ fn milestone_6_suite() -> CertificationSuite<String, String> {
             generalized_scope_rejection,
             &[AssertionClass::TypedFailure, AssertionClass::ExactCounter],
         ))
+        .with_rejection_row(RejectionRow::new(
+            "commit_coupled_seed_corruption_requires_typed_failure",
+            commit_coupled_seed_corruption,
+            &[AssertionClass::TypedFailure],
+        ))
+        .with_rejection_row(RejectionRow::new(
+            "chunk_export_corruption_requires_typed_failure",
+            chunk_export_corruption,
+            &[AssertionClass::TypedFailure],
+        ))
+        .with_rejection_row(RejectionRow::new(
+            "chunk_export_boundary_mismatch_requires_typed_failure",
+            chunk_export_boundary_mismatch,
+            &[AssertionClass::TypedFailure],
+        ))
 }
 
 #[test]
 fn milestone_6_certification_harness_scaffolds_layout_suite() {
     let suite = milestone_6_suite();
-    assert_all_equal(&suite.canonical_rows()[0]);
-    assert_all_equal(&suite.canonical_rows()[1]);
-    assert_any_not_equal(&suite.canonical_rows()[2]);
-    assert_rejection_payloads_present(&suite.rejection_rows()[0]);
+    assert_all_equal(canonical_row_by_name(&suite, "admitted_layout_truth_parity"));
+    assert_all_equal(canonical_row_by_name(
+        &suite,
+        "admitted_layout_counter_contract_parity",
+    ));
+    assert_all_equal(canonical_row_by_name(&suite, "admitted_layout_artifact_parity"));
+    assert_all_equal(canonical_row_by_name(
+        &suite,
+        "authority_rebuild_preserves_layout_identity",
+    ));
+    assert_all_equal(canonical_row_by_name(
+        &suite,
+        "authority_rebuild_preserves_execution_surfaces",
+    ));
+    assert_all_equal(canonical_row_by_name(
+        &suite,
+        "dedup_control_overlap_branch_parity",
+    ));
+    assert_all_equal(canonical_row_by_name(&suite, "chunk_export_rebuild_parity"));
+    assert_all_equal(canonical_row_by_name(
+        &suite,
+        "sqlite_legacy_seed_migration_parity",
+    ));
+    assert_any_not_equal(canonical_row_by_name(
+        &suite,
+        "scope_shape_changes_physical_truth",
+    ));
+    assert_rejection_payloads_present(rejection_row_by_name(
+        &suite,
+        "generalized_scope_requires_explicit_fallback",
+    ));
+    assert_rejection_payloads_present(rejection_row_by_name(
+        &suite,
+        "commit_coupled_seed_corruption_requires_typed_failure",
+    ));
+    assert_rejection_payloads_present(rejection_row_by_name(
+        &suite,
+        "chunk_export_corruption_requires_typed_failure",
+    ));
+    assert_rejection_payloads_present(rejection_row_by_name(
+        &suite,
+        "chunk_export_boundary_mismatch_requires_typed_failure",
+    ));
     let completeness = evaluate_completeness(&suite, &ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST);
     assert!(completeness.missing_rows().is_empty());
     assert!(completeness.missing_assertion_classes().is_empty());
@@ -217,12 +756,14 @@ fn milestone_6_certification_harness_scaffolds_layout_suite() {
 #[test]
 fn milestone_6_certification_bundle_is_backend_stable() {
     let mut truth_digests = Vec::new();
+    let mut artifact_digests = Vec::new();
     let mut diagnostics_digests = Vec::new();
     let mut chunk_digests = Vec::new();
 
     for lane in [StoreLane::InMemory, StoreLane::LocalFile, StoreLane::Sqlite] {
         let bundle = entity_set_bundle_for_lane(lane);
         truth_digests.push((lane.label(), bundle.truth_digest.clone()));
+        artifact_digests.push((lane.label(), bundle.artifact_digest.clone()));
         diagnostics_digests.push((lane.label(), bundle.diagnostics_digest.clone()));
         chunk_digests.push((
             lane.label(),
@@ -299,6 +840,10 @@ fn milestone_6_certification_bundle_is_backend_stable() {
     assert!(truth_digests
         .iter()
         .all(|(_, digest)| digest == first_truth));
+    let first_artifact = &artifact_digests[0].1;
+    assert!(artifact_digests
+        .iter()
+        .all(|(_, digest)| digest == first_artifact));
     let first_diagnostics = &diagnostics_digests[0].1;
     assert!(diagnostics_digests
         .iter()
@@ -365,7 +910,11 @@ fn milestone_6_certification_bundle_prefers_persisted_layout_materialization_whe
 
     assert_eq!(materialized, fetched);
     assert_eq!(direct_bundle.truth_digest, reopened_bundle.truth_digest);
-    assert_ne!(direct_bundle.diagnostics_digest, reopened_bundle.diagnostics_digest);
+    assert_eq!(direct_bundle.artifact_digest, reopened_bundle.artifact_digest);
+    assert_ne!(
+        direct_bundle.diagnostics_digest,
+        reopened_bundle.diagnostics_digest
+    );
     assert_eq!(
         direct_bundle.complexity_status.aspect_layout_read.status,
         crate::ComplexityStatus::Verified
@@ -446,6 +995,7 @@ fn milestone_6_certification_bundle_proves_scope_shape_changes_layout_truth() {
     let entity_set = entity_set_bundle_for_lane(StoreLane::InMemory);
 
     assert_ne!(single.truth_digest, entity_set.truth_digest);
+    assert_ne!(single.artifact_digest, entity_set.artifact_digest);
     assert_eq!(single.layout_read_report.scope_class, "single_entity");
     assert_eq!(entity_set.layout_read_report.scope_class, "entity_set_uniform");
     assert_eq!(single.physical_layout_report.milestone_9_chunk_member_count, 1);
@@ -532,4 +1082,154 @@ fn milestone_6_materialization_and_fetch_use_counted_admission_surfaces() {
     assert_eq!(store.counters().aspect_layout_admitted_count, 2);
     assert_eq!(store.counters().structural_block_reuse_admission_count, 1);
     assert_eq!(store.counters().chunk_model_freeze_count, 1);
+}
+
+#[test]
+fn milestone_6_rebuild_restores_derived_access_structures_from_materializations() {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, "alpha");
+    let root = latest_envelope(&runtime);
+    let request = request_for_scope(
+        &root,
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        &["profile", "status"],
+    );
+    let path = unique_test_store_path("forge-store-m6-derived-rebuild");
+
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
+    store.append_canonical_commit(root).unwrap();
+    store
+        .materialize_milestone_6_layout_support(request.clone())
+        .unwrap();
+    let baseline_bundle = store
+        .milestone_6_certification_bundle(request.clone())
+        .unwrap();
+    drop(store);
+
+    force_clear_milestone_6_derived_access_structures(&path);
+
+    let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+    let degraded_bundle = reopened
+        .milestone_6_certification_bundle(request.clone())
+        .unwrap();
+    assert_eq!(degraded_bundle.truth_digest, baseline_bundle.truth_digest);
+    assert_eq!(degraded_bundle.artifact_digest, baseline_bundle.artifact_digest);
+    assert_eq!(
+        degraded_bundle.complexity_status.aspect_layout_read.status,
+        crate::ComplexityStatus::Debt
+    );
+    assert_eq!(
+        degraded_bundle.complexity_status.structural_block_reuse.status,
+        crate::ComplexityStatus::Debt
+    );
+    assert_eq!(
+        degraded_bundle.complexity_status.chunk_model_freeze.status,
+        crate::ComplexityStatus::Debt
+    );
+
+    let rebuild = reopened
+        .rebuild_milestone_6_derived_artifacts_from_materializations()
+        .unwrap();
+    assert_eq!(rebuild.layout_materialization_count(), 1);
+    assert_eq!(rebuild.scope_membership_count(), 1);
+    assert_eq!(rebuild.structural_block_count(), 1);
+    assert_eq!(rebuild.chunk_membership_count(), 1);
+
+    let rebuilt_bundle = reopened.milestone_6_certification_bundle(request).unwrap();
+    assert_eq!(rebuilt_bundle.truth_digest, baseline_bundle.truth_digest);
+    assert_eq!(rebuilt_bundle.artifact_digest, baseline_bundle.artifact_digest);
+    assert_eq!(
+        rebuilt_bundle.complexity_status.aspect_layout_read.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_eq!(
+        rebuilt_bundle.complexity_status.structural_block_reuse.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_eq!(
+        rebuilt_bundle.complexity_status.chunk_model_freeze.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_ne!(rebuilt_bundle.diagnostics_digest, degraded_bundle.diagnostics_digest);
+}
+
+#[test]
+fn milestone_6_authority_rebuild_restores_materializations_and_derived_access_structures_from_publication_seed() {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, "alpha");
+    let root = latest_envelope(&runtime);
+    let request = request_for_scope(
+        &root,
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        &["profile", "status"],
+    );
+    let path = unique_test_store_path("forge-store-m6-authority-rebuild");
+
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
+    store.append_canonical_commit(root).unwrap();
+    store
+        .materialize_milestone_6_layout_support(request.clone())
+        .unwrap();
+    let baseline_bundle = store
+        .milestone_6_certification_bundle(request.clone())
+        .unwrap();
+    drop(store);
+
+    force_clear_milestone_6_materializations_and_derived_access_structures(&path);
+
+    let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+    let degraded_bundle = reopened
+        .milestone_6_certification_bundle(request.clone())
+        .unwrap();
+    assert_eq!(degraded_bundle.truth_digest, baseline_bundle.truth_digest);
+    assert_ne!(degraded_bundle.artifact_digest, baseline_bundle.artifact_digest);
+    assert_eq!(
+        degraded_bundle.complexity_status.aspect_layout_read.status,
+        crate::ComplexityStatus::Debt
+    );
+    assert_eq!(
+        degraded_bundle.complexity_status.structural_block_reuse.status,
+        crate::ComplexityStatus::Debt
+    );
+    assert_eq!(
+        degraded_bundle.complexity_status.chunk_model_freeze.status,
+        crate::ComplexityStatus::Debt
+    );
+
+    let rebuild = reopened
+        .rebuild_milestone_6_derived_artifacts_from_authority()
+        .unwrap();
+    assert_eq!(rebuild.layout_materialization_count(), 1);
+    assert_eq!(rebuild.scope_membership_count(), 1);
+    assert_eq!(rebuild.structural_block_count(), 1);
+    assert_eq!(rebuild.chunk_membership_count(), 1);
+
+    let rebuilt_bundle = reopened.milestone_6_certification_bundle(request).unwrap();
+    assert_eq!(rebuilt_bundle.truth_digest, baseline_bundle.truth_digest);
+    assert_eq!(rebuilt_bundle.artifact_digest, baseline_bundle.artifact_digest);
+    assert_eq!(
+        rebuilt_bundle.complexity_status.aspect_layout_read.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_eq!(
+        rebuilt_bundle.complexity_status.structural_block_reuse.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_eq!(
+        rebuilt_bundle.complexity_status.chunk_model_freeze.status,
+        crate::ComplexityStatus::Verified
+    );
+    assert_ne!(rebuilt_bundle.diagnostics_digest, degraded_bundle.diagnostics_digest);
 }

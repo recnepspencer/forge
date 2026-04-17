@@ -11,6 +11,7 @@ use crate::identity::{
     ValidatedResultShapeDigest,
 };
 use crate::identity::{CollectionPlanDigest, ResultDigest};
+use crate::live::LiveQueryPlan;
 use forge_runtime_bridge::facade::{
     BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewPromotionRecord,
     BridgePreviewReplayBundle, BridgePreviewSession, BridgePreviewSessionDeclarationIdentity,
@@ -55,29 +56,6 @@ impl PreviewEvaluationClass {
         match self {
             Self::ReadOnly(_) => "read_only",
             Self::PromotionEligible(_) => "promotion_eligible",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PreviewBindingIntent {
-    PreviewOnly,
-    PreviewWithLiveLane,
-}
-
-impl PreviewBindingIntent {
-    pub fn preview_only() -> Self {
-        Self::PreviewOnly
-    }
-
-    pub fn preview_with_live_lane() -> Self {
-        Self::PreviewWithLiveLane
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::PreviewOnly => "preview_only",
-            Self::PreviewWithLiveLane => "preview_with_live_lane",
         }
     }
 }
@@ -137,6 +115,8 @@ pub struct PreviewBindingCounters {
     preview_invalid_lifecycle_denial_count: usize,
     preview_broad_fallback_denial_count: usize,
     preview_executor_rediscovery_count: usize,
+    preview_replay_bundle_lookup_count: usize,
+    preview_bridge_promotion_linkage_count: usize,
 }
 
 impl PreviewBindingCounters {
@@ -172,6 +152,14 @@ impl PreviewBindingCounters {
         self.preview_executor_rediscovery_count
     }
 
+    pub fn preview_replay_bundle_lookup_count(&self) -> usize {
+        self.preview_replay_bundle_lookup_count
+    }
+
+    pub fn preview_bridge_promotion_linkage_count(&self) -> usize {
+        self.preview_bridge_promotion_linkage_count
+    }
+
     #[cfg(test)]
     pub(crate) fn absorb(&mut self, other: &Self) {
         self.preview_session_admission_count += other.preview_session_admission_count;
@@ -182,6 +170,8 @@ impl PreviewBindingCounters {
         self.preview_invalid_lifecycle_denial_count += other.preview_invalid_lifecycle_denial_count;
         self.preview_broad_fallback_denial_count += other.preview_broad_fallback_denial_count;
         self.preview_executor_rediscovery_count += other.preview_executor_rediscovery_count;
+        self.preview_replay_bundle_lookup_count += other.preview_replay_bundle_lookup_count;
+        self.preview_bridge_promotion_linkage_count += other.preview_bridge_promotion_linkage_count;
     }
 
     fn for_admitted_path() -> Self {
@@ -194,6 +184,8 @@ impl PreviewBindingCounters {
             preview_invalid_lifecycle_denial_count: 0,
             preview_broad_fallback_denial_count: 0,
             preview_executor_rediscovery_count: 0,
+            preview_replay_bundle_lookup_count: 0,
+            preview_bridge_promotion_linkage_count: 0,
         }
     }
 }
@@ -203,7 +195,6 @@ pub enum PreviewBindingFailureClass {
     InvalidPreviewBasis,
     UnsupportedPreviewQueryFamily,
     StaleOrInactivePreviewLifecycle,
-    PreviewLiveDeniedInPhaseTwo,
     RawBranchAliasPreviewForbidden,
     MissingExecutionRecordIdentity,
     PromotionLinkageMismatch,
@@ -282,7 +273,6 @@ pub struct PreviewSessionBindingTuple {
     validated_query_digest: ValidatedQueryDigest,
     validated_result_shape_digest: ValidatedResultShapeDigest,
     evaluation_class: PreviewEvaluationClass,
-    binding_intent: PreviewBindingIntent,
     preview_session_identity: BridgePreviewSessionIdentity,
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
     declaration_digest: String,
@@ -301,7 +291,6 @@ impl PreviewSessionBindingTuple {
         validated_query_digest: ValidatedQueryDigest,
         validated_result_shape_digest: ValidatedResultShapeDigest,
         evaluation_class: PreviewEvaluationClass,
-        binding_intent: PreviewBindingIntent,
         preview_session_identity: BridgePreviewSessionIdentity,
         declaration_identity: BridgePreviewSessionDeclarationIdentity,
         declaration_digest: String,
@@ -323,7 +312,6 @@ impl PreviewSessionBindingTuple {
                 validated_result_shape_digest.as_str()
             ),
             format!("evaluation_class:{}", evaluation_class.as_str()),
-            format!("binding_intent:{}", binding_intent.as_str()),
             format!("preview_session:{}", preview_session_identity.as_str()),
             format!("declaration_identity:{}", declaration_identity.as_str()),
             format!("declaration_digest:{declaration_digest}"),
@@ -355,7 +343,6 @@ impl PreviewSessionBindingTuple {
             validated_query_digest,
             validated_result_shape_digest,
             evaluation_class,
-            binding_intent,
             preview_session_identity,
             declaration_identity,
             declaration_digest,
@@ -389,10 +376,6 @@ impl PreviewSessionBindingTuple {
 
     pub fn evaluation_class(&self) -> &PreviewEvaluationClass {
         &self.evaluation_class
-    }
-
-    pub fn binding_intent(&self) -> &PreviewBindingIntent {
-        &self.binding_intent
     }
 
     pub fn preview_session_identity(&self) -> &BridgePreviewSessionIdentity {
@@ -447,7 +430,6 @@ impl PreviewSessionBasis {
 pub struct PreviewBindingReport {
     binding_digest: String,
     evaluation_class: PreviewEvaluationClass,
-    binding_intent: PreviewBindingIntent,
     basis_binding_contract: PreviewComplexityContract,
     execution_metadata_contract: PreviewComplexityContract,
     counters: PreviewBindingCounters,
@@ -457,13 +439,11 @@ impl PreviewBindingReport {
     fn new(
         binding_digest: String,
         evaluation_class: PreviewEvaluationClass,
-        binding_intent: PreviewBindingIntent,
         counters: PreviewBindingCounters,
     ) -> Self {
         Self {
             binding_digest,
             evaluation_class,
-            binding_intent,
             basis_binding_contract: PreviewComplexityContract::preview_basis_binding_contract(),
             execution_metadata_contract:
                 PreviewComplexityContract::preview_execution_metadata_contract(),
@@ -477,10 +457,6 @@ impl PreviewBindingReport {
 
     pub fn evaluation_class(&self) -> &PreviewEvaluationClass {
         &self.evaluation_class
-    }
-
-    pub fn binding_intent(&self) -> &PreviewBindingIntent {
-        &self.binding_intent
     }
 
     pub fn basis_binding_contract(&self) -> &PreviewComplexityContract {
@@ -533,7 +509,27 @@ pub struct ReadOnlyPreviewSessionPlanBinding {
 }
 
 impl ReadOnlyPreviewSessionPlanBinding {
-    pub fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
+    pub fn preflight(&self) -> &ExecutionPreflightBundle {
+        self.inner.preflight()
+    }
+
+    pub fn query_context(&self) -> &PreviewSessionQueryContext {
+        self.inner.query_context()
+    }
+
+    pub fn basis(&self) -> &PreviewSessionBasis {
+        self.inner.basis()
+    }
+
+    pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
+        self.inner.lifecycle_metadata()
+    }
+
+    pub fn report(&self) -> &PreviewBindingReport {
+        self.inner.report()
+    }
+
+    pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }
 }
@@ -544,12 +540,271 @@ pub struct PromotionEligiblePreviewSessionPlanBinding {
 }
 
 impl PromotionEligiblePreviewSessionPlanBinding {
-    pub fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
+    pub fn preflight(&self) -> &ExecutionPreflightBundle {
+        self.inner.preflight()
+    }
+
+    pub fn query_context(&self) -> &PreviewSessionQueryContext {
+        self.inner.query_context()
+    }
+
+    pub fn basis(&self) -> &PreviewSessionBasis {
+        self.inner.basis()
+    }
+
+    pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
+        self.inner.lifecycle_metadata()
+    }
+
+    pub fn report(&self) -> &PreviewBindingReport {
+        self.inner.report()
+    }
+
+    pub(crate) fn as_preview_binding(&self) -> &PreviewSessionPlanBinding {
         &self.inner
     }
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct PreviewLiveCounters {
+    preview_live_admission_count: usize,
+    preview_live_execution_count: usize,
+    preview_live_lifecycle_check_count: usize,
+    preview_live_drift_denial_count: usize,
+    preview_live_rebind_available_count: usize,
+    preview_live_broad_fallback_denial_count: usize,
+}
+
+impl PreviewLiveCounters {
+    pub fn preview_live_admission_count(&self) -> usize {
+        self.preview_live_admission_count
+    }
+
+    pub fn preview_live_execution_count(&self) -> usize {
+        self.preview_live_execution_count
+    }
+
+    pub fn preview_live_lifecycle_check_count(&self) -> usize {
+        self.preview_live_lifecycle_check_count
+    }
+
+    pub fn preview_live_drift_denial_count(&self) -> usize {
+        self.preview_live_drift_denial_count
+    }
+
+    pub fn preview_live_rebind_available_count(&self) -> usize {
+        self.preview_live_rebind_available_count
+    }
+
+    pub fn preview_live_broad_fallback_denial_count(&self) -> usize {
+        self.preview_live_broad_fallback_denial_count
+    }
+
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn absorb(&mut self, other: &Self) {
+        self.preview_live_admission_count += other.preview_live_admission_count;
+        self.preview_live_execution_count += other.preview_live_execution_count;
+        self.preview_live_lifecycle_check_count += other.preview_live_lifecycle_check_count;
+        self.preview_live_drift_denial_count += other.preview_live_drift_denial_count;
+        self.preview_live_rebind_available_count += other.preview_live_rebind_available_count;
+        self.preview_live_broad_fallback_denial_count +=
+            other.preview_live_broad_fallback_denial_count;
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PreviewLiveFailureClass {
+    PreviewLiveQueryDigestMismatch,
+    PreviewLivePlanDigestMismatch,
+    PreviewLiveCollectionDigestMismatch,
+    PreviewLiveBasisMismatch,
+    PreviewLiveLifecycleDrifted,
+    PreviewLiveRebindBindingRejected,
+    PreviewLiveBroadFallbackForbidden,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveError {
+    failure_class: PreviewLiveFailureClass,
+    message: &'static str,
+    counters: PreviewLiveCounters,
+}
+
+impl PreviewLiveError {
+    pub fn failure_class(&self) -> &PreviewLiveFailureClass {
+        &self.failure_class
+    }
+
+    pub fn message(&self) -> &'static str {
+        self.message
+    }
+
+    pub fn counters(&self) -> &PreviewLiveCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveAdmissionReport {
+    digest: String,
+    preview_binding_digest: String,
+    live_subscription_digest: String,
+    live_family: String,
+    counters: PreviewLiveCounters,
+}
+
+impl PreviewLiveAdmissionReport {
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub fn preview_binding_digest(&self) -> &str {
+        &self.preview_binding_digest
+    }
+
+    pub fn live_subscription_digest(&self) -> &str {
+        &self.live_subscription_digest
+    }
+
+    pub fn live_family(&self) -> &str {
+        &self.live_family
+    }
+
+    pub fn counters(&self) -> &PreviewLiveCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveSessionPlanBinding {
+    preview_binding: PreviewSessionPlanBinding,
+    live_plan: LiveQueryPlan,
+    report: PreviewLiveAdmissionReport,
+}
+
+impl PreviewLiveSessionPlanBinding {
+    pub fn preview_binding(&self) -> &PreviewSessionPlanBinding {
+        &self.preview_binding
+    }
+
+    pub fn live_plan(&self) -> &LiveQueryPlan {
+        &self.live_plan
+    }
+
+    pub fn report(&self) -> &PreviewLiveAdmissionReport {
+        &self.report
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveExecutionEnvelope {
+    preview_live: PreviewLiveSessionPlanBinding,
+    counters: PreviewLiveCounters,
+}
+
+impl PreviewLiveExecutionEnvelope {
+    pub fn preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+        &self.preview_live
+    }
+
+    pub fn counters(&self) -> &PreviewLiveCounters {
+        &self.counters
+    }
+
+    pub fn check_invariants(&self) -> Result<(), PreviewExecutionError> {
+        if self.counters.preview_live_admission_count() != 1 {
+            return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
+                message: "preview-live execution must preserve exactly one preview-live admission proof",
+            });
+        }
+
+        if self.counters.preview_live_execution_count() != 1 {
+            return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
+                message: "preview-live execution must record exactly one preview-live execution",
+            });
+        }
+
+        if self.counters.preview_live_lifecycle_check_count() != 0
+            || self.counters.preview_live_drift_denial_count() != 0
+            || self.counters.preview_live_rebind_available_count() != 0
+            || self.counters.preview_live_broad_fallback_denial_count() != 0
+        {
+            return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
+                message: "steady-state preview-live execution cannot smuggle drift or fallback counters",
+            });
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveDriftDenied {
+    prior_preview_live_digest: String,
+    lifecycle_state_kind: BridgePreviewLifecycleStateKind,
+    error: PreviewLiveError,
+}
+
+impl PreviewLiveDriftDenied {
+    pub fn prior_preview_live_digest(&self) -> &str {
+        &self.prior_preview_live_digest
+    }
+
+    pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
+        self.lifecycle_state_kind
+    }
+
+    pub fn error(&self) -> &PreviewLiveError {
+        &self.error
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveMaintained {
+    maintained_preview_live: PreviewLiveSessionPlanBinding,
+    counters: PreviewLiveCounters,
+}
+
+impl PreviewLiveMaintained {
+    pub fn maintained_preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+        &self.maintained_preview_live
+    }
+
+    pub fn counters(&self) -> &PreviewLiveCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewLiveRebindArtifact {
+    prior_preview_live_digest: String,
+    rebound_preview_live: PreviewLiveSessionPlanBinding,
+    counters: PreviewLiveCounters,
+}
+
+impl PreviewLiveRebindArtifact {
+    pub fn prior_preview_live_digest(&self) -> &str {
+        &self.prior_preview_live_digest
+    }
+
+    pub fn rebound_preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+        &self.rebound_preview_live
+    }
+
+    pub fn counters(&self) -> &PreviewLiveCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PreviewLiveDriftOutcome {
+    Maintained(PreviewLiveMaintained),
+    DriftDenied(PreviewLiveDriftDenied),
+    ExplicitRebindAvailable(PreviewLiveRebindArtifact),
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PreviewExecutionCounters {
     binding_counters: PreviewBindingCounters,
     execution_counters: ExecutionCounters,
@@ -559,7 +814,10 @@ pub struct PreviewExecutionCounters {
     preview_read_only_execution_count: usize,
     preview_comparison_eligibility_proof_count: usize,
     preview_comparison_shape_check_width: usize,
+    preview_workflow_foundation_admission_count: usize,
+    preview_workflow_foundation_denial_count: usize,
     preview_workflow_foundation_artifact_lookup_count: usize,
+    preview_work_avoided_by_explicit_basis_count: usize,
 }
 
 impl PreviewExecutionCounters {
@@ -595,12 +853,45 @@ impl PreviewExecutionCounters {
         self.preview_comparison_shape_check_width
     }
 
+    pub fn preview_workflow_foundation_admission_count(&self) -> usize {
+        self.preview_workflow_foundation_admission_count
+    }
+
+    pub fn preview_workflow_foundation_denial_count(&self) -> usize {
+        self.preview_workflow_foundation_denial_count
+    }
+
     pub fn preview_workflow_foundation_artifact_lookup_count(&self) -> usize {
         self.preview_workflow_foundation_artifact_lookup_count
     }
+
+    pub fn preview_work_avoided_by_explicit_basis_count(&self) -> usize {
+        self.preview_work_avoided_by_explicit_basis_count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn absorb(&mut self, other: &Self) {
+        self.binding_counters.absorb(other.binding_counters());
+        self.execution_counters.absorb(other.execution_counters());
+        self.preview_execution_envelope_count += other.preview_execution_envelope_count;
+        self.preview_execution_count += other.preview_execution_count;
+        self.preview_promotable_execution_count += other.preview_promotable_execution_count;
+        self.preview_read_only_execution_count += other.preview_read_only_execution_count;
+        self.preview_comparison_eligibility_proof_count +=
+            other.preview_comparison_eligibility_proof_count;
+        self.preview_comparison_shape_check_width += other.preview_comparison_shape_check_width;
+        self.preview_workflow_foundation_admission_count +=
+            other.preview_workflow_foundation_admission_count;
+        self.preview_workflow_foundation_denial_count +=
+            other.preview_workflow_foundation_denial_count;
+        self.preview_workflow_foundation_artifact_lookup_count +=
+            other.preview_workflow_foundation_artifact_lookup_count;
+        self.preview_work_avoided_by_explicit_basis_count +=
+            other.preview_work_avoided_by_explicit_basis_count;
+    }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PreviewComparisonCounters {
     preview_promotion_comparison_count: usize,
     preview_promotion_comparison_denial_count: usize,
@@ -628,6 +919,17 @@ impl PreviewComparisonCounters {
 
     pub fn preview_basis_pair_width(&self) -> usize {
         self.preview_basis_pair_width
+    }
+
+    #[cfg(test)]
+    pub(crate) fn absorb(&mut self, other: &Self) {
+        self.preview_promotion_comparison_count += other.preview_promotion_comparison_count;
+        self.preview_promotion_comparison_denial_count +=
+            other.preview_promotion_comparison_denial_count;
+        self.preview_comparison_eligibility_proof_count +=
+            other.preview_comparison_eligibility_proof_count;
+        self.preview_comparison_shape_check_width += other.preview_comparison_shape_check_width;
+        self.preview_basis_pair_width += other.preview_basis_pair_width;
     }
 }
 
@@ -861,6 +1163,21 @@ impl PreviewExecutionEnvelope {
             });
         }
 
+        if self.counters.preview_workflow_foundation_admission_count() != 1
+            || self.counters.preview_workflow_foundation_denial_count() != 0
+        {
+            return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
+                message: "preview workflow foundation counters must remain admission-explicit",
+            });
+        }
+
+        if self.counters.preview_work_avoided_by_explicit_basis_count() != 1 {
+            return Err(PreviewExecutionError::PreviewExecutionInvariantViolation {
+                message:
+                    "preview execution must record exactly one explicit-basis work-avoided proof",
+            });
+        }
+
         Ok(())
     }
 }
@@ -871,7 +1188,43 @@ pub struct ReadOnlyPreviewExecutionEnvelope {
 }
 
 impl ReadOnlyPreviewExecutionEnvelope {
-    pub fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn execution(&self) -> &ExecutionResultEnvelope {
+        self.inner.execution()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn basis(&self) -> &PreviewSessionBasis {
+        self.inner.binding().basis()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
+        self.inner.binding().lifecycle_metadata()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn comparison_eligibility(&self) -> &PreviewComparisonEligibilityArtifact {
+        self.inner.comparison_eligibility()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn workflow_foundation(&self) -> &PreviewWorkflowFoundationArtifact {
+        self.inner.workflow_foundation()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn report(&self) -> &PreviewExecutionReport {
+        self.inner.report()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn counters(&self) -> &PreviewExecutionCounters {
+        self.inner.counters()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }
 }
@@ -882,7 +1235,36 @@ pub struct PromotionEligiblePreviewExecutionEnvelope {
 }
 
 impl PromotionEligiblePreviewExecutionEnvelope {
-    pub fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
+    pub fn execution(&self) -> &ExecutionResultEnvelope {
+        self.inner.execution()
+    }
+
+    pub fn basis(&self) -> &PreviewSessionBasis {
+        self.inner.binding().basis()
+    }
+
+    pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
+        self.inner.binding().lifecycle_metadata()
+    }
+
+    pub fn comparison_eligibility(&self) -> &PreviewComparisonEligibilityArtifact {
+        self.inner.comparison_eligibility()
+    }
+
+    pub fn workflow_foundation(&self) -> &PreviewWorkflowFoundationArtifact {
+        self.inner.workflow_foundation()
+    }
+
+    pub fn report(&self) -> &PreviewExecutionReport {
+        self.inner.report()
+    }
+
+    pub fn counters(&self) -> &PreviewExecutionCounters {
+        self.inner.counters()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }
 }
@@ -891,7 +1273,6 @@ impl PromotionEligiblePreviewExecutionEnvelope {
 pub struct PreviewSessionQueryContext {
     source: PreviewContextSource,
     evaluation_class: PreviewEvaluationClass,
-    binding_intent: PreviewBindingIntent,
     replay_bundle: Option<PreviewReplaySnapshot>,
     promotion_record: Option<PreviewPromotionSnapshot>,
 }
@@ -905,7 +1286,6 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_active(session, Some(execution_record)),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
@@ -919,7 +1299,6 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_active(session, None),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
@@ -932,7 +1311,6 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_declared(session),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
@@ -945,7 +1323,6 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_admitted(session),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
@@ -958,7 +1335,6 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_discarded(session),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
@@ -971,16 +1347,9 @@ impl PreviewSessionQueryContext {
         Self {
             source: PreviewContextSource::from_promoted(session),
             evaluation_class,
-            binding_intent: PreviewBindingIntent::preview_only(),
             replay_bundle: None,
             promotion_record: None,
         }
-    }
-
-    #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn with_binding_intent(mut self, binding_intent: PreviewBindingIntent) -> Self {
-        self.binding_intent = binding_intent;
-        self
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -1000,10 +1369,6 @@ impl PreviewSessionQueryContext {
 
     pub fn evaluation_class(&self) -> &PreviewEvaluationClass {
         &self.evaluation_class
-    }
-
-    pub fn binding_intent(&self) -> &PreviewBindingIntent {
-        &self.binding_intent
     }
 
     pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
@@ -1286,6 +1651,7 @@ pub struct PreviewComparisonEligibilityArtifact {
 pub struct PreviewWorkflowFoundationArtifact {
     digest: String,
     binding_digest: String,
+    request_family: PreviewWorkflowFoundationRequest,
     preview_session_identity: BridgePreviewSessionIdentity,
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
     declaration_digest: String,
@@ -1295,8 +1661,58 @@ pub struct PreviewWorkflowFoundationArtifact {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PreviewWorkflowFoundationRequest {
+    CompareBasisPair,
+    DeferredMutationWriteback,
+}
+
+impl PreviewWorkflowFoundationRequest {
+    pub fn compare_basis_pair() -> Self {
+        Self::CompareBasisPair
+    }
+
+    pub fn deferred_mutation_writeback() -> Self {
+        Self::DeferredMutationWriteback
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::CompareBasisPair => "compare_basis_pair",
+            Self::DeferredMutationWriteback => "deferred_mutation_writeback",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PreviewWorkflowFoundationFailureClass {
+    OutOfScopeWorkflowFoundationRequest,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PreviewWorkflowFoundationError {
+    failure_class: PreviewWorkflowFoundationFailureClass,
+    message: &'static str,
+    counters: PreviewExecutionCounters,
+}
+
+impl PreviewWorkflowFoundationError {
+    pub fn failure_class(&self) -> &PreviewWorkflowFoundationFailureClass {
+        &self.failure_class
+    }
+
+    pub fn message(&self) -> &'static str {
+        self.message
+    }
+
+    pub fn counters(&self) -> &PreviewExecutionCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedPreviewWorkflowFoundation {
     artifact: PreviewWorkflowFoundationArtifact,
+    counters: PreviewExecutionCounters,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1422,6 +1838,10 @@ impl PreviewWorkflowFoundationArtifact {
         &self.binding_digest
     }
 
+    pub fn request_family(&self) -> &PreviewWorkflowFoundationRequest {
+        &self.request_family
+    }
+
     pub fn preview_session_identity(&self) -> &BridgePreviewSessionIdentity {
         &self.preview_session_identity
     }
@@ -1448,7 +1868,47 @@ impl PreviewWorkflowFoundationArtifact {
 }
 
 impl AdmittedPreviewWorkflowFoundation {
-    pub fn artifact(&self) -> &PreviewWorkflowFoundationArtifact {
+    pub fn digest(&self) -> &str {
+        self.artifact.digest()
+    }
+
+    pub fn binding_digest(&self) -> &str {
+        self.artifact.binding_digest()
+    }
+
+    pub fn request_family(&self) -> &PreviewWorkflowFoundationRequest {
+        self.artifact.request_family()
+    }
+
+    pub fn preview_session_identity(&self) -> &BridgePreviewSessionIdentity {
+        self.artifact.preview_session_identity()
+    }
+
+    pub fn declaration_identity(&self) -> &BridgePreviewSessionDeclarationIdentity {
+        self.artifact.declaration_identity()
+    }
+
+    pub fn declaration_digest(&self) -> &str {
+        self.artifact.declaration_digest()
+    }
+
+    pub fn lifecycle_state_kind(&self) -> BridgePreviewLifecycleStateKind {
+        self.artifact.lifecycle_state_kind()
+    }
+
+    pub fn evaluation_class(&self) -> &PreviewEvaluationClass {
+        self.artifact.evaluation_class()
+    }
+
+    pub fn execution_record_identity(&self) -> &PreviewExecutionRecordIdentity {
+        self.artifact.execution_record_identity()
+    }
+
+    pub fn counters(&self) -> &PreviewExecutionCounters {
+        &self.counters
+    }
+
+    pub(crate) fn artifact(&self) -> &PreviewWorkflowFoundationArtifact {
         &self.artifact
     }
 }
@@ -1500,7 +1960,51 @@ impl PreviewComparisonCandidateArtifact {
 }
 
 impl AuthoritativePreviewComparisonCandidate {
-    pub fn artifact(&self) -> &PreviewComparisonCandidateArtifact {
+    pub fn digest(&self) -> &str {
+        self.artifact.digest()
+    }
+
+    pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
+        self.artifact.validated_query_digest()
+    }
+
+    pub fn basis_digest(&self) -> &str {
+        self.artifact.basis_digest()
+    }
+
+    pub fn result_digest(&self) -> &ResultDigest {
+        self.artifact.result_digest()
+    }
+
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        self.artifact.canonical_query_digest()
+    }
+
+    pub fn canonical_result_shape_digest(&self) -> &CanonicalResultShapeDigest {
+        self.artifact.canonical_result_shape_digest()
+    }
+
+    pub fn collection_digest(&self) -> Option<&CollectionPlanDigest> {
+        self.artifact.collection_digest()
+    }
+
+    pub fn result_family(&self) -> &str {
+        self.artifact.result_family()
+    }
+
+    pub fn ordering_digest(&self) -> &str {
+        self.artifact.ordering_digest()
+    }
+
+    pub fn materialization_boundary_digest(&self) -> &str {
+        self.artifact.materialization_boundary_digest()
+    }
+
+    pub fn shape_check_width(&self) -> usize {
+        self.artifact.shape_check_width()
+    }
+
+    pub(crate) fn artifact(&self) -> &PreviewComparisonCandidateArtifact {
         &self.artifact
     }
 }
@@ -1540,12 +2044,45 @@ impl PreviewExecutionComparisonAdmission {
 }
 
 impl PromotionParityPreviewComparisonAdmission {
-    pub fn as_preview_comparison(&self) -> &PreviewExecutionComparisonAdmission {
+    pub fn digest(&self) -> &str {
+        self.inner.digest()
+    }
+
+    pub fn preview_execution_digest(&self) -> &str {
+        self.inner.preview_execution_digest()
+    }
+
+    pub fn preview_comparison_digest(&self) -> &str {
+        self.inner.preview_comparison_digest()
+    }
+
+    pub fn candidate_comparison_digest(&self) -> &str {
+        self.inner.candidate_comparison_digest()
+    }
+
+    pub fn candidate_basis_digest(&self) -> &str {
+        self.inner.candidate_basis_digest()
+    }
+
+    pub fn candidate_result_digest(&self) -> &ResultDigest {
+        self.inner.candidate_result_digest()
+    }
+
+    pub fn shape_check_width(&self) -> usize {
+        self.inner.shape_check_width()
+    }
+
+    pub fn counters(&self) -> &PreviewComparisonCounters {
+        self.inner.counters()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn as_preview_comparison(&self) -> &PreviewExecutionComparisonAdmission {
         &self.inner
     }
 }
 
-pub fn derive_preview_comparison_eligibility(
+pub(crate) fn derive_preview_comparison_eligibility(
     binding: &PreviewSessionPlanBinding,
 ) -> PreviewComparisonEligibilityArtifact {
     let shape_contract = PreviewComparisonShapeContract::from_preflight(binding.preflight());
@@ -1606,6 +2143,7 @@ pub fn derive_preview_comparison_eligibility(
 
 fn derive_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
+    request: PreviewWorkflowFoundationRequest,
 ) -> PreviewWorkflowFoundationArtifact {
     let binding_tuple = binding.basis().binding_tuple();
     let execution_record_identity = binding_tuple
@@ -1614,6 +2152,7 @@ fn derive_preview_workflow_foundation(
         .expect("active preview bindings must carry an execution record identity");
     let digest = hash_parts(&[
         format!("binding:{}", binding_tuple.digest()),
+        format!("request:{}", request.as_str()),
         format!(
             "preview_session:{}",
             binding_tuple.preview_session_identity().as_str()
@@ -1634,6 +2173,7 @@ fn derive_preview_workflow_foundation(
     PreviewWorkflowFoundationArtifact {
         digest,
         binding_digest: binding_tuple.digest().to_string(),
+        request_family: request,
         preview_session_identity: binding_tuple.preview_session_identity().clone(),
         declaration_identity: binding_tuple.declaration_identity().clone(),
         declaration_digest: binding_tuple.declaration_digest().to_string(),
@@ -1645,9 +2185,59 @@ fn derive_preview_workflow_foundation(
 
 pub fn admit_preview_workflow_foundation(
     binding: &PreviewSessionPlanBinding,
-) -> AdmittedPreviewWorkflowFoundation {
-    AdmittedPreviewWorkflowFoundation {
-        artifact: derive_preview_workflow_foundation(binding),
+) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
+    admit_preview_workflow_foundation_request(
+        binding,
+        PreviewWorkflowFoundationRequest::compare_basis_pair(),
+    )
+}
+
+pub fn admit_preview_workflow_foundation_request(
+    binding: &PreviewSessionPlanBinding,
+    request: PreviewWorkflowFoundationRequest,
+) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
+    match request {
+        PreviewWorkflowFoundationRequest::CompareBasisPair => {
+            Ok(AdmittedPreviewWorkflowFoundation {
+                artifact: derive_preview_workflow_foundation(binding, request),
+                counters: PreviewExecutionCounters {
+                    binding_counters: binding.report().counters().clone(),
+                    execution_counters: ExecutionCounters::default(),
+                    preview_execution_envelope_count: 0,
+                    preview_execution_count: 0,
+                    preview_promotable_execution_count: 0,
+                    preview_read_only_execution_count: 0,
+                    preview_comparison_eligibility_proof_count: 0,
+                    preview_comparison_shape_check_width: 0,
+                    preview_workflow_foundation_admission_count: 1,
+                    preview_workflow_foundation_denial_count: 0,
+                    preview_workflow_foundation_artifact_lookup_count: 1,
+                    preview_work_avoided_by_explicit_basis_count: 1,
+                },
+            })
+        }
+        PreviewWorkflowFoundationRequest::DeferredMutationWriteback => Err(
+            PreviewWorkflowFoundationError {
+                failure_class:
+                    PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest,
+                message:
+                    "preview workflow foundation requests that imply mutation or writeback authority remain out of scope in milestone 5.2",
+                counters: PreviewExecutionCounters {
+                    binding_counters: binding.report().counters().clone(),
+                    execution_counters: ExecutionCounters::default(),
+                    preview_execution_envelope_count: 0,
+                    preview_execution_count: 0,
+                    preview_promotable_execution_count: 0,
+                    preview_read_only_execution_count: 0,
+                    preview_comparison_eligibility_proof_count: 0,
+                    preview_comparison_shape_check_width: 0,
+                    preview_workflow_foundation_admission_count: 0,
+                    preview_workflow_foundation_denial_count: 1,
+                    preview_workflow_foundation_artifact_lookup_count: 0,
+                    preview_work_avoided_by_explicit_basis_count: 0,
+                },
+            },
+        ),
     }
 }
 
@@ -1762,7 +2352,9 @@ pub fn admit_authoritative_preview_comparison_candidate(
         });
     }
 
-    Ok(AuthoritativePreviewComparisonCandidate { artifact: candidate })
+    Ok(AuthoritativePreviewComparisonCandidate {
+        artifact: candidate,
+    })
 }
 
 fn admit_preview_execution_comparison(
@@ -1798,7 +2390,11 @@ fn admit_preview_execution_comparison(
                 "preview comparison requires the same canonical query and result-shape digests",
             preview_digest: preview.digest().to_string(),
             candidate_digest: candidate.digest().to_string(),
-            counters: denial_counters(preview.shape_check_width().max(candidate.shape_check_width())),
+            counters: denial_counters(
+                preview
+                    .shape_check_width()
+                    .max(candidate.shape_check_width()),
+            ),
         });
     }
 
@@ -1808,7 +2404,11 @@ fn admit_preview_execution_comparison(
             message: "preview comparison requires the same result family on both sides",
             preview_digest: preview.digest().to_string(),
             candidate_digest: candidate.digest().to_string(),
-            counters: denial_counters(preview.shape_check_width().max(candidate.shape_check_width())),
+            counters: denial_counters(
+                preview
+                    .shape_check_width()
+                    .max(candidate.shape_check_width()),
+            ),
         });
     }
 
@@ -1818,7 +2418,11 @@ fn admit_preview_execution_comparison(
             message: "preview comparison requires identical ordering basis proofs",
             preview_digest: preview.digest().to_string(),
             candidate_digest: candidate.digest().to_string(),
-            counters: denial_counters(preview.shape_check_width().max(candidate.shape_check_width())),
+            counters: denial_counters(
+                preview
+                    .shape_check_width()
+                    .max(candidate.shape_check_width()),
+            ),
         });
     }
 
@@ -1828,7 +2432,11 @@ fn admit_preview_execution_comparison(
             message: "preview comparison requires identical materialization boundary proofs",
             preview_digest: preview.digest().to_string(),
             candidate_digest: candidate.digest().to_string(),
-            counters: denial_counters(preview.shape_check_width().max(candidate.shape_check_width())),
+            counters: denial_counters(
+                preview
+                    .shape_check_width()
+                    .max(candidate.shape_check_width()),
+            ),
         });
     }
 
@@ -1869,21 +2477,20 @@ pub fn admit_preview_promotion_parity_comparison(
     preview_execution: &PromotionEligiblePreviewExecutionEnvelope,
     candidate: &AuthoritativePreviewComparisonCandidate,
 ) -> Result<PromotionParityPreviewComparisonAdmission, PreviewComparisonError> {
-    let admission = admit_preview_execution_comparison(
-        preview_execution.as_preview_execution(),
-        candidate,
-    )?;
+    let admission =
+        admit_preview_execution_comparison(preview_execution.as_preview_execution(), candidate)?;
 
     Ok(PromotionParityPreviewComparisonAdmission { inner: admission })
 }
 
-pub fn execute_preview_session_plan(
+pub(crate) fn execute_preview_session_plan(
     binding: &PreviewSessionPlanBinding,
 ) -> Result<PreviewExecutionEnvelope, PreviewExecutionError> {
     let execution = execute_preflight_bundle(binding.preflight())
         .map_err(PreviewExecutionError::ExecutionFailure)?;
     let comparison_eligibility = derive_preview_comparison_eligibility(binding);
-    let workflow_foundation = admit_preview_workflow_foundation(binding);
+    let workflow_foundation = admit_preview_workflow_foundation(binding)
+        .expect("preview execution should admit the comparison-basis workflow foundation");
     let binding_tuple = binding.basis().binding_tuple();
     let execution_record_identity = binding_tuple
         .execution_record_identity()
@@ -1928,7 +2535,18 @@ pub fn execute_preview_session_plan(
             preview_read_only_execution_count: usize::from(!is_promotion_eligible),
             preview_comparison_eligibility_proof_count: 1,
             preview_comparison_shape_check_width: comparison_eligibility.shape_check_width(),
-            preview_workflow_foundation_artifact_lookup_count: 1,
+            preview_workflow_foundation_admission_count: workflow_foundation
+                .counters()
+                .preview_workflow_foundation_admission_count(),
+            preview_workflow_foundation_denial_count: workflow_foundation
+                .counters()
+                .preview_workflow_foundation_denial_count(),
+            preview_workflow_foundation_artifact_lookup_count: workflow_foundation
+                .counters()
+                .preview_workflow_foundation_artifact_lookup_count(),
+            preview_work_avoided_by_explicit_basis_count: workflow_foundation
+                .counters()
+                .preview_work_avoided_by_explicit_basis_count(),
         },
         execution,
         comparison_eligibility,
@@ -1987,6 +2605,213 @@ pub fn execute_promotion_eligible_preview_session_plan(
     })
 }
 
+pub fn admit_preview_live_session_plan(
+    preview_binding: PreviewSessionPlanBinding,
+    live_plan: LiveQueryPlan,
+) -> Result<PreviewLiveSessionPlanBinding, PreviewLiveError> {
+    let preview_query = preview_binding.preflight().plan().query();
+    let live_descriptor = live_plan.descriptor();
+
+    if live_descriptor.query_digest() != preview_query.validated_query_digest() {
+        return Err(PreviewLiveError {
+            failure_class: PreviewLiveFailureClass::PreviewLiveQueryDigestMismatch,
+            message: "preview-live admission requires the same validated query digest across preview and live proofs",
+            counters: PreviewLiveCounters {
+                preview_live_broad_fallback_denial_count: 1,
+                ..PreviewLiveCounters::default()
+            },
+        });
+    }
+
+    if live_descriptor.plan_digest() != preview_query.plan_digest() {
+        return Err(PreviewLiveError {
+            failure_class: PreviewLiveFailureClass::PreviewLivePlanDigestMismatch,
+            message: "preview-live admission requires the same planned query digest across preview and live proofs",
+            counters: PreviewLiveCounters {
+                preview_live_broad_fallback_denial_count: 1,
+                ..PreviewLiveCounters::default()
+            },
+        });
+    }
+
+    if live_plan.start_basis().basis().proof().digest().as_str()
+        != preview_binding.preflight().basis().proof().digest().as_str()
+    {
+        return Err(PreviewLiveError {
+            failure_class: PreviewLiveFailureClass::PreviewLiveBasisMismatch,
+            message: "preview-live admission requires the live plan to derive from the same authoritative basis as the preview preflight",
+            counters: PreviewLiveCounters {
+                preview_live_broad_fallback_denial_count: 1,
+                ..PreviewLiveCounters::default()
+            },
+        });
+    }
+
+    let preview_collection_digest = preview_binding
+        .preflight()
+        .plan()
+        .collection()
+        .map(|collection| collection.digest().as_str());
+    let live_collection_digest = live_descriptor
+        .collection_digest()
+        .map(CollectionPlanDigest::as_str);
+
+    if preview_collection_digest != live_collection_digest {
+        return Err(PreviewLiveError {
+            failure_class: PreviewLiveFailureClass::PreviewLiveCollectionDigestMismatch,
+            message: "preview-live admission requires matching collection planning identity across preview and live proofs",
+            counters: PreviewLiveCounters {
+                preview_live_broad_fallback_denial_count: 1,
+                ..PreviewLiveCounters::default()
+            },
+        });
+    }
+
+    let report = PreviewLiveAdmissionReport {
+        digest: hash_parts(&[
+            format!(
+                "preview_binding:{}",
+                preview_binding.basis().binding_tuple().digest()
+            ),
+            format!("live_subscription:{}", live_plan.subscription_digest().as_str()),
+            format!("live_family:{}", live_descriptor.family().as_str()),
+        ]),
+        preview_binding_digest: preview_binding.basis().binding_tuple().digest().to_string(),
+        live_subscription_digest: live_plan.subscription_digest().as_str().to_string(),
+        live_family: live_descriptor.family().as_str().to_string(),
+        counters: PreviewLiveCounters {
+            preview_live_admission_count: 1,
+            ..PreviewLiveCounters::default()
+        },
+    };
+
+    Ok(PreviewLiveSessionPlanBinding {
+        preview_binding,
+        live_plan,
+        report,
+    })
+}
+
+pub fn execute_preview_live_session_plan(
+    preview_live: &PreviewLiveSessionPlanBinding,
+) -> Result<PreviewLiveExecutionEnvelope, PreviewExecutionError> {
+    let mut counters = preview_live.report().counters().clone();
+    counters.preview_live_execution_count = 1;
+
+    let envelope = PreviewLiveExecutionEnvelope {
+        preview_live: preview_live.clone(),
+        counters,
+    };
+    envelope.check_invariants()?;
+    Ok(envelope)
+}
+
+pub fn assess_preview_live_drift(
+    preview_live: &PreviewLiveSessionPlanBinding,
+    refreshed_context: PreviewSessionQueryContext,
+) -> PreviewLiveDriftOutcome {
+    let mut lifecycle_counters = PreviewLiveCounters {
+        preview_live_lifecycle_check_count: 1,
+        ..PreviewLiveCounters::default()
+    };
+
+    if refreshed_context.lifecycle_state_kind() != BridgePreviewLifecycleStateKind::Active {
+        lifecycle_counters.preview_live_drift_denial_count = 1;
+        return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
+            prior_preview_live_digest: preview_live.report().digest().to_string(),
+            lifecycle_state_kind: refreshed_context.lifecycle_state_kind(),
+            error: PreviewLiveError {
+                failure_class: PreviewLiveFailureClass::PreviewLiveLifecycleDrifted,
+                message: "preview-live maintenance may continue only while the preview session remains active",
+                counters: lifecycle_counters,
+            },
+        });
+    }
+
+    let rebound_binding = match bind_preflight_to_preview_session(
+        preview_live.preview_binding().preflight().clone(),
+        refreshed_context,
+    ) {
+        Ok(binding) => binding,
+        Err(error) => {
+            let failure_class = match error.failure_class() {
+                PreviewBindingFailureClass::InvalidPreviewBasis => {
+                    PreviewLiveFailureClass::PreviewLiveBroadFallbackForbidden
+                }
+                PreviewBindingFailureClass::MissingExecutionRecordIdentity => {
+                    PreviewLiveFailureClass::PreviewLiveRebindBindingRejected
+                }
+                PreviewBindingFailureClass::StaleOrInactivePreviewLifecycle => {
+                    PreviewLiveFailureClass::PreviewLiveLifecycleDrifted
+                }
+                PreviewBindingFailureClass::RawBranchAliasPreviewForbidden
+                | PreviewBindingFailureClass::UnsupportedPreviewQueryFamily
+                | PreviewBindingFailureClass::PromotionLinkageMismatch
+                | PreviewBindingFailureClass::StoreBackedRouteForbidden => {
+                    PreviewLiveFailureClass::PreviewLiveBroadFallbackForbidden
+                }
+            };
+            let mut counters = lifecycle_counters.clone();
+            counters.preview_live_drift_denial_count = 1;
+            if matches!(
+                failure_class,
+                PreviewLiveFailureClass::PreviewLiveBroadFallbackForbidden
+            ) {
+                counters.preview_live_broad_fallback_denial_count = 1;
+            }
+            return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
+                prior_preview_live_digest: preview_live.report().digest().to_string(),
+                lifecycle_state_kind: BridgePreviewLifecycleStateKind::Active,
+                error: PreviewLiveError {
+                    failure_class: failure_class.clone(),
+                    message: if matches!(
+                        failure_class,
+                        PreviewLiveFailureClass::PreviewLiveBroadFallbackForbidden
+                    ) {
+                        "preview-live drift handling may not recover by silently broadening or retargeting basis"
+                    } else {
+                        error.message()
+                    },
+                    counters,
+                },
+            });
+        }
+    };
+
+    let rebound_preview_live =
+        match admit_preview_live_session_plan(rebound_binding, preview_live.live_plan().clone()) {
+            Ok(binding) => binding,
+            Err(error) => {
+                let mut counters = error.counters.clone();
+                counters.preview_live_lifecycle_check_count += 1;
+                counters.preview_live_drift_denial_count += 1;
+                return PreviewLiveDriftOutcome::DriftDenied(PreviewLiveDriftDenied {
+                    prior_preview_live_digest: preview_live.report().digest().to_string(),
+                    lifecycle_state_kind: BridgePreviewLifecycleStateKind::Active,
+                    error: PreviewLiveError {
+                        failure_class: error.failure_class,
+                        message: error.message,
+                        counters,
+                    },
+                });
+            }
+        };
+
+    if rebound_preview_live.report().digest() == preview_live.report().digest() {
+        return PreviewLiveDriftOutcome::Maintained(PreviewLiveMaintained {
+            maintained_preview_live: rebound_preview_live,
+            counters: lifecycle_counters,
+        });
+    }
+
+    lifecycle_counters.preview_live_rebind_available_count = 1;
+    PreviewLiveDriftOutcome::ExplicitRebindAvailable(PreviewLiveRebindArtifact {
+        prior_preview_live_digest: preview_live.report().digest().to_string(),
+        rebound_preview_live,
+        counters: lifecycle_counters,
+    })
+}
+
 pub fn bind_preflight_to_preview_session(
     preflight: ExecutionPreflightBundle,
     query_context: PreviewSessionQueryContext,
@@ -2002,19 +2827,6 @@ pub fn bind_preflight_to_preview_session(
         return Err(PreviewBindingError::new(
             PreviewBindingFailureClass::StoreBackedRouteForbidden,
             "preview binding requires runtime basis authority",
-            counters,
-        ));
-    }
-
-    if matches!(
-        query_context.binding_intent(),
-        PreviewBindingIntent::PreviewWithLiveLane
-    ) {
-        let mut counters = PreviewBindingCounters::default();
-        counters.preview_broad_fallback_denial_count = 1;
-        return Err(PreviewBindingError::new(
-            PreviewBindingFailureClass::PreviewLiveDeniedInPhaseTwo,
-            "preview-bound live lanes are denied in milestone 5.2 phases 1-2",
             counters,
         ));
     }
@@ -2044,6 +2856,7 @@ pub fn bind_preflight_to_preview_session(
         if execution_record_digest.is_empty() {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;
+            counters.preview_broad_fallback_denial_count = 1;
             return Err(PreviewBindingError::new(
                 PreviewBindingFailureClass::InvalidPreviewBasis,
                 "preview execution record digest must not be empty",
@@ -2058,6 +2871,7 @@ pub fn bind_preflight_to_preview_session(
         if execution_record_session_identity != source.preview_session_identity.as_str() {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;
+            counters.preview_broad_fallback_denial_count = 1;
             return Err(PreviewBindingError::new(
                 PreviewBindingFailureClass::InvalidPreviewBasis,
                 "preview execution record must belong to the requested preview session",
@@ -2072,6 +2886,7 @@ pub fn bind_preflight_to_preview_session(
         if execution_record_declaration_digest != &source.declaration_digest {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;
+            counters.preview_broad_fallback_denial_count = 1;
             return Err(PreviewBindingError::new(
                 PreviewBindingFailureClass::InvalidPreviewBasis,
                 "preview execution record must match the requested preview declaration digest",
@@ -2087,6 +2902,7 @@ pub fn bind_preflight_to_preview_session(
         if execution_record_identity != session_execution_record_identity {
             let mut counters = PreviewBindingCounters::default();
             counters.preview_invalid_basis_denial_count = 1;
+            counters.preview_broad_fallback_denial_count = 1;
             return Err(PreviewBindingError::new(
                 PreviewBindingFailureClass::InvalidPreviewBasis,
                 "preview execution record identity must match the active preview session identity",
@@ -2102,6 +2918,7 @@ pub fn bind_preflight_to_preview_session(
     {
         let mut counters = PreviewBindingCounters::default();
         counters.preview_invalid_basis_denial_count = 1;
+        counters.preview_bridge_promotion_linkage_count = 1;
         return Err(PreviewBindingError::new(
             PreviewBindingFailureClass::PromotionLinkageMismatch,
             "read-only preview evaluation cannot carry promotion linkage",
@@ -2112,6 +2929,10 @@ pub fn bind_preflight_to_preview_session(
     if query_context.promotion_record.is_some() || query_context.replay_bundle.is_some() {
         let mut counters = PreviewBindingCounters::default();
         counters.preview_invalid_basis_denial_count = 1;
+        counters.preview_bridge_promotion_linkage_count =
+            usize::from(query_context.promotion_record.is_some());
+        counters.preview_replay_bundle_lookup_count =
+            usize::from(query_context.replay_bundle.is_some());
         return Err(PreviewBindingError::new(
             PreviewBindingFailureClass::PromotionLinkageMismatch,
             "phase 1-2 preview binding does not admit replay or promotion linkage on active sessions",
@@ -2150,7 +2971,6 @@ pub fn bind_preflight_to_preview_session(
             .validated_result_shape_digest()
             .clone(),
         query_context.evaluation_class.clone(),
-        query_context.binding_intent.clone(),
         source.preview_session_identity.clone(),
         source.declaration_identity.clone(),
         source.declaration_digest.clone(),
@@ -2164,7 +2984,6 @@ pub fn bind_preflight_to_preview_session(
     let report = PreviewBindingReport::new(
         binding_tuple.digest().to_string(),
         query_context.evaluation_class.clone(),
-        query_context.binding_intent.clone(),
         counters,
     );
 
@@ -2217,15 +3036,19 @@ fn reject_unsupported_preview_family(
 #[cfg(test)]
 mod tests {
     use super::{
-        admit_authoritative_preview_comparison_candidate,
-        admit_preview_promotion_parity_comparison,
+        admit_authoritative_preview_comparison_candidate, admit_preview_live_session_plan,
+        admit_preview_promotion_parity_comparison, admit_preview_workflow_foundation,
+        admit_preview_workflow_foundation_request,
+        assess_preview_live_drift,
         admit_promotion_eligible_preview_session_plan_binding,
-        admit_preview_workflow_foundation, admit_read_only_preview_session_plan_binding,
-        bind_preflight_to_preview_session, derive_preview_comparison_eligibility,
-        execute_preview_session_plan, execute_promotion_eligible_preview_session_plan,
-        execute_read_only_preview_session_plan, PreviewBindingFailureClass, PreviewBindingIntent,
-        PreviewComparisonFailureClass, PreviewEvaluationClass, PreviewExecutionFailureClass,
-        PreviewSessionQueryContext,
+        admit_read_only_preview_session_plan_binding, bind_preflight_to_preview_session,
+        derive_preview_comparison_eligibility, execute_preview_live_session_plan,
+        execute_preview_session_plan,
+        execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
+        PreviewBindingFailureClass, PreviewComparisonFailureClass, PreviewEvaluationClass,
+        PreviewExecutionFailureClass, PreviewLiveDriftOutcome, PreviewLiveFailureClass,
+        PreviewSessionQueryContext, PreviewWorkflowFoundationFailureClass,
+        PreviewWorkflowFoundationRequest,
     };
     use crate::harness::fixtures::{
         execution_preflights,
@@ -2236,6 +3059,335 @@ mod tests {
         },
     };
     use forge_runtime_bridge::facade::BridgePreviewLifecycleStateKind;
+
+    #[test]
+    fn preview_live_admission_reuses_matching_live_plan_proof() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-admission");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+        let execution = execute_preview_live_session_plan(&preview_live)
+            .expect("preview-live execution should succeed");
+
+        assert_eq!(
+            preview_live.report().counters().preview_live_admission_count(),
+            1
+        );
+        assert_eq!(execution.counters().preview_live_execution_count(), 1);
+        assert_eq!(
+            preview_live.live_plan().descriptor().query_digest(),
+            preview_live
+                .preview_binding()
+                .preflight()
+                .plan()
+                .query()
+                .validated_query_digest()
+        );
+        assert_eq!(
+            preview_live.report().preview_binding_digest(),
+            preview_live.preview_binding().basis().binding_tuple().digest()
+        );
+    }
+
+    #[test]
+    fn preview_live_admission_rejects_mismatched_live_plan() {
+        let preview_preflight = execution_preflights::direct_runtime_preflight();
+        let mismatched_live_preflight = execution_preflights::ordered_collection_preflight();
+        let live_plan = crate::live::promote_preflight_bundle_to_live(&mismatched_live_preflight)
+            .expect("mismatched live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-mismatch");
+        let preview_binding = bind_preflight_to_preview_session(
+            preview_preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+
+        let error = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect_err("preview-live should reject mismatched live plan proofs");
+
+        assert_eq!(
+            error.failure_class(),
+            &PreviewLiveFailureClass::PreviewLiveQueryDigestMismatch
+        );
+        assert_eq!(
+            error.counters().preview_live_broad_fallback_denial_count(),
+            1
+        );
+    }
+
+    #[test]
+    fn preview_live_drift_denies_when_lifecycle_leaves_active() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-drift-denied");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+        let (_discarded_runtime, discarded, _discard_record) =
+            discarded_preview_artifacts("preview-live-drift-discarded");
+
+        let outcome = assess_preview_live_drift(
+            &preview_live,
+            PreviewSessionQueryContext::discarded(&discarded, PreviewEvaluationClass::read_only()),
+        );
+
+        match outcome {
+            PreviewLiveDriftOutcome::DriftDenied(denied) => {
+                assert_eq!(
+                    denied.error().failure_class(),
+                    &PreviewLiveFailureClass::PreviewLiveLifecycleDrifted
+                );
+                assert_eq!(
+                    denied.error().counters().preview_live_drift_denial_count(),
+                    1
+                );
+            }
+            other => panic!("expected drift denial, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_live_drift_can_offer_explicit_rebind() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-rebind-old");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+        let (_next_runtime, next_active, next_execution_record) =
+            active_preview_artifacts("preview-live-rebind-new");
+
+        let outcome = assess_preview_live_drift(
+            &preview_live,
+            PreviewSessionQueryContext::active(
+                &next_active,
+                &next_execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        );
+
+        match outcome {
+            PreviewLiveDriftOutcome::ExplicitRebindAvailable(rebind) => {
+                assert_eq!(
+                    rebind.counters().preview_live_rebind_available_count(),
+                    1
+                );
+                assert_ne!(
+                    rebind.prior_preview_live_digest(),
+                    rebind.rebound_preview_live().report().digest()
+                );
+            }
+            other => panic!("expected explicit rebind, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_live_drift_maintained_retains_lifecycle_check_counters() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-maintained");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+
+        let outcome = assess_preview_live_drift(
+            &preview_live,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        );
+
+        match outcome {
+            PreviewLiveDriftOutcome::Maintained(maintained) => {
+                assert_eq!(
+                    maintained.counters().preview_live_lifecycle_check_count(),
+                    1
+                );
+                assert_eq!(maintained.counters().preview_live_drift_denial_count(), 0);
+                assert_eq!(
+                    maintained.maintained_preview_live().report().digest(),
+                    preview_live.report().digest()
+                );
+            }
+            other => panic!("expected maintained preview-live, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_live_drift_invalid_rebind_basis_stays_typed() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-invalid-rebind-basis");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+
+        let outcome = assess_preview_live_drift(
+            &preview_live,
+            PreviewSessionQueryContext::active_without_execution_record(
+                &active,
+                PreviewEvaluationClass::read_only(),
+            ),
+        );
+
+        match outcome {
+            PreviewLiveDriftOutcome::DriftDenied(denied) => {
+                assert_eq!(
+                    denied.error().failure_class(),
+                    &PreviewLiveFailureClass::PreviewLiveRebindBindingRejected
+                );
+                assert_eq!(
+                    denied.error().counters().preview_live_drift_denial_count(),
+                    1
+                );
+                assert_eq!(
+                    denied
+                        .error()
+                        .counters()
+                        .preview_live_broad_fallback_denial_count(),
+                    0,
+                    "invalid rebind basis must not masquerade as broad fallback"
+                );
+            }
+            other => panic!("expected typed drift denial, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_live_drift_foreign_execution_record_is_broad_fallback_denial() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-broad-fallback");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+        let (_foreign_runtime, _foreign_active, foreign_execution_record) =
+            active_preview_artifacts("preview-live-broad-fallback-foreign");
+
+        let outcome = assess_preview_live_drift(
+            &preview_live,
+            PreviewSessionQueryContext::active(
+                &active,
+                &foreign_execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        );
+
+        match outcome {
+            PreviewLiveDriftOutcome::DriftDenied(denied) => {
+                assert_eq!(
+                    denied.error().failure_class(),
+                    &PreviewLiveFailureClass::PreviewLiveBroadFallbackForbidden
+                );
+                assert_eq!(
+                    denied
+                        .error()
+                        .counters()
+                        .preview_live_broad_fallback_denial_count(),
+                    1
+                );
+            }
+            other => panic!("expected broad fallback denial, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_live_execution_emits_explicit_execution_counter() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let live_plan =
+            crate::live::promote_preflight_bundle_to_live(&preflight).expect("live promotion");
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-live-execution");
+        let preview_binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("preview binding should succeed");
+        let preview_live = admit_preview_live_session_plan(preview_binding, live_plan)
+            .expect("preview-live should admit");
+
+        let execution = execute_preview_live_session_plan(&preview_live)
+            .expect("preview-live execution should succeed");
+
+        assert_eq!(execution.counters().preview_live_admission_count(), 1);
+        assert_eq!(execution.counters().preview_live_execution_count(), 1);
+        assert_eq!(execution.counters().preview_live_lifecycle_check_count(), 0);
+        assert_eq!(execution.preview_live().report().digest(), preview_live.report().digest());
+    }
 
     #[test]
     fn active_preview_binding_succeeds_with_required_tuple_fields() {
@@ -2372,6 +3524,11 @@ mod tests {
             error.failure_class(),
             &PreviewBindingFailureClass::MissingExecutionRecordIdentity
         );
+        assert_eq!(
+            error.counters().preview_broad_fallback_denial_count(),
+            0,
+            "missing execution record should not masquerade as a broad-fallback denial"
+        );
     }
 
     #[test]
@@ -2392,27 +3549,6 @@ mod tests {
         assert_eq!(
             error.failure_class(),
             &PreviewBindingFailureClass::StoreBackedRouteForbidden
-        );
-    }
-
-    #[test]
-    fn preview_live_request_rejects_in_phase_one_and_two() {
-        let preflight = execution_preflights::direct_runtime_preflight();
-        let (_runtime, active, execution_record) = active_preview_artifacts("preview-live-denied");
-        let error = bind_preflight_to_preview_session(
-            preflight,
-            PreviewSessionQueryContext::active(
-                &active,
-                &execution_record,
-                PreviewEvaluationClass::promotion_eligible(),
-            )
-            .with_binding_intent(PreviewBindingIntent::preview_with_live_lane()),
-        )
-        .expect_err("preview live request should reject");
-
-        assert_eq!(
-            error.failure_class(),
-            &PreviewBindingFailureClass::PreviewLiveDeniedInPhaseTwo
         );
     }
 
@@ -2502,6 +3638,8 @@ mod tests {
             error.failure_class(),
             &PreviewBindingFailureClass::PromotionLinkageMismatch
         );
+        assert_eq!(error.counters().preview_bridge_promotion_linkage_count(), 1);
+        assert_eq!(error.counters().preview_replay_bundle_lookup_count(), 0);
     }
 
     #[test]
@@ -2527,6 +3665,8 @@ mod tests {
             error.failure_class(),
             &PreviewBindingFailureClass::PromotionLinkageMismatch
         );
+        assert_eq!(error.counters().preview_replay_bundle_lookup_count(), 1);
+        assert_eq!(error.counters().preview_bridge_promotion_linkage_count(), 0);
     }
 
     #[test]
@@ -2602,6 +3742,24 @@ mod tests {
         assert_eq!(
             execution.counters().preview_comparison_shape_check_width,
             execution.comparison_eligibility().shape_check_width()
+        );
+        assert_eq!(
+            execution
+                .counters()
+                .preview_work_avoided_by_explicit_basis_count(),
+            1
+        );
+        assert_eq!(
+            execution
+                .counters()
+                .preview_workflow_foundation_admission_count(),
+            1
+        );
+        assert_eq!(
+            execution
+                .counters()
+                .preview_workflow_foundation_denial_count(),
+            0
         );
         assert_eq!(
             execution.binding.basis().binding_tuple().digest(),
@@ -2772,9 +3930,8 @@ mod tests {
             ),
         )
         .expect("preview binding should succeed");
-        let preview_execution =
-            admit_promotion_eligible_preview_session_plan_binding(binding)
-                .expect("promotion-eligible binding should admit");
+        let preview_execution = admit_promotion_eligible_preview_session_plan_binding(binding)
+            .expect("promotion-eligible binding should admit");
         let preview_execution = execute_promotion_eligible_preview_session_plan(&preview_execution)
             .expect("preview execution should succeed");
         let candidate_execution = crate::execution::execute_preflight_bundle(&preflight)
@@ -2783,8 +3940,7 @@ mod tests {
             admit_authoritative_preview_comparison_candidate(&preflight, &candidate_execution)
                 .expect("runtime candidate should admit");
 
-        let admission =
-            admit_preview_promotion_parity_comparison(&preview_execution, &candidate)
+        let admission = admit_preview_promotion_parity_comparison(&preview_execution, &candidate)
             .expect("shape-compatible runtime result should admit comparison");
         let admission = admission.as_preview_comparison();
 
@@ -2807,7 +3963,9 @@ mod tests {
         assert!(admission.shape_check_width() > 0);
         assert_eq!(admission.counters().preview_promotion_comparison_count(), 1);
         assert_eq!(
-            admission.counters().preview_promotion_comparison_denial_count(),
+            admission
+                .counters()
+                .preview_promotion_comparison_denial_count(),
             0
         );
         assert_eq!(admission.counters().preview_basis_pair_width(), 2);
@@ -2829,9 +3987,8 @@ mod tests {
             ),
         )
         .expect("ordered preview binding should succeed");
-        let preview_execution =
-            admit_promotion_eligible_preview_session_plan_binding(binding)
-                .expect("promotion binding should admit");
+        let preview_execution = admit_promotion_eligible_preview_session_plan_binding(binding)
+            .expect("promotion binding should admit");
         let preview_execution = execute_promotion_eligible_preview_session_plan(&preview_execution)
             .expect("preview execution should succeed");
         let candidate_execution = crate::execution::execute_preflight_bundle(&candidate_preflight)
@@ -2956,10 +4113,7 @@ mod tests {
             artifact.validated_query_digest(),
             preflight.plan().query().validated_query_digest()
         );
-        assert_eq!(
-            artifact.result_digest(),
-            execution.report().result_digest()
-        );
+        assert_eq!(artifact.result_digest(), execution.report().result_digest());
         assert_eq!(
             artifact.basis_digest(),
             preflight.basis().proof().digest().as_str()
@@ -3019,7 +4173,8 @@ mod tests {
         )
         .expect("promotion-eligible preview binding should succeed");
 
-        let workflow = admit_preview_workflow_foundation(&binding);
+        let workflow = admit_preview_workflow_foundation(&binding)
+            .expect("comparison-basis workflow foundation should admit");
 
         assert_eq!(
             workflow.artifact().preview_session_identity(),
@@ -3046,12 +4201,61 @@ mod tests {
             binding.basis().binding_tuple().digest()
         );
         assert_eq!(
+            workflow.request_family(),
+            &PreviewWorkflowFoundationRequest::compare_basis_pair()
+        );
+        assert_eq!(
             workflow.artifact().declaration_digest(),
             binding.basis().binding_tuple().declaration_digest()
         );
         assert_eq!(
             workflow.artifact().lifecycle_state_kind(),
             BridgePreviewLifecycleStateKind::Active
+        );
+    }
+
+    #[test]
+    fn out_of_scope_workflow_foundation_request_is_denied() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-workflow-foundation-denied");
+        let binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::promotion_eligible(),
+            ),
+        )
+        .expect("promotion-eligible preview binding should succeed");
+
+        let error = admit_preview_workflow_foundation_request(
+            &binding,
+            PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+        )
+        .expect_err("workflow requests that imply writeback authority must reject in 5.2");
+
+        assert_eq!(
+            error.failure_class(),
+            &PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest
+        );
+        assert_eq!(
+            error
+                .counters()
+                .preview_workflow_foundation_admission_count(),
+            0
+        );
+        assert_eq!(
+            error
+                .counters()
+                .preview_workflow_foundation_denial_count(),
+            1
+        );
+        assert_eq!(
+            error
+                .counters()
+                .preview_workflow_foundation_artifact_lookup_count(),
+            0
         );
     }
 

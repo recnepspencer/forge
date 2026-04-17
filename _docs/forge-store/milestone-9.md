@@ -1,6 +1,8 @@
 # Milestone 9 Engineering Spec: Deterministic Bulk Ingest And Bulk Transform Paths
 
-> **Status:** Draft
+> **Status:** Closed via [milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-9-closeout.md)
+>
+> **Closeout:** [milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-9-closeout.md)
 >
 > **Roadmap parent:** [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)
 >
@@ -29,6 +31,37 @@
 Make large ingest, migration, and rewrite programs first-class store programs
 that remain resumable, bounded, and replay-honest instead of living as ad hoc
 utility flows outside the durable authority model.
+
+## Implementation Snapshot
+
+The codebase has moved beyond the speculative shape of this spec.
+
+Implemented now in `forge-store`:
+
+- proof-bearing ingest and transform planning surfaces
+- frozen ingest manifests, frozen transform bases, and frozen transform target
+  partitions
+- deterministic chunk plans and budget-admitted chunk execution
+- persisted bulk support artifacts:
+  - program identity
+  - manifests, bases, and partitions
+  - deterministic plans
+  - chunk witnesses
+  - progress checkpoints
+  - per-program witness indexes
+- durable bulk execution through canonical append and WAL-bound publication
+  phases
+- bulk-specific recovery identity, reporting, and recovered-resume admission
+- restart-path reconstruction of witnesses and checkpoints from published truth
+- reopen-time integrity checks for checkpoint families, witness indexes,
+  transform artifacts, and deterministic plan payload drift
+
+The named Milestone 9 certification lane now exists, the machine-checkable
+bundle is emitted from `crates/forge-store/src/evidence/milestone_9.rs`, and
+the authoritative closeout mapping is recorded in
+`milestone-9-closeout.md`.
+
+This means Phases 1 through 5 are now implemented and closed for Milestone 9.
 
 ## Why This Milestone Exists
 
@@ -848,6 +881,16 @@ Exit condition:
 - WAL recovery remains parity-safe for interrupted runs
 - Milestone 9 closeout evidence exists in machine-checkable form
 
+Current implementation note:
+
+- the named Milestone 9 suite now exists in
+  `crates/forge-store/src/tests/milestone_9_certification.rs`
+- the machine-checkable certification bundle now lives in
+  `crates/forge-store/src/evidence/milestone_9.rs`
+- adversarial reopen and restart-loop coverage in `tests/bulk.rs` and
+  `tests/wal_recovery.rs` remains the supporting hostile evidence behind the
+  named closeout lane
+
 ## Must Ship
 
 - deterministic `BulkIngestProgram` and `BulkTransformProgram` planning surfaces
@@ -889,6 +932,12 @@ Required machine-checkable outputs:
 - `history_digest`
 - `restore_digest`
 - `counter_snapshot`
+
+Implementation note:
+
+- the closeout evidence and explicit obligation-to-test mapping for this
+  section is recorded in
+  [milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-9-closeout.md)
 
 Milestone-specific proof obligations:
 

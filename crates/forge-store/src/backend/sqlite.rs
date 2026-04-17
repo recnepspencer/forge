@@ -132,6 +132,7 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
                 branch_id TEXT NOT NULL,
                 schema_support_artifact_id TEXT,
                 lineage_support_artifact_id TEXT,
+                milestone_6_published_layout_request_artifact_ids_payload TEXT NOT NULL,
                 emitted_schema_artifact INTEGER NOT NULL,
                 emitted_lineage_artifact INTEGER NOT NULL
             );
@@ -228,6 +229,14 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
                 payload_json TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS milestone_6_commit_coupled_layout_seed_records (
+                artifact_id TEXT PRIMARY KEY,
+                branch_id TEXT NOT NULL,
+                frontier_commit_id INTEGER NOT NULL,
+                scope_class TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS milestone_6_scope_slice_membership_records (
                 artifact_id TEXT PRIMARY KEY,
                 branch_id TEXT NOT NULL,
@@ -248,10 +257,9 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             CREATE TABLE IF NOT EXISTS milestone_6_structural_block_records (
                 artifact_id TEXT PRIMARY KEY,
                 structural_block_id TEXT NOT NULL,
-                branch_id TEXT NOT NULL,
-                frontier_commit_id INTEGER NOT NULL,
                 scope_class TEXT NOT NULL,
                 equivalence_contract_version INTEGER NOT NULL,
+                supporting_layout_materialization_count INTEGER NOT NULL,
                 payload_json TEXT NOT NULL
             );
 
@@ -378,6 +386,9 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             CREATE INDEX IF NOT EXISTS idx_milestone_6_layout_materialization_records_artifact
             ON milestone_6_layout_materialization_records(artifact_id);
 
+            CREATE INDEX IF NOT EXISTS idx_milestone_6_commit_coupled_layout_seed_records_scope
+            ON milestone_6_commit_coupled_layout_seed_records(branch_id, frontier_commit_id, scope_class);
+
             CREATE INDEX IF NOT EXISTS idx_milestone_6_scope_slice_membership_records_scope
             ON milestone_6_scope_slice_membership_records(branch_id, frontier_commit_id, scope_class, projection_digest);
 
@@ -385,7 +396,7 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             ON milestone_6_chunk_membership_records(physical_chunk_id, chunk_shape_version, determinism_digest);
 
             CREATE INDEX IF NOT EXISTS idx_milestone_6_structural_block_records_block
-            ON milestone_6_structural_block_records(structural_block_id, branch_id, frontier_commit_id, scope_class, equivalence_contract_version);
+            ON milestone_6_structural_block_records(structural_block_id, scope_class, equivalence_contract_version);
 
             CREATE INDEX IF NOT EXISTS idx_bulk_manifest_program
             ON frozen_bulk_manifest_records(program_id, manifest_digest);
@@ -413,6 +424,7 @@ fn create_schema(connection: &Connection) -> Result<(), StoreError> {
             ",
         )
         .map_err(sqlite_error)?;
+    migrate_milestone_6_commit_coupled_layout_seed_storage(connection)?;
     ensure_branch_delta_layer_artifacts_column(connection)?;
     Ok(())
 }
@@ -690,6 +702,7 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             .prepare(
                 "
                 SELECT commit_id, branch_id, schema_support_artifact_id, lineage_support_artifact_id,
+                       milestone_6_published_layout_request_artifact_ids_payload,
                        emitted_schema_artifact, emitted_lineage_artifact
                 FROM commit_support_summaries
                 ORDER BY commit_id
@@ -707,8 +720,18 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
                     ),
                     schema_support_artifact_id: row.get(2)?,
                     lineage_support_artifact_id: row.get(3)?,
-                    emitted_schema_artifact: row.get::<_, i64>(4)? != 0,
-                    emitted_lineage_artifact: row.get::<_, i64>(5)? != 0,
+                    milestone_6_published_layout_request_artifact_ids: serde_json::from_str(
+                        &row.get::<_, String>(4)?,
+                    )
+                    .map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            4,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })?,
+                    emitted_schema_artifact: row.get::<_, i64>(5)? != 0,
+                    emitted_lineage_artifact: row.get::<_, i64>(6)? != 0,
                 })
             })
             .map_err(sqlite_error)?;
@@ -1073,6 +1096,28 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
                 row.map_err(sqlite_error)?;
             state
                 .milestone_6_layout_materialization_records
+                .insert(record.artifact_id.clone(), record);
+        }
+    }
+
+    {
+        let mut statement = connection
+            .prepare(
+                "
+                SELECT payload_json
+                FROM milestone_6_commit_coupled_layout_seed_records
+                ORDER BY artifact_id
+                ",
+            )
+            .map_err(sqlite_error)?;
+        let rows = statement
+            .query_map([], |row| deserialize_json(row.get(0)?))
+            .map_err(sqlite_error)?;
+        for row in rows {
+            let record: super::records::Milestone6CommitCoupledLayoutSeedRecord =
+                row.map_err(sqlite_error)?;
+            state
+                .milestone_6_commit_coupled_layout_seed_records
                 .insert(record.artifact_id.clone(), record);
         }
     }
@@ -1474,6 +1519,7 @@ fn persist_state(connection: &mut Connection, state: &StoreState) -> Result<(), 
     persist_branch_delta_layer_records(&transaction, state)?;
     persist_embedded_checkpoint_records(&transaction, state)?;
     persist_milestone_6_layout_materialization_records(&transaction, state)?;
+    persist_milestone_6_commit_coupled_layout_seed_records(&transaction, state)?;
     persist_milestone_6_scope_slice_membership_records(&transaction, state)?;
     persist_milestone_6_chunk_membership_records(&transaction, state)?;
     persist_milestone_6_structural_block_records_impl(&transaction, state)?;
@@ -1510,6 +1556,7 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             DELETE FROM branch_records;
             DELETE FROM embedded_checkpoint_records;
             DELETE FROM milestone_6_layout_materialization_records;
+            DELETE FROM milestone_6_commit_coupled_layout_seed_records;
             DELETE FROM milestone_6_scope_slice_membership_records;
             DELETE FROM milestone_6_chunk_membership_records;
             DELETE FROM milestone_6_structural_block_records;
@@ -1740,15 +1787,20 @@ fn persist_commit_support_summaries(
                     branch_id,
                     schema_support_artifact_id,
                     lineage_support_artifact_id,
+                    milestone_6_published_layout_request_artifact_ids_payload,
                     emitted_schema_artifact,
                     emitted_lineage_artifact
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                 ",
                 params![
                     as_i64(record.commit_id),
                     record.branch_id.0,
                     record.schema_support_artifact_id,
                     record.lineage_support_artifact_id,
+                    serde_json::to_string(
+                        &record.milestone_6_published_layout_request_artifact_ids
+                    )
+                    .map_err(StoreError::from)?,
                     if record.emitted_schema_artifact { 1 } else { 0 },
                     if record.emitted_lineage_artifact {
                         1
@@ -2022,6 +2074,52 @@ fn ensure_branch_delta_layer_artifacts_column(connection: &Connection) -> Result
     Ok(())
 }
 
+fn migrate_milestone_6_commit_coupled_layout_seed_storage(
+    connection: &Connection,
+) -> Result<(), StoreError> {
+    if !table_exists(connection, "milestone_6_published_layout_request_records")? {
+        return Ok(());
+    }
+    if table_row_count(connection, "milestone_6_commit_coupled_layout_seed_records")? > 0 {
+        return Ok(());
+    }
+    connection
+        .execute(
+            "
+            INSERT INTO milestone_6_commit_coupled_layout_seed_records(
+                artifact_id,
+                branch_id,
+                frontier_commit_id,
+                scope_class,
+                payload_json
+            )
+            SELECT artifact_id, branch_id, frontier_commit_id, scope_class, payload_json
+            FROM milestone_6_published_layout_request_records
+            ",
+            [],
+        )
+        .map_err(sqlite_error)?;
+    Ok(())
+}
+
+fn table_exists(connection: &Connection, table_name: &str) -> Result<bool, StoreError> {
+    connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+            [table_name],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|value| value != 0)
+        .map_err(sqlite_error)
+}
+
+fn table_row_count(connection: &Connection, table_name: &str) -> Result<i64, StoreError> {
+    let sql = format!("SELECT COUNT(*) FROM {table_name}");
+    connection
+        .query_row(&sql, [], |row| row.get::<_, i64>(0))
+        .map_err(sqlite_error)
+}
+
 fn persist_embedded_checkpoint_records(
     transaction: &Transaction<'_>,
     state: &StoreState,
@@ -2073,6 +2171,32 @@ fn persist_milestone_6_layout_materialization_records(
             "milestone_6_layout_materialization_records",
             &record.artifact_id,
             Vec::new(),
+            record,
+        )?;
+    }
+    Ok(())
+}
+
+fn persist_milestone_6_commit_coupled_layout_seed_records(
+    transaction: &Transaction<'_>,
+    state: &StoreState,
+) -> Result<(), StoreError> {
+    for record in state.milestone_6_commit_coupled_layout_seed_records.values() {
+        persist_bulk_json_record(
+            transaction,
+            "milestone_6_commit_coupled_layout_seed_records",
+            &record.artifact_id,
+            vec![
+                ("branch_id".to_string(), record.request.target().branch_id().0.clone()),
+                (
+                    "frontier_commit_id".to_string(),
+                    record.request.target().frontier_commit_id().0.to_string(),
+                ),
+                (
+                    "scope_class".to_string(),
+                    record.request.scope_class().label().to_string(),
+                ),
+            ],
             record,
         )?;
     }
@@ -2144,24 +2268,26 @@ fn persist_milestone_6_structural_block_records_impl(
             transaction,
             "milestone_6_structural_block_records",
             &record.artifact_id,
-            vec![
-                (
-                    "structural_block_id".to_string(),
-                    record.structural_block_id.as_str().to_string(),
-                ),
-                ("branch_id".to_string(), record.branch_id.0.clone()),
-                (
-                    "frontier_commit_id".to_string(),
-                    record.frontier_commit_id.0.to_string(),
-                ),
-                ("scope_class".to_string(), record.scope_class.clone()),
-                (
-                    "equivalence_contract_version".to_string(),
-                    record.equivalence_contract_version.value().to_string(),
-                ),
-            ],
-            record,
-        )?;
+                vec![
+                    (
+                        "structural_block_id".to_string(),
+                        record.structural_block_id.as_str().to_string(),
+                    ),
+                    ("scope_class".to_string(), record.scope_class.clone()),
+                    (
+                        "equivalence_contract_version".to_string(),
+                        record.equivalence_contract_version.value().to_string(),
+                    ),
+                    (
+                        "supporting_layout_materialization_count".to_string(),
+                        record
+                            .supporting_layout_materialization_artifact_ids
+                            .len()
+                            .to_string(),
+                    ),
+                ],
+                record,
+            )?;
     }
     Ok(())
 }

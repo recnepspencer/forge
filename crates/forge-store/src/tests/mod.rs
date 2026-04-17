@@ -18,6 +18,7 @@ mod milestone_4_certification;
 mod milestone_5_certification;
 mod milestone_6_certification;
 mod milestone_7_certification;
+mod milestone_9_certification;
 mod mode_certification;
 mod operating_modes;
 mod persistence;

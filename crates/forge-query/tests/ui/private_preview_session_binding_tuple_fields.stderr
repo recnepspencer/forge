@@ -41,7 +41,7 @@ error: cannot construct `PreviewSessionBindingTuple` with struct literal syntax 
 17 |         promotion_proof_digest: todo!(),
    |         ------------------------------- private field
    |
-   = note: ...and other private fields `evaluation_class` and `binding_intent` that were not provided
+   = note: ...and other private field `evaluation_class` that was not provided
 help: you might have meant to use the `new` associated function
    |
  4 -     let _ = PreviewSessionBindingTuple {
@@ -59,5 +59,5 @@ help: you might have meant to use the `new` associated function
 16 -         promotion_record_identity: todo!(),
 17 -         promotion_proof_digest: todo!(),
 18 -     };
- 4 +     let _ = PreviewSessionBindingTuple::new(_, _, _, _, _, _, _, _, _, _, _, _, _, _);
+ 4 +     let _ = PreviewSessionBindingTuple::new(_, _, _, _, _, _, _, _, _, _, _, _, _);
    |

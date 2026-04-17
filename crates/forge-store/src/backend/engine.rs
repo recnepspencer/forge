@@ -22,10 +22,11 @@ use crate::{
         SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
     },
     layout::{
-        AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
-        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
+        AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
+        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse, DedupBackedReadResult,
         Milestone6LayoutMaterialization, Milestone7IndependentLayoutReference,
-        Milestone9PhysicalChunkReference,
+        Milestone9PhysicalChunkReference, StructuralBlockLookup, StructuralBlockLookupResult,
     },
     evidence::{
         CanonicalizationMetrics, Milestone6AccessStructureVerification,
@@ -64,6 +65,7 @@ use forge_relational::facade::lineage::LineageEventRecord;
 use super::{
     integrity::{
         branch_key, bulk_checkpoint_artifact_id, bulk_plan_artifact_id, bulk_program_artifact_id,
+        commit_support_summary_artifact_id,
         bulk_witness_artifact_id, bulk_witness_index_artifact_id,
         durable_cursor_identity_artifact_id, frozen_bulk_manifest_artifact_id,
         frozen_transform_basis_artifact_id, frozen_transform_partition_artifact_id,
@@ -558,9 +560,21 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         plan: AdmittedAspectLayoutReadPlan,
     ) -> Result<ChunkModelFrozenPhysicalLayout, StoreError> {
-        let frozen = self.state.freeze_chunk_model(plan)?;
-        self.counters.record_chunk_model_freeze();
-        Ok(frozen)
+        match self.state.freeze_chunk_model(plan) {
+            Ok(frozen) => {
+                self.counters.record_chunk_model_freeze();
+                Ok(frozen)
+            }
+            Err(error) => {
+                if matches!(
+                    error.kind(),
+                    StoreErrorKind::PhysicalChunkDeterminismViolation
+                ) {
+                    self.counters.record_physical_chunk_determinism_violation();
+                }
+                Err(error)
+            }
+        }
     }
 
     pub fn admit_milestone_7_independent_layout_reference(
@@ -593,6 +607,14 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             self.admit_milestone_7_independent_layout_reference(plan.clone())?;
         let milestone_9_reference =
             self.admit_milestone_9_physical_chunk_reference(frozen_layout.clone())?;
+        let control = self
+            .state
+            .read_branch_delta_control_from_milestone_7_reference(
+                crate::Milestone7IndependentReference::new(
+                    milestone_7_reference.branch_id().clone(),
+                    milestone_7_reference.frontier_commit_id(),
+                ),
+            )?;
         let artifact_id = crate::layout::layout_materialization_artifact_id(&plan);
         let materialization = Milestone6LayoutMaterialization::new(
             artifact_id.clone(),
@@ -601,7 +623,28 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             frozen_layout,
             milestone_7_reference,
             milestone_9_reference,
+            crate::layout::stable_layout_truth_digest(control.authoritative_export()),
+            control.authoritative_export().commit_envelopes.len(),
         );
+        let authority_basis_commit = self
+            .state
+            .commit_record(materialization.admitted_plan().request().target().frontier_commit_id())
+            .ok_or_else(|| {
+                StoreError::backend_integrity(format!(
+                    "milestone 6 layout materialization `{}` targeted missing authority frontier commit `{}`",
+                    materialization.artifact_id(),
+                    materialization
+                        .admitted_plan()
+                        .request()
+                        .target()
+                        .frontier_commit_id()
+                        .0
+                ))
+            })?;
+        let commit_coupled_seed_record = milestone_6_commit_coupled_layout_seed_record(
+            &materialization,
+            authority_basis_commit,
+        )?;
         let scope_membership_record =
             milestone_6_scope_slice_membership_record(&materialization)?;
         let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
@@ -615,6 +658,15 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 materialization: materialization.clone(),
             },
         );
+        next.milestone_6_commit_coupled_layout_seed_records.insert(
+            commit_coupled_seed_record.artifact_id.clone(),
+            commit_coupled_seed_record,
+        );
+        attach_milestone_6_commit_coupled_layout_seed_to_commit_support_summary(
+            &mut next,
+            materialization.admitted_plan().request().target().frontier_commit_id(),
+            &materialization,
+        )?;
         next.milestone_6_scope_slice_membership_records.insert(
             scope_membership_record.artifact_id.clone(),
             scope_membership_record,
@@ -623,10 +675,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             chunk_membership_record.artifact_id.clone(),
             chunk_membership_record,
         );
-        next.milestone_6_structural_block_records.insert(
-            structural_block_record.artifact_id.clone(),
-            structural_block_record,
-        );
+        merge_milestone_6_structural_block_record(&mut next, structural_block_record);
         self.commit_replacement_state(next)?;
         Ok(materialization)
     }
@@ -655,6 +704,231 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     format!("milestone 6 layout materialization `{artifact_id}` not found"),
                 )
             })
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_materializations(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        let commit_coupled_seeds =
+            milestone_6_commit_coupled_layout_seed_rebuild_records(&self.state)?;
+        let mut next = self.state.clone();
+        next.milestone_6_scope_slice_membership_records.clear();
+        next.milestone_6_chunk_membership_records.clear();
+        next.milestone_6_structural_block_records.clear();
+
+        for commit_coupled_seed in &commit_coupled_seeds {
+            let plan = match self
+                .state
+                .plan_aspect_layout_read(commit_coupled_seed.request.clone())?
+            {
+                crate::AspectLayoutReadPlanDecision::Admitted(plan) => plan,
+                crate::AspectLayoutReadPlanDecision::Fallback(plan) => {
+                    return Err(StoreError::backend_integrity(format!(
+                        "commit-coupled milestone 6 layout seed `{}` no longer admits during rebuild: {}",
+                        commit_coupled_seed.artifact_id,
+                        plan.reason()
+                    )))
+                }
+                crate::AspectLayoutReadPlanDecision::Rejected(plan) => {
+                    return Err(StoreError::backend_integrity(format!(
+                        "commit-coupled milestone 6 layout seed `{}` was rejected during rebuild: {}",
+                        commit_coupled_seed.artifact_id,
+                        plan.reason()
+                    )))
+                }
+            };
+            let expected_materialization_artifact_id =
+                crate::layout::layout_materialization_artifact_id(&plan);
+            if commit_coupled_seed.layout_materialization_artifact_id
+                != expected_materialization_artifact_id
+            {
+                return Err(StoreError::backend_integrity(format!(
+                    "commit-coupled milestone 6 layout seed `{}` drifted from expected materialization `{expected_materialization_artifact_id}`",
+                    commit_coupled_seed.artifact_id
+                )));
+            }
+            let materialization = self.fetch_existing_milestone_6_layout_support(
+                &commit_coupled_seed.layout_materialization_artifact_id,
+            )?;
+            if materialization.admitted_plan() != &plan {
+                return Err(StoreError::backend_integrity(format!(
+                    "persisted milestone 6 materialization `{}` drifted from rebuild admission plan",
+                    materialization.artifact_id()
+                )));
+            }
+            let scope_membership_record =
+                milestone_6_scope_slice_membership_record(&materialization)?;
+            let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
+              let structural_block_record = milestone_6_structural_block_record(&materialization);
+            next.milestone_6_scope_slice_membership_records.insert(
+                scope_membership_record.artifact_id.clone(),
+                scope_membership_record,
+            );
+            next.milestone_6_chunk_membership_records.insert(
+                chunk_membership_record.artifact_id.clone(),
+                chunk_membership_record,
+            );
+              merge_milestone_6_structural_block_record(&mut next, structural_block_record);
+        }
+
+        self.commit_replacement_state(next)?;
+        Ok(crate::Milestone6DerivedArtifactRebuildReport::new(
+            self.state.milestone_6_layout_materialization_records.len(),
+            self.state.milestone_6_scope_slice_membership_records.len(),
+            self.state.milestone_6_structural_block_records.len(),
+            self.state.milestone_6_chunk_membership_records.len(),
+        ))
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_authority(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        let commit_coupled_seeds =
+            milestone_6_commit_coupled_layout_seed_rebuild_records(&self.state)?;
+        let mut next = self.state.clone();
+        next.milestone_6_layout_materialization_records.clear();
+        next.milestone_6_scope_slice_membership_records.clear();
+        next.milestone_6_chunk_membership_records.clear();
+        next.milestone_6_structural_block_records.clear();
+
+        for commit_coupled_seed in &commit_coupled_seeds {
+            let plan = match self
+                .state
+                .plan_aspect_layout_read(commit_coupled_seed.request.clone())?
+            {
+                crate::AspectLayoutReadPlanDecision::Admitted(plan) => plan,
+                crate::AspectLayoutReadPlanDecision::Fallback(plan) => {
+                    return Err(StoreError::backend_integrity(format!(
+                        "commit-coupled milestone 6 layout seed `{}` no longer admits during authority rebuild: {}",
+                        commit_coupled_seed.artifact_id,
+                        plan.reason()
+                    )))
+                }
+                crate::AspectLayoutReadPlanDecision::Rejected(plan) => {
+                    return Err(StoreError::backend_integrity(format!(
+                        "commit-coupled milestone 6 layout seed `{}` was rejected during authority rebuild: {}",
+                        commit_coupled_seed.artifact_id,
+                        plan.reason()
+                    )))
+                }
+            };
+            let artifact_id = crate::layout::layout_materialization_artifact_id(&plan);
+            if commit_coupled_seed.layout_materialization_artifact_id != artifact_id {
+                return Err(StoreError::backend_integrity(format!(
+                    "commit-coupled milestone 6 layout seed `{}` drifted from expected authority-rebuilt materialization `{artifact_id}`",
+                    commit_coupled_seed.artifact_id
+                )));
+            }
+            let block_reuse = self.state.admit_structural_block_reuse(plan.clone())?;
+            let frozen_layout = self.state.freeze_chunk_model(plan.clone())?;
+            let milestone_7_reference = self
+                .state
+                .admit_milestone_7_independent_layout_reference(plan.clone())?;
+            let milestone_9_reference = self
+                .state
+                .admit_milestone_9_physical_chunk_reference(frozen_layout.clone())?;
+            let control = self
+                .state
+                .read_branch_delta_control_from_milestone_7_reference(
+                    crate::Milestone7IndependentReference::new(
+                        milestone_7_reference.branch_id().clone(),
+                        milestone_7_reference.frontier_commit_id(),
+                    ),
+                )?;
+            let materialization = Milestone6LayoutMaterialization::new(
+                artifact_id.clone(),
+                plan,
+                block_reuse,
+                frozen_layout,
+                milestone_7_reference,
+                milestone_9_reference,
+                crate::layout::stable_layout_truth_digest(control.authoritative_export()),
+                control.authoritative_export().commit_envelopes.len(),
+            );
+            let scope_membership_record =
+                milestone_6_scope_slice_membership_record(&materialization)?;
+            let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
+            let structural_block_record = milestone_6_structural_block_record(&materialization);
+            next.milestone_6_layout_materialization_records.insert(
+                artifact_id.clone(),
+                Milestone6LayoutMaterializationRecord {
+                    artifact_id,
+                    materialization,
+                },
+            );
+            next.milestone_6_scope_slice_membership_records.insert(
+                scope_membership_record.artifact_id.clone(),
+                scope_membership_record,
+            );
+            next.milestone_6_chunk_membership_records.insert(
+                chunk_membership_record.artifact_id.clone(),
+                chunk_membership_record,
+            );
+            merge_milestone_6_structural_block_record(&mut next, structural_block_record);
+        }
+
+        self.commit_replacement_state(next)?;
+        Ok(crate::Milestone6DerivedArtifactRebuildReport::new(
+            self.state.milestone_6_layout_materialization_records.len(),
+            self.state.milestone_6_scope_slice_membership_records.len(),
+            self.state.milestone_6_structural_block_records.len(),
+            self.state.milestone_6_chunk_membership_records.len(),
+        ))
+    }
+
+    pub fn structural_block_lookup(
+        &self,
+        lookup: StructuralBlockLookup,
+    ) -> Result<StructuralBlockLookupResult, StoreError> {
+        match self.state.structural_block_lookup(lookup) {
+            Ok(result) => {
+                self.counters.record_structural_block_lookup(true);
+                Ok(result)
+            }
+            Err(error) => {
+                if matches!(error.kind(), StoreErrorKind::AspectLayoutArtifactMissing) {
+                    self.counters.record_structural_block_lookup(false);
+                }
+                Err(error)
+            }
+        }
+    }
+
+    pub fn execute_aspect_layout_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<AspectLayoutReadExecutionDecision, StoreError> {
+        self.state.execute_aspect_layout_read(request)
+    }
+
+    pub fn execute_dedup_backed_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<DedupBackedReadResult, StoreError> {
+        let read = match self.execute_aspect_layout_read(request)? {
+            AspectLayoutReadExecutionDecision::Admitted(read) => read,
+            AspectLayoutReadExecutionDecision::Fallback(plan) => {
+                return Err(StoreError::new(
+                    StoreErrorKind::AspectLayoutFallbackRequired,
+                    plan.reason().to_string(),
+                ))
+            }
+            AspectLayoutReadExecutionDecision::Rejected(plan) => {
+                return Err(StoreError::new(
+                    StoreErrorKind::AspectScopeUnsupported,
+                    plan.reason().to_string(),
+                ))
+            }
+        };
+        let lookup = self.structural_block_lookup(StructuralBlockLookup::new(
+            read.plan().structural_block_id().clone(),
+        ))?;
+        if lookup.slice_ids() != read.plan().slice_ids() {
+            return Err(StoreError::backend_integrity(
+                "dedup-backed read structural block lookup drifted from admitted plan slice ids",
+            ));
+        }
+        Ok(DedupBackedReadResult::new(read, lookup))
     }
 
     pub fn read_branch_delta(
@@ -1839,6 +2113,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.counters.snapshot()
     }
 
+    pub(crate) fn record_physical_chunk_export(&self, chunk_width: u64) {
+        self.counters.record_physical_chunk_export(chunk_width);
+    }
+
     pub fn durable_media_report(&self) -> DurableMediaReport {
         self.persistence.durable_media_report()
     }
@@ -2813,14 +3091,22 @@ fn verify_milestone_6_structural_block_keys(
                 record.artifact_id
             ));
         }
-        if !state
-            .milestone_6_layout_materialization_records
-            .contains_key(&record.layout_materialization_artifact_id)
-        {
+        if record.supporting_layout_materialization_artifact_ids.is_empty() {
             return Milestone6AccessStructureVerificationPath::debt(format!(
-                "open-time access structure verification failed: Milestone 6 structural block `{}` referenced missing layout materialization `{}`",
-                record.artifact_id, record.layout_materialization_artifact_id
+                "open-time access structure verification failed: Milestone 6 structural block `{}` had no supporting layout materializations",
+                record.artifact_id
             ));
+        }
+        for layout_materialization_artifact_id in &record.supporting_layout_materialization_artifact_ids {
+            if !state
+                .milestone_6_layout_materialization_records
+                .contains_key(layout_materialization_artifact_id)
+            {
+                return Milestone6AccessStructureVerificationPath::debt(format!(
+                    "open-time access structure verification failed: Milestone 6 structural block `{}` referenced missing layout materialization `{}`",
+                    record.artifact_id, layout_materialization_artifact_id
+                ));
+            }
         }
     }
     Milestone6AccessStructureVerificationPath::verified(success_basis)
@@ -2887,6 +3173,54 @@ fn milestone_6_scope_slice_membership_record(
     })
 }
 
+fn milestone_6_commit_coupled_layout_seed_rebuild_records(
+    state: &StoreState,
+) -> Result<Vec<crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord>, StoreError> {
+    let mut artifact_ids = state
+        .commit_support_summaries
+        .values()
+        .flat_map(|summary| {
+            summary
+                .milestone_6_published_layout_request_artifact_ids
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    artifact_ids.sort();
+    artifact_ids.dedup();
+
+    artifact_ids
+        .into_iter()
+        .map(|artifact_id| {
+            state
+                .milestone_6_commit_coupled_layout_seed_records
+                .get(&artifact_id)
+                .cloned()
+                .ok_or_else(|| {
+                    StoreError::backend_integrity(format!(
+                        "milestone 6 rebuild seed `{artifact_id}` was listed by commit support publication but missing from commit-coupled layout seed storage"
+                    ))
+                })
+        })
+        .collect()
+}
+
+fn milestone_6_commit_coupled_layout_seed_record(
+    materialization: &Milestone6LayoutMaterialization,
+    authority_basis_commit: &crate::backend::records::StoredCommitEnvelope,
+) -> Result<crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord, StoreError> {
+    Ok(crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord {
+        artifact_id: crate::layout::published_layout_request_artifact_id(
+            materialization.admitted_plan().request(),
+        )?,
+        request: materialization.admitted_plan().request().clone(),
+        layout_materialization_artifact_id: materialization.artifact_id().to_string(),
+        authority_basis_commit_id: authority_basis_commit.envelope.commit.commit_id,
+        authority_basis_commit_digest: authority_basis_commit.envelope_digest.clone(),
+        authority_basis_commit_sequence: authority_basis_commit.commit_sequence,
+    })
+}
+
 fn milestone_6_chunk_membership_record(
     materialization: &Milestone6LayoutMaterialization,
 ) -> Milestone6ChunkMembershipRecord {
@@ -2915,6 +3249,70 @@ fn milestone_6_chunk_membership_record(
     }
 }
 
+fn attach_milestone_6_commit_coupled_layout_seed_to_commit_support_summary(
+    state: &mut StoreState,
+    commit_id: CommitId,
+    materialization: &Milestone6LayoutMaterialization,
+) -> Result<(), StoreError> {
+    let artifact_id =
+        crate::layout::published_layout_request_artifact_id(materialization.admitted_plan().request())?;
+    let summary_digest = {
+        let summary = state
+            .commit_support_summaries
+            .get_mut(&commit_id.0)
+            .ok_or_else(|| {
+                StoreError::backend_integrity(format!(
+                    "milestone 6 layout materialization `{}` targeted commit `{}` without a commit support summary",
+                    materialization.artifact_id(),
+                    commit_id.0
+                ))
+            })?;
+        if !summary
+            .milestone_6_published_layout_request_artifact_ids
+            .contains(&artifact_id)
+        {
+            summary
+                .milestone_6_published_layout_request_artifact_ids
+                .push(artifact_id);
+            summary
+                .milestone_6_published_layout_request_artifact_ids
+                .sort();
+            summary
+                .milestone_6_published_layout_request_artifact_ids
+                .dedup();
+        }
+        stable_structural_digest(summary)?
+    };
+    state.upsert_digest_record(
+        crate::backend::records::AuthoritativeArtifactFamily::CommitSupportSummary,
+        commit_support_summary_artifact_id(commit_id),
+        summary_digest,
+    );
+    let authoritative_summary = state
+        .commit_support_summaries
+        .get(&commit_id.0)
+        .cloned()
+        .ok_or_else(|| {
+            StoreError::backend_integrity(format!(
+                "milestone 6 commit support summary for commit `{}` disappeared during publication",
+                commit_id.0
+            ))
+        })?;
+    for layer in state.branch_delta_layer_records.values_mut() {
+        let mut updated = false;
+        for summary in &mut layer.artifacts.commit_support_summaries {
+            if summary.commit_id == commit_id {
+                *summary = authoritative_summary.clone();
+                updated = true;
+            }
+        }
+        if updated {
+            layer.artifacts.canonicalize_order();
+        }
+    }
+    Ok(())
+}
+
 fn milestone_6_structural_block_record(
     materialization: &Milestone6LayoutMaterialization,
 ) -> Milestone6StructuralBlockRecord {
@@ -2924,15 +3322,47 @@ fn milestone_6_structural_block_record(
             materialization.block_reuse().structural_block_id().as_str()
         ),
         structural_block_id: materialization.block_reuse().structural_block_id().clone(),
-        branch_id: materialization.block_reuse().branch_id().clone(),
-        frontier_commit_id: materialization.block_reuse().frontier_commit_id(),
         scope_class: materialization.block_reuse().scope_class().to_string(),
         equivalence_contract_version: materialization
             .block_reuse()
             .equivalence_contract_version(),
         slice_ids: materialization.block_reuse().slice_ids().to_vec(),
-        layout_materialization_artifact_id: materialization.artifact_id().to_string(),
+        supporting_layout_materialization_artifact_ids: vec![materialization
+            .artifact_id()
+            .to_string()],
     }
+}
+
+fn merge_milestone_6_structural_block_record(
+    state: &mut StoreState,
+    mut record: Milestone6StructuralBlockRecord,
+) {
+    if let Some(existing) = state
+        .milestone_6_structural_block_records
+        .get_mut(&record.artifact_id)
+    {
+        for artifact_id in record.supporting_layout_materialization_artifact_ids.drain(..) {
+            if !existing
+                .supporting_layout_materialization_artifact_ids
+                .contains(&artifact_id)
+            {
+                existing
+                    .supporting_layout_materialization_artifact_ids
+                    .push(artifact_id);
+            }
+        }
+        existing
+            .supporting_layout_materialization_artifact_ids
+            .sort();
+        existing
+            .supporting_layout_materialization_artifact_ids
+            .dedup();
+        return;
+    }
+
+    state
+        .milestone_6_structural_block_records
+        .insert(record.artifact_id.clone(), record);
 }
 
 fn verify_string_keyed_records<'a>(

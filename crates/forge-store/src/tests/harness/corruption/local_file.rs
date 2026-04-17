@@ -391,6 +391,46 @@ pub fn force_bulk_witness_index_witness_count_drift(
     .expect("bulk witness index witness-count drift state should write");
 }
 
+pub fn force_frozen_transform_basis_payload_scope_drift(
+    path: &std::path::Path,
+    program_id: &str,
+    basis_digest: &str,
+) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: serde_json::Value =
+        serde_json::from_slice(&raw).expect("store state should decode");
+    let artifact_id = format!("bulk-transform-basis:{program_id}:{basis_digest}");
+    state["frozen_transform_basis_records"][&artifact_id]["basis"]["target_branch_scope"] =
+        serde_json::json!("corrupted-branch");
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("frozen transform basis drift state should write");
+}
+
+pub fn force_bulk_plan_payload_chunk_width_drift(
+    path: &std::path::Path,
+    program_id: &str,
+    plan_id: &str,
+) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: serde_json::Value =
+        serde_json::from_slice(&raw).expect("store state should decode");
+    let artifact_id = format!("bulk-plan:{program_id}:{plan_id}");
+    let original_width = state["bulk_deterministic_plan_records"][&artifact_id]["plan"]["chunks"][0]
+        ["width_units"]
+        .as_u64()
+        .expect("bulk plan chunk width should exist");
+    state["bulk_deterministic_plan_records"][&artifact_id]["plan"]["chunks"][0]["width_units"] =
+        serde_json::json!(original_width + 1);
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("bulk plan drift state should write");
+}
+
 pub fn force_milestone_6_layout_materialization_key_mismatch(path: &std::path::Path) {
     let raw = std::fs::read(path).expect("store file should exist");
     let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
@@ -443,12 +483,146 @@ pub fn force_milestone_6_layout_materialization_chunk_member_count_drift(path: &
         record.materialization.frozen_layout().clone(),
         record.materialization.milestone_7_reference().clone(),
         drifted_reference,
+        record.materialization.semantic_truth_digest().to_string(),
+        record.materialization.authoritative_commit_count(),
     );
     std::fs::write(
         path,
         serde_json::to_vec_pretty(&state).expect("store state should encode"),
     )
     .expect("milestone 6 layout materialization chunk member drift state should write");
+}
+
+pub fn force_milestone_6_chunk_membership_boundary_drift(path: &std::path::Path) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    let record = state
+        .milestone_6_chunk_membership_records
+        .values_mut()
+        .next()
+        .expect("milestone 6 chunk membership record should exist");
+    record.layout_materialization_artifact_id =
+        format!("{}:drifted", record.layout_materialization_artifact_id);
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 chunk membership boundary drift state should write");
+}
+
+pub fn force_milestone_6_commit_coupled_layout_seed_authority_digest_drift(
+    path: &std::path::Path,
+) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    let record = state
+        .milestone_6_commit_coupled_layout_seed_records
+        .values_mut()
+        .next()
+        .expect("milestone 6 commit-coupled layout seed record should exist");
+    record.authority_basis_commit_digest = format!(
+        "{}:drifted",
+        record.authority_basis_commit_digest
+    );
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 commit-coupled layout seed authority digest drift state should write");
+}
+
+pub fn force_milestone_6_commit_support_summary_seed_gap(path: &std::path::Path) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    let summary = state
+        .commit_support_summaries
+        .values_mut()
+        .next()
+        .expect("commit support summary should exist");
+    summary
+        .milestone_6_published_layout_request_artifact_ids
+        .clear();
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 commit support summary seed gap state should write");
+}
+
+pub fn force_milestone_6_commit_coupled_layout_seed_payload_gap(path: &std::path::Path) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    let artifact_id = state
+        .milestone_6_commit_coupled_layout_seed_records
+        .keys()
+        .next()
+        .cloned()
+        .expect("milestone 6 commit-coupled layout seed record should exist");
+    state
+        .milestone_6_commit_coupled_layout_seed_records
+        .remove(&artifact_id)
+        .expect("milestone 6 commit-coupled layout seed record should still exist");
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 commit-coupled layout seed payload gap state should write");
+}
+
+pub fn force_milestone_6_commit_coupled_layout_seed_payload_drift(path: &std::path::Path) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    let record = state
+        .milestone_6_commit_coupled_layout_seed_records
+        .values_mut()
+        .next()
+        .expect("milestone 6 commit-coupled layout seed record should exist");
+    record.request = crate::AspectLayoutReadRequest::new(
+        crate::AspectLayoutTarget::new(
+            record.request.target().branch_id().clone(),
+            record.request.target().frontier_commit_id(),
+        ),
+        record.request.scope_class().clone(),
+        crate::AspectProjectionSet::new(vec![
+            "profile".to_string(),
+            "status".to_string(),
+            "drifted".to_string(),
+        ]),
+    );
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 commit-coupled layout seed payload drift state should write");
+}
+
+pub fn force_clear_milestone_6_derived_access_structures(path: &std::path::Path) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    state.milestone_6_scope_slice_membership_records.clear();
+    state.milestone_6_chunk_membership_records.clear();
+    state.milestone_6_structural_block_records.clear();
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 derived access structure clear should write");
+}
+
+pub fn force_clear_milestone_6_materializations_and_derived_access_structures(
+    path: &std::path::Path,
+) {
+    let raw = std::fs::read(path).expect("store file should exist");
+    let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
+    state.milestone_6_layout_materialization_records.clear();
+    state.milestone_6_scope_slice_membership_records.clear();
+    state.milestone_6_chunk_membership_records.clear();
+    state.milestone_6_structural_block_records.clear();
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&state).expect("store state should encode"),
+    )
+    .expect("milestone 6 materialization and derived clear should write");
 }
 
 pub fn force_first_lineage_support_gap(path: &std::path::Path) {

@@ -1,6 +1,6 @@
 # Milestone 5.2 Engineering Spec: Preview Session Query Contexts And Branch Workflow Foundations
 
-> **Status:** Draft engineering spec
+> **Status:** Closed on 2026-04-16 for the runtime-backed preview, preview-live, promotion-parity comparison, and workflow-foundation scope
 >
 > **Roadmap parent:** [forge_query_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_roadmap.md)
 >
@@ -163,6 +163,9 @@ Concretely, the design must remain correct when all of the following are true:
 - preview replay and promotion diagnostics exist in the bridge and must be
   visible as query context metadata without becoming query-owned lifecycle
   authority
+- admitted preview-live maintenance may continue only while the preview session
+  remains explicitly active, and any later drift must produce one typed denial
+  or one typed explicit rebind artifact rather than ambient fallback
 - later branch-workflow milestones need to inherit stable compare/promotion
   basis identity from this milestone rather than reverse-engineering it
 
@@ -197,6 +200,9 @@ then Milestone 5.2 has failed.
 - preview-versus-promoted comparison is a query-owned comparison artifact over
   explicit basis identities, not host-side result diffing and not a generic
   branch diff shortcut
+- preview-live maintenance is an admitted derived mode only when it reuses the
+  existing live proof chain and carries explicit preview-session basis
+  identity; it is not an ambient continuation of ordinary live truth
 - preview replay and promotion explanations remain bridge-owned explanation
   surfaces; query may lower them into query-native comparison and workflow
   artifacts, but may not redefine them
@@ -214,6 +220,8 @@ Normative consequence:
   promotable, active, or stale is out of spec
 - any implementation path that compares preview and authoritative results
   without carrying both explicit basis identities is out of spec
+- any implementation path that silently rebases preview-live maintenance onto
+  authoritative live truth is out of spec
 - any implementation path that implies query owns preview lifecycle transitions
   is out of spec
 - any implementation path that treats a preview result as authoritative without
@@ -235,6 +243,9 @@ unrepresentable, uncompilable, or construction-time rejection.
 - publicly constructible preview-versus-promoted comparison artifacts that do
   not carry both preview basis identity and promoted/authoritative basis
   identity
+- publicly constructible preview-live bindings, drift outcomes, or rebind
+  artifacts that do not carry both explicit preview basis identity and explicit
+  live-family identity
 - publicly constructible branch-workflow foundation declarations as open bags
   rather than closed query-owned families
 - publicly constructible promotion-comparison eligibility as a naked boolean,
@@ -244,7 +255,8 @@ unrepresentable, uncompilable, or construction-time rejection.
 
 - external construction of `PreviewSessionQueryContext`,
   `PreviewSessionBasis`, `PreviewLifecycleMetadata`,
-  `PreviewPromotionComparisonBundle`, `BranchWorkflowFoundationArtifact`, or
+  `PromotionParityPreviewComparisonAdmission`,
+  `PreviewWorkflowFoundationArtifact`, or
   materially equivalent proof-bearing types without crate-owned lowering
 - public APIs that accept raw bridge diagnostics, raw branch aliases, or host-
   authored promotion-comparison bags as though they were admitted preview query
@@ -325,9 +337,10 @@ Initial preview-context-admitted query families:
 - detail queries already admitted for runtime-backed execution
 - ordered collection queries already admitted for runtime-backed execution
 - bounded materialization queries already admitted for runtime-backed execution
-- the corresponding admitted Milestone 5 live families when the preview basis
-  resolves to one explicit active preview session and no extra locality or
-  historical mode is requested
+- preview-bound live reuse for the corresponding admitted Milestone 5 and 5.1
+  live families where preview lifecycle remains explicitly active and
+  preview-live admission can reuse the existing live proof chain without
+  redefining locality or stream semantics
 
 Initial preview-context-denied query families:
 
@@ -340,11 +353,23 @@ Initial preview-context-denied query families:
 
 Preview-bound live reuse rule:
 
-- a preview-bound live lane may only attach to one explicit active preview
-  session and one explicit preview execution record identity
-- if the preview lifecycle leaves `Active`, the live lane must fail typed or
-  require explicit rebinding through a new preview basis binding step
-- lifecycle drift may not be hidden as ordinary live basis advancement
+- preview-bound live reuse is admitted only through one explicit
+  preview-live proof chain built on top of Milestone 5 and 5.1 live artifacts
+- preview-live admission requires:
+  - one admitted preview session basis
+  - one active preview lifecycle witness
+  - one live-admitted query family whose locality and delivery semantics are
+    already defined outside Milestone 5.2
+- preview-live maintenance must never silently degrade into ordinary
+  authoritative live truth
+- when preview lifecycle leaves `Active`, the preview-live lane must produce one
+  closed drift outcome:
+  - typed denial when the lane can no longer continue honestly
+  - typed explicit rebind artifact when the system can prove how to continue
+    without ambient fallback
+- explicit rebind is an admitted branch of the milestone, but it must be
+  structurally stricter than denial and may not masquerade as automatic
+  fallback
 
 Initial comparison-admitted families:
 
@@ -416,8 +441,9 @@ Required structural encodings:
   may not poll bridge state repeatedly
 - promotion-comparison eligibility must be computed once before comparison
   execution and carried as a proof-bearing eligibility artifact
-- preview-bound live reuse, where admitted, must treat lifecycle drift as a
-  typed boundary crossing rather than a cheap incremental update
+- preview-live admission, drift detection, denial, and explicit rebind must be
+  represented as separate proof-bearing artifacts so executor code never
+  improvises lifecycle continuation
 - branch-workflow foundation artifacts must carry the already-resolved basis
   pair and comparison eligibility so later workflow milestones inherit a narrow
   path instead of rediscovering preview facts
@@ -452,11 +478,19 @@ Minimum required contracts:
   Workflow foundation emission is `O(1)` in preview artifact lookup count
   because it consumes previously lowered basis and eligibility artifacts rather
   than rescanning bridge-owned records.
+- `preview_live_admission_contract`
+  Preview-live admission is `O(1)` in preview/live basis resolution work
+  because it consumes one admitted preview basis plus one admitted live family
+  proof rather than searching host workflow state.
+- `preview_live_drift_contract`
+  Preview-live drift checking is `O(1)` in lifecycle resolution work per
+  maintenance step because it consumes one explicit active-lifecycle witness and
+  one closed drift-outcome family rather than broad diagnostics rescans.
 - `preview_live_rebinding_contract`
-  Lifecycle drift handling for preview-bound live lanes is `O(1)` in decision
-  work: either continue on the same active session identity or fail/rebind
-  explicitly. It may not degrade into diagnostic search or broad refresh
-  discovery.
+  Explicit preview-live rebind is `O(1)` in basis retargeting work with respect
+  to preview session selection because the rebind artifact must name both the
+  original preview-live basis and the newly admitted continuation basis
+  directly.
 
 Each contract must carry:
 
@@ -497,8 +531,10 @@ The authoritative flow should become:
 -> `ExecutionPreflightBundle`
 -> `PreviewSessionQueryContext`
 -> `PreviewSessionPlanBinding`
--> `PreviewSessionExecutionEnvelope`
--> `PreviewPromotionComparisonBundle` where admitted
+-> `PreviewExecutionEnvelope`
+-> `PreviewLiveSessionPlanBinding` where admitted
+-> `PreviewLiveExecutionEnvelope` where admitted
+-> `PromotionParityPreviewComparisonAdmission` where admitted
 
 Preview support therefore consumes already-proven query meaning. It does not
 re-author:
@@ -508,7 +544,8 @@ re-author:
 - ordering meaning
 - traversal/materialization meaning
 - result-family meaning
-- live patch-family meaning for already admitted live families
+- live patch-family meaning, which must be reused rather than reauthored when
+  preview-live composition is admitted in this milestone
 
 ### Authority Boundaries
 
@@ -566,11 +603,18 @@ Representative artifact families:
 - `PreviewEvaluationClass`
 - `PreviewLifecycleMetadata`
 - `PreviewSessionPlanBinding`
-- `PreviewSessionExecutionEnvelope`
-- `PreviewPromotionComparisonRequest`
-- `PreviewPromotionComparisonBundle`
+- `PreviewExecutionEnvelope`
+- `PreviewLiveSessionPlanBinding`
+- `PreviewLiveExecutionEnvelope`
+- `PreviewLiveMaintained`
+- `PreviewLiveDriftOutcome`
+- `PreviewLiveRebindArtifact`
+- `PromotionParityPreviewComparisonAdmission`
 - `PreviewWorkflowFoundationArtifact`
-- `PreviewQueryCounters`
+- `PreviewBindingCounters`
+- `PreviewExecutionCounters`
+- `PreviewComparisonCounters`
+- `PreviewLiveCounters`
 
 Representative bridge-owned inputs that query should lower from rather than
 redefine:
@@ -601,8 +645,10 @@ Rules:
   - bridge promotion linkage where applicable
 - comparison equivalence must be defined over canonical query shape plus
   explicit basis pairing, not over host-local timing or branch names
-- preview-bound live execution, where admitted, must still reuse Milestone 5
-  live artifacts and must not mint a second live proof chain
+- preview-live composition must reuse Milestone 5 live artifacts and must not
+  mint a second live proof chain beside the existing live promotion substrate
+- preview-live drift handling must lower into one closed outcome family rather
+  than ambient lifecycle polling or hidden fallback
 
 ### Minimum Preview Binding Tuple
 
@@ -675,7 +721,7 @@ Representative foundation families:
 - `PreviewCompareIntent`
 - `PromotionComparisonEligibility`
 - `PreviewWorkflowBasisPair`
-- `BranchWorkflowFoundationArtifact`
+- `PreviewWorkflowFoundationArtifact`
 
 Rules:
 
@@ -800,9 +846,41 @@ This phase leaves the system in a coherent state where:
   from
 - execution is not relying on ambient branch/workflow glue
 
-### Phase 4: Lower Preview-Versus-Promoted Comparison Into Typed Query Artifacts
+### Phase 4: Admit Preview-Bound Live Maintenance With Explicit Drift Outcomes
 
-Phase 4 exists to prevent preview comparison from degrading into host-side
+Phase 4 exists to solve the hard continuation problem rather than leaving
+preview-live as ambient host glue.
+
+Milestone 5.2 must then implement:
+
+- one proof-bearing `PreviewLiveSessionPlanBinding` family that composes:
+  - one admitted preview session plan binding
+  - one live-admitted Milestone 5 or 5.1 family
+  - one explicit active preview lifecycle witness
+- one explicit rule that preview-live maintenance reuses existing live
+  patch-family, locality, and stream-contract semantics rather than redefining
+  them inside the preview module
+- one closed `PreviewLiveDriftOutcome` family with at minimum:
+  - `DriftDenied`
+  - `ExplicitRebindAvailable`
+- typed denial when preview lifecycle leaves `Active` and no honest
+  continuation exists
+- typed explicit rebind artifact when the system can prove how to continue
+  without silently retargeting to authoritative live truth
+- exact counters for preview-live admission, preview-live maintenance, preview-
+  live drift checks, denied drift, explicit rebind availability, and forbidden
+  fallback
+
+This phase leaves the system in a coherent state where:
+
+- preview-live is one real proof chain rather than an extra host mode
+- lifecycle drift is explicit and typed
+- denial and rebind are both first-class outcomes, not ambient host policy
+- ordinary live truth and preview-live truth cannot be confused
+
+### Phase 5: Lower Preview-Versus-Promoted Comparison Into Typed Query Artifacts
+
+Phase 5 exists to prevent preview comparison from degrading into host-side
 diff folklore.
 
 Milestone 5.2 must then implement:
@@ -830,9 +908,9 @@ This phase leaves the system in a coherent state where:
 - shape incompatibility is rejected before execution or diff construction begins
 - later workflow milestones can inherit a stable compare surface
 
-### Phase 5: Emit Branch Workflow Foundation Artifacts
+### Phase 6: Emit Branch Workflow Foundation Artifacts
 
-Phase 5 exists to make later branch-native workflow work additive instead of
+Phase 6 exists to make later branch-native workflow work additive instead of
 architectural surgery.
 
 Milestone 5.2 must then implement:
@@ -849,9 +927,9 @@ This phase leaves the system in a coherent state where:
 - query can remain the daily-driver branch workflow facade without stealing
   lower-crate authority early
 
-### Phase 6: Certification, Counter Proof, And Boundary Hardening
+### Phase 7: Certification, Counter Proof, And Boundary Hardening
 
-Phase 6 exists to close the milestone through named proof rather than
+Phase 7 exists to close the milestone through named proof rather than
 "query can hit preview now" demos.
 
 Milestone 5.2 must finally ship:
@@ -860,12 +938,16 @@ Milestone 5.2 must finally ship:
 - canonical rows proving:
   - preview-basis execution parity
   - preview-lifecycle-explicit execution
+  - preview-live admission parity
+  - preview-live drift explicitness
   - preview-versus-promoted comparison parity
   - branch-workflow foundation admission
 - rejection rows proving:
   - unsupported-preview-family
   - invalid-preview-basis
   - stale-preview-lifecycle-denied
+  - preview-live-drift-denied
+  - preview-live-broad-fallback-forbidden
   - unsupported-preview-promotion-comparison
   - raw-branch-alias-preview-forbidden
   - fabricated-preview-lifecycle-forbidden
@@ -891,6 +973,15 @@ Milestone 5.2 certification should exercise at minimum:
   active preview session with explicit lifecycle metadata
 - `bounded-materialization-preview-basis-parity`:
   one bounded materialization query bound to one active preview session
+- `preview-live-admission-parity`:
+  one admitted preview basis lowered into one preview-live lane that reuses the
+  corresponding live family without changing canonical query meaning
+- `preview-live-drift-denied`:
+  one preview-live lane whose preview lifecycle leaves `Active` and must deny
+  continued maintenance typed and early
+- `preview-live-explicit-rebind`:
+  one preview-live lane whose lifecycle drift admits one explicit rebind
+  artifact rather than silent fallback
 - `preview-promotion-comparison-parity`:
   one admitted preview result compared against one explicit promoted result
   with bridge promotion proof linkage
@@ -908,14 +999,16 @@ still too abstract to close honestly.
 ## Must Ship
 
 - proof-bearing `PreviewSessionQueryContext`, `PreviewSessionBasis`,
-  `PreviewLifecycleMetadata`, `PreviewPromotionComparisonBundle`, and
-  `BranchWorkflowFoundationArtifact` families or materially equivalent types
+  `PreviewLifecycleMetadata`, `PromotionParityPreviewComparisonAdmission`, and
+  `PreviewWorkflowFoundationArtifact` families or materially equivalent types
 - preview-session basis lowering from admitted bridge preview artifacts into
   query execution context
 - explicit preview lifecycle metadata on plans, execution reports, and result
   envelopes
 - distinction between read-only preview evaluation and promotable preview
   evaluation
+- preview-live admission, maintenance, drift, and explicit rebind artifacts for
+  the admitted corresponding live families
 - query-native comparison surfaces for preview result versus promoted or
   authoritative result where admitted
 - branch-workflow foundation artifacts for later compare/merge/writeback
@@ -933,7 +1026,8 @@ still too abstract to close honestly.
 - one-shot planning and basis identity from Milestone 3 remain authoritative
 - collection/result-family semantics from Milestone 4 remain authoritative
 - live promotion and patch semantics from Milestones 5 and 5.1 remain
-  authoritative where preview-bound live families are admitted
+  authoritative and unchanged while preview-live composition reuses them
+  through one explicit proof chain
 - the runtime bridge remains authoritative for preview-session lifecycle,
   promotion admissibility, and preview replay artifacts
 - preview contexts do not degrade into host-local branch aliases
@@ -953,6 +1047,11 @@ Milestone 5.2 must name costs and proofs in terms of:
 - preview lifecycle lookup count
 - preview lifecycle rediscovery count
 - preview execution count
+- preview-live admission count
+- preview-live execution count
+- preview-live lifecycle check count
+- preview-live drift denial count
+- preview-live explicit rebind count
 - preview/promotion comparison count
 - preview comparison eligibility proof count
 - preview comparison shape-check width
@@ -975,6 +1074,12 @@ Minimum required counters:
 - `preview_execution_count`
 - `preview_promotable_execution_count`
 - `preview_read_only_execution_count`
+- `preview_live_admission_count`
+- `preview_live_execution_count`
+- `preview_live_lifecycle_check_count`
+- `preview_live_drift_denial_count`
+- `preview_live_rebind_available_count`
+- `preview_live_broad_fallback_denial_count`
 - `preview_invalid_basis_denial_count`
 - `preview_invalid_lifecycle_denial_count`
 - `preview_promotion_comparison_count`
@@ -1006,6 +1111,12 @@ Rules:
   `preview_invalid_lifecycle_denial_count`
 - every denied comparison request must increment
   `preview_promotion_comparison_denial_count`
+- every denied preview-live drift continuation must increment
+  `preview_live_drift_denial_count`
+- every admitted explicit rebind availability must increment
+  `preview_live_rebind_available_count`
+- every forbidden fallback from preview-live to ordinary live truth must
+  increment `preview_live_broad_fallback_denial_count`
 - every denied workflow foundation request must increment
   `preview_workflow_foundation_denial_count`
 - every denied broad fallback must increment
@@ -1025,10 +1136,10 @@ Minimum certification rows should include:
 - `preview-lifecycle-explicitness`
 - `preview-promotion-comparison-parity`
 - `preview-lifecycle-no-rediscovery`
+- `preview-live-admission-parity`
+- `preview-live-drift-explicitness`
 - `preview-comparison-shape-proof-width`
 - `preview-shape-incompatibility-denied`
-- `preview-live-lifecycle-drift-denied` where preview-bound live reuse is
-  admitted
 - `preview-workflow-foundation-admission`
 - `preview-workflow-foundation-no-rescan`
 - `preview-work-avoided-counter-parity`
@@ -1038,6 +1149,8 @@ Minimum rejection rows should include:
 - `unsupported-preview-family`
 - `invalid-preview-basis`
 - `stale-preview-lifecycle-denied`
+- `preview-live-drift-denied`
+- `preview-live-broad-fallback-forbidden`
 - `unsupported-preview-promotion-comparison`
 - `promotion-eligibility-bool-forbidden`
 - `preview-shape-mismatch-denied`
@@ -1053,6 +1166,9 @@ Minimum rejection rows should include:
   admitted families are fully parity-proven
 - richer preview comparison families may remain `Debt` if admitted comparison
   semantics are closed, explicit, and certified
+- some preview-live family combinations may remain `Debt` if the admitted
+  preview-live families already have explicit drift denial, explicit rebind
+  semantics, and machine-checkable proof
 - broader workflow foundation declarations may remain `Debt` if the shipped
   preview/compare foundation boundary is explicit and certified
 - durable preview replay reload and persisted workflow artifacts may remain
@@ -1072,6 +1188,8 @@ Milestone 5.2 is complete only when `forge-query` can prove:
 - preview-bound results preserve canonical query meaning apart from the
   declared preview basis
 - preview-versus-promoted comparison remains query-native, typed, and explicit
+- preview-live maintenance, denial, and explicit rebind remain basis-explicit
+  and never silently retarget to authoritative live truth
 - unsupported preview-session query combinations fail typed and early
 - branch-workflow foundation artifacts remain authority-preserving and do not
   imply unshipped merge/writeback semantics

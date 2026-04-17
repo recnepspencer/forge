@@ -2,7 +2,8 @@
 
 use crate::basis::ExecutionPreflightBundle;
 use crate::collection::CollectionResultFamily;
-use crate::identity::{hash_parts, BasisDigest, PlanDigest, ValidatedQueryDigest};
+use crate::execution::{ExecutionCounters, ExecutionResultEnvelope};
+use crate::identity::{hash_parts, BasisDigest, PlanDigest, ResultDigest, ValidatedQueryDigest};
 use crate::live::{LiveQueryFamily, LiveQueryPlan};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -466,6 +467,541 @@ impl FrontierRouteCounters {
     }
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FrontierCounterSnapshot {
+    frontier_lookup_count: usize,
+    frontier_prediction_count: usize,
+    frontier_predicted_breadth: usize,
+    frontier_realized_breadth: usize,
+    parallel_admission_route_count: usize,
+    parallel_admission_batch_count: usize,
+    parallel_admission_denial_count: usize,
+    serial_fallback_plan_count: usize,
+    serial_fallback_execution_count: usize,
+    bundle_parallel_route_count: usize,
+    bundle_serial_route_count: usize,
+    mixed_basis_bundle_denial_count: usize,
+    packet_merge_width: usize,
+    packet_merge_reduction_count: usize,
+    frontier_prediction_drift_count: usize,
+    executor_parallel_rediscovery_count: usize,
+    work_avoided_by_parallel_admission_count: usize,
+    work_preserved_by_serial_fallback_count: usize,
+}
+
+impl FrontierCounterSnapshot {
+    pub(crate) fn serial_control(
+        planning: &FrontierPlanningCounters,
+        execution: &ExecutionCounters,
+    ) -> Self {
+        Self {
+            frontier_lookup_count: planning.frontier_planning_invocation_count(),
+            frontier_prediction_count: planning.frontier_planning_invocation_count(),
+            frontier_predicted_breadth: planning.predicted_breadth(),
+            frontier_realized_breadth: execution.execution_records_examined_count(),
+            parallel_admission_route_count: 0,
+            parallel_admission_batch_count: 0,
+            parallel_admission_denial_count: 0,
+            serial_fallback_plan_count: 0,
+            serial_fallback_execution_count: 0,
+            bundle_parallel_route_count: 0,
+            bundle_serial_route_count: 0,
+            mixed_basis_bundle_denial_count: planning.mixed_basis_denial_count(),
+            packet_merge_width: planning.planned_packet_merge_boundary_count(),
+            packet_merge_reduction_count: planning.planned_packet_merge_boundary_count(),
+            frontier_prediction_drift_count: 0,
+            executor_parallel_rediscovery_count: execution.executor_semantic_rediscovery_count(),
+            work_avoided_by_parallel_admission_count: 0,
+            work_preserved_by_serial_fallback_count: 0,
+        }
+    }
+
+    pub(crate) fn parallel_admission(
+        planning: &FrontierPlanningCounters,
+        route: &FrontierRouteCounters,
+        execution: &ExecutionCounters,
+    ) -> Self {
+        Self {
+            frontier_lookup_count: planning.frontier_planning_invocation_count(),
+            frontier_prediction_count: planning.frontier_planning_invocation_count(),
+            frontier_predicted_breadth: planning.predicted_breadth(),
+            frontier_realized_breadth: execution.execution_records_examined_count(),
+            parallel_admission_route_count: route.route_parallel_admission_count(),
+            parallel_admission_batch_count: usize::from(route.route_parallel_admission_count() > 0),
+            parallel_admission_denial_count: 0,
+            serial_fallback_plan_count: route.route_serial_fallback_count(),
+            serial_fallback_execution_count: 0,
+            bundle_parallel_route_count: 0,
+            bundle_serial_route_count: 0,
+            mixed_basis_bundle_denial_count: planning.mixed_basis_denial_count(),
+            packet_merge_width: planning.planned_packet_merge_boundary_count(),
+            packet_merge_reduction_count: planning.planned_packet_merge_boundary_count(),
+            frontier_prediction_drift_count: route.route_prediction_drift_count(),
+            executor_parallel_rediscovery_count: execution.executor_semantic_rediscovery_count(),
+            work_avoided_by_parallel_admission_count: planning
+                .predicted_breadth()
+                .saturating_sub(1),
+            work_preserved_by_serial_fallback_count: 0,
+        }
+    }
+
+    pub(crate) fn serial_fallback(
+        planning: &FrontierPlanningCounters,
+        route: &FrontierRouteCounters,
+        execution: &ExecutionCounters,
+    ) -> Self {
+        Self {
+            frontier_lookup_count: planning.frontier_planning_invocation_count(),
+            frontier_prediction_count: planning.frontier_planning_invocation_count(),
+            frontier_predicted_breadth: planning.predicted_breadth(),
+            frontier_realized_breadth: execution.execution_records_examined_count(),
+            parallel_admission_route_count: route.route_parallel_admission_count(),
+            parallel_admission_batch_count: 0,
+            parallel_admission_denial_count: 0,
+            serial_fallback_plan_count: route.route_serial_fallback_count(),
+            serial_fallback_execution_count: usize::from(route.route_serial_fallback_count() > 0),
+            bundle_parallel_route_count: 0,
+            bundle_serial_route_count: 0,
+            mixed_basis_bundle_denial_count: planning.mixed_basis_denial_count(),
+            packet_merge_width: planning.planned_packet_merge_boundary_count(),
+            packet_merge_reduction_count: planning.planned_packet_merge_boundary_count(),
+            frontier_prediction_drift_count: route.route_prediction_drift_count(),
+            executor_parallel_rediscovery_count: execution.executor_semantic_rediscovery_count(),
+            work_avoided_by_parallel_admission_count: 0,
+            work_preserved_by_serial_fallback_count: execution
+                .execution_records_examined_count()
+                .max(1),
+        }
+    }
+
+    pub(crate) fn serial_fallback_bundle(
+        planning: &FrontierPlanningCounters,
+        route: &FrontierRouteCounters,
+        execution: &ExecutionCounters,
+        bundle_serial_route_count: usize,
+    ) -> Self {
+        let mut snapshot = Self::serial_fallback(planning, route, execution);
+        snapshot.bundle_serial_route_count = bundle_serial_route_count;
+        snapshot
+    }
+
+    pub(crate) fn parallel_admission_bundle(
+        planning: &FrontierPlanningCounters,
+        route: &FrontierRouteCounters,
+        execution: &ExecutionCounters,
+        bundle_parallel_route_count: usize,
+    ) -> Self {
+        let mut snapshot = Self::parallel_admission(planning, route, execution);
+        snapshot.bundle_parallel_route_count = bundle_parallel_route_count;
+        snapshot
+    }
+
+    pub(crate) fn parallel_admission_denial() -> Self {
+        Self {
+            frontier_lookup_count: 1,
+            parallel_admission_denial_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn mixed_basis_bundle_denial() -> Self {
+        Self {
+            frontier_lookup_count: 1,
+            mixed_basis_bundle_denial_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn compile_fail() -> Self {
+        Self {
+            frontier_lookup_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn absorb(&mut self, other: &Self) {
+        self.frontier_lookup_count += other.frontier_lookup_count;
+        self.frontier_prediction_count += other.frontier_prediction_count;
+        self.frontier_predicted_breadth += other.frontier_predicted_breadth;
+        self.frontier_realized_breadth += other.frontier_realized_breadth;
+        self.parallel_admission_route_count += other.parallel_admission_route_count;
+        self.parallel_admission_batch_count += other.parallel_admission_batch_count;
+        self.parallel_admission_denial_count += other.parallel_admission_denial_count;
+        self.serial_fallback_plan_count += other.serial_fallback_plan_count;
+        self.serial_fallback_execution_count += other.serial_fallback_execution_count;
+        self.bundle_parallel_route_count += other.bundle_parallel_route_count;
+        self.bundle_serial_route_count += other.bundle_serial_route_count;
+        self.mixed_basis_bundle_denial_count += other.mixed_basis_bundle_denial_count;
+        self.packet_merge_width += other.packet_merge_width;
+        self.packet_merge_reduction_count += other.packet_merge_reduction_count;
+        self.frontier_prediction_drift_count += other.frontier_prediction_drift_count;
+        self.executor_parallel_rediscovery_count += other.executor_parallel_rediscovery_count;
+        self.work_avoided_by_parallel_admission_count +=
+            other.work_avoided_by_parallel_admission_count;
+        self.work_preserved_by_serial_fallback_count +=
+            other.work_preserved_by_serial_fallback_count;
+    }
+
+    pub(crate) fn digest_parts(&self, label: &str) -> Vec<String> {
+        vec![
+            format!(
+                "{label}.frontier_lookup_count:{}",
+                self.frontier_lookup_count
+            ),
+            format!(
+                "{label}.frontier_prediction_count:{}",
+                self.frontier_prediction_count
+            ),
+            format!(
+                "{label}.frontier_predicted_breadth:{}",
+                self.frontier_predicted_breadth
+            ),
+            format!(
+                "{label}.frontier_realized_breadth:{}",
+                self.frontier_realized_breadth
+            ),
+            format!(
+                "{label}.parallel_admission_route_count:{}",
+                self.parallel_admission_route_count
+            ),
+            format!(
+                "{label}.parallel_admission_batch_count:{}",
+                self.parallel_admission_batch_count
+            ),
+            format!(
+                "{label}.parallel_admission_denial_count:{}",
+                self.parallel_admission_denial_count
+            ),
+            format!(
+                "{label}.serial_fallback_plan_count:{}",
+                self.serial_fallback_plan_count
+            ),
+            format!(
+                "{label}.serial_fallback_execution_count:{}",
+                self.serial_fallback_execution_count
+            ),
+            format!(
+                "{label}.bundle_parallel_route_count:{}",
+                self.bundle_parallel_route_count
+            ),
+            format!(
+                "{label}.bundle_serial_route_count:{}",
+                self.bundle_serial_route_count
+            ),
+            format!(
+                "{label}.mixed_basis_bundle_denial_count:{}",
+                self.mixed_basis_bundle_denial_count
+            ),
+            format!("{label}.packet_merge_width:{}", self.packet_merge_width),
+            format!(
+                "{label}.packet_merge_reduction_count:{}",
+                self.packet_merge_reduction_count
+            ),
+            format!(
+                "{label}.frontier_prediction_drift_count:{}",
+                self.frontier_prediction_drift_count
+            ),
+            format!(
+                "{label}.executor_parallel_rediscovery_count:{}",
+                self.executor_parallel_rediscovery_count
+            ),
+            format!(
+                "{label}.work_avoided_by_parallel_admission_count:{}",
+                self.work_avoided_by_parallel_admission_count
+            ),
+            format!(
+                "{label}.work_preserved_by_serial_fallback_count:{}",
+                self.work_preserved_by_serial_fallback_count
+            ),
+        ]
+    }
+
+    pub fn executor_parallel_rediscovery_count(&self) -> usize {
+        self.executor_parallel_rediscovery_count
+    }
+
+    pub fn frontier_lookup_count(&self) -> usize {
+        self.frontier_lookup_count
+    }
+
+    pub fn frontier_prediction_count(&self) -> usize {
+        self.frontier_prediction_count
+    }
+
+    pub fn frontier_predicted_breadth(&self) -> usize {
+        self.frontier_predicted_breadth
+    }
+
+    pub fn frontier_realized_breadth(&self) -> usize {
+        self.frontier_realized_breadth
+    }
+
+    pub fn parallel_admission_route_count(&self) -> usize {
+        self.parallel_admission_route_count
+    }
+
+    pub fn parallel_admission_batch_count(&self) -> usize {
+        self.parallel_admission_batch_count
+    }
+
+    pub fn parallel_admission_denial_count(&self) -> usize {
+        self.parallel_admission_denial_count
+    }
+
+    pub fn serial_fallback_plan_count(&self) -> usize {
+        self.serial_fallback_plan_count
+    }
+
+    pub fn serial_fallback_execution_count(&self) -> usize {
+        self.serial_fallback_execution_count
+    }
+
+    pub fn bundle_parallel_route_count(&self) -> usize {
+        self.bundle_parallel_route_count
+    }
+
+    pub fn bundle_serial_route_count(&self) -> usize {
+        self.bundle_serial_route_count
+    }
+
+    pub fn mixed_basis_bundle_denial_count(&self) -> usize {
+        self.mixed_basis_bundle_denial_count
+    }
+
+    pub fn packet_merge_width(&self) -> usize {
+        self.packet_merge_width
+    }
+
+    pub fn packet_merge_reduction_count(&self) -> usize {
+        self.packet_merge_reduction_count
+    }
+
+    pub fn frontier_prediction_drift_count(&self) -> usize {
+        self.frontier_prediction_drift_count
+    }
+
+    pub fn work_avoided_by_parallel_admission_count(&self) -> usize {
+        self.work_avoided_by_parallel_admission_count
+    }
+
+    pub fn work_preserved_by_serial_fallback_count(&self) -> usize {
+        self.work_preserved_by_serial_fallback_count
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum PlannedRouteFamily {
+    FrontierSerialControl,
+    FrontierParallelAdmitted,
+    FrontierParallelAdmittedBundle,
+    FrontierSerialFallback,
+    FrontierSerialFallbackBundle,
+}
+
+impl PlannedRouteFamily {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::FrontierSerialControl => "frontier_serial_control",
+            Self::FrontierParallelAdmitted => "frontier_parallel_admitted",
+            Self::FrontierParallelAdmittedBundle => "frontier_parallel_admitted_bundle",
+            Self::FrontierSerialFallback => "frontier_serial_fallback",
+            Self::FrontierSerialFallbackBundle => "frontier_serial_fallback_bundle",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FrontierParityBundleError {
+    BundleRouteIndexOutOfRange {
+        route_count: usize,
+        route_index: usize,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FrontierParityBundle {
+    query_digest: ValidatedQueryDigest,
+    plan_digest: PlanDigest,
+    result_digest: ResultDigest,
+    basis_digest: String,
+    route_family: PlannedRouteFamily,
+    route_posture_digest: FrontierPostureDigest,
+    predicted_breadth: FrontierBreadthPrediction,
+    realized_breadth: usize,
+    counter_snapshot: FrontierCounterSnapshot,
+}
+
+impl FrontierParityBundle {
+    pub fn query_digest(&self) -> &ValidatedQueryDigest {
+        &self.query_digest
+    }
+
+    pub fn plan_digest(&self) -> &PlanDigest {
+        &self.plan_digest
+    }
+
+    pub fn result_digest(&self) -> &ResultDigest {
+        &self.result_digest
+    }
+
+    pub fn basis_digest(&self) -> &str {
+        &self.basis_digest
+    }
+
+    pub fn route_family(&self) -> &PlannedRouteFamily {
+        &self.route_family
+    }
+
+    pub fn route_posture_digest(&self) -> &FrontierPostureDigest {
+        &self.route_posture_digest
+    }
+
+    pub fn predicted_breadth(&self) -> &FrontierBreadthPrediction {
+        &self.predicted_breadth
+    }
+
+    pub fn realized_breadth(&self) -> usize {
+        self.realized_breadth
+    }
+
+    pub fn counter_snapshot(&self) -> &FrontierCounterSnapshot {
+        &self.counter_snapshot
+    }
+
+    pub fn from_serial_control(
+        frontier_plan: &FrontierAwarePlan,
+        preflight: &ExecutionPreflightBundle,
+        execution: &ExecutionResultEnvelope,
+    ) -> Self {
+        Self {
+            query_digest: frontier_plan.query_digest().clone(),
+            plan_digest: frontier_plan.source_plan_digest().clone(),
+            result_digest: execution.report().result_digest().clone(),
+            basis_digest: preflight.basis().proof().digest().as_str().to_string(),
+            route_family: PlannedRouteFamily::FrontierSerialControl,
+            route_posture_digest: frontier_plan.report().posture_digest().clone(),
+            predicted_breadth: frontier_plan.predicted_breadth().clone(),
+            realized_breadth: execution.counters().execution_records_examined_count(),
+            counter_snapshot: FrontierCounterSnapshot::serial_control(
+                frontier_plan.counters(),
+                execution.counters(),
+            ),
+        }
+    }
+
+    pub fn from_parallel_admission(
+        route: &ParallelAdmissionRoute,
+        execution: &ExecutionResultEnvelope,
+    ) -> Self {
+        Self {
+            query_digest: route.query_digest().clone(),
+            plan_digest: route.source_plan_digest().clone(),
+            result_digest: execution.report().result_digest().clone(),
+            basis_digest: route
+                .preflight()
+                .basis()
+                .proof()
+                .digest()
+                .as_str()
+                .to_string(),
+            route_family: PlannedRouteFamily::FrontierParallelAdmitted,
+            route_posture_digest: route.posture_digest().clone(),
+            predicted_breadth: route.decision().predicted_breadth().clone(),
+            realized_breadth: execution.counters().execution_records_examined_count(),
+            counter_snapshot: FrontierCounterSnapshot::parallel_admission(
+                route.planning_counters(),
+                route.counters(),
+                execution.counters(),
+            ),
+        }
+    }
+
+    pub fn from_parallel_admission_bundle(
+        bundle: &ParallelAdmissionRouteSet,
+        route_index: usize,
+        execution: &ExecutionResultEnvelope,
+    ) -> Result<Self, FrontierParityBundleError> {
+        let route = bundle.routes().get(route_index).ok_or(
+            FrontierParityBundleError::BundleRouteIndexOutOfRange {
+                route_count: bundle.routes().len(),
+                route_index,
+            },
+        )?;
+        Ok(Self {
+            query_digest: route.query_digest().clone(),
+            plan_digest: route.source_plan_digest().clone(),
+            result_digest: execution.report().result_digest().clone(),
+            basis_digest: bundle.bundle_basis_digest().to_string(),
+            route_family: PlannedRouteFamily::FrontierParallelAdmittedBundle,
+            route_posture_digest: bundle.bundle_posture_digest().clone(),
+            predicted_breadth: route.decision().predicted_breadth().clone(),
+            realized_breadth: execution.counters().execution_records_examined_count(),
+            counter_snapshot: FrontierCounterSnapshot::parallel_admission_bundle(
+                bundle.planning_counters(),
+                route.counters(),
+                execution.counters(),
+                bundle.routes().len(),
+            ),
+        })
+    }
+
+    pub fn from_serial_fallback(
+        route: &SerialFallbackRoute,
+        execution: &ExecutionResultEnvelope,
+    ) -> Self {
+        Self {
+            query_digest: route.query_digest().clone(),
+            plan_digest: route.source_plan_digest().clone(),
+            result_digest: execution.report().result_digest().clone(),
+            basis_digest: route
+                .preflight()
+                .basis()
+                .proof()
+                .digest()
+                .as_str()
+                .to_string(),
+            route_family: PlannedRouteFamily::FrontierSerialFallback,
+            route_posture_digest: route.posture_digest().clone(),
+            predicted_breadth: route.report().predicted_breadth().clone(),
+            realized_breadth: execution.counters().execution_records_examined_count(),
+            counter_snapshot: FrontierCounterSnapshot::serial_fallback(
+                route.planning_counters(),
+                route.counters(),
+                execution.counters(),
+            ),
+        }
+    }
+
+    pub fn from_serial_fallback_bundle(
+        bundle: &SerialFallbackBundleRoutes,
+        route_index: usize,
+        execution: &ExecutionResultEnvelope,
+    ) -> Result<Self, FrontierParityBundleError> {
+        let route = bundle.routes().get(route_index).ok_or(
+            FrontierParityBundleError::BundleRouteIndexOutOfRange {
+                route_count: bundle.routes().len(),
+                route_index,
+            },
+        )?;
+        Ok(Self {
+            query_digest: route.query_digest().clone(),
+            plan_digest: route.source_plan_digest().clone(),
+            result_digest: execution.report().result_digest().clone(),
+            basis_digest: bundle.bundle_basis_digest().to_string(),
+            route_family: PlannedRouteFamily::FrontierSerialFallbackBundle,
+            route_posture_digest: bundle.bundle_posture_digest().clone(),
+            predicted_breadth: route.report().predicted_breadth().clone(),
+            realized_breadth: execution.counters().execution_records_examined_count(),
+            counter_snapshot: FrontierCounterSnapshot::serial_fallback_bundle(
+                bundle.planning_counters(),
+                route.counters(),
+                execution.counters(),
+                bundle.routes().len(),
+            ),
+        })
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FrontierPlanningReport {
     posture_digest: FrontierPostureDigest,
@@ -898,8 +1434,36 @@ impl ParallelAdmissionEvidence {
             .expect("parallel admission evidence must carry disjointness proof")
     }
 
-    pub(crate) fn new(route_evidence: FrontierRouteEvidence) -> Self {
-        Self { route_evidence }
+    pub(crate) fn from_surface(
+        basis_digest: impl Into<String>,
+        surface_digest: FrontierSurfaceDigest,
+        disjointness_class: FrontierDisjointnessClass,
+    ) -> Self {
+        Self {
+            route_evidence: FrontierRouteEvidence::parallel_admission(
+                basis_digest.into(),
+                surface_digest,
+                disjointness_class,
+            ),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn from_surface_with_drift_for_test(
+        basis_digest: impl Into<String>,
+        surface_digest: FrontierSurfaceDigest,
+        disjointness_class: FrontierDisjointnessClass,
+        drift_outcome: FrontierPredictionDriftOutcome,
+    ) -> Self {
+        Self {
+            route_evidence: FrontierRouteEvidence {
+                basis_digest: basis_digest.into(),
+                surface_digest,
+                drift_outcome,
+                disjointness_class: Some(disjointness_class),
+                serial_fallback_reason: None,
+            },
+        }
     }
 
     fn route_evidence(&self) -> &FrontierRouteEvidence {
@@ -912,6 +1476,61 @@ impl ParallelAdmissionEvidence {
         frontier_plan: &FrontierAwarePlan,
     ) -> FrontierPostureDigest {
         self.route_evidence.route_posture_digest(frontier_plan)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParallelAdmissionBundleEvidence {
+    basis_digest: String,
+    bundle_surface_digest: FrontierSurfaceDigest,
+    route_evidences: Vec<ParallelAdmissionEvidence>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum ParallelAdmissionBundleEvidenceError {
+    EmptyRouteEvidence,
+    MixedBasisDigest {
+        expected_basis_digest: String,
+        found_basis_digest: String,
+    },
+}
+
+impl ParallelAdmissionBundleEvidence {
+    pub(crate) fn from_routes(
+        bundle_surface_digest: FrontierSurfaceDigest,
+        route_evidences: Vec<ParallelAdmissionEvidence>,
+    ) -> Result<Self, ParallelAdmissionBundleEvidenceError> {
+        let first = route_evidences
+            .first()
+            .ok_or(ParallelAdmissionBundleEvidenceError::EmptyRouteEvidence)?;
+        let expected_basis_digest = first.basis_digest().to_string();
+        for route in route_evidences.iter().skip(1) {
+            let found_basis_digest = route.basis_digest();
+            if found_basis_digest != expected_basis_digest {
+                return Err(ParallelAdmissionBundleEvidenceError::MixedBasisDigest {
+                    expected_basis_digest,
+                    found_basis_digest: found_basis_digest.to_string(),
+                });
+            }
+        }
+
+        Ok(Self {
+            basis_digest: expected_basis_digest,
+            bundle_surface_digest,
+            route_evidences,
+        })
+    }
+
+    pub fn basis_digest(&self) -> &str {
+        &self.basis_digest
+    }
+
+    pub fn bundle_surface_digest(&self) -> &FrontierSurfaceDigest {
+        &self.bundle_surface_digest
+    }
+
+    pub fn route_evidences(&self) -> &[ParallelAdmissionEvidence] {
+        &self.route_evidences
     }
 }
 
@@ -939,8 +1558,20 @@ impl SerialFallbackEvidence {
             .expect("serial fallback evidence must carry fallback reason")
     }
 
-    pub(crate) fn new(route_evidence: FrontierRouteEvidence) -> Self {
-        Self { route_evidence }
+    pub(crate) fn from_surface(
+        basis_digest: impl Into<String>,
+        surface_digest: FrontierSurfaceDigest,
+        reason: SerialFallbackReason,
+        drift_outcome: FrontierPredictionDriftOutcome,
+    ) -> Self {
+        Self {
+            route_evidence: FrontierRouteEvidence::serial_fallback(
+                basis_digest.into(),
+                surface_digest,
+                reason,
+                drift_outcome,
+            ),
+        }
     }
 
     fn route_evidence(&self) -> &FrontierRouteEvidence {
@@ -955,17 +1586,39 @@ pub struct SerialFallbackBundleEvidence {
     route_evidences: Vec<SerialFallbackEvidence>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum SerialFallbackBundleEvidenceError {
+    EmptyRouteEvidence,
+    MixedBasisDigest {
+        expected_basis_digest: String,
+        found_basis_digest: String,
+    },
+}
+
 impl SerialFallbackBundleEvidence {
-    pub(crate) fn new(
-        basis_digest: String,
+    pub(crate) fn from_routes(
         bundle_surface_digest: FrontierSurfaceDigest,
         route_evidences: Vec<SerialFallbackEvidence>,
-    ) -> Self {
-        Self {
-            basis_digest,
+    ) -> Result<Self, SerialFallbackBundleEvidenceError> {
+        let first = route_evidences
+            .first()
+            .ok_or(SerialFallbackBundleEvidenceError::EmptyRouteEvidence)?;
+        let expected_basis_digest = first.basis_digest().to_string();
+        for route in route_evidences.iter().skip(1) {
+            let found_basis_digest = route.basis_digest();
+            if found_basis_digest != expected_basis_digest {
+                return Err(SerialFallbackBundleEvidenceError::MixedBasisDigest {
+                    expected_basis_digest,
+                    found_basis_digest: found_basis_digest.to_string(),
+                });
+            }
+        }
+
+        Ok(Self {
+            basis_digest: expected_basis_digest,
             bundle_surface_digest,
             route_evidences,
-        }
+        })
     }
 
     pub fn basis_digest(&self) -> &str {
@@ -1024,6 +1677,7 @@ pub struct ParallelAdmissionRoute {
     frontier_plan: FrontierAwarePlan,
     decision: ParallelAdmissionDecision,
     report: FrontierRouteReport,
+    planning_counters: FrontierPlanningCounters,
     counters: FrontierRouteCounters,
     route_posture_digest: FrontierPostureDigest,
 }
@@ -1047,6 +1701,10 @@ impl ParallelAdmissionRoute {
 
     pub fn report(&self) -> &FrontierRouteReport {
         &self.report
+    }
+
+    pub(crate) fn planning_counters(&self) -> &FrontierPlanningCounters {
+        &self.planning_counters
     }
 
     pub fn counters(&self) -> &FrontierRouteCounters {
@@ -1073,6 +1731,7 @@ impl ParallelAdmissionRoute {
         let counters = FrontierRouteCounters::parallel(route_evidence.drift_outcome());
         Self {
             preflight,
+            planning_counters: frontier_plan.counters().clone(),
             frontier_plan,
             decision,
             report,
@@ -1088,6 +1747,7 @@ pub struct SerialFallbackRoute {
     frontier_plan: FrontierAwarePlan,
     reason: SerialFallbackReason,
     report: FrontierRouteReport,
+    planning_counters: FrontierPlanningCounters,
     counters: FrontierRouteCounters,
     route_posture_digest: FrontierPostureDigest,
 }
@@ -1111,6 +1771,10 @@ impl SerialFallbackRoute {
 
     pub fn report(&self) -> &FrontierRouteReport {
         &self.report
+    }
+
+    pub(crate) fn planning_counters(&self) -> &FrontierPlanningCounters {
+        &self.planning_counters
     }
 
     pub fn counters(&self) -> &FrontierRouteCounters {
@@ -1138,6 +1802,7 @@ impl SerialFallbackRoute {
         let counters = FrontierRouteCounters::serial(route_evidence.drift_outcome());
         Self {
             preflight,
+            planning_counters: frontier_plan.counters().clone(),
             frontier_plan,
             reason,
             report,
@@ -1151,6 +1816,7 @@ impl SerialFallbackRoute {
 pub struct SerialFallbackBundleRoutes {
     bundle_basis_digest: BundleResolvedBasisDigest,
     bundle_posture_digest: FrontierPostureDigest,
+    planning_counters: FrontierPlanningCounters,
     routes: Vec<SerialFallbackRoute>,
 }
 
@@ -1167,8 +1833,13 @@ impl SerialFallbackBundleRoutes {
         &self.routes
     }
 
+    pub(crate) fn planning_counters(&self) -> &FrontierPlanningCounters {
+        &self.planning_counters
+    }
+
     fn new(
         bundle_basis_digest: BundleResolvedBasisDigest,
+        planning_counters: FrontierPlanningCounters,
         bundle_evidence: &SerialFallbackBundleEvidence,
         routes: Vec<SerialFallbackRoute>,
     ) -> Self {
@@ -1188,6 +1859,60 @@ impl SerialFallbackBundleRoutes {
         Self {
             bundle_basis_digest,
             bundle_posture_digest: FrontierPostureDigest::from_parts(&parts),
+            planning_counters,
+            routes,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParallelAdmissionRouteSet {
+    bundle_basis_digest: BundleResolvedBasisDigest,
+    bundle_posture_digest: FrontierPostureDigest,
+    planning_counters: FrontierPlanningCounters,
+    routes: Vec<ParallelAdmissionRoute>,
+}
+
+impl ParallelAdmissionRouteSet {
+    pub fn bundle_basis_digest(&self) -> &str {
+        self.bundle_basis_digest.as_str()
+    }
+
+    pub fn bundle_posture_digest(&self) -> &FrontierPostureDigest {
+        &self.bundle_posture_digest
+    }
+
+    pub fn routes(&self) -> &[ParallelAdmissionRoute] {
+        &self.routes
+    }
+
+    pub(crate) fn planning_counters(&self) -> &FrontierPlanningCounters {
+        &self.planning_counters
+    }
+
+    fn new(
+        bundle_basis_digest: BundleResolvedBasisDigest,
+        planning_counters: FrontierPlanningCounters,
+        bundle_evidence: &ParallelAdmissionBundleEvidence,
+        routes: Vec<ParallelAdmissionRoute>,
+    ) -> Self {
+        let mut parts = vec![
+            format!("bundle_basis:{}", bundle_basis_digest.as_str()),
+            format!(
+                "bundle_surface:{}",
+                bundle_evidence.bundle_surface_digest().as_str()
+            ),
+        ];
+        for (index, route) in routes.iter().enumerate() {
+            parts.push(format!(
+                "route[{index}]:{}",
+                route.posture_digest().as_str()
+            ));
+        }
+        Self {
+            bundle_basis_digest,
+            bundle_posture_digest: FrontierPostureDigest::from_parts(&parts),
+            planning_counters,
             routes,
         }
     }
@@ -1198,6 +1923,9 @@ pub enum FrontierRoutePlanningError {
     UnsupportedFrontierFamily,
     ParallelAdmissionDenied {
         reason: SerialFallbackReason,
+        posture_digest: FrontierPostureDigest,
+    },
+    PredictionDriftDenied {
         posture_digest: FrontierPostureDigest,
     },
     SerialFallbackUnavailable {
@@ -1567,11 +2295,19 @@ pub fn lower_preflight_to_parallel_admission_route(
             posture_digest: route_evidence.route_posture_digest(&frontier_plan),
         });
     }
-    if route_evidence.drift_outcome != FrontierPredictionDriftOutcome::WithinBudget {
-        return Err(FrontierRoutePlanningError::ParallelAdmissionDenied {
-            reason: SerialFallbackReason::PredictionDriftRequiresSerialRoute,
-            posture_digest: route_evidence.route_posture_digest(&frontier_plan),
-        });
+    match route_evidence.drift_outcome() {
+        FrontierPredictionDriftOutcome::WithinBudget => {}
+        FrontierPredictionDriftOutcome::SerialFallbackRequired => {
+            return Err(FrontierRoutePlanningError::ParallelAdmissionDenied {
+                reason: SerialFallbackReason::PredictionDriftRequiresSerialRoute,
+                posture_digest: route_evidence.route_posture_digest(&frontier_plan),
+            });
+        }
+        FrontierPredictionDriftOutcome::DeniedByDrift => {
+            return Err(FrontierRoutePlanningError::PredictionDriftDenied {
+                posture_digest: route_evidence.route_posture_digest(&frontier_plan),
+            });
+        }
     }
     match frontier_plan.family() {
         FrontierPlanFamily::OrderedCollection => {
@@ -1611,6 +2347,11 @@ pub fn lower_preflight_to_serial_fallback_route(
             posture_digest: route_evidence.route_posture_digest(&frontier_plan),
         });
     }
+    if route_evidence.drift_outcome() == &FrontierPredictionDriftOutcome::DeniedByDrift {
+        return Err(FrontierRoutePlanningError::PredictionDriftDenied {
+            posture_digest: route_evidence.route_posture_digest(&frontier_plan),
+        });
+    }
     match frontier_plan.family() {
         FrontierPlanFamily::BoundedMaterialization => Ok(SerialFallbackRoute::new(
             preflight.clone(),
@@ -1625,6 +2366,69 @@ pub fn lower_preflight_to_serial_fallback_route(
         }
         _ => Err(FrontierRoutePlanningError::UnsupportedFrontierFamily),
     }
+}
+
+pub fn lower_preflight_bundle_to_parallel_admission_routes(
+    preflights: &[OrderedCollectionFrontierPreflight],
+    evidence: &ParallelAdmissionBundleEvidence,
+) -> Result<ParallelAdmissionRouteSet, FrontierBundleRoutePlanningError> {
+    if preflights.is_empty() {
+        return Err(FrontierBundleRoutePlanningError::UnsupportedBundleComposition);
+    }
+    if preflights.len() != evidence.route_evidences().len() {
+        return Err(FrontierBundleRoutePlanningError::EvidenceCountMismatch {
+            expected: preflights.len(),
+            found: evidence.route_evidences().len(),
+        });
+    }
+
+    let raw_preflights = preflights
+        .iter()
+        .map(|preflight| preflight.as_preflight().clone())
+        .map(FrontierPlanningInput::from)
+        .collect::<Vec<_>>();
+    let bundle_plan = lower_frontier_bundle(&raw_preflights).map_err(|error| match error {
+        FrontierPlanningError::UnsupportedFrontierFamily
+        | FrontierPlanningError::UnsupportedBundleComposition => {
+            FrontierBundleRoutePlanningError::UnsupportedBundleComposition
+        }
+        FrontierPlanningError::MixedBasisBundle {
+            expected_basis_digest,
+            found_basis_digest,
+        } => FrontierBundleRoutePlanningError::MixedBasisBundle {
+            expected_basis_digest: expected_basis_digest.as_str().to_string(),
+            found_basis_digest: found_basis_digest.as_str().to_string(),
+        },
+    })?;
+    if evidence.basis_digest() != bundle_plan.bundle_basis_digest().as_str() {
+        return Err(FrontierBundleRoutePlanningError::MixedBasisBundle {
+            expected_basis_digest: bundle_plan.bundle_basis_digest().as_str().to_string(),
+            found_basis_digest: evidence.basis_digest().to_string(),
+        });
+    }
+
+    let mut routes = Vec::with_capacity(preflights.len());
+    for (index, (preflight, route_evidence)) in preflights
+        .iter()
+        .zip(evidence.route_evidences().iter())
+        .enumerate()
+    {
+        let route = lower_preflight_to_parallel_admission_route(preflight, route_evidence)
+            .map_err(
+                |error| FrontierBundleRoutePlanningError::RoutePlanningFailed {
+                    route_index: index,
+                    error,
+                },
+            )?;
+        routes.push(route);
+    }
+
+    Ok(ParallelAdmissionRouteSet::new(
+        bundle_plan.bundle_basis_digest().clone(),
+        bundle_plan.counters().clone(),
+        evidence,
+        routes,
+    ))
 }
 
 pub fn lower_preflight_bundle_to_serial_fallback_routes(
@@ -1683,6 +2487,7 @@ pub fn lower_preflight_bundle_to_serial_fallback_routes(
 
     Ok(SerialFallbackBundleRoutes::new(
         bundle_plan.bundle_basis_digest().clone(),
+        bundle_plan.counters().clone(),
         evidence,
         routes,
     ))

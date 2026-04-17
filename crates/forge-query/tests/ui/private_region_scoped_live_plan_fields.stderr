@@ -9,18 +9,10 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot construct `RegionScopedLivePlan` with struct literal syntax due to private fields
- --> tests/ui/private_region_scoped_live_plan_fields.rs:4:13
+error[E0560]: struct `RegionScopedLivePlan` has no field named `locality_subscription_digest`
+ --> tests/ui/private_region_scoped_live_plan_fields.rs:8:9
   |
-4 |     let _ = RegionScopedLivePlan {
-  |             ^^^^^^^^^^^^^^^^^^^^
-5 |         live: todo!(),
-  |         ------------- private field
-6 |         locality: todo!(),
-  |         ----------------- private field
-7 |         admission_class: todo!(),
-  |         ------------------------ private field
 8 |         locality_subscription_digest: todo!(),
-  |         ------------------------------------- private field
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `RegionScopedLivePlan` does not have this field
   |
-  = note: ...and other private fields `locality_cost_posture`, `locality_breadth_budget`, `locality_widening_budget`, `stream_lowering_cost_posture` and `stream_member_width_budget` that were not provided
+  = note: all struct fields are already assigned

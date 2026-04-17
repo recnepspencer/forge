@@ -2,11 +2,14 @@ use super::harness::{
     corruption::{
         local_file::{
             force_bulk_checkpoint_completed_chunk_regression, force_bulk_checkpoint_gap,
+            force_bulk_plan_payload_chunk_width_drift,
+            force_frozen_transform_basis_payload_scope_drift,
             force_bulk_witness_index_highest_ordinal_regression,
             force_bulk_witness_index_witness_count_drift, force_bulk_witness_missing_commit,
         },
         sqlite::{
             delete_sqlite_bulk_checkpoint, drift_sqlite_bulk_witness_index_witness_count,
+            drift_sqlite_frozen_transform_partition_payload_member_width,
             regress_sqlite_bulk_checkpoint_completed_chunk,
             regress_sqlite_bulk_witness_index_highest_ordinal,
         },
@@ -17,8 +20,8 @@ use super::harness::{
     },
 };
 use crate::{
-    BulkIngestSourceRequest, BulkSourceMember, BulkTransformRequest, ChunkOrdinal,
-    ChunkWidthBudget, DurableRetryResolution, ForgeStoreBuilder, StoreErrorKind,
+    BulkCheckpointPolicy, BulkIngestSourceRequest, BulkSourceMember, BulkTransformRequest,
+    ChunkOrdinal, ChunkWidthBudget, DurableRetryResolution, ForgeStoreBuilder, StoreErrorKind,
 };
 use forge_relational::facade::history::{BranchId, CommitId};
 
@@ -54,17 +57,57 @@ fn persist_two_checkpoint_bulk_family(
     let request = store
         .admit_bulk_canonical_chunk_execution(admitted, first_envelope)
         .unwrap();
-    store.execute_bulk_canonical_chunk(request, true).unwrap();
+    store
+        .execute_bulk_canonical_chunk(request, BulkCheckpointPolicy::Publish)
+        .unwrap();
 
     let resumed = store
         .admit_bulk_ingest_resume(program_id, plan.plan_id(), manifest.manifest_digest())
         .unwrap();
     store
-        .execute_next_resumed_bulk_chunk(&resumed, 3, second_envelope, true)
+        .execute_next_resumed_bulk_chunk(
+            &resumed,
+            3,
+            second_envelope,
+            BulkCheckpointPolicy::Publish,
+        )
         .unwrap()
         .expect("second chunk should execute");
 
     (manifest, plan)
+}
+
+fn persist_transform_artifacts(
+    store: &mut crate::ForgeStore,
+    program_id: &str,
+    transform_identity: &str,
+) -> (
+    crate::FrozenTransformBasis,
+    crate::FrozenTransformTargetPartition,
+    crate::DeterministicChunkPlan,
+) {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, &format!("{program_id}-transform-authority"));
+    let envelope = latest_envelope(&runtime);
+    let request = BulkTransformRequest::new(
+        program_id,
+        transform_identity,
+        envelope.branch_context,
+        envelope.commit.commit_id,
+        vec![
+            BulkSourceMember::new("alpha", 1),
+            BulkSourceMember::new("beta", 2),
+            BulkSourceMember::new("gamma", 1),
+        ],
+    );
+    let basis = store.freeze_bulk_transform_basis(request.clone()).unwrap();
+    let partition = store
+        .freeze_bulk_transform_target_partition(request, &basis)
+        .unwrap();
+    let plan = store
+        .plan_bulk_transform(&basis, &partition, ChunkWidthBudget::new(3))
+        .unwrap();
+    (basis, partition, plan)
 }
 
 #[test]
@@ -318,7 +361,9 @@ fn bulk_witness_with_missing_canonical_commit_fails_reopen_closed() {
     let request = store
         .admit_bulk_canonical_chunk_execution(admitted, envelope.clone())
         .unwrap();
-    store.execute_bulk_canonical_chunk(request, true).unwrap();
+    store
+        .execute_bulk_canonical_chunk(request, BulkCheckpointPolicy::Publish)
+        .unwrap();
     drop(store);
 
     force_bulk_witness_missing_commit(&path, "program-witness-integrity", plan.plan_id(), 0);
@@ -523,6 +568,71 @@ fn bulk_witness_index_witness_count_drift_fails_sqlite_reopen_closed() {
 }
 
 #[test]
+fn frozen_transform_basis_payload_drift_fails_local_file_reopen_closed() {
+    let path = unique_test_store_path("forge-store-transform-basis-drift");
+    let mut store = ForgeStoreBuilder::new().local_file(path.clone()).build().unwrap();
+    let (basis, _partition, _plan) =
+        persist_transform_artifacts(&mut store, "program-transform-drift", "transform-drift");
+    drop(store);
+
+    force_frozen_transform_basis_payload_scope_drift(
+        &path,
+        "program-transform-drift",
+        basis.basis_digest(),
+    );
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("reopen should fail when a frozen transform basis payload drifts under a stale digest");
+    assert_eq!(error.kind(), &StoreErrorKind::BackendIntegrityViolation);
+}
+
+#[test]
+fn frozen_transform_partition_payload_drift_fails_sqlite_reopen_closed() {
+    let path = unique_test_sqlite_path("forge-store-transform-partition-drift-sqlite");
+    let mut store = ForgeStoreBuilder::new().sqlite_file(path.clone()).build().unwrap();
+    let (_basis, partition, _plan) = persist_transform_artifacts(
+        &mut store,
+        "program-transform-partition-drift",
+        "transform-partition-drift",
+    );
+    drop(store);
+
+    drift_sqlite_frozen_transform_partition_payload_member_width(
+        &path,
+        "program-transform-partition-drift",
+        partition.partition_digest(),
+    );
+
+    let error = ForgeStoreBuilder::new()
+        .sqlite_file(path)
+        .build()
+        .expect_err("reopen should fail when a frozen transform partition payload drifts under a stale digest");
+    assert_eq!(error.kind(), &StoreErrorKind::BackendIntegrityViolation);
+}
+
+#[test]
+fn bulk_plan_payload_drift_fails_local_file_reopen_closed() {
+    let path = unique_test_store_path("forge-store-bulk-plan-drift");
+    let mut store = ForgeStoreBuilder::new().local_file(path.clone()).build().unwrap();
+    let (_manifest, plan) = persist_two_checkpoint_bulk_family(
+        &mut store,
+        "program-plan-drift",
+        "source-plan-drift",
+    );
+    drop(store);
+
+    force_bulk_plan_payload_chunk_width_drift(&path, "program-plan-drift", plan.plan_id());
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("reopen should fail when a persisted bulk plan payload drifts under a stale plan id");
+    assert_eq!(error.kind(), &StoreErrorKind::BackendIntegrityViolation);
+}
+
+#[test]
 fn bulk_checkpoint_publication_rejects_non_advancing_duplicate_witness() {
     let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
     let mut runtime = runtime_with_demo_schema();
@@ -700,7 +810,9 @@ fn bulk_resume_ready_program_reports_completion_without_admitting_more_chunks() 
     let request = store
         .admit_bulk_canonical_chunk_execution(admitted, envelope)
         .unwrap();
-    store.execute_bulk_canonical_chunk(request, true).unwrap();
+    store
+        .execute_bulk_canonical_chunk(request, BulkCheckpointPolicy::Publish)
+        .unwrap();
 
     let resumed = store
         .admit_bulk_ingest_resume("program-complete", plan.plan_id(), manifest.manifest_digest())
@@ -742,7 +854,12 @@ fn bulk_execute_next_resumed_chunk_finalizes_witness_and_checkpoint() {
         .unwrap();
 
     let outcome = store
-        .execute_next_resumed_bulk_chunk(&resumed, 3, envelope.clone(), true)
+        .execute_next_resumed_bulk_chunk(
+            &resumed,
+            3,
+            envelope.clone(),
+            BulkCheckpointPolicy::Publish,
+        )
         .unwrap()
         .expect("not-started program should execute its first chunk");
 
@@ -797,7 +914,9 @@ fn bulk_execute_next_resumed_chunk_advances_checkpoint_sequence_for_started_prog
     let request = store
         .admit_bulk_canonical_chunk_execution(admitted, first_envelope)
         .unwrap();
-    store.execute_bulk_canonical_chunk(request, true).unwrap();
+    store
+        .execute_bulk_canonical_chunk(request, BulkCheckpointPolicy::Publish)
+        .unwrap();
 
     let resumed = store
         .admit_bulk_ingest_resume(
@@ -807,7 +926,12 @@ fn bulk_execute_next_resumed_chunk_advances_checkpoint_sequence_for_started_prog
         )
         .unwrap();
     let outcome = store
-        .execute_next_resumed_bulk_chunk(&resumed, 3, second_envelope, true)
+        .execute_next_resumed_bulk_chunk(
+            &resumed,
+            3,
+            second_envelope,
+            BulkCheckpointPolicy::Publish,
+        )
         .unwrap()
         .expect("partially completed program should execute next chunk");
 
@@ -852,7 +976,7 @@ fn bulk_execute_canonical_chunk_durably_records_wal_lifecycle_and_acknowledgment
         .unwrap();
 
     let durable = store
-        .execute_bulk_canonical_chunk_durably(request, true)
+        .execute_bulk_canonical_chunk_durably(request, BulkCheckpointPolicy::Publish)
         .unwrap();
 
     assert_eq!(
@@ -914,7 +1038,9 @@ fn bulk_execute_next_resumed_chunk_durably_advances_checkpoint_sequence() {
     let request = store
         .admit_bulk_canonical_chunk_execution(admitted, first_envelope)
         .unwrap();
-    store.execute_bulk_canonical_chunk(request, true).unwrap();
+    store
+        .execute_bulk_canonical_chunk(request, BulkCheckpointPolicy::Publish)
+        .unwrap();
 
     let resumed = store
         .admit_bulk_ingest_resume(
@@ -924,7 +1050,12 @@ fn bulk_execute_next_resumed_chunk_durably_advances_checkpoint_sequence() {
         )
         .unwrap();
     let durable = store
-        .execute_next_resumed_bulk_chunk_durably(&resumed, 3, second_envelope.clone(), true)
+        .execute_next_resumed_bulk_chunk_durably(
+            &resumed,
+            3,
+            second_envelope.clone(),
+            BulkCheckpointPolicy::Publish,
+        )
         .unwrap()
         .expect("partially completed program should durably execute next chunk");
 

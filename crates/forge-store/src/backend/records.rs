@@ -109,6 +109,8 @@ pub struct CommitSupportSummaryRecord {
     pub branch_id: BranchId,
     pub schema_support_artifact_id: Option<String>,
     pub lineage_support_artifact_id: Option<String>,
+    #[serde(default)]
+    pub milestone_6_published_layout_request_artifact_ids: Vec<String>,
     pub emitted_schema_artifact: bool,
     pub emitted_lineage_artifact: bool,
 }
@@ -274,6 +276,16 @@ pub struct Milestone6LayoutMaterializationRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Milestone6CommitCoupledLayoutSeedRecord {
+    pub artifact_id: String,
+    pub request: crate::AspectLayoutReadRequest,
+    pub layout_materialization_artifact_id: String,
+    pub authority_basis_commit_id: CommitId,
+    pub authority_basis_commit_digest: String,
+    pub authority_basis_commit_sequence: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Milestone6ScopeSliceMembershipRecord {
     pub artifact_id: String,
     pub branch_id: BranchId,
@@ -298,12 +310,10 @@ pub struct Milestone6ChunkMembershipRecord {
 pub struct Milestone6StructuralBlockRecord {
     pub artifact_id: String,
     pub structural_block_id: crate::StructuralBlockId,
-    pub branch_id: BranchId,
-    pub frontier_commit_id: CommitId,
     pub scope_class: String,
     pub equivalence_contract_version: crate::EquivalenceContractVersion,
     pub slice_ids: Vec<crate::AspectLayoutSliceId>,
-    pub layout_materialization_artifact_id: String,
+    pub supporting_layout_materialization_artifact_ids: Vec<String>,
 }
 
 impl Serialize for Milestone6LayoutMaterializationRecord {
@@ -339,6 +349,8 @@ struct PersistedMilestone6LayoutMaterialization {
     frozen_layout: PersistedChunkModelFrozenPhysicalLayout,
     milestone_7_reference: PersistedMilestone7IndependentLayoutReference,
     milestone_9_reference: PersistedMilestone9PhysicalChunkReference,
+    semantic_truth_digest: String,
+    authoritative_commit_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -412,6 +424,8 @@ impl From<&Milestone6LayoutMaterialization> for PersistedMilestone6LayoutMateria
             milestone_9_reference: PersistedMilestone9PhysicalChunkReference::from(
                 materialization.milestone_9_reference(),
             ),
+            semantic_truth_digest: materialization.semantic_truth_digest().to_string(),
+            authoritative_commit_count: materialization.authoritative_commit_count(),
         }
     }
 }
@@ -544,6 +558,8 @@ impl TryFrom<PersistedMilestone6LayoutMaterialization> for Milestone6LayoutMater
             frozen_layout,
             milestone_7_reference,
             milestone_9_reference,
+            materialization.semantic_truth_digest,
+            materialization.authoritative_commit_count,
         ))
     }
 }
@@ -644,6 +660,18 @@ fn validate_persisted_milestone_6_layout_materialization(
     if materialization.milestone_9_reference != expected_milestone_9_reference_persisted {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical Milestone 9 physical chunk reference for its frozen layout",
+            materialization.artifact_id
+        ));
+    }
+    if materialization.semantic_truth_digest.is_empty() {
+        return Err(format!(
+            "persisted milestone 6 materialization `{}` was missing semantic truth digest",
+            materialization.artifact_id
+        ));
+    }
+    if materialization.authoritative_commit_count == 0 {
+        return Err(format!(
+            "persisted milestone 6 materialization `{}` was missing authoritative commit count",
             materialization.artifact_id
         ));
     }
@@ -772,6 +800,9 @@ pub(crate) struct StoreState {
     #[serde(default)]
     pub milestone_6_layout_materialization_records:
         BTreeMap<String, Milestone6LayoutMaterializationRecord>,
+    #[serde(default)]
+    pub milestone_6_commit_coupled_layout_seed_records:
+        BTreeMap<String, Milestone6CommitCoupledLayoutSeedRecord>,
     #[serde(default)]
     pub milestone_6_scope_slice_membership_records:
         BTreeMap<String, Milestone6ScopeSliceMembershipRecord>,

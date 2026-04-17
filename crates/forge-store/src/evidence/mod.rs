@@ -7,6 +7,7 @@ mod milestone_4;
 mod milestone_5;
 mod milestone_6;
 mod milestone_7;
+mod milestone_9;
 
 pub(crate) use counters::StoreCounters;
 pub use counters::{CanonicalizationMetrics, StoreCounterSnapshot};
@@ -40,3 +41,4 @@ pub use milestone_7::{
     Milestone7CertificationBundle, Milestone7ComplexityPathStatus, Milestone7ComplexitySurface,
     Milestone7CounterContract, SupportDurabilityCertificationSummary,
 };
+pub use milestone_9::{Milestone9CertificationBundle, Milestone9CertificationSummary};

@@ -1,0 +1,20 @@
+warning: unreachable statement
+ --> tests/ui/preview_diagnostics_rescan_forbidden.rs:8:5
+  |
+7 |     let session: BridgePreviewSession<PreviewActive> = todo!();
+  |                                                        ------- any code following this expression is unreachable
+8 |     let execution_record = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0624]: method `with_replay_bundle` is private
+  --> tests/ui/preview_diagnostics_rescan_forbidden.rs:16:6
+   |
+16 |     .with_replay_bundle(&replay_bundle);
+   |      ^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/preview/mod.rs
+   |
+   |     pub(crate) fn with_replay_bundle(mut self, replay_bundle: &BridgePreviewReplayBundle) -> Self {
+   |     --------------------------------------------------------------------------------------------- private method defined here

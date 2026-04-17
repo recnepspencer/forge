@@ -152,6 +152,7 @@ impl StoreState {
             lineage_support_artifact_id: lineage_support_record
                 .as_ref()
                 .map(|record| record.artifact_id.clone()),
+            milestone_6_published_layout_request_artifact_ids: Vec::new(),
             emitted_schema_artifact: support_append_witness.emits_schema_support(),
             emitted_lineage_artifact: support_append_witness.emits_lineage_support(),
         };

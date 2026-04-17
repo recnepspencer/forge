@@ -1,6 +1,10 @@
 use crate::{
-    layout::stable_layout_digest, AdmittedAspectLayoutReadPlan, ChunkModelFrozenPhysicalLayout,
-    DedupAdmittedBlockReuse, Milestone6LayoutMaterialization,
+    layout::{
+        chunk_membership_artifact_id, layout_scope_membership_artifact_id, stable_layout_digest,
+        structural_block_artifact_id,
+    },
+    AdmittedAspectLayoutReadPlan, ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
+    Milestone6LayoutMaterialization,
     Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
 };
 use forge_relational::facade::history::{BranchId, CommitId};
@@ -72,8 +76,15 @@ pub struct Milestone6CounterContract {
     pub aspect_layout_slice_read_count: u64,
     pub aspect_layout_block_decode_count: u64,
     pub aspect_layout_control_replay_breadth: u64,
+    pub aspect_layout_whole_state_fallback_count: u64,
+    pub structural_block_lookup_count: u64,
     pub structural_block_reuse_admission_count: u64,
+    pub structural_block_reuse_hit_count: u64,
+    pub structural_block_reuse_miss_count: u64,
     pub chunk_model_freeze_count: u64,
+    pub physical_chunk_export_count: u64,
+    pub physical_chunk_width_count: u64,
+    pub physical_chunk_determinism_violation_count: u64,
     pub milestone_7_layout_reference_admission_count: u64,
     pub milestone_9_physical_chunk_reference_admission_count: u64,
 }
@@ -176,6 +187,7 @@ pub struct Milestone6CertificationSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Milestone6CertificationBundle {
     pub truth_digest: String,
+    pub artifact_digest: String,
     pub diagnostics_digest: String,
     pub certification_origin: Milestone6CertificationOrigin,
     pub layout_materialization_report: Option<Milestone6LayoutMaterializationReport>,
@@ -246,6 +258,19 @@ impl Milestone6CertificationBundle {
             layout_read_report: &layout_read_report,
             physical_layout_report: &physical_layout_report,
         });
+        let scope_membership_artifact_id = layout_scope_membership_artifact_id(plan.request())
+            .expect("admitted milestone 6 plan should always yield a scope membership artifact id");
+        let structural_block_artifact_id =
+            structural_block_artifact_id(reuse.structural_block_id()).to_string();
+        let chunk_membership_artifact_id = chunk_membership_artifact_id(frozen).to_string();
+        let artifact_digest = stable_layout_digest(&Milestone6ArtifactDigestBasis {
+            layout_materialization_artifact_id: layout_materialization_report
+                .as_ref()
+                .map(|report| report.artifact_id.as_str()),
+            scope_membership_artifact_id: &scope_membership_artifact_id,
+            structural_block_artifact_id: &structural_block_artifact_id,
+            chunk_membership_artifact_id: &chunk_membership_artifact_id,
+        });
         let counter_contract = Milestone6CounterContract {
             aspect_layout_plan_count: counter_snapshot.aspect_layout_plan_count,
             aspect_layout_admitted_count: counter_snapshot.aspect_layout_admitted_count,
@@ -255,9 +280,19 @@ impl Milestone6CertificationBundle {
             aspect_layout_block_decode_count: counter_snapshot.aspect_layout_block_decode_count,
             aspect_layout_control_replay_breadth: counter_snapshot
                 .aspect_layout_control_replay_breadth,
+            aspect_layout_whole_state_fallback_count: counter_snapshot
+                .aspect_layout_whole_state_fallback_count,
+            structural_block_lookup_count: counter_snapshot.structural_block_lookup_count,
             structural_block_reuse_admission_count: counter_snapshot
                 .structural_block_reuse_admission_count,
+            structural_block_reuse_hit_count: counter_snapshot.structural_block_reuse_hit_count,
+            structural_block_reuse_miss_count: counter_snapshot
+                .structural_block_reuse_miss_count,
             chunk_model_freeze_count: counter_snapshot.chunk_model_freeze_count,
+            physical_chunk_export_count: counter_snapshot.physical_chunk_export_count,
+            physical_chunk_width_count: counter_snapshot.physical_chunk_width_count,
+            physical_chunk_determinism_violation_count: counter_snapshot
+                .physical_chunk_determinism_violation_count,
             milestone_7_layout_reference_admission_count: counter_snapshot
                 .milestone_7_layout_reference_admission_count,
             milestone_9_physical_chunk_reference_admission_count: counter_snapshot
@@ -287,6 +322,7 @@ impl Milestone6CertificationBundle {
         });
         Self {
             truth_digest,
+            artifact_digest,
             diagnostics_digest,
             certification_origin,
             layout_materialization_report,
@@ -384,10 +420,12 @@ impl Milestone6ComplexitySurface {
                 && access_structure_verification.structural_block_reuse.verified_at_open
             {
                 Milestone6ComplexityPathStatus::verified(format!(
-                    "{}; {}; deterministic block id {}; {}",
+                    "{}; {}; semantic block id {}; supporting hits={}; supporting misses={}; {}",
                     access_structure_contract.structural_block_reuse.access_structure,
                     access_structure_contract.structural_block_reuse.guarantee,
                     physical_layout_report.structural_block_id,
+                    counter_contract.structural_block_reuse_hit_count,
+                    counter_contract.structural_block_reuse_miss_count,
                     access_structure_verification
                         .structural_block_reuse
                         .verification_basis
@@ -546,9 +584,9 @@ impl Milestone6AccessStructureContract {
             },
             structural_block_reuse: Milestone6AccessStructureClaim {
                 access_structure: format!(
-                    "{backend_label}: structural-block records keyed by structural block identity"
+                    "{backend_label}: semantic structural-block records keyed by cross-branch structural block identity"
                 ),
-                guarantee: "structural block reuse is durably certified through explicit Milestone 6 structural-block records carrying block identity, equivalence version, and slice membership".to_string(),
+                guarantee: "structural block reuse is durably certified through explicit semantic structural-block records carrying cross-branch block identity, equivalence version, canonical slice membership, and supporting layout publication references".to_string(),
             },
             chunk_model_freeze: Milestone6AccessStructureClaim {
                 access_structure: format!(
@@ -630,6 +668,14 @@ fn path_debt_reason(
 struct Milestone6TruthDigestBasis<'a> {
     layout_read_report: &'a Milestone6LayoutReadReport,
     physical_layout_report: &'a Milestone6PhysicalLayoutReport,
+}
+
+#[derive(Serialize)]
+struct Milestone6ArtifactDigestBasis<'a> {
+    layout_materialization_artifact_id: Option<&'a str>,
+    scope_membership_artifact_id: &'a str,
+    structural_block_artifact_id: &'a str,
+    chunk_membership_artifact_id: &'a str,
 }
 
 #[derive(Serialize)]

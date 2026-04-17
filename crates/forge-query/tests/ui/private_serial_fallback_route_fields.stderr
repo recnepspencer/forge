@@ -21,7 +21,7 @@ error: cannot construct `SerialFallbackRoute` with struct literal syntax due to 
 7 |         reason: todo!(),
   |         --------------- private field
   |
-  = note: ...and other private fields `report`, `counters` and `route_posture_digest` that were not provided
+  = note: ...and other private fields `report`, `planning_counters`, `counters` and `route_posture_digest` that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     let _ = SerialFallbackRoute {

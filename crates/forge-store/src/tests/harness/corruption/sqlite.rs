@@ -1,5 +1,42 @@
 use crate::bulk::compute_checkpoint_digest;
 
+pub fn simulate_legacy_milestone_6_commit_coupled_layout_seed_storage(path: &std::path::Path) {
+    let connection = rusqlite::Connection::open(path).expect("sqlite store should open");
+    connection
+        .execute(
+            "
+            CREATE TABLE IF NOT EXISTS milestone_6_published_layout_request_records (
+                artifact_id TEXT PRIMARY KEY,
+                branch_id TEXT NOT NULL,
+                frontier_commit_id TEXT NOT NULL,
+                scope_class TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            )
+            ",
+            [],
+        )
+        .expect("legacy milestone 6 seed table should exist");
+    connection
+        .execute(
+            "
+            INSERT OR REPLACE INTO milestone_6_published_layout_request_records(
+                artifact_id,
+                branch_id,
+                frontier_commit_id,
+                scope_class,
+                payload_json
+            )
+            SELECT artifact_id, branch_id, frontier_commit_id, scope_class, payload_json
+            FROM milestone_6_commit_coupled_layout_seed_records
+            ",
+            [],
+        )
+        .expect("legacy milestone 6 seed rows should copy");
+    connection
+        .execute("DELETE FROM milestone_6_commit_coupled_layout_seed_records", [])
+        .expect("new milestone 6 seed rows should clear");
+}
+
 pub fn corrupt_first_sqlite_wal_record_digest(path: &std::path::Path) {
     let connection = rusqlite::Connection::open(path).expect("sqlite store should open");
     connection
@@ -242,4 +279,44 @@ pub fn drift_sqlite_bulk_witness_index_witness_count(
             ],
         )
         .expect("sqlite bulk witness index payload should be updated");
+}
+
+pub fn drift_sqlite_frozen_transform_partition_payload_member_width(
+    path: &std::path::Path,
+    program_id: &str,
+    partition_digest: &str,
+) {
+    let connection = rusqlite::Connection::open(path).expect("sqlite database should open");
+    let payload_json: String = connection
+        .query_row(
+            "
+            SELECT payload_json
+            FROM frozen_transform_partition_records
+            WHERE program_id = ?1 AND partition_digest = ?2
+            ",
+            rusqlite::params![program_id, partition_digest],
+            |row| row.get::<_, String>(0),
+        )
+        .expect("sqlite frozen transform partition payload should exist");
+    let mut payload: serde_json::Value = serde_json::from_str(&payload_json)
+        .expect("sqlite frozen transform partition payload should decode");
+    let width = payload["partition"]["ordered_members"][0]["width_units"]
+        .as_u64()
+        .expect("sqlite frozen transform partition width should exist");
+    payload["partition"]["ordered_members"][0]["width_units"] = serde_json::json!(width + 1);
+    connection
+        .execute(
+            "
+            UPDATE frozen_transform_partition_records
+            SET payload_json = ?3
+            WHERE program_id = ?1 AND partition_digest = ?2
+            ",
+            rusqlite::params![
+                program_id,
+                partition_digest,
+                serde_json::to_string(&payload)
+                    .expect("sqlite frozen transform partition payload should encode")
+            ],
+        )
+        .expect("sqlite frozen transform partition payload should be updated");
 }

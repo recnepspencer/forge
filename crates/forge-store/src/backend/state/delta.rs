@@ -151,19 +151,24 @@ impl StoreState {
         request: BranchDeltaReadRequest,
     ) -> Result<SameBranchDescendantWitness, StoreError> {
         let branch_identity = branch_key(&request.branch_id);
+        if !self.branch_records.contains_key(&branch_identity) {
+            return Err(StoreError::unknown_branch(&request.branch_id));
+        }
         let basis = self
             .branch_shared_base_records
             .get(&branch_identity)
             .cloned()
-            .ok_or_else(|| {
-                StoreError::new(
-                    StoreErrorKind::BranchDeltaBasisUnsupported,
-                    format!(
-                        "branch `{}` does not publish a shared-base branch delta basis yet",
-                        request.branch_id.0
-                    ),
-                )
-            })?;
+            .unwrap_or_else(|| BranchSharedBaseRecord {
+                branch_id: request.branch_id.clone(),
+                source_branch_id: request.branch_id.clone(),
+                source_frontier_commit_id: None,
+                delta_family_version: BRANCH_DELTA_FAMILY_VERSION,
+                authority_basis_digest: stable_shared_base_authority_digest(
+                    &request.branch_id,
+                    None,
+                    self.canonicalization_version,
+                ),
+            });
         if Some(request.target_commit_id) == basis.source_frontier_commit_id {
             return Ok(SameBranchDescendantWitness::new(
                 request.branch_id,
@@ -935,15 +940,18 @@ impl StoreState {
         let basis = self
             .branch_shared_base_records
             .get(&branch_key(witness.branch_id()))
-            .ok_or_else(|| {
-                StoreError::new(
-                    StoreErrorKind::BranchDeltaBasisUnsupported,
-                    format!(
-                        "branch `{}` does not publish a shared-base branch delta basis yet",
-                        witness.branch_id().0
-                    ),
-                )
-            })?;
+            .cloned()
+            .unwrap_or_else(|| BranchSharedBaseRecord {
+                branch_id: witness.branch_id().clone(),
+                source_branch_id: witness.branch_id().clone(),
+                source_frontier_commit_id: None,
+                delta_family_version: BRANCH_DELTA_FAMILY_VERSION,
+                authority_basis_digest: stable_shared_base_authority_digest(
+                    witness.branch_id(),
+                    None,
+                    self.canonicalization_version,
+                ),
+            });
         let mut export = if let Some(source_frontier_commit_id) = basis.source_frontier_commit_id {
             self.build_snapshot_image(&basis.source_branch_id, source_frontier_commit_id)?
                 .authoritative_export()

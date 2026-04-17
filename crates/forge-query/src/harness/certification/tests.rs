@@ -46,11 +46,32 @@ fn requirements_registry_exposes_milestone_rows() {
         .required_canonical_rows
         .contains(&"preview-promotion-comparison-parity"));
     assert!(milestone_five_point_two
+        .required_canonical_rows
+        .contains(&"preview-live-admission-parity"));
+    assert!(milestone_five_point_two
+        .required_canonical_rows
+        .contains(&"preview-live-drift-explicitness"));
+    assert!(milestone_five_point_two
         .required_rejection_rows
         .contains(&"invalid-preview-basis"));
     assert!(milestone_five_point_two
         .required_rejection_rows
+        .contains(&"discarded-preview-execution-denied"));
+    assert!(milestone_five_point_two
+        .required_rejection_rows
         .contains(&"preview-shape-mismatch-denied"));
+    assert!(milestone_five_point_two
+        .required_rejection_rows
+        .contains(&"read-only-preview-denies-promotion-comparison"));
+    assert!(milestone_five_point_two
+        .required_rejection_rows
+        .contains(&"preview-broad-fallback-forbidden"));
+    assert!(milestone_five_point_two
+        .required_rejection_rows
+        .contains(&"preview-live-drift-denied"));
+    assert!(milestone_five_point_two
+        .required_rejection_rows
+        .contains(&"preview-live-broad-fallback-forbidden"));
     assert!(milestone_five_point_two
         .required_rejection_rows
         .contains(&"out-of-scope-workflow-foundation-request"));

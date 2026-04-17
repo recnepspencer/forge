@@ -23,6 +23,7 @@ impl Default for StoreState {
             branch_delta_layer_records: std::collections::BTreeMap::new(),
             embedded_checkpoint_records: std::collections::BTreeMap::new(),
             milestone_6_layout_materialization_records: std::collections::BTreeMap::new(),
+            milestone_6_commit_coupled_layout_seed_records: std::collections::BTreeMap::new(),
             milestone_6_scope_slice_membership_records: std::collections::BTreeMap::new(),
             milestone_6_chunk_membership_records: std::collections::BTreeMap::new(),
             milestone_6_structural_block_records: std::collections::BTreeMap::new(),

@@ -1,8 +1,10 @@
 use super::bundles::{
     bounded_materialization_region_bundle, bridge_slice_incompatibility_rejection_bundle,
     broad_control_bundle, cdc_stream_contract_bundle, detail_region_convergence_bundle,
-    forbidden_broad_success_lane_rejection_bundle, forbidden_locality_widening_rejection_bundle,
-    forbidden_stream_width_overflow_success_rejection_bundle, locality_breadth_budget_bundle,
+    detail_region_widening_bundle, forbidden_broad_success_lane_rejection_bundle,
+    forbidden_locality_widening_rejection_bundle,
+    forbidden_stream_width_overflow_success_rejection_bundle,
+    forbidden_stream_window_overflow_success_rejection_bundle, locality_breadth_budget_bundle,
     locality_work_avoided_bundle, off_region_suppression_bundle,
     ordered_collection_partition_bundle, raw_partition_leakage_rejection_bundle,
     raw_stream_member_forbidden_rejection_bundle, raw_stream_member_leakage_rejection_bundle,
@@ -157,6 +159,17 @@ canonical_row_specs![
         hostile_lane: bounded_materialization_region_bundle,
         parity_lane: bounded_materialization_region_bundle,
         family: LiveBundleFamily::BoundedMaterialization,
+        outcome_kind: LiveOutcomeKind::Patch,
+        digest_relation: DigestRelation::MatchesDeliveryDigest
+    },
+    {
+        row_name: "detail-region-single-peer-widening",
+        perturbation_class: LivePerturbationClass::LocalityWideningAdmissionParity,
+        hostile_expectation: LiveHostileExpectation::EquivalentToControl,
+        control_lane: detail_region_widening_bundle,
+        hostile_lane: detail_region_widening_bundle,
+        parity_lane: detail_region_widening_bundle,
+        family: LiveBundleFamily::Detail,
         outcome_kind: LiveOutcomeKind::Patch,
         digest_relation: DigestRelation::MatchesDeliveryDigest
     },
@@ -325,9 +338,19 @@ rejection_row_specs![
         control_lane: stream_member_width_budget_bundle,
         hostile_lane: forbidden_stream_width_overflow_success_rejection_bundle,
         parity_lane: stream_member_width_budget_bundle,
-        failure_class: LiveFailureClass::ForbiddenStreamWidthOverflowSuccess,
+        failure_class: LiveFailureClass::ForbiddenStreamWindowOverflowSuccess,
         control_family: LiveBundleFamily::OrderedCollection,
         failure_digest_fragment: "StreamMemberWidthBudgetExceeded"
+    },
+    {
+        row_name: "forbidden-stream-window-overflow-success",
+        perturbation_class: LivePerturbationClass::ForbiddenStreamWindowOverflowSuccessRejection,
+        control_lane: detail_region_widening_bundle,
+        hostile_lane: forbidden_stream_window_overflow_success_rejection_bundle,
+        parity_lane: detail_region_widening_bundle,
+        failure_class: LiveFailureClass::ForbiddenStreamWindowOverflowSuccess,
+        control_family: LiveBundleFamily::Detail,
+        failure_digest_fragment: "StreamWindowWidthBudgetExceeded"
     },
     {
         row_name: "bridge-slice-incompatibility-denied",

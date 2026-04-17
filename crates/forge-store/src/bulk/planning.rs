@@ -191,6 +191,27 @@ impl FrozenBulkSourceManifest {
     pub fn manifest_digest(&self) -> &str {
         &self.manifest_digest
     }
+
+    pub(crate) fn has_valid_digest(&self) -> Result<bool, StoreError> {
+        #[derive(Serialize)]
+        struct ManifestDigestInput<'a> {
+            family_version: u32,
+            program_id: &'a str,
+            source_identity: &'a str,
+            target_branch_scope: &'a BranchId,
+            ordered_members: &'a [BulkSourceMember],
+        }
+
+        let digest_basis = serde_json::to_string(&ManifestDigestInput {
+            family_version: self.family_version,
+            program_id: &self.program_id,
+            source_identity: &self.source_identity,
+            target_branch_scope: &self.target_branch_scope,
+            ordered_members: &self.ordered_members,
+        })
+        .map_err(serialization_error("bulk ingest source manifest"))?;
+        Ok(self.manifest_digest == stable_digest(&digest_basis))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -261,6 +282,27 @@ impl FrozenTransformBasis {
 
     pub fn basis_digest(&self) -> &str {
         &self.basis_digest
+    }
+
+    pub(crate) fn has_valid_digest(&self) -> Result<bool, StoreError> {
+        #[derive(Serialize)]
+        struct BasisDigestInput<'a> {
+            family_version: u32,
+            program_id: &'a str,
+            transform_identity: &'a str,
+            target_branch_scope: &'a BranchId,
+            basis_commit_id: CommitId,
+        }
+
+        let digest_basis = serde_json::to_string(&BasisDigestInput {
+            family_version: self.family_version,
+            program_id: &self.program_id,
+            transform_identity: &self.transform_identity,
+            target_branch_scope: &self.target_branch_scope,
+            basis_commit_id: self.basis_commit_id,
+        })
+        .map_err(serialization_error("bulk transform basis"))?;
+        Ok(self.basis_digest == stable_digest(&digest_basis))
     }
 }
 
@@ -354,6 +396,29 @@ impl FrozenTransformTargetPartition {
 
     pub fn partition_digest(&self) -> &str {
         &self.partition_digest
+    }
+
+    pub(crate) fn has_valid_digest(&self) -> Result<bool, StoreError> {
+        #[derive(Serialize)]
+        struct PartitionDigestInput<'a> {
+            family_version: u32,
+            program_id: &'a str,
+            transform_identity: &'a str,
+            target_branch_scope: &'a BranchId,
+            basis_commit_id: CommitId,
+            ordered_members: &'a [BulkSourceMember],
+        }
+
+        let digest_basis = serde_json::to_string(&PartitionDigestInput {
+            family_version: self.family_version,
+            program_id: &self.program_id,
+            transform_identity: &self.transform_identity,
+            target_branch_scope: &self.target_branch_scope,
+            basis_commit_id: self.basis_commit_id,
+            ordered_members: &self.ordered_members,
+        })
+        .map_err(serialization_error("bulk transform target partition"))?;
+        Ok(self.partition_digest == stable_digest(&digest_basis))
     }
 }
 
@@ -539,6 +604,20 @@ impl DeterministicChunkPlan {
 
     pub fn chunk_by_ordinal(&self, ordinal: ChunkOrdinal) -> Option<&PlannedBulkChunk> {
         self.chunks.iter().find(|chunk| chunk.ordinal() == ordinal)
+    }
+
+    pub(crate) fn has_valid_plan_id(&self) -> Result<bool, StoreError> {
+        let expected = compute_plan_id(
+            self.kind,
+            &self.program_id,
+            &self.source_identity,
+            &self.target_branch_scope,
+            self.basis_commit_id,
+            &self.input_digest,
+            self.chunk_width_budget,
+            &self.chunks,
+        )?;
+        Ok(self.plan_id == expected)
     }
 }
 

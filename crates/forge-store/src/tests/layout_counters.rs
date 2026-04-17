@@ -60,5 +60,48 @@ fn layout_counters_track_admitted_and_fallback_paths() {
         counters.milestone_9_physical_chunk_reference_admission_count,
         1
     );
-    assert!(counters.aspect_layout_slice_read_count >= 1);
+    assert_eq!(counters.aspect_layout_slice_read_count, 41);
+    assert_eq!(counters.aspect_layout_block_decode_count, 41);
+    assert_eq!(counters.aspect_layout_control_replay_breadth, 41);
+    assert_eq!(counters.aspect_layout_whole_state_fallback_count, 0);
+}
+
+#[test]
+fn layout_counters_track_structural_block_lookup_and_chunk_export_paths() {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, "alpha");
+    let root = latest_envelope(&runtime);
+    let branch_id = root.branch_context.clone();
+    let commit_id = root.commit.commit_id;
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+    store.append_canonical_commit(root).unwrap();
+    let materialized = store
+        .materialize_milestone_6_layout_support(request.clone())
+        .unwrap();
+
+    store
+        .structural_block_lookup(crate::StructuralBlockLookup::new(
+            materialized.block_reuse().structural_block_id().clone(),
+        ))
+        .unwrap();
+    store.export_milestone_6_chunk_model(request).unwrap();
+
+    let counters = store.counters();
+    assert_eq!(counters.structural_block_lookup_count, 1);
+    assert_eq!(counters.structural_block_reuse_hit_count, 1);
+    assert_eq!(counters.structural_block_reuse_miss_count, 0);
+    assert_eq!(counters.physical_chunk_export_count, 1);
+    assert_eq!(counters.physical_chunk_width_count, 2);
+    assert_eq!(counters.physical_chunk_determinism_violation_count, 0);
+    assert_eq!(counters.branch_delta_read_count, 0);
+    assert_eq!(counters.branch_delta_authority_replay_fallback_count, 0);
 }

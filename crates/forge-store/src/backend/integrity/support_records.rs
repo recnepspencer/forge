@@ -64,6 +64,50 @@ impl StoreState {
             ));
         }
 
+        let mut expected_milestone_6_published_request_artifact_ids = self
+            .milestone_6_commit_coupled_layout_seed_records
+            .values()
+            .filter(|record| record.authority_basis_commit_id == summary.commit_id)
+            .map(|record| record.artifact_id.clone())
+            .collect::<Vec<_>>();
+        expected_milestone_6_published_request_artifact_ids.sort();
+        if summary.milestone_6_published_layout_request_artifact_ids
+            != expected_milestone_6_published_request_artifact_ids
+        {
+            return Err(StoreError::new(
+                StoreErrorKind::CommitSupportPublicationGap,
+                format!(
+                    "milestone 6 support summary for commit {} did not match the commit-coupled layout seed set",
+                    summary.commit_id.0
+                ),
+            ));
+        }
+        for artifact_id in &summary.milestone_6_published_layout_request_artifact_ids {
+            let record = self
+                .milestone_6_commit_coupled_layout_seed_records
+                .get(artifact_id)
+                .ok_or_else(|| {
+                    StoreError::new(
+                        StoreErrorKind::CommitSupportPublicationGap,
+                        format!(
+                            "commit {} summary referenced missing milestone 6 commit-coupled layout seed `{artifact_id}`",
+                            summary.commit_id.0
+                        ),
+                    )
+                })?;
+            let expected_artifact_id =
+                crate::layout::published_layout_request_artifact_id(&record.request)?;
+            if artifact_id != &expected_artifact_id {
+                return Err(StoreError::new(
+                    StoreErrorKind::CommitSupportPublicationGap,
+                    format!(
+                        "commit {} summary referenced non-canonical milestone 6 commit-coupled layout seed `{artifact_id}`",
+                        summary.commit_id.0
+                    ),
+                ));
+            }
+        }
+
         if expected_schema {
             let expected_id = schema_support_artifact_id(summary.commit_id);
             if summary.schema_support_artifact_id.as_deref() != Some(expected_id.as_str()) {

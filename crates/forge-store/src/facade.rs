@@ -11,11 +11,11 @@ use crate::{
     },
     backend::{records::EmbeddedCheckpointRecord, StoreBackend, StoreBackendMode},
     bulk::{
-        BudgetAdmittedChunkPlan, BulkCanonicalChunkExecutionRequest, BulkChunkCommitWitness,
-        BulkChunkExecutionOutcome, BulkIngestSourceRequest, BulkTransformRequest,
-        ChunkMaterializationReceipt, ChunkOrdinal, ChunkWidthBudget, DeterministicChunkPlan,
-        DurablyExecutedBulkChunk, FrozenBulkSourceManifest, FrozenTransformBasis,
-        FrozenTransformTargetPartition, ProgramChunkWitnessIndex,
+        BudgetAdmittedChunkPlan, BulkCanonicalChunkExecutionRequest, BulkCheckpointPolicy,
+        BulkChunkCommitWitness, BulkChunkExecutionOutcome, BulkIngestSourceRequest,
+        BulkTransformRequest, ChunkMaterializationReceipt, ChunkOrdinal, ChunkWidthBudget,
+        DeterministicChunkPlan, DurablyExecutedBulkChunk, FrozenBulkSourceManifest,
+        FrozenTransformBasis, FrozenTransformTargetPartition, ProgramChunkWitnessIndex,
         PublishedBulkProgressCheckpoint, RecoveredBulkChunkResume, ResumeBoundaryCandidate,
         ResumeReadyBulkProgram,
     },
@@ -32,7 +32,7 @@ use crate::{
         Milestone7CertificationBundle, ObservedPublicationFailure, OperatingModeLane,
         PersistedModeLaneEvidence, StoreCounterSnapshot,
     },
-    failure::StoreError,
+    failure::{StoreError, StoreErrorKind},
     layout::{
         AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
         ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
@@ -390,6 +390,106 @@ impl ForgeStore {
         request: AspectLayoutReadRequest,
     ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
         self.backend.fetch_milestone_6_layout_support(request)
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_materializations(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        self.backend
+            .rebuild_milestone_6_derived_artifacts_from_materializations()
+    }
+
+    pub fn rebuild_milestone_6_derived_artifacts_from_authority(
+        &mut self,
+    ) -> Result<crate::Milestone6DerivedArtifactRebuildReport, StoreError> {
+        self.backend
+            .rebuild_milestone_6_derived_artifacts_from_authority()
+    }
+
+    pub fn structural_block_lookup(
+        &self,
+        lookup: crate::StructuralBlockLookup,
+    ) -> Result<crate::StructuralBlockLookupResult, StoreError> {
+        self.backend.structural_block_lookup(lookup)
+    }
+
+    pub fn execute_aspect_layout_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::AspectLayoutReadExecutionDecision, StoreError> {
+        self.backend.execute_aspect_layout_read(request)
+    }
+
+    pub fn read_aspect_layout_control_truth(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::AspectLayoutControlTruth, StoreError> {
+        let plan = self.require_admitted_aspect_layout_plan(
+            request,
+            "aspect layout control truth",
+        )?;
+        let milestone_7 = self.admit_milestone_7_independent_layout_reference(plan.clone())?;
+        let control = self.read_branch_delta_control_from_milestone_7_reference(
+            crate::Milestone7IndependentReference::new(
+                milestone_7.branch_id().clone(),
+                milestone_7.frontier_commit_id(),
+            ),
+        )?;
+        Ok(crate::AspectLayoutControlTruth::new(
+            milestone_7.branch_id().clone(),
+            milestone_7.frontier_commit_id(),
+            milestone_7.scope_class().to_string(),
+            milestone_7.projection_digest().to_string(),
+            crate::layout::stable_layout_truth_digest(control.authoritative_export()),
+            control.authoritative_export().commit_envelopes.len(),
+        ))
+    }
+
+    pub fn execute_dedup_backed_read(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::DedupBackedReadResult, StoreError> {
+        self.backend.execute_dedup_backed_read(request)
+    }
+
+    pub fn export_milestone_6_chunk_model(
+        &self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<crate::Milestone6ChunkModelExport, StoreError> {
+        let read = match self.execute_aspect_layout_read(request)? {
+            crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+            crate::AspectLayoutReadExecutionDecision::Fallback(plan) => {
+                return Err(StoreError::new(
+                    StoreErrorKind::AspectLayoutFallbackRequired,
+                    plan.reason().to_string(),
+                ))
+            }
+            crate::AspectLayoutReadExecutionDecision::Rejected(plan) => {
+                return Err(StoreError::new(
+                    StoreErrorKind::AspectScopeUnsupported,
+                    plan.reason().to_string(),
+                ))
+            }
+        };
+        let materialization = self
+            .backend
+            .fetch_existing_milestone_6_layout_support(read.layout_materialization_artifact_id())?;
+        self.backend.record_physical_chunk_export(
+            materialization.milestone_9_reference().chunk_member_count() as u64,
+        );
+        Ok(crate::Milestone6ChunkModelExport::new(
+            materialization
+                .milestone_9_reference()
+                .physical_chunk_id()
+                .clone(),
+            read.chunk_membership_artifact_id().to_string(),
+            materialization
+                .milestone_9_reference()
+                .determinism_digest()
+                .to_string(),
+            materialization.milestone_9_reference().chunk_member_count(),
+            read.layout_materialization_artifact_id().to_string(),
+        ))
     }
 
     pub fn plan_delta_rewrite(
@@ -761,13 +861,14 @@ impl ForgeStore {
         &mut self,
         admitted: &BudgetAdmittedChunkPlan,
         canonical_commit_id: CommitId,
-        publish_checkpoint: bool,
+        checkpoint_policy: BulkCheckpointPolicy,
     ) -> Result<BulkChunkExecutionOutcome, StoreError> {
         let materialization_receipt = self.materialize_bulk_ingest_chunk(admitted)?;
         let witness = self.publish_bulk_chunk_witness(admitted, canonical_commit_id)?;
-        let published_checkpoint = match publish_checkpoint {
-            true => Some(self.publish_bulk_progress_checkpoint(&witness)?),
-            false => None,
+        let published_checkpoint = if checkpoint_policy.should_publish() {
+            Some(self.publish_bulk_progress_checkpoint(&witness)?)
+        } else {
+            None
         };
         self.backend.record_bulk_chunk_commit();
         Ok(BulkChunkExecutionOutcome::new(
@@ -788,26 +889,26 @@ impl ForgeStore {
     pub fn execute_bulk_canonical_chunk(
         &mut self,
         request: BulkCanonicalChunkExecutionRequest,
-        publish_checkpoint: bool,
+        checkpoint_policy: BulkCheckpointPolicy,
     ) -> Result<BulkChunkExecutionOutcome, StoreError> {
         let (admitted, canonical_envelope) = request.into_parts();
         let persisted = self.append_canonical_commit(canonical_envelope)?;
         self.finalize_bulk_chunk_execution(
             &admitted,
             persisted.envelope().commit.commit_id,
-            publish_checkpoint,
+            checkpoint_policy,
         )
     }
 
     pub fn execute_bulk_canonical_chunk_durably(
         &mut self,
         request: BulkCanonicalChunkExecutionRequest,
-        publish_checkpoint: bool,
+        checkpoint_policy: BulkCheckpointPolicy,
     ) -> Result<DurablyExecutedBulkChunk, StoreError> {
         let runtime_session_id = request.runtime_session_id();
         let operation_name = request.operation_name();
         let canonical_commit_id = request.canonical_envelope().commit.commit_id;
-        let next_checkpoint_sequence = if publish_checkpoint {
+        let next_checkpoint_sequence = if checkpoint_policy.should_publish() {
             Some(self.next_bulk_checkpoint_sequence(
                 request.admitted_chunk().program_id(),
                 request.admitted_chunk().plan_id(),
@@ -842,8 +943,11 @@ impl ForgeStore {
             DurablePublicationPhase::AuthoritativeAppendPublished,
             Some(persisted_commit_id),
         )?;
-        let outcome =
-            self.finalize_bulk_chunk_execution(&admitted, persisted_commit_id, publish_checkpoint)?;
+        let outcome = self.finalize_bulk_chunk_execution(
+            &admitted,
+            persisted_commit_id,
+            checkpoint_policy,
+        )?;
         self.record_publication_phase(
             &runtime_session_id,
             durable_mutation_id,
@@ -859,13 +963,13 @@ impl ForgeStore {
         resumed: &ResumeReadyBulkProgram,
         admitted_memory_units: u64,
         canonical_envelope: CanonicalCommitEnvelope,
-        publish_checkpoint: bool,
+        checkpoint_policy: BulkCheckpointPolicy,
     ) -> Result<Option<BulkChunkExecutionOutcome>, StoreError> {
         let Some(admitted) = resumed.admit_next_chunk(admitted_memory_units)? else {
             return Ok(None);
         };
         let request = self.admit_bulk_canonical_chunk_execution(admitted, canonical_envelope)?;
-        self.execute_bulk_canonical_chunk(request, publish_checkpoint)
+        self.execute_bulk_canonical_chunk(request, checkpoint_policy)
             .map(Some)
     }
 
@@ -874,13 +978,13 @@ impl ForgeStore {
         resumed: &ResumeReadyBulkProgram,
         admitted_memory_units: u64,
         canonical_envelope: CanonicalCommitEnvelope,
-        publish_checkpoint: bool,
+        checkpoint_policy: BulkCheckpointPolicy,
     ) -> Result<Option<DurablyExecutedBulkChunk>, StoreError> {
         let Some(admitted) = resumed.admit_next_chunk(admitted_memory_units)? else {
             return Ok(None);
         };
         let request = self.admit_bulk_canonical_chunk_execution(admitted, canonical_envelope)?;
-        self.execute_bulk_canonical_chunk_durably(request, publish_checkpoint)
+        self.execute_bulk_canonical_chunk_durably(request, checkpoint_policy)
             .map(Some)
     }
 

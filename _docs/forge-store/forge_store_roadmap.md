@@ -487,6 +487,10 @@ semantics.
 
 ## Milestone 6: Aspect-Aware Physical Layout And Content-Addressed Structural Blocks
 
+Engineering spec: [milestone-6.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-6.md)
+
+Closeout: [milestone-6-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-6-closeout.md)
+
 ### Goal
 
 Make aspect-scoped reads and cross-branch structural dedup physically honest.
@@ -623,6 +627,17 @@ store would fake live-query semantics with ambient conventions.
 Can run in parallel with late `Milestone 6`.
 
 ## Milestone 9: Deterministic Bulk Ingest And Bulk Transform Paths
+
+Closeout: [milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-9-closeout.md)
+
+Current state:
+
+- implemented and closed through the named Milestone 9 certification lane
+- deterministic planning, persisted support artifacts, durable bulk execution,
+  resume surfaces, bulk-specific recovery, and machine-checkable certification
+  evidence are present in `forge-store`
+- the historical concurrency boundary with late Milestone 6 remains true, but
+  Milestone 9 is no longer operationally incomplete
 
 ### Goal
 

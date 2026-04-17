@@ -1,5 +1,11 @@
-error[E0432]: unresolved import `forge_query::facade::admit_preview_execution_comparison`
+error[E0432]: unresolved imports `forge_query::facade::admit_preview_execution_comparison`, `forge_query::facade::PreviewExecutionComparisonAdmission`, `forge_query::facade::PreviewExecutionEnvelope`
  --> tests/ui/preview_comparison_requires_authoritative_candidate.rs:2:5
   |
 2 |     admit_preview_execution_comparison, ExecutionPreflightBundle, ExecutionResultEnvelope,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_preview_execution_comparison` in `facade`
+3 |     PreviewComparisonError, PreviewExecutionComparisonAdmission, PreviewExecutionEnvelope,
+  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+  |                             |                                    |
+  |                             |                                    no `PreviewExecutionEnvelope` in `facade`
+  |                             |                                    help: a similar name exists in the module: `PreviewLiveExecutionEnvelope`
+  |                             no `PreviewExecutionComparisonAdmission` in `facade`

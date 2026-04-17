@@ -76,6 +76,7 @@ pub(super) fn bundle_completeness_report(
         supported_lane_count,
         successful_lane_count,
         zero_rediscovery_lane_count,
+        preview_live_composition_admitted_by_design: true,
         covered_perturbation_classes,
         all_lanes_emit_required_outputs,
         all_rows_have_hostile_coverage,

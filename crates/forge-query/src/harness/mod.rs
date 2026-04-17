@@ -13,6 +13,8 @@ mod collection_matrix;
 #[cfg(test)]
 pub(crate) mod fixtures;
 #[cfg(test)]
+mod frontier_certification;
+#[cfg(test)]
 mod frontier_planning;
 #[cfg(test)]
 mod live_certification;

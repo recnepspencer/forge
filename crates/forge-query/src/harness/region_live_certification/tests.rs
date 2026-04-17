@@ -54,6 +54,13 @@ fn region_live_artifact_is_offline_ready() {
     assert!(
         artifact
             .counter_snapshot
+            .locality_irrelevant_broad_control_count()
+            > 0
+    );
+    assert!(artifact.counter_snapshot.locality_replay_change_count() > 0);
+    assert!(
+        artifact
+            .counter_snapshot
             .locality_off_region_suppression_count()
             > 0
     );
@@ -64,6 +71,12 @@ fn region_live_artifact_is_offline_ready() {
             > 0
     );
     assert!(artifact.counter_snapshot.locality_widening_denial_count() > 0);
+    assert!(
+        artifact
+            .counter_snapshot
+            .locality_widening_admission_count()
+            > 0
+    );
     assert!(
         artifact
             .counter_snapshot
@@ -80,6 +93,12 @@ fn region_live_artifact_is_offline_ready() {
     assert!(artifact.counter_snapshot.stream_contract_denial_count() > 0);
     assert!(artifact.counter_snapshot.stream_lowered_delivery_count() > 0);
     assert!(artifact.counter_snapshot.stream_lowered_delivery_width() > 0);
+    assert!(
+        artifact
+            .counter_snapshot
+            .stream_window_width_budget_cross_count()
+            > 0
+    );
     assert!(
         artifact
             .counter_snapshot
@@ -103,6 +122,10 @@ fn region_live_artifact_is_offline_ready() {
             .counter_snapshot
             .locality_unsupported_predicate_rejection_count()
             > 0
+    );
+    assert_eq!(
+        artifact.counter_snapshot.locality_replay_divergence_count(),
+        0
     );
     assert_eq!(
         artifact
@@ -136,6 +159,9 @@ fn region_live_artifact_is_offline_ready() {
         .iter()
         .any(|row| row.perturbation_class
             == LivePerturbationClass::BoundedMaterializationRegionParity));
+    assert!(artifact.matrix.rows.iter().any(
+        |row| row.perturbation_class == LivePerturbationClass::LocalityWideningAdmissionParity
+    ));
     assert!(artifact
         .matrix
         .rows
@@ -173,6 +199,12 @@ fn region_live_artifact_is_offline_ready() {
         .iter()
         .any(|row| row.perturbation_class
             == LivePerturbationClass::ForbiddenStreamWidthOverflowSuccessRejection));
+    assert!(artifact
+        .matrix
+        .rejection_rows
+        .iter()
+        .any(|row| row.perturbation_class
+            == LivePerturbationClass::ForbiddenStreamWindowOverflowSuccessRejection));
     assert!(artifact
         .matrix
         .rejection_rows
@@ -373,6 +405,12 @@ fn assert_canonical_expectation(
             assert_eq!(
                 row.control_lane
                     .counter_snapshot
+                    .locality_irrelevant_broad_control_count(),
+                1
+            );
+            assert_eq!(
+                row.control_lane
+                    .counter_snapshot
                     .live_suppressed_update_count(),
                 1
             );
@@ -446,6 +484,33 @@ fn assert_canonical_expectation(
                 row.control_lane
                     .counter_snapshot
                     .locality_widening_denial_count(),
+                0
+            );
+        }
+        "detail-region-single-peer-widening" => {
+            assert_eq!(
+                row.control_lane
+                    .counter_snapshot
+                    .locality_region_match_count(),
+                1
+            );
+            assert_eq!(row.control_lane.counter_snapshot.live_patch_count(), 1);
+            assert_eq!(
+                row.control_lane
+                    .counter_snapshot
+                    .locality_widening_admission_count(),
+                1
+            );
+            assert_eq!(
+                row.control_lane
+                    .counter_snapshot
+                    .locality_widening_denial_count(),
+                0
+            );
+            assert_eq!(
+                row.control_lane
+                    .counter_snapshot
+                    .stream_contract_admission_count(),
                 0
             );
         }
@@ -752,6 +817,26 @@ fn assert_rejection_expectation(
                     .counter_snapshot
                     .stream_member_width_budget_cross_count(),
                 1
+            );
+        }
+        "forbidden-stream-window-overflow-success" => {
+            assert_eq!(
+                row.hostile_lane
+                    .counter_snapshot
+                    .stream_contract_denial_count(),
+                1
+            );
+            assert_eq!(
+                row.hostile_lane
+                    .counter_snapshot
+                    .stream_window_width_budget_cross_count(),
+                1
+            );
+            assert_eq!(
+                row.hostile_lane
+                    .counter_snapshot
+                    .stream_member_width_budget_cross_count(),
+                0
             );
         }
         "bridge-slice-incompatibility-denied" => {

@@ -184,11 +184,28 @@ pub fn milestone_five_point_two_requirements() -> SuiteRequirements {
     SuiteRequirements {
         suite_name: "Preview Session Basis And Promotion Parity Test",
         required_canonical_rows:
-            crate::harness::preview_certification::PREVIEW_MINIMUM_SPEC_CANONICAL_ROW_NAMES,
+            crate::harness::preview_certification::PREVIEW_REQUIRED_CANONICAL_ROW_NAMES,
         required_rejection_rows:
-            crate::harness::preview_certification::PREVIEW_MINIMUM_SPEC_REJECTION_ROW_NAMES,
+            crate::harness::preview_certification::PREVIEW_REQUIRED_REJECTION_ROW_NAMES,
         required_assertion_classes: &[
             RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_five_point_three_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Frontier Planning And Parallel Admission Parity Test",
+        required_canonical_rows:
+            crate::harness::frontier_certification::FRONTIER_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::frontier_certification::FRONTIER_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
             RequiredAssertionClass::Equality,
             RequiredAssertionClass::TypedFailure,
             RequiredAssertionClass::ZeroResidue,

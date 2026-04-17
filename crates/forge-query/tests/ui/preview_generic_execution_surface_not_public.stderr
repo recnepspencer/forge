@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `forge_query::facade::execute_preview_session_plan`, `forge_query::facade::PreviewExecutionEnvelope`
+ --> tests/ui/preview_generic_execution_surface_not_public.rs:1:27
+  |
+1 | use forge_query::facade::{execute_preview_session_plan, PreviewExecutionEnvelope};
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `PreviewExecutionEnvelope` in `facade`
+  |                           |
+  |                           no `execute_preview_session_plan` in `facade`
+  |
+help: a similar name exists in the module
+  |
+1 | use forge_query::facade::{execute_preview_live_session_plan, PreviewExecutionEnvelope};
+  |                                           +++++
+help: a similar name exists in the module
+  |
+1 | use forge_query::facade::{execute_preview_session_plan, PreviewLiveExecutionEnvelope};
+  |                                                                ++++

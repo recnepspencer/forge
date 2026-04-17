@@ -9,6 +9,18 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BulkCheckpointPolicy {
+    Skip,
+    Publish,
+}
+
+impl BulkCheckpointPolicy {
+    pub fn should_publish(self) -> bool {
+        matches!(self, Self::Publish)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BulkProgressCheckpointRecordInput {
     program_id: String,
