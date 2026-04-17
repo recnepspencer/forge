@@ -2,10 +2,10 @@
 name = "forge-signal"
 edition.workspace = true
 version.workspace = true
-license.workspace = true
 description = "Generic deterministic reactive computation runtime"
 readme = "README.md"
 repository = "https://github.com/recnepspencer/forge"
+publish = false
 keywords = ["incremental", "runtime", "reactive", "diagnostics", "replay"]
 categories = ["data-structures", "caching", "science"]
 

@@ -18,6 +18,11 @@ If you only remember five areas, remember these:
 - transaction
 - diagnostics
 
+There is now a sixth area worth remembering when you are wiring app-facing
+reactions:
+
+- observation
+
 The intended import path is:
 
 ```rust
@@ -32,6 +37,12 @@ The short-path names to remember are:
 - `InputSignal<T>`
 - `ComputedSignal<T>`
 - `SignalContext`
+
+And the short-path observation names are:
+
+- `watch(...)`
+- `effect(...)`
+- `unobserve(...)`
 
 ## Read This With The Docs Tree
 
@@ -82,6 +93,28 @@ hand, use:
 
 If you started in `easy`, this is the surface you grow into.
 
+## Observation
+
+This is the runtime-backed observation surface.
+
+- `runtime.observe_nodes(...)`
+- `runtime.unobserve(...)`
+- `ObservationPolicy`
+- `ObservationTrigger`
+- `ObservationHandle`
+- `ObservationNotice`
+- `ObservationReadContext`
+- `ObservedNodeSet`
+
+The important semantic point is that observation is commit-bounded.
+
+- one committed transaction yields at most one boundary per matching observer
+- rollback suppresses normal delivery
+- matching can be based on touched, recomputed, or meaningful-change policy
+
+On the short path, `SignalApp::watch(...)` and `SignalApp::effect(...)` build on
+the same substrate instead of inventing a second local callback model.
+
 ## Diagnostics
 
 This is where you go when the runtime does something you did not expect.
@@ -96,8 +129,14 @@ Start with:
 - `explain(node)`
 - `health_now()`
 - `health_view().current_now()`
+- `latest_observation_summary()`
+- `latest_flow_diagnostics()`
 - `inspect().graph()`
 - `compare().reports(...)`
+
+Observation boundaries now live here too.
+If an observer fired, or a rollback-suppressed boundary was retained, diagnostics
+is where you inspect the latest committed truth.
 
 ## Advanced
 

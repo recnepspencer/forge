@@ -25,7 +25,7 @@ pub enum RuntimePolicyPreset {
 impl Default for RuntimePolicySpec {
     fn default() -> Self {
         Self {
-            preset: RuntimePolicyPreset::Development,
+            preset: RuntimePolicyPreset::WebDevelopment,
         }
     }
 }

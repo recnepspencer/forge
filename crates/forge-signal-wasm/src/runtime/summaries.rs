@@ -81,6 +81,24 @@ pub struct LineageEventSummary {
     pub snapshot_id: Option<u64>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WebPerformanceSummary {
+    pub active_handle_count: u64,
+    pub active_callback_count: u64,
+    pub matched_watcher_breadth: u64,
+    pub delivered_observation_count: u64,
+    pub rollback_suppressed_delivery_count: u64,
+    pub serial_executor_usage_count: u64,
+    pub parallel_executor_usage_count: u64,
+    pub output_serialization_count: u64,
+    pub output_serialization_breadth: u64,
+    pub js_callback_invocation_count: u64,
+    pub js_callback_failure_count: u64,
+    pub compatibility_read_count: u64,
+    pub compatibility_read_breadth: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeSnapshotEnvelope {

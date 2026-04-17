@@ -14,6 +14,10 @@ This is the same system you can use for smaller cases like a todo count or file
 preview, and for bigger cases like targeted rebuilds, branch history, and
 runtime diagnostics.
 
+It is also the same system that now owns observation.
+You can register runtime observers directly, or use `watch(...)` / `effect(...)`
+on the short path, and both sit on the same commit-bounded delivery model.
+
 ## The Bigger Story
 
 The small example below is the shape.
@@ -37,6 +41,7 @@ The main pieces are:
 - `SignalGraph`
 - `SignalRuntime`
 - `runtime.transaction(...)`
+- `runtime.observe_nodes(...)`
 - `runtime.target(node).read(...)`
 - `runtime.diagnostics()`
 
@@ -85,18 +90,70 @@ let _ = (version, diagnostics);
 # Ok::<(), SignalError>(())
 ```
 
+## Observation In The Same Runtime
+
+Once you want a callback boundary, do not invent one outside the runtime.
+Register an observer through the same system:
+
+```rust
+use forge_signal::facade::*;
+
+struct CounterListener;
+
+impl ObservationListener<(), (), (), (), ()> for CounterListener {
+    fn on_observation(
+        &self,
+        _ctx: ObservationReadContext<'_, (), (), (), (), ()>,
+        notice: &ObservationNotice<'_>,
+    ) {
+        assert!(notice.trigger_matched());
+        assert!(notice.meaningful_change());
+    }
+}
+
+let mut graph = SignalGraph::new();
+let source = graph.node().build();
+let derived = graph.node().on_demand().build();
+graph.set_dependencies(derived, [DependencyEdge::new(source, ASPECT_A)])?;
+
+let mut runtime = SignalRuntime::build_for::<()>(graph);
+
+let handle = runtime.observe_nodes(
+    ObservationPolicy::meaningful_change(),
+    [derived],
+    Box::new(CounterListener),
+);
+
+runtime.transaction(&mut (), |tx| {
+    tx.mark_changed(source, ASPECT_A)?;
+    tx.target(derived).run(&|view| {
+        let version = view.read_aspect_version(source, ASPECT_A)?;
+        Ok(view.finish(NodeEvaluationResult::from_version(version)))
+    })?;
+    Ok(())
+})?;
+
+let latest_observation = runtime.observe().latest_observation_summary();
+assert!(latest_observation.is_some());
+
+assert!(runtime.unobserve(handle));
+# Ok::<(), SignalError>(())
+```
+
 ## What Happened
 
 - `product_price` is a source node
 - `checkout_summary` is a computed node
 - `tx.mark_changed(...)` tells the runtime the source changed
 - `tx.target(...).run(...)` computes the affected work inside the transaction
+- `runtime.observe_nodes(...)` registers commit-bounded observation on the same runtime
 - `runtime.target(...).read(...)` asks for the current result
-- `runtime.diagnostics()` gives you the main debugging door
+- `runtime.diagnostics()` and `runtime.observe().latest_observation_summary()` give you the main debugging doors
 
 ## What To Read Next
 
 - [API_OVERVIEW.md](./API_OVERVIEW.md) for the map
+- [guides/observation-and-effects.md](./guides/observation-and-effects.md) for commit-bounded observation, `watch(...)`, and `effect(...)`
 - [core-concepts/README.md](./core-concepts/README.md) for the fundamentals
 - [guides/running-the-runtime.md](./guides/running-the-runtime.md) for the runtime path
 - [guides/debugging-and-diagnostics.md](./guides/debugging-and-diagnostics.md) for the main debugging flow

@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
+
+use serde::de::Deserializer;
+use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SignalValue {
     Null,
     Bool(bool),
@@ -14,6 +17,56 @@ pub enum SignalValue {
 impl Default for SignalValue {
     fn default() -> Self {
         Self::Null
+    }
+}
+
+impl Serialize for SignalValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Null => serializer.serialize_unit(),
+            Self::Bool(value) => serializer.serialize_bool(*value),
+            Self::Number(value) => serializer.serialize_f64(*value),
+            Self::String(value) => serializer.serialize_str(value),
+            Self::Array(items) => items.serialize(serializer),
+            Self::Object(fields) => {
+                let mut map = serializer.serialize_map(Some(fields.len()))?;
+                for (key, value) in fields {
+                    map.serialize_entry(key, value)?;
+                }
+                map.end()
+            }
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SignalValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum SignalValueWire {
+            Null(()),
+            Bool(bool),
+            Number(f64),
+            String(String),
+            Array(Vec<SignalValue>),
+            Object(BTreeMap<String, SignalValue>),
+        }
+
+        let wire = SignalValueWire::deserialize(deserializer)?;
+        Ok(match wire {
+            SignalValueWire::Null(()) => SignalValue::Null,
+            SignalValueWire::Bool(value) => SignalValue::Bool(value),
+            SignalValueWire::Number(value) => SignalValue::Number(value),
+            SignalValueWire::String(value) => SignalValue::String(value),
+            SignalValueWire::Array(items) => SignalValue::Array(items),
+            SignalValueWire::Object(fields) => SignalValue::Object(fields.into_iter().collect()),
+        })
     }
 }
 

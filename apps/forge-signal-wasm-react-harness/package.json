@@ -1,0 +1,27 @@
+{
+  "name": "forge-signal-wasm-react-harness",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "refresh:wasm": "powershell -NoProfile -Command \"Set-Location ../..; $env:FORGE_SIGNAL_WASM_SCOPE='aust-group'; wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg; node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg\""
+  },
+  "dependencies": {
+    "@aust-group/forge-signal-wasm": "file:../../crates/forge-signal-wasm/pkg",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^6.0.1",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.1",
+    "vite-plugin-wasm": "^3.6.0",
+    "vitest": "^3.2.4"
+  }
+}

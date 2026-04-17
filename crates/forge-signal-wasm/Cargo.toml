@@ -2,8 +2,10 @@
 name = "forge-signal-wasm"
 edition.workspace = true
 version.workspace = true
-license.workspace = true
 description = "WebAssembly facade for Forge Signal"
+repository = "https://github.com/recnepspencer/forge"
+readme = "README.md"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]

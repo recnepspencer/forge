@@ -4,8 +4,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
 
 use forge_signal::facade::adapters::{
     branch_state_proof_report, merge_plan_proof_report, merge_result_proof_report,
@@ -18,6 +16,10 @@ use forge_signal::facade::adapters::{
 use forge_signal::facade::adapters::{ArtifactMergeAction, BranchMergePlan, BranchMergeResult};
 use forge_signal::facade::history::RuntimeSnapshot;
 use forge_signal::facade::history::{RuntimeBranch, RuntimeBranchId};
+use forge_signal::facade::runtime::{
+    ObservationBoundarySummary, ObservationHandle, ObservationListener, ObservationNotice,
+    ObservationPolicy, ObservationReadContext,
+};
 use forge_signal::facade::specialist::EvaluationOutput;
 use forge_signal::facade::specialist::EvaluationVerdict;
 use forge_signal::facade::{
@@ -39,8 +41,10 @@ use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::specialist::VersionSummary;
 use crate::runtime::summaries::{
     HealthSummary, LineageSummary, ReplaySummary, RunSummary, RuntimeSnapshotEnvelope,
-    RuntimeStoreSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot, WhySummary,
+    RuntimeStoreSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot, WebPerformanceSummary,
+    WhySummary,
 };
+use crate::runtime::web_callbacks;
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
 #[cfg(target_arch = "wasm32")]
@@ -117,7 +121,7 @@ fn checked_packed_capacity(
         })
 }
 
-type SharedStore = Arc<Mutex<RuntimeStore>>;
+pub(crate) type SharedStore = Arc<Mutex<RuntimeStore>>;
 pub type SharedCore = Rc<RefCell<RuntimeCore>>;
 type WasmRuntime = NativeRuntime<(), (), (), SharedStore, ()>;
 
@@ -138,6 +142,13 @@ pub struct MergePolicyPreviewRequest {
 #[derive(Debug, Clone)]
 struct CatalogEntry {
     node: NodeId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WebSignalKind {
+    Input,
+    Computed,
+    Output,
 }
 
 #[derive(Debug, Clone)]
@@ -213,7 +224,15 @@ struct BranchRuntimeState {
 }
 
 #[derive(Debug, Clone, Default)]
-struct RuntimeStore {
+struct WebRuntimeMetrics {
+    output_serialization_count: u64,
+    output_serialization_breadth: u64,
+    compatibility_read_count: u64,
+    compatibility_read_breadth: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct RuntimeStore {
     sources: BTreeMap<String, StoredSource>,
     recipes: BTreeMap<String, StoredRecipe>,
     source_families: BTreeMap<String, StoredSourceFamily>,
@@ -282,12 +301,14 @@ pub struct RuntimeCore {
     runtime: WasmRuntime,
     store: SharedStore,
     catalog: BTreeMap<String, CatalogEntry>,
+    web_signals: BTreeMap<String, WebSignalKind>,
     nodes_by_id: BTreeMap<NodeId, String>,
     dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
     branch_states: BTreeMap<u64, BranchRuntimeState>,
     snapshot_states: BTreeMap<u64, BranchRuntimeState>,
     runtime_snapshots: BTreeMap<u64, RuntimeSnapshot>,
     policy: RuntimePolicySpec,
+    web_metrics: WebRuntimeMetrics,
 }
 
 impl RuntimeCore {
@@ -302,12 +323,14 @@ impl RuntimeCore {
             runtime,
             store: Arc::new(Mutex::new(RuntimeStore::default())),
             catalog: BTreeMap::new(),
+            web_signals: BTreeMap::new(),
             nodes_by_id: BTreeMap::new(),
             dense_grids: BTreeMap::new(),
             branch_states: branch_metadata,
             snapshot_states: BTreeMap::new(),
             runtime_snapshots: BTreeMap::new(),
             policy,
+            web_metrics: WebRuntimeMetrics::default(),
         })
     }
 
@@ -410,6 +433,19 @@ impl RuntimeCore {
         Ok(())
     }
 
+    pub fn define_web_input(
+        &mut self,
+        id: String,
+        initial: SignalValue,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.define_source(SourceSpec {
+            id: id.clone(),
+            initial,
+        })?;
+        self.web_signals.insert(id, WebSignalKind::Input);
+        Ok(())
+    }
+
     pub fn define_recipe(&mut self, spec: RecipeSpec) -> Result<(), ForgeSignalJsError> {
         self.ensure_unique_id(&spec.id)?;
         self.ensure_known_reads(&spec.reads)?;
@@ -453,6 +489,109 @@ impl RuntimeCore {
             },
         );
         Ok(())
+    }
+
+    pub fn define_web_computed(
+        &mut self,
+        id: String,
+        spec: RecipeSpec,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.define_recipe(spec)?;
+        self.web_signals.insert(id, WebSignalKind::Computed);
+        Ok(())
+    }
+
+    pub fn define_web_output(
+        &mut self,
+        id: String,
+        spec: RecipeSpec,
+    ) -> Result<(), ForgeSignalJsError> {
+        self.define_recipe(spec)?;
+        self.web_signals.insert(id, WebSignalKind::Output);
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub fn web_signal_kind(&self, id: &str) -> Option<WebSignalKind> {
+        self.web_signals.get(id).copied()
+    }
+
+    pub fn watch_signal(
+        &mut self,
+        id: &str,
+        callback_id: u64,
+    ) -> Result<ObservationHandle, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        Ok(self.runtime.observe_nodes(
+            ObservationPolicy::meaningful_change(),
+            [node],
+            Box::new(WasmWatchListener {
+                callback_id,
+                signal_id: id.to_owned(),
+            }),
+        ))
+    }
+
+    pub fn effect_signal(
+        &mut self,
+        id: &str,
+        callback_id: u64,
+    ) -> Result<ObservationHandle, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        Ok(self.runtime.observe_nodes(
+            ObservationPolicy::meaningful_change(),
+            [node],
+            Box::new(WasmEffectListener { callback_id }),
+        ))
+    }
+
+    pub fn unobserve_handle(&mut self, handle: ObservationHandle) -> bool {
+        self.runtime.unobserve(handle)
+    }
+
+    pub fn note_app_signal_serialization(&mut self, id: &str, value: &SignalValue) {
+        if matches!(self.web_signals.get(id), Some(WebSignalKind::Output)) {
+            self.record_output_serialization(value);
+        }
+    }
+
+    pub fn note_compatibility_read(&mut self, breadth: usize) {
+        self.web_metrics.compatibility_read_count =
+            self.web_metrics.compatibility_read_count.saturating_add(1);
+        self.web_metrics.compatibility_read_breadth = self
+            .web_metrics
+            .compatibility_read_breadth
+            .saturating_add(breadth as u64);
+    }
+
+    pub fn note_compatibility_signal_serialization(&mut self, id: &str, value: &SignalValue) {
+        if matches!(self.web_signals.get(id), Some(WebSignalKind::Output)) {
+            self.record_output_serialization(value);
+        }
+    }
+
+    pub fn web_performance_summary(&self) -> WebPerformanceSummary {
+        let callback_stats = web_callbacks::callback_stats();
+        let transaction = self.runtime.telemetry().transaction;
+        WebPerformanceSummary {
+            active_handle_count: callback_stats.active_callback_count,
+            active_callback_count: callback_stats.active_callback_count,
+            matched_watcher_breadth: transaction.staged_observation_match_count,
+            delivered_observation_count: transaction.delivered_observation_count,
+            rollback_suppressed_delivery_count: transaction.rollback_suppressed_observation_count,
+            serial_executor_usage_count: self.runtime.telemetry().execution.serial_executor_usage_count,
+            parallel_executor_usage_count: self
+                .runtime
+                .telemetry()
+                .execution
+                .parallel_executor_usage_count,
+            output_serialization_count: self.web_metrics.output_serialization_count,
+            output_serialization_breadth: self.web_metrics.output_serialization_breadth,
+            js_callback_invocation_count: callback_stats.js_callback_invocation_count,
+            js_callback_failure_count: callback_stats.js_callback_failure_count,
+            compatibility_read_count: self.web_metrics.compatibility_read_count,
+            compatibility_read_breadth: self.web_metrics.compatibility_read_breadth,
+        }
     }
 
     pub fn read_value(&mut self, id: &str) -> Result<SignalValue, ForgeSignalJsError> {
@@ -1128,43 +1267,6 @@ impl RuntimeCore {
         Ok(())
     }
 
-    fn push_packed_fields_for_key(
-        &mut self,
-        family_id: &str,
-        key: &str,
-        fields: &[String],
-        packed: &mut Vec<f32>,
-        stats: &mut PackedFieldReadStats,
-    ) -> Result<(), ForgeSignalJsError> {
-        let object = match self.read_keyed_value_profiled(family_id, key, stats)? {
-            SignalValue::Object(entries) => entries,
-            other => {
-                return Err(ForgeSignalJsError::invalid_input(format!(
-                    "family `{family_id}` key `{key}` is not an object value: {other:?}"
-                )));
-            }
-        };
-        let extract_started_at = perf_now_ms();
-        for field in fields {
-            let Some((_, value)) = object.iter().find(|(candidate, _)| candidate == field) else {
-                return Err(ForgeSignalJsError::invalid_input(format!(
-                    "family `{family_id}` key `{key}` is missing numeric field `{field}`"
-                )));
-            };
-            match value {
-                SignalValue::Number(number) => packed.push(*number as f32),
-                other => {
-                    return Err(ForgeSignalJsError::invalid_input(format!(
-                        "family `{family_id}` key `{key}` field `{field}` is not numeric: {other:?}"
-                    )));
-                }
-            }
-        }
-        stats.field_extract_ms += perf_now_ms() - extract_started_at;
-        stats.fields_packed = stats.fields_packed.saturating_add(fields.len());
-        Ok(())
-    }
-
     fn pack_fields_from_targets(
         &mut self,
         targets: &[KeyedTarget],
@@ -1311,100 +1413,6 @@ impl RuntimeCore {
             }
         }
         Ok((targets, stats))
-    }
-
-    fn read_keyed_value_profiled(
-        &mut self,
-        family_id: &str,
-        key: &str,
-        stats: &mut PackedFieldReadStats,
-    ) -> Result<SignalValue, ForgeSignalJsError> {
-        let is_recipe_family = self.lock_store()?.recipe_families.contains_key(family_id);
-        let id = if is_recipe_family {
-            self.ensure_recipe_key(family_id, key)?
-        } else {
-            self.ensure_source_key(family_id, key, None)?
-        };
-        stats.key_reads = stats.key_reads.saturating_add(1);
-        if is_recipe_family {
-            stats.recipe_reads = stats.recipe_reads.saturating_add(1);
-        } else {
-            stats.source_reads = stats.source_reads.saturating_add(1);
-        }
-        self.read_value_profiled(&id, stats)
-    }
-
-    fn read_value_profiled(
-        &mut self,
-        id: &str,
-        stats: &mut PackedFieldReadStats,
-    ) -> Result<SignalValue, ForgeSignalJsError> {
-        let node = self.node_for_id(id)?;
-        let should_recompute_recipe = self
-            .lock_store()?
-            .recipes
-            .get(id)
-            .map(|recipe| !recipe.initialized)
-            .unwrap_or(false);
-        if should_recompute_recipe {
-            stats.recipe_cold_reads = stats.recipe_cold_reads.saturating_add(1);
-            forge_signal::facade::core::mark_dirty(self.runtime.graph_mut(), node, DEFAULT_ASPECT)
-                .map_err(ForgeSignalJsError::from)?;
-        }
-        let read_started_at = perf_now_ms();
-        let evaluator = self.evaluator();
-        self.runtime
-            .read(node, &self.store, &evaluator)
-            .map_err(ForgeSignalJsError::from)?;
-        self.runtime.clear_live_branch_mutation_residue();
-        stats.runtime_read_ms += perf_now_ms() - read_started_at;
-        let store = self.lock_store()?;
-        store
-            .read_value(id)
-            .ok_or_else(|| ForgeSignalJsError::invalid_input(format!("unknown signal id `{id}`")))
-    }
-
-    fn ensure_keyed_grid(
-        &mut self,
-        family_id: &str,
-        columns: u32,
-        rows: u32,
-    ) -> Result<KeyedEnsureStats, ForgeSignalJsError> {
-        let mut stats = KeyedEnsureStats::default();
-        for row in 0..rows {
-            for column in 0..columns {
-                let key = format!("tile-{column}-{row}");
-                self.ensure_keyed_entry(family_id, &key, &mut stats)?;
-            }
-        }
-        Ok(stats)
-    }
-
-    fn ensure_keyed_rect(
-        &mut self,
-        family_id: &str,
-        columns: u32,
-        rows: u32,
-        row: u32,
-        start_column: u32,
-        width: u32,
-        height: u32,
-    ) -> Result<KeyedEnsureStats, ForgeSignalJsError> {
-        if row >= rows || start_column >= columns {
-            return Ok(KeyedEnsureStats::default());
-        }
-        let clamped_width = width.min(columns.saturating_sub(start_column));
-        let clamped_height = height.min(rows.saturating_sub(row));
-        let mut stats = KeyedEnsureStats::default();
-        for row_offset in 0..clamped_height {
-            let current_row = row + row_offset;
-            for column_offset in 0..clamped_width {
-                let current_column = start_column + column_offset;
-                let key = format!("tile-{current_column}-{current_row}");
-                self.ensure_keyed_entry(family_id, &key, &mut stats)?;
-            }
-        }
-        Ok(stats)
     }
 
     fn ensure_keyed_entry(
@@ -1679,6 +1687,23 @@ impl RuntimeCore {
         &self,
     ) -> Result<Option<forge_signal::diagnostics::FlowSummary>, ForgeSignalJsError> {
         Ok(self.runtime.diagnostics().latest_flow().cloned())
+    }
+
+    pub fn latest_observation(
+        &self,
+    ) -> Result<Option<ObservationBoundarySummary>, ForgeSignalJsError> {
+        Ok(self.runtime.diagnostics().latest_observation().cloned())
+    }
+
+    fn record_output_serialization(&mut self, value: &SignalValue) {
+        self.web_metrics.output_serialization_count = self
+            .web_metrics
+            .output_serialization_count
+            .saturating_add(1);
+        self.web_metrics.output_serialization_breadth = self
+            .web_metrics
+            .output_serialization_breadth
+            .saturating_add(signal_value_breadth(value));
     }
 
     pub fn latest_failure(
@@ -2657,6 +2682,38 @@ pub fn new_shared_core(policy: RuntimePolicySpec) -> Result<SharedCore, ForgeSig
     Ok(Rc::new(RefCell::new(RuntimeCore::new(policy)?)))
 }
 
+struct WasmWatchListener {
+    callback_id: u64,
+    signal_id: String,
+}
+
+impl ObservationListener<(), (), (), SharedStore, ()> for WasmWatchListener {
+    fn on_observation(
+        &self,
+        ctx: ObservationReadContext<'_, (), (), (), SharedStore, ()>,
+        notice: &ObservationNotice<'_>,
+    ) {
+        web_callbacks::invoke_watch(
+            self.callback_id,
+            web_callbacks::notice_from_runtime(&self.signal_id, ctx, notice),
+        );
+    }
+}
+
+struct WasmEffectListener {
+    callback_id: u64,
+}
+
+impl ObservationListener<(), (), (), SharedStore, ()> for WasmEffectListener {
+    fn on_observation(
+        &self,
+        _ctx: ObservationReadContext<'_, (), (), (), SharedStore, ()>,
+        _notice: &ObservationNotice<'_>,
+    ) {
+        web_callbacks::invoke_effect(self.callback_id);
+    }
+}
+
 fn evaluate_node(
     view: &mut EvaluationContext<'_, SharedStore>,
     store: &SharedStore,
@@ -2798,6 +2855,27 @@ fn canonical_value_string(value: &SignalValue) -> Result<String, ForgeSignalJsEr
     serde_json::to_string(value).map_err(|err| {
         ForgeSignalJsError::internal(format!("failed to canonicalize signal value: {err}"))
     })
+}
+
+fn signal_value_breadth(value: &SignalValue) -> u64 {
+    match value {
+        SignalValue::Null
+        | SignalValue::Bool(_)
+        | SignalValue::Number(_)
+        | SignalValue::String(_) => 1,
+        SignalValue::Array(items) => {
+            1 + items
+                .iter()
+                .map(signal_value_breadth)
+                .sum::<u64>()
+        }
+        SignalValue::Object(fields) => {
+            1 + fields
+                .iter()
+                .map(|(_, value)| signal_value_breadth(value))
+                .sum::<u64>()
+        }
+    }
 }
 
 fn rgba_signal_value(r: u8, g: u8, b: u8, a: u8) -> SignalValue {

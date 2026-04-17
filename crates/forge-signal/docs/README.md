@@ -26,6 +26,7 @@ you grow.
 That means:
 
 - updates should land as one unit
+- observation should happen at the same committed boundary
 - rollback should leave the runtime in a sane state
 - diagnostics should explain why work happened
 - history should show what happened over time
@@ -85,9 +86,18 @@ That is the point of the runtime.
 It does not stop at "something recomputed."
 It keeps the update coherent, explainable, and inspectable.
 
+That now includes runtime-backed observation.
+You can watch derived values on the `easy` path, or register runtime observers on
+the broader surface, and both sit on the same commit-bounded observation model:
+
+- one committed transaction delivers one boundary per matching observer
+- rollback suppresses normal delivery
+- diagnostics retain the latest observation boundary beside the latest flow
+
 If you want to see that end to end, read:
 
 - [guides/running-the-runtime.md](./guides/running-the-runtime.md)
+- [guides/observation-and-effects.md](./guides/observation-and-effects.md)
 - [guides/debugging-and-diagnostics.md](./guides/debugging-and-diagnostics.md)
 - [guides/snapshots-branches-and-history.md](./guides/snapshots-branches-and-history.md)
 
@@ -115,6 +125,7 @@ Start with `forge_signal::facade::*` if you want the broader runtime surface.
 ## Guides
 
 - [guides/defining-computation.md](./guides/defining-computation.md)
+- [guides/observation-and-effects.md](./guides/observation-and-effects.md)
 - [guides/running-the-runtime.md](./guides/running-the-runtime.md)
 - [guides/debugging-and-diagnostics.md](./guides/debugging-and-diagnostics.md)
 - [guides/runtime-policy.md](./guides/runtime-policy.md)

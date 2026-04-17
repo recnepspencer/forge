@@ -16,7 +16,8 @@ pub fn to_js<T>(value: &T) -> Result<JsValue, ForgeSignalJsError>
 where
     T: Serialize,
 {
-    serde_wasm_bindgen::to_value(value).map_err(|err| {
+    let serializer = serde_wasm_bindgen::Serializer::json_compatible();
+    value.serialize(&serializer).map_err(|err| {
         ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
     })
 }

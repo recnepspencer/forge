@@ -18,7 +18,7 @@ use crate::data::proof::{
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::SignalRuntimePolicy;
 #[cfg(feature = "parallel")]
-use crate::facade::SnapshotBatchCommit;
+use crate::data::proof::SnapshotBatchCommit;
 #[cfg(feature = "parallel")]
 use crate::logic::evaluation::collect_effect_dependency_inputs_iter;
 #[cfg(feature = "parallel")]
