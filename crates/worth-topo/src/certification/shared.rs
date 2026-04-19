@@ -3,9 +3,8 @@ use worth_schema::facade::{
 };
 
 use crate::certification::report::{
-    WorthDeterministicDigest, WorthPrimitiveCorpusCaseReport,
-    WorthPrimitiveCorpusCoverageEntry, WorthPrimitiveCorpusParityEntry,
-    WorthPrimitiveFamilyCoverageEntry,
+    WorthDeterministicDigest, WorthPrimitiveCorpusCaseReport, WorthPrimitiveCorpusCoverageEntry,
+    WorthPrimitiveCorpusParityEntry, WorthPrimitiveFamilyCoverageEntry,
 };
 
 pub(crate) fn coverage_entry(
@@ -72,8 +71,20 @@ pub(crate) fn validator_expectations_for_family(family: &str) -> &'static [&'sta
         "WireClosed(n)" => &["ownership", "loop_wiring", "naming"],
         "WireBranch(k)" => &["ownership", "loop_wiring", "vertex_branching", "naming"],
         "SheetDisk(n)" => &["ownership", "loop_wiring", "shell_closure", "naming"],
-        "SheetPatch(f)" => &["ownership", "loop_wiring", "shell_closure", "radial", "naming"],
-        "SolidShell(f)" => &["ownership", "loop_wiring", "shell_closure", "radial", "naming"],
+        "SheetPatch(f)" => &[
+            "ownership",
+            "loop_wiring",
+            "shell_closure",
+            "radial",
+            "naming",
+        ],
+        "SolidShell(f)" => &[
+            "ownership",
+            "loop_wiring",
+            "shell_closure",
+            "radial",
+            "naming",
+        ],
         "NmtEdgeFan(k)" => &["ownership", "loop_wiring", "radial", "naming"],
         _ => &[],
     }

@@ -15,7 +15,9 @@ pub fn validate(view: &MaterializedTopologyView) -> Result<(), WorthTopologyVali
     Ok(())
 }
 
-fn validate_unique_entity_ids(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_unique_entity_ids(
+    view: &WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     unique_ids(&view.models, |record| record.entity_id)?;
     unique_ids(&view.bodies, |record| record.entity_id)?;
     unique_ids(&view.lumps, |record| record.entity_id)?;
@@ -33,42 +35,64 @@ fn validate_unique_entity_ids(view: &WorthTopologyView) -> Result<(), WorthTopol
 fn validate_hierarchy(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
     for body in &view.bodies {
         if body.model_id.is_none() {
-            return Err(err("ownership.hierarchy", format!("body {:?} has no model parent", body.entity_id)));
+            return Err(err(
+                "ownership.hierarchy",
+                format!("body {:?} has no model parent", body.entity_id),
+            ));
         }
     }
     for lump in &view.lumps {
         if lump.body_id.is_none() {
-            return Err(err("ownership.hierarchy", format!("lump {:?} has no body parent", lump.entity_id)));
+            return Err(err(
+                "ownership.hierarchy",
+                format!("lump {:?} has no body parent", lump.entity_id),
+            ));
         }
     }
     for region in &view.regions {
         if region.lump_id.is_none() {
-            return Err(err("ownership.hierarchy", format!("region {:?} has no lump parent", region.entity_id)));
+            return Err(err(
+                "ownership.hierarchy",
+                format!("region {:?} has no lump parent", region.entity_id),
+            ));
         }
     }
     for shell in &view.shells {
         if shell.region_id.is_none() {
-            return Err(err("ownership.hierarchy", format!("shell {:?} has no region parent", shell.entity_id)));
+            return Err(err(
+                "ownership.hierarchy",
+                format!("shell {:?} has no region parent", shell.entity_id),
+            ));
         }
     }
     for face in &view.faces {
         if face.shell_id.is_none() {
-            return Err(err("ownership.hierarchy", format!("face {:?} has no shell parent", face.entity_id)));
+            return Err(err(
+                "ownership.hierarchy",
+                format!("face {:?} has no shell parent", face.entity_id),
+            ));
         }
     }
     Ok(())
 }
 
-fn validate_face_loop_existence(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_face_loop_existence(
+    view: &WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     for face in &view.faces {
         if face.outer_loop_id.is_none() {
-            return Err(err("ownership.face_loop_existence", format!("face {:?} has no outer loop", face.entity_id)));
+            return Err(err(
+                "ownership.face_loop_existence",
+                format!("face {:?} has no outer loop", face.entity_id),
+            ));
         }
     }
     Ok(())
 }
 
-fn validate_loop_face_membership(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_loop_face_membership(
+    view: &WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     let outer_loop_map = face_outer_loop_map(view);
     let loop_face_map = loop_face_map(view);
     for face in &view.faces {
@@ -89,7 +113,10 @@ fn validate_loop_face_membership(view: &WorthTopologyView) -> Result<(), WorthTo
             None => {
                 return Err(err(
                     "ownership.loop_face_membership",
-                    format!("outer loop {:?} for face {:?} is not owned by any face", outer_loop_id, face.entity_id),
+                    format!(
+                        "outer loop {:?} for face {:?} is not owned by any face",
+                        outer_loop_id, face.entity_id
+                    ),
                 ));
             }
         }
@@ -151,7 +178,10 @@ fn validate_optional_ref(
         if !valid_ids.contains(&target_id) {
             return Err(err(
                 validator,
-                format!("entity {:?} references missing entity {:?}", owner_id, target_id),
+                format!(
+                    "entity {:?} references missing entity {:?}",
+                    owner_id, target_id
+                ),
             ));
         }
     }

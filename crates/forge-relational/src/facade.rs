@@ -742,10 +742,7 @@ pub mod bridge {
         }
     }
 
-    fn payload_bytes_for_payload(
-        value: &serde_json::Value,
-        aspect_label: &str,
-    ) -> Option<Vec<u8>> {
+    fn payload_bytes_for_payload(value: &serde_json::Value, aspect_label: &str) -> Option<Vec<u8>> {
         let scoped = json_value_for_aspect(value, aspect_label)
             .or_else(|| json_value_for_terminal_field(value, aspect_label))
             .or_else(|| structural_snapshot_value(value, aspect_label))?;
@@ -1366,18 +1363,17 @@ pub mod runtime {
         StorageStats, TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
         VisibilityRetentionAuthority,
     };
-    pub use crate::validation::data::{
-        CustomInvariantDescriptor, CustomInvariantExecutionContext,
-        CustomInvariantExecutionError, CustomInvariantOperationalMetadata,
-        CustomInvariantPreparationError, CustomInvariantRegistration,
-        CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantRuleId,
-        CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-        InvariantGroup, InvariantGroupSet, StructuralRelationRecord, StructuralRelationView,
-    };
     pub use crate::presentation::api::RelationalRuntimeApi;
     pub use crate::presentation::contracts::{
         ImmutableReadContract, RelationalBoundaryContract, SerializedAuthorityContract,
+    };
+    pub use crate::validation::data::{
+        CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+        CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+        CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
+        CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass, InvariantGroup,
+        InvariantGroupSet, StructuralRelationRecord, StructuralRelationView,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
 }
@@ -1501,15 +1497,15 @@ pub mod transactions {
         CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
         CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
         CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
-        CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef,
-        CrossContextEndpointClass, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
-        EntityReference, EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan,
-        MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
-        MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PatchVsTruthDeltaReport,
-        PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
-        RecordRef, RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent,
-        RollbackEffect, RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError,
-        TransactionId, TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+        CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
+        DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
+        EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,
+        MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
+        NamingStableBulkMutationBatch, PatchVsTruthDeltaReport, PlannedBulkMutationBatch,
+        PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
+        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
+        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
+        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

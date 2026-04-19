@@ -4,9 +4,9 @@ mod runtime_invariant_tests {
     use worth_schema::facade::{
         seed_minimal_topology, worth_bootstrap_runtime_invariant_plan, RawWorthTopologyIntent,
         WorthCreateKey, WorthEntityKind, WorthEntityReference, WorthMutationOrigin,
-        WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind,
-        WorthTopologyAuthority, WorthTopologyAuthorityError, WorthTopologyEntityKind,
-        WorthTopologyMutation, WorthTopologyRelationKind,
+        WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind, WorthTopologyAuthority,
+        WorthTopologyAuthorityError, WorthTopologyEntityKind, WorthTopologyMutation,
+        WorthTopologyRelationKind,
     };
 
     use crate::facade::{

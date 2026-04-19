@@ -1559,4 +1559,3 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         accepted_feature.commit.commit_id
     );
 }
-

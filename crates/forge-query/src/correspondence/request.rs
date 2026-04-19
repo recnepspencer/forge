@@ -17,9 +17,7 @@ pub(crate) enum LineageEvidenceInput {
         authoritative_counterpart: String,
     },
     #[cfg(test)]
-    UnsupportedTopology {
-        topology: &'static str,
-    },
+    UnsupportedTopology { topology: &'static str },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -29,13 +27,9 @@ pub(crate) enum StructuralEvidenceInput {
         ordering_contract: StructuralCandidateOrderingContract,
     },
     #[cfg(test)]
-    UnsupportedFamily {
-        family: &'static str,
-    },
+    UnsupportedFamily { family: &'static str },
     #[cfg(test)]
-    LineageConflict {
-        structural_counterpart: String,
-    },
+    LineageConflict { structural_counterpart: String },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

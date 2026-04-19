@@ -5,14 +5,14 @@ use forge_relational::facade::identity::EntityId;
 use crate::data::topology_view::WorthTopologyView;
 use crate::validators::error::WorthTopologyValidationError;
 
-pub fn err(
-    validator: &'static str,
-    message: impl Into<String>,
-) -> WorthTopologyValidationError {
+pub fn err(validator: &'static str, message: impl Into<String>) -> WorthTopologyValidationError {
     WorthTopologyValidationError::new(validator, message)
 }
 
-pub fn unique_ids<'a, T, F>(records: &'a [T], entity_id: F) -> Result<BTreeSet<EntityId>, WorthTopologyValidationError>
+pub fn unique_ids<'a, T, F>(
+    records: &'a [T],
+    entity_id: F,
+) -> Result<BTreeSet<EntityId>, WorthTopologyValidationError>
 where
     F: Fn(&'a T) -> EntityId,
 {
@@ -20,7 +20,10 @@ where
     for record in records {
         let id = entity_id(record);
         if !ids.insert(id) {
-            return Err(err("duplicate_entity_id", format!("duplicate entity {:?}", id)));
+            return Err(err(
+                "duplicate_entity_id",
+                format!("duplicate entity {:?}", id),
+            ));
         }
     }
     Ok(ids)

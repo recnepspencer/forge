@@ -9,8 +9,8 @@ use crate::facade::{
     AspectMask, BatchChange, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError,
     SignalGraph,
 };
-use crate::logic::transaction::RuntimeObservationRegistry;
 use crate::logic::prepared::PreparedEvaluation;
+use crate::logic::transaction::RuntimeObservationRegistry;
 
 use super::compute::{Computed, ErasedComputed, SignalContext};
 use super::signal::{ComputedSignal, InputSignal, Signal, DEFAULT_ASPECT};
@@ -186,7 +186,10 @@ impl SignalApp {
         Ok(())
     }
 
-    pub(super) fn ensure_evaluated(&mut self, node: NodeId) -> Result<BTreeSet<NodeId>, SignalError> {
+    pub(super) fn ensure_evaluated(
+        &mut self,
+        node: NodeId,
+    ) -> Result<BTreeSet<NodeId>, SignalError> {
         if !self.computed.contains_key(&node) {
             return Ok(BTreeSet::new());
         }

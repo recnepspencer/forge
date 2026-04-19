@@ -39,7 +39,9 @@ impl BridgeWritebackFamilyRegistryEntry {
     }
 }
 
-const fn registry_entry(family_kind: BridgeWritebackFamilyKind) -> BridgeWritebackFamilyRegistryEntry {
+const fn registry_entry(
+    family_kind: BridgeWritebackFamilyKind,
+) -> BridgeWritebackFamilyRegistryEntry {
     match family_kind {
         BridgeWritebackFamilyKind::ProjectedStateDiff => BridgeWritebackFamilyRegistryEntry {
             family_kind: BridgeWritebackFamilyKind::ProjectedStateDiff,
@@ -177,7 +179,10 @@ mod tests {
         let second =
             admitted_family_registry_entry(BridgeWritebackFamilyKind::AspectReconciliation);
 
-        assert_eq!(first.family_kind(), BridgeWritebackFamilyKind::ProjectedStateDiff);
+        assert_eq!(
+            first.family_kind(),
+            BridgeWritebackFamilyKind::ProjectedStateDiff
+        );
         assert_eq!(
             second.family_kind(),
             BridgeWritebackFamilyKind::AspectReconciliation

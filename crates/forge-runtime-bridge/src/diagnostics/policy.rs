@@ -24,11 +24,21 @@ impl BridgePolicyExplanationRow {
         }
     }
 
-    pub fn label(&self) -> &str { self.label.as_ref() }
-    pub fn semantic_policy_digest(&self) -> &str { self.semantic_policy_digest.as_ref() }
-    pub fn lowered_policy_digest(&self) -> &str { self.lowered_policy_digest.as_ref() }
-    pub fn provenance_digest(&self) -> &str { self.provenance_digest.as_ref() }
-    pub fn replay_digest(&self) -> &str { self.replay_digest.as_ref() }
+    pub fn label(&self) -> &str {
+        self.label.as_ref()
+    }
+    pub fn semantic_policy_digest(&self) -> &str {
+        self.semantic_policy_digest.as_ref()
+    }
+    pub fn lowered_policy_digest(&self) -> &str {
+        self.lowered_policy_digest.as_ref()
+    }
+    pub fn provenance_digest(&self) -> &str {
+        self.provenance_digest.as_ref()
+    }
+    pub fn replay_digest(&self) -> &str {
+        self.replay_digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,8 +61,12 @@ impl BridgePolicyExplanation {
         }
     }
 
-    pub fn report_digest(&self) -> &str { self.report_digest.as_ref() }
-    pub fn rows(&self) -> &[BridgePolicyExplanationRow] { &self.rows }
+    pub fn report_digest(&self) -> &str {
+        self.report_digest.as_ref()
+    }
+    pub fn rows(&self) -> &[BridgePolicyExplanationRow] {
+        &self.rows
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +83,10 @@ impl BridgePolicyRejectionExplanation {
         }
     }
 
-    pub fn rejection_digest(&self) -> &str { self.rejection_digest.as_ref() }
-    pub fn detail(&self) -> &str { self.detail.as_ref() }
+    pub fn rejection_digest(&self) -> &str {
+        self.rejection_digest.as_ref()
+    }
+    pub fn detail(&self) -> &str {
+        self.detail.as_ref()
+    }
 }

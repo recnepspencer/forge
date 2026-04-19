@@ -221,4 +221,3 @@ fn partition_registry_and_stats_expose_partition_owned_state() {
         1
     );
 }
-

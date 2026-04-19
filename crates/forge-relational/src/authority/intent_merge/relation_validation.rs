@@ -225,7 +225,9 @@ fn existing_relation_targets_for_source(
     let Some(source_partition) = state.get_partition(source_entity.partition_id) else {
         return false;
     };
-    let Some(outgoing_relations) = source_partition.adjacency.get(source_entity.local_slot.0 as usize)
+    let Some(outgoing_relations) = source_partition
+        .adjacency
+        .get(source_entity.local_slot.0 as usize)
     else {
         return false;
     };

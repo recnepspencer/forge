@@ -63,8 +63,7 @@ impl BridgeValidatedWritebackCandidate {
         match strategy_compatibility.disposition() {
             BridgeWritebackStrategyCompatibilityDisposition::Compatible => {}
             BridgeWritebackStrategyCompatibilityDisposition::FamilyKindMismatch
-            |
-            BridgeWritebackStrategyCompatibilityDisposition::StrategyClassMismatch
+            | BridgeWritebackStrategyCompatibilityDisposition::StrategyClassMismatch
             | BridgeWritebackStrategyCompatibilityDisposition::StrategyDescriptorMismatch
             | BridgeWritebackStrategyCompatibilityDisposition::EffectClassMismatch => {
                 return Err(BridgeWritebackError::new(
@@ -113,7 +112,8 @@ impl BridgeValidatedWritebackCandidate {
         let strategy_compatibility_digest =
             Arc::<str>::from(strategy_compatibility.digest().to_owned());
         let family_kind = effect.family_kind();
-        let strategy_descriptor_digest = Arc::<str>::from(effect.strategy_descriptor_digest().to_owned());
+        let strategy_descriptor_digest =
+            Arc::<str>::from(effect.strategy_descriptor_digest().to_owned());
         let strategy_class = effect.strategy_class();
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-validated-writeback-candidate|contract={}|effect={}|idempotence={}|loop-prevention={}|strategy-compatibility={}|family:{family_kind:?}|strategy-class:{strategy_class:?}|strategy={}|retry:{retry_disposition:?}|lowered-policy={}|causality={}",

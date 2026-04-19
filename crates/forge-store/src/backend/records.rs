@@ -2,9 +2,9 @@ use crate::{
     authority::digest_from_string,
     authority::{FetchedAuthoritativeCommit, PersistedAuthoritativeCommit},
     bulk::{
-        BulkChunkCommitWitness, BulkPlanKind, DeterministicChunkPlan,
-        FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition,
-        ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint,
+        BulkChunkCommitWitness, BulkPlanKind, DeterministicChunkPlan, FrozenBulkSourceManifest,
+        FrozenTransformBasis, FrozenTransformTargetPartition, ProgramChunkWitnessIndex,
+        PublishedBulkProgressCheckpoint,
     },
     delta::{BranchDeltaLayerId, BRANCH_DELTA_FAMILY_VERSION},
     layout::{
@@ -402,11 +402,15 @@ struct PersistedMilestone9PhysicalChunkReference {
     chunk_member_count: usize,
 }
 
-impl From<&Milestone6LayoutMaterializationRecord> for PersistedMilestone6LayoutMaterializationRecord {
+impl From<&Milestone6LayoutMaterializationRecord>
+    for PersistedMilestone6LayoutMaterializationRecord
+{
     fn from(record: &Milestone6LayoutMaterializationRecord) -> Self {
         Self {
             artifact_id: record.artifact_id.clone(),
-            materialization: PersistedMilestone6LayoutMaterialization::from(&record.materialization),
+            materialization: PersistedMilestone6LayoutMaterialization::from(
+                &record.materialization,
+            ),
         }
     }
 }
@@ -415,9 +419,13 @@ impl From<&Milestone6LayoutMaterialization> for PersistedMilestone6LayoutMateria
     fn from(materialization: &Milestone6LayoutMaterialization) -> Self {
         Self {
             artifact_id: materialization.artifact_id().to_string(),
-            admitted_plan: PersistedAdmittedAspectLayoutReadPlan::from(materialization.admitted_plan()),
+            admitted_plan: PersistedAdmittedAspectLayoutReadPlan::from(
+                materialization.admitted_plan(),
+            ),
             block_reuse: PersistedDedupAdmittedBlockReuse::from(materialization.block_reuse()),
-            frozen_layout: PersistedChunkModelFrozenPhysicalLayout::from(materialization.frozen_layout()),
+            frozen_layout: PersistedChunkModelFrozenPhysicalLayout::from(
+                materialization.frozen_layout(),
+            ),
             milestone_7_reference: PersistedMilestone7IndependentLayoutReference::from(
                 materialization.milestone_7_reference(),
             ),
@@ -497,10 +505,14 @@ impl From<&Milestone9PhysicalChunkReference> for PersistedMilestone9PhysicalChun
     }
 }
 
-impl TryFrom<PersistedMilestone6LayoutMaterializationRecord> for Milestone6LayoutMaterializationRecord {
+impl TryFrom<PersistedMilestone6LayoutMaterializationRecord>
+    for Milestone6LayoutMaterializationRecord
+{
     type Error = String;
 
-    fn try_from(record: PersistedMilestone6LayoutMaterializationRecord) -> Result<Self, Self::Error> {
+    fn try_from(
+        record: PersistedMilestone6LayoutMaterializationRecord,
+    ) -> Result<Self, Self::Error> {
         validate_persisted_milestone_6_layout_materialization_record(&record)?;
         Ok(Self {
             artifact_id: record.artifact_id,
@@ -512,7 +524,9 @@ impl TryFrom<PersistedMilestone6LayoutMaterializationRecord> for Milestone6Layou
 impl TryFrom<PersistedMilestone6LayoutMaterialization> for Milestone6LayoutMaterialization {
     type Error = String;
 
-    fn try_from(materialization: PersistedMilestone6LayoutMaterialization) -> Result<Self, Self::Error> {
+    fn try_from(
+        materialization: PersistedMilestone6LayoutMaterialization,
+    ) -> Result<Self, Self::Error> {
         validate_persisted_milestone_6_layout_materialization(&materialization)?;
         let admitted_plan = AdmittedAspectLayoutReadPlan::new(
             materialization.admitted_plan.request,
@@ -605,8 +619,8 @@ fn validate_persisted_milestone_6_layout_materialization(
         &expected_plan,
         materialization.block_reuse.equivalence_contract_version,
     );
-    let expected_frozen_layout =
-        crate::layout::freeze_chunk_model_from_plan(&expected_plan).map_err(|error| error.to_string())?;
+    let expected_frozen_layout = crate::layout::freeze_chunk_model_from_plan(&expected_plan)
+        .map_err(|error| error.to_string())?;
     let expected_milestone_7_reference =
         crate::layout::admit_milestone_7_reference_from_plan(&expected_plan)
             .map_err(|error| error.to_string())?;
@@ -629,7 +643,8 @@ fn validate_persisted_milestone_6_layout_materialization(
         ));
     }
 
-    let expected_block_reuse_persisted = PersistedDedupAdmittedBlockReuse::from(&expected_block_reuse);
+    let expected_block_reuse_persisted =
+        PersistedDedupAdmittedBlockReuse::from(&expected_block_reuse);
     if materialization.block_reuse != expected_block_reuse_persisted {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical structural block reuse witness for its admitted plan",
@@ -807,11 +822,9 @@ pub(crate) struct StoreState {
     pub milestone_6_scope_slice_membership_records:
         BTreeMap<String, Milestone6ScopeSliceMembershipRecord>,
     #[serde(default)]
-    pub milestone_6_chunk_membership_records:
-        BTreeMap<String, Milestone6ChunkMembershipRecord>,
+    pub milestone_6_chunk_membership_records: BTreeMap<String, Milestone6ChunkMembershipRecord>,
     #[serde(default)]
-    pub milestone_6_structural_block_records:
-        BTreeMap<String, Milestone6StructuralBlockRecord>,
+    pub milestone_6_structural_block_records: BTreeMap<String, Milestone6StructuralBlockRecord>,
     #[serde(default)]
     pub bulk_program_identity_records: BTreeMap<String, BulkProgramIdentityRecord>,
     #[serde(default)]

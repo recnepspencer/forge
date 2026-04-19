@@ -5,8 +5,8 @@ use forge_harness::facade::{
     FeedStreamProfile, FeedVolatilityRegime,
 };
 
-use crate::facade::TruthSnapshotIdentity;
 use crate::facade::SnapshotReadRecord;
+use crate::facade::TruthSnapshotIdentity;
 use crate::harness::fixtures::SnapshotFixture;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -495,7 +495,8 @@ impl PricingDomainWorld {
         let energy_factor_profile = Self::energy_factor_profile();
 
         for (offset, (material, profile)) in stream_profiles.into_iter().enumerate() {
-            let generator = DeterministicFeedStreamGenerator::new(profile.clone(), seed + offset as u64 + 1);
+            let generator =
+                DeterministicFeedStreamGenerator::new(profile.clone(), seed + offset as u64 + 1);
             baseline_prices_microunits.insert(material, profile.starting_value_microunits);
             current_prices_microunits.insert(material, profile.starting_value_microunits);
             generators.insert(material, generator);
@@ -513,7 +514,8 @@ impl PricingDomainWorld {
             ),
             generators,
             current_prices_microunits,
-            current_industrial_factor_microunits: industrial_factor_profile.starting_value_microunits,
+            current_industrial_factor_microunits: industrial_factor_profile
+                .starting_value_microunits,
             current_energy_factor_microunits: energy_factor_profile.starting_value_microunits,
             products: Self::reference_catalog(),
             next_sequence: 1,
@@ -543,16 +545,15 @@ impl PricingDomainWorld {
             .industrial_factor_generator
             .next_sample()
             .value_microunits;
-        self.current_energy_factor_microunits = self
-            .energy_factor_generator
-            .next_sample()
-            .value_microunits;
+        self.current_energy_factor_microunits =
+            self.energy_factor_generator.next_sample().value_microunits;
         let industrial_factor = self.current_industrial_factor_microunits;
         let energy_factor = self.current_energy_factor_microunits;
 
         let mut changed_materials = Vec::new();
         for (material, generator) in &mut self.generators {
-            let external_factor = Self::external_factor_for(*material, industrial_factor, energy_factor);
+            let external_factor =
+                Self::external_factor_for(*material, industrial_factor, energy_factor);
             let previous_value = generator.current_value_microunits();
             let sample = generator.next_sample_with_external_factor(external_factor);
             self.current_prices_microunits
@@ -626,7 +627,10 @@ impl PricingDomainWorld {
                 .unwrap_or_else(|| self.current_material_price_microunits(*material))
                 .to_string()
                 .into_bytes();
-            records.push(SnapshotReadRecord::new(material.snapshot_record_key(), payload));
+            records.push(SnapshotReadRecord::new(
+                material.snapshot_record_key(),
+                payload,
+            ));
         }
 
         SnapshotFixture::new(TruthSnapshotIdentity::new(snapshot_id), records)
@@ -679,10 +683,12 @@ impl PricingDomainWorld {
             })
             .sum::<i64>();
 
-        let baseline_shipping_cost_cents =
-            self.shipping_cost_cents_with_prices(&product.shipping, &self.baseline_prices_microunits);
-        let shipping_cost_cents = self.shipping_cost_cents_with_overrides(&product.shipping, &overrides);
-        let baseline_landed_cost_cents = baseline_material_cost_cents + baseline_shipping_cost_cents;
+        let baseline_shipping_cost_cents = self
+            .shipping_cost_cents_with_prices(&product.shipping, &self.baseline_prices_microunits);
+        let shipping_cost_cents =
+            self.shipping_cost_cents_with_overrides(&product.shipping, &overrides);
+        let baseline_landed_cost_cents =
+            baseline_material_cost_cents + baseline_shipping_cost_cents;
         let pre_policy_landed_cost_cents = material_cost_cents + shipping_cost_cents;
         let tariff_bps = family_tariff_bps
             .get(&product.family)
@@ -725,10 +731,7 @@ impl PricingDomainWorld {
             .collect()
     }
 
-    pub(super) fn price_matrix_with_overrides<I>(
-        &self,
-        overrides: I,
-    ) -> Vec<ProductPriceBreakdown>
+    pub(super) fn price_matrix_with_overrides<I>(&self, overrides: I) -> Vec<ProductPriceBreakdown>
     where
         I: IntoIterator<Item = (PricingMaterial, i64)>,
     {
@@ -905,8 +908,12 @@ mod tests {
         assert_eq!(products.len(), 100);
         assert!(products.iter().any(|product| product.family == "bicycle"));
         assert!(products.iter().any(|product| product.family == "washer"));
-        assert!(products.iter().all(|product| product.shipping.fuel_burn_microliters_per_kg_km > 0));
-        assert!(products.iter().all(|product| product.tolerance_gate.repricing_threshold_bps > 0));
+        assert!(products
+            .iter()
+            .all(|product| product.shipping.fuel_burn_microliters_per_kg_km > 0));
+        assert!(products
+            .iter()
+            .all(|product| product.tolerance_gate.repricing_threshold_bps > 0));
         assert!(products.iter().all(|product| {
             product
                 .materials
@@ -926,10 +933,7 @@ mod tests {
         assert_eq!(second_wave.sequence, 2);
         assert_eq!(first_wave.changed_materials.len(), 9);
         assert_eq!(second_wave.changed_materials.len(), 9);
-        assert_eq!(
-            snapshot.identity().as_str(),
-            "snapshot:pricing-domain"
-        );
+        assert_eq!(snapshot.identity().as_str(), "snapshot:pricing-domain");
         assert_eq!(snapshot.records().len(), 9);
         assert!(snapshot
             .records()
@@ -979,17 +983,33 @@ mod tests {
             .find(|product| product.sku.starts_with("bicycle-"))
             .expect("bicycle should exist in reference catalog");
         let mut overrides = BTreeMap::new();
-        overrides.insert(PricingMaterial::Steel, world.current_material_price_microunits(PricingMaterial::Steel) + 12_500);
-        overrides.insert(PricingMaterial::Fuel, world.current_material_price_microunits(PricingMaterial::Fuel) + 9_500);
-        let breakdown = world.price_product_with_scenario(product, overrides.clone(), BTreeMap::new());
+        overrides.insert(
+            PricingMaterial::Steel,
+            world.current_material_price_microunits(PricingMaterial::Steel) + 12_500,
+        );
+        overrides.insert(
+            PricingMaterial::Fuel,
+            world.current_material_price_microunits(PricingMaterial::Fuel) + 9_500,
+        );
+        let breakdown =
+            world.price_product_with_scenario(product, overrides.clone(), BTreeMap::new());
         let oracle = independent_breakdown_oracle(&world, product, &overrides);
 
         assert_eq!(breakdown.material_cost_cents, oracle.material_cost_cents);
         assert_eq!(breakdown.shipping_cost_cents, oracle.shipping_cost_cents);
-        assert_eq!(breakdown.baseline_landed_cost_cents, oracle.baseline_landed_cost_cents);
+        assert_eq!(
+            breakdown.baseline_landed_cost_cents,
+            oracle.baseline_landed_cost_cents
+        );
         assert_eq!(breakdown.landed_cost_cents, oracle.landed_cost_cents);
-        assert_eq!(breakdown.landed_cost_delta_cents, oracle.landed_cost_delta_cents);
-        assert_eq!(breakdown.repricing_threshold_cents, oracle.repricing_threshold_cents);
+        assert_eq!(
+            breakdown.landed_cost_delta_cents,
+            oracle.landed_cost_delta_cents
+        );
+        assert_eq!(
+            breakdown.repricing_threshold_cents,
+            oracle.repricing_threshold_cents
+        );
         assert_eq!(breakdown.repricing_triggered, oracle.repricing_triggered);
     }
 
@@ -1018,7 +1038,8 @@ mod tests {
                 if family_prefix == "washer-" || family_prefix == "e-bike-" {
                     overrides.insert(
                         PricingMaterial::Electronics,
-                        world.current_material_price_microunits(PricingMaterial::Electronics) + 4_000,
+                        world.current_material_price_microunits(PricingMaterial::Electronics)
+                            + 4_000,
                     );
                 }
 
@@ -1033,7 +1054,10 @@ mod tests {
                     oracle.baseline_landed_cost_cents
                 );
                 assert_eq!(breakdown.landed_cost_cents, oracle.landed_cost_cents);
-                assert_eq!(breakdown.landed_cost_delta_cents, oracle.landed_cost_delta_cents);
+                assert_eq!(
+                    breakdown.landed_cost_delta_cents,
+                    oracle.landed_cost_delta_cents
+                );
                 assert_eq!(
                     breakdown.repricing_threshold_cents,
                     oracle.repricing_threshold_cents
@@ -1065,7 +1089,9 @@ mod tests {
                 overrides
                     .get(&requirement.material)
                     .copied()
-                    .unwrap_or_else(|| world.current_material_price_microunits(requirement.material))
+                    .unwrap_or_else(|| {
+                        world.current_material_price_microunits(requirement.material)
+                    })
                     * requirement.quantity_milliunits
                     / 1_000_000
             })

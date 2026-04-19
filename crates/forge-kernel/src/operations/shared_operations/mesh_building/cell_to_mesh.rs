@@ -15,13 +15,13 @@ use std::sync::Arc;
 
 use forge_core::tolerance::ToleranceProvider;
 use forge_core::KernelError;
-use worth_geom::facade::{CurveGeom, CurveKind, SurfaceData};
-use worth_geom::ConvexCell;
 use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::LineageRecorder;
 use forge_topo::queries::edge_endpoint_ids;
 use forge_topo::transactions::MutableDraft;
+use worth_geom::facade::{CurveGeom, CurveKind, SurfaceData};
+use worth_geom::ConvexCell;
 
 use crate::geometry::facade::GeometryStore;
 

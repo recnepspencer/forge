@@ -1010,8 +1010,12 @@ mod tests {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(2),
                     client_key: crate::symbols::data::InternedString::Raw("edge".to_string()),
-                    source: crate::transactions::data::EntityReference::Existing(crate::facade::identity::EntityId::new(PartitionId::main(), 10, 1)),
-                    target: crate::transactions::data::EntityReference::Existing(crate::facade::identity::EntityId::new(PartitionId::main(), 11, 1)),
+                    source: crate::transactions::data::EntityReference::Existing(
+                        crate::facade::identity::EntityId::new(PartitionId::main(), 10, 1),
+                    ),
+                    target: crate::transactions::data::EntityReference::Existing(
+                        crate::facade::identity::EntityId::new(PartitionId::main(), 11, 1),
+                    ),
                     payload: Some(crate::payloads::data::RecordPayload::StructuredJson(
                         serde_json::json!({"kind": "edge"}),
                     )),

@@ -33,7 +33,10 @@ pub fn simulate_legacy_milestone_6_commit_coupled_layout_seed_storage(path: &std
         )
         .expect("legacy milestone 6 seed rows should copy");
     connection
-        .execute("DELETE FROM milestone_6_commit_coupled_layout_seed_records", [])
+        .execute(
+            "DELETE FROM milestone_6_commit_coupled_layout_seed_records",
+            [],
+        )
         .expect("new milestone 6 seed rows should clear");
 }
 
@@ -174,8 +177,7 @@ pub fn regress_sqlite_bulk_checkpoint_completed_chunk(
     let mut payload: serde_json::Value =
         serde_json::from_str(&payload_json).expect("sqlite bulk checkpoint payload should decode");
     payload["checkpoint"]["completed_chunk_ordinal"] = serde_json::json!(completed_chunk_ordinal);
-    payload["checkpoint"]["next_chunk_ordinal"] =
-        serde_json::json!(completed_chunk_ordinal + 1);
+    payload["checkpoint"]["next_chunk_ordinal"] = serde_json::json!(completed_chunk_ordinal + 1);
     let witness_artifact_id = payload["checkpoint"]["last_committed_chunk_witness_artifact_id"]
         .as_str()
         .expect("sqlite bulk checkpoint witness artifact id should be present");
@@ -199,7 +201,8 @@ pub fn regress_sqlite_bulk_checkpoint_completed_chunk(
                 program_id,
                 plan_id,
                 checkpoint_sequence,
-                serde_json::to_string(&payload).expect("sqlite bulk checkpoint payload should encode")
+                serde_json::to_string(&payload)
+                    .expect("sqlite bulk checkpoint payload should encode")
             ],
         )
         .expect("sqlite bulk checkpoint payload should be updated");
@@ -225,7 +228,8 @@ pub fn regress_sqlite_bulk_witness_index_highest_ordinal(
         .expect("sqlite bulk witness index payload should exist");
     let mut payload: serde_json::Value = serde_json::from_str(&payload_json)
         .expect("sqlite bulk witness index payload should decode");
-    payload["index"]["highest_committed_chunk_ordinal"] = serde_json::json!(regressed_chunk_ordinal);
+    payload["index"]["highest_committed_chunk_ordinal"] =
+        serde_json::json!(regressed_chunk_ordinal);
     connection
         .execute(
             "

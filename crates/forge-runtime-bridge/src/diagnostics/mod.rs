@@ -66,12 +66,11 @@ pub use structural::{
     BRIDGE_CANONICAL_STRUCTURAL_REMAP_RECORD_SCHEMA_V1,
 };
 pub use writeback::{
-    BridgeWritebackAdmissionExplanation,
-    BridgeWritebackCandidateExplanation, BridgeWritebackLoopPreventionExplanation,
-    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackExecutionExplanation,
-    BridgeWritebackMapperExplanation, BridgeWritebackMapperEnvelopeExplanation,
-    BridgeWritebackOutcomeExplanation, BridgeWritebackReplayExplanation,
-    BridgeWritebackReplayRecordExplanation,
+    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackAdmissionExplanation,
+    BridgeWritebackCandidateExplanation, BridgeWritebackExecutionExplanation,
+    BridgeWritebackLoopPreventionExplanation, BridgeWritebackMapperEnvelopeExplanation,
+    BridgeWritebackMapperExplanation, BridgeWritebackOutcomeExplanation,
+    BridgeWritebackReplayExplanation, BridgeWritebackReplayRecordExplanation,
     BridgeWritebackStrategyCompatibilityExplanation,
 };
 

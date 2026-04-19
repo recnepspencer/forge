@@ -93,9 +93,7 @@ pub fn worth_milestone_two_invalidation_declarations(
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{
-        worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget,
-    };
+    use super::{worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget};
 
     #[test]
     fn milestone_two_invalidation_declarations_cover_unique_fields_and_targets() {

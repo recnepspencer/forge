@@ -2,29 +2,28 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use worth_schema::facade::{
-    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthBoundaryEnvelope,
-    WorthBoundaryFailure,
+    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthBoundaryEnvelope, WorthBoundaryFailure,
 };
 
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::corpus::certify_milestone_one_default_primitive_corpus_impl;
 use crate::certification::error::WorthMilestoneOneCertificationError;
-use crate::certification::requirements::milestone_two_closeout_requirements;
 use crate::certification::read_view::WorthMilestoneOneCertificationHarness;
 use crate::certification::report::{
-    WorthDerivedFamilyCoverageMatrix, WorthDerivedFamilyCoverageRow,
     WorthDerivedEquivalenceContractAggregateReport, WorthDerivedEquivalenceContractAggregateRow,
     WorthDerivedFallbackAggregateReport, WorthDerivedFallbackAggregateRow,
+    WorthDerivedFamilyCoverageMatrix, WorthDerivedFamilyCoverageRow,
+    WorthDerivedFamilyParityMatrix, WorthDerivedFamilyParityRow,
     WorthDerivedInvalidationAggregateReport, WorthDerivedInvalidationAggregateRow,
-    WorthDerivedFamilyParityMatrix, WorthDerivedFamilyParityRow, WorthDeterministicDigest,
+    WorthDerivedRebuildAggregateReport, WorthDerivedRebuildAggregateRow,
     WorthDerivedValidatorCoverageReport, WorthDerivedValidatorCoverageRow,
-    WorthMilestoneOneCertificationReport,
-    WorthMilestoneTwoCloseoutReport,
-    WorthMilestoneTwoBranchLocalParityReport, WorthMilestoneTwoReplayParityReport,
+    WorthDeterministicDigest, WorthFailureLocalityReport, WorthMilestoneOneCertificationReport,
+    WorthMilestoneTwoBranchLocalParityReport, WorthMilestoneTwoCloseoutReport,
     WorthMilestoneTwoCounters, WorthMilestoneTwoDerivedCorpusReport,
-    WorthMilestoneTwoDerivedReadReport, WorthPrimitiveCorpusParityReport, WorthPrimitiveCorpusReport,
-    WorthDerivedRebuildAggregateReport, WorthDerivedRebuildAggregateRow, WorthFailureLocalityReport,
+    WorthMilestoneTwoDerivedReadReport, WorthMilestoneTwoReplayParityReport,
+    WorthPrimitiveCorpusParityReport, WorthPrimitiveCorpusReport,
 };
+use crate::certification::requirements::milestone_two_closeout_requirements;
 use crate::certification::shared::digest_rows;
 
 pub type WorthTracedMilestoneTwoDerivedReadReport =
@@ -122,7 +121,9 @@ where
             .clone(),
         derived_family_coverage_matrix: derived_corpus.derived_family_coverage_matrix.clone(),
         derived_family_parity_matrix: derived_corpus.derived_family_parity_matrix.clone(),
-        derived_validator_coverage_report: build_derived_validator_coverage_report(primitive_corpus),
+        derived_validator_coverage_report: build_derived_validator_coverage_report(
+            primitive_corpus,
+        ),
         derived_invalidation_report: build_derived_invalidation_aggregate_report(primitive_corpus),
         derived_rebuild_report: build_derived_rebuild_aggregate_report(primitive_corpus),
         derived_equivalence_contract_report: build_derived_equivalence_aggregate_report(
@@ -381,11 +382,12 @@ fn build_milestone_two_counter_report(
             .derived_invalidation_report
             .triggered_target_count;
         counters.validation_row_count += case.certification.topology_validation_report.rows.len();
-        counters.whole_view_rebuild_count += usize::from(
-            case.certification.derived_rebuild_report.whole_view_rebuild,
-        );
-        counters.explicit_fallback_count +=
-            case.certification.derived_fallback_report.explicit_fallback_count;
+        counters.whole_view_rebuild_count +=
+            usize::from(case.certification.derived_rebuild_report.whole_view_rebuild);
+        counters.explicit_fallback_count += case
+            .certification
+            .derived_fallback_report
+            .explicit_fallback_count;
         counters.replay_checked_count += usize::from(
             case.certification
                 .milestone_1_replay_parity_report
@@ -416,15 +418,15 @@ fn build_derived_invalidation_aggregate_report(
                 format!("{:?}", row.target),
                 row.bridge_scope.clone(),
             );
-            let entry = rows.entry(key.clone()).or_insert_with(|| {
-                WorthDerivedInvalidationAggregateRow {
-                    family: key.0.clone(),
-                    target: key.1.clone(),
-                    bridge_scope: key.2.clone(),
-                    source_count: 0,
-                    triggered_case_count: 0,
-                }
-            });
+            let entry =
+                rows.entry(key.clone())
+                    .or_insert_with(|| WorthDerivedInvalidationAggregateRow {
+                        family: key.0.clone(),
+                        target: key.1.clone(),
+                        bridge_scope: key.2.clone(),
+                        source_count: 0,
+                        triggered_case_count: 0,
+                    });
             entry.source_count += 1;
             entry.triggered_case_count += usize::from(row.triggered);
         }
@@ -440,8 +442,7 @@ fn build_derived_invalidation_aggregate_report(
 fn build_derived_validator_coverage_report(
     primitive_corpus: &WorthPrimitiveCorpusReport,
 ) -> WorthDerivedValidatorCoverageReport {
-    let mut rows =
-        BTreeMap::<(String, String, String), WorthDerivedValidatorCoverageRow>::new();
+    let mut rows = BTreeMap::<(String, String, String), WorthDerivedValidatorCoverageRow>::new();
     for case in &primitive_corpus.cases {
         for validation_row in &case.certification.topology_validation_report.rows {
             if validation_row.phase == crate::validators::WorthTopologyValidationPhase::Truth {
@@ -461,13 +462,15 @@ fn build_derived_validator_coverage_report(
                 validation_row.validator.clone(),
                 phase.to_string(),
             );
-            let entry = rows.entry(key.clone()).or_insert_with(|| WorthDerivedValidatorCoverageRow {
-                family: key.0.clone(),
-                validator: key.1.clone(),
-                phase: key.2.clone(),
-                passed_count: 0,
-                source_count: 0,
-            });
+            let entry =
+                rows.entry(key.clone())
+                    .or_insert_with(|| WorthDerivedValidatorCoverageRow {
+                        family: key.0.clone(),
+                        validator: key.1.clone(),
+                        phase: key.2.clone(),
+                        passed_count: 0,
+                        source_count: 0,
+                    });
             entry.passed_count += usize::from(validation_row.status == "passed");
             entry.source_count += 1;
         }
@@ -484,18 +487,18 @@ fn build_derived_rebuild_aggregate_report(
     let mut rows = BTreeMap::<String, WorthDerivedRebuildAggregateRow>::new();
     for case in &primitive_corpus.cases {
         let report = &case.certification.derived_rebuild_report;
-        let entry = rows
-            .entry(case.family.clone())
-            .or_insert_with(|| WorthDerivedRebuildAggregateRow {
-                family: case.family.clone(),
-                source_count: 0,
-                whole_view_rebuild_count: 0,
-                topology_entity_count: 0,
-                topology_relation_count: 0,
-                interpreted_wire_count: 0,
-                interpreted_shell_count: 0,
-                validation_row_count: 0,
-            });
+        let entry =
+            rows.entry(case.family.clone())
+                .or_insert_with(|| WorthDerivedRebuildAggregateRow {
+                    family: case.family.clone(),
+                    source_count: 0,
+                    whole_view_rebuild_count: 0,
+                    topology_entity_count: 0,
+                    topology_relation_count: 0,
+                    interpreted_wire_count: 0,
+                    interpreted_shell_count: 0,
+                    validation_row_count: 0,
+                });
         entry.source_count += 1;
         entry.whole_view_rebuild_count += usize::from(report.whole_view_rebuild);
         entry.topology_entity_count += report.topology_entity_count;
@@ -515,16 +518,16 @@ fn build_derived_fallback_aggregate_report(
     let mut rows = BTreeMap::<String, WorthDerivedFallbackAggregateRow>::new();
     for case in &primitive_corpus.cases {
         let report = &case.certification.derived_fallback_report;
-        let entry = rows
-            .entry(case.family.clone())
-            .or_insert_with(|| WorthDerivedFallbackAggregateRow {
-                family: case.family.clone(),
-                source_count: 0,
-                whole_view_materialization_count: 0,
-                explicit_fallback_count: 0,
-                precision_fallback_count: 0,
-                precision_budget_fallback_count: 0,
-            });
+        let entry =
+            rows.entry(case.family.clone())
+                .or_insert_with(|| WorthDerivedFallbackAggregateRow {
+                    family: case.family.clone(),
+                    source_count: 0,
+                    whole_view_materialization_count: 0,
+                    explicit_fallback_count: 0,
+                    precision_fallback_count: 0,
+                    precision_budget_fallback_count: 0,
+                });
         entry.source_count += 1;
         entry.whole_view_materialization_count += usize::from(report.whole_view_materialization);
         entry.explicit_fallback_count += report.explicit_fallback_count;
@@ -569,15 +572,17 @@ fn build_derived_failure_locality_report(
         rows: primitive_corpus
             .rejected_cases
             .iter()
-            .map(|case| crate::certification::report::WorthFailureLocalityRow {
-                family: case.family.clone(),
-                role: format!("{:?}", case.role),
-                validator_family: case.rejection.validator_family.clone(),
-                rejection_class: case.rejection.rejection_class.clone(),
-                diagnostic_code: case.rejection.diagnostic_code.clone(),
-                localized_entity_count: case.rejection.localized_entity_count,
-                localized_relation_count: case.rejection.localized_relation_count,
-            })
+            .map(
+                |case| crate::certification::report::WorthFailureLocalityRow {
+                    family: case.family.clone(),
+                    role: format!("{:?}", case.role),
+                    validator_family: case.rejection.validator_family.clone(),
+                    rejection_class: case.rejection.rejection_class.clone(),
+                    diagnostic_code: case.rejection.diagnostic_code.clone(),
+                    localized_entity_count: case.rejection.localized_entity_count,
+                    localized_relation_count: case.rejection.localized_relation_count,
+                },
+            )
             .collect(),
     }
 }
@@ -625,7 +630,11 @@ fn ensure_milestone_two_bridge_closure(
     requirements: &crate::certification::core::WorthCertificationSuiteRequirements,
 ) -> Result<(), WorthMilestoneOneCertificationError> {
     for bridge_family in &requirements.required_bridge_rows {
-        let Some(row) = report.rows.iter().find(|row| row.family == bridge_family.family) else {
+        let Some(row) = report
+            .rows
+            .iter()
+            .find(|row| row.family == bridge_family.family)
+        else {
             return Err(WorthMilestoneOneCertificationError::ReadView(format!(
                 "milestone two closeout missing bridge family row for family `{}`",
                 bridge_family.family

@@ -1861,4 +1861,3 @@ fn cross_order_equivalent_mutations_converge() {
         runtime_b.publication().diagnostics()
     );
 }
-

@@ -15,17 +15,17 @@ use crate::mapping::{
     BridgeMappingRegistration, CoarseRoutingMode, MappingSelector, SignalInvalidationScope,
     SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
 };
+use crate::policy::{
+    BridgeArtifactPolicyBaseline, BridgeDiagnosticsPolicyBaseline, BridgeDiagnosticsTier,
+    BridgeExecutionPolicyBaseline, BridgeExecutionPolicyClass, BridgeRuntimePolicy,
+    BridgeRuntimePosture,
+};
 use crate::snapshot::{
     BridgeSnapshotReadError, BridgeTruthViewSelector, SnapshotReadPacket, SnapshotReadPacketResult,
     TruthSnapshotIdentity, TruthSnapshotReader,
 };
 use crate::source::{
     BridgeSourceCapability, BridgeSourceCapabilitySet, SourceDeclaration, SourceDeclarationIdentity,
-};
-use crate::policy::{
-    BridgeArtifactPolicyBaseline, BridgeDiagnosticsPolicyBaseline, BridgeDiagnosticsTier,
-    BridgeExecutionPolicyBaseline, BridgeExecutionPolicyClass, BridgeRuntimePolicy,
-    BridgeRuntimePosture,
 };
 
 struct TestSource;

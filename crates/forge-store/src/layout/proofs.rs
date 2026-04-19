@@ -8,8 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::constants::{
     CHUNK_SHAPE_VERSION, EQUIVALENCE_CONTRACT_VERSION,
-    FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ,
-    FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
+    FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ, FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
     FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY,
     FIRST_SHIP_MAX_DETERMINISTIC_CHUNK_WIDTH,
 };
@@ -128,6 +127,155 @@ impl PhysicalChunkId {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Milestone6LayoutSupportLane {
+    ProofOnly,
+    OnDemandMaterialized,
+    PolicyEagerMaterialized,
+}
+
+impl Milestone6LayoutSupportLane {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::ProofOnly => "proof_only",
+            Self::OnDemandMaterialized => "on_demand_materialized",
+            Self::PolicyEagerMaterialized => "policy_eager_materialized",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Milestone6ResolvedLayoutSupportLane {
+    ProofOnly,
+    OnDemandMaterialized,
+    PolicyEagerMaterializedPublished,
+    PolicyEagerMaterializedReuseExisting,
+}
+
+impl Milestone6ResolvedLayoutSupportLane {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::ProofOnly => "proof_only",
+            Self::OnDemandMaterialized => "on_demand_materialized",
+            Self::PolicyEagerMaterializedPublished => "policy_eager_materialized_published",
+            Self::PolicyEagerMaterializedReuseExisting => {
+                "policy_eager_materialized_reuse_existing"
+            }
+        }
+    }
+
+    pub fn uses_materialized_support(self) -> bool {
+        !matches!(self, Self::ProofOnly)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Milestone6LayoutSupportPublicationDisposition {
+    None,
+    PublishedThisOperation,
+    ReusedExisting,
+}
+
+impl Milestone6LayoutSupportPublicationDisposition {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::PublishedThisOperation => "published_this_operation",
+            Self::ReusedExisting => "reused_existing",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Milestone6LayoutSupportPolicy {
+    materialize_hot_branch_reads: bool,
+    materialize_repeated_scope_reads: bool,
+    repeated_scope_threshold: u64,
+}
+
+impl Milestone6LayoutSupportPolicy {
+    pub const fn new(
+        materialize_hot_branch_reads: bool,
+        materialize_repeated_scope_reads: bool,
+        repeated_scope_threshold: u64,
+    ) -> Self {
+        Self {
+            materialize_hot_branch_reads,
+            materialize_repeated_scope_reads,
+            repeated_scope_threshold,
+        }
+    }
+
+    pub const fn materialize_hot_branch_reads(self) -> bool {
+        self.materialize_hot_branch_reads
+    }
+
+    pub const fn materialize_repeated_scope_reads(self) -> bool {
+        self.materialize_repeated_scope_reads
+    }
+
+    pub const fn repeated_scope_threshold(self) -> u64 {
+        self.repeated_scope_threshold
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Milestone6PreparedLayoutSupport {
+    requested_lane: Milestone6LayoutSupportLane,
+    resolved_lane: Milestone6ResolvedLayoutSupportLane,
+    publication_disposition: Milestone6LayoutSupportPublicationDisposition,
+    request: AspectLayoutReadRequest,
+    layout_materialization_artifact_id: Option<String>,
+}
+
+impl Milestone6PreparedLayoutSupport {
+    pub(crate) fn proof_only(request: AspectLayoutReadRequest) -> Self {
+        Self {
+            requested_lane: Milestone6LayoutSupportLane::ProofOnly,
+            resolved_lane: Milestone6ResolvedLayoutSupportLane::ProofOnly,
+            publication_disposition: Milestone6LayoutSupportPublicationDisposition::None,
+            request,
+            layout_materialization_artifact_id: None,
+        }
+    }
+
+    pub(crate) fn resolved(
+        requested_lane: Milestone6LayoutSupportLane,
+        resolved_lane: Milestone6ResolvedLayoutSupportLane,
+        publication_disposition: Milestone6LayoutSupportPublicationDisposition,
+        request: AspectLayoutReadRequest,
+        layout_materialization_artifact_id: Option<String>,
+    ) -> Self {
+        Self {
+            requested_lane,
+            resolved_lane,
+            publication_disposition,
+            request,
+            layout_materialization_artifact_id,
+        }
+    }
+
+    pub fn requested_lane(&self) -> Milestone6LayoutSupportLane {
+        self.requested_lane
+    }
+
+    pub fn resolved_lane(&self) -> Milestone6ResolvedLayoutSupportLane {
+        self.resolved_lane
+    }
+
+    pub fn publication_disposition(&self) -> Milestone6LayoutSupportPublicationDisposition {
+        self.publication_disposition
+    }
+
+    pub fn request(&self) -> &AspectLayoutReadRequest {
+        &self.request
+    }
+
+    pub fn layout_materialization_artifact_id(&self) -> Option<&str> {
+        self.layout_materialization_artifact_id.as_deref()
     }
 }
 
@@ -788,7 +936,9 @@ pub struct StructuralBlockLookup {
 
 impl StructuralBlockLookup {
     pub fn new(structural_block_id: StructuralBlockId) -> Self {
-        Self { structural_block_id }
+        Self {
+            structural_block_id,
+        }
     }
 
     pub fn structural_block_id(&self) -> &StructuralBlockId {
@@ -846,10 +996,13 @@ impl StructuralBlockLookupResult {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AspectLayoutReadExecutionResult {
     plan: AdmittedAspectLayoutReadPlan,
-    scope_membership_artifact_id: String,
+    requested_layout_support_lane: Milestone6LayoutSupportLane,
+    resolved_layout_support_lane: Milestone6ResolvedLayoutSupportLane,
+    layout_support_publication_disposition: Milestone6LayoutSupportPublicationDisposition,
+    scope_membership_artifact_id: Option<String>,
     structural_block_artifact_id: String,
-    chunk_membership_artifact_id: String,
-    layout_materialization_artifact_id: String,
+    chunk_membership_artifact_id: Option<String>,
+    layout_materialization_artifact_id: Option<String>,
     semantic_truth_digest: String,
     authoritative_commit_count: usize,
 }
@@ -857,15 +1010,21 @@ pub struct AspectLayoutReadExecutionResult {
 impl AspectLayoutReadExecutionResult {
     pub(crate) fn new(
         plan: AdmittedAspectLayoutReadPlan,
-        scope_membership_artifact_id: String,
+        requested_layout_support_lane: Milestone6LayoutSupportLane,
+        resolved_layout_support_lane: Milestone6ResolvedLayoutSupportLane,
+        layout_support_publication_disposition: Milestone6LayoutSupportPublicationDisposition,
+        scope_membership_artifact_id: Option<String>,
         structural_block_artifact_id: String,
-        chunk_membership_artifact_id: String,
-        layout_materialization_artifact_id: String,
+        chunk_membership_artifact_id: Option<String>,
+        layout_materialization_artifact_id: Option<String>,
         semantic_truth_digest: String,
         authoritative_commit_count: usize,
     ) -> Self {
         Self {
             plan,
+            requested_layout_support_lane,
+            resolved_layout_support_lane,
+            layout_support_publication_disposition,
             scope_membership_artifact_id,
             structural_block_artifact_id,
             chunk_membership_artifact_id,
@@ -879,20 +1038,34 @@ impl AspectLayoutReadExecutionResult {
         &self.plan
     }
 
-    pub fn scope_membership_artifact_id(&self) -> &str {
-        &self.scope_membership_artifact_id
+    pub fn requested_layout_support_lane(&self) -> Milestone6LayoutSupportLane {
+        self.requested_layout_support_lane
+    }
+
+    pub fn resolved_layout_support_lane(&self) -> Milestone6ResolvedLayoutSupportLane {
+        self.resolved_layout_support_lane
+    }
+
+    pub fn layout_support_publication_disposition(
+        &self,
+    ) -> Milestone6LayoutSupportPublicationDisposition {
+        self.layout_support_publication_disposition
+    }
+
+    pub fn scope_membership_artifact_id(&self) -> Option<&str> {
+        self.scope_membership_artifact_id.as_deref()
     }
 
     pub fn structural_block_artifact_id(&self) -> &str {
         &self.structural_block_artifact_id
     }
 
-    pub fn chunk_membership_artifact_id(&self) -> &str {
-        &self.chunk_membership_artifact_id
+    pub fn chunk_membership_artifact_id(&self) -> Option<&str> {
+        self.chunk_membership_artifact_id.as_deref()
     }
 
-    pub fn layout_materialization_artifact_id(&self) -> &str {
-        &self.layout_materialization_artifact_id
+    pub fn layout_materialization_artifact_id(&self) -> Option<&str> {
+        self.layout_materialization_artifact_id.as_deref()
     }
 
     pub fn semantic_truth_digest(&self) -> &str {
@@ -1033,22 +1206,31 @@ impl Milestone6DerivedArtifactRebuildReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Milestone6ChunkModelExport {
+    requested_layout_support_lane: Milestone6LayoutSupportLane,
+    resolved_layout_support_lane: Milestone6ResolvedLayoutSupportLane,
+    layout_support_publication_disposition: Milestone6LayoutSupportPublicationDisposition,
     physical_chunk_id: PhysicalChunkId,
-    chunk_membership_artifact_id: String,
+    chunk_membership_artifact_id: Option<String>,
     determinism_digest: String,
     chunk_member_count: usize,
-    layout_materialization_artifact_id: String,
+    layout_materialization_artifact_id: Option<String>,
 }
 
 impl Milestone6ChunkModelExport {
     pub(crate) fn new(
+        requested_layout_support_lane: Milestone6LayoutSupportLane,
+        resolved_layout_support_lane: Milestone6ResolvedLayoutSupportLane,
+        layout_support_publication_disposition: Milestone6LayoutSupportPublicationDisposition,
         physical_chunk_id: PhysicalChunkId,
-        chunk_membership_artifact_id: String,
+        chunk_membership_artifact_id: Option<String>,
         determinism_digest: String,
         chunk_member_count: usize,
-        layout_materialization_artifact_id: String,
+        layout_materialization_artifact_id: Option<String>,
     ) -> Self {
         Self {
+            requested_layout_support_lane,
+            resolved_layout_support_lane,
+            layout_support_publication_disposition,
             physical_chunk_id,
             chunk_membership_artifact_id,
             determinism_digest,
@@ -1061,8 +1243,22 @@ impl Milestone6ChunkModelExport {
         &self.physical_chunk_id
     }
 
-    pub fn chunk_membership_artifact_id(&self) -> &str {
-        &self.chunk_membership_artifact_id
+    pub fn requested_layout_support_lane(&self) -> Milestone6LayoutSupportLane {
+        self.requested_layout_support_lane
+    }
+
+    pub fn resolved_layout_support_lane(&self) -> Milestone6ResolvedLayoutSupportLane {
+        self.resolved_layout_support_lane
+    }
+
+    pub fn layout_support_publication_disposition(
+        &self,
+    ) -> Milestone6LayoutSupportPublicationDisposition {
+        self.layout_support_publication_disposition
+    }
+
+    pub fn chunk_membership_artifact_id(&self) -> Option<&str> {
+        self.chunk_membership_artifact_id.as_deref()
     }
 
     pub fn determinism_digest(&self) -> &str {
@@ -1073,8 +1269,8 @@ impl Milestone6ChunkModelExport {
         self.chunk_member_count
     }
 
-    pub fn layout_materialization_artifact_id(&self) -> &str {
-        &self.layout_materialization_artifact_id
+    pub fn layout_materialization_artifact_id(&self) -> Option<&str> {
+        self.layout_materialization_artifact_id.as_deref()
     }
 }
 
@@ -1093,9 +1289,7 @@ pub fn stable_layout_digest<T: Serialize + ?Sized>(value: &T) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub(crate) fn stable_layout_truth_digest(
-    export: &crate::AuthoritativeExportBundle,
-) -> String {
+pub(crate) fn stable_layout_truth_digest(export: &crate::AuthoritativeExportBundle) -> String {
     #[derive(Serialize)]
     struct LayoutTruthDigestBasis<'a> {
         branch_records: &'a [crate::backend::records::BranchRecord],
@@ -1162,7 +1356,10 @@ pub(crate) fn structural_block_id_for_plan(
         CHUNK_SHAPE_VERSION.value(),
         EQUIVALENCE_CONTRACT_VERSION.value(),
         scope_key.members,
-        slice_ids.iter().map(AspectLayoutSliceId::as_str).collect::<Vec<_>>(),
+        slice_ids
+            .iter()
+            .map(AspectLayoutSliceId::as_str)
+            .collect::<Vec<_>>(),
     ))))
 }
 
@@ -1241,10 +1438,10 @@ pub(crate) fn classify_layout_request(
                         fallback_class: AspectLayoutFallbackClass::None,
                         layout_slices_read: slice_ids.len(),
                         blocks_decoded: slice_ids.len(),
-                        control_replay_breadth: slice_ids
-                            .len()
-                            .min(FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY.value()
-                                as usize),
+                        control_replay_breadth: slice_ids.len().min(
+                            FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY.value()
+                                as usize,
+                        ),
                         chunk_count: 0,
                     },
                 ),
@@ -1317,9 +1514,7 @@ pub(crate) fn admit_milestone_9_reference_from_frozen(
     )
 }
 
-pub(crate) fn layout_materialization_artifact_id(
-    plan: &AdmittedAspectLayoutReadPlan,
-) -> String {
+pub(crate) fn layout_materialization_artifact_id(plan: &AdmittedAspectLayoutReadPlan) -> String {
     let basis = (
         plan.request().target().branch_id().clone(),
         plan.request().target().frontier_commit_id(),
@@ -1347,18 +1542,14 @@ pub(crate) fn layout_scope_membership_artifact_id(
     ))
 }
 
-pub(crate) fn chunk_membership_artifact_id(
-    frozen: &ChunkModelFrozenPhysicalLayout,
-) -> String {
+pub(crate) fn chunk_membership_artifact_id(frozen: &ChunkModelFrozenPhysicalLayout) -> String {
     format!(
         "layout-chunk-membership:{}",
         frozen.witness().physical_chunk_id().as_str()
     )
 }
 
-pub(crate) fn structural_block_artifact_id(
-    structural_block_id: &StructuralBlockId,
-) -> String {
+pub(crate) fn structural_block_artifact_id(structural_block_id: &StructuralBlockId) -> String {
     format!("layout-structural-block:{}", structural_block_id.as_str())
 }
 

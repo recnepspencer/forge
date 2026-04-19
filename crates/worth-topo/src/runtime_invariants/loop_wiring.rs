@@ -2,16 +2,22 @@ use std::sync::Arc;
 
 use forge_relational::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError, CustomInvariantRegistration,
-    CustomInvariantRule, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRule, CustomInvariantScopePlanner,
+    CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion, CustomInvariantVerdict,
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+    InvariantGroupSet,
 };
-use worth_schema::facade::{WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind};
+use worth_schema::facade::{
+    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
+};
 
 use super::shared::RuntimeTopologyGraph;
 
-pub fn registration() -> Result<CustomInvariantRegistration, forge_relational::facade::runtime::CustomInvariantRegistrationError> {
+pub fn registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
     CustomInvariantRegistration::new(LoopWiringRule)
 }
 

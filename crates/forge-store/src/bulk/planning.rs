@@ -644,7 +644,11 @@ impl BudgetAdmittedChunkPlan {
                 "bulk chunk admission requires positive memory units",
             ));
         }
-        let Some(chunk) = plan.chunks().iter().find(|chunk| chunk.ordinal() == ordinal) else {
+        let Some(chunk) = plan
+            .chunks()
+            .iter()
+            .find(|chunk| chunk.ordinal() == ordinal)
+        else {
             return Err(StoreError::new(
                 StoreErrorKind::BulkChunkContractUnsupported,
                 format!(
@@ -865,9 +869,7 @@ fn stable_digest(value: &str) -> String {
     format!("{:x}", digest.finalize())
 }
 
-fn serialization_error(
-    label: &'static str,
-) -> impl FnOnce(serde_json::Error) -> StoreError {
+fn serialization_error(label: &'static str) -> impl FnOnce(serde_json::Error) -> StoreError {
     move |error| {
         StoreError::new(
             StoreErrorKind::Serialization,

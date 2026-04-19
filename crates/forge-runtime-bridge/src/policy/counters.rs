@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::{
     AdmittedBridgePolicyContract, BridgePolicyDeclaration, BridgePolicyProvenanceRecord,
-    BridgePolicyReplayBundle, BridgePolicyRejection, BridgePolicyRejectionKind,
+    BridgePolicyRejection, BridgePolicyRejectionKind, BridgePolicyReplayBundle,
     BridgePolicyResolution,
 };
 
@@ -117,30 +117,72 @@ impl BridgePolicyCounters {
         }
     }
 
-    pub fn declaration_count(&self) -> usize { self.declaration_count }
-    pub fn declaration_width_count(&self) -> usize { self.declaration_width_count }
-    pub fn admitted_contract_count(&self) -> usize { self.admitted_contract_count }
-    pub fn admission_width_count(&self) -> usize { self.admission_width_count }
-    pub fn rejected_contract_count(&self) -> usize { self.rejected_contract_count }
-    pub fn provenance_entry_count(&self) -> usize { self.provenance_entry_count }
-    pub fn provenance_width_count(&self) -> usize { self.provenance_width_count }
-    pub fn narrowed_field_count(&self) -> usize { self.narrowed_field_count }
-    pub fn inherited_field_count(&self) -> usize { self.inherited_field_count }
-    pub fn override_count(&self) -> usize { self.override_count }
-    pub fn ignored_field_count(&self) -> usize { self.ignored_field_count }
-    pub fn replay_bundle_count(&self) -> usize { self.replay_bundle_count }
-    pub fn replay_mismatch_count(&self) -> usize { self.replay_mismatch_count }
-    pub fn ambient_policy_leak_count(&self) -> usize { self.ambient_policy_leak_count }
-    pub fn policy_request_count(&self) -> usize { self.policy_request_count }
-    pub fn truth_view_interleave_count(&self) -> usize { self.truth_view_interleave_count }
+    pub fn declaration_count(&self) -> usize {
+        self.declaration_count
+    }
+    pub fn declaration_width_count(&self) -> usize {
+        self.declaration_width_count
+    }
+    pub fn admitted_contract_count(&self) -> usize {
+        self.admitted_contract_count
+    }
+    pub fn admission_width_count(&self) -> usize {
+        self.admission_width_count
+    }
+    pub fn rejected_contract_count(&self) -> usize {
+        self.rejected_contract_count
+    }
+    pub fn provenance_entry_count(&self) -> usize {
+        self.provenance_entry_count
+    }
+    pub fn provenance_width_count(&self) -> usize {
+        self.provenance_width_count
+    }
+    pub fn narrowed_field_count(&self) -> usize {
+        self.narrowed_field_count
+    }
+    pub fn inherited_field_count(&self) -> usize {
+        self.inherited_field_count
+    }
+    pub fn override_count(&self) -> usize {
+        self.override_count
+    }
+    pub fn ignored_field_count(&self) -> usize {
+        self.ignored_field_count
+    }
+    pub fn replay_bundle_count(&self) -> usize {
+        self.replay_bundle_count
+    }
+    pub fn replay_mismatch_count(&self) -> usize {
+        self.replay_mismatch_count
+    }
+    pub fn ambient_policy_leak_count(&self) -> usize {
+        self.ambient_policy_leak_count
+    }
+    pub fn policy_request_count(&self) -> usize {
+        self.policy_request_count
+    }
+    pub fn truth_view_interleave_count(&self) -> usize {
+        self.truth_view_interleave_count
+    }
     pub fn preview_equivalence_preserved_count(&self) -> usize {
         self.preview_equivalence_preserved_count
     }
-    pub fn policy_source_ambiguity_count(&self) -> usize { self.policy_source_ambiguity_count }
-    pub fn substantive_illegality_count(&self) -> usize { self.substantive_illegality_count }
-    pub fn fallback_success_count(&self) -> usize { self.fallback_success_count }
-    pub fn canonical_basis(&self) -> &str { self.canonical_basis.as_ref() }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn policy_source_ambiguity_count(&self) -> usize {
+        self.policy_source_ambiguity_count
+    }
+    pub fn substantive_illegality_count(&self) -> usize {
+        self.substantive_illegality_count
+    }
+    pub fn fallback_success_count(&self) -> usize {
+        self.fallback_success_count
+    }
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn from_admitted_artifacts(

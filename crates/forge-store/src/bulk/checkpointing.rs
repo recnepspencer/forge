@@ -1,8 +1,8 @@
 use crate::{
     bulk::{
-        BudgetAdmittedChunkPlan, BulkChunkCommitWitness, DeterministicChunkPlan,
+        BudgetAdmittedChunkPlan, BulkChunkCommitWitness, ChunkOrdinal, DeterministicChunkPlan,
         FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition,
-        ProgramChunkWitnessIndex, ChunkOrdinal,
+        ProgramChunkWitnessIndex,
     },
     failure::{StoreError, StoreErrorKind},
 };
@@ -37,7 +37,9 @@ impl BulkProgressCheckpointRecordInput {
         latest_checkpoint_sequence: Option<u64>,
         witness: &BulkChunkCommitWitness,
     ) -> Result<Self, StoreError> {
-        let checkpoint_sequence = latest_checkpoint_sequence.map(|sequence| sequence + 1).unwrap_or(1);
+        let checkpoint_sequence = latest_checkpoint_sequence
+            .map(|sequence| sequence + 1)
+            .unwrap_or(1);
         if checkpoint_sequence == 0 {
             return Err(StoreError::new(
                 StoreErrorKind::BulkCheckpointPublicationGap,
@@ -309,7 +311,8 @@ impl ResumeReadyBulkProgram {
             }
         }
         if let Some(checkpoint) = &latest_checkpoint {
-            if checkpoint.program_id() != plan.program_id() || checkpoint.plan_id() != plan.plan_id()
+            if checkpoint.program_id() != plan.program_id()
+                || checkpoint.plan_id() != plan.plan_id()
             {
                 return Err(StoreError::new(
                     StoreErrorKind::BulkResumeBoundaryAmbiguous,

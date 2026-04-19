@@ -1,24 +1,25 @@
 use crate::{
     AspectLayoutReadPlanDecision, AspectLayoutReadRequest, AspectLayoutTarget, AspectProjectionSet,
     AspectReadRegime, AspectScopeClass, CdcTouchedAspectScope, ComplexityStatus,
-    EntitySetUniformAspectScope, ForgeStoreBuilder, SingleEntityAspectScope,
+    EntitySetUniformAspectScope, ForgeStoreBuilder, Milestone6LayoutSupportLane,
+    Milestone6LayoutSupportPolicy, Milestone6ResolvedLayoutSupportLane, SingleEntityAspectScope,
 };
 
-use super::harness::fixtures::{
-    runtime::{create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch},
-    stores::{build_store_for_lane, unique_test_sqlite_path, unique_test_store_path, StoreLane},
-};
 use super::harness::corruption::local_file::{
     force_clear_milestone_6_materializations_and_derived_access_structures,
-    force_milestone_6_commit_support_summary_seed_gap,
+    force_milestone_6_chunk_membership_boundary_drift,
     force_milestone_6_commit_coupled_layout_seed_authority_digest_drift,
     force_milestone_6_commit_coupled_layout_seed_payload_drift,
     force_milestone_6_commit_coupled_layout_seed_payload_gap,
-    force_milestone_6_chunk_membership_boundary_drift,
+    force_milestone_6_commit_support_summary_seed_gap,
     force_milestone_6_layout_materialization_chunk_member_count_drift,
     force_milestone_6_layout_materialization_key_mismatch,
 };
 use super::harness::corruption::sqlite::simulate_legacy_milestone_6_commit_coupled_layout_seed_storage;
+use super::harness::fixtures::{
+    runtime::{create_entity, latest_envelope, runtime_with_demo_schema, update_entity_on_branch},
+    stores::{build_store_for_lane, unique_test_sqlite_path, unique_test_store_path, StoreLane},
+};
 
 fn store_with_root_commit() -> (
     crate::ForgeStore,
@@ -117,8 +118,14 @@ fn single_entity_scope_is_admitted_with_verified_direct_regime() {
         ),
     );
 
-    assert_eq!(plan.performance().strategy, AspectReadRegime::DirectLayoutSlice);
-    assert_eq!(plan.performance().complexity_status, ComplexityStatus::Verified);
+    assert_eq!(
+        plan.performance().strategy,
+        AspectReadRegime::DirectLayoutSlice
+    );
+    assert_eq!(
+        plan.performance().complexity_status,
+        ComplexityStatus::Verified
+    );
     assert_eq!(plan.performance().layout_slices_read, 1);
 }
 
@@ -137,7 +144,10 @@ fn entity_set_uniform_scope_is_admitted() {
         ),
     );
 
-    assert_eq!(plan.performance().strategy, AspectReadRegime::BlockReuseBacked);
+    assert_eq!(
+        plan.performance().strategy,
+        AspectReadRegime::BlockReuseBacked
+    );
     assert_eq!(plan.slice_ids().len(), 2);
 }
 
@@ -206,6 +216,229 @@ fn milestone_6_layout_materialization_persists_and_roundtrips_across_backends() 
 }
 
 #[test]
+fn proof_only_layout_support_lane_stays_unpublished() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = entity_set_request(branch_id, commit_id);
+
+    let prepared = store
+        .prepare_milestone_6_layout_support(request.clone(), Milestone6LayoutSupportLane::ProofOnly)
+        .unwrap();
+
+    assert_eq!(
+        prepared.requested_lane(),
+        Milestone6LayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        prepared.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        prepared.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::None
+    );
+    assert_eq!(prepared.request(), &request);
+    assert_eq!(prepared.layout_materialization_artifact_id(), None);
+    assert_eq!(store.counters().aspect_layout_plan_count, 1);
+    assert_eq!(store.counters().aspect_layout_admitted_count, 1);
+    assert_eq!(store.counters().structural_block_reuse_admission_count, 0);
+    assert_eq!(store.counters().chunk_model_freeze_count, 0);
+
+    let error = store.fetch_milestone_6_layout_support(request).unwrap_err();
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::AspectLayoutArtifactMissing
+    );
+}
+
+#[test]
+fn on_demand_materialized_layout_support_lane_publishes_support_once() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = entity_set_request(branch_id, commit_id);
+
+    let prepared = store
+        .prepare_milestone_6_layout_support(
+            request.clone(),
+            Milestone6LayoutSupportLane::OnDemandMaterialized,
+        )
+        .unwrap();
+    let fetched = store
+        .fetch_milestone_6_layout_support(request.clone())
+        .unwrap();
+
+    assert_eq!(
+        prepared.requested_lane(),
+        Milestone6LayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        prepared.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        prepared.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation
+    );
+    assert_eq!(
+        prepared.layout_materialization_artifact_id(),
+        Some(fetched.artifact_id())
+    );
+    assert_eq!(store.counters().aspect_layout_plan_count, 3);
+    assert_eq!(store.counters().aspect_layout_admitted_count, 3);
+    assert_eq!(store.counters().structural_block_reuse_admission_count, 1);
+    assert_eq!(store.counters().chunk_model_freeze_count, 1);
+
+    let prepared_again = store
+        .prepare_milestone_6_layout_support(
+            request,
+            Milestone6LayoutSupportLane::OnDemandMaterialized,
+        )
+        .unwrap();
+    assert_eq!(
+        prepared_again.layout_materialization_artifact_id(),
+        Some(fetched.artifact_id())
+    );
+    assert_eq!(
+        prepared_again.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::ReusedExisting
+    );
+    assert_eq!(store.counters().aspect_layout_plan_count, 4);
+    assert_eq!(store.counters().aspect_layout_admitted_count, 4);
+    assert_eq!(store.counters().structural_block_reuse_admission_count, 1);
+    assert_eq!(store.counters().chunk_model_freeze_count, 1);
+}
+
+#[test]
+fn policy_eager_layout_support_lane_resolves_to_proof_only_without_trigger() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = entity_set_request(branch_id, commit_id);
+
+    let prepared = store
+        .prepare_milestone_6_layout_support_with_policy(
+            request.clone(),
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(true, true, 2),
+        )
+        .unwrap();
+
+    assert_eq!(
+        prepared.requested_lane(),
+        Milestone6LayoutSupportLane::PolicyEagerMaterialized
+    );
+    assert_eq!(
+        prepared.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        prepared.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::None
+    );
+    assert_eq!(prepared.request(), &request);
+    assert_eq!(prepared.layout_materialization_artifact_id(), None);
+    assert_eq!(
+        store.counters().milestone_6_policy_eager_resolution_count,
+        1
+    );
+    assert_eq!(store.counters().milestone_6_policy_eager_publish_count, 0);
+    assert_eq!(
+        store
+            .counters()
+            .milestone_6_policy_eager_reuse_existing_count,
+        0
+    );
+}
+
+#[test]
+fn policy_eager_layout_support_lane_materializes_when_branch_is_hot() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = entity_set_request(branch_id, commit_id);
+
+    let materialized = store
+        .materialize_milestone_6_layout_support(request.clone())
+        .unwrap();
+    let prepared = store
+        .prepare_milestone_6_layout_support_with_policy(
+            request,
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(true, false, 0),
+        )
+        .unwrap();
+
+    assert_eq!(
+        prepared.requested_lane(),
+        Milestone6LayoutSupportLane::PolicyEagerMaterialized
+    );
+    assert_eq!(
+        prepared.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting
+    );
+    assert_eq!(
+        prepared.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::ReusedExisting
+    );
+    assert_eq!(
+        prepared.layout_materialization_artifact_id(),
+        Some(materialized.artifact_id())
+    );
+    assert_eq!(
+        store.counters().milestone_6_policy_eager_resolution_count,
+        1
+    );
+    assert_eq!(store.counters().milestone_6_policy_eager_publish_count, 0);
+    assert_eq!(
+        store
+            .counters()
+            .milestone_6_policy_eager_reuse_existing_count,
+        1
+    );
+}
+
+#[test]
+fn policy_eager_layout_support_lane_materializes_at_repeated_scope_threshold() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = entity_set_request(branch_id, commit_id);
+    let policy = Milestone6LayoutSupportPolicy::new(false, true, 2);
+
+    let first = store
+        .prepare_milestone_6_layout_support_with_policy(
+            request.clone(),
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            policy,
+        )
+        .unwrap();
+    let second = store
+        .prepare_milestone_6_layout_support_with_policy(
+            request,
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            policy,
+        )
+        .unwrap();
+
+    assert_eq!(
+        first.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        second.resolved_lane(),
+        Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+    );
+    assert_eq!(
+        second.publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation
+    );
+    assert!(second.layout_materialization_artifact_id().is_some());
+    assert_eq!(
+        store.counters().milestone_6_policy_eager_resolution_count,
+        2
+    );
+    assert_eq!(store.counters().milestone_6_policy_eager_publish_count, 1);
+    assert_eq!(
+        store
+            .counters()
+            .milestone_6_policy_eager_reuse_existing_count,
+        0
+    );
+}
+
+#[test]
 fn milestone_6_layout_materialization_fails_reopen_when_persisted_key_drifts() {
     let mut runtime = runtime_with_demo_schema();
     create_entity(&mut runtime, "alpha");
@@ -231,7 +464,10 @@ fn milestone_6_layout_materialization_fails_reopen_when_persisted_key_drifts() {
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::BackendIntegrityViolation);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
     assert!(error
         .message()
         .contains("milestone 6 layout materialization map key"));
@@ -263,7 +499,10 @@ fn milestone_6_layout_materialization_fails_reopen_when_payload_witness_drifts()
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::BackendIntegrityViolation);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
     assert!(error
         .message()
         .contains("canonical Milestone 9 physical chunk reference"));
@@ -295,14 +534,16 @@ fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_authority_basis_dige
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::BackendIntegrityViolation);
-    assert!(error
-        .message()
-        .contains("authority basis digest"));
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
+    assert!(error.message().contains("authority basis digest"));
 }
 
 #[test]
-fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_commit_support_summary_loses_seed_link() {
+fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_commit_support_summary_loses_seed_link()
+{
     let mut runtime = runtime_with_demo_schema();
     create_entity(&mut runtime, "alpha");
     let root = latest_envelope(&runtime);
@@ -327,10 +568,11 @@ fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_commit_support_summa
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::CommitSupportPublicationGap);
-    assert!(error
-        .message()
-        .contains("commit-coupled layout seed set"));
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::CommitSupportPublicationGap
+    );
+    assert!(error.message().contains("commit-coupled layout seed set"));
 }
 
 #[test]
@@ -359,10 +601,11 @@ fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_payload_support_arti
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::CommitSupportPublicationGap);
-    assert!(error
-        .message()
-        .contains("commit-coupled layout seed"));
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::CommitSupportPublicationGap
+    );
+    assert!(error.message().contains("commit-coupled layout seed"));
 }
 
 #[test]
@@ -391,7 +634,10 @@ fn milestone_6_commit_coupled_layout_seed_fails_reopen_when_payload_body_drifts(
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::CommitSupportPublicationGap);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::CommitSupportPublicationGap
+    );
     assert!(error
         .message()
         .contains("non-canonical milestone 6 commit-coupled layout seed"));
@@ -423,10 +669,11 @@ fn milestone_6_chunk_membership_fails_reopen_when_boundary_reference_drifts() {
         .local_file(path)
         .build()
         .unwrap_err();
-    assert_eq!(error.kind(), &crate::StoreErrorKind::BackendIntegrityViolation);
-    assert!(error
-        .message()
-        .contains("chunk membership"));
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
+    assert!(error.message().contains("chunk membership"));
 }
 
 #[test]
@@ -500,7 +747,9 @@ fn authority_rebuild_preserves_execution_and_chunk_export_from_minimal_honest_so
         other => panic!("expected admitted execution result before rebuild, got {other:?}"),
     };
     let before_dedup = store.execute_dedup_backed_read(request.clone()).unwrap();
-    let before_export = store.export_milestone_6_chunk_model(request.clone()).unwrap();
+    let before_export = store
+        .export_milestone_6_chunk_model(request.clone())
+        .unwrap();
     drop(store);
 
     force_clear_milestone_6_materializations_and_derived_access_structures(&path);
@@ -512,7 +761,10 @@ fn authority_rebuild_preserves_execution_and_chunk_export_from_minimal_honest_so
     reopened
         .rebuild_milestone_6_derived_artifacts_from_authority()
         .unwrap();
-    let after_read = match reopened.execute_aspect_layout_read(request.clone()).unwrap() {
+    let after_read = match reopened
+        .execute_aspect_layout_read(request.clone())
+        .unwrap()
+    {
         crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
         other => panic!("expected admitted execution result after rebuild, got {other:?}"),
     };
@@ -536,8 +788,14 @@ fn authority_rebuild_preserves_execution_and_chunk_export_from_minimal_honest_so
         before_dedup.structural_block_lookup().slice_ids(),
         after_dedup.structural_block_lookup().slice_ids()
     );
-    assert_eq!(before_export.physical_chunk_id(), after_export.physical_chunk_id());
-    assert_eq!(before_export.determinism_digest(), after_export.determinism_digest());
+    assert_eq!(
+        before_export.physical_chunk_id(),
+        after_export.physical_chunk_id()
+    );
+    assert_eq!(
+        before_export.determinism_digest(),
+        after_export.determinism_digest()
+    );
     assert_eq!(
         before_export.chunk_membership_artifact_id(),
         after_export.chunk_membership_artifact_id()
@@ -559,7 +817,10 @@ fn cdc_touched_scope_is_admitted() {
         ),
     );
 
-    assert_eq!(plan.performance().complexity_status, ComplexityStatus::Verified);
+    assert_eq!(
+        plan.performance().complexity_status,
+        ComplexityStatus::Verified
+    );
     assert_eq!(plan.slice_ids().len(), 2);
 }
 
@@ -578,7 +839,10 @@ fn generalized_scope_returns_explicit_fallback() {
 
     match decision {
         AspectLayoutReadPlanDecision::Fallback(plan) => {
-            assert_eq!(plan.performance().strategy, AspectReadRegime::ExplicitBroadFallback);
+            assert_eq!(
+                plan.performance().strategy,
+                AspectReadRegime::ExplicitBroadFallback
+            );
         }
         other => panic!("expected fallback plan, got {other:?}"),
     }
@@ -597,7 +861,10 @@ fn over_budget_scope_never_admits() {
         ))
         .unwrap();
 
-    assert!(matches!(decision, AspectLayoutReadPlanDecision::Fallback(_)));
+    assert!(matches!(
+        decision,
+        AspectLayoutReadPlanDecision::Fallback(_)
+    ));
 }
 
 #[test]
@@ -682,16 +949,20 @@ fn aspect_layout_execution_reads_published_scope_and_chunk_families() {
         crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
         other => panic!("expected admitted execution result, got {other:?}"),
     };
+    let expected_scope_membership_artifact_id =
+        crate::layout::layout_scope_membership_artifact_id(materialized.admitted_plan().request())
+            .unwrap();
+    let expected_chunk_membership_artifact_id =
+        crate::layout::chunk_membership_artifact_id(materialized.frozen_layout());
 
     assert_eq!(read.plan(), materialized.admitted_plan());
     assert_eq!(
         read.layout_materialization_artifact_id(),
-        materialized.artifact_id()
+        Some(materialized.artifact_id())
     );
     assert_eq!(
         read.scope_membership_artifact_id(),
-        crate::layout::layout_scope_membership_artifact_id(materialized.admitted_plan().request())
-            .unwrap()
+        Some(expected_scope_membership_artifact_id.as_str())
     );
     assert_eq!(
         read.structural_block_artifact_id(),
@@ -701,7 +972,7 @@ fn aspect_layout_execution_reads_published_scope_and_chunk_families() {
     );
     assert_eq!(
         read.chunk_membership_artifact_id(),
-        crate::layout::chunk_membership_artifact_id(materialized.frozen_layout())
+        Some(expected_chunk_membership_artifact_id.as_str())
     );
     assert_eq!(
         read.semantic_truth_digest(),
@@ -710,6 +981,86 @@ fn aspect_layout_execution_reads_published_scope_and_chunk_families() {
     assert_eq!(
         read.authoritative_commit_count(),
         materialized.authoritative_commit_count()
+    );
+}
+
+#[test]
+fn aspect_layout_execution_in_proof_only_lane_stays_unpublished() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let read = match store
+        .execute_aspect_layout_read_in_lane(request.clone(), Milestone6LayoutSupportLane::ProofOnly)
+        .unwrap()
+    {
+        crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+        other => panic!("expected admitted proof-only execution result, got {other:?}"),
+    };
+
+    assert_eq!(
+        read.requested_layout_support_lane(),
+        Milestone6LayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        read.resolved_layout_support_lane(),
+        Milestone6ResolvedLayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        read.layout_support_publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::None
+    );
+    assert_eq!(read.scope_membership_artifact_id(), None);
+    assert_eq!(read.chunk_membership_artifact_id(), None);
+    assert_eq!(read.layout_materialization_artifact_id(), None);
+    assert!(store.fetch_milestone_6_layout_support(request).is_err());
+}
+
+#[test]
+fn aspect_layout_execution_in_on_demand_lane_materializes_support() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let read = match store
+        .execute_aspect_layout_read_in_lane(
+            request.clone(),
+            Milestone6LayoutSupportLane::OnDemandMaterialized,
+        )
+        .unwrap()
+    {
+        crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+        other => panic!("expected admitted on-demand execution result, got {other:?}"),
+    };
+    let fetched = store.fetch_milestone_6_layout_support(request).unwrap();
+
+    assert_eq!(
+        read.requested_layout_support_lane(),
+        Milestone6LayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        read.resolved_layout_support_lane(),
+        Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        read.layout_support_publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation
+    );
+    assert_eq!(
+        read.layout_materialization_artifact_id(),
+        Some(fetched.artifact_id())
     );
 }
 
@@ -746,6 +1097,91 @@ fn dedup_backed_read_uses_published_block_lookup() {
         .structural_block_lookup()
         .supporting_layout_materialization_artifact_ids()
         .contains(&materialized.artifact_id().to_string()));
+}
+
+#[test]
+fn dedup_backed_read_in_proof_only_lane_preserves_semantic_parity_without_publication() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let dedup = store
+        .execute_dedup_backed_read_in_lane(request.clone(), Milestone6LayoutSupportLane::ProofOnly)
+        .unwrap();
+    let control = store
+        .read_aspect_layout_control_truth(request.clone())
+        .unwrap();
+
+    assert_eq!(
+        dedup.read().requested_layout_support_lane(),
+        Milestone6LayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        dedup.read().resolved_layout_support_lane(),
+        Milestone6ResolvedLayoutSupportLane::ProofOnly
+    );
+    assert_eq!(
+        dedup.read().layout_support_publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::None
+    );
+    assert_eq!(dedup.read().layout_materialization_artifact_id(), None);
+    assert!(dedup
+        .structural_block_lookup()
+        .supporting_layout_materialization_artifact_ids()
+        .is_empty());
+    assert_eq!(
+        dedup.read().semantic_truth_digest(),
+        control.authoritative_truth_digest()
+    );
+    assert!(store.fetch_milestone_6_layout_support(request).is_err());
+}
+
+#[test]
+fn dedup_backed_read_in_on_demand_lane_uses_published_support() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let dedup = store
+        .execute_dedup_backed_read_in_lane(
+            request.clone(),
+            Milestone6LayoutSupportLane::OnDemandMaterialized,
+        )
+        .unwrap();
+    let fetched = store.fetch_milestone_6_layout_support(request).unwrap();
+
+    assert_eq!(
+        dedup.read().requested_layout_support_lane(),
+        Milestone6LayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        dedup.read().resolved_layout_support_lane(),
+        Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
+    );
+    assert_eq!(
+        dedup.read().layout_support_publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation
+    );
+    assert_eq!(
+        dedup.read().layout_materialization_artifact_id(),
+        Some(fetched.artifact_id())
+    );
+    assert!(dedup
+        .structural_block_lookup()
+        .supporting_layout_materialization_artifact_ids()
+        .contains(&fetched.artifact_id().to_string()));
 }
 
 #[test]
@@ -802,7 +1238,10 @@ fn aspect_layout_control_truth_matches_admitted_execution_target() {
         control.frontier_commit_id(),
         read.plan().request().target().frontier_commit_id()
     );
-    assert_eq!(control.scope_class(), read.plan().request().scope_class().label());
+    assert_eq!(
+        control.scope_class(),
+        read.plan().request().scope_class().label()
+    );
     assert_eq!(
         control.authoritative_truth_digest(),
         read.semantic_truth_digest()
@@ -843,8 +1282,75 @@ fn chunk_model_export_matches_materialized_chunk_reference() {
     );
     assert_eq!(
         export.layout_materialization_artifact_id(),
-        materialized.artifact_id()
+        Some(materialized.artifact_id())
     );
+}
+
+#[test]
+fn chunk_model_export_in_proof_only_lane_is_explicitly_unsupported() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let error = store
+        .export_milestone_6_chunk_model_in_lane(request, Milestone6LayoutSupportLane::ProofOnly)
+        .unwrap_err();
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::AspectLayoutArtifactMissing
+    );
+}
+
+#[test]
+fn chunk_model_export_in_policy_eager_lane_reflects_resolved_lane() {
+    let (mut store, branch_id, commit_id) = store_with_root_commit();
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let first_error = store
+        .export_milestone_6_chunk_model_in_lane_with_policy(
+            request.clone(),
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(false, true, 2),
+        )
+        .unwrap_err();
+    assert_eq!(
+        first_error.kind(),
+        &crate::StoreErrorKind::AspectLayoutArtifactMissing
+    );
+
+    let export = store
+        .export_milestone_6_chunk_model_in_lane_with_policy(
+            request,
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(false, true, 2),
+        )
+        .unwrap();
+    assert_eq!(
+        export.requested_layout_support_lane(),
+        Milestone6LayoutSupportLane::PolicyEagerMaterialized
+    );
+    assert_eq!(
+        export.resolved_layout_support_lane(),
+        Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+    );
+    assert_eq!(
+        export.layout_support_publication_disposition(),
+        crate::Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation
+    );
+    assert!(export.layout_materialization_artifact_id().is_some());
 }
 
 #[test]
@@ -867,15 +1373,16 @@ fn aspect_layout_control_truth_supports_linear_main_branch_targets() {
     assert_eq!(control.branch_id(), &branch_id);
     assert_eq!(control.frontier_commit_id(), commit_id);
     assert_eq!(control.scope_class(), "entity_set_uniform");
-    let read = match store.execute_aspect_layout_read(AspectLayoutReadRequest::new(
-        AspectLayoutTarget::new(branch_id, commit_id),
-        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
-            "entity-a".to_string(),
-            "entity-b".to_string(),
-        ])),
-        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
-    ))
-    .unwrap()
+    let read = match store
+        .execute_aspect_layout_read(AspectLayoutReadRequest::new(
+            AspectLayoutTarget::new(branch_id, commit_id),
+            AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+                "entity-a".to_string(),
+                "entity-b".to_string(),
+            ])),
+            AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+        ))
+        .unwrap()
     {
         crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
         other => panic!("expected admitted main-branch execution result, got {other:?}"),
@@ -1041,11 +1548,16 @@ fn structural_block_identity_is_stable_across_equivalent_branch_publications() {
 
     let lookup = store
         .structural_block_lookup(crate::StructuralBlockLookup::new(
-            main_materialized.block_reuse().structural_block_id().clone(),
+            main_materialized
+                .block_reuse()
+                .structural_block_id()
+                .clone(),
         ))
         .unwrap();
     assert_eq!(
-        lookup.supporting_layout_materialization_artifact_ids().len(),
+        lookup
+            .supporting_layout_materialization_artifact_ids()
+            .len(),
         2
     );
     assert!(lookup
@@ -1071,7 +1583,10 @@ fn aspect_layout_execution_preserves_explicit_fallback() {
 
     match decision {
         crate::AspectLayoutReadExecutionDecision::Fallback(plan) => {
-            assert_eq!(plan.performance().strategy, AspectReadRegime::ExplicitBroadFallback);
+            assert_eq!(
+                plan.performance().strategy,
+                AspectReadRegime::ExplicitBroadFallback
+            );
         }
         other => panic!("expected fallback execution result, got {other:?}"),
     }
@@ -1101,7 +1616,10 @@ fn layout_admission_and_witness_flow_are_backend_stable() {
             .admit_milestone_9_physical_chunk_reference(frozen.clone())
             .unwrap();
 
-        assert_eq!(plan.performance().complexity_status, ComplexityStatus::Verified);
+        assert_eq!(
+            plan.performance().complexity_status,
+            ComplexityStatus::Verified
+        );
         assert_eq!(reuse.structural_block_id(), plan.structural_block_id());
         assert_eq!(milestone_7.branch_id(), &branch_id);
         assert_eq!(

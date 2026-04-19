@@ -18,17 +18,16 @@ use crate::{
         SameBranchDescendantWitness, SharedBaseBranchCreationReceipt,
         SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
     },
-    layout::{
-        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
-        AspectLayoutReadPlanDecision, AspectLayoutReadRequest, ChunkModelFrozenPhysicalLayout,
-        DedupAdmittedBlockReuse, DedupBackedReadResult,
-        Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
-        StructuralBlockLookup, StructuralBlockLookupResult,
-    },
     evidence::{
         CanonicalizationMetrics, Milestone7AccessStructureVerification, StoreCounterSnapshot,
     },
     failure::StoreError,
+    layout::{
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
+        AspectLayoutReadPlanDecision, AspectLayoutReadRequest, ChunkModelFrozenPhysicalLayout,
+        DedupAdmittedBlockReuse, DedupBackedReadResult, Milestone7IndependentLayoutReference,
+        Milestone9PhysicalChunkReference, StructuralBlockLookup, StructuralBlockLookupResult,
+    },
     media::DurableMediaReport,
     publication::PublicationWriteOutcome,
     recovery::{
@@ -235,9 +234,7 @@ impl StoreBackend {
         plan: AdmittedAspectLayoutReadPlan,
     ) -> Result<Milestone7IndependentLayoutReference, StoreError> {
         match self {
-            Self::Embedded(backend) => {
-                backend.admit_milestone_7_independent_layout_reference(plan)
-            }
+            Self::Embedded(backend) => backend.admit_milestone_7_independent_layout_reference(plan),
             Self::Sqlite(backend) => backend.admit_milestone_7_independent_layout_reference(plan),
         }
     }
@@ -272,12 +269,68 @@ impl StoreBackend {
         }
     }
 
+    pub(crate) fn note_milestone_6_scope_prepare(
+        &mut self,
+        request: &AspectLayoutReadRequest,
+    ) -> Result<u64, StoreError> {
+        match self {
+            Self::Embedded(backend) => backend.note_milestone_6_scope_prepare(request),
+            Self::Sqlite(backend) => backend.note_milestone_6_scope_prepare(request),
+        }
+    }
+
+    pub(crate) fn milestone_6_branch_has_materialized_support(&self, branch_id: &BranchId) -> bool {
+        match self {
+            Self::Embedded(backend) => {
+                backend.milestone_6_branch_has_materialized_support(branch_id)
+            }
+            Self::Sqlite(backend) => backend.milestone_6_branch_has_materialized_support(branch_id),
+        }
+    }
+
+    pub(crate) fn record_milestone_6_proof_only_prepare(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_milestone_6_proof_only_prepare(),
+            Self::Sqlite(backend) => backend.record_milestone_6_proof_only_prepare(),
+        }
+    }
+
+    pub(crate) fn record_milestone_6_on_demand_materialize(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_milestone_6_on_demand_materialize(),
+            Self::Sqlite(backend) => backend.record_milestone_6_on_demand_materialize(),
+        }
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_resolution(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_milestone_6_policy_eager_resolution(),
+            Self::Sqlite(backend) => backend.record_milestone_6_policy_eager_resolution(),
+        }
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_publish(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_milestone_6_policy_eager_publish(),
+            Self::Sqlite(backend) => backend.record_milestone_6_policy_eager_publish(),
+        }
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_reuse_existing(&self) {
+        match self {
+            Self::Embedded(backend) => backend.record_milestone_6_policy_eager_reuse_existing(),
+            Self::Sqlite(backend) => backend.record_milestone_6_policy_eager_reuse_existing(),
+        }
+    }
+
     pub(crate) fn fetch_existing_milestone_6_layout_support(
         &self,
         artifact_id: &str,
     ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
         match self {
-            Self::Embedded(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
+            Self::Embedded(backend) => {
+                backend.fetch_existing_milestone_6_layout_support(artifact_id)
+            }
             Self::Sqlite(backend) => backend.fetch_existing_milestone_6_layout_support(artifact_id),
         }
     }
@@ -302,9 +355,7 @@ impl StoreBackend {
             Self::Embedded(backend) => {
                 backend.rebuild_milestone_6_derived_artifacts_from_authority()
             }
-            Self::Sqlite(backend) => {
-                backend.rebuild_milestone_6_derived_artifacts_from_authority()
-            }
+            Self::Sqlite(backend) => backend.rebuild_milestone_6_derived_artifacts_from_authority(),
         }
     }
 
@@ -494,7 +545,9 @@ impl StoreBackend {
             Self::Embedded(backend) => {
                 backend.record_bulk_source_manifest(member_count, stream_pass_count)
             }
-            Self::Sqlite(backend) => backend.record_bulk_source_manifest(member_count, stream_pass_count),
+            Self::Sqlite(backend) => {
+                backend.record_bulk_source_manifest(member_count, stream_pass_count)
+            }
         }
     }
 
@@ -609,8 +662,12 @@ impl StoreBackend {
         manifest_digest: &str,
     ) -> Result<FrozenBulkSourceManifest, StoreError> {
         match self {
-            Self::Embedded(backend) => backend.fetch_frozen_bulk_manifest(program_id, manifest_digest),
-            Self::Sqlite(backend) => backend.fetch_frozen_bulk_manifest(program_id, manifest_digest),
+            Self::Embedded(backend) => {
+                backend.fetch_frozen_bulk_manifest(program_id, manifest_digest)
+            }
+            Self::Sqlite(backend) => {
+                backend.fetch_frozen_bulk_manifest(program_id, manifest_digest)
+            }
         }
     }
 
@@ -620,7 +677,9 @@ impl StoreBackend {
         basis_digest: &str,
     ) -> Result<FrozenTransformBasis, StoreError> {
         match self {
-            Self::Embedded(backend) => backend.fetch_frozen_transform_basis(program_id, basis_digest),
+            Self::Embedded(backend) => {
+                backend.fetch_frozen_transform_basis(program_id, basis_digest)
+            }
             Self::Sqlite(backend) => backend.fetch_frozen_transform_basis(program_id, basis_digest),
         }
     }
@@ -647,20 +706,16 @@ impl StoreBackend {
         basis_commit_id: forge_relational::facade::history::CommitId,
     ) -> Result<FrozenTransformBasis, StoreError> {
         match self {
-            Self::Embedded(backend) => {
-                backend.find_frozen_transform_basis_for_plan(
-                    program_id,
-                    target_branch_scope,
-                    basis_commit_id,
-                )
-            }
-            Self::Sqlite(backend) => {
-                backend.find_frozen_transform_basis_for_plan(
-                    program_id,
-                    target_branch_scope,
-                    basis_commit_id,
-                )
-            }
+            Self::Embedded(backend) => backend.find_frozen_transform_basis_for_plan(
+                program_id,
+                target_branch_scope,
+                basis_commit_id,
+            ),
+            Self::Sqlite(backend) => backend.find_frozen_transform_basis_for_plan(
+                program_id,
+                target_branch_scope,
+                basis_commit_id,
+            ),
         }
     }
 
@@ -712,7 +767,9 @@ impl StoreBackend {
         plan_id: &str,
     ) -> Result<ProgramChunkWitnessIndex, StoreError> {
         match self {
-            Self::Embedded(backend) => backend.fetch_program_chunk_witness_index(program_id, plan_id),
+            Self::Embedded(backend) => {
+                backend.fetch_program_chunk_witness_index(program_id, plan_id)
+            }
             Self::Sqlite(backend) => backend.fetch_program_chunk_witness_index(program_id, plan_id),
         }
     }

@@ -12,7 +12,7 @@ pub(crate) fn milestone_one_admitted_range_scenarios() -> Vec<WorthMilestoneOneP
     milestone_one_admitted_range_sweep_scenarios()
 }
 
-pub(crate) fn milestone_one_out_of_class_range_scenarios(
-) -> Vec<WorthMilestoneOnePrimitiveScenario> {
+pub(crate) fn milestone_one_out_of_class_range_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario>
+{
     milestone_one_admitted_range_sweep_out_of_class_scenarios()
 }

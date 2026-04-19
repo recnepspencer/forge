@@ -151,7 +151,11 @@ impl<'a> MutationWorkspace<'a> {
         self.preparation_telemetry
     }
 
-    pub(crate) fn register_created_entity(&mut self, created: CreatedEntityRef, entity_id: EntityId) {
+    pub(crate) fn register_created_entity(
+        &mut self,
+        created: CreatedEntityRef,
+        entity_id: EntityId,
+    ) {
         self.created_entities.insert(created, entity_id);
     }
 

@@ -73,7 +73,10 @@ fn execute_policy_run(
 #[test]
 fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
     let target = "policy-provenance-certify";
-    let fixture = policy_fixture("bridge-policy-provenance-certification", BridgeRuntimePolicy::development());
+    let fixture = policy_fixture(
+        "bridge-policy-provenance-certification",
+        BridgeRuntimePolicy::development(),
+    );
     let request = ExecutionRequest::target("policy-provenance-control", target.to_string());
 
     let report = parity_suite(
@@ -116,8 +119,14 @@ fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
     assert_eq!(control_run.summary, hostile_run.summary);
 
     let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
-    assert_eq!(bundle["policy_digest"], control_run.summary["policy_digest"]);
-    assert_eq!(bundle["policy_matrix"], control_run.summary["policy_matrix"]);
+    assert_eq!(
+        bundle["policy_digest"],
+        control_run.summary["policy_digest"]
+    );
+    assert_eq!(
+        bundle["policy_matrix"],
+        control_run.summary["policy_matrix"]
+    );
     assert_eq!(
         bundle["policy_provenance_report"],
         control_run.summary["policy_provenance_report"]
@@ -126,12 +135,15 @@ fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
         bundle["route_policy_matrix"],
         control_run.summary["route_policy_matrix"]
     );
-    assert_eq!(bundle["routing_digest"], control_run.summary["routing_digest"]);
-    assert_eq!(bundle["replay_digest"], control_run.summary["replay_digest"]);
     assert_eq!(
-        bundle["counter_snapshot"]["declaration_count"],
-        json!(2)
+        bundle["routing_digest"],
+        control_run.summary["routing_digest"]
     );
+    assert_eq!(
+        bundle["replay_digest"],
+        control_run.summary["replay_digest"]
+    );
+    assert_eq!(bundle["counter_snapshot"]["declaration_count"], json!(2));
     assert_eq!(
         bundle["counter_snapshot"]["declaration_width_count"],
         json!(8)
@@ -140,10 +152,7 @@ fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
         bundle["counter_snapshot"]["admission_width_count"],
         json!(8)
     );
-    assert_eq!(
-        bundle["counter_snapshot"]["replay_bundle_count"],
-        json!(2)
-    );
+    assert_eq!(bundle["counter_snapshot"]["replay_bundle_count"], json!(2));
     assert_eq!(
         bundle["counter_snapshot"]["ambient_policy_leak_count"],
         json!(0)
@@ -202,7 +211,10 @@ fn policy_rejection_bundle_stays_typed_and_leaves_zero_fallback_residue() {
 
     let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
     assert!(bundle["policy_digest"].is_null());
-    assert_eq!(bundle["failure_digest"], control_run.summary["failure_digest"]);
+    assert_eq!(
+        bundle["failure_digest"],
+        control_run.summary["failure_digest"]
+    );
     assert_eq!(
         bundle["policy_provenance_report"]["rows"]
             .as_array()
@@ -240,7 +252,10 @@ fn policy_rejection_bundle_stays_typed_and_leaves_zero_fallback_residue() {
 #[test]
 fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_interleave() {
     let target = "policy-ambient-leak-certify";
-    let fixture = policy_fixture("bridge-policy-ambient-leak-certification", BridgeRuntimePolicy::development());
+    let fixture = policy_fixture(
+        "bridge-policy-ambient-leak-certification",
+        BridgeRuntimePolicy::development(),
+    );
     let request = ExecutionRequest::target("policy-ambient-leak-control", target.to_string());
 
     let report = parity_suite(
@@ -275,8 +290,14 @@ fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_int
     assert_eq!(control_run.extensions, replay_run.extensions);
 
     let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
-    assert_eq!(bundle["policy_digest"], control_run.summary["policy_digest"]);
-    assert_eq!(bundle["policy_matrix"], control_run.summary["policy_matrix"]);
+    assert_eq!(
+        bundle["policy_digest"],
+        control_run.summary["policy_digest"]
+    );
+    assert_eq!(
+        bundle["policy_matrix"],
+        control_run.summary["policy_matrix"]
+    );
     assert_eq!(
         bundle["policy_provenance_report"],
         control_run.summary["policy_provenance_report"]
@@ -285,19 +306,13 @@ fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_int
         bundle["request_policy_matrix"],
         control_run.summary["request_policy_matrix"]
     );
-    assert_eq!(bundle["replay_digest"], control_run.summary["replay_digest"]);
     assert_eq!(
-        bundle["counter_snapshot"]["policy_request_count"],
-        json!(3)
+        bundle["replay_digest"],
+        control_run.summary["replay_digest"]
     );
-    assert_eq!(
-        bundle["counter_snapshot"]["declaration_count"],
-        json!(3)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["override_count"],
-        json!(0)
-    );
+    assert_eq!(bundle["counter_snapshot"]["policy_request_count"], json!(3));
+    assert_eq!(bundle["counter_snapshot"]["declaration_count"], json!(3));
+    assert_eq!(bundle["counter_snapshot"]["override_count"], json!(0));
     assert_eq!(
         bundle["counter_snapshot"]["truth_view_interleave_count"],
         json!(2)
@@ -311,12 +326,18 @@ fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_int
         .as_array()
         .expect("request policy matrix rows should be an array");
     assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0]["semantic_policy_digest"], rows[2]["semantic_policy_digest"]);
+    assert_eq!(
+        rows[0]["semantic_policy_digest"],
+        rows[2]["semantic_policy_digest"]
+    );
     assert_eq!(
         rows[0]["semantic_route_planning_policy_digest"],
         rows[2]["semantic_route_planning_policy_digest"]
     );
-    assert_ne!(rows[0]["semantic_policy_digest"], rows[1]["semantic_policy_digest"]);
+    assert_ne!(
+        rows[0]["semantic_policy_digest"],
+        rows[1]["semantic_policy_digest"]
+    );
     assert_ne!(
         rows[0]["semantic_route_planning_policy_digest"],
         rows[1]["semantic_route_planning_policy_digest"]

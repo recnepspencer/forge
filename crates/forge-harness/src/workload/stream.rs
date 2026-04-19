@@ -199,8 +199,11 @@ pub struct FeedStreamBatch {
 
 impl FeedStreamBatch {
     pub fn as_feed_batch(&self) -> FeedBatch {
-        let mut feed_batch =
-            FeedBatch::new(self.feed_name.clone(), self.sequence_start, self.sequence_end);
+        let mut feed_batch = FeedBatch::new(
+            self.feed_name.clone(),
+            self.sequence_start,
+            self.sequence_end,
+        );
         if let Some(phase) = self.phase {
             feed_batch = feed_batch.with_phase(phase);
         }
@@ -316,7 +319,10 @@ impl DeterministicFeedStreamGenerator {
             "external_factor_microunits".to_owned(),
             external_factor_microunits.to_string(),
         );
-        metadata.insert("factor_delta_microunits".to_owned(), factor_delta.to_string());
+        metadata.insert(
+            "factor_delta_microunits".to_owned(),
+            factor_delta.to_string(),
+        );
         metadata.insert("trend_delta_microunits".to_owned(), trend_delta.to_string());
         metadata.insert(
             "mean_reversion_delta_microunits".to_owned(),
@@ -436,14 +442,12 @@ impl DeterministicFeedStreamGenerator {
 
         let jump_multiplier = self.regime_jump_multiplier_per_mille();
         let roll = self.next_u64() % 1000;
-        let major_probability = (self.profile.major_shift_probability_per_mille as u64
-            * jump_multiplier as u64
-            / 1000)
-            .min(1000);
-        let minor_probability = (self.profile.minor_shift_probability_per_mille as u64
-            * jump_multiplier as u64
-            / 1000)
-            .min(1000);
+        let major_probability =
+            (self.profile.major_shift_probability_per_mille as u64 * jump_multiplier as u64 / 1000)
+                .min(1000);
+        let minor_probability =
+            (self.profile.minor_shift_probability_per_mille as u64 * jump_multiplier as u64 / 1000)
+                .min(1000);
 
         if roll < major_probability {
             (
@@ -465,7 +469,11 @@ impl DeterministicFeedStreamGenerator {
         let scaled_max = range.max_delta_microunits * multiplier_per_mille / 1000;
         let span = (scaled_max - scaled_min).max(0);
         let magnitude = scaled_min + (self.next_u64() % (span as u64 + 1)) as i64;
-        if self.next_bool() { magnitude } else { -magnitude }
+        if self.next_bool() {
+            magnitude
+        } else {
+            -magnitude
+        }
     }
 
     fn compute_mean_reversion_delta(&self) -> i64 {
@@ -531,8 +539,8 @@ mod tests {
     use crate::timeline::ExecutionPhase;
 
     use super::{
-        DeterministicFeedStreamGenerator, FeedShiftRange, FeedStreamEventKind,
-        FeedStreamProfile, FeedVolatilityRegime,
+        DeterministicFeedStreamGenerator, FeedShiftRange, FeedStreamEventKind, FeedStreamProfile,
+        FeedVolatilityRegime,
     };
 
     #[test]
@@ -559,7 +567,10 @@ mod tests {
         assert_eq!(left_batch, right_batch);
         assert_eq!(left_batch.sequence_start, 1);
         assert_eq!(left_batch.sequence_end, 16);
-        assert_eq!(left_batch.as_feed_batch().phase, Some(ExecutionPhase::Ingest));
+        assert_eq!(
+            left_batch.as_feed_batch().phase,
+            Some(ExecutionPhase::Ingest)
+        );
     }
 
     #[test]

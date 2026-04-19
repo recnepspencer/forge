@@ -4,15 +4,13 @@ use worth_schema::facade::{
 };
 use worth_topo::facade::{
     certify_milestone_one_read_view_traced, certify_milestone_two_read_view_traced,
-    certify_milestone_two_verified_topology_commit_traced,
-    certify_verified_topology_commit_traced, WorthMilestoneOneCertificationError,
-    WorthTopologyReadError, WorthTopologyReader, WorthTopologyEditApplicationMode,
-    WorthTopologyEditBatch, WorthTopologyEditError, WorthTopologyEditRunner,
-    WorthTracedCertifiedTopologyInterpretation,
-    WorthTracedDerivedEquivalenceContract, WorthTracedDerivedReadDiagnostics,
-    WorthTracedMaterializedTopologyView, WorthTracedMilestoneOneCertificationReport,
-    WorthTracedMilestoneTwoDerivedReadReport, WorthTracedTopologyReadArtifact,
-    WorthTracedTopologyEditApplied, WorthTracedTopologyEditCommit,
+    certify_milestone_two_verified_topology_commit_traced, certify_verified_topology_commit_traced,
+    WorthMilestoneOneCertificationError, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
+    WorthTopologyEditError, WorthTopologyEditRunner, WorthTopologyReadError, WorthTopologyReader,
+    WorthTracedCertifiedTopologyInterpretation, WorthTracedDerivedEquivalenceContract,
+    WorthTracedDerivedReadDiagnostics, WorthTracedMaterializedTopologyView,
+    WorthTracedMilestoneOneCertificationReport, WorthTracedMilestoneTwoDerivedReadReport,
+    WorthTracedTopologyEditApplied, WorthTracedTopologyEditCommit, WorthTracedTopologyReadArtifact,
 };
 
 fn _read_artifact_contract(
@@ -25,40 +23,29 @@ fn _read_artifact_contract(
 fn _interpret_contract(
     reader: &WorthTopologyReader<'_>,
     basis: &DerivedTopologyReadBasis,
-) -> Result<
-    WorthTracedCertifiedTopologyInterpretation,
-    WorthBoundaryFailure<WorthTopologyReadError>,
-> {
+) -> Result<WorthTracedCertifiedTopologyInterpretation, WorthBoundaryFailure<WorthTopologyReadError>>
+{
     reader.interpret_traced(basis)
 }
 
 fn _materialize_contract(
     reader: &WorthTopologyReader<'_>,
     basis: &DerivedTopologyReadBasis,
-) -> Result<
-    WorthTracedMaterializedTopologyView,
-    WorthBoundaryFailure<WorthTopologyReadError>,
-> {
+) -> Result<WorthTracedMaterializedTopologyView, WorthBoundaryFailure<WorthTopologyReadError>> {
     reader.materialize_traced(basis)
 }
 
 fn _equivalence_contract(
     reader: &WorthTopologyReader<'_>,
     basis: &DerivedTopologyReadBasis,
-) -> Result<
-    WorthTracedDerivedEquivalenceContract,
-    WorthBoundaryFailure<WorthTopologyReadError>,
-> {
+) -> Result<WorthTracedDerivedEquivalenceContract, WorthBoundaryFailure<WorthTopologyReadError>> {
     reader.equivalence_contract_traced(basis)
 }
 
 fn _diagnostics_contract(
     reader: &WorthTopologyReader<'_>,
     basis: &DerivedTopologyReadBasis,
-) -> Result<
-    WorthTracedDerivedReadDiagnostics,
-    WorthBoundaryFailure<WorthTopologyReadError>,
-> {
+) -> Result<WorthTracedDerivedReadDiagnostics, WorthBoundaryFailure<WorthTopologyReadError>> {
     reader.diagnostics_traced(basis)
 }
 

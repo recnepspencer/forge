@@ -135,10 +135,7 @@ pub struct BasisFreeCheckpoint<K, C> {
 }
 
 impl<K: EmbeddedCheckpointKindMarker> BasisFreeCheckpoint<K, NoContainedCommits> {
-    pub fn new(
-        checkpoint_id: impl Into<String>,
-        source_runtime_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(checkpoint_id: impl Into<String>, source_runtime_id: impl Into<String>) -> Self {
         Self {
             checkpoint_id: checkpoint_id.into(),
             source_runtime_id: source_runtime_id.into(),
@@ -383,8 +380,8 @@ impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
     for BasisFreeCheckpoint<K, C>
 {
     fn into_verified(self) -> Result<VerifiedEmbeddedCheckpoint<K, C>, StoreError> {
-        let classified = ClassifiedEmbeddedCheckpointEnvelope::classify(
-            ExternalRuntimeCheckpointEnvelope {
+        let classified =
+            ClassifiedEmbeddedCheckpointEnvelope::classify(ExternalRuntimeCheckpointEnvelope {
                 checkpoint_id: self.checkpoint_id,
                 source_runtime_id: self.source_runtime_id,
                 basis_branch_id: None,
@@ -392,8 +389,7 @@ impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
                 classification: K::CLASSIFICATION,
                 contained_commits: self.contained_commits,
                 metadata: self.metadata,
-            },
-        )?;
+            })?;
         Ok(VerifiedEmbeddedCheckpoint {
             envelope: classified,
             basis_witness: None,
@@ -408,12 +404,10 @@ impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
     for BasisBoundCheckpoint<K, C>
 {
     fn into_verified(self) -> Result<VerifiedEmbeddedCheckpoint<K, C>, StoreError> {
-        let basis_witness = BasisBoundCheckpointWitness::new(
-            self.basis_branch_id.clone(),
-            self.basis_commit_id,
-        );
-        let classified = ClassifiedEmbeddedCheckpointEnvelope::classify(
-            ExternalRuntimeCheckpointEnvelope {
+        let basis_witness =
+            BasisBoundCheckpointWitness::new(self.basis_branch_id.clone(), self.basis_commit_id);
+        let classified =
+            ClassifiedEmbeddedCheckpointEnvelope::classify(ExternalRuntimeCheckpointEnvelope {
                 checkpoint_id: self.checkpoint_id,
                 source_runtime_id: self.source_runtime_id,
                 basis_branch_id: Some(self.basis_branch_id),
@@ -421,8 +415,7 @@ impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
                 classification: K::CLASSIFICATION,
                 contained_commits: self.contained_commits,
                 metadata: self.metadata,
-            },
-        )?;
+            })?;
         Ok(VerifiedEmbeddedCheckpoint {
             envelope: classified,
             basis_witness: Some(basis_witness),
@@ -541,9 +534,7 @@ impl EmbeddedStoreHandle {
         checkpoint_id: &str,
     ) -> Result<crate::PersistedEmbeddedCheckpoint, StoreError> {
         self.store
-            .fetch_embedded_checkpoint(crate::EmbeddedCheckpointFetchRequest::new(
-                checkpoint_id,
-            ))
+            .fetch_embedded_checkpoint(crate::EmbeddedCheckpointFetchRequest::new(checkpoint_id))
     }
 
     pub fn store(&self) -> &ForgeStore {

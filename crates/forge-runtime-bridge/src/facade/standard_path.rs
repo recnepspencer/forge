@@ -33,7 +33,10 @@ impl<'a> BridgeDiagnostics<'a> {
                 self.explain_last_evaluation()
                     .map(BridgeStandardDiagnosticsExplanation::Evaluation)
             })
-            .or_else(|| self.explain_last_route().map(BridgeStandardDiagnosticsExplanation::Route))
+            .or_else(|| {
+                self.explain_last_route()
+                    .map(BridgeStandardDiagnosticsExplanation::Route)
+            })
     }
 
     /// Explains the most recent routed truth change.

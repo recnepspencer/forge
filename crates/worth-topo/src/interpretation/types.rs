@@ -1,6 +1,7 @@
 pub type WorthWireInterpretation = worth_schema::facade::WorthWireInterpretationRecord;
 pub type WorthShellInterpretation = worth_schema::facade::WorthShellInterpretationRecord;
-pub type WorthTopologyInterpretationSet = worth_schema::facade::WorthTopologyInterpretationRecordSet;
+pub type WorthTopologyInterpretationSet =
+    worth_schema::facade::WorthTopologyInterpretationRecordSet;
 
 use forge_relational::facade::identity::EntityId;
 use serde::{Deserialize, Serialize};

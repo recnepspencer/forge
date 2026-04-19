@@ -69,14 +69,20 @@ impl<'a> ResolvedBridgeMappings<'a> {
     pub(crate) fn registrations(
         &self,
     ) -> impl Iterator<Item = &'a FrozenBridgeMappingRegistration> + '_ {
-        self.resolved.iter().map(ResolvedBridgeMapping::registration)
+        self.resolved
+            .iter()
+            .map(ResolvedBridgeMapping::registration)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeMappingLookup<'a> {
-    Exact { resolved: ResolvedBridgeMappings<'a> },
-    Fallback { resolved: ResolvedBridgeMappings<'a> },
+    Exact {
+        resolved: ResolvedBridgeMappings<'a>,
+    },
+    Fallback {
+        resolved: ResolvedBridgeMappings<'a>,
+    },
     Missing,
 }
 
@@ -104,8 +110,12 @@ impl FrozenMappingRegistry {
             .first()
             .and_then(|registration| registration.fallback_class())
             .is_some();
-        let resolved =
-            ResolvedBridgeMappings::new(matches.into_iter().map(ResolvedBridgeMapping::new).collect());
+        let resolved = ResolvedBridgeMappings::new(
+            matches
+                .into_iter()
+                .map(ResolvedBridgeMapping::new)
+                .collect(),
+        );
         match is_fallback {
             false => BridgeMappingLookup::Exact { resolved },
             true => BridgeMappingLookup::Fallback { resolved },

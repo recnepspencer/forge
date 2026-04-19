@@ -25,10 +25,17 @@ fn validate_loop_membership(view: &WorthTopologyView) -> Result<(), WorthTopolog
             ));
         }
         for half_edge_id in &loop_record.half_edge_ids {
-            let Some(half_edge) = view.half_edges.iter().find(|record| record.entity_id == *half_edge_id) else {
+            let Some(half_edge) = view
+                .half_edges
+                .iter()
+                .find(|record| record.entity_id == *half_edge_id)
+            else {
                 return Err(err(
                     "loop_wiring.loop_membership",
-                    format!("loop {:?} references missing half-edge {:?}", loop_record.entity_id, half_edge_id),
+                    format!(
+                        "loop {:?} references missing half-edge {:?}",
+                        loop_record.entity_id, half_edge_id
+                    ),
                 ));
             };
             if half_edge.loop_id != Some(loop_record.entity_id) {
@@ -36,9 +43,7 @@ fn validate_loop_membership(view: &WorthTopologyView) -> Result<(), WorthTopolog
                     "loop_wiring.loop_membership",
                     format!(
                         "half-edge {:?} is listed in loop {:?} but records loop {:?}",
-                        half_edge.entity_id,
-                        loop_record.entity_id,
-                        half_edge.loop_id
+                        half_edge.entity_id, loop_record.entity_id, half_edge.loop_id
                     ),
                 ));
             }
@@ -47,13 +52,21 @@ fn validate_loop_membership(view: &WorthTopologyView) -> Result<(), WorthTopolog
     Ok(())
 }
 
-fn validate_prev_next_symmetry(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_prev_next_symmetry(
+    view: &WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     for half_edge in &view.half_edges {
         let Some(next_id) = half_edge.next_half_edge_id else {
-            return Err(err("loop_wiring.prev_next_symmetry", format!("half-edge {:?} has no next", half_edge.entity_id)));
+            return Err(err(
+                "loop_wiring.prev_next_symmetry",
+                format!("half-edge {:?} has no next", half_edge.entity_id),
+            ));
         };
         let Some(prev_id) = half_edge.prev_half_edge_id else {
-            return Err(err("loop_wiring.prev_next_symmetry", format!("half-edge {:?} has no prev", half_edge.entity_id)));
+            return Err(err(
+                "loop_wiring.prev_next_symmetry",
+                format!("half-edge {:?} has no prev", half_edge.entity_id),
+            ));
         };
 
         let next = lookup_half_edge(view, next_id, "loop_wiring.prev_next_symmetry")?;
@@ -62,13 +75,19 @@ fn validate_prev_next_symmetry(view: &WorthTopologyView) -> Result<(), WorthTopo
         if next.prev_half_edge_id != Some(half_edge.entity_id) {
             return Err(err(
                 "loop_wiring.prev_next_symmetry",
-                format!("next link from {:?} to {:?} is not reciprocated", half_edge.entity_id, next_id),
+                format!(
+                    "next link from {:?} to {:?} is not reciprocated",
+                    half_edge.entity_id, next_id
+                ),
             ));
         }
         if prev.next_half_edge_id != Some(half_edge.entity_id) {
             return Err(err(
                 "loop_wiring.prev_next_symmetry",
-                format!("prev link from {:?} to {:?} is not reciprocated", half_edge.entity_id, prev_id),
+                format!(
+                    "prev link from {:?} to {:?} is not reciprocated",
+                    half_edge.entity_id, prev_id
+                ),
             ));
         }
     }
@@ -80,7 +99,11 @@ fn validate_loop_cardinality(view: &WorthTopologyView) -> Result<(), WorthTopolo
         if loop_record.half_edge_ids.len() < 1 {
             return Err(err(
                 "loop_wiring.loop_cardinality",
-                format!("loop {:?} has invalid cardinality {}", loop_record.entity_id, loop_record.half_edge_ids.len()),
+                format!(
+                    "loop {:?} has invalid cardinality {}",
+                    loop_record.entity_id,
+                    loop_record.half_edge_ids.len()
+                ),
             ));
         }
     }
@@ -96,7 +119,10 @@ fn validate_no_duplicate_half_edges_in_loop(
             if !seen.insert(*half_edge_id) {
                 return Err(err(
                     "loop_wiring.duplicate_half_edges",
-                    format!("loop {:?} references half-edge {:?} more than once", loop_record.entity_id, half_edge_id),
+                    format!(
+                        "loop {:?} references half-edge {:?} more than once",
+                        loop_record.entity_id, half_edge_id
+                    ),
                 ));
             }
         }

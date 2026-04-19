@@ -10,9 +10,9 @@ pub use export::{AuthoritativeExportBundle, AuthoritativeExportRestoreRequest};
 pub use proofs::{
     AdvanceCursorWitness, AuthoritativeBranchHeadRecord, CanonicalizedCommitEnvelope,
     CommitCoupledSupportAppendWitness, DurableCursorAcknowledgeRequest, DurableCursorResumePlan,
-    DurableCursorResumeRequest, FetchedAuthoritativeCommit, FetchedDurableCursorIdentity,
-    FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact,
-    HistoricalIdentityRequest, HistoricalIdentityResolution, PersistedAuthoritativeCommit,
-    PersistedEmbeddedCheckpoint, PersistedSubscriberCheckpoint, RawRuntimeCommitEnvelope,
-    ResumeAdmittedCursor, VerifiedAuthoritativeAppend, EmbeddedCheckpointFetchRequest,
+    DurableCursorResumeRequest, EmbeddedCheckpointFetchRequest, FetchedAuthoritativeCommit,
+    FetchedDurableCursorIdentity, FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact,
+    FetchedSchemaSupportArtifact, HistoricalIdentityRequest, HistoricalIdentityResolution,
+    PersistedAuthoritativeCommit, PersistedEmbeddedCheckpoint, PersistedSubscriberCheckpoint,
+    RawRuntimeCommitEnvelope, ResumeAdmittedCursor, VerifiedAuthoritativeAppend,
 };

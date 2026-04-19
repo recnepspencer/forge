@@ -65,7 +65,8 @@ fn lower_admitted_policy(
         policy.retention_admission(),
         TruthViewRetentionAdmission::SnapshotResident
     );
-    let replay_permitted = declaration.replay_mode() != forge_runtime_bridge::facade::BridgeReplayMode::Disabled
+    let replay_permitted = declaration.replay_mode()
+        != forge_runtime_bridge::facade::BridgeReplayMode::Disabled
         && matches!(
             policy.replay_compatibility(),
             TruthViewReplayCompatibility::ReplayPermitted

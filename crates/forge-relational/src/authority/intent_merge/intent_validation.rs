@@ -1,7 +1,7 @@
 use crate::capabilities::{SchemaSource, StorageRead};
 use crate::identity::data::VersionId;
 use crate::logic::runtime::{RelationalRuntime, RuntimeInstrumentation};
-use crate::transactions::data::{CommitConflict, CreatedEntityRef, CreateIntent, MutationIntent};
+use crate::transactions::data::{CommitConflict, CreateIntent, CreatedEntityRef, MutationIntent};
 use std::collections::BTreeSet;
 
 use super::entity_validation::validate_entity_intent;

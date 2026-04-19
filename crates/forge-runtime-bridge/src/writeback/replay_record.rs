@@ -60,9 +60,7 @@ impl BridgeWritebackReplayRecord {
             failure_class,
             counters,
             canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-writeback-replay-record:sha256:{digest:x}"
-            )),
+            digest: Arc::from(format!("bridge-writeback-replay-record:sha256:{digest:x}")),
         }
     }
 

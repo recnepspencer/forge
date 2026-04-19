@@ -30,9 +30,8 @@ pub fn interpret_wire_branching(
     terminal_vertex_ids.sort();
     branch_vertex_ids.sort();
 
-    let closed_cycle = components == 1
-        && !degree_map.is_empty()
-        && degree_map.values().all(|degree| *degree == 2);
+    let closed_cycle =
+        components == 1 && !degree_map.is_empty() && degree_map.values().all(|degree| *degree == 2);
     let class = if components > 1 {
         WorthWireInterpretationClass::Disconnected
     } else if closed_cycle {

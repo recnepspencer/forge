@@ -57,7 +57,9 @@ impl BridgeWritebackIdempotenceBasis {
             authoritative_state_digest,
             idempotence_class,
             canonical_basis,
-            digest: Arc::from(format!("bridge-writeback-idempotence-basis:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-writeback-idempotence-basis:sha256:{digest:x}"
+            )),
         }
     }
 

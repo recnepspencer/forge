@@ -12,8 +12,8 @@
 
 use forge_core::tracing::sink::DecisionSink;
 use forge_core::DecisionTier;
-use worth_geom::facade::VertexGeom;
 use forge_topo::handles::VertexId;
+use worth_geom::facade::VertexGeom;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
 /// against an existing vertex.

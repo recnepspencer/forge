@@ -579,7 +579,11 @@ impl RuntimeCore {
             matched_watcher_breadth: transaction.staged_observation_match_count,
             delivered_observation_count: transaction.delivered_observation_count,
             rollback_suppressed_delivery_count: transaction.rollback_suppressed_observation_count,
-            serial_executor_usage_count: self.runtime.telemetry().execution.serial_executor_usage_count,
+            serial_executor_usage_count: self
+                .runtime
+                .telemetry()
+                .execution
+                .serial_executor_usage_count,
             parallel_executor_usage_count: self
                 .runtime
                 .telemetry()
@@ -2863,12 +2867,7 @@ fn signal_value_breadth(value: &SignalValue) -> u64 {
         | SignalValue::Bool(_)
         | SignalValue::Number(_)
         | SignalValue::String(_) => 1,
-        SignalValue::Array(items) => {
-            1 + items
-                .iter()
-                .map(signal_value_breadth)
-                .sum::<u64>()
-        }
+        SignalValue::Array(items) => 1 + items.iter().map(signal_value_breadth).sum::<u64>(),
         SignalValue::Object(fields) => {
             1 + fields
                 .iter()

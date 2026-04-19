@@ -16,8 +16,8 @@ use crate::facade::{
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
     BridgeRouteRequest, BridgeSignalBranchIdentity, BridgeSourceCapability,
     BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
-    SnapshotReadRecord, StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
+    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector, SnapshotReadRecord,
+    StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
     StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
     StructuralFingerprintOrderingRule, StructuralIdentityDeclaration,
     StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
@@ -34,7 +34,9 @@ fn execute_harness_run(
     target: &str,
 ) -> RunRecord<String> {
     let adapter = BridgeHarnessAdapter;
-    let mut runtime = adapter.create_runtime().expect("harness runtime should construct");
+    let mut runtime = adapter
+        .create_runtime()
+        .expect("harness runtime should construct");
     adapter
         .prepare_runtime(&mut runtime, &profile)
         .expect("harness prepare should succeed");
@@ -111,7 +113,10 @@ fn mixed_source_fixture(
     .compile()
 }
 
-fn mixed_structural_snapshot(snapshot_identity: &str, value: &str) -> crate::harness::fixtures::SnapshotFixture {
+fn mixed_structural_snapshot(
+    snapshot_identity: &str,
+    value: &str,
+) -> crate::harness::fixtures::SnapshotFixture {
     crate::harness::fixtures::SnapshotFixture::new(
         TruthSnapshotIdentity::new(snapshot_identity),
         vec![
@@ -176,9 +181,7 @@ fn mixed_structural_fixture(
     .compile()
 }
 
-fn mixed_merge_fixture(
-    name: &str,
-) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
+fn mixed_merge_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
     ScenarioPlan::new(
         name,
         BridgeHarnessFixture::new(vec![registration()])
@@ -780,8 +783,8 @@ fn bridge_speculation_promotion_truth_is_invariant_across_diagnostics_tiers() {
 }
 
 #[test]
-fn bridge_m13_mixed_offline_diagnosis_bundle_distinguishes_stream_source_structural_merge_preview_policy_and_writeback_failures()
-{
+fn bridge_m13_mixed_offline_diagnosis_bundle_distinguishes_stream_source_structural_merge_preview_policy_and_writeback_failures(
+) {
     let baseline = ExecutionProfile::development("baseline");
 
     let stream_control = execute_harness_run(
@@ -986,15 +989,19 @@ fn bridge_m13_mixed_offline_diagnosis_bundle_distinguishes_stream_source_structu
     );
     assert_eq!(policy_control.summary, policy_replay.summary);
     assert_eq!(
-        writeback_replay.extensions["bridge_writeback_certification_bundle"]["feedback_origin_matrix"]["restart_replay_matrix"]["replay_equivalent_to_live_feedback"],
+        writeback_replay.extensions["bridge_writeback_certification_bundle"]
+            ["feedback_origin_matrix"]["restart_replay_matrix"]
+            ["replay_equivalent_to_live_feedback"],
         json!(true)
     );
     assert_eq!(
-        writeback_control.extensions["bridge_writeback_certification_bundle"]["duplicate_authority_matrix"]["boundedness_proof"]["loop_converged"],
+        writeback_control.extensions["bridge_writeback_certification_bundle"]
+            ["duplicate_authority_matrix"]["boundedness_proof"]["loop_converged"],
         json!(true)
     );
     assert_eq!(
-        writeback_replay.extensions["bridge_writeback_certification_bundle"]["feedback_origin_matrix"]["boundedness_proof"]["feedback_converged"],
+        writeback_replay.extensions["bridge_writeback_certification_bundle"]
+            ["feedback_origin_matrix"]["boundedness_proof"]["feedback_converged"],
         json!(true)
     );
 
@@ -1031,9 +1038,13 @@ fn bridge_m13_mixed_offline_diagnosis_bundle_distinguishes_stream_source_structu
         json!(true)
     );
     assert_eq!(offline_diagnosis_report.as_array().map(Vec::len), Some(7));
-    assert_eq!(preview_control.summary["failure_digest"], serde_json::Value::Null);
     assert_eq!(
-        preview_control.extensions["bridge_speculation_certification_bundle"]["discard_residue_report"]["authoritative_residue_count"],
+        preview_control.summary["failure_digest"],
+        serde_json::Value::Null
+    );
+    assert_eq!(
+        preview_control.extensions["bridge_speculation_certification_bundle"]
+            ["discard_residue_report"]["authoritative_residue_count"],
         json!(0)
     );
 }

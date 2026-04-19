@@ -991,11 +991,13 @@ fn visible_entities_of_kinds(
                     continue;
                 };
                 if contract_candidate_kind_matches(kind_id, kind_ids) {
-                    entities.push(EntityReference::Existing(crate::identity::data::EntityId::new(
-                        partition_id,
-                        slot as u64,
-                        slot_view.generation(),
-                    )));
+                    entities.push(EntityReference::Existing(
+                        crate::identity::data::EntityId::new(
+                            partition_id,
+                            slot as u64,
+                            slot_view.generation(),
+                        ),
+                    ));
                 }
             }
         } else {
@@ -1056,7 +1058,7 @@ fn reachable_target_count_for_connectivity(
     planned_successors: &BTreeMap<EntityReference, Vec<EntityReference>>,
 ) -> Result<usize, InvariantViolation> {
     let mut visited = BTreeSet::new();
-        let mut frontier = vec![source.clone()];
+    let mut frontier = vec![source.clone()];
     let mut reachable_targets = BTreeSet::new();
     let planned_edge_count = planned_successor_count(planned_successors);
     let mut traversal_budget = RelationTraversalBudget::new(
@@ -1194,7 +1196,10 @@ fn relation_kind_successors(
     let EntityReference::Existing(entity_id) = entity_id else {
         return Ok(successors.into_iter().collect());
     };
-    let Some(partition) = context.partition_access().get_partition(entity_id.partition_id) else {
+    let Some(partition) = context
+        .partition_access()
+        .get_partition(entity_id.partition_id)
+    else {
         return Ok(successors.into_iter().collect());
     };
     let slot = entity_id.local_slot.0 as usize;
@@ -1772,12 +1777,16 @@ fn visible_relation_counts(
                         kind_id: spec.kind_id,
                         client_key: spec.client_key.clone(),
                     });
-                    if contract_candidate_kind_matches(spec.kind_id, &contract.candidate_source_kinds)
-                    {
+                    if contract_candidate_kind_matches(
+                        spec.kind_id,
+                        &contract.candidate_source_kinds,
+                    ) {
                         snapshot.candidate_source_entities.insert(entity.clone());
                     }
-                    if contract_candidate_kind_matches(spec.kind_id, &contract.candidate_target_kinds)
-                    {
+                    if contract_candidate_kind_matches(
+                        spec.kind_id,
+                        &contract.candidate_target_kinds,
+                    ) {
                         snapshot.candidate_target_entities.insert(entity);
                     }
                 }
@@ -1808,8 +1817,14 @@ fn visible_relation_counts(
                     crate::transactions::data::CreateIntent::Relation(spec),
                 ) => {
                     if spec.kind_id == contract.relation_kind_id {
-                        *snapshot.source_counts.entry(spec.source.clone()).or_insert(0) += 1;
-                        *snapshot.target_counts.entry(spec.target.clone()).or_insert(0) += 1;
+                        *snapshot
+                            .source_counts
+                            .entry(spec.source.clone())
+                            .or_insert(0) += 1;
+                        *snapshot
+                            .target_counts
+                            .entry(spec.target.clone())
+                            .or_insert(0) += 1;
                         *snapshot
                             .directed_pair_counts
                             .entry((spec.source.clone(), spec.target.clone()))
@@ -2209,7 +2224,10 @@ fn created_entity_kind_in_plan(
                 crate::transactions::data::CreateIntent::BulkEntities(spec),
             ) if spec.partition_id == created.partition_id
                 && spec.kind_id == created.kind_id
-                && spec.client_keys.iter().any(|key| key == &created.client_key) =>
+                && spec
+                    .client_keys
+                    .iter()
+                    .any(|key| key == &created.client_key) =>
             {
                 return Some(spec.kind_id);
             }

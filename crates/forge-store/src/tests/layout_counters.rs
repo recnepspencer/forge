@@ -1,6 +1,7 @@
 use crate::{
     AspectLayoutReadPlanDecision, AspectLayoutReadRequest, AspectLayoutTarget, AspectProjectionSet,
-    AspectScopeClass, EntitySetUniformAspectScope, ForgeStoreBuilder, SingleEntityAspectScope,
+    AspectScopeClass, EntitySetUniformAspectScope, ForgeStoreBuilder, Milestone6LayoutSupportLane,
+    Milestone6LayoutSupportPolicy, SingleEntityAspectScope,
 };
 
 use super::harness::fixtures::runtime::{create_entity, latest_envelope, runtime_with_demo_schema};
@@ -28,7 +29,9 @@ fn layout_counters_track_admitted_and_fallback_paths() {
         other => panic!("expected admitted plan, got {other:?}"),
     };
 
-    let _reuse = store.admit_structural_block_reuse(admitted.clone()).unwrap();
+    let _reuse = store
+        .admit_structural_block_reuse(admitted.clone())
+        .unwrap();
     let frozen = store.freeze_chunk_model(admitted.clone()).unwrap();
     let _milestone_7 = store
         .admit_milestone_7_independent_layout_reference(admitted)
@@ -46,7 +49,10 @@ fn layout_counters_track_admitted_and_fallback_paths() {
             AspectProjectionSet::new(vec!["profile".to_string()]),
         ))
         .unwrap();
-    assert!(matches!(fallback, AspectLayoutReadPlanDecision::Fallback(_)));
+    assert!(matches!(
+        fallback,
+        AspectLayoutReadPlanDecision::Fallback(_)
+    ));
 
     let counters = store.counters();
     assert_eq!(counters.aspect_layout_plan_count, 2);
@@ -104,4 +110,55 @@ fn layout_counters_track_structural_block_lookup_and_chunk_export_paths() {
     assert_eq!(counters.physical_chunk_determinism_violation_count, 0);
     assert_eq!(counters.branch_delta_read_count, 0);
     assert_eq!(counters.branch_delta_authority_replay_fallback_count, 0);
+}
+
+#[test]
+fn layout_counters_track_lane_resolution_and_materialization_paths_exactly() {
+    let mut runtime = runtime_with_demo_schema();
+    create_entity(&mut runtime, "alpha");
+    let root = latest_envelope(&runtime);
+    let branch_id = root.branch_context.clone();
+    let commit_id = root.commit.commit_id;
+    let request = AspectLayoutReadRequest::new(
+        AspectLayoutTarget::new(branch_id, commit_id),
+        AspectScopeClass::EntitySetUniform(EntitySetUniformAspectScope::new(vec![
+            "entity-a".to_string(),
+            "entity-b".to_string(),
+        ])),
+        AspectProjectionSet::new(vec!["profile".to_string(), "status".to_string()]),
+    );
+
+    let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+    store.append_canonical_commit(root).unwrap();
+
+    store
+        .prepare_milestone_6_layout_support(request.clone(), Milestone6LayoutSupportLane::ProofOnly)
+        .unwrap();
+    store
+        .prepare_milestone_6_layout_support(
+            request.clone(),
+            Milestone6LayoutSupportLane::OnDemandMaterialized,
+        )
+        .unwrap();
+    store
+        .prepare_milestone_6_layout_support_with_policy(
+            request.clone(),
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(false, true, 3),
+        )
+        .unwrap();
+    store
+        .prepare_milestone_6_layout_support_with_policy(
+            request,
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized,
+            Milestone6LayoutSupportPolicy::new(true, false, 0),
+        )
+        .unwrap();
+
+    let counters = store.counters();
+    assert_eq!(counters.milestone_6_proof_only_prepare_count, 2);
+    assert_eq!(counters.milestone_6_on_demand_materialize_count, 1);
+    assert_eq!(counters.milestone_6_policy_eager_resolution_count, 2);
+    assert_eq!(counters.milestone_6_policy_eager_publish_count, 0);
+    assert_eq!(counters.milestone_6_policy_eager_reuse_existing_count, 1);
 }

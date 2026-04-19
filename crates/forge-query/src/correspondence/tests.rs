@@ -381,7 +381,10 @@ mod tests {
         .expect("unsupported structural family should resolve into denial");
 
         assert_eq!(resolved.outcome().family_name(), "correspondence_denied");
-        assert_eq!(resolved.counters().structural_candidate_rejection_count(), 1);
+        assert_eq!(
+            resolved.counters().structural_candidate_rejection_count(),
+            1
+        );
     }
 
     #[test]
@@ -396,7 +399,10 @@ mod tests {
         .expect("unsupported lineage topology should resolve into denial");
 
         assert_eq!(resolved.outcome().family_name(), "correspondence_denied");
-        assert_eq!(resolved.cost_posture().as_str(), "correspondence_denied_by_topology");
+        assert_eq!(
+            resolved.cost_posture().as_str(),
+            "correspondence_denied_by_topology"
+        );
     }
 
     #[test]
@@ -416,7 +422,12 @@ mod tests {
             resolved.outcome().family_name(),
             "lineage_structural_disagreement"
         );
-        assert_eq!(resolved.counters().structural_authority_promotion_denial_count(), 1);
+        assert_eq!(
+            resolved
+                .counters()
+                .structural_authority_promotion_denial_count(),
+            1
+        );
     }
 
     #[test]

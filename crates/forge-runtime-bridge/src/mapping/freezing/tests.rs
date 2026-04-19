@@ -247,7 +247,11 @@ fn lookup_returns_all_fanout_matches_at_the_most_specific_scope() {
     ])
     .expect("fanout and specificity should coexist");
 
-    match registry.lookup(BridgeMappingLookupKey::new("component:steel", "cost", "usd")) {
+    match registry.lookup(BridgeMappingLookupKey::new(
+        "component:steel",
+        "cost",
+        "usd",
+    )) {
         crate::mapping::BridgeMappingLookup::Exact { resolved } => {
             let matched_ids = resolved
                 .registrations()

@@ -606,7 +606,9 @@ impl WritebackCounterSnapshot {
     }
 }
 
-fn snapshot_from_counters(counters: &crate::facade::BridgeWritebackCounters) -> WritebackCounterSnapshot {
+fn snapshot_from_counters(
+    counters: &crate::facade::BridgeWritebackCounters,
+) -> WritebackCounterSnapshot {
     WritebackCounterSnapshot {
         writeback_family_lookup_count: counters.writeback_family_lookup_count(),
         writeback_family_dispatch_count: counters.writeback_family_dispatch_count(),
@@ -667,9 +669,12 @@ fn aggregate_runtime_writeback_counters(
                 counters.writeback_decision_record_append_count();
             totals.writeback_request_count += counters.writeback_request_count();
             totals.writeback_effect_width += counters.writeback_effect_width();
-            totals.writeback_strategy_contract_count += counters.writeback_strategy_contract_count();
-            totals.writeback_strategy_rejection_count += counters.writeback_strategy_rejection_count();
-            totals.writeback_idempotence_check_count += counters.writeback_idempotence_check_count();
+            totals.writeback_strategy_contract_count +=
+                counters.writeback_strategy_contract_count();
+            totals.writeback_strategy_rejection_count +=
+                counters.writeback_strategy_rejection_count();
+            totals.writeback_idempotence_check_count +=
+                counters.writeback_idempotence_check_count();
             totals.writeback_causality_match_count += counters.writeback_causality_match_count();
             totals.writeback_loop_prevention_check_count +=
                 counters.writeback_loop_prevention_check_count();
@@ -695,9 +700,12 @@ fn aggregate_runtime_writeback_counters(
                 counters.writeback_decision_record_append_count();
             totals.writeback_request_count += counters.writeback_request_count();
             totals.writeback_effect_width += counters.writeback_effect_width();
-            totals.writeback_strategy_contract_count += counters.writeback_strategy_contract_count();
-            totals.writeback_strategy_rejection_count += counters.writeback_strategy_rejection_count();
-            totals.writeback_idempotence_check_count += counters.writeback_idempotence_check_count();
+            totals.writeback_strategy_contract_count +=
+                counters.writeback_strategy_contract_count();
+            totals.writeback_strategy_rejection_count +=
+                counters.writeback_strategy_rejection_count();
+            totals.writeback_idempotence_check_count +=
+                counters.writeback_idempotence_check_count();
             totals.writeback_causality_match_count += counters.writeback_causality_match_count();
             totals.writeback_loop_prevention_check_count +=
                 counters.writeback_loop_prevention_check_count();
@@ -753,10 +761,8 @@ impl crate::adapter::TruthWritebackAuthority for RejectingTruthWritebackAuthorit
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         let receipt = crate::adapter::TruthWritebackReceipt::new_with_failure_class(
             crate::facade::BridgeWritebackOutcomeClass::Rejected,
             Some(self.failure_class),
@@ -830,11 +836,7 @@ pub(super) fn execute_writeback_request(
             execute_extensible_family_certification(runtime, runtime_bridge, fixture)
         }
         WritebackHarnessTarget::MultiFamilyAdmissionBoundaryCertification => {
-            execute_multi_family_admission_boundary_certification(
-                runtime,
-                runtime_bridge,
-                fixture,
-            )
+            execute_multi_family_admission_boundary_certification(runtime, runtime_bridge, fixture)
         }
         WritebackHarnessTarget::CrossFamilyReplayLoopIsolationCertification => {
             execute_cross_family_replay_loop_isolation_certification(
@@ -895,14 +897,18 @@ fn execute_duplicate_certification(
         &effect,
         &lowered_policy_bundle,
         "authority-state:sha256:before",
-        crate::facade::BridgeWritebackIdempotenceIdentity::new("harness:writeback-idempotence:first"),
+        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+            "harness:writeback-idempotence:first",
+        ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let repeated_idempotence = runtime_bridge.classify_writeback_idempotence(
         &effect,
         &lowered_policy_bundle,
         "authority-state:sha256:after-first-commit",
-        crate::facade::BridgeWritebackIdempotenceIdentity::new("harness:writeback-idempotence:repeat"),
+        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+            "harness:writeback-idempotence:repeat",
+        ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (first_outcome, first_receipt) = runtime_bridge
@@ -919,8 +925,12 @@ fn execute_duplicate_certification(
                 "writeback duplicate certification repeated authority execution failed: {error}"
             ))
         })?;
-    let first_bundle =
-        runtime_bridge.replay_writeback_bundle(&contract, &effect, &first_idempotence, &first_outcome);
+    let first_bundle = runtime_bridge.replay_writeback_bundle(
+        &contract,
+        &effect,
+        &first_idempotence,
+        &first_outcome,
+    );
     let repeated_bundle = runtime_bridge.replay_writeback_bundle(
         &contract,
         &effect,
@@ -941,14 +951,8 @@ fn execute_duplicate_certification(
             crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
             crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
         ) => 2,
-        (
-            crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
-            _,
-        )
-        | (
-            _,
-            crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
-        ) => 1,
+        (crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit, _)
+        | (_, crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit) => 1,
         _ => 0,
     };
     let noop_count = match (
@@ -959,14 +963,8 @@ fn execute_duplicate_certification(
             crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop,
             crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop,
         ) => 2,
-        (
-            crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop,
-            _,
-        )
-        | (
-            _,
-            crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop,
-        ) => 1,
+        (crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop, _)
+        | (_, crate::facade::BridgeWritebackOutcomeClass::CanonicalNoop) => 1,
         _ => 0,
     };
     let counters = aggregate_runtime_writeback_counters(&[runtime_bridge]);
@@ -1168,7 +1166,9 @@ fn execute_bypass_certification(
     let unbound_runtime = build_writeback_runtime(runtime, fixture, false)?;
     let lowered_policy_bundle = lowered_policy(&unbound_runtime)?;
     let authority_declaration = crate::facade::BridgeWritebackDeclaration::writeback_capable(
-        crate::facade::BridgeWritebackDeclarationIdentity::new("harness:writeback-bypass:unbound-authority"),
+        crate::facade::BridgeWritebackDeclarationIdentity::new(
+            "harness:writeback-bypass:unbound-authority",
+        ),
         crate::facade::BridgeRequestKind::Authoritative,
         crate::facade::BridgeWritebackFamilyKind::ProjectedStateDiff,
         crate::facade::BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -1206,7 +1206,11 @@ fn execute_bypass_certification(
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let authority_error = unbound_runtime
-        .execute_writeback_authority(&authority_contract, &authority_effect, &authority_idempotence)
+        .execute_writeback_authority(
+            &authority_contract,
+            &authority_effect,
+            &authority_idempotence,
+        )
         .expect_err("unbound writeback authority execution must fail closed");
     let authority_failure_digest = digest_string(
         "bridge-writeback-harness-authority-bypass-failure",
@@ -1322,12 +1326,13 @@ fn execute_bypass_certification(
     );
     let unsafe_feedback_provenance =
         unsafe_feedback_runtime.derive_writeback_feedback_provenance(&unsafe_feedback_effect);
-    let unsafe_feedback_loop_prevention = unsafe_feedback_runtime.classify_writeback_loop_prevention(
-        &unsafe_feedback_effect,
-        &unsafe_feedback_idempotence,
-        Some(unsafe_feedback_provenance.digest()),
-        None::<std::sync::Arc<str>>,
-    );
+    let unsafe_feedback_loop_prevention = unsafe_feedback_runtime
+        .classify_writeback_loop_prevention(
+            &unsafe_feedback_effect,
+            &unsafe_feedback_idempotence,
+            Some(unsafe_feedback_provenance.digest()),
+            None::<std::sync::Arc<str>>,
+        );
     let unsafe_feedback_error = unsafe_feedback_runtime
         .execute_writeback_authority_with_feedback_context(
             &unsafe_feedback_contract,
@@ -1348,8 +1353,8 @@ fn execute_bypass_certification(
     .to_string();
     let contradictory_feedback_causality_digest =
         "truth-trigger:commit-contradictory-feedback".to_string();
-    let contradictory_feedback_loop_prevention =
-        unsafe_feedback_runtime.classify_writeback_loop_prevention(
+    let contradictory_feedback_loop_prevention = unsafe_feedback_runtime
+        .classify_writeback_loop_prevention(
             &unsafe_feedback_effect,
             &unsafe_feedback_idempotence,
             Some(unsafe_feedback_provenance.digest()),
@@ -1512,11 +1517,18 @@ fn execute_feedback_loop_certification(
         .committed_patches()
         .first()
         .cloned()
-        .ok_or_else(|| BridgeHarnessError::new("writeback feedback fixture requires one committed patch"))?;
+        .ok_or_else(|| {
+            BridgeHarnessError::new("writeback feedback fixture requires one committed patch")
+        })?;
     let initial_route_digest = route_digest_for_first_patch(runtime_bridge, fixture)?;
     let original_causality = crate::facade::BridgeWritebackCausalityBasis::new(
-        crate::facade::BridgeWritebackCausalityIdentity::new("harness:writeback-feedback-causality"),
-        format!("truth-trigger:{}", original_commit.commit_identity().as_str()),
+        crate::facade::BridgeWritebackCausalityIdentity::new(
+            "harness:writeback-feedback-causality",
+        ),
+        format!(
+            "truth-trigger:{}",
+            original_commit.commit_identity().as_str()
+        ),
         initial_route_digest.clone(),
         "evaluation-surface:sha256:writeback-feedback",
         "truth-view:sha256:writeback-feedback",
@@ -1532,7 +1544,9 @@ fn execute_feedback_loop_certification(
         &effect,
         &lowered_policy_bundle,
         "authority-state:sha256:before-feedback",
-        crate::facade::BridgeWritebackIdempotenceIdentity::new("harness:writeback-feedback-idempotence:first"),
+        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+            "harness:writeback-feedback-idempotence:first",
+        ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (initial_outcome, _initial_receipt) = runtime_bridge
@@ -1554,18 +1568,20 @@ fn execute_feedback_loop_certification(
     let (carried_feedback_provenance_digest, carried_causality_digest) =
         feedback_provenance_hint(&feedback_commit)
             .map(|(provenance, causality)| (provenance.to_owned(), causality.to_owned()))
-        .ok_or_else(|| {
-            BridgeHarnessError::new(
-                "feedback patch did not carry first-class bridge-origin writeback provenance",
-            )
-        })?;
+            .ok_or_else(|| {
+                BridgeHarnessError::new(
+                    "feedback patch did not carry first-class bridge-origin writeback provenance",
+                )
+            })?;
     let ordinary_commit = crate::facade::RawCommittedPatchEnvelope::new_with_metadata(
         crate::facade::BridgeProducerMetadata::bridge_harness_fixture(),
         crate::facade::TruthCommitIdentity::new("commit-ordinary"),
         crate::facade::TruthPatchIdentity::new("patch-ordinary"),
         crate::facade::TruthSnapshotIdentity::new(original_commit.snapshot_identity().as_str()),
         crate::facade::TruthBranchIdentity::new(original_commit.branch_identity().as_str()),
-        vec![crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name")],
+        vec![crate::facade::BridgeCommittedPatchItem::new(
+            "user", "profile", "name",
+        )],
     );
     runtime.source.insert_committed_patch(ordinary_commit);
     let ordinary_route_digest = route_digest_for_commit(runtime_bridge, "commit-ordinary")?;
@@ -1574,7 +1590,9 @@ fn execute_feedback_loop_certification(
     let feedback_result = runtime_bridge
         .deliver_invalidation(
             runtime_bridge
-                .plan_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-feedback"))
+                .plan_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                    "commit-feedback",
+                ))
                 .map_err(|error| {
                     BridgeHarnessError::new(format!(
                         "writeback feedback certification failed to plan feedback commit: {error}"
@@ -1592,8 +1610,13 @@ fn execute_feedback_loop_certification(
     )
     .to_string();
     let replayed_causality = crate::facade::BridgeWritebackCausalityBasis::new(
-        crate::facade::BridgeWritebackCausalityIdentity::new("harness:writeback-feedback-causality"),
-        format!("truth-trigger:{}", original_commit.commit_identity().as_str()),
+        crate::facade::BridgeWritebackCausalityIdentity::new(
+            "harness:writeback-feedback-causality",
+        ),
+        format!(
+            "truth-trigger:{}",
+            original_commit.commit_identity().as_str()
+        ),
         initial_route_digest.clone(),
         "evaluation-surface:sha256:writeback-feedback",
         "truth-view:sha256:writeback-feedback",
@@ -1614,7 +1637,9 @@ fn execute_feedback_loop_certification(
     let changed_effect = runtime_bridge.lower_writeback_effect(
         &contract,
         &replayed_causality,
-        crate::facade::BridgeWritebackEffectIdentity::new("harness:writeback-feedback-effect:changed"),
+        crate::facade::BridgeWritebackEffectIdentity::new(
+            "harness:writeback-feedback-effect:changed",
+        ),
         "effect:sha256:writeback-feedback-changed",
     );
     let changed_idempotence = runtime_bridge.classify_writeback_idempotence(
@@ -1644,7 +1669,9 @@ fn execute_feedback_loop_certification(
         &effect,
         &lowered_policy_bundle,
         "authority-state:sha256:after-feedback-commit",
-        crate::facade::BridgeWritebackIdempotenceIdentity::new("harness:writeback-feedback-idempotence:replayed"),
+        crate::facade::BridgeWritebackIdempotenceIdentity::new(
+            "harness:writeback-feedback-idempotence:replayed",
+        ),
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (loop_prevention, replayed_outcome, replayed_receipt) = runtime_bridge
@@ -1696,7 +1723,9 @@ fn execute_feedback_loop_certification(
         let mapped_input = runtime_bridge
             .diagnostics()
             .writeback_mapped_family_input_for_digest(effect.mapped_input_digest())
-            .expect("writeback harness should retain mapped-family input for feedback certification");
+            .expect(
+                "writeback harness should retain mapped-family input for feedback certification",
+            );
         let mapper_witness = crate::facade::BridgeWritebackMapperWitness::issue(&mapped_input);
         crate::adapter::TruthWritebackRequest::new(
             effect.family_kind(),
@@ -1723,7 +1752,9 @@ fn execute_feedback_loop_certification(
     let rebuilt_contract = rebuilt_runtime
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
-                crate::facade::BridgeWritebackDeclarationIdentity::new("harness:writeback-feedback"),
+                crate::facade::BridgeWritebackDeclarationIdentity::new(
+                    "harness:writeback-feedback",
+                ),
                 crate::facade::BridgeRequestKind::Authoritative,
                 crate::facade::BridgeWritebackFamilyKind::ProjectedStateDiff,
                 crate::facade::BridgeWritebackEffectClass::ProjectedStateDiff,
@@ -2090,7 +2121,9 @@ fn execute_extensible_family_certification(
             ),
             &lowered_policy_bundle,
         )
-        .map_err(|error| BridgeHarnessError::new(format!("projected family admission failed: {error}")))?;
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("projected family admission failed: {error}"))
+        })?;
     let aspect_contract = runtime_bridge
         .admit_writeback_declaration(
             crate::facade::BridgeWritebackDeclaration::writeback_capable(
@@ -2106,7 +2139,9 @@ fn execute_extensible_family_certification(
             ),
             &lowered_policy_bundle,
         )
-        .map_err(|error| BridgeHarnessError::new(format!("aspect family admission failed: {error}")))?;
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("aspect family admission failed: {error}"))
+        })?;
     let projected_effect = runtime_bridge.lower_writeback_effect(
         &projected_contract,
         &causality,
@@ -2142,11 +2177,21 @@ fn execute_extensible_family_certification(
         crate::facade::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (projected_outcome, projected_receipt) = runtime_bridge
-        .execute_writeback_authority(&projected_contract, &projected_effect, &projected_idempotence)
-        .map_err(|error| BridgeHarnessError::new(format!("projected family authority execution failed: {error}")))?;
+        .execute_writeback_authority(
+            &projected_contract,
+            &projected_effect,
+            &projected_idempotence,
+        )
+        .map_err(|error| {
+            BridgeHarnessError::new(format!(
+                "projected family authority execution failed: {error}"
+            ))
+        })?;
     let (aspect_outcome, aspect_receipt) = runtime_bridge
         .execute_writeback_authority(&aspect_contract, &aspect_effect, &aspect_idempotence)
-        .map_err(|error| BridgeHarnessError::new(format!("aspect family authority execution failed: {error}")))?;
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("aspect family authority execution failed: {error}"))
+        })?;
     let projected_bundle = runtime_bridge.replay_writeback_bundle(
         &projected_contract,
         &projected_effect,
@@ -2742,11 +2787,13 @@ fn execute_multi_family_admission_boundary_certification(
         },
         "failure_digest": failure_digest,
     });
-    Ok(WritebackHarnessExecution::MultiFamilyAdmissionBoundaryCertification {
-        family_extension_digest,
-        admission_boundary_matrix,
-        counter_snapshot,
-    })
+    Ok(
+        WritebackHarnessExecution::MultiFamilyAdmissionBoundaryCertification {
+            family_extension_digest,
+            admission_boundary_matrix,
+            counter_snapshot,
+        },
+    )
 }
 
 fn execute_cross_family_replay_loop_isolation_certification(
@@ -2999,7 +3046,9 @@ fn execute_cross_family_replay_loop_isolation_certification(
         .expect_err("cross-family replay/loop isolation same-family changed-causality drift must fail closed");
     let replay_validation_error = rebuilt_runtime
         .validate_replayed_writeback_bundle(&projected_bundle, &aspect_bundle)
-        .expect_err("cross-family replay/loop isolation cross-family replay validation must fail closed");
+        .expect_err(
+            "cross-family replay/loop isolation cross-family replay validation must fail closed",
+        );
     let family_replay_records = rebuilt_runtime.diagnostics().writeback_replay_records();
     let same_family_drift_replay_record = find_replay_record(
         &family_replay_records,
@@ -3246,8 +3295,8 @@ fn execute_host_mapper_parity_certification(
         find_execution_record_for_replay(&family_execution_records, projected_bundle.digest())
             .ok_or_else(|| {
                 BridgeHarnessError::new(
-                    "host mapper parity projected execution record missing from retained diagnostics",
-                )
+            "host mapper parity projected execution record missing from retained diagnostics",
+        )
             })?;
     let aspect_execution_record =
         find_execution_record_for_replay(&family_execution_records, aspect_bundle.digest())
@@ -3429,7 +3478,9 @@ fn route_digest_for_first_patch(
         .committed_patches()
         .first()
         .map(|patch| patch.commit_identity().as_str().to_string())
-        .ok_or_else(|| BridgeHarnessError::new("writeback harness fixture requires one committed patch"))?;
+        .ok_or_else(|| {
+            BridgeHarnessError::new("writeback harness fixture requires one committed patch")
+        })?;
     let result = runtime_bridge
         .deliver_invalidation(
             runtime_bridge
@@ -3497,7 +3548,9 @@ fn bridge_feedback_patch(
         crate::facade::TruthPatchIdentity::new(patch_identity),
         crate::facade::TruthSnapshotIdentity::new(snapshot_identity),
         crate::facade::TruthBranchIdentity::new(branch_identity),
-        vec![crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name")],
+        vec![crate::facade::BridgeCommittedPatchItem::new(
+            "user", "profile", "name",
+        )],
     )
 }
 
@@ -3505,9 +3558,11 @@ fn feedback_provenance_hint(
     patch: &crate::facade::RawCommittedPatchEnvelope,
 ) -> Option<(&str, &str)> {
     Some((
-        patch.producer_metadata()
+        patch
+            .producer_metadata()
             .writeback_feedback_provenance_digest()?,
-        patch.producer_metadata()
+        patch
+            .producer_metadata()
             .writeback_feedback_causality_digest()?,
     ))
 }
@@ -3525,9 +3580,10 @@ fn build_writeback_runtime(
     if bind_authority {
         builder = builder.with_writeback_authority(runtime.writeback_authority.clone());
     }
-    let (first_mapping, remaining_mappings) = fixture.mappings().split_first().ok_or_else(|| {
-        BridgeHarnessError::new("writeback harness fixture requires at least one mapping")
-    })?;
+    let (first_mapping, remaining_mappings) =
+        fixture.mappings().split_first().ok_or_else(|| {
+            BridgeHarnessError::new("writeback harness fixture requires at least one mapping")
+        })?;
     let mut builder = builder.register_mapping(first_mapping.clone());
     for mapping in remaining_mappings {
         builder = builder.register_mapping(mapping.clone());
@@ -3553,9 +3609,10 @@ where
         .with_truth_branch_head_source(runtime.source.clone())
         .with_signal_sink(runtime.sink.clone())
         .with_writeback_authority(writeback_authority);
-    let (first_mapping, remaining_mappings) = fixture.mappings().split_first().ok_or_else(|| {
-        BridgeHarnessError::new("writeback harness fixture requires at least one mapping")
-    })?;
+    let (first_mapping, remaining_mappings) =
+        fixture.mappings().split_first().ok_or_else(|| {
+            BridgeHarnessError::new("writeback harness fixture requires at least one mapping")
+        })?;
     let mut builder = builder.register_mapping(first_mapping.clone());
     for mapping in remaining_mappings {
         builder = builder.register_mapping(mapping.clone());

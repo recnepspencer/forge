@@ -431,7 +431,8 @@ fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_
         .diagnostics_state_mut()
         .record_observation(current_observation.clone());
     let current = graph.diagnostics_state().clone();
-    graph.diagnostics_state_mut()
+    graph
+        .diagnostics_state_mut()
         .restore_snapshot_payload_preserving_history_from(payload, &current);
 
     assert_eq!(
@@ -439,7 +440,8 @@ fn restore_snapshot_payload_preserving_history_keeps_latest_observation_in_sync_
         Some(&current_observation)
     );
     assert_eq!(
-        graph.diagnostics_state()
+        graph
+            .diagnostics_state()
             .latest_flow()
             .and_then(|flow| flow.observation.as_ref()),
         Some(&current_observation)

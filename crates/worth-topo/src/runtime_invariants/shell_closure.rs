@@ -3,16 +3,22 @@ use std::sync::Arc;
 
 use forge_relational::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError, CustomInvariantRegistration,
-    CustomInvariantRule, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRule, CustomInvariantScopePlanner,
+    CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion, CustomInvariantVerdict,
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+    InvariantGroupSet,
 };
-use worth_schema::facade::{WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind};
+use worth_schema::facade::{
+    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
+};
 
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 
-pub fn registration() -> Result<CustomInvariantRegistration, forge_relational::facade::runtime::CustomInvariantRegistrationError> {
+pub fn registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
     CustomInvariantRegistration::new(ShellClosureRule)
 }
 
@@ -55,8 +61,10 @@ impl CustomInvariantRule for ShellClosureRule {
         let shell_owns_face = WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace);
         let face_outer = WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop);
         let face_inner = WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop);
-        let loop_owns_halfedge = WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge);
-        let halfedge_uses_edge = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge);
+        let loop_owns_halfedge =
+            WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge);
+        let halfedge_uses_edge =
+            WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge);
 
         for (shell_id, kind_id) in &scope.topology_entities {
             if *kind_id != shell_kind {
@@ -79,7 +87,8 @@ impl CustomInvariantRule for ShellClosureRule {
                     .map(|record| record.target)
                     .collect::<Vec<_>>();
                 loop_ids.extend(
-                    scope.outgoing_kind(&face.target, face_inner)
+                    scope
+                        .outgoing_kind(&face.target, face_inner)
                         .into_iter()
                         .map(|record| record.target),
                 );

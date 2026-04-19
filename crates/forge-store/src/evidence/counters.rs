@@ -129,6 +129,11 @@ pub struct StoreCounterSnapshot {
     pub physical_chunk_export_count: u64,
     pub physical_chunk_width_count: u64,
     pub physical_chunk_determinism_violation_count: u64,
+    pub milestone_6_proof_only_prepare_count: u64,
+    pub milestone_6_on_demand_materialize_count: u64,
+    pub milestone_6_policy_eager_resolution_count: u64,
+    pub milestone_6_policy_eager_publish_count: u64,
+    pub milestone_6_policy_eager_reuse_existing_count: u64,
     pub milestone_7_layout_reference_admission_count: u64,
     pub milestone_9_physical_chunk_reference_admission_count: u64,
     pub bulk_program_plan_count: u64,
@@ -270,6 +275,11 @@ pub(crate) struct StoreCounters {
     physical_chunk_export_count: AtomicU64,
     physical_chunk_width_count: AtomicU64,
     physical_chunk_determinism_violation_count: AtomicU64,
+    milestone_6_proof_only_prepare_count: AtomicU64,
+    milestone_6_on_demand_materialize_count: AtomicU64,
+    milestone_6_policy_eager_resolution_count: AtomicU64,
+    milestone_6_policy_eager_publish_count: AtomicU64,
+    milestone_6_policy_eager_reuse_existing_count: AtomicU64,
     milestone_7_layout_reference_admission_count: AtomicU64,
     milestone_9_physical_chunk_reference_admission_count: AtomicU64,
     bulk_program_plan_count: AtomicU64,
@@ -662,7 +672,8 @@ impl StoreCounters {
         block_decode_count: usize,
         control_replay_breadth: usize,
     ) {
-        self.aspect_layout_plan_count.fetch_add(1, Ordering::Relaxed);
+        self.aspect_layout_plan_count
+            .fetch_add(1, Ordering::Relaxed);
         if admitted {
             self.aspect_layout_admitted_count
                 .fetch_add(1, Ordering::Relaxed);
@@ -701,7 +712,8 @@ impl StoreCounters {
     }
 
     pub fn record_chunk_model_freeze(&self) {
-        self.chunk_model_freeze_count.fetch_add(1, Ordering::Relaxed);
+        self.chunk_model_freeze_count
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_physical_chunk_export(&self, chunk_width: u64) {
@@ -713,6 +725,31 @@ impl StoreCounters {
 
     pub fn record_physical_chunk_determinism_violation(&self) {
         self.physical_chunk_determinism_violation_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_6_proof_only_prepare(&self) {
+        self.milestone_6_proof_only_prepare_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_6_on_demand_materialize(&self) {
+        self.milestone_6_on_demand_materialize_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_6_policy_eager_resolution(&self) {
+        self.milestone_6_policy_eager_resolution_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_6_policy_eager_publish(&self) {
+        self.milestone_6_policy_eager_publish_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_milestone_6_policy_eager_reuse_existing(&self) {
+        self.milestone_6_policy_eager_reuse_existing_count
             .fetch_add(1, Ordering::Relaxed);
     }
 
@@ -760,13 +797,11 @@ impl StoreCounters {
     }
 
     pub fn record_bulk_chunk_resume(&self) {
-        self.bulk_chunk_resume_count
-            .fetch_add(1, Ordering::Relaxed);
+        self.bulk_chunk_resume_count.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_bulk_chunk_commit(&self) {
-        self.bulk_chunk_commit_count
-            .fetch_add(1, Ordering::Relaxed);
+        self.bulk_chunk_commit_count.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_bulk_chunk_execute(
@@ -776,7 +811,8 @@ impl StoreCounters {
         fallback_breadth_units: u64,
         used_fallback_path: bool,
     ) {
-        self.bulk_chunk_execute_count.fetch_add(1, Ordering::Relaxed);
+        self.bulk_chunk_execute_count
+            .fetch_add(1, Ordering::Relaxed);
         self.bulk_chunk_width_units
             .fetch_add(width_units, Ordering::Relaxed);
 
@@ -796,7 +832,8 @@ impl StoreCounters {
         }
 
         if used_fallback_path {
-            self.bulk_fallback_path_count.fetch_add(1, Ordering::Relaxed);
+            self.bulk_fallback_path_count
+                .fetch_add(1, Ordering::Relaxed);
             self.bulk_fallback_breadth_units
                 .fetch_add(fallback_breadth_units, Ordering::Relaxed);
         }
@@ -1035,15 +1072,9 @@ impl StoreCounters {
                 .concurrent_artifact_boundary_rejection_count
                 .load(Ordering::Relaxed),
             aspect_layout_plan_count: self.aspect_layout_plan_count.load(Ordering::Relaxed),
-            aspect_layout_admitted_count: self
-                .aspect_layout_admitted_count
-                .load(Ordering::Relaxed),
-            aspect_layout_fallback_count: self
-                .aspect_layout_fallback_count
-                .load(Ordering::Relaxed),
-            aspect_layout_rejected_count: self
-                .aspect_layout_rejected_count
-                .load(Ordering::Relaxed),
+            aspect_layout_admitted_count: self.aspect_layout_admitted_count.load(Ordering::Relaxed),
+            aspect_layout_fallback_count: self.aspect_layout_fallback_count.load(Ordering::Relaxed),
+            aspect_layout_rejected_count: self.aspect_layout_rejected_count.load(Ordering::Relaxed),
             aspect_layout_slice_read_count: self
                 .aspect_layout_slice_read_count
                 .load(Ordering::Relaxed),
@@ -1069,14 +1100,25 @@ impl StoreCounters {
                 .structural_block_reuse_miss_count
                 .load(Ordering::Relaxed),
             chunk_model_freeze_count: self.chunk_model_freeze_count.load(Ordering::Relaxed),
-            physical_chunk_export_count: self
-                .physical_chunk_export_count
-                .load(Ordering::Relaxed),
-            physical_chunk_width_count: self
-                .physical_chunk_width_count
-                .load(Ordering::Relaxed),
+            physical_chunk_export_count: self.physical_chunk_export_count.load(Ordering::Relaxed),
+            physical_chunk_width_count: self.physical_chunk_width_count.load(Ordering::Relaxed),
             physical_chunk_determinism_violation_count: self
                 .physical_chunk_determinism_violation_count
+                .load(Ordering::Relaxed),
+            milestone_6_proof_only_prepare_count: self
+                .milestone_6_proof_only_prepare_count
+                .load(Ordering::Relaxed),
+            milestone_6_on_demand_materialize_count: self
+                .milestone_6_on_demand_materialize_count
+                .load(Ordering::Relaxed),
+            milestone_6_policy_eager_resolution_count: self
+                .milestone_6_policy_eager_resolution_count
+                .load(Ordering::Relaxed),
+            milestone_6_policy_eager_publish_count: self
+                .milestone_6_policy_eager_publish_count
+                .load(Ordering::Relaxed),
+            milestone_6_policy_eager_reuse_existing_count: self
+                .milestone_6_policy_eager_reuse_existing_count
                 .load(Ordering::Relaxed),
             milestone_7_layout_reference_admission_count: self
                 .milestone_7_layout_reference_admission_count
@@ -1096,9 +1138,7 @@ impl StoreCounters {
                 .load(Ordering::Relaxed),
             bulk_chunk_plan_count: self.bulk_chunk_plan_count.load(Ordering::Relaxed),
             bulk_chunk_execute_count: self.bulk_chunk_execute_count.load(Ordering::Relaxed),
-            bulk_checkpoint_write_count: self
-                .bulk_checkpoint_write_count
-                .load(Ordering::Relaxed),
+            bulk_checkpoint_write_count: self.bulk_checkpoint_write_count.load(Ordering::Relaxed),
             bulk_chunk_witness_write_count: self
                 .bulk_chunk_witness_write_count
                 .load(Ordering::Relaxed),
@@ -1112,9 +1152,7 @@ impl StoreCounters {
                 .bulk_peak_in_flight_memory_units
                 .load(Ordering::Relaxed),
             bulk_fallback_path_count: self.bulk_fallback_path_count.load(Ordering::Relaxed),
-            bulk_fallback_breadth_units: self
-                .bulk_fallback_breadth_units
-                .load(Ordering::Relaxed),
+            bulk_fallback_breadth_units: self.bulk_fallback_breadth_units.load(Ordering::Relaxed),
         }
     }
 }

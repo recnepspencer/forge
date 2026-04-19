@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use worth_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
+use worth_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
 
 use super::layer::PropertyLayer;
 use super::position::ExactPosition;

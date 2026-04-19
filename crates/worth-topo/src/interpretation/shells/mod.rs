@@ -10,7 +10,10 @@ use crate::materialization::MaterializedTopologyView;
 
 pub fn interpret_shells(
     view: &MaterializedTopologyView,
-) -> (Vec<WorthShellInterpretation>, Vec<WorthRadialInterpretationSummary>) {
+) -> (
+    Vec<WorthShellInterpretation>,
+    Vec<WorthRadialInterpretationSummary>,
+) {
     let topology = view.topology();
     let half_edge_map: BTreeMap<EntityId, &WorthTopologyHalfEdge> = topology
         .half_edges

@@ -20,9 +20,7 @@ fn map_writeback_failure_class(
         BridgeWritebackFailureClass::IdempotenceBasisMismatch => {
             BridgeWritebackErrorKind::IdempotenceBasisMismatch
         }
-        BridgeWritebackFailureClass::StaleTruthBasis => {
-            BridgeWritebackErrorKind::StaleTruthBasis
-        }
+        BridgeWritebackFailureClass::StaleTruthBasis => BridgeWritebackErrorKind::StaleTruthBasis,
         BridgeWritebackFailureClass::InvariantRejected => {
             BridgeWritebackErrorKind::InvariantRejected
         }
@@ -30,9 +28,7 @@ fn map_writeback_failure_class(
             BridgeWritebackErrorKind::MergeAuthorityRejected
         }
         BridgeWritebackFailureClass::StrategyFailed => BridgeWritebackErrorKind::StrategyFailed,
-        BridgeWritebackFailureClass::StrategyPanicked => {
-            BridgeWritebackErrorKind::StrategyPanicked
-        }
+        BridgeWritebackFailureClass::StrategyPanicked => BridgeWritebackErrorKind::StrategyPanicked,
         BridgeWritebackFailureClass::ReplayMismatch => BridgeWritebackErrorKind::ReplayMismatch,
         BridgeWritebackFailureClass::AuthorityBypassRejected => {
             BridgeWritebackErrorKind::AuthorityBypassRejected
@@ -73,9 +69,7 @@ fn map_writeback_error_kind_to_failure_class(
         BridgeWritebackErrorKind::IdempotenceBasisMismatch => {
             BridgeWritebackFailureClass::IdempotenceBasisMismatch
         }
-        BridgeWritebackErrorKind::StaleTruthBasis => {
-            BridgeWritebackFailureClass::StaleTruthBasis
-        }
+        BridgeWritebackErrorKind::StaleTruthBasis => BridgeWritebackFailureClass::StaleTruthBasis,
         BridgeWritebackErrorKind::InvariantRejected => {
             BridgeWritebackFailureClass::InvariantRejected
         }
@@ -83,9 +77,7 @@ fn map_writeback_error_kind_to_failure_class(
             BridgeWritebackFailureClass::MergeAuthorityRejected
         }
         BridgeWritebackErrorKind::StrategyFailed => BridgeWritebackFailureClass::StrategyFailed,
-        BridgeWritebackErrorKind::StrategyPanicked => {
-            BridgeWritebackFailureClass::StrategyPanicked
-        }
+        BridgeWritebackErrorKind::StrategyPanicked => BridgeWritebackFailureClass::StrategyPanicked,
         BridgeWritebackErrorKind::ReplayMismatch => BridgeWritebackFailureClass::ReplayMismatch,
         BridgeWritebackErrorKind::AuthorityBypassRejected => {
             BridgeWritebackFailureClass::AuthorityBypassRejected
@@ -97,7 +89,11 @@ fn map_writeback_error_kind_to_failure_class(
 }
 
 fn writeback_causality_match_count(loop_prevention: &BridgeWritebackLoopPreventionReport) -> usize {
-    usize::from(loop_prevention.incoming_feedback_causality_digest().is_some())
+    usize::from(
+        loop_prevention
+            .incoming_feedback_causality_digest()
+            .is_some(),
+    )
 }
 
 fn writeback_execution_counters(
@@ -422,12 +418,7 @@ impl RuntimeBridge {
         idempotence: &BridgeWritebackIdempotenceBasis,
         outcome: &BridgeWritebackAuthorityOutcome,
     ) -> BridgeWritebackReplayBundle {
-        BridgeWritebackReplayBundle::from_canonical_records(
-            contract,
-            effect,
-            idempotence,
-            outcome,
-        )
+        BridgeWritebackReplayBundle::from_canonical_records(contract, effect, idempotence, outcome)
     }
 
     /// Verifies that a replayed writeback bundle still matches the expected semantics.
@@ -462,7 +453,8 @@ impl RuntimeBridge {
         contract: &AdmittedBridgeWritebackContract,
         effect: &BridgeDerivedWritebackEffect,
         idempotence: &BridgeWritebackIdempotenceBasis,
-    ) -> Result<(BridgeWritebackAuthorityOutcome, TruthWritebackReceipt), BridgeWritebackError> {
+    ) -> Result<(BridgeWritebackAuthorityOutcome, TruthWritebackReceipt), BridgeWritebackError>
+    {
         let (_, outcome, receipt) = self.execute_writeback_authority_with_feedback_context(
             contract,
             effect,
@@ -503,11 +495,8 @@ impl RuntimeBridge {
         match loop_prevention.disposition() {
             BridgeWritebackLoopDisposition::CanonicalNoop => {
                 let outcome = BridgeWritebackAuthorityOutcome::canonical_noop(idempotence);
-                let strategy_compatibility = self.classify_writeback_strategy_compatibility(
-                    contract,
-                    effect,
-                    idempotence,
-                );
+                let strategy_compatibility =
+                    self.classify_writeback_strategy_compatibility(contract, effect, idempotence);
                 let replay_bundle =
                     self.replay_writeback_bundle(contract, effect, idempotence, &outcome);
                 let execution_record = BridgeWritebackExecutionRecord::new(
@@ -535,7 +524,8 @@ impl RuntimeBridge {
                         true,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Ok((loop_prevention, outcome, None));
             }
             BridgeWritebackLoopDisposition::RejectAsUnsafeFeedback => {
@@ -546,11 +536,8 @@ impl RuntimeBridge {
                         loop_prevention.digest()
                     ),
                 );
-                let strategy_compatibility = self.classify_writeback_strategy_compatibility(
-                    contract,
-                    effect,
-                    idempotence,
-                );
+                let strategy_compatibility =
+                    self.classify_writeback_strategy_compatibility(contract, effect, idempotence);
                 let execution_record = BridgeWritebackExecutionRecord::new(
                     contract,
                     effect,
@@ -564,7 +551,12 @@ impl RuntimeBridge {
                     None,
                     None,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                    Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                    Some(writeback_failure_digest(
+                        &error,
+                        contract,
+                        effect,
+                        idempotence,
+                    )),
                     writeback_execution_counters(
                         &loop_prevention,
                         None,
@@ -576,7 +568,8 @@ impl RuntimeBridge {
                         false,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Err(error);
             }
             BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt => {}
@@ -606,7 +599,12 @@ impl RuntimeBridge {
                     None,
                     None,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                    Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                    Some(writeback_failure_digest(
+                        &error,
+                        contract,
+                        effect,
+                        idempotence,
+                    )),
                     writeback_execution_counters(
                         &loop_prevention,
                         None,
@@ -618,7 +616,8 @@ impl RuntimeBridge {
                         false,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Err(error);
             }
         };
@@ -631,8 +630,8 @@ impl RuntimeBridge {
             Some(authority) => authority,
             None => {
                 let error = BridgeWritebackError::new(
-                BridgeWritebackErrorKind::AuthorityBypassRejected,
-                "runtime has no truth writeback authority bound",
+                    BridgeWritebackErrorKind::AuthorityBypassRejected,
+                    "runtime has no truth writeback authority bound",
                 );
                 let execution_record = BridgeWritebackExecutionRecord::new(
                     contract,
@@ -647,7 +646,12 @@ impl RuntimeBridge {
                     None,
                     None,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                    Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                    Some(writeback_failure_digest(
+                        &error,
+                        contract,
+                        effect,
+                        idempotence,
+                    )),
                     writeback_execution_counters(
                         &loop_prevention,
                         None,
@@ -659,7 +663,8 @@ impl RuntimeBridge {
                         false,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Err(error);
             }
         };
@@ -709,7 +714,12 @@ impl RuntimeBridge {
                     Some(&request_for_validation),
                     None,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                    Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                    Some(writeback_failure_digest(
+                        &error,
+                        contract,
+                        effect,
+                        idempotence,
+                    )),
                     writeback_execution_counters(
                         &loop_prevention,
                         None,
@@ -721,7 +731,8 @@ impl RuntimeBridge {
                         false,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Err(error);
             }
         };
@@ -745,7 +756,12 @@ impl RuntimeBridge {
                     Some(&request_for_validation),
                     None,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                    Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                    Some(writeback_failure_digest(
+                        &error,
+                        contract,
+                        effect,
+                        idempotence,
+                    )),
                     writeback_execution_counters(
                         &loop_prevention,
                         None,
@@ -757,7 +773,8 @@ impl RuntimeBridge {
                         false,
                     ),
                 );
-                self.diagnostics.record_writeback_execution(execution_record);
+                self.diagnostics
+                    .record_writeback_execution(execution_record);
                 return Err(error);
             }
         };
@@ -775,7 +792,12 @@ impl RuntimeBridge {
                 Some(&request_for_validation),
                 Some(&receipt),
                 Some(map_writeback_error_kind_to_failure_class(error.kind())),
-                Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                Some(writeback_failure_digest(
+                    &error,
+                    contract,
+                    effect,
+                    idempotence,
+                )),
                 writeback_execution_counters(
                     &loop_prevention,
                     None,
@@ -787,7 +809,8 @@ impl RuntimeBridge {
                     false,
                 ),
             );
-            self.diagnostics.record_writeback_execution(execution_record);
+            self.diagnostics
+                .record_writeback_execution(execution_record);
             return Err(error);
         }
         if receipt.outcome_class() == BridgeWritebackOutcomeClass::Rejected {
@@ -814,7 +837,12 @@ impl RuntimeBridge {
                 Some(&request_for_validation),
                 Some(&receipt),
                 Some(failure_class),
-                Some(writeback_failure_digest(&error, contract, effect, idempotence)),
+                Some(writeback_failure_digest(
+                    &error,
+                    contract,
+                    effect,
+                    idempotence,
+                )),
                 writeback_execution_counters(
                     &loop_prevention,
                     None,
@@ -826,7 +854,8 @@ impl RuntimeBridge {
                     false,
                 ),
             );
-            self.diagnostics.record_writeback_execution(execution_record);
+            self.diagnostics
+                .record_writeback_execution(execution_record);
             return Err(error);
         }
         let outcome = match receipt.outcome_class() {
@@ -869,7 +898,8 @@ impl RuntimeBridge {
                 true,
             ),
         );
-        self.diagnostics.record_writeback_execution(execution_record);
+        self.diagnostics
+            .record_writeback_execution(execution_record);
 
         Ok((loop_prevention, outcome, Some(receipt)))
     }

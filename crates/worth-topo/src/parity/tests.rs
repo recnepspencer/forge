@@ -113,11 +113,9 @@ mod parity_tests {
         )
         .expect("verified primitive");
 
-        let report = WorthMilestoneOneCertificationHarness::certify_verified_commit(
-            &mut runtime,
-            &verified,
-        )
-        .expect("certification");
+        let report =
+            WorthMilestoneOneCertificationHarness::certify_verified_commit(&mut runtime, &verified)
+                .expect("certification");
 
         assert!(
             report
@@ -127,11 +125,9 @@ mod parity_tests {
                 .row_count
                 > 0
         );
-        assert!(
-            report
-                .milestone_1_replay_parity_report
-                .replay_equivalence_contract
-                .is_some()
-        );
+        assert!(report
+            .milestone_1_replay_parity_report
+            .replay_equivalence_contract
+            .is_some());
     }
 }

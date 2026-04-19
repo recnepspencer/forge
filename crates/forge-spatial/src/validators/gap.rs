@@ -11,10 +11,10 @@
 //!   - `has_overlap = min_gap_mm < 0` (negative = penetration).
 
 use forge_core::KernelError;
-use worth_geom::{signed_distance, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
+use worth_geom::{signed_distance, Plane};
 
 /// Statistical summary of the sampled gap between two faces.
 #[derive(Debug, Clone)]

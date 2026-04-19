@@ -1,15 +1,13 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::TransactionCommitError;
 
-use crate::data::authority::{
-    RawWorthTopologyIntent, WorthMutationOrigin, WorthTopologyAuthority,
-};
+use crate::data::authority::{RawWorthTopologyIntent, WorthMutationOrigin, WorthTopologyAuthority};
 use crate::data::entities::{WorthEntityKind, WorthNamingEntityKind, WorthTopologyEntityKind};
 use crate::data::relations::{WorthRelationKind, WorthTopologyRelationKind};
-use crate::data::seed::{created_ref, WorthTopologyCreateBatchBuilder};
 use crate::data::seed::labels::WorthMinimalTopologyLabels;
 use crate::data::seed::lookup::find_seeded_entity;
 use crate::data::seed::types::WorthMinimalTopologySeed;
+use crate::data::seed::{created_ref, WorthTopologyCreateBatchBuilder};
 
 pub fn seed_minimal_topology(
     runtime: &mut RelationalRuntime,
@@ -97,9 +95,7 @@ pub fn seed_minimal_topology(
             ),
     };
 
-    Ok(WorthMinimalTopologySeed {
-        ..ids
-    })
+    Ok(WorthMinimalTopologySeed { ..ids })
 }
 
 fn build_minimal_topology_intent(labels: &WorthMinimalTopologyLabels) -> RawWorthTopologyIntent {
@@ -264,13 +260,13 @@ fn collect_persistent_name_ids(
         labels.edge.clone(),
         labels.vertex.clone(),
     ]
-        .into_iter()
-        .map(|topology_label| {
-            find_seeded_entity(
-                read_view,
-                WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
-                format!("{topology_label}.persistent_name").as_str(),
-            )
-        })
-        .collect()
+    .into_iter()
+    .map(|topology_label| {
+        find_seeded_entity(
+            read_view,
+            WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
+            format!("{topology_label}.persistent_name").as_str(),
+        )
+    })
+    .collect()
 }

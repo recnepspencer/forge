@@ -26,13 +26,13 @@ impl ValidatedBridgeWritebackDeclaration {
         reject_writeback_capable_missing_family_kind(&declaration)?;
         reject_writeback_capable_missing_strategy_descriptor(&declaration)?;
         reject_writeback_capable_missing_strategy_class(&declaration)?;
-        let family_basis =
-            (declaration.request_mode() == BridgeWritebackRequestMode::WritebackCapable)
-                .then(|| BridgeWritebackFamilyBasis::from_declaration(&declaration))
-                .transpose()?;
-        let strategy_basis =
-            (declaration.request_mode() == BridgeWritebackRequestMode::WritebackCapable)
-                .then(|| BridgeWritebackStrategyBasis::from_declaration(&declaration));
+        let family_basis = (declaration.request_mode()
+            == BridgeWritebackRequestMode::WritebackCapable)
+            .then(|| BridgeWritebackFamilyBasis::from_declaration(&declaration))
+            .transpose()?;
+        let strategy_basis = (declaration.request_mode()
+            == BridgeWritebackRequestMode::WritebackCapable)
+            .then(|| BridgeWritebackStrategyBasis::from_declaration(&declaration));
 
         let canonical_basis = Arc::<str>::from(format!(
             "validated-bridge-writeback-declaration|declaration={}|request-kind:{:?}|request-mode:{:?}|family={}|strategy={}|writeback={}",

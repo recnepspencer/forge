@@ -981,8 +981,12 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("edge".to_string()),
-                source: crate::transactions::data::EntityReference::Existing(changed_entities(&feature_source)[0]),
-                target: crate::transactions::data::EntityReference::Existing(changed_entities(&feature_target)[0]),
+                source: crate::transactions::data::EntityReference::Existing(
+                    changed_entities(&feature_source)[0],
+                ),
+                target: crate::transactions::data::EntityReference::Existing(
+                    changed_entities(&feature_target)[0],
+                ),
                 payload: Some(RecordPayload::StructuredJson(
                     serde_json::json!({"label":"edge"}),
                 )),

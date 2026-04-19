@@ -15,11 +15,11 @@
 
 use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
-use worth_geom::{intersect_three_planes_exact, Plane};
 use forge_topo::b_rep::VertexData;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::provenance::LineageRecorder;
 use forge_topo::transactions::MutableDraft;
+use worth_geom::{intersect_three_planes_exact, Plane};
 
 use crate::geometry::facade::{ExactPosition, GeometryStore};
 

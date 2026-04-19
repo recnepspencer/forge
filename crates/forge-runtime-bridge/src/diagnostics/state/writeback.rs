@@ -11,10 +11,8 @@ impl BridgeDiagnosticsState {
             record.record_identity().as_str().to_string(),
             Arc::clone(&record),
         );
-        self.latest_writeback_admission_by_contract_digest.insert(
-            record.contract_digest().to_string(),
-            Arc::clone(&record),
-        );
+        self.latest_writeback_admission_by_contract_digest
+            .insert(record.contract_digest().to_string(), Arc::clone(&record));
         self.writeback_admission_records.push_back(record);
         while self.writeback_admission_records.len() > limit.max(1) {
             if let Some(evicted) = self.writeback_admission_records.pop_front() {
@@ -118,10 +116,8 @@ impl BridgeDiagnosticsState {
             record.record_identity().as_str().to_string(),
             Arc::clone(&record),
         );
-        self.latest_writeback_mapper_by_candidate_digest.insert(
-            record.candidate_digest().to_string(),
-            Arc::clone(&record),
-        );
+        self.latest_writeback_mapper_by_candidate_digest
+            .insert(record.candidate_digest().to_string(), Arc::clone(&record));
         self.writeback_mapper_records.push_back(record);
         while self.writeback_mapper_records.len() > limit.max(1) {
             if let Some(evicted) = self.writeback_mapper_records.pop_front() {

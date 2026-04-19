@@ -3,8 +3,8 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use serde::{Deserialize, Serialize};
 
 use crate::data::authority::{
-    RawWorthTopologyIntent, WorthMutationOrigin, WorthTopologyAuthority,
-    WorthTopologyAuthorityError, VerifiedTopologyCommit,
+    RawWorthTopologyIntent, VerifiedTopologyCommit, WorthMutationOrigin, WorthTopologyAuthority,
+    WorthTopologyAuthorityError,
 };
 use crate::data::entities::{WorthEntityKind, WorthTopologyEntityKind};
 use crate::data::relations::{WorthRelationKind, WorthTopologyRelationKind};
@@ -191,34 +191,174 @@ pub fn milestone_one_default_primitive_corpus() -> Vec<WorthMilestoneOnePrimitiv
     use WorthMilestoneOnePrimitiveRole as Role;
 
     vec![
-        scenario("WireOpen(n)", Role::Smallest, Case::WireOpen { half_edge_count: 1 }, Outcome::Admit),
-        scenario("WireOpen(n)", Role::Generic, Case::WireOpen { half_edge_count: 4 }, Outcome::Admit),
-        scenario("WireOpen(n)", Role::HostileAdmitted, Case::WireOpen { half_edge_count: 8 }, Outcome::Admit),
-        scenario("WireOpen(n)", Role::OutOfClass, Case::WireOpen { half_edge_count: 0 }, Outcome::Reject),
-        scenario("WireClosed(n)", Role::Smallest, Case::WireClosed { half_edge_count: 3 }, Outcome::Admit),
-        scenario("WireClosed(n)", Role::Generic, Case::WireClosed { half_edge_count: 4 }, Outcome::Admit),
-        scenario("WireClosed(n)", Role::HostileAdmitted, Case::WireClosed { half_edge_count: 8 }, Outcome::Admit),
-        scenario("WireClosed(n)", Role::OutOfClass, Case::WireClosed { half_edge_count: 2 }, Outcome::Reject),
-        scenario("WireBranch(k)", Role::Smallest, Case::WireBranch { branch_count: 3 }, Outcome::Admit),
-        scenario("WireBranch(k)", Role::Generic, Case::WireBranch { branch_count: 4 }, Outcome::Admit),
-        scenario("WireBranch(k)", Role::HostileAdmitted, Case::WireBranch { branch_count: 8 }, Outcome::Admit),
-        scenario("WireBranch(k)", Role::OutOfClass, Case::WireBranch { branch_count: 2 }, Outcome::Reject),
-        scenario("SheetDisk(n)", Role::Smallest, Case::SheetDisk { edge_count: 3 }, Outcome::Admit),
-        scenario("SheetDisk(n)", Role::Generic, Case::SheetDisk { edge_count: 5 }, Outcome::Admit),
-        scenario("SheetDisk(n)", Role::HostileAdmitted, Case::SheetDisk { edge_count: 9 }, Outcome::Admit),
-        scenario("SheetDisk(n)", Role::OutOfClass, Case::SheetDisk { edge_count: 2 }, Outcome::Reject),
-        scenario("SheetPatch(f)", Role::Smallest, Case::SheetPatch { face_count: 2 }, Outcome::Admit),
-        scenario("SheetPatch(f)", Role::Generic, Case::SheetPatch { face_count: 5 }, Outcome::Admit),
-        scenario("SheetPatch(f)", Role::HostileAdmitted, Case::SheetPatch { face_count: 8 }, Outcome::Admit),
-        scenario("SheetPatch(f)", Role::OutOfClass, Case::SheetPatch { face_count: 1 }, Outcome::Reject),
-        scenario("SolidShell(f)", Role::Smallest, Case::SolidShell { face_count: 4 }, Outcome::Admit),
-        scenario("SolidShell(f)", Role::Generic, Case::SolidShell { face_count: 6 }, Outcome::Admit),
-        scenario("SolidShell(f)", Role::HostileAdmitted, Case::SolidShell { face_count: 9 }, Outcome::Admit),
-        scenario("SolidShell(f)", Role::OutOfClass, Case::SolidShell { face_count: 3 }, Outcome::Reject),
-        scenario("NmtEdgeFan(k)", Role::Smallest, Case::NmtEdgeFan { face_count: 3 }, Outcome::Admit),
-        scenario("NmtEdgeFan(k)", Role::Generic, Case::NmtEdgeFan { face_count: 4 }, Outcome::Admit),
-        scenario("NmtEdgeFan(k)", Role::HostileAdmitted, Case::NmtEdgeFan { face_count: 8 }, Outcome::Admit),
-        scenario("NmtEdgeFan(k)", Role::OutOfClass, Case::NmtEdgeFan { face_count: 2 }, Outcome::Reject),
+        scenario(
+            "WireOpen(n)",
+            Role::Smallest,
+            Case::WireOpen { half_edge_count: 1 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireOpen(n)",
+            Role::Generic,
+            Case::WireOpen { half_edge_count: 4 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireOpen(n)",
+            Role::HostileAdmitted,
+            Case::WireOpen { half_edge_count: 8 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireOpen(n)",
+            Role::OutOfClass,
+            Case::WireOpen { half_edge_count: 0 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "WireClosed(n)",
+            Role::Smallest,
+            Case::WireClosed { half_edge_count: 3 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireClosed(n)",
+            Role::Generic,
+            Case::WireClosed { half_edge_count: 4 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireClosed(n)",
+            Role::HostileAdmitted,
+            Case::WireClosed { half_edge_count: 8 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireClosed(n)",
+            Role::OutOfClass,
+            Case::WireClosed { half_edge_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "WireBranch(k)",
+            Role::Smallest,
+            Case::WireBranch { branch_count: 3 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireBranch(k)",
+            Role::Generic,
+            Case::WireBranch { branch_count: 4 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireBranch(k)",
+            Role::HostileAdmitted,
+            Case::WireBranch { branch_count: 8 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "WireBranch(k)",
+            Role::OutOfClass,
+            Case::WireBranch { branch_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SheetDisk(n)",
+            Role::Smallest,
+            Case::SheetDisk { edge_count: 3 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetDisk(n)",
+            Role::Generic,
+            Case::SheetDisk { edge_count: 5 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetDisk(n)",
+            Role::HostileAdmitted,
+            Case::SheetDisk { edge_count: 9 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetDisk(n)",
+            Role::OutOfClass,
+            Case::SheetDisk { edge_count: 2 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SheetPatch(f)",
+            Role::Smallest,
+            Case::SheetPatch { face_count: 2 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetPatch(f)",
+            Role::Generic,
+            Case::SheetPatch { face_count: 5 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetPatch(f)",
+            Role::HostileAdmitted,
+            Case::SheetPatch { face_count: 8 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SheetPatch(f)",
+            Role::OutOfClass,
+            Case::SheetPatch { face_count: 1 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "SolidShell(f)",
+            Role::Smallest,
+            Case::SolidShell { face_count: 4 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SolidShell(f)",
+            Role::Generic,
+            Case::SolidShell { face_count: 6 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SolidShell(f)",
+            Role::HostileAdmitted,
+            Case::SolidShell { face_count: 9 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "SolidShell(f)",
+            Role::OutOfClass,
+            Case::SolidShell { face_count: 3 },
+            Outcome::Reject,
+        ),
+        scenario(
+            "NmtEdgeFan(k)",
+            Role::Smallest,
+            Case::NmtEdgeFan { face_count: 3 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "NmtEdgeFan(k)",
+            Role::Generic,
+            Case::NmtEdgeFan { face_count: 4 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "NmtEdgeFan(k)",
+            Role::HostileAdmitted,
+            Case::NmtEdgeFan { face_count: 8 },
+            Outcome::Admit,
+        ),
+        scenario(
+            "NmtEdgeFan(k)",
+            Role::OutOfClass,
+            Case::NmtEdgeFan { face_count: 2 },
+            Outcome::Reject,
+        ),
     ]
 }
 
@@ -340,7 +480,8 @@ pub fn milestone_one_admitted_range_sweep_out_of_class_scenarios(
     ]
 }
 
-pub fn milestone_one_heavy_branch_local_sweep_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario> {
+pub fn milestone_one_heavy_branch_local_sweep_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario>
+{
     use WorthMilestoneOnePrimitiveCase as Case;
     use WorthMilestoneOnePrimitiveExpectedOutcome as Outcome;
     use WorthMilestoneOnePrimitiveRole as Role;
@@ -625,7 +766,10 @@ impl PrimitiveGraphAuthoring {
         for index in 0..half_edge_count {
             let edge = self.key(format!("wire_closed.edge.{index}"));
             let half_edge = self.key(format!("wire_closed.half_edge.{index}"));
-            let next = self.key(format!("wire_closed.half_edge.{}", (index + 1) % half_edge_count));
+            let next = self.key(format!(
+                "wire_closed.half_edge.{}",
+                (index + 1) % half_edge_count
+            ));
             let prev = self.key(format!(
                 "wire_closed.half_edge.{}",
                 (index + half_edge_count - 1) % half_edge_count
@@ -721,10 +865,7 @@ impl PrimitiveGraphAuthoring {
                 (index + edge_count - 1) % edge_count
             ));
             let start = self.key(format!("sheet_disk.vertex.{index}"));
-            let end = self.key(format!(
-                "sheet_disk.vertex.{}",
-                (index + 1) % edge_count
-            ));
+            let end = self.key(format!("sheet_disk.vertex.{}", (index + 1) % edge_count));
             self.add_named_entity(&edge, WorthTopologyEntityKind::Edge);
             self.add_named_entity(&half_edge, WorthTopologyEntityKind::HalfEdge);
             self.link_half_edge(
@@ -895,15 +1036,19 @@ impl PrimitiveGraphAuthoring {
                 (index + 1) % base_edge_count
             ));
             let side_start_edge = self.key(format!("solid_shell.edge.side.{index}"));
-            let side_end_edge =
-                self.key(format!("solid_shell.edge.side.{}", (index + 1) % base_edge_count));
+            let side_end_edge = self.key(format!(
+                "solid_shell.edge.side.{}",
+                (index + 1) % base_edge_count
+            ));
             let base_edge = self.key(format!("solid_shell.edge.base.{index}"));
             let radial_prev = self.key(format!(
                 "solid_shell.half_edge.{}.c",
                 (index + base_edge_count - 1) % base_edge_count
             ));
-            let radial_next =
-                self.key(format!("solid_shell.half_edge.{}.a", (index + 1) % base_edge_count));
+            let radial_next = self.key(format!(
+                "solid_shell.half_edge.{}.a",
+                (index + 1) % base_edge_count
+            ));
 
             self.add_named_entity(&half_edge_a, WorthTopologyEntityKind::HalfEdge);
             self.add_named_entity(&half_edge_b, WorthTopologyEntityKind::HalfEdge);
@@ -951,8 +1096,10 @@ impl PrimitiveGraphAuthoring {
                 "solid_shell.base_half_edge.{}",
                 (index + base_edge_count - 1) % base_edge_count
             ));
-            let prev =
-                self.key(format!("solid_shell.base_half_edge.{}", (index + 1) % base_edge_count));
+            let prev = self.key(format!(
+                "solid_shell.base_half_edge.{}",
+                (index + 1) % base_edge_count
+            ));
             let start = self.key(format!(
                 "solid_shell.vertex.base.{}",
                 (index + 1) % base_edge_count
@@ -963,15 +1110,7 @@ impl PrimitiveGraphAuthoring {
 
             self.add_named_entity(&half_edge, WorthTopologyEntityKind::HalfEdge);
             self.link_half_edge(
-                &half_edge,
-                &base_loop,
-                &base_wire,
-                &edge,
-                &start,
-                &end,
-                &next,
-                &prev,
-                &radial,
+                &half_edge, &base_loop, &base_wire, &edge, &start, &end, &next, &prev, &radial,
             );
         }
     }
@@ -995,8 +1134,10 @@ impl PrimitiveGraphAuthoring {
             let side_b = self.key(format!("nmt_edge_fan.side_b_half_edge.{index}"));
             let edge_a = self.key(format!("nmt_edge_fan.edge.a.{index}"));
             let edge_b = self.key(format!("nmt_edge_fan.edge.b.{index}"));
-            let shared_radial =
-                self.key(format!("nmt_edge_fan.shared_half_edge.{}", (index + 1) % face_count));
+            let shared_radial = self.key(format!(
+                "nmt_edge_fan.shared_half_edge.{}",
+                (index + 1) % face_count
+            ));
 
             self.add_named_entity(&face, WorthTopologyEntityKind::Face);
             self.add_named_entity(&loop_key, WorthTopologyEntityKind::Loop);
@@ -1028,9 +1169,39 @@ impl PrimitiveGraphAuthoring {
                     (&v2, &v1, &v1, &third, &third, &v2)
                 };
 
-            self.link_half_edge(&shared, &loop_key, &wire, &shared_edge, shared_start, shared_end, &side_a, &side_b, &shared_radial);
-            self.link_half_edge(&side_a, &loop_key, &wire, &edge_a, side_a_start, side_a_end, &side_b, &shared, &side_a);
-            self.link_half_edge(&side_b, &loop_key, &wire, &edge_b, side_b_start, side_b_end, &shared, &side_a, &side_b);
+            self.link_half_edge(
+                &shared,
+                &loop_key,
+                &wire,
+                &shared_edge,
+                shared_start,
+                shared_end,
+                &side_a,
+                &side_b,
+                &shared_radial,
+            );
+            self.link_half_edge(
+                &side_a,
+                &loop_key,
+                &wire,
+                &edge_a,
+                side_a_start,
+                side_a_end,
+                &side_b,
+                &shared,
+                &side_a,
+            );
+            self.link_half_edge(
+                &side_b,
+                &loop_key,
+                &wire,
+                &edge_b,
+                side_b_start,
+                side_b_end,
+                &shared,
+                &side_a,
+                &side_b,
+            );
         }
     }
 }

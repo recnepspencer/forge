@@ -3,11 +3,10 @@ use crate::{
     layout::{
         admit_milestone_7_reference_from_plan, admit_milestone_9_reference_from_frozen,
         classify_layout_request, freeze_chunk_model_from_plan, AdmittedAspectLayoutReadPlan,
-        AspectLayoutReadExecutionDecision, AspectLayoutReadExecutionResult, AspectLayoutReadPlanDecision,
-        AspectLayoutReadRequest, DedupAdmittedBlockReuse,
-        Milestone7IndependentLayoutReference,
-        Milestone9PhysicalChunkReference, StructuralBlockLookup,
-        StructuralBlockLookupResult, EQUIVALENCE_CONTRACT_VERSION,
+        AspectLayoutReadExecutionDecision, AspectLayoutReadExecutionResult,
+        AspectLayoutReadPlanDecision, AspectLayoutReadRequest, DedupAdmittedBlockReuse,
+        Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+        StructuralBlockLookup, StructuralBlockLookupResult, EQUIVALENCE_CONTRACT_VERSION,
     },
 };
 
@@ -31,9 +30,7 @@ impl StoreState {
                 StoreErrorKind::AspectLayoutReadTargetIllegal,
                 format!(
                     "layout target commit {} belongs to branch `{}` not branch `{}`",
-                    target_commit_id.0,
-                    record.envelope.branch_context.0,
-                    branch_id.0
+                    target_commit_id.0, record.envelope.branch_context.0, branch_id.0
                 ),
             ));
         }
@@ -102,7 +99,9 @@ impl StoreState {
             record.scope_class.clone(),
             record.equivalence_contract_version,
             record.slice_ids.clone(),
-            record.supporting_layout_materialization_artifact_ids.clone(),
+            record
+                .supporting_layout_materialization_artifact_ids
+                .clone(),
         ))
     }
 
@@ -176,17 +175,18 @@ impl StoreState {
                 Ok(AspectLayoutReadExecutionDecision::Admitted(
                     AspectLayoutReadExecutionResult::new(
                         plan,
-                        scope_membership_artifact_id,
+                        crate::Milestone6LayoutSupportLane::OnDemandMaterialized,
+                        crate::Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized,
+                        crate::Milestone6LayoutSupportPublicationDisposition::ReusedExisting,
+                        Some(scope_membership_artifact_id),
                         structural_block_artifact_id,
-                        chunk_membership_artifact_id,
-                        scope_membership.layout_materialization_artifact_id.clone(),
+                        Some(chunk_membership_artifact_id),
+                        Some(scope_membership.layout_materialization_artifact_id.clone()),
                         materialization
                             .materialization
                             .semantic_truth_digest()
                             .to_string(),
-                        materialization
-                            .materialization
-                            .authoritative_commit_count(),
+                        materialization.materialization.authoritative_commit_count(),
                     ),
                 ))
             }
@@ -198,5 +198,4 @@ impl StoreState {
             }
         }
     }
-
 }

@@ -315,7 +315,6 @@ impl HistoricalMaterializationDescriptor {
             actual_reconstruction_scope,
         }
     }
-
 }
 
 pub(crate) fn validate_basis_match(
@@ -334,9 +333,7 @@ pub(crate) fn validate_basis_match(
 }
 
 #[cfg(test)]
-fn default_realized_work(
-    resolved_path_class: &ResolvedHistoricalPathClass,
-) -> (usize, usize) {
+fn default_realized_work(resolved_path_class: &ResolvedHistoricalPathClass) -> (usize, usize) {
     match resolved_path_class {
         ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath => (0, 0),
         ResolvedHistoricalPathClass::ResolvedDeltaReplayPath => (1, 0),

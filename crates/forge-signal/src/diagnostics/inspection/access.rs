@@ -18,9 +18,9 @@ use crate::diagnostics::history::{
 use crate::diagnostics::policy::DiagnosticsAvailability;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
-use crate::logic::transaction::ObservationBoundarySummary;
 use crate::logic::explain::NodeExplanation;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport};
+use crate::logic::transaction::ObservationBoundarySummary;
 use crate::logic::transaction::SignalRuntime;
 
 /// Public diagnostics facade over one committed signal graph.

@@ -121,9 +121,7 @@ pub fn invoke_watch(callback_id: u64, notice: WebObservationNotice) {
         RegisteredWebCallback::WasmWatch(function) => invoke_wasm_watch(&function, &notice),
         #[cfg(test)]
         RegisteredWebCallback::NativeWatch(callback) => {
-            record_callback_invocation(
-                catch_unwind(AssertUnwindSafe(|| callback(notice))).is_ok(),
-            );
+            record_callback_invocation(catch_unwind(AssertUnwindSafe(|| callback(notice))).is_ok());
         }
         RegisteredWebCallback::WasmEffect(_) => {}
         #[cfg(test)]

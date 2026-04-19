@@ -293,8 +293,8 @@ fn edge_curve_consistency_passes_all_primitives() {
 /// Adversarial: corrupt a curve's origin and verify the validator rejects it.
 #[test]
 fn corrupted_curve_origin_detected_by_validator() {
-    use worth_geom::facade::CurveGeom;
     use std::sync::Arc;
+    use worth_geom::facade::CurveGeom;
 
     let mut env = shapes::unit_cube().unwrap().into_value();
     let first_edge = env.topology().arena().iter_edges().next().unwrap().0;
@@ -335,9 +335,9 @@ fn corrupted_curve_origin_detected_by_validator() {
 /// Adversarial: corrupt a curve's direction and verify the validator rejects it.
 #[test]
 fn corrupted_curve_direction_detected_by_validator() {
-    use worth_geom::facade::CurveGeom;
     use forge_topo::queries::edge_endpoint_ids;
     use std::sync::Arc;
+    use worth_geom::facade::CurveGeom;
 
     let mut env = shapes::unit_cube().unwrap().into_value();
     let first_edge = env.topology().arena().iter_edges().next().unwrap().0;

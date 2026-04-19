@@ -3,16 +3,22 @@ use std::sync::Arc;
 
 use forge_relational::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError, CustomInvariantRegistration,
-    CustomInvariantRule, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRule, CustomInvariantScopePlanner,
+    CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion, CustomInvariantVerdict,
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+    InvariantGroupSet,
 };
-use worth_schema::facade::{WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind};
+use worth_schema::facade::{
+    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
+};
 
 use super::shared::{connected_components, RuntimeEntityRef, RuntimeTopologyGraph};
 
-pub fn registration() -> Result<CustomInvariantRegistration, forge_relational::facade::runtime::CustomInvariantRegistrationError> {
+pub fn registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
     CustomInvariantRegistration::new(WireConnectivityRule)
 }
 
@@ -52,8 +58,10 @@ impl CustomInvariantRule for WireConnectivityRule {
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
         let wire_kind = WorthEntityKind::Topology(WorthTopologyEntityKind::Wire).kind_id();
-        let owns_halfedge = WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge);
-        let start_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex);
+        let owns_halfedge =
+            WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge);
+        let start_kind =
+            WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex);
         let end_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex);
 
         for (wire_id, kind_id) in &scope.topology_entities {

@@ -9,14 +9,14 @@
 //!               worth-geom (dominant_projection_axes, scanline_edge_crossing).
 
 use forge_core::{KernelError, ToleranceProvider};
+use forge_topo::b_rep::TopologyArena;
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::traverse::FaceEdgeIterator;
 use worth_geom::{
     dominant_projection_axes, resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
 };
 use worth_math::predicates::orient2d;
 use worth_math::sign::TriSign;
-use forge_topo::b_rep::TopologyArena;
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use forge_topo::traverse::FaceEdgeIterator;
 
 /// Result of classifying a point relative to a specific face.
 #[derive(Debug, Clone, PartialEq)]

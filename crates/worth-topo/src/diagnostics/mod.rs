@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use worth_schema::facade::{
-    worth_milestone_two_invalidation_declarations, DerivedTopologyReadBasis,
-    WorthAspect, WorthDerivedInvalidationTarget,
+    worth_milestone_two_invalidation_declarations, DerivedTopologyReadBasis, WorthAspect,
+    WorthDerivedInvalidationTarget,
 };
 
 use crate::interpretation::InterpretedTopologyView;
@@ -213,8 +213,8 @@ mod tests {
 
     use crate::diagnostics::build_derived_read_diagnostics;
     use crate::facade::{
-        interpret_topology_view, validate_interpreted_topology, worth_milestone_one_runtime_builder,
-        WorthTopologyMaterializer,
+        interpret_topology_view, validate_interpreted_topology,
+        worth_milestone_one_runtime_builder, WorthTopologyMaterializer,
     };
 
     #[test]
@@ -251,13 +251,15 @@ mod tests {
             .invalidation_report
             .rows
             .iter()
-            .any(|row| row.target == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyStructure
+            .any(|row| row.target
+                == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyStructure
                 && row.triggered));
         assert!(diagnostics
             .invalidation_report
             .rows
             .iter()
-            .any(|row| row.target == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyBoundary
+            .any(|row| row.target
+                == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyBoundary
                 && row.triggered));
         assert!(diagnostics.rebuild_report.whole_view_rebuild);
         assert_eq!(

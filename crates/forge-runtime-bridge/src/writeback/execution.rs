@@ -6,14 +6,15 @@ use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
 use crate::identity::{BridgeIdentity, WritebackExecutionRecordIdentityTag};
 
 use super::{
-    AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect, BridgeValidatedWritebackCandidate,
-    BridgeWritebackAuthorityOutcome, BridgeWritebackCounters, BridgeWritebackFailureClass,
-    BridgeWritebackIdempotenceBasis, BridgeWritebackLoopPreventionReport,
-    BridgeWritebackMapperRecord, BridgeWritebackReplayBundle,
+    AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
+    BridgeValidatedWritebackCandidate, BridgeWritebackAuthorityOutcome, BridgeWritebackCounters,
+    BridgeWritebackFailureClass, BridgeWritebackIdempotenceBasis,
+    BridgeWritebackLoopPreventionReport, BridgeWritebackMapperRecord, BridgeWritebackReplayBundle,
     BridgeWritebackStrategyCompatibilityReport,
 };
 
-pub type BridgeWritebackExecutionRecordIdentity = BridgeIdentity<WritebackExecutionRecordIdentityTag>;
+pub type BridgeWritebackExecutionRecordIdentity =
+    BridgeIdentity<WritebackExecutionRecordIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackExecutionRecord {

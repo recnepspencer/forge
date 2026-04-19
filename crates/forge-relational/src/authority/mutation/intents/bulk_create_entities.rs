@@ -40,7 +40,12 @@ pub(super) fn apply(
     workspace.with_context(|context| {
         reserve_bulk_entity_capacity(context.state, intent.partition_id, intent.payloads.len());
     });
-    for (client_key, payload) in intent.client_keys.iter().cloned().zip(staged_rows.into_iter()) {
+    for (client_key, payload) in intent
+        .client_keys
+        .iter()
+        .cloned()
+        .zip(staged_rows.into_iter())
+    {
         let entity_id = workspace.with_context(|context| {
             let entity_id = allocate_entity(
                 context.state,

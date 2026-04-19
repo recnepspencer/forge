@@ -6,14 +6,12 @@ use forge_runtime_bridge::facade::{
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
 use worth_schema::facade::{
-    explain_bridge_trace,
-    seed_minimal_topology, worth_milestone_two_invalidation_declarations,
+    explain_bridge_trace, seed_minimal_topology, worth_milestone_two_invalidation_declarations,
     WorthBridgeTraceAnchor, WorthDerivedInvalidationTarget, WorthDerivedTruthSurfaceKind,
 };
 
 use crate::bridge::{
-    worth_milestone_one_bridge_aspect_registrations,
-    build_worth_milestone_one_bridge,
+    build_worth_milestone_one_bridge, worth_milestone_one_bridge_aspect_registrations,
     worth_milestone_one_bridge_mapping_registrations,
 };
 
@@ -56,15 +54,14 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
                     == &forge_runtime_bridge::facade::MappingSelector::exact(
                         declaration.truth_patch_field,
                     )
-                && registration.truth_surface_kind()
-                    == match declaration.truth_surface_kind {
-                        WorthDerivedTruthSurfaceKind::EntityField => {
-                            forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityField
-                        }
-                        WorthDerivedTruthSurfaceKind::EntityRelationEndpoint => {
-                            forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityRelationEndpoint
-                        }
+                && registration.truth_surface_kind() == match declaration.truth_surface_kind {
+                    WorthDerivedTruthSurfaceKind::EntityField => {
+                        forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityField
                     }
+                    WorthDerivedTruthSurfaceKind::EntityRelationEndpoint => {
+                        forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityRelationEndpoint
+                    }
+                }
         }));
     }
 }
@@ -73,12 +70,18 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
 fn milestone_two_bridge_target_vocabulary_remains_canonical() {
     let declarations = worth_milestone_two_invalidation_declarations();
 
-    assert!(declarations
-        .iter()
-        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyStructure));
-    assert!(declarations
-        .iter()
-        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyOwnership));
+    assert!(
+        declarations
+            .iter()
+            .any(|declaration| declaration.target
+                == WorthDerivedInvalidationTarget::TopologyStructure)
+    );
+    assert!(
+        declarations
+            .iter()
+            .any(|declaration| declaration.target
+                == WorthDerivedInvalidationTarget::TopologyOwnership)
+    );
     assert!(declarations
         .iter()
         .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyBoundary));
@@ -87,7 +90,8 @@ fn milestone_two_bridge_target_vocabulary_remains_canonical() {
         .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyRadial));
     assert!(declarations
         .iter()
-        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::NamingPersistentName));
+        .any(|declaration| declaration.target
+            == WorthDerivedInvalidationTarget::NamingPersistentName));
 }
 
 #[test]
@@ -129,7 +133,10 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_worth_commit() {
         evaluation.snapshot_identity()
     );
     assert_eq!(bridge.diagnostics().route_records().len(), 1);
-    assert_eq!(bridge.diagnostics().historical_evaluation_records().len(), 1);
+    assert_eq!(
+        bridge.diagnostics().historical_evaluation_records().len(),
+        1
+    );
 }
 
 #[test]
@@ -171,7 +178,11 @@ fn bridge_trace_explanation_queries_real_runtime_diagnostics() {
             .iter()
             .map(|record| record.source_snapshot().as_str().to_string())
             .chain(historical_records.iter().map(|record| {
-                record.decision_log().snapshot_identity().as_str().to_string()
+                record
+                    .decision_log()
+                    .snapshot_identity()
+                    .as_str()
+                    .to_string()
             })),
         historical_records
             .iter()
@@ -183,7 +194,9 @@ fn bridge_trace_explanation_queries_real_runtime_diagnostics() {
     assert_eq!(narrative.route_count, 1);
     assert_eq!(narrative.historical_record_count, 1);
     assert!(narrative.headline.contains("Bridge retained"));
-    assert!(narrative.routes[0].summary.contains("lowered one truth event"));
+    assert!(narrative.routes[0]
+        .summary
+        .contains("lowered one truth event"));
     assert!(narrative.historical_records[0]
         .summary
         .contains("Historical evaluation"));

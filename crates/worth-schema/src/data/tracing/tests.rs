@@ -13,10 +13,7 @@ use crate::data::tracing::{
 fn authority_trace_evidence_summarizes_commit_logs() {
     let mut published = CommitLog::new();
     published.begin_phase(forge_relational::facade::transactions::CommitPhase::DraftPreparation);
-    published.record_commit_published(
-        forge_relational::facade::history::CommitId(1),
-        "main",
-    );
+    published.record_commit_published(forge_relational::facade::history::CommitId(1), "main");
     let mut rejected = CommitLog::new();
     rejected.begin_phase(forge_relational::facade::transactions::CommitPhase::DraftPreparation);
     rejected.record_rejection(
@@ -59,11 +56,17 @@ fn authority_trace_anchor_tracks_runtime_coordinates() {
     assert_eq!(anchor.runtime_instance_ids.len(), verified.commits.len());
     assert_eq!(
         anchor.commit_ids.last(),
-        verified.commits.last().map(|commit| &commit.commit.commit_id)
+        verified
+            .commits
+            .last()
+            .map(|commit| &commit.commit.commit_id)
     );
     assert_eq!(
         anchor.snapshot_ids.last(),
-        verified.commits.last().map(|commit| &commit.snapshot.snapshot_id)
+        verified
+            .commits
+            .last()
+            .map(|commit| &commit.snapshot.snapshot_id)
     );
     let read_view = anchor
         .open_latest_snapshot(&runtime)

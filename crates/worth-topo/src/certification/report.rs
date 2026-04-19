@@ -1,3 +1,9 @@
+use crate::diagnostics::{
+    WorthDerivedFallbackReport, WorthDerivedInvalidationReport, WorthDerivedReadDiagnostics,
+    WorthDerivedRebuildReport,
+};
+use crate::parity::WorthDerivedEquivalenceContractReport;
+use crate::validators::WorthTopologyValidationReport;
 use forge_relational::facade::diagnostics::DiagnosticCode;
 use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::history::BranchId;
@@ -5,16 +11,10 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::replay::{ReplayFailureClass, ReplayObservableSurface};
 use serde::{Deserialize, Serialize};
 use worth_schema::facade::{
-    CertifiedTopologyInterpretation, WorthMilestoneOnePrimitiveCase,
-    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
-    WorthBridgeTraceAnchor, WorthMutationOrigin, WorthTopologyReadArtifact,
+    CertifiedTopologyInterpretation, WorthBridgeTraceAnchor, WorthMilestoneOnePrimitiveCase,
+    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole, WorthMutationOrigin,
+    WorthTopologyReadArtifact,
 };
-use crate::diagnostics::{
-    WorthDerivedFallbackReport, WorthDerivedInvalidationReport, WorthDerivedReadDiagnostics,
-    WorthDerivedRebuildReport,
-};
-use crate::validators::WorthTopologyValidationReport;
-use crate::parity::WorthDerivedEquivalenceContractReport;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorthDeterministicDigest {

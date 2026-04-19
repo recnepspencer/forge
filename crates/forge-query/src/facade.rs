@@ -51,11 +51,11 @@ pub use crate::correspondence::{
 };
 pub use crate::correspondence_history::{
     compose_correspondence_historical_envelope, compose_historical_admission_denied_envelope,
-    compose_historical_path_denied_envelope,
-    CorrespondenceHistoricalAmbiguityEnvelope, CorrespondenceHistoricalDeniedEnvelope,
-    CorrespondenceHistoricalDisagreementEnvelope, CorrespondenceHistoricalEnvelope,
-    CorrespondenceHistoricalSuccessEnvelope, HistoricalPathAdmissionDeniedEnvelope,
-    HistoricalPathDeniedEnvelope, MetadataPreservingHistoricalResultView,
+    compose_historical_path_denied_envelope, CorrespondenceHistoricalAmbiguityEnvelope,
+    CorrespondenceHistoricalDeniedEnvelope, CorrespondenceHistoricalDisagreementEnvelope,
+    CorrespondenceHistoricalEnvelope, CorrespondenceHistoricalSuccessEnvelope,
+    HistoricalPathAdmissionDeniedEnvelope, HistoricalPathDeniedEnvelope,
+    MetadataPreservingHistoricalResultView,
 };
 pub use crate::correspondence_history_parity::{
     build_correspondence_historical_parity_bundle, CorrespondenceHistoricalParityBundle,

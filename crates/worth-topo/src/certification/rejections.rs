@@ -3,10 +3,10 @@ use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{RecordRef, TransactionCommitError};
 use worth_schema::facade::{
-    build_milestone_one_primitive_intent, RawWorthTopologyIntent, WorthCreateKey,
-    WorthEntityKind, WorthEntityReference, WorthMilestoneOnePrimitiveAuthoringError,
-    WorthMilestoneOnePrimitiveCase, WorthMutationOrigin, WorthRelationKind,
-    WorthTopologyAuthority, WorthTopologyMutation, WorthTopologyRelationKind,
+    build_milestone_one_primitive_intent, RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind,
+    WorthEntityReference, WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
+    WorthMutationOrigin, WorthRelationKind, WorthTopologyAuthority, WorthTopologyMutation,
+    WorthTopologyRelationKind,
 };
 
 use crate::certification::error::WorthMilestoneOneCertificationError;
@@ -226,7 +226,9 @@ where
                 "illegal topology case `{name}` unexpectedly admitted"
             )))
         }
-        Err(error) => summarize_authority_rejection(&error.into_error(), Some(role), validator_family),
+        Err(error) => {
+            summarize_authority_rejection(&error.into_error(), Some(role), validator_family)
+        }
     };
     cases.push(WorthIllegalTopologyRejectionCaseReport {
         name: name.to_string(),
@@ -242,11 +244,15 @@ fn missing_persistent_names_intent(stem: &str) -> RawWorthTopologyIntent {
         vec![
             WorthTopologyMutation::CreateEntity {
                 create_key: WorthCreateKey::new(format!("{stem}.model")),
-                kind: WorthEntityKind::Topology(worth_schema::facade::WorthTopologyEntityKind::Model),
+                kind: WorthEntityKind::Topology(
+                    worth_schema::facade::WorthTopologyEntityKind::Model,
+                ),
             },
             WorthTopologyMutation::CreateEntity {
                 create_key: WorthCreateKey::new(format!("{stem}.body")),
-                kind: WorthEntityKind::Topology(worth_schema::facade::WorthTopologyEntityKind::Body),
+                kind: WorthEntityKind::Topology(
+                    worth_schema::facade::WorthTopologyEntityKind::Body,
+                ),
             },
             WorthTopologyMutation::CreateRelation {
                 create_key: WorthCreateKey::new(format!("{stem}.owns_body")),

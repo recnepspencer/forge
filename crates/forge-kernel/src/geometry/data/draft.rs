@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use worth_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
+use worth_geom::facade::{Coedge, CurveGeom, Plane, SurfaceData};
 
 use super::layer::PropertyPatch;
 use super::position::ExactPosition;

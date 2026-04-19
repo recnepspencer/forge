@@ -14,9 +14,9 @@ pub use eval::{
     normals_aligned_exact, signed_distance, to_plane_relation,
 };
 
+use serde::{Deserialize, Serialize};
 use worth_math::arithmetic::Rational;
 use worth_math::MathError;
-use serde::{Deserialize, Serialize};
 
 /// A plane in 3D space defined by the equation `ax + by + cz + d = 0`.
 ///

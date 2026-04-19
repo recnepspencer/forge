@@ -191,10 +191,13 @@ fn resolve_entity_reference(
 ) -> Result<crate::identity::data::EntityId, CommitConflict> {
     workspace
         .resolve_entity_reference(entity_reference)
-        .ok_or_else(|| CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
-            detail: "relation endpoints must resolve within the same authoritative commit scope"
-                .to_string(),
-        }))
+        .ok_or_else(|| {
+            CommitConflict::new(ConflictClass::InvalidRelationEndpoint {
+                detail:
+                    "relation endpoints must resolve within the same authoritative commit scope"
+                        .to_string(),
+            })
+        })
 }
 
 fn stage_import_packets(

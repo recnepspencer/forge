@@ -1,20 +1,19 @@
 use forge_relational::facade::runtime::RelationalRuntimeApi;
 use forge_signal::facade::{
-    diagnostics_for_graph, mark_dirty, Aspect, AspectVersion, DependencyEdge,
-    NodeEvaluationResult, RunMode, SignalGraph,
+    diagnostics_for_graph, mark_dirty, Aspect, AspectVersion, DependencyEdge, NodeEvaluationResult,
+    RunMode, SignalGraph,
 };
 
 use crate::data::authority::DerivedTopologyReadBasis;
 use crate::data::bootstrap::worth_bootstrap_schema_registry;
 use crate::data::explanation::{
-    explain_authority_trace, explain_derived_trace, explain_signal_trace,
-    narrate_boundary_envelope,
+    explain_authority_trace, explain_derived_trace, explain_signal_trace, narrate_boundary_envelope,
 };
 use crate::data::seed::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
 use crate::data::tracing::{
     WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthDecisionTrace, WorthDerivedTraceAnchor, WorthDerivedTraceEvidence,
-    WorthIntegrityMarkers, WorthNamedCounter, WorthPerformanceAccounting, WorthSignalTraceAnchor,
+    WorthDecisionTrace, WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers,
+    WorthNamedCounter, WorthPerformanceAccounting, WorthSignalTraceAnchor,
     WorthSignalTraceEvidence, WorthTraceAvailability,
 };
 
@@ -37,8 +36,10 @@ fn authority_trace_explanation_surfaces_commit_story_and_query_hints() {
         verified.branch_id.clone(),
         &verified.commits,
     );
-    let evidence =
-        WorthAuthorityTraceEvidence::from_commit_results(verified.branch_id.clone(), &verified.commits);
+    let evidence = WorthAuthorityTraceEvidence::from_commit_results(
+        verified.branch_id.clone(),
+        &verified.commits,
+    );
 
     let narrative = explain_authority_trace(&runtime, &anchor, Some(&evidence));
 
@@ -87,7 +88,10 @@ fn derived_trace_explanation_reopens_snapshot_and_mentions_touched_worth_aspects
     assert!(narrative.entity_count > 0);
     assert!(narrative.relation_count > 0);
     assert!(!narrative.touched_aspects.is_empty());
-    assert_eq!(narrative.fallback_classes, vec!["WholeViewRebuild".to_string()]);
+    assert_eq!(
+        narrative.fallback_classes,
+        vec!["WholeViewRebuild".to_string()]
+    );
     assert_eq!(narrative.equivalence_digest.as_deref(), Some("digest:test"));
 }
 
@@ -166,10 +170,9 @@ fn signal_trace_explanation_queries_node_replay_lineage_and_artifacts() {
     graph
         .execute_prepared_plan(&bootstrap, &(), &|view| {
             let result = if view.node() == source {
-                view.finish(NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-                    SIGNAL_ASPECT,
-                    1u64,
-                )])))
+                view.finish(NodeEvaluationResult::from_version(
+                    AspectVersion::from_updates([(SIGNAL_ASPECT, 1u64)]),
+                ))
             } else {
                 let version = view.read_aspect_version(source, SIGNAL_ASPECT)?;
                 view.finish(NodeEvaluationResult::from_version(version))
@@ -185,10 +188,9 @@ fn signal_trace_explanation_queries_node_replay_lineage_and_artifacts() {
     graph
         .execute_prepared_plan(&refresh, &(), &|view| {
             let result = if view.node() == source {
-                view.finish(NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-                    SIGNAL_ASPECT,
-                    2u64,
-                )])))
+                view.finish(NodeEvaluationResult::from_version(
+                    AspectVersion::from_updates([(SIGNAL_ASPECT, 2u64)]),
+                ))
             } else {
                 let version = view.read_aspect_version(source, SIGNAL_ASPECT)?;
                 view.finish(NodeEvaluationResult::from_version(version))
@@ -199,9 +201,11 @@ fn signal_trace_explanation_queries_node_replay_lineage_and_artifacts() {
 
     let _diagnostics = diagnostics_for_graph(&graph);
     let anchor = WorthSignalTraceAnchor::from_graph(&graph, dependent).expect("signal anchor");
-    let evidence = WorthSignalTraceEvidence::from_graph(&graph, dependent).expect("signal evidence");
+    let evidence =
+        WorthSignalTraceEvidence::from_graph(&graph, dependent).expect("signal evidence");
 
-    let narrative = explain_signal_trace(&graph, &anchor, Some(&evidence)).expect("signal narrative");
+    let narrative =
+        explain_signal_trace(&graph, &anchor, Some(&evidence)).expect("signal narrative");
 
     assert_eq!(narrative.availability, WorthTraceAvailability::Present);
     assert!(narrative.headline.contains("Signal tracked node"));

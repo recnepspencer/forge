@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use super::{
-    BridgePolicyDeclaration, BridgePolicyFieldKind, BridgePolicySourceClass,
-};
+use super::{BridgePolicyDeclaration, BridgePolicyFieldKind, BridgePolicySourceClass};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BridgePolicyRejectionKind {

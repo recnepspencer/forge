@@ -414,5 +414,3 @@ fn geometry_profile_does_not_force_retention_pass_on_each_commit() {
     let plan = runtime.retention().inspect_plan();
     assert!(plan.reclaimable_entities >= 1);
 }
-
-

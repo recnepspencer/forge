@@ -11,9 +11,9 @@
 //!               forge-topo (TopologyArena, handles), worth-geom (CurveKind, Plane).
 
 use forge_core::{InvariantId, KernelError, ToleranceProvider, ValidatorCost};
-use worth_geom::facade::{CurveKind, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId, VertexId};
+use worth_geom::facade::{CurveKind, Plane};
 
 /// Bundles all geometry callbacks into a single parameter for spatial validators.
 ///

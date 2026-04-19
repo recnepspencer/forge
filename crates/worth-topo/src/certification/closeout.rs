@@ -2,35 +2,32 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::runtime::RelationalRuntime;
 
+use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::core::{
     WorthCertificationRequiredOutput, WorthCertificationSuiteRequirements,
 };
-use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::corpus::{
     certify_milestone_one_admitted_range_sweeps,
     certify_milestone_one_default_primitive_corpus_impl,
 };
 use crate::certification::error::WorthMilestoneOneCertificationError;
-use crate::certification::requirements::milestone_one_closeout_requirements;
 use crate::certification::read_view::WorthMilestoneOneCertificationHarness;
 use crate::certification::rejections::certify_milestone_one_illegal_topology_rejections;
 use crate::certification::report::{
-    WorthAdmittedRangeSweepReport, WorthDeterministicDigest,
-    WorthFailureLocalityReport, WorthFailureLocalityRow,
-    WorthIllegalTopologyRejectionReport, WorthMilestoneOneBranchLocalAggregateReport,
-    WorthMilestoneOneCertificationReport, WorthMilestoneOneCloseoutReport,
-    WorthMilestoneOneCounters, WorthMilestoneOneReplayAggregateReport,
+    WorthAdmittedRangeSweepReport, WorthDeterministicDigest, WorthFailureLocalityReport,
+    WorthFailureLocalityRow, WorthIllegalTopologyRejectionReport,
+    WorthMilestoneOneBranchLocalAggregateReport, WorthMilestoneOneCertificationReport,
+    WorthMilestoneOneCloseoutReport, WorthMilestoneOneCounters,
     WorthMilestoneOneRejectionClassReport, WorthMilestoneOneRejectionClassRow,
-    WorthMilestoneOneValidationAggregateReport, WorthMilestoneOneValidationAggregateRow,
-    WorthMilestoneOneValidatorCoverageReport, WorthMilestoneOneValidatorCoverageRow,
-    WorthNamingAttachmentAggregateReport, WorthNamingAttachmentAggregateRow,
-    WorthPrimitiveCorpusReport, WorthReplayParityStatus,
-    WorthTopologyLocalizationAggregateEntityRow,
-    WorthTopologyLocalizationAggregateRelationRow, WorthTopologyLocalizationAggregateReport,
+    WorthMilestoneOneReplayAggregateReport, WorthMilestoneOneValidationAggregateReport,
+    WorthMilestoneOneValidationAggregateRow, WorthMilestoneOneValidatorCoverageReport,
+    WorthMilestoneOneValidatorCoverageRow, WorthNamingAttachmentAggregateReport,
+    WorthNamingAttachmentAggregateRow, WorthPrimitiveCorpusReport, WorthReplayParityStatus,
+    WorthTopologyLocalizationAggregateEntityRow, WorthTopologyLocalizationAggregateRelationRow,
+    WorthTopologyLocalizationAggregateReport,
 };
-use crate::certification::shared::{
-    digest_rows,
-};
+use crate::certification::requirements::milestone_one_closeout_requirements;
+use crate::certification::shared::digest_rows;
 use crate::fixtures::validated_topology::seeded_bootstrap;
 
 pub fn certify_milestone_one_closeout_impl<F>(
@@ -42,8 +39,8 @@ where
 {
     let requirements = milestone_one_closeout_requirements();
     let mut baseline_runtime = runtime_factory();
-    let seeded = seeded_bootstrap(&mut baseline_runtime, &format!("{stem}.bootstrap"))
-        .map_err(|error| {
+    let seeded =
+        seeded_bootstrap(&mut baseline_runtime, &format!("{stem}.bootstrap")).map_err(|error| {
             WorthMilestoneOneCertificationError::ReadView(format!(
                 "worth milestone one closeout failed to seed bootstrap truth: {error:?}"
             ))
@@ -63,10 +60,14 @@ where
         Some(&seeded.persisted_truth.batch),
         1,
     )?;
-    let primitive_corpus =
-        certify_milestone_one_default_primitive_corpus_impl(&mut runtime_factory, &format!("{stem}.corpus"))?;
-    let admitted_range_sweeps =
-        certify_milestone_one_admitted_range_sweeps(&mut runtime_factory, &format!("{stem}.sweeps"))?;
+    let primitive_corpus = certify_milestone_one_default_primitive_corpus_impl(
+        &mut runtime_factory,
+        &format!("{stem}.corpus"),
+    )?;
+    let admitted_range_sweeps = certify_milestone_one_admitted_range_sweeps(
+        &mut runtime_factory,
+        &format!("{stem}.sweeps"),
+    )?;
     let illegal_topology_rejection_report = certify_milestone_one_illegal_topology_rejections(
         &mut runtime_factory,
         &format!("{stem}.illegal"),
@@ -102,10 +103,8 @@ where
         &primitive_corpus,
         &illegal_topology_rejection_report,
     );
-    let failure_locality_report = build_failure_locality_report(
-        &primitive_corpus,
-        &illegal_topology_rejection_report,
-    );
+    let failure_locality_report =
+        build_failure_locality_report(&primitive_corpus, &illegal_topology_rejection_report);
     let bridge_family_coverage_report = bridge_proof_report.family_coverage_report.clone();
     let counter_report = build_closeout_counter_report(
         &seeded_bootstrap,
@@ -154,8 +153,7 @@ fn build_closeout_counter_report(
     illegal_topology_rejection_report: &WorthIllegalTopologyRejectionReport,
 ) -> WorthMilestoneOneCounters {
     let mut counter_report = seeded_bootstrap.counters.clone();
-    counter_report.commit_boundary_rejection_count =
-        illegal_topology_rejection_report.case_count;
+    counter_report.commit_boundary_rejection_count = illegal_topology_rejection_report.case_count;
     for case in &primitive_corpus.cases {
         counter_report.topology_entity_upsert_count +=
             case.certification.counters.topology_entity_upsert_count;
@@ -165,17 +163,23 @@ fn build_closeout_counter_report(
             case.certification.counters.topology_relation_remove_count;
         counter_report.commit_boundary_validator_count +=
             case.certification.counters.commit_boundary_validator_count;
-        counter_report.derived_topology_interpretation_count +=
-            case.certification.counters.derived_topology_interpretation_count;
-        counter_report.derived_topology_full_fallback_count +=
-            case.certification.counters.derived_topology_full_fallback_count;
+        counter_report.derived_topology_interpretation_count += case
+            .certification
+            .counters
+            .derived_topology_interpretation_count;
+        counter_report.derived_topology_full_fallback_count += case
+            .certification
+            .counters
+            .derived_topology_full_fallback_count;
         counter_report.naming_target_lookup_count +=
             case.certification.counters.naming_target_lookup_count;
         counter_report.primitive_family_member_count +=
             case.certification.counters.primitive_family_member_count;
         counter_report.replay_history_length += case.certification.counters.replay_history_length;
-        counter_report.replay_interpretation_rerun_count +=
-            case.certification.counters.replay_interpretation_rerun_count;
+        counter_report.replay_interpretation_rerun_count += case
+            .certification
+            .counters
+            .replay_interpretation_rerun_count;
     }
     counter_report
 }
@@ -187,9 +191,12 @@ fn build_closeout_digest(
 ) -> WorthDeterministicDigest {
     digest_rows(
         std::iter::once(("seeded_bootstrap".to_string(), select(seeded_bootstrap)))
-            .chain(primitive_corpus.cases.iter().map(|case| {
-                (case.stem.clone(), select(&case.certification))
-            }))
+            .chain(
+                primitive_corpus
+                    .cases
+                    .iter()
+                    .map(|case| (case.stem.clone(), select(&case.certification))),
+            )
             .map(|(source, digest)| {
                 format!(
                     "{source}:{}:{}:{}",
@@ -204,14 +211,18 @@ fn build_closeout_validation_report(
     primitive_corpus: &WorthPrimitiveCorpusReport,
 ) -> WorthMilestoneOneValidationAggregateReport {
     let mut rows = Vec::new();
-    rows.extend(seeded_bootstrap.topology_validation_report.rows.iter().map(|row| {
-        WorthMilestoneOneValidationAggregateRow {
-            source: "seeded_bootstrap".to_string(),
-            family: "SeededBootstrap".to_string(),
-            validator: row.validator.clone(),
-            status: row.status.clone(),
-        }
-    }));
+    rows.extend(
+        seeded_bootstrap
+            .topology_validation_report
+            .rows
+            .iter()
+            .map(|row| WorthMilestoneOneValidationAggregateRow {
+                source: "seeded_bootstrap".to_string(),
+                family: "SeededBootstrap".to_string(),
+                validator: row.validator.clone(),
+                status: row.status.clone(),
+            }),
+    );
     rows.push(WorthMilestoneOneValidationAggregateRow {
         source: "seeded_bootstrap".to_string(),
         family: "SeededBootstrap".to_string(),
@@ -278,26 +289,28 @@ fn build_closeout_localization_report(
             }),
     );
     for case in &primitive_corpus.cases {
-        topology_entities.extend(case
-            .certification
-            .topology_localization_report
-            .topology_entities
-            .iter()
-            .map(|row| WorthTopologyLocalizationAggregateEntityRow {
-                source: case.stem.clone(),
-                entity_id: row.entity_id,
-                kind_name: row.kind_name.clone(),
-            }));
-        topology_relations.extend(case
-            .certification
-            .topology_localization_report
-            .topology_relations
-            .iter()
-            .map(|row| WorthTopologyLocalizationAggregateRelationRow {
-                source: case.stem.clone(),
-                relation_id: row.relation_id,
-                kind_name: row.kind_name.clone(),
-            }));
+        topology_entities.extend(
+            case.certification
+                .topology_localization_report
+                .topology_entities
+                .iter()
+                .map(|row| WorthTopologyLocalizationAggregateEntityRow {
+                    source: case.stem.clone(),
+                    entity_id: row.entity_id,
+                    kind_name: row.kind_name.clone(),
+                }),
+        );
+        topology_relations.extend(
+            case.certification
+                .topology_localization_report
+                .topology_relations
+                .iter()
+                .map(|row| WorthTopologyLocalizationAggregateRelationRow {
+                    source: case.stem.clone(),
+                    relation_id: row.relation_id,
+                    kind_name: row.kind_name.clone(),
+                }),
+        );
     }
     WorthTopologyLocalizationAggregateReport {
         topology_entities,
@@ -331,17 +344,18 @@ fn build_closeout_naming_attachment_report(
             .copied(),
     );
     for case in &primitive_corpus.cases {
-        attachments.extend(case
-            .certification
-            .naming_attachment_report
-            .attachments
-            .iter()
-            .map(|row| WorthNamingAttachmentAggregateRow {
-                source: case.stem.clone(),
-                topology_entity_id: row.topology_entity_id,
-                topology_kind_name: row.topology_kind_name.clone(),
-                attached_persistent_name_ids: row.attached_persistent_name_ids.clone(),
-            }));
+        attachments.extend(
+            case.certification
+                .naming_attachment_report
+                .attachments
+                .iter()
+                .map(|row| WorthNamingAttachmentAggregateRow {
+                    source: case.stem.clone(),
+                    topology_entity_id: row.topology_entity_id,
+                    topology_kind_name: row.topology_kind_name.clone(),
+                    attached_persistent_name_ids: row.attached_persistent_name_ids.clone(),
+                }),
+        );
         orphan_persistent_name_ids.extend(
             case.certification
                 .naming_attachment_report
@@ -385,24 +399,34 @@ fn build_failure_locality_report(
     illegal_topology_rejections: &WorthIllegalTopologyRejectionReport,
 ) -> WorthFailureLocalityReport {
     let mut rows = Vec::new();
-    rows.extend(primitive_corpus.rejected_cases.iter().map(|case| WorthFailureLocalityRow {
-        family: case.family.clone(),
-        role: format!("{:?}", case.role),
-        validator_family: case.rejection.validator_family.clone(),
-        rejection_class: case.rejection.rejection_class.clone(),
-        diagnostic_code: case.rejection.diagnostic_code,
-        localized_entity_count: case.rejection.localized_entity_count,
-        localized_relation_count: case.rejection.localized_relation_count,
-    }));
-    rows.extend(illegal_topology_rejections.cases.iter().map(|case| WorthFailureLocalityRow {
-        family: case.family.clone(),
-        role: case.role.clone(),
-        validator_family: case.rejection.validator_family.clone(),
-        rejection_class: case.rejection.rejection_class.clone(),
-        diagnostic_code: case.rejection.diagnostic_code,
-        localized_entity_count: case.rejection.localized_entity_count,
-        localized_relation_count: case.rejection.localized_relation_count,
-    }));
+    rows.extend(
+        primitive_corpus
+            .rejected_cases
+            .iter()
+            .map(|case| WorthFailureLocalityRow {
+                family: case.family.clone(),
+                role: format!("{:?}", case.role),
+                validator_family: case.rejection.validator_family.clone(),
+                rejection_class: case.rejection.rejection_class.clone(),
+                diagnostic_code: case.rejection.diagnostic_code,
+                localized_entity_count: case.rejection.localized_entity_count,
+                localized_relation_count: case.rejection.localized_relation_count,
+            }),
+    );
+    rows.extend(
+        illegal_topology_rejections
+            .cases
+            .iter()
+            .map(|case| WorthFailureLocalityRow {
+                family: case.family.clone(),
+                role: case.role.clone(),
+                validator_family: case.rejection.validator_family.clone(),
+                rejection_class: case.rejection.rejection_class.clone(),
+                diagnostic_code: case.rejection.diagnostic_code,
+                localized_entity_count: case.rejection.localized_entity_count,
+                localized_relation_count: case.rejection.localized_relation_count,
+            }),
+    );
     WorthFailureLocalityReport { rows }
 }
 
@@ -410,8 +434,12 @@ fn build_closeout_branch_local_report(
     seeded_bootstrap: &WorthMilestoneOneCertificationReport,
     primitive_corpus: &WorthPrimitiveCorpusReport,
 ) -> WorthMilestoneOneBranchLocalAggregateReport {
-    let mainline_case_count =
-        1 + primitive_corpus.parity_report.entries.iter().map(|entry| entry.mainline_case_count).sum::<usize>();
+    let mainline_case_count = 1 + primitive_corpus
+        .parity_report
+        .entries
+        .iter()
+        .map(|entry| entry.mainline_case_count)
+        .sum::<usize>();
     let branch_local_case_count = primitive_corpus
         .parity_report
         .entries
@@ -419,7 +447,13 @@ fn build_closeout_branch_local_report(
         .map(|entry| entry.branch_local_case_count)
         .sum::<usize>();
     let mut branch_ids = BTreeSet::new();
-    branch_ids.insert(seeded_bootstrap.branch_local_topology_report.branch_id.0.clone());
+    branch_ids.insert(
+        seeded_bootstrap
+            .branch_local_topology_report
+            .branch_id
+            .0
+            .clone(),
+    );
     for entry in &primitive_corpus.parity_report.entries {
         branch_ids.extend(entry.branch_ids.iter().cloned());
     }
@@ -461,13 +495,19 @@ fn build_closeout_replay_report(
         .map(|entry| entry.mainline_replay_verified_case_count)
         .sum::<usize>();
     let replay_mismatch_case_count = usize::from(matches!(
-        seeded_bootstrap.milestone_1_replay_parity_report.parity_status,
+        seeded_bootstrap
+            .milestone_1_replay_parity_report
+            .parity_status,
         WorthReplayParityStatus::Mismatch
     )) + primitive_corpus
         .parity_report
         .entries
         .iter()
-        .map(|entry| entry.mainline_case_count.saturating_sub(entry.mainline_digest_parity_case_count))
+        .map(|entry| {
+            entry
+                .mainline_case_count
+                .saturating_sub(entry.mainline_digest_parity_case_count)
+        })
         .sum::<usize>();
     let branch_local_replay_checked_case_count = primitive_corpus
         .parity_report
@@ -592,7 +632,10 @@ fn ensure_rejection_class_closure(
     requirements: &WorthCertificationSuiteRequirements,
 ) -> Result<(), WorthMilestoneOneCertificationError> {
     for family in &requirements.required_rejection_rows {
-        let has_row = report.rows.iter().any(|row| row.family == *family && row.case_count > 0);
+        let has_row = report
+            .rows
+            .iter()
+            .any(|row| row.family == *family && row.case_count > 0);
         if !has_row {
             return Err(WorthMilestoneOneCertificationError::ReadView(format!(
                 "milestone one closeout missing rejection-class coverage for family `{family}`"
@@ -641,7 +684,11 @@ fn ensure_bridge_coverage_closure(
     requirements: &WorthCertificationSuiteRequirements,
 ) -> Result<(), WorthMilestoneOneCertificationError> {
     for bridge_family in &requirements.required_bridge_rows {
-        let Some(row) = report.rows.iter().find(|row| row.family == bridge_family.family) else {
+        let Some(row) = report
+            .rows
+            .iter()
+            .find(|row| row.family == bridge_family.family)
+        else {
             return Err(WorthMilestoneOneCertificationError::ReadView(format!(
                 "milestone one closeout missing bridge coverage row for family `{}`",
                 bridge_family.family
@@ -676,8 +723,14 @@ fn ensure_required_output_closure(
                 !closeout.topology_validation_report.rows.is_empty()
             }
             WorthCertificationRequiredOutput::TopologyLocalizationReport => {
-                !closeout.topology_localization_report.topology_entities.is_empty()
-                    || !closeout.topology_localization_report.topology_relations.is_empty()
+                !closeout
+                    .topology_localization_report
+                    .topology_entities
+                    .is_empty()
+                    || !closeout
+                        .topology_localization_report
+                        .topology_relations
+                        .is_empty()
             }
             WorthCertificationRequiredOutput::NamingAttachmentReport => {
                 !closeout.naming_attachment_report.attachments.is_empty()
@@ -698,7 +751,10 @@ fn ensure_required_output_closure(
                 !closeout.branch_local_topology_report.branch_ids.is_empty()
             }
             WorthCertificationRequiredOutput::ReplayParityReport => {
-                closeout.milestone_1_replay_parity_report.replay_checked_case_count > 0
+                closeout
+                    .milestone_1_replay_parity_report
+                    .replay_checked_case_count
+                    > 0
             }
             WorthCertificationRequiredOutput::RejectionClassReport => {
                 !closeout.rejection_class_report.rows.is_empty()
@@ -713,7 +769,10 @@ fn ensure_required_output_closure(
                 closeout.bridge_proof_report.proof_case_count > 0
             }
             WorthCertificationRequiredOutput::CounterReport => {
-                closeout.milestone_1_counter_report.commit_boundary_validator_count > 0
+                closeout
+                    .milestone_1_counter_report
+                    .commit_boundary_validator_count
+                    > 0
             }
             _ => true,
         };

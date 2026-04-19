@@ -126,5 +126,4 @@ impl HistoricalPathComplexityContract {
             status_marker: HistoricalPerformanceStatusMarker::Debt,
         }
     }
-
 }

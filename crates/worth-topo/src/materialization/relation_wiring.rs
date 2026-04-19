@@ -188,12 +188,9 @@ pub fn apply_relation(
                 target_kind,
                 WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
             )?;
-            push_child_to_parent(
-                &mut view.wires,
-                relation.source,
-                relation.target,
-                |wire| &mut wire.half_edge_ids,
-            )?;
+            push_child_to_parent(&mut view.wires, relation.source, relation.target, |wire| {
+                &mut wire.half_edge_ids
+            })?;
             set_optional_parent(
                 &mut view.half_edges,
                 relation.target,

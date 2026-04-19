@@ -1,5 +1,5 @@
-pub mod authority;
 pub mod aspects;
+pub mod authority;
 pub mod bootstrap;
 pub mod entities;
 pub mod explanation;

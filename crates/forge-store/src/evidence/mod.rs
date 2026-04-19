@@ -29,11 +29,10 @@ pub use milestone_5::{
 pub use milestone_6::{
     Milestone6AccessStructureClaim, Milestone6AccessStructureContract,
     Milestone6AccessStructureVerification, Milestone6AccessStructureVerificationPath,
-    Milestone6CertificationBundle, Milestone6CertificationOrigin,
-    Milestone6CertificationSummary,
-    Milestone6ComplexityPathStatus, Milestone6ComplexitySurface,
-    Milestone6CounterContract, Milestone6LayoutMaterializationReport,
-    Milestone6LayoutReadReport, Milestone6PhysicalLayoutReport,
+    Milestone6CertificationBundle, Milestone6CertificationOrigin, Milestone6CertificationSummary,
+    Milestone6ComplexityPathStatus, Milestone6ComplexitySurface, Milestone6CounterContract,
+    Milestone6LayoutMaterializationReport, Milestone6LayoutReadReport,
+    Milestone6PhysicalLayoutReport,
 };
 pub use milestone_7::{
     Milestone7AccessStructureClaim, Milestone7AccessStructureContract,

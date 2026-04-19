@@ -15,12 +15,12 @@ use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceEvent;
 use forge_core::KernelError;
 use forge_core::PolicyKind;
-use worth_geom::facade::LocalCoordinateSpace;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::specialist::ComparatorPolicy as VersionComparatorPolicy;
 use forge_signal::facade::{EvaluationCondition, NodeId};
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
+use worth_geom::facade::LocalCoordinateSpace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum TestBinding {

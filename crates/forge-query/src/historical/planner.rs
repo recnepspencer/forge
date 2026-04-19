@@ -85,6 +85,9 @@ pub fn resolve_historical_materialization_path(
             materialization.actual_replay_span()
                 > admission.counters().predicted_historical_replay_span(),
         ))
+        .with_history_work_avoided_by_retained_path_count(
+            history_work_avoided_by_retained_path_count(&admission, &materialization),
+        )
         .with_historical_reconstruction_scope_drift(usize::from(
             materialization.actual_reconstruction_scope()
                 > admission
@@ -265,5 +268,28 @@ fn resolved_for_admitted(admitted: &AdmittedHistoricalPathClass) -> ResolvedHist
         AdmittedHistoricalPathClass::AdmittedFullReconstructionPath => {
             ResolvedHistoricalPathClass::ResolvedFullReconstructionPath
         }
+    }
+}
+
+fn history_work_avoided_by_retained_path_count(
+    admission: &HistoricalEvaluationAdmission,
+    materialization: &HistoricalMaterializationDescriptor,
+) -> usize {
+    let retained_path_resolved = matches!(
+        materialization.resolved_path_class(),
+        ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath
+    );
+    let retained_reuse_is_explicit = matches!(
+        admission.reuse_descriptor().retained_state_reuse(),
+        super::cost::RetainedStateReuseEligibility::Reusable
+    );
+
+    if retained_path_resolved && retained_reuse_is_explicit {
+        admission.counters().predicted_historical_replay_span()
+            + admission
+                .counters()
+                .predicted_historical_reconstruction_scope()
+    } else {
+        0
     }
 }

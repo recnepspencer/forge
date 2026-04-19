@@ -147,5 +147,4 @@ impl CorrespondenceCounterSnapshot {
             correspondence_executor_rediscovery_count: 0,
         }
     }
-
 }

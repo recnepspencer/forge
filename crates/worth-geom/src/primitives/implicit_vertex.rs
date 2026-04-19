@@ -13,8 +13,8 @@ pub use eval::{orient3d_symbolic, resolve_position, select_best_triple};
 // SCHEMA
 // =========================================================================
 
-use worth_math::arithmetic::Rational;
 use serde::{Deserialize, Serialize};
+use worth_math::arithmetic::Rational;
 
 /// A geometric vertex.
 ///
@@ -66,10 +66,10 @@ impl Vertex {
 // =========================================================================
 
 mod eval {
+    use std::convert::TryFrom;
     use worth_math::arithmetic::Rational;
     use worth_math::linalg::det3_rows;
     use worth_math::{GeometrySource, MathError};
-    use std::convert::TryFrom;
 
     use crate::primitives::plane::{intersect_three_planes, signed_distance, Plane};
 

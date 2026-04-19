@@ -104,7 +104,10 @@ fn replayed_policy_scoped_route_preserves_route_policy_digest_in_route_record() 
         result.result_summary().route_planning_policy_digest(),
         Some(route_policy.digest())
     );
-    assert_eq!(record.route_planning_policy_digest(), Some(route_policy.digest()));
+    assert_eq!(
+        record.route_planning_policy_digest(),
+        Some(route_policy.digest())
+    );
     assert_eq!(
         canonical
             .decode()
@@ -112,5 +115,8 @@ fn replayed_policy_scoped_route_preserves_route_policy_digest_in_route_record() 
             .route_planning_policy_digest(),
         Some(route_policy.digest())
     );
-    assert_eq!(replay.route_identity(), result.result_summary().route_identity());
+    assert_eq!(
+        replay.route_identity(),
+        result.result_summary().route_identity()
+    );
 }

@@ -8,14 +8,13 @@ use crate::identity::{
 };
 
 use super::{
-    AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect, BridgeValidatedWritebackCandidate,
-    BridgeWritebackCausalityBasis,
+    AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
+    BridgeValidatedWritebackCandidate, BridgeWritebackCausalityBasis,
 };
 
 pub type BridgeMappedWritebackFamilyInputIdentity =
     BridgeIdentity<WritebackMappedFamilyInputIdentityTag>;
-pub type BridgeWritebackMapperEnvelopeIdentity =
-    BridgeIdentity<WritebackMapperEnvelopeIdentityTag>;
+pub type BridgeWritebackMapperEnvelopeIdentity = BridgeIdentity<WritebackMapperEnvelopeIdentityTag>;
 pub type BridgeWritebackMapperWitnessIdentity = BridgeIdentity<WritebackMapperWitnessIdentityTag>;
 pub type BridgeWritebackMapperRecordIdentity = BridgeIdentity<WritebackMapperRecordIdentityTag>;
 
@@ -174,9 +173,7 @@ impl BridgeMappedWritebackFamilyInput {
             family_kind: envelope.family_kind(),
             effect_class: envelope.effect_class(),
             strategy_class: envelope.strategy_class(),
-            strategy_descriptor_digest: Arc::from(
-                envelope.strategy_descriptor_digest().to_owned(),
-            ),
+            strategy_descriptor_digest: Arc::from(envelope.strategy_descriptor_digest().to_owned()),
             causality_digest: Arc::from(envelope.causality_digest().to_owned()),
             domain_payload_digest: Arc::from(envelope.domain_payload_digest().to_owned()),
             domain_evidence_digest: Arc::from(envelope.domain_evidence_digest().to_owned()),
@@ -282,9 +279,7 @@ impl BridgeWritebackMapperWitness {
             causality_digest: Arc::from(mapped_input.causality_digest().to_owned()),
             proposed_effect_digest: Arc::from(mapped_input.domain_payload_digest().to_owned()),
             canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-writeback-mapper-witness:sha256:{digest:x}"
-            )),
+            digest: Arc::from(format!("bridge-writeback-mapper-witness:sha256:{digest:x}")),
         }
     }
 
@@ -315,9 +310,7 @@ impl BridgeWritebackMapperWitness {
             causality_digest: Arc::from(effect.causality_digest().to_owned()),
             proposed_effect_digest: Arc::from(effect.effect_digest().to_owned()),
             canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-writeback-mapper-witness:sha256:{digest:x}"
-            )),
+            digest: Arc::from(format!("bridge-writeback-mapper-witness:sha256:{digest:x}")),
         }
     }
 
@@ -419,9 +412,7 @@ impl BridgeWritebackMapperRecord {
             causality_digest: Arc::from(witness.causality_digest().to_owned()),
             proposed_effect_digest: Arc::from(witness.proposed_effect_digest().to_owned()),
             canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-writeback-mapper-record:sha256:{digest:x}"
-            )),
+            digest: Arc::from(format!("bridge-writeback-mapper-record:sha256:{digest:x}")),
         }
     }
 

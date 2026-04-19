@@ -8,9 +8,9 @@
 //! INVARIANTS: No topology mutation. Read-only spatial query.
 
 use forge_core::KernelError;
-use worth_geom::compute_polygon_area;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
+use worth_geom::compute_polygon_area;
 
 use super::utils;
 

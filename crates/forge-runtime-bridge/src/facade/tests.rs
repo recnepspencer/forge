@@ -139,10 +139,8 @@ impl crate::adapter::TruthWritebackAuthority for StaticWritebackAuthority {
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         Ok(crate::adapter::TruthWritebackReceipt::new(
             crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
             format!("authoritative-artifact:{}", request.digest()),
@@ -329,7 +327,10 @@ fn runtime_with_writeback_authority(policy: BridgeRuntimePolicy) -> RuntimeBridg
     runtime_with_custom_writeback_authority(policy, StaticWritebackAuthority)
 }
 
-fn runtime_with_custom_writeback_authority<A>(policy: BridgeRuntimePolicy, writeback_authority: A) -> RuntimeBridge
+fn runtime_with_custom_writeback_authority<A>(
+    policy: BridgeRuntimePolicy,
+    writeback_authority: A,
+) -> RuntimeBridge
 where
     A: crate::adapter::TruthWritebackAuthority,
 {

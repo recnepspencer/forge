@@ -500,5 +500,12 @@ fn signals_phase4_performance_summary_exposes_web_cert_surface() {
     assert!(summary.compatibility_read_breadth >= 2);
 
     assert!(signals.nuke(watch_handle));
-    assert_eq!(signals.core.borrow().web_performance_summary().active_handle_count, 1);
+    assert_eq!(
+        signals
+            .core
+            .borrow()
+            .web_performance_summary()
+            .active_handle_count,
+        1
+    );
 }

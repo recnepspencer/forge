@@ -22,8 +22,9 @@ pub struct BridgeWritebackStrategyBasis {
 
 impl BridgeWritebackStrategyBasis {
     pub fn from_declaration(declaration: &BridgeWritebackDeclaration) -> Self {
-        let family_basis = crate::writeback::BridgeWritebackFamilyBasis::from_declaration(declaration)
-            .expect("writeback strategy basis requires explicit admitted family");
+        let family_basis =
+            crate::writeback::BridgeWritebackFamilyBasis::from_declaration(declaration)
+                .expect("writeback strategy basis requires explicit admitted family");
         let strategy_class = declaration
             .strategy_class()
             .expect("writeback strategy basis requires explicit strategy class");

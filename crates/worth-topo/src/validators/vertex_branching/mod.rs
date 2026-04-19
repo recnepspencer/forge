@@ -58,10 +58,17 @@ fn validate_wire_half_edge_membership(
             ));
         }
         for half_edge_id in &wire.half_edge_ids {
-            let Some(half_edge) = view.half_edges.iter().find(|record| record.entity_id == *half_edge_id) else {
+            let Some(half_edge) = view
+                .half_edges
+                .iter()
+                .find(|record| record.entity_id == *half_edge_id)
+            else {
                 return Err(err(
                     "vertex_branching.wire_membership",
-                    format!("wire {:?} references missing half-edge {:?}", wire.entity_id, half_edge_id),
+                    format!(
+                        "wire {:?} references missing half-edge {:?}",
+                        wire.entity_id, half_edge_id
+                    ),
                 ));
             };
             if half_edge.wire_id != Some(wire.entity_id) {
@@ -69,9 +76,7 @@ fn validate_wire_half_edge_membership(
                     "vertex_branching.wire_membership",
                     format!(
                         "half-edge {:?} is listed in wire {:?} but records wire {:?}",
-                        half_edge.entity_id,
-                        wire.entity_id,
-                        half_edge.wire_id
+                        half_edge.entity_id, wire.entity_id, half_edge.wire_id
                     ),
                 ));
             }
@@ -83,7 +88,11 @@ fn validate_wire_half_edge_membership(
 fn validate_vertex_presence_for_branching(
     view: &crate::data::topology_view::WorthTopologyView,
 ) -> Result<(), WorthTopologyValidationError> {
-    let vertex_ids: BTreeSet<EntityId> = view.vertices.iter().map(|record| record.entity_id).collect();
+    let vertex_ids: BTreeSet<EntityId> = view
+        .vertices
+        .iter()
+        .map(|record| record.entity_id)
+        .collect();
     for half_edge in &view.half_edges {
         let Some(vertex_id) = half_edge.origin_vertex_id else {
             return Err(err(
@@ -94,7 +103,10 @@ fn validate_vertex_presence_for_branching(
         if !vertex_ids.contains(&vertex_id) {
             return Err(err(
                 "vertex_branching.vertex_presence",
-                format!("half-edge {:?} references missing vertex {:?}", half_edge.entity_id, vertex_id),
+                format!(
+                    "half-edge {:?} references missing vertex {:?}",
+                    half_edge.entity_id, vertex_id
+                ),
             ));
         }
         let Some(target_vertex_id) = half_edge.target_vertex_id else {
@@ -140,7 +152,10 @@ fn validate_wire_connectivity(
             let current = half_edge_map.get(&current_id).copied().ok_or_else(|| {
                 err(
                     "vertex_branching.wire_connectivity",
-                    format!("wire {:?} references missing half-edge {:?}", wire.entity_id, current_id),
+                    format!(
+                        "wire {:?} references missing half-edge {:?}",
+                        wire.entity_id, current_id
+                    ),
                 )
             })?;
             let current_vertices = incident_vertices(current, &half_edge_map)?;
@@ -159,7 +174,10 @@ fn validate_wire_connectivity(
                     )
                 })?;
                 let neighbor_vertices = incident_vertices(neighbor, &half_edge_map)?;
-                if current_vertices.iter().any(|vertex_id| neighbor_vertices.contains(vertex_id)) {
+                if current_vertices
+                    .iter()
+                    .any(|vertex_id| neighbor_vertices.contains(vertex_id))
+                {
                     visited.insert(*neighbor_id);
                     queue.push_back(*neighbor_id);
                 }
@@ -204,14 +222,18 @@ fn validate_branch_vertices_use_distinct_edges(
                     format!("wire {:?} has no interpreted wire summary", wire.entity_id),
                 )
             })?;
-        let mut vertex_incident_half_edges: BTreeMap<EntityId, BTreeSet<EntityId>> = BTreeMap::new();
+        let mut vertex_incident_half_edges: BTreeMap<EntityId, BTreeSet<EntityId>> =
+            BTreeMap::new();
         let mut vertex_incident_edges: BTreeMap<EntityId, BTreeSet<EntityId>> = BTreeMap::new();
 
         for half_edge_id in &wire.half_edge_ids {
             let half_edge = half_edge_map.get(half_edge_id).copied().ok_or_else(|| {
                 err(
                     "vertex_branching.branch_valence",
-                    format!("wire {:?} references missing half-edge {:?}", wire.entity_id, half_edge_id),
+                    format!(
+                        "wire {:?} references missing half-edge {:?}",
+                        wire.entity_id, half_edge_id
+                    ),
                 )
             })?;
             let edge_id = half_edge.edge_id.ok_or_else(|| {
@@ -299,7 +321,10 @@ fn incident_vertices(
     let next = half_edge_map.get(&next_id).copied().ok_or_else(|| {
         err(
             "vertex_branching.incident_vertices",
-            format!("half-edge {:?} references missing next {:?}", half_edge.entity_id, next_id),
+            format!(
+                "half-edge {:?} references missing next {:?}",
+                half_edge.entity_id, next_id
+            ),
         )
     })?;
     let target = next.origin_vertex_id.ok_or_else(|| {

@@ -10,8 +10,8 @@
 //! INVARIANTS: `transform_geometry` and `restore_geometry` are inverse
 //! operations — calling both is a no-op within floating-point ULP.
 
-use worth_geom::facade::{LocalCoordinateSpace, Plane, ScaleAnalysis};
 use forge_topo::transactions::TopologyState;
+use worth_geom::facade::{LocalCoordinateSpace, Plane, ScaleAnalysis};
 
 use crate::engine::output::solid_envelope::SolidEnvelope;
 use crate::geometry::facade::{inverse_transform_geometry, transform_geometry};

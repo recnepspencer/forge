@@ -348,14 +348,14 @@ fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan 
                 }
             }
             MutationIntent::Create(CreateIntent::Relation(spec)) => {
-                    transitions.push(PlannedLineageTransition::CreateRelation {
-                        partition_id: spec.partition_id,
-                        kind_id: spec.kind_id,
-                        source: spec.source.clone(),
-                        target: spec.target.clone(),
-                        client_key: spec.client_key.clone(),
-                    });
-                }
+                transitions.push(PlannedLineageTransition::CreateRelation {
+                    partition_id: spec.partition_id,
+                    kind_id: spec.kind_id,
+                    source: spec.source.clone(),
+                    target: spec.target.clone(),
+                    client_key: spec.client_key.clone(),
+                });
+            }
             MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
                 for (client_key, (source, target)) in
                     spec.client_keys.iter().zip(spec.endpoints.iter())

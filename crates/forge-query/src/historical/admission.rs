@@ -82,7 +82,6 @@ impl HistoricalEvaluationAdmission {
             counters,
         }
     }
-
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -130,5 +129,4 @@ impl HistoricalPathSubstitutionDenied {
     pub fn reason(&self) -> &'static str {
         self.reason
     }
-
 }

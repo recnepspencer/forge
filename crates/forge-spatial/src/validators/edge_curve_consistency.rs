@@ -12,11 +12,11 @@
 //! INVARIANTS: No topology mutation. Requires position + curve callbacks.
 
 use forge_core::{KernelError, ToleranceProvider};
-use worth_geom::facade::CurveKind;
-use worth_math::linalg;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, VertexId};
 use forge_topo::queries::edge_endpoint_ids;
+use worth_geom::facade::CurveKind;
+use worth_math::linalg;
 
 /// Validate that every edge's curve binding is geometrically consistent
 /// with its vertex endpoint positions.

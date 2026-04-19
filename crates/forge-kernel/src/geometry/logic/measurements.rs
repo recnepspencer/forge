@@ -7,9 +7,9 @@
 //! These functions need both `TopologyArena` and `GeometryView`,
 //! which is why they live in `forge-kernel` rather than `worth-geom`.
 
-use worth_geom::facade::{compute_polygon_area, distance, polyhedron_centroid, polyhedron_volume};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId};
+use worth_geom::facade::{compute_polygon_area, distance, polyhedron_centroid, polyhedron_volume};
 
 use super::super::contracts::GeometryView;
 

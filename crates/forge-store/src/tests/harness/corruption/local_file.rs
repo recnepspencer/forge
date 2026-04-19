@@ -312,9 +312,7 @@ pub fn force_bulk_checkpoint_completed_chunk_regression(
         checkpoint_sequence,
         completed_chunk_ordinal,
         next_chunk_ordinal,
-        record
-            .checkpoint
-            .last_committed_chunk_witness_artifact_id(),
+        record.checkpoint.last_committed_chunk_witness_artifact_id(),
     );
     record.checkpoint = PublishedBulkProgressCheckpoint::new(
         program_id.to_string(),
@@ -418,8 +416,8 @@ pub fn force_bulk_plan_payload_chunk_width_drift(
     let mut state: serde_json::Value =
         serde_json::from_slice(&raw).expect("store state should decode");
     let artifact_id = format!("bulk-plan:{program_id}:{plan_id}");
-    let original_width = state["bulk_deterministic_plan_records"][&artifact_id]["plan"]["chunks"][0]
-        ["width_units"]
+    let original_width = state["bulk_deterministic_plan_records"][&artifact_id]["plan"]["chunks"]
+        [0]["width_units"]
         .as_u64()
         .expect("bulk plan chunk width should exist");
     state["bulk_deterministic_plan_records"][&artifact_id]["plan"]["chunks"][0]["width_units"] =
@@ -468,13 +466,20 @@ pub fn force_milestone_6_layout_materialization_chunk_member_count_drift(path: &
             .milestone_9_reference()
             .physical_chunk_id()
             .clone(),
-        record.materialization.milestone_9_reference().chunk_shape_version(),
+        record
+            .materialization
+            .milestone_9_reference()
+            .chunk_shape_version(),
         record
             .materialization
             .milestone_9_reference()
             .determinism_digest()
             .to_string(),
-        record.materialization.milestone_9_reference().chunk_member_count() + 1,
+        record
+            .materialization
+            .milestone_9_reference()
+            .chunk_member_count()
+            + 1,
     );
     record.materialization = Milestone6LayoutMaterialization::new(
         record.materialization.artifact_id().to_string(),
@@ -510,9 +515,7 @@ pub fn force_milestone_6_chunk_membership_boundary_drift(path: &std::path::Path)
     .expect("milestone 6 chunk membership boundary drift state should write");
 }
 
-pub fn force_milestone_6_commit_coupled_layout_seed_authority_digest_drift(
-    path: &std::path::Path,
-) {
+pub fn force_milestone_6_commit_coupled_layout_seed_authority_digest_drift(path: &std::path::Path) {
     let raw = std::fs::read(path).expect("store file should exist");
     let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
     let record = state
@@ -520,10 +523,8 @@ pub fn force_milestone_6_commit_coupled_layout_seed_authority_digest_drift(
         .values_mut()
         .next()
         .expect("milestone 6 commit-coupled layout seed record should exist");
-    record.authority_basis_commit_digest = format!(
-        "{}:drifted",
-        record.authority_basis_commit_digest
-    );
+    record.authority_basis_commit_digest =
+        format!("{}:drifted", record.authority_basis_commit_digest);
     std::fs::write(
         path,
         serde_json::to_vec_pretty(&state).expect("store state should encode"),

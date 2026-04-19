@@ -5,8 +5,8 @@ mod runtime;
 #[cfg(test)]
 mod tests;
 
-pub use runtime::{branch_state_proof_report, canonical_digest};
 pub(crate) use runtime::RuntimeObservationRegistry;
+pub use runtime::{branch_state_proof_report, canonical_digest};
 #[allow(unused_imports)]
 pub use runtime::{
     lowered_strategy_bundle_digest, merge_lineage_digest, merge_plan_proof_report,

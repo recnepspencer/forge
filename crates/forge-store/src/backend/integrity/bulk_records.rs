@@ -31,8 +31,10 @@ impl StoreState {
         }
 
         for (stored_key, record) in &self.frozen_bulk_manifest_records {
-            let expected =
-                frozen_bulk_manifest_artifact_id(&record.program_id, record.manifest.manifest_digest());
+            let expected = frozen_bulk_manifest_artifact_id(
+                &record.program_id,
+                record.manifest.manifest_digest(),
+            );
             if stored_key != &expected || record.artifact_id != expected {
                 return Err(StoreError::backend_integrity(format!(
                     "bulk manifest key `{stored_key}` did not match expected artifact id `{expected}`"
@@ -43,7 +45,10 @@ impl StoreState {
             {
                 return Err(StoreError::new(
                     StoreErrorKind::BulkProgramVersionUnsupported,
-                    format!("bulk manifest `{}` used unsupported family version", record.program_id),
+                    format!(
+                        "bulk manifest `{}` used unsupported family version",
+                        record.program_id
+                    ),
                 ));
             }
             if record.program_id != record.manifest.program_id() {
@@ -141,7 +146,8 @@ impl StoreState {
                 .find(|basis| {
                     basis.program_id == record.program_id
                         && basis.basis.transform_identity() == record.partition.transform_identity()
-                        && basis.basis.target_branch_scope() == record.partition.target_branch_scope()
+                        && basis.basis.target_branch_scope()
+                            == record.partition.target_branch_scope()
                         && basis.basis.basis_commit_id() == record.partition.basis_commit_id()
                 })
                 .ok_or_else(|| {
@@ -170,7 +176,10 @@ impl StoreState {
             {
                 return Err(StoreError::new(
                     StoreErrorKind::BulkProgramVersionUnsupported,
-                    format!("bulk plan `{}` used unsupported family version", record.artifact_id),
+                    format!(
+                        "bulk plan `{}` used unsupported family version",
+                        record.artifact_id
+                    ),
                 ));
             }
             if record.program_id != record.plan.program_id() {
@@ -209,7 +218,10 @@ impl StoreState {
             if record.family_version != BULK_FAMILY_VERSION {
                 return Err(StoreError::new(
                     StoreErrorKind::BulkProgramVersionUnsupported,
-                    format!("bulk witness `{}` used unsupported family version", record.artifact_id),
+                    format!(
+                        "bulk witness `{}` used unsupported family version",
+                        record.artifact_id
+                    ),
                 ));
             }
             let plan = self
@@ -314,15 +326,15 @@ impl StoreState {
             }
         }
 
-        let checkpoint_families = self
-            .bulk_progress_checkpoint_records
-            .values()
-            .fold(std::collections::BTreeMap::<(&str, &str), Vec<_>>::new(), |mut acc, record| {
+        let checkpoint_families = self.bulk_progress_checkpoint_records.values().fold(
+            std::collections::BTreeMap::<(&str, &str), Vec<_>>::new(),
+            |mut acc, record| {
                 acc.entry((&record.program_id, &record.plan_id))
                     .or_default()
                     .push(record);
                 acc
-            });
+            },
+        );
         for ((program_id, plan_id), mut checkpoints) in checkpoint_families {
             checkpoints.sort_by_key(|record| record.checkpoint.checkpoint_sequence());
             let mut expected_sequence = 1;
@@ -344,7 +356,8 @@ impl StoreState {
                         minimum_completed_chunk_ordinal
                     )));
                 }
-                minimum_completed_chunk_ordinal = checkpoint.checkpoint.next_chunk_ordinal().value();
+                minimum_completed_chunk_ordinal =
+                    checkpoint.checkpoint.next_chunk_ordinal().value();
                 expected_sequence += 1;
             }
         }
@@ -368,7 +381,9 @@ impl StoreState {
             let witnesses: Vec<_> = self
                 .bulk_chunk_witness_records
                 .values()
-                .filter(|witness| witness.program_id == record.program_id && witness.plan_id == record.plan_id)
+                .filter(|witness| {
+                    witness.program_id == record.program_id && witness.plan_id == record.plan_id
+                })
                 .collect();
             if witnesses.is_empty() {
                 return Err(StoreError::backend_integrity(format!(
@@ -381,7 +396,8 @@ impl StoreState {
                 .max_by_key(|witness| witness.witness.chunk_ordinal().value())
                 .expect("non-empty witnesses");
             if highest.witness.chunk_ordinal() != record.index.highest_committed_chunk_ordinal()
-                || highest.witness.canonical_commit_id() != record.index.highest_committed_commit_id()
+                || highest.witness.canonical_commit_id()
+                    != record.index.highest_committed_commit_id()
                 || witnesses.len() as u64 != record.index.witness_count()
             {
                 return Err(StoreError::backend_integrity(format!(
@@ -390,8 +406,11 @@ impl StoreState {
                 )));
             }
             if let Some(checkpoint_sequence) = record.index.latest_checkpoint_sequence() {
-                let checkpoint_artifact_id =
-                    bulk_checkpoint_artifact_id(&record.program_id, &record.plan_id, checkpoint_sequence);
+                let checkpoint_artifact_id = bulk_checkpoint_artifact_id(
+                    &record.program_id,
+                    &record.plan_id,
+                    checkpoint_sequence,
+                );
                 let checkpoint = self
                     .bulk_progress_checkpoint_records
                     .get(&checkpoint_artifact_id)

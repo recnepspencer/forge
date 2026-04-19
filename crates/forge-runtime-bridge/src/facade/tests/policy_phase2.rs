@@ -7,8 +7,8 @@ use crate::facade::{
 };
 use crate::input::envelope::TruthBranchIdentity;
 use crate::snapshot::{
-    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector, HistoricalEvaluationDeclaration,
-    TruthSnapshotIdentity,
+    BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
+    HistoricalEvaluationDeclaration, TruthSnapshotIdentity,
 };
 
 #[test]
@@ -33,12 +33,18 @@ fn runtime_admits_canonical_policy_declaration_and_lowers_it() {
         contract.resolved_execution_class(),
         BridgeExecutionPolicyClass::DeterministicCanonical
     );
-    assert_eq!(lowered.execution_class(), contract.resolved_execution_class());
+    assert_eq!(
+        lowered.execution_class(),
+        contract.resolved_execution_class()
+    );
     assert_eq!(lowered.diagnostics_tier(), BridgeDiagnosticsTier::Standard);
     assert!(lowered.route_artifacts());
     assert!(lowered.replay_artifacts());
     assert_eq!(provenance.contract_identity(), contract.contract_identity());
-    assert_eq!(provenance.lowered_policy_identity(), lowered.policy_identity());
+    assert_eq!(
+        provenance.lowered_policy_identity(),
+        lowered.policy_identity()
+    );
     assert_eq!(provenance.entries().len(), 4);
 }
 
@@ -62,7 +68,10 @@ fn runtime_rejects_optimized_authoritative_policy_requests() {
         rejection.kind(),
         BridgePolicyRejectionKind::UnsupportedExecutionMode
     );
-    assert_eq!(rejection.stage(), crate::facade::BridgePolicyRejectionStage::Validation);
+    assert_eq!(
+        rejection.stage(),
+        crate::facade::BridgePolicyRejectionStage::Validation
+    );
     assert_eq!(rejection.field_kind(), BridgePolicyFieldKind::ExecutionMode);
     assert_eq!(
         rejection.primary_source(),
@@ -72,9 +81,7 @@ fn runtime_rejects_optimized_authoritative_policy_requests() {
 
 #[test]
 fn runtime_rejects_replay_when_baseline_forbids_replay_artifacts() {
-    let runtime = runtime(
-        BridgeRuntimePolicy::operational().with_replay_artifacts(false),
-    );
+    let runtime = runtime(BridgeRuntimePolicy::operational().with_replay_artifacts(false));
     let declaration = BridgePolicyDeclaration::new(
         BridgePolicyDeclarationIdentity::new("policy:preview-replay-required"),
         BridgeRequestKind::Preview,
@@ -88,8 +95,14 @@ fn runtime_rejects_replay_when_baseline_forbids_replay_artifacts() {
         .admit_policy_declaration(declaration)
         .expect_err("replay requirement should fail when baseline disables replay");
 
-    assert_eq!(rejection.kind(), BridgePolicyRejectionKind::ReplayPolicyConflict);
-    assert_eq!(rejection.field_kind(), BridgePolicyFieldKind::ReplayArtifacts);
+    assert_eq!(
+        rejection.kind(),
+        BridgePolicyRejectionKind::ReplayPolicyConflict
+    );
+    assert_eq!(
+        rejection.field_kind(),
+        BridgePolicyFieldKind::ReplayArtifacts
+    );
 }
 
 #[test]
@@ -108,8 +121,14 @@ fn runtime_rejects_replay_without_route_artifacts() {
         .admit_policy_declaration(declaration)
         .expect_err("replay-capable policy should require route artifacts");
 
-    assert_eq!(rejection.kind(), BridgePolicyRejectionKind::ReplayPolicyConflict);
-    assert_eq!(rejection.field_kind(), BridgePolicyFieldKind::ReplayArtifacts);
+    assert_eq!(
+        rejection.kind(),
+        BridgePolicyRejectionKind::ReplayPolicyConflict
+    );
+    assert_eq!(
+        rejection.field_kind(),
+        BridgePolicyFieldKind::ReplayArtifacts
+    );
     assert_eq!(
         rejection.conflicting_source(),
         BridgePolicySourceClass::RequestDeclared
@@ -132,8 +151,14 @@ fn runtime_rejects_replay_with_minimal_diagnostics() {
         .admit_policy_declaration(declaration)
         .expect_err("replay-capable policy should require standard diagnostics");
 
-    assert_eq!(rejection.kind(), BridgePolicyRejectionKind::DiagnosticsPolicyConflict);
-    assert_eq!(rejection.field_kind(), BridgePolicyFieldKind::DiagnosticsTier);
+    assert_eq!(
+        rejection.kind(),
+        BridgePolicyRejectionKind::DiagnosticsPolicyConflict
+    );
+    assert_eq!(
+        rejection.field_kind(),
+        BridgePolicyFieldKind::DiagnosticsTier
+    );
 }
 
 #[test]
@@ -152,13 +177,19 @@ fn runtime_narrows_diagnostics_tier_to_baseline() {
         .admit_policy_declaration(declaration)
         .expect("preview diagnostics should narrow to baseline");
 
-    assert_eq!(contract.resolved_diagnostics_tier(), BridgeDiagnosticsTier::Minimal);
+    assert_eq!(
+        contract.resolved_diagnostics_tier(),
+        BridgeDiagnosticsTier::Minimal
+    );
     let diagnostics_entry = contract
         .resolution_entries()
         .iter()
         .find(|entry| entry.field_kind() == BridgePolicyFieldKind::DiagnosticsTier)
         .expect("diagnostics resolution entry should exist");
-    assert_eq!(diagnostics_entry.resolution(), BridgePolicyResolution::Narrowed);
+    assert_eq!(
+        diagnostics_entry.resolution(),
+        BridgePolicyResolution::Narrowed
+    );
     assert_eq!(
         diagnostics_entry.operative_source(),
         BridgePolicySourceClass::RuntimeBaseline
@@ -286,7 +317,10 @@ fn policy_admission_remains_structurally_distinct_from_truth_view_policy_resolut
             panic!("unexpected truth-view rejection: {}", rejection.detail());
         }
     }
-    assert_eq!(contract.resolved_execution_class(), BridgeExecutionPolicyClass::Optimized);
+    assert_eq!(
+        contract.resolved_execution_class(),
+        BridgeExecutionPolicyClass::Optimized
+    );
 }
 
 #[test]
@@ -315,21 +349,12 @@ fn runtime_summarizes_policy_provenance_report_rows_with_semantic_equivalence() 
         ),
     );
 
-    let left_row = runtime.summarize_policy_provenance_row(
-        "left",
-        &left.0,
-        &left.1,
-        &left.2,
-        &left.3,
-    );
-    let right_row = runtime.summarize_policy_provenance_row(
-        "right",
-        &right.0,
-        &right.1,
-        &right.2,
-        &right.3,
-    );
-    let report = runtime.summarize_policy_provenance_report(vec![left_row.clone(), right_row.clone()]);
+    let left_row =
+        runtime.summarize_policy_provenance_row("left", &left.0, &left.1, &left.2, &left.3);
+    let right_row =
+        runtime.summarize_policy_provenance_row("right", &right.0, &right.1, &right.2, &right.3);
+    let report =
+        runtime.summarize_policy_provenance_report(vec![left_row.clone(), right_row.clone()]);
 
     assert_ne!(left_row.policy_digest(), right_row.policy_digest());
     assert_eq!(
@@ -342,8 +367,10 @@ fn runtime_summarizes_policy_provenance_report_rows_with_semantic_equivalence() 
 
 #[test]
 fn policy_counters_are_canonical_for_same_inputs() {
-    let left = BridgePolicyCounters::new(2, 8, 1, 4, 1, 4, 4, 1, 0, 2, 0, 1, 0, 0, 3, 2, 1, 0, 1, 0);
-    let right = BridgePolicyCounters::new(2, 8, 1, 4, 1, 4, 4, 1, 0, 2, 0, 1, 0, 0, 3, 2, 1, 0, 1, 0);
+    let left =
+        BridgePolicyCounters::new(2, 8, 1, 4, 1, 4, 4, 1, 0, 2, 0, 1, 0, 0, 3, 2, 1, 0, 1, 0);
+    let right =
+        BridgePolicyCounters::new(2, 8, 1, 4, 1, 4, 4, 1, 0, 2, 0, 1, 0, 0, 3, 2, 1, 0, 1, 0);
 
     assert_eq!(left, right);
     assert_eq!(left.digest(), right.digest());
@@ -492,7 +519,10 @@ fn policy_scoped_route_round_trips_through_canonical_replay() {
             .route_planning_policy_digest(),
         Some(route_policy.digest())
     );
-    assert_eq!(replay.route_identity(), result.result_summary().route_identity());
+    assert_eq!(
+        replay.route_identity(),
+        result.result_summary().route_identity()
+    );
     assert_eq!(
         replay.invalidation_identity(),
         result.result_summary().invalidation_identity()
@@ -528,7 +558,10 @@ fn policy_scoped_route_without_route_artifacts_does_not_retain_canonical_record(
         )
         .expect("policy scoped route should deliver");
 
-    assert!(runtime.diagnostics().last_canonical_route_record().is_none());
+    assert!(runtime
+        .diagnostics()
+        .last_canonical_route_record()
+        .is_none());
 }
 
 fn admitted_bundle(

@@ -2,22 +2,20 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use worth_schema::facade::{
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
     VerifiedTopologyCommit, WorthBoundaryEnvelope, WorthBoundaryFailure, WorthDecisionTrace,
-    WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers,
-    WorthNamedCounter, WorthPerformanceAccounting, WorthTopologyReadArtifact,
-    WorthTraceAvailability,
+    WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers, WorthNamedCounter,
+    WorthPerformanceAccounting, WorthTopologyReadArtifact, WorthTraceAvailability,
 };
 
+use crate::diagnostics::{build_derived_invalidation_report, WorthDerivedReadDiagnostics};
 use crate::facade::{
-    build_derived_read_diagnostics,
-    build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
-    interpret_topology_view,
+    build_derived_equivalence_contract, build_derived_read_diagnostics,
+    build_topology_read_artifact, certify_topology_view, interpret_topology_view,
     validate_interpreted_topology,
 };
-use crate::diagnostics::{build_derived_invalidation_report, WorthDerivedReadDiagnostics};
 use crate::interpretation::InterpretedTopologyView;
 use crate::materialization::MaterializedTopologyView;
-use crate::parity::WorthDerivedEquivalenceContractReport;
 use crate::materialization::{WorthTopologyMaterializationError, WorthTopologyMaterializer};
+use crate::parity::WorthDerivedEquivalenceContractReport;
 use crate::validators::{DerivedTopologyValidationReport, WorthTopologyValidationError};
 
 #[derive(Debug)]
@@ -108,10 +106,12 @@ pub(crate) fn stage_topology_read_from_view(
 pub(crate) fn stage_topology_read_from_view_traced(
     read_view: &RelationalReadView,
     basis: &DerivedTopologyReadBasis,
-) -> Result<WorthBoundaryEnvelope<StagedWorthTopologyRead>, WorthBoundaryFailure<WorthTopologyReadError>>
-{
-    let staged =
-        stage_topology_read_from_view(read_view).map_err(|error| read_failure_for_basis(basis, error))?;
+) -> Result<
+    WorthBoundaryEnvelope<StagedWorthTopologyRead>,
+    WorthBoundaryFailure<WorthTopologyReadError>,
+> {
+    let staged = stage_topology_read_from_view(read_view)
+        .map_err(|error| read_failure_for_basis(basis, error))?;
     let materialized = staged.materialized().clone();
     let interpreted = staged.interpreted().clone();
     let validation = staged.validation().clone();
@@ -196,10 +196,12 @@ impl<'a> WorthTopologyReader<'a> {
     pub fn materialize_traced(
         &self,
         basis: &DerivedTopologyReadBasis,
-    ) -> Result<WorthTracedMaterializedTopologyView, WorthBoundaryFailure<WorthTopologyReadError>> {
+    ) -> Result<WorthTracedMaterializedTopologyView, WorthBoundaryFailure<WorthTopologyReadError>>
+    {
         let read_view = self.read_view_traced(basis)?;
-        let materialized = WorthTopologyMaterializer::materialize_from_truth(read_view.primary_result())
-            .map_err(|error| read_failure_for_basis(basis, error.into()))?;
+        let materialized =
+            WorthTopologyMaterializer::materialize_from_truth(read_view.primary_result())
+                .map_err(|error| read_failure_for_basis(basis, error.into()))?;
         Ok(traced_materialized_envelope(materialized, basis))
     }
 
@@ -221,10 +223,8 @@ impl<'a> WorthTopologyReader<'a> {
     pub fn equivalence_contract_traced(
         &self,
         basis: &DerivedTopologyReadBasis,
-    ) -> Result<
-        WorthTracedDerivedEquivalenceContract,
-        WorthBoundaryFailure<WorthTopologyReadError>,
-    > {
+    ) -> Result<WorthTracedDerivedEquivalenceContract, WorthBoundaryFailure<WorthTopologyReadError>>
+    {
         let staged = self.stage_traced(basis)?;
         Ok(traced_read_envelope(
             build_derived_equivalence_contract(
@@ -243,7 +243,8 @@ impl<'a> WorthTopologyReader<'a> {
     pub fn diagnostics_traced(
         &self,
         basis: &DerivedTopologyReadBasis,
-    ) -> Result<WorthTracedDerivedReadDiagnostics, WorthBoundaryFailure<WorthTopologyReadError>> {
+    ) -> Result<WorthTracedDerivedReadDiagnostics, WorthBoundaryFailure<WorthTopologyReadError>>
+    {
         let staged = self.stage_traced(basis)?;
         Ok(traced_read_envelope(
             build_derived_read_diagnostics(
@@ -271,8 +272,10 @@ impl<'a> WorthTopologyReader<'a> {
     pub(crate) fn read_view_traced(
         &self,
         basis: &DerivedTopologyReadBasis,
-    ) -> Result<WorthBoundaryEnvelope<RelationalReadView>, WorthBoundaryFailure<WorthTopologyReadError>>
-    {
+    ) -> Result<
+        WorthBoundaryEnvelope<RelationalReadView>,
+        WorthBoundaryFailure<WorthTopologyReadError>,
+    > {
         let read_view = self
             .runtime
             .read_truth()
@@ -301,8 +304,10 @@ impl<'a> WorthTopologyReader<'a> {
     pub(crate) fn stage_traced(
         &self,
         basis: &DerivedTopologyReadBasis,
-    ) -> Result<WorthBoundaryEnvelope<StagedWorthTopologyRead>, WorthBoundaryFailure<WorthTopologyReadError>>
-    {
+    ) -> Result<
+        WorthBoundaryEnvelope<StagedWorthTopologyRead>,
+        WorthBoundaryFailure<WorthTopologyReadError>,
+    > {
         let read_view = self.read_view_traced(basis)?;
         stage_topology_read_from_view_traced(read_view.primary_result(), basis)
     }
@@ -505,7 +510,7 @@ fn performance_accounting_for(
 mod tests {
     use super::build_derived_invalidation_report;
     use worth_schema::facade::{
-        seed_minimal_topology, seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+        seed_milestone_one_primitive, seed_minimal_topology, WorthMilestoneOnePrimitiveCase,
     };
 
     use crate::facade::{worth_milestone_one_runtime_builder, WorthTopologyReader};
@@ -515,8 +520,8 @@ mod tests {
         let mut runtime = worth_milestone_one_runtime_builder()
             .expect("worth milestone one runtime builder")
             .build();
-        let seeded = seed_minimal_topology(&mut runtime, "reader-seeded")
-            .expect("seed minimal topology");
+        let seeded =
+            seed_minimal_topology(&mut runtime, "reader-seeded").expect("seed minimal topology");
 
         let reader = WorthTopologyReader::new(&runtime);
         let basis = reader.read_basis_from_persisted_truth(&seeded.persisted_truth);
@@ -564,8 +569,8 @@ mod tests {
         let mut runtime = worth_milestone_one_runtime_builder()
             .expect("worth milestone one runtime builder")
             .build();
-        let seeded = seed_minimal_topology(&mut runtime, "reader-traced")
-            .expect("seed minimal topology");
+        let seeded =
+            seed_minimal_topology(&mut runtime, "reader-traced").expect("seed minimal topology");
 
         let reader = WorthTopologyReader::new(&runtime);
         let basis = reader.read_basis_from_persisted_truth(&seeded.persisted_truth);

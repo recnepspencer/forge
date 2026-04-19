@@ -177,13 +177,11 @@ impl BridgePreviewSessionDeclaration {
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
-    use crate::speculation::{
-        BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
-    };
+    use crate::speculation::{BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity};
 
     use super::{
-        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
-        BridgeSpeculativeBranchBinding,
+        BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
+        BridgeRequestKind, BridgeSpeculativeBranchBinding,
     };
 
     #[test]

@@ -53,9 +53,9 @@ impl BridgeWritebackStrategyCompatibilityReport {
             || strategy_basis.strategy_class() != idempotence.strategy_class()
         {
             BridgeWritebackStrategyCompatibilityDisposition::StrategyClassMismatch
-        } else if strategy_basis.strategy_descriptor_digest()
-            != effect.strategy_descriptor_digest()
-            || strategy_basis.strategy_descriptor_digest() != idempotence.strategy_descriptor_digest()
+        } else if strategy_basis.strategy_descriptor_digest() != effect.strategy_descriptor_digest()
+            || strategy_basis.strategy_descriptor_digest()
+                != idempotence.strategy_descriptor_digest()
         {
             BridgeWritebackStrategyCompatibilityDisposition::StrategyDescriptorMismatch
         } else if declaration.effect_class() != effect.effect_class() {

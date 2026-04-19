@@ -8,24 +8,22 @@ use crate::certification::closeout::certify_milestone_one_closeout_impl;
 use crate::certification::corpus::{
     certify_milestone_one_branch_local_primitive_scenarios_impl,
     certify_milestone_one_default_primitive_corpus_impl,
-    certify_milestone_one_primitive_corpus_impl,
-    certify_milestone_one_primitive_scenarios_impl,
+    certify_milestone_one_primitive_corpus_impl, certify_milestone_one_primitive_scenarios_impl,
 };
 use crate::certification::error::WorthMilestoneOneCertificationError;
+use crate::certification::milestone_two::WorthTracedMilestoneTwoDerivedReadReport;
 use crate::certification::milestone_two::{
     certify_milestone_two_closeout_impl, certify_milestone_two_default_derived_corpus_impl,
     certify_milestone_two_read_view_traced_impl, certify_milestone_two_verified_commit_traced_impl,
 };
+use crate::certification::read_view::WorthTracedMilestoneOneCertificationReport;
 use crate::certification::read_view::{
     certify_milestone_one_read_view_traced_impl, certify_verified_topology_commit_traced_impl,
 };
 use crate::certification::report::{
     WorthMilestoneOneCloseoutReport, WorthMilestoneTwoCloseoutReport,
-    WorthMilestoneTwoDerivedCorpusReport,
-    WorthPrimitiveCorpusReport,
+    WorthMilestoneTwoDerivedCorpusReport, WorthPrimitiveCorpusReport,
 };
-use crate::certification::milestone_two::WorthTracedMilestoneTwoDerivedReadReport;
-use crate::certification::read_view::WorthTracedMilestoneOneCertificationReport;
 use worth_schema::facade::WorthBoundaryFailure;
 
 pub fn certify_milestone_one_read_view_traced(

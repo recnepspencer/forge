@@ -68,9 +68,9 @@ impl WorthPrecisionFallbackRecord {
 
         let disposition = match escalation.resolved_at {
             PrecisionMode::Float64 => WorthFallbackDisposition::NoneRequired,
-            PrecisionMode::ExpansionB | PrecisionMode::ExpansionC | PrecisionMode::ExactRational => {
-                WorthFallbackDisposition::EscalatePrecision
-            }
+            PrecisionMode::ExpansionB
+            | PrecisionMode::ExpansionC
+            | PrecisionMode::ExactRational => WorthFallbackDisposition::EscalatePrecision,
         };
 
         let proof_class = match escalation.resolved_at {

@@ -15,20 +15,12 @@ impl WorthTopologyCreateBatchBuilder {
         Self::default()
     }
 
-    pub fn topology_entity(
-        mut self,
-        create_key: impl Into<String>,
-        kind: WorthEntityKind,
-    ) -> Self {
+    pub fn topology_entity(mut self, create_key: impl Into<String>, kind: WorthEntityKind) -> Self {
         self.push_topology_entity(create_key, kind);
         self
     }
 
-    pub fn push_topology_entity(
-        &mut self,
-        create_key: impl Into<String>,
-        kind: WorthEntityKind,
-    ) {
+    pub fn push_topology_entity(&mut self, create_key: impl Into<String>, kind: WorthEntityKind) {
         self.mutations.push(WorthTopologyMutation::CreateEntity {
             create_key: WorthCreateKey::new(create_key.into()),
             kind,

@@ -998,4 +998,3 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     assert_eq!(committed_counters.bulk_mutation_lineage_transition_count, 1);
     assert_eq!(committed_counters.bulk_mutation_provenance_record_count, 1);
 }
-

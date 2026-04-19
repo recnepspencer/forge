@@ -265,9 +265,7 @@ impl BridgeDiagnosticsFacade {
         BridgeWritebackMapperExplanation::from_record(record)
     }
 
-    pub fn explain_last_writeback_mapper_record(
-        &self,
-    ) -> Option<BridgeWritebackMapperExplanation> {
+    pub fn explain_last_writeback_mapper_record(&self) -> Option<BridgeWritebackMapperExplanation> {
         self.last_writeback_mapper_record()
             .map(|record| BridgeWritebackMapperExplanation::from_record(&record))
     }
@@ -296,9 +294,10 @@ impl BridgeDiagnosticsFacade {
     pub fn explain_last_writeback_mapped_family_input(
         &self,
     ) -> Option<BridgeMappedWritebackFamilyInputExplanation> {
-        self.last_writeback_mapped_family_input().map(|mapped_input| {
-            BridgeMappedWritebackFamilyInputExplanation::from_mapped_input(&mapped_input)
-        })
+        self.last_writeback_mapped_family_input()
+            .map(|mapped_input| {
+                BridgeMappedWritebackFamilyInputExplanation::from_mapped_input(&mapped_input)
+            })
     }
 
     pub fn explain_writeback_replay_record(

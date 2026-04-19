@@ -67,7 +67,9 @@ fn standard_builder_aliases_build_runtime() {
 fn standard_route_flows_from_commit_string_to_evaluation_target() {
     let runtime = runtime(BridgeRuntimePolicy::default());
 
-    let routed = runtime.route("commit-std").expect("standard route should succeed");
+    let routed = runtime
+        .route("commit-std")
+        .expect("standard route should succeed");
     let evaluation = runtime
         .evaluate_current(routed.target())
         .expect("evaluation target should prepare current evaluation");
@@ -80,11 +82,16 @@ fn standard_route_flows_from_commit_string_to_evaluation_target() {
         routed.result().receipt().snapshot_identity().as_str(),
         "snapshot-a"
     );
-    assert_eq!(evaluation.snapshot().snapshot_identity().as_str(), "snapshot-a");
+    assert_eq!(
+        evaluation.snapshot().snapshot_identity().as_str(),
+        "snapshot-a"
+    );
     assert_eq!(runtime.diagnostics().route_records().len(), 1);
     assert!(matches!(
         runtime.diagnostics().explain_last(),
-        Some(crate::facade::BridgeStandardDiagnosticsExplanation::Route(_))
+        Some(crate::facade::BridgeStandardDiagnosticsExplanation::Route(
+            _
+        ))
     ));
 }
 
@@ -93,9 +100,11 @@ fn standard_truth_view_evaluation_flows_from_branch_head_request() {
     let runtime = runtime(BridgeRuntimePolicy::default());
 
     let evaluation = runtime
-        .evaluate(crate::facade::BridgeTruthViewEvaluationRequest::for_branch_head(
-            TruthBranchIdentity::new("analysis"),
-        ))
+        .evaluate(
+            crate::facade::BridgeTruthViewEvaluationRequest::for_branch_head(
+                TruthBranchIdentity::new("analysis"),
+            ),
+        )
         .expect("branch-head evaluation should succeed");
 
     assert_eq!(evaluation.snapshot_identity().as_str(), "snapshot-a");

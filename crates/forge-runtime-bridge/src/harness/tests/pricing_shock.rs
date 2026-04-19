@@ -1,54 +1,50 @@
-use super::pricing_support::*;
 use super::pricing_domain::{
     MaterialPriceAttribution, MaterialTickWave, PricingCommitAttribution, PricingDomainWorld,
     PricingMaterial, ProductPriceBreakdown,
 };
-use std::collections::BTreeMap;
-use forge_harness::facade::{
-    ExecutionProfile, ExecutionRequest, FeedStreamEventKind, FeedVolatilityRegime,
-    HarnessAdapter, RunRecord, ScenarioPlan,
-};
+use super::pricing_support::*;
 use crate::adapter::{
     TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
     TruthWritebackRequest,
 };
+use crate::error::BridgeDeliveryErrorKind;
 use crate::facade::{
-    BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgePolicyDeclaration,
-    BridgePolicyDeclarationIdentity,
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeCommittedPatchItem,
-    BridgeFailureClass, BridgeMappingId, BridgeMappingRegistration,
-    BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
+    BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgeFailureClass, BridgeMappingId,
+    BridgeMappingRegistration, BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind,
+    BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface, BridgeMergeParentOrderProof,
+    BridgeMergeStructuralAdvisoryDisposition, BridgePolicyDeclaration,
+    BridgePolicyDeclarationIdentity, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayErrorKind,
-    BridgeRequestKind, BridgeRuntimePolicy, BridgeSignalBranchIdentity,
-    BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
-    BridgeSpeculativePromotionRequest, BridgeSpeculativeSessionRequest,
-    BridgeStandardRouteError, BridgeTruthViewEvaluationRequest, CoarseRoutingMode,
-    FineGrainedMatchStatus, MappingSelector, SliceFallbackPolicy, SubscriptionSliceKind,
-    RawCommittedPatchEnvelope, RuntimeBridge, RuntimeBridgeBuilder, SignalInvalidationScope,
-    SnapshotReadRecord, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
-    BridgeWritebackCausalityBasis, BridgeWritebackCausalityIdentity,
+    BridgeRequestKind, BridgeRuntimePolicy, BridgeSignalBranchIdentity, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
+    BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativePromotionRequest,
+    BridgeSpeculativeSessionRequest, BridgeStandardRouteError, BridgeTruthViewEvaluationRequest,
+    BridgeTruthViewSelector, BridgeWritebackCausalityBasis, BridgeWritebackCausalityIdentity,
     BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
     BridgeWritebackEffectIdentity, BridgeWritebackErrorKind, BridgeWritebackFailureClass,
-    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackIdempotenceIdentity, BridgeWritebackRequestMode,
-    BridgeWritebackStrategyClass,
-    BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass,
-    BridgeMergeOntologyMappingSurface, BridgeMergeParentOrderProof,
-    BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclaration,
-    MergeHistoryDeclarationIdentity, BridgeSourceCapability, BridgeSourceCapabilitySet,
-    BridgeTruthViewSelector,
+    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
+    BridgeWritebackRequestMode, BridgeWritebackStrategyClass, CoarseRoutingMode,
+    FineGrainedMatchStatus, MappingSelector, MergeHistoryDeclaration,
+    MergeHistoryDeclarationIdentity, RawCommittedPatchEnvelope, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalInvalidationScope, SliceFallbackPolicy, SnapshotReadRecord,
+    SubscriptionSliceKind, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
+    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
 };
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::{
     BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
     RecordingTruthWritebackAuthority, SnapshotFixture,
 };
-use crate::error::BridgeDeliveryErrorKind;
 use crate::snapshot::{SnapshotReadPacket, SnapshotReadRequest};
-use crate::speculation::BridgePreviewLifecycleStateKind;
 use crate::source::{SourceDeclaration, SourceDeclarationIdentity};
+use crate::speculation::BridgePreviewLifecycleStateKind;
+use forge_harness::facade::{
+    ExecutionProfile, ExecutionRequest, FeedStreamEventKind, FeedVolatilityRegime, HarnessAdapter,
+    RunRecord, ScenarioPlan,
+};
 use serde_json::json;
+use std::collections::BTreeMap;
 
 #[derive(Clone)]
 struct RejectingPricingWritebackAuthority {
@@ -116,13 +112,22 @@ fn generated_pricing_scenario() -> GeneratedPricingScenario {
     ]);
     let main_portfolio = world.price_matrix();
     let main_material_prices = BTreeMap::from([
-        (PricingMaterial::Steel, world.current_material_price_microunits(PricingMaterial::Steel)),
+        (
+            PricingMaterial::Steel,
+            world.current_material_price_microunits(PricingMaterial::Steel),
+        ),
         (
             PricingMaterial::Aluminum,
             world.current_material_price_microunits(PricingMaterial::Aluminum),
         ),
-        (PricingMaterial::Copper, world.current_material_price_microunits(PricingMaterial::Copper)),
-        (PricingMaterial::Rubber, world.current_material_price_microunits(PricingMaterial::Rubber)),
+        (
+            PricingMaterial::Copper,
+            world.current_material_price_microunits(PricingMaterial::Copper),
+        ),
+        (
+            PricingMaterial::Rubber,
+            world.current_material_price_microunits(PricingMaterial::Rubber),
+        ),
         (
             PricingMaterial::PlasticResin,
             world.current_material_price_microunits(PricingMaterial::PlasticResin),
@@ -135,13 +140,19 @@ fn generated_pricing_scenario() -> GeneratedPricingScenario {
             PricingMaterial::Packaging,
             world.current_material_price_microunits(PricingMaterial::Packaging),
         ),
-        (PricingMaterial::Labor, world.current_material_price_microunits(PricingMaterial::Labor)),
-        (PricingMaterial::Fuel, world.current_material_price_microunits(PricingMaterial::Fuel)),
+        (
+            PricingMaterial::Labor,
+            world.current_material_price_microunits(PricingMaterial::Labor),
+        ),
+        (
+            PricingMaterial::Fuel,
+            world.current_material_price_microunits(PricingMaterial::Fuel),
+        ),
     ]);
     let speculative_portfolio =
         world.price_matrix_with_overrides([(PricingMaterial::Rubber, speculative_rubber_cost)]);
-    let crisis_portfolio =
-        world.price_matrix_with_scenario(crisis_overrides.clone(), crisis_family_tariff_bps.clone());
+    let crisis_portfolio = world
+        .price_matrix_with_scenario(crisis_overrides.clone(), crisis_family_tariff_bps.clone());
 
     let main_snapshot_base = world.snapshot_fixture("snapshot:pricing-main");
     let speculative_snapshot_base = world.snapshot_fixture_with_overrides(
@@ -195,9 +206,11 @@ fn generated_pricing_scenario() -> GeneratedPricingScenario {
 
     let interleaved_wave = world.advance_material_streams();
     let live_main_steel_cost = world.current_material_price_microunits(PricingMaterial::Steel);
-    let interleaved_main_rubber_cost = world.current_material_price_microunits(PricingMaterial::Rubber);
+    let interleaved_main_rubber_cost =
+        world.current_material_price_microunits(PricingMaterial::Rubber);
     let live_main_snapshot_base = world.snapshot_fixture("snapshot:pricing-main-live");
-    let interleaved_main_snapshot_base = world.snapshot_fixture("snapshot:pricing-main-interleaved");
+    let interleaved_main_snapshot_base =
+        world.snapshot_fixture("snapshot:pricing-main-interleaved");
     let fanout_second_snapshot_base = world.snapshot_fixture("snapshot:pricing-fanout-b");
     let fanout_second_steel_cost = live_main_steel_cost;
     commit_attributions.insert(
@@ -353,10 +366,7 @@ impl TruthWritebackAuthority for RejectingPricingWritebackAuthority {
     }
 }
 
-fn pricing_mapping(
-    component: &str,
-    signal_target: impl Into<String>,
-) -> BridgeMappingRegistration {
+fn pricing_mapping(component: &str, signal_target: impl Into<String>) -> BridgeMappingRegistration {
     let signal_target = signal_target.into();
     BridgeMappingRegistration::new(
         BridgeMappingId::new(format!(
@@ -625,21 +635,21 @@ fn pricing_writeback_declaration(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
         ),
-        BridgeWritebackRequestMode::WritebackCapable => BridgeWritebackDeclaration::writeback_capable(
-            BridgeWritebackDeclarationIdentity::new(declaration_identity),
-            request_kind,
-            BridgeWritebackFamilyKind::ProjectedStateDiff,
-            BridgeWritebackEffectClass::ProjectedStateDiff,
-            BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
-            strategy_descriptor_digest,
-            BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
-        ),
+        BridgeWritebackRequestMode::WritebackCapable => {
+            BridgeWritebackDeclaration::writeback_capable(
+                BridgeWritebackDeclarationIdentity::new(declaration_identity),
+                request_kind,
+                BridgeWritebackFamilyKind::ProjectedStateDiff,
+                BridgeWritebackEffectClass::ProjectedStateDiff,
+                BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+                strategy_descriptor_digest,
+                BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+            )
+        }
     }
 }
 
-fn pricing_lowered_policy(
-    runtime: &RuntimeBridge,
-) -> crate::facade::LoweredBridgeExecutionPolicy {
+fn pricing_lowered_policy(runtime: &RuntimeBridge) -> crate::facade::LoweredBridgeExecutionPolicy {
     let policy_contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
             BridgePolicyDeclarationIdentity::new("policy:pricing-writeback"),
@@ -679,10 +689,7 @@ fn pricing_provenance_record_key(component: &str, field: &str) -> String {
 
 fn pricing_provenance_read_packet(component: &str) -> SnapshotReadPacket {
     SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(
-            format!("component:{component}"),
-            "provenance:regime",
-        ),
+        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:regime"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
             "provenance:external-factor",
@@ -691,18 +698,9 @@ fn pricing_provenance_read_packet(component: &str) -> SnapshotReadPacket {
             format!("component:{component}"),
             "provenance:factor-delta",
         ),
-        SnapshotReadRequest::for_coarse(
-            format!("component:{component}"),
-            "provenance:trend-delta",
-        ),
-        SnapshotReadRequest::for_coarse(
-            format!("component:{component}"),
-            "provenance:jump-delta",
-        ),
-        SnapshotReadRequest::for_coarse(
-            format!("component:{component}"),
-            "provenance:shock-delta",
-        ),
+        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:trend-delta"),
+        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:jump-delta"),
+        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:shock-delta"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
             "provenance:shock-multiplier",
@@ -798,17 +796,15 @@ fn snapshot_with_corrupted_provenance_field(
         .with_read_result_identity(snapshot.read_result_identity().clone())
 }
 
-fn snapshot_with_identity(
-    snapshot: &SnapshotFixture,
-    identity: &str,
-) -> SnapshotFixture {
-    SnapshotFixture::new(TruthSnapshotIdentity::new(identity), snapshot.records().to_vec())
-        .with_read_result_identity(TruthSnapshotIdentity::new(identity))
+fn snapshot_with_identity(snapshot: &SnapshotFixture, identity: &str) -> SnapshotFixture {
+    SnapshotFixture::new(
+        TruthSnapshotIdentity::new(identity),
+        snapshot.records().to_vec(),
+    )
+    .with_read_result_identity(TruthSnapshotIdentity::new(identity))
 }
 
-fn read_single_payload(
-    evaluation: &crate::facade::BridgeTruthViewEvaluation,
-) -> String {
+fn read_single_payload(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> String {
     let reads = evaluation
         .observation()
         .read_planned_packet()
@@ -818,17 +814,13 @@ fn read_single_payload(
         .to_owned()
 }
 
-fn read_single_money_cents(
-    evaluation: &crate::facade::BridgeTruthViewEvaluation,
-) -> i64 {
+fn read_single_money_cents(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> i64 {
     read_single_payload(evaluation)
         .parse::<i64>()
         .expect("pricing payload should be parseable as integer cents")
 }
 
-fn read_packet_payloads(
-    evaluation: &crate::facade::BridgeTruthViewEvaluation,
-) -> Vec<String> {
+fn read_packet_payloads(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> Vec<String> {
     evaluation
         .observation()
         .read_planned_packet()
@@ -945,11 +937,18 @@ fn pricing_reference_source_with_conflicting_route_commit_items(
     items: Vec<BridgeCommittedPatchItem>,
 ) -> InMemoryRelationalBridgeSource {
     let source = pricing_reference_source();
-    source.insert_committed_patch(pricing_patch_items("main", commit, patch, "snapshot:pricing-main", items));
+    source.insert_committed_patch(pricing_patch_items(
+        "main",
+        commit,
+        patch,
+        "snapshot:pricing-main",
+        items,
+    ));
     source
 }
 
-fn pricing_reference_source_with_conflicting_commit_identity_for_route() -> InMemoryRelationalBridgeSource {
+fn pricing_reference_source_with_conflicting_commit_identity_for_route(
+) -> InMemoryRelationalBridgeSource {
     pricing_reference_source_with_conflicting_route_commit_items(
         "commit:steel-main",
         "patch:steel-main-conflicting-meaning",
@@ -966,7 +965,10 @@ fn pricing_reference_source_with_branch_head_pointing_to(
     commit: &str,
 ) -> InMemoryRelationalBridgeSource {
     let source = pricing_reference_source();
-    source.set_branch_head(&TruthBranchIdentity::new(branch), &TruthCommitIdentity::new(commit));
+    source.set_branch_head(
+        &TruthBranchIdentity::new(branch),
+        &TruthCommitIdentity::new(commit),
+    );
     source
 }
 
@@ -977,8 +979,17 @@ fn pricing_reference_source_with_missing_branch_head_snapshot(
     component: &str,
 ) -> InMemoryRelationalBridgeSource {
     let source = pricing_reference_source();
-    source.insert_committed_patch(pricing_patch(branch, commit, "patch:missing-snapshot", snapshot, component));
-    source.set_branch_head(&TruthBranchIdentity::new(branch), &TruthCommitIdentity::new(commit));
+    source.insert_committed_patch(pricing_patch(
+        branch,
+        commit,
+        "patch:missing-snapshot",
+        snapshot,
+        component,
+    ));
+    source.set_branch_head(
+        &TruthBranchIdentity::new(branch),
+        &TruthCommitIdentity::new(commit),
+    );
     source
 }
 
@@ -987,7 +998,10 @@ fn pricing_reference_source_with_missing_branch_head_commit(
     commit: &str,
 ) -> InMemoryRelationalBridgeSource {
     let source = pricing_reference_source();
-    source.set_branch_head(&TruthBranchIdentity::new(branch), &TruthCommitIdentity::new(commit));
+    source.set_branch_head(
+        &TruthBranchIdentity::new(branch),
+        &TruthCommitIdentity::new(commit),
+    );
     source
 }
 
@@ -1029,7 +1043,8 @@ fn pricing_merge_source() -> InMemoryRelationalBridgeSource {
     source
 }
 
-fn pricing_merge_source_with_conflicting_merged_snapshot_identity() -> InMemoryRelationalBridgeSource {
+fn pricing_merge_source_with_conflicting_merged_snapshot_identity() -> InMemoryRelationalBridgeSource
+{
     let scenario = generated_pricing_scenario();
     let source = pricing_merge_source();
     source.insert_snapshot(snapshot_with_identity(
@@ -1077,7 +1092,12 @@ fn capture_pricing_reference_bundle(
     PricingReferenceBundle {
         source_branch: route_record.source_branch().as_str().to_owned(),
         source_commit: route_record.source_commit().as_str().to_owned(),
-        route_snapshot: route.result().receipt().snapshot_identity().as_str().to_owned(),
+        route_snapshot: route
+            .result()
+            .receipt()
+            .snapshot_identity()
+            .as_str()
+            .to_owned(),
         delivered_target_count: route.result().receipt().delivered_target_count(),
         route_entry_count: route_record.entries().len(),
         evaluation_record_identity: main_eval.record().record_identity().as_str().to_owned(),
@@ -1105,13 +1125,14 @@ fn capture_pricing_aspect_bundle(policy: BridgeRuntimePolicy) -> PricingAspectBu
         "snapshot:pricing-aspect",
         "steel",
     ));
-    source.insert_snapshot(pricing_aspect_snapshot("snapshot:pricing-aspect", "145", "40"));
+    source.insert_snapshot(pricing_aspect_snapshot(
+        "snapshot:pricing-aspect",
+        "145",
+        "40",
+    ));
 
-    let runtime = build_pricing_runtime_with_aspects(
-        source,
-        RecordingSignalBridgeSink::default(),
-        policy,
-    );
+    let runtime =
+        build_pricing_runtime_with_aspects(source, RecordingSignalBridgeSink::default(), policy);
     runtime
         .route("commit:steel-aspect")
         .expect("aspect-aware pricing route should succeed");
@@ -1274,7 +1295,10 @@ fn capture_pricing_discard_bundle() -> PricingDiscardBundle {
             .as_str()
             .to_owned(),
         speculative_rubber_cost_cents: read_single_money_cents(&speculative_eval),
-        post_discard_main_snapshot: post_discard_main_eval.snapshot_identity().as_str().to_owned(),
+        post_discard_main_snapshot: post_discard_main_eval
+            .snapshot_identity()
+            .as_str()
+            .to_owned(),
         post_discard_main_steel_cost_cents: read_single_money_cents(&post_discard_main_eval),
         lifecycle_state: discarded.session().lifecycle_state_kind(),
         discard_record_count: runtime.diagnostics().preview_discard_records().len(),
@@ -1350,7 +1374,9 @@ fn capture_pricing_promotion_bundle() -> PricingPromotionBundle {
         authoritative_artifact_digest: promotion_record.authoritative_artifact_digest().to_owned(),
         replay_outcome: replay_bundle.lifecycle_outcome(),
         has_promotion_explanation: matches!(
-            runtime.diagnostics().explain_session("pricing:preview-promote-churn"),
+            runtime
+                .diagnostics()
+                .explain_session("pricing:preview-promote-churn"),
             Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
         ),
     }
@@ -1412,7 +1438,11 @@ fn capture_pricing_fanout_bundle() -> PricingFanoutBundle {
         first_delivery_target_count: first_route.result().receipt().delivered_target_count(),
         second_delivery_target_count: second_route.result().receipt().delivered_target_count(),
         second_source_commit: "commit:steel-fanout-b".to_owned(),
-        second_snapshot: second_eval.snapshot().snapshot_identity().as_str().to_owned(),
+        second_snapshot: second_eval
+            .snapshot()
+            .snapshot_identity()
+            .as_str()
+            .to_owned(),
         branch_snapshot: branch_eval.snapshot_identity().as_str().to_owned(),
         branch_steel_cost_cents: read_single_money_cents(&branch_eval),
         retained_target_count: last_targets.len(),
@@ -1486,10 +1516,8 @@ fn capture_pricing_restart_failure_bundle() -> PricingRestartFailureBundle {
         "rubber",
     ));
     drifted_source.insert_snapshot(pricing_snapshot("snapshot:pricing-main", "100", "40"));
-    let restarted_runtime = build_pricing_runtime(
-        drifted_source,
-        RecordingSignalBridgeSink::default(),
-    );
+    let restarted_runtime =
+        build_pricing_runtime(drifted_source, RecordingSignalBridgeSink::default());
 
     let error = restarted_runtime
         .replay_canonical_record(&canonical_record)
@@ -1655,9 +1683,7 @@ fn capture_pricing_historical_provenance_bundle(
         shock_jump_delta_microunits: shock_payloads[4]
             .parse()
             .expect("shock jump delta should parse"),
-        shock_delta_microunits: shock_payloads[5]
-            .parse()
-            .expect("shock delta should parse"),
+        shock_delta_microunits: shock_payloads[5].parse().expect("shock delta should parse"),
         shock_multiplier_per_mille: shock_payloads[6]
             .parse()
             .expect("shock multiplier should parse"),
@@ -1854,10 +1880,12 @@ fn capture_pricing_strategy_bundle() -> PricingStrategyBundle {
             hold_unprofitable_count += 1;
         }
 
-        let partial_absorb_retail_cents =
-            main_entry.retail_price_cents + ((crisis_entry.retail_price_cents - main_entry.retail_price_cents) / 2);
-        let partial_absorb_margin_cents = partial_absorb_retail_cents - crisis_entry.landed_cost_cents;
-        partial_absorb_total_margin_delta_cents += partial_absorb_margin_cents - main_entry.margin_cents;
+        let partial_absorb_retail_cents = main_entry.retail_price_cents
+            + ((crisis_entry.retail_price_cents - main_entry.retail_price_cents) / 2);
+        let partial_absorb_margin_cents =
+            partial_absorb_retail_cents - crisis_entry.landed_cost_cents;
+        partial_absorb_total_margin_delta_cents +=
+            partial_absorb_margin_cents - main_entry.margin_cents;
         if partial_absorb_margin_cents < 0 {
             partial_absorb_unprofitable_count += 1;
         }
@@ -1966,15 +1994,13 @@ fn natural_shock_multiplier_per_mille(
     let branch_variation = ((branch_index as i64 * 67) + (iteration_index as i64 * 29)) % 240;
     let jump_pressure = (attribution.jump_delta_microunits.abs() / 2_000).clamp(0, 500);
     let factor_pressure = (attribution.external_factor_microunits.abs() / 3_000).clamp(0, 260);
-    (
-        base_shock_multiplier_per_mille(material)
-            + regime_pressure_per_mille(attribution.regime)
-            + event_pressure_per_mille(attribution.event_kind)
-            + branch_variation
-            + jump_pressure
-            + factor_pressure
-    )
-    .clamp(1_100, 4_500)
+    (base_shock_multiplier_per_mille(material)
+        + regime_pressure_per_mille(attribution.regime)
+        + event_pressure_per_mille(attribution.event_kind)
+        + branch_variation
+        + jump_pressure
+        + factor_pressure)
+        .clamp(1_100, 4_500)
 }
 
 fn family_tariff_bps_for_material(
@@ -2027,7 +2053,8 @@ fn capture_pricing_simulation_suite() -> PricingShockSimulationSuite {
         let mut repricing_total = 0i64;
 
         for branch_index in 0..BRANCH_COUNT {
-            let mut world = PricingDomainWorld::new(70_000 + (material as u64 * 1_000) + branch_index as u64);
+            let mut world =
+                PricingDomainWorld::new(70_000 + (material as u64 * 1_000) + branch_index as u64);
             let mut branch_total_delta = 0i64;
 
             for iteration_index in 0..ITERATIONS_PER_BRANCH {
@@ -2132,10 +2159,11 @@ fn capture_pricing_simulation_suite() -> PricingShockSimulationSuite {
     }
 
     material_summaries.sort_by(|left, right| {
-        right
-            .damage_score
-            .cmp(&left.damage_score)
-            .then_with(|| right.mean_total_retail_delta_cents.cmp(&left.mean_total_retail_delta_cents))
+        right.damage_score.cmp(&left.damage_score).then_with(|| {
+            right
+                .mean_total_retail_delta_cents
+                .cmp(&left.mean_total_retail_delta_cents)
+        })
     });
     let ranked_materials_by_damage = material_summaries
         .iter()
@@ -2282,7 +2310,8 @@ fn capture_pricing_merge_bundle_from_source(
     source: InMemoryRelationalBridgeSource,
     policy: BridgeRuntimePolicy,
 ) -> PricingMergeBundle {
-    let runtime = build_pricing_runtime_with_merge(source, RecordingSignalBridgeSink::default(), policy);
+    let runtime =
+        build_pricing_runtime_with_merge(source, RecordingSignalBridgeSink::default(), policy);
     let contract = runtime
         .admit_merge_history(pricing_merge_declaration())
         .expect("pricing merge declaration should admit");
@@ -2337,7 +2366,10 @@ fn capture_pricing_merge_bundle_from_source(
     PricingMergeBundle {
         bridge_class: format!(
             "{:?}",
-            contract.validated_declaration().declaration().bridge_class()
+            contract
+                .validated_declaration()
+                .declaration()
+                .bridge_class()
         ),
         outcome_class: format!("{:?}", bundle.reduced_routing_artifact().outcome_class()),
         blocked_stage: bundle
@@ -2565,7 +2597,10 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
         steel_eval.snapshot().snapshot_identity().as_str(),
         "snapshot:pricing-main"
     );
-    assert_eq!(branch_eval.snapshot_identity().as_str(), "snapshot:pricing-main");
+    assert_eq!(
+        branch_eval.snapshot_identity().as_str(),
+        "snapshot:pricing-main"
+    );
     let diagnostics = runtime.diagnostics();
     let delivered_targets = diagnostics
         .route_records()
@@ -2575,7 +2610,10 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
         .iter()
         .map(|target| target.signal_scope().to_owned())
         .collect::<Vec<_>>();
-    assert_eq!(delivered_targets, vec!["price:bicycle", "price:wheelbarrow"]);
+    assert_eq!(
+        delivered_targets,
+        vec!["price:bicycle", "price:wheelbarrow"]
+    );
     assert_eq!(sink.deliveries().len(), 1);
 
     let discarded = runtime
@@ -2620,7 +2658,9 @@ fn pricing_shock_standard_path_routes_evaluates_and_keeps_speculation_local() {
         "promotion should stay isolated and queryable"
     );
     assert!(matches!(
-        runtime.diagnostics().explain_session("pricing:preview-promote"),
+        runtime
+            .diagnostics()
+            .explain_session("pricing:preview-promote"),
         Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
     ));
     assert_eq!(
@@ -2673,19 +2713,35 @@ fn pricing_shock_split_screen_keeps_main_and_speculative_truth_isolated() {
     let speculative_rubber_cost = read_single_payload(&speculative_eval);
 
     assert_eq!(comparison.truth_branch_identity().as_str(), "pricing-shock");
-    assert_eq!(comparison.signal_branch_identity().as_str(), "signal:pricing-shock");
-    assert_eq!(main_eval.snapshot_identity().as_str(), "snapshot:pricing-main");
+    assert_eq!(
+        comparison.signal_branch_identity().as_str(),
+        "signal:pricing-shock"
+    );
+    assert_eq!(
+        main_eval.snapshot_identity().as_str(),
+        "snapshot:pricing-main"
+    );
     assert_eq!(
         speculative_eval.snapshot_identity().as_str(),
         "snapshot:pricing-shock"
     );
     assert_eq!(main_rubber_cost, scenario.main_rubber_cost.to_string());
-    assert_eq!(speculative_rubber_cost, scenario.speculative_rubber_cost.to_string());
     assert_eq!(
-        live_main_route.result().receipt().snapshot_identity().as_str(),
+        speculative_rubber_cost,
+        scenario.speculative_rubber_cost.to_string()
+    );
+    assert_eq!(
+        live_main_route
+            .result()
+            .receipt()
+            .snapshot_identity()
+            .as_str(),
         "snapshot:pricing-main"
     );
-    assert_eq!(live_main_route.result().receipt().delivered_target_count(), 2);
+    assert_eq!(
+        live_main_route.result().receipt().delivered_target_count(),
+        2
+    );
 }
 
 #[test]
@@ -2711,12 +2767,11 @@ fn pricing_shock_generated_commit_attribution_exposes_stream_and_product_criteri
     assert_eq!(shock.representative_product.sku, "scooter-001");
     assert!(shock.representative_product.material_cost_cents > 0);
     assert!(shock.representative_product.shipping_cost_cents > 0);
-    assert!(
-        shock.representative_product
-            .material_contributions_cents
-            .iter()
-            .any(|(material, cents)| *material == PricingMaterial::Rubber && *cents > 0)
-    );
+    assert!(shock
+        .representative_product
+        .material_contributions_cents
+        .iter()
+        .any(|(material, cents)| *material == PricingMaterial::Rubber && *cents > 0));
     assert_ne!(shock.material_attribution.external_factor_microunits, 0);
     assert!(
         shock.material_attribution.factor_delta_microunits != 0
@@ -2749,19 +2804,34 @@ fn pricing_shock_historical_commit_reads_bridge_visible_provenance_from_truth() 
         .get("commit:rubber-shock")
         .expect("generated scenario should retain shock attribution");
 
-    assert_eq!(historical.snapshot_identity().as_str(), "snapshot:pricing-shock");
-    assert_eq!(payloads[0], format!("{:?}", shock.material_attribution.regime));
+    assert_eq!(
+        historical.snapshot_identity().as_str(),
+        "snapshot:pricing-shock"
+    );
+    assert_eq!(
+        payloads[0],
+        format!("{:?}", shock.material_attribution.regime)
+    );
     assert_eq!(
         payloads[1],
-        shock.material_attribution.external_factor_microunits.to_string()
+        shock
+            .material_attribution
+            .external_factor_microunits
+            .to_string()
     );
     assert_eq!(
         payloads[2],
-        shock.material_attribution.factor_delta_microunits.to_string()
+        shock
+            .material_attribution
+            .factor_delta_microunits
+            .to_string()
     );
     assert_eq!(
         payloads[3],
-        shock.material_attribution.trend_delta_microunits.to_string()
+        shock
+            .material_attribution
+            .trend_delta_microunits
+            .to_string()
     );
     assert_eq!(
         payloads[4],
@@ -2803,12 +2873,24 @@ fn pricing_shock_historical_provenance_corruption_is_detectable_against_independ
         .get("commit:rubber-shock")
         .expect("generated scenario should retain shock attribution");
 
-    assert_eq!(provenance_eval.snapshot_identity().as_str(), "snapshot:pricing-shock");
-    assert_eq!(read_single_money_cents(&cost_eval), scenario.speculative_rubber_cost);
-    assert_eq!(payloads[0], format!("{:?}", shock.material_attribution.regime));
+    assert_eq!(
+        provenance_eval.snapshot_identity().as_str(),
+        "snapshot:pricing-shock"
+    );
+    assert_eq!(
+        read_single_money_cents(&cost_eval),
+        scenario.speculative_rubber_cost
+    );
+    assert_eq!(
+        payloads[0],
+        format!("{:?}", shock.material_attribution.regime)
+    );
     assert_eq!(
         payloads[1],
-        shock.material_attribution.external_factor_microunits.to_string()
+        shock
+            .material_attribution
+            .external_factor_microunits
+            .to_string()
     );
     assert_ne!(payloads[5], shock.shock_delta_microunits.to_string());
     assert_eq!(payloads[5], "999999");
@@ -2826,17 +2908,26 @@ fn pricing_shock_provenance_mutation_sweep_is_detectable_against_independent_ora
     for (field, expected_payload, corrupted_payload) in [
         (
             "external-factor",
-            shock.material_attribution.external_factor_microunits.to_string(),
+            shock
+                .material_attribution
+                .external_factor_microunits
+                .to_string(),
             "444444".to_owned(),
         ),
         (
             "factor-delta",
-            shock.material_attribution.factor_delta_microunits.to_string(),
+            shock
+                .material_attribution
+                .factor_delta_microunits
+                .to_string(),
             "555555".to_owned(),
         ),
         (
             "trend-delta",
-            shock.material_attribution.trend_delta_microunits.to_string(),
+            shock
+                .material_attribution
+                .trend_delta_microunits
+                .to_string(),
             "666666".to_owned(),
         ),
         (
@@ -2882,7 +2973,10 @@ fn pricing_shock_provenance_mutation_sweep_is_detectable_against_independent_ora
             _ => unreachable!("unexpected provenance field"),
         };
 
-        assert_eq!(historical.snapshot_identity().as_str(), "snapshot:pricing-shock");
+        assert_eq!(
+            historical.snapshot_identity().as_str(),
+            "snapshot:pricing-shock"
+        );
         assert_eq!(payloads[field_index], corrupted_payload);
         assert_ne!(payloads[field_index], expected_payload);
     }
@@ -2916,10 +3010,22 @@ fn pricing_shock_conflicting_historical_basis_is_detectable_against_independent_
         .expect("conflicting historical basis should materialize provenance packet");
     let payloads = read_packet_payloads(&historical_provenance);
 
-    assert_eq!(historical_cost.snapshot_identity().as_str(), "snapshot:pricing-main");
-    assert_eq!(historical_provenance.snapshot_identity().as_str(), "snapshot:pricing-main");
-    assert_eq!(read_single_money_cents(&historical_cost), scenario.main_rubber_cost);
-    assert_ne!(read_single_money_cents(&historical_cost), scenario.speculative_rubber_cost);
+    assert_eq!(
+        historical_cost.snapshot_identity().as_str(),
+        "snapshot:pricing-main"
+    );
+    assert_eq!(
+        historical_provenance.snapshot_identity().as_str(),
+        "snapshot:pricing-main"
+    );
+    assert_eq!(
+        read_single_money_cents(&historical_cost),
+        scenario.main_rubber_cost
+    );
+    assert_ne!(
+        read_single_money_cents(&historical_cost),
+        scenario.speculative_rubber_cost
+    );
     assert_ne!(
         payloads[5],
         scenario
@@ -2936,7 +3042,10 @@ fn pricing_shock_branch_head_and_snapshot_basis_mutation_sweep_is_detectable() {
     for (label, source, branch) in [
         (
             "speculative-branch-head-points-at-main",
-            pricing_reference_source_with_branch_head_pointing_to("pricing-shock", "commit:rubber-main"),
+            pricing_reference_source_with_branch_head_pointing_to(
+                "pricing-shock",
+                "commit:rubber-main",
+            ),
             "pricing-shock",
         ),
         (
@@ -2982,27 +3091,28 @@ fn pricing_shock_branch_head_and_snapshot_basis_mutation_sweep_is_detectable() {
 fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independent_oracle() {
     let scenario = generated_pricing_scenario();
 
-    for (label, source, selector_branch, expected_snapshot, unexpected_cost) in [
-        (
-            "main-snapshot-overwritten-with-speculative-meaning",
-            pricing_reference_source_with_conflicting_snapshot_identity(
-                snapshot_with_identity(&scenario.speculative_snapshot, "snapshot:pricing-main"),
+    for (label, source, selector_branch, expected_snapshot, unexpected_cost) in
+        [
+            (
+                "main-snapshot-overwritten-with-speculative-meaning",
+                pricing_reference_source_with_conflicting_snapshot_identity(
+                    snapshot_with_identity(&scenario.speculative_snapshot, "snapshot:pricing-main"),
+                ),
+                "main",
+                "snapshot:pricing-main",
+                scenario.main_rubber_cost,
             ),
-            "main",
-            "snapshot:pricing-main",
-            scenario.main_rubber_cost,
-        ),
-        (
-            "speculative-snapshot-overwritten-with-main-meaning",
-            pricing_reference_source_with_conflicting_snapshot_identity(snapshot_with_identity(
-                &scenario.main_snapshot,
+            (
+                "speculative-snapshot-overwritten-with-main-meaning",
+                pricing_reference_source_with_conflicting_snapshot_identity(
+                    snapshot_with_identity(&scenario.main_snapshot, "snapshot:pricing-shock"),
+                ),
+                "pricing-shock",
                 "snapshot:pricing-shock",
-            )),
-            "pricing-shock",
-            "snapshot:pricing-shock",
-            scenario.speculative_rubber_cost,
-        ),
-    ] {
+                scenario.speculative_rubber_cost,
+            ),
+        ]
+    {
         let runtime = build_pricing_runtime(source, RecordingSignalBridgeSink::default());
         let evaluation = runtime
             .evaluate(
@@ -3011,7 +3121,9 @@ fn pricing_shock_snapshot_identity_conflict_sweep_is_detectable_against_independ
                 ))
                 .with_read_packet(pricing_component_read_packet("rubber")),
             )
-            .unwrap_or_else(|_| panic!("{label} should still materialize the overwritten retained snapshot"));
+            .unwrap_or_else(|_| {
+                panic!("{label} should still materialize the overwritten retained snapshot")
+            });
 
         assert_eq!(
             evaluation.snapshot_identity().as_str(),
@@ -3052,7 +3164,9 @@ fn pricing_shock_branch_head_missing_commit_sweep_fails_closed() {
                     .with_read_packet(pricing_component_read_packet("rubber")),
             )
             .err()
-            .unwrap_or_else(|| panic!("{label} should fail closed when branch head commit is missing"));
+            .unwrap_or_else(|| {
+                panic!("{label} should fail closed when branch head commit is missing")
+            });
 
         let error_text = error.to_string();
         assert!(
@@ -3068,13 +3182,28 @@ fn pricing_shock_discard_stays_zero_residue_under_interleaved_main_churn() {
     let discard = capture_pricing_discard_bundle();
 
     assert_eq!(discard.live_main_snapshot, "snapshot:pricing-main-live");
-    assert_eq!(discard.speculative_rubber_cost_cents, scenario.speculative_rubber_cost);
-    assert_eq!(discard.post_discard_main_snapshot, "snapshot:pricing-main-live");
-    assert_eq!(discard.post_discard_main_steel_cost_cents, scenario.live_main_steel_cost);
-    assert_eq!(discard.lifecycle_state, BridgePreviewLifecycleStateKind::Discarded);
+    assert_eq!(
+        discard.speculative_rubber_cost_cents,
+        scenario.speculative_rubber_cost
+    );
+    assert_eq!(
+        discard.post_discard_main_snapshot,
+        "snapshot:pricing-main-live"
+    );
+    assert_eq!(
+        discard.post_discard_main_steel_cost_cents,
+        scenario.live_main_steel_cost
+    );
+    assert_eq!(
+        discard.lifecycle_state,
+        BridgePreviewLifecycleStateKind::Discarded
+    );
     assert_eq!(discard.discard_record_count, 1);
     assert_eq!(discard.promotion_record_count, 0);
-    assert_eq!(discard.replay_outcome, BridgePreviewLifecycleStateKind::Discarded);
+    assert_eq!(
+        discard.replay_outcome,
+        BridgePreviewLifecycleStateKind::Discarded
+    );
     assert!(discard.has_discard_record);
     assert!(!discard.has_promotion_record);
 }
@@ -3086,9 +3215,18 @@ fn pricing_shock_promotion_stays_distinct_from_interleaved_main_truth() {
 
     assert_eq!(promotion.main_snapshot, "snapshot:pricing-main-interleaved");
     assert_eq!(promotion.speculative_snapshot, "snapshot:pricing-shock");
-    assert_eq!(promotion.main_rubber_cost_cents, scenario.interleaved_main_rubber_cost);
-    assert_eq!(promotion.speculative_rubber_cost_cents, scenario.speculative_rubber_cost);
-    assert_eq!(promotion.lifecycle_state, BridgePreviewLifecycleStateKind::Promoted);
+    assert_eq!(
+        promotion.main_rubber_cost_cents,
+        scenario.interleaved_main_rubber_cost
+    );
+    assert_eq!(
+        promotion.speculative_rubber_cost_cents,
+        scenario.speculative_rubber_cost
+    );
+    assert_eq!(
+        promotion.lifecycle_state,
+        BridgePreviewLifecycleStateKind::Promoted
+    );
     assert_eq!(
         promotion.promotion_session_identity,
         "pricing:preview-promote-churn"
@@ -3101,7 +3239,10 @@ fn pricing_shock_promotion_stays_distinct_from_interleaved_main_truth() {
         promotion.authoritative_artifact_digest,
         "authoritative-artifact:pricing-shock"
     );
-    assert_eq!(promotion.replay_outcome, BridgePreviewLifecycleStateKind::Promoted);
+    assert_eq!(
+        promotion.replay_outcome,
+        BridgePreviewLifecycleStateKind::Promoted
+    );
     assert!(promotion.has_promotion_explanation);
 }
 
@@ -3116,7 +3257,10 @@ fn pricing_shock_live_graph_shared_input_fans_out_across_one_hundred_products() 
     assert_eq!(fanout.second_source_commit, "commit:steel-fanout-b");
     assert_eq!(fanout.second_snapshot, "snapshot:pricing-fanout-b");
     assert_eq!(fanout.branch_snapshot, "snapshot:pricing-fanout-b");
-    assert_eq!(fanout.branch_steel_cost_cents, scenario.fanout_second_steel_cost);
+    assert_eq!(
+        fanout.branch_steel_cost_cents,
+        scenario.fanout_second_steel_cost
+    );
     assert_eq!(fanout.retained_target_count, 100);
     assert_eq!(fanout.first_target, "price:product-000");
     assert_eq!(fanout.last_target, "price:product-099");
@@ -3132,7 +3276,10 @@ fn pricing_shock_writeback_lane_preserves_authority_boundary_and_noop_classifica
     );
     assert_eq!(
         writeback.strategy_class,
-        format!("{:?}", BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation)
+        format!(
+            "{:?}",
+            BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation
+        )
     );
     assert_eq!(
         writeback.commit_outcome_class,
@@ -3170,7 +3317,10 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
 
     assert_eq!(
         merge.bridge_class,
-        format!("{:?}", BridgeMergeConsumptionClass::AspectReconciliationMerge)
+        format!(
+            "{:?}",
+            BridgeMergeConsumptionClass::AspectReconciliationMerge
+        )
     );
     assert_eq!(merge.outcome_class, "ContinuityCandidate");
     assert_eq!(merge.blocked_stage, None);
@@ -3178,12 +3328,24 @@ fn pricing_shock_merge_lane_preserves_aspect_reconciliation_history_and_revisita
     assert!(merge.continuity_published);
     assert!(merge.remap_published);
     assert_eq!(merge.main_premerge_snapshot, "snapshot:pricing-main");
-    assert_eq!(merge.main_premerge_rubber_cost_cents, scenario.main_rubber_cost);
+    assert_eq!(
+        merge.main_premerge_rubber_cost_cents,
+        scenario.main_rubber_cost
+    );
     assert_eq!(merge.speculative_snapshot, "snapshot:pricing-shock");
-    assert_eq!(merge.speculative_rubber_cost_cents, scenario.speculative_rubber_cost);
+    assert_eq!(
+        merge.speculative_rubber_cost_cents,
+        scenario.speculative_rubber_cost
+    );
     assert_eq!(merge.merged_snapshot, "snapshot:pricing-merged");
-    assert_eq!(merge.merged_rubber_cost_cents, scenario.speculative_rubber_cost);
-    assert_eq!(merge.merged_aspect_registration_id, "pricing-rubber-usd-field");
+    assert_eq!(
+        merge.merged_rubber_cost_cents,
+        scenario.speculative_rubber_cost
+    );
+    assert_eq!(
+        merge.merged_aspect_registration_id,
+        "pricing-rubber-usd-field"
+    );
     assert_eq!(
         merge.merged_fine_grained_match_status,
         format!("{:?}", FineGrainedMatchStatus::Matched)
@@ -3203,23 +3365,25 @@ fn pricing_shock_merge_snapshot_identity_conflict_is_detectable_against_independ
 
     assert_eq!(merge.merged_snapshot, "snapshot:pricing-merged");
     assert_eq!(
-        merge.merged_rubber_cost_cents,
-        scenario.main_rubber_cost,
+        merge.merged_rubber_cost_cents, scenario.main_rubber_cost,
         "overwritten merged snapshot should surface conflicting retained main-branch meaning"
     );
     assert_ne!(
-        merge.merged_rubber_cost_cents,
-        scenario.speculative_rubber_cost,
+        merge.merged_rubber_cost_cents, scenario.speculative_rubber_cost,
         "independent merge oracle expects merged pricing truth to match speculative rubber cost"
     );
 }
 
 #[test]
 fn pricing_shock_reference_matrix_preserves_semantic_truth_across_diagnostics_profiles() {
-    let baseline =
-        capture_pricing_certification_matrix(BridgeRuntimePolicy::development(), "pricing:preview-baseline");
-    let forensic =
-        capture_pricing_certification_matrix(BridgeRuntimePolicy::forensic(), "pricing:preview-forensic");
+    let baseline = capture_pricing_certification_matrix(
+        BridgeRuntimePolicy::development(),
+        "pricing:preview-baseline",
+    );
+    let forensic = capture_pricing_certification_matrix(
+        BridgeRuntimePolicy::forensic(),
+        "pricing:preview-forensic",
+    );
 
     assert_eq!(baseline.reference, forensic.reference);
     assert_eq!(baseline.replay, forensic.replay);
@@ -3254,14 +3418,13 @@ fn pricing_shock_duplicate_commit_identity_with_conflicting_route_meaning_is_det
         route.result().result_summary().source_commit().as_str(),
         "commit:steel-main"
     );
-    assert_eq!(route.result().receipt().snapshot_identity().as_str(), "snapshot:pricing-main");
+    assert_eq!(
+        route.result().receipt().snapshot_identity().as_str(),
+        "snapshot:pricing-main"
+    );
     assert_eq!(route.result().receipt().delivered_target_count(), 1);
     assert_eq!(
-        route.result()
-            .artifact()
-            .invalidation_targets()
-            .targets()[0]
-            .signal_scope(),
+        route.result().artifact().invalidation_targets().targets()[0].signal_scope(),
         "price:scooter"
     );
 }
@@ -3274,7 +3437,11 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
             pricing_reference_source_with_conflicting_route_commit_items(
                 "commit:steel-main",
                 "patch:steel-main-conflicting-rubber",
-                vec![BridgeCommittedPatchItem::new("component:rubber", "cost", "usd")],
+                vec![BridgeCommittedPatchItem::new(
+                    "component:rubber",
+                    "cost",
+                    "usd",
+                )],
             ),
             "commit:steel-main",
             "snapshot:pricing-main",
@@ -3285,7 +3452,11 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
             pricing_reference_source_with_conflicting_route_commit_items(
                 "commit:rubber-main",
                 "patch:rubber-main-conflicting-steel",
-                vec![BridgeCommittedPatchItem::new("component:steel", "cost", "usd")],
+                vec![BridgeCommittedPatchItem::new(
+                    "component:steel",
+                    "cost",
+                    "usd",
+                )],
             ),
             "commit:rubber-main",
             "snapshot:pricing-main",
@@ -3311,8 +3482,14 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
             .route(commit)
             .unwrap_or_else(|_| panic!("{label} should still route as retained truth"));
 
-        assert_eq!(route.result().result_summary().source_commit().as_str(), commit);
-        assert_eq!(route.result().receipt().snapshot_identity().as_str(), expected_snapshot);
+        assert_eq!(
+            route.result().result_summary().source_commit().as_str(),
+            commit
+        );
+        assert_eq!(
+            route.result().receipt().snapshot_identity().as_str(),
+            expected_snapshot
+        );
         assert_eq!(
             route.result().receipt().delivered_target_count(),
             expected_targets.len(),
@@ -3335,7 +3512,10 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
             .collect::<Vec<_>>();
         expected_targets.sort();
 
-        assert_eq!(actual_targets, expected_targets, "{label} should surface the conflicting retained meaning");
+        assert_eq!(
+            actual_targets, expected_targets,
+            "{label} should surface the conflicting retained meaning"
+        );
     }
 }
 
@@ -3378,7 +3558,11 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
             pricing_reference_source_with_conflicting_route_commit_items(
                 "commit:steel-main",
                 "patch:steel-main-conflicting-rubber",
-                vec![BridgeCommittedPatchItem::new("component:rubber", "cost", "usd")],
+                vec![BridgeCommittedPatchItem::new(
+                    "component:rubber",
+                    "cost",
+                    "usd",
+                )],
             ),
         ),
         (
@@ -3387,7 +3571,11 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
             pricing_reference_source_with_conflicting_route_commit_items(
                 "commit:rubber-main",
                 "patch:rubber-main-conflicting-steel",
-                vec![BridgeCommittedPatchItem::new("component:steel", "cost", "usd")],
+                vec![BridgeCommittedPatchItem::new(
+                    "component:steel",
+                    "cost",
+                    "usd",
+                )],
             ),
         ),
         (
@@ -3456,21 +3644,28 @@ fn pricing_shock_certification_matrix_distinguishes_control_replay_and_hostile_l
         "snapshot:pricing-missing",
         "steel",
     ));
-    let hostile_runtime = build_pricing_runtime(hostile_source, RecordingSignalBridgeSink::default());
+    let hostile_runtime =
+        build_pricing_runtime(hostile_source, RecordingSignalBridgeSink::default());
     let hostile = capture_pricing_missing_snapshot_failure_bundle(&hostile_runtime);
 
     assert_eq!(control.reference.route_snapshot, "snapshot:pricing-main");
     assert_eq!(control.reference.source_branch, "main");
     assert_eq!(control.reference.source_commit, "commit:steel-main");
     assert_eq!(control.reference.route_entry_count, 2);
-    assert_eq!(control.reference.main_rubber_cost_cents, scenario.main_rubber_cost);
+    assert_eq!(
+        control.reference.main_rubber_cost_cents,
+        scenario.main_rubber_cost
+    );
     assert_eq!(
         control.reference.speculative_rubber_cost_cents,
         scenario.speculative_rubber_cost
     );
     assert!(!control.reference.evaluation_record_identity.is_empty());
     assert!(!control.reference.evaluation_selector_identity.is_empty());
-    assert_eq!(control.replay.source_snapshot, control.reference.route_snapshot);
+    assert_eq!(
+        control.replay.source_snapshot,
+        control.reference.route_snapshot
+    );
     assert_eq!(control.replay.source_commit, "commit:steel-main");
     assert_eq!(
         hostile.failure_class,
@@ -3566,8 +3761,14 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     let suite_27 = bundle.suite_27_artifact_json();
     let counters = bundle.counter_snapshot_json();
 
-    assert_eq!(bundle.matrix.reference.route_snapshot, "snapshot:pricing-main");
-    assert_eq!(bundle.matrix.reference.main_rubber_cost_cents, scenario.main_rubber_cost);
+    assert_eq!(
+        bundle.matrix.reference.route_snapshot,
+        "snapshot:pricing-main"
+    );
+    assert_eq!(
+        bundle.matrix.reference.main_rubber_cost_cents,
+        scenario.main_rubber_cost
+    );
     assert_eq!(
         bundle.matrix.reference.speculative_rubber_cost_cents,
         scenario.speculative_rubber_cost
@@ -3585,17 +3786,35 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         bundle.matrix.reference.source_branch
     );
     assert_eq!(bundle.aspect.source_commit, "commit:steel-aspect");
-    assert_eq!(bundle.aspect.aspect_registration_id, "pricing-steel-usd-field");
-    assert_eq!(bundle.matrix.replay.source_snapshot, "snapshot:pricing-main");
-    assert_eq!(bundle.discard.replay_outcome, BridgePreviewLifecycleStateKind::Discarded);
-    assert_eq!(bundle.promotion.replay_outcome, BridgePreviewLifecycleStateKind::Promoted);
-    assert_ne!(bundle.discard.lifecycle_state, bundle.promotion.lifecycle_state);
+    assert_eq!(
+        bundle.aspect.aspect_registration_id,
+        "pricing-steel-usd-field"
+    );
+    assert_eq!(
+        bundle.matrix.replay.source_snapshot,
+        "snapshot:pricing-main"
+    );
+    assert_eq!(
+        bundle.discard.replay_outcome,
+        BridgePreviewLifecycleStateKind::Discarded
+    );
+    assert_eq!(
+        bundle.promotion.replay_outcome,
+        BridgePreviewLifecycleStateKind::Promoted
+    );
+    assert_ne!(
+        bundle.discard.lifecycle_state,
+        bundle.promotion.lifecycle_state
+    );
     assert!(!bundle.discard.has_promotion_record);
     assert!(bundle.promotion.has_promotion_explanation);
     assert_eq!(bundle.fanout.second_delivery_target_count, 100);
     assert_eq!(bundle.fanout.second_source_commit, "commit:steel-fanout-b");
     assert_eq!(bundle.restart_replay.source_commit, "commit:steel-main");
-    assert_eq!(bundle.restart_failure.error_kind, BridgeReplayErrorKind::RouteMismatch);
+    assert_eq!(
+        bundle.restart_failure.error_kind,
+        BridgeReplayErrorKind::RouteMismatch
+    );
     assert_eq!(
         bundle.writeback.commit_outcome_class,
         crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit
@@ -3611,10 +3830,16 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         bundle.merge.bridge_class,
-        format!("{:?}", BridgeMergeConsumptionClass::AspectReconciliationMerge)
+        format!(
+            "{:?}",
+            BridgeMergeConsumptionClass::AspectReconciliationMerge
+        )
     );
     assert_eq!(bundle.merge.outcome_class, "ContinuityCandidate");
-    assert_eq!(bundle.merge.main_premerge_rubber_cost_cents, scenario.main_rubber_cost);
+    assert_eq!(
+        bundle.merge.main_premerge_rubber_cost_cents,
+        scenario.main_rubber_cost
+    );
     assert_eq!(
         bundle.merge.speculative_rubber_cost_cents,
         scenario.speculative_rubber_cost
@@ -3631,7 +3856,10 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         bundle.merge.speculative_rubber_cost_cents,
         bundle.merge.merged_rubber_cost_cents
     );
-    assert_eq!(bundle.merge.merged_aspect_registration_id, "pricing-rubber-usd-field");
+    assert_eq!(
+        bundle.merge.merged_aspect_registration_id,
+        "pricing-rubber-usd-field"
+    );
     assert_eq!(bundle.provenance.main_commit, "commit:rubber-main");
     assert_eq!(bundle.provenance.shock_commit, "commit:rubber-shock");
     assert_eq!(bundle.provenance.shock_snapshot, "snapshot:pricing-shock");
@@ -3645,9 +3873,18 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         bundle.hostile_failure.error_kind,
         BridgeDeliveryErrorKind::SnapshotAcquisitionFailure
     );
-    assert_eq!(summary["ordinary_matrix"]["route_snapshot"], json!("snapshot:pricing-main"));
-    assert_eq!(summary["fanout_lane"]["second_delivery_target_count"], json!(100));
-    assert_eq!(summary["restart_failure"]["error_kind"], json!("RouteMismatch"));
+    assert_eq!(
+        summary["ordinary_matrix"]["route_snapshot"],
+        json!("snapshot:pricing-main")
+    );
+    assert_eq!(
+        summary["fanout_lane"]["second_delivery_target_count"],
+        json!(100)
+    );
+    assert_eq!(
+        summary["restart_failure"]["error_kind"],
+        json!("RouteMismatch")
+    );
     assert_eq!(
         summary["writeback_lane"]["commit_outcome_class"],
         json!("AuthoritativeCommit")
@@ -3656,7 +3893,10 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         summary["writeback_lane"]["noop_outcome_class"],
         json!("CanonicalNoop")
     );
-    assert_eq!(summary["writeback_lane"]["authority_commit_count"], json!(1));
+    assert_eq!(
+        summary["writeback_lane"]["authority_commit_count"],
+        json!(1)
+    );
     assert_eq!(
         summary["writeback_lane"]["rejection_error_kind"],
         json!("MergeAuthorityRejected")
@@ -3710,7 +3950,10 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         summary["historical_provenance"]["shock_multiplier_per_mille"],
         json!(4000)
     );
-    assert_eq!(summary["portfolio_blast_radius"]["product_count"], json!(100));
+    assert_eq!(
+        summary["portfolio_blast_radius"]["product_count"],
+        json!(100)
+    );
     assert_eq!(
         summary["portfolio_blast_radius"]["positive_retail_delta_count"],
         json!(bundle.portfolio.positive_retail_delta_count)
@@ -3760,8 +4003,14 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     assert_eq!(bundle.simulation.material_summaries.len(), 9);
     assert_eq!(bundle.simulation.iteration_traces.len(), 900);
     assert!(!bundle.simulation.ranked_materials_by_damage.is_empty());
-    assert_eq!(bundle.trust_attacks.replay_policy_error_kind, "ReplayPolicyConflict");
-    assert_eq!(bundle.trust_attacks.replay_policy_failure_class, "ReplayArtifacts");
+    assert_eq!(
+        bundle.trust_attacks.replay_policy_error_kind,
+        "ReplayPolicyConflict"
+    );
+    assert_eq!(
+        bundle.trust_attacks.replay_policy_failure_class,
+        "ReplayArtifacts"
+    );
     assert_eq!(
         bundle.trust_attacks.route_policy_error_kind,
         "RoutePolicyMismatch"
@@ -3792,7 +4041,12 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     );
     assert_eq!(
         summary["simulation_lane"]["top_damage_material"],
-        json!(bundle.simulation.ranked_materials_by_damage.first().cloned().unwrap_or_default())
+        json!(bundle
+            .simulation
+            .ranked_materials_by_damage
+            .first()
+            .cloned()
+            .unwrap_or_default())
     );
     assert_eq!(
         summary["trust_attack_lane"]["replay_policy_error_kind"],
@@ -3821,27 +4075,42 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
     assert_eq!(counters["failure_taxonomy_unclassified_count"], json!(0));
     assert_eq!(
         counters["diagnostics_entrypoint_request_count"],
-        json!(
-            suite_27["diagnostics_entrypoint_matrix"]
-                .as_object()
-                .expect("suite 27 diagnostics entrypoint matrix should be an object")
-                .len()
-        )
+        json!(suite_27["diagnostics_entrypoint_matrix"]
+            .as_object()
+            .expect("suite 27 diagnostics entrypoint matrix should be an object")
+            .len())
     );
     assert_eq!(counters["showcase_entrypoint_request_count"], json!(1));
     assert_eq!(counters["simulation_trace_bundle_count"], json!(1));
     assert_eq!(counters["trust_attack_classification_count"], json!(8));
-    assert_eq!(counters["diagnostics_entrypoint_reconstruction_count"], json!(1));
+    assert_eq!(
+        counters["diagnostics_entrypoint_reconstruction_count"],
+        json!(1)
+    );
     assert_eq!(counters["speculative_branch_bundle_count"], json!(1));
-    assert_eq!(counters["speculative_discard_residue_check_count"], json!(1));
-    assert_eq!(counters["speculative_discard_residue_nonzero_count"], json!(0));
+    assert_eq!(
+        counters["speculative_discard_residue_check_count"],
+        json!(1)
+    );
+    assert_eq!(
+        counters["speculative_discard_residue_nonzero_count"],
+        json!(0)
+    );
     assert_eq!(counters["branch_comparison_bundle_count"], json!(1));
     assert_eq!(counters["offline_bundle_diagnosis_count"], json!(1));
     assert_eq!(counters["offline_bundle_insufficiency_count"], json!(0));
-    assert!(suite_25["causality_digest"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(suite_25["routing_digest"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(suite_25["explanation_digest"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(suite_25["replay_digest"].as_str().is_some_and(|value| !value.is_empty()));
+    assert!(suite_25["causality_digest"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert!(suite_25["routing_digest"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert!(suite_25["explanation_digest"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert!(suite_25["replay_digest"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
     assert!(suite_25["reference_workload_bundle_digest"]
         .as_str()
         .is_some_and(|value| !value.is_empty()));
@@ -3871,17 +4140,38 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         suite_27["bundle_completeness_report"]["insufficiency_count"],
         json!(0)
     );
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["routing"], json!(true));
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["merge"], json!(true));
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["routing"],
+        json!(true)
+    );
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["merge"],
+        json!(true)
+    );
     assert_eq!(
         suite_27["diagnostics_entrypoint_matrix"]["historical_provenance"],
         json!(true)
     );
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["portfolio"], json!(true));
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["crisis"], json!(true));
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["strategy"], json!(true));
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["simulation"], json!(true));
-    assert_eq!(suite_27["diagnostics_entrypoint_matrix"]["trust_attacks"], json!(true));
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["portfolio"],
+        json!(true)
+    );
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["crisis"],
+        json!(true)
+    );
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["strategy"],
+        json!(true)
+    );
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["simulation"],
+        json!(true)
+    );
+    assert_eq!(
+        suite_27["diagnostics_entrypoint_matrix"]["trust_attacks"],
+        json!(true)
+    );
     assert_eq!(
         suite_27["reference_workload_bundle_comparison"]["main_vs_speculative_snapshot_distinct"],
         json!(true)
@@ -3895,7 +4185,8 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         json!(true)
     );
     assert_eq!(
-        suite_27["reference_workload_bundle_comparison"]["historical_provenance_commit_matches_shock"],
+        suite_27["reference_workload_bundle_comparison"]
+            ["historical_provenance_commit_matches_shock"],
         json!(true)
     );
     assert_eq!(
@@ -3911,11 +4202,13 @@ fn pricing_shock_workload_certification_bundle_exposes_phase_3_truth_edges() {
         json!(true)
     );
     assert_eq!(
-        suite_27["reference_workload_bundle_comparison"]["promotion_strategy_prefers_authoritative_action"],
+        suite_27["reference_workload_bundle_comparison"]
+            ["promotion_strategy_prefers_authoritative_action"],
         json!(true)
     );
     assert_eq!(
-        suite_27["reference_workload_bundle_comparison"]["simulation_identifies_at_least_one_damaging_material"],
+        suite_27["reference_workload_bundle_comparison"]
+            ["simulation_identifies_at_least_one_damaging_material"],
         json!(true)
     );
     assert_eq!(
@@ -3991,7 +4284,10 @@ fn pricing_shock_suites_25_through_27_emit_canonical_machine_checkable_artifacts
         suite_25["reference_workload_bundle_digest"],
         suite_26["reference_workload_failure_bundle_digest"]
     );
-    assert_ne!(suite_26["failure_digest"], suite_26["replay_failure_digest"]);
+    assert_ne!(
+        suite_26["failure_digest"],
+        suite_26["replay_failure_digest"]
+    );
     assert_eq!(
         suite_27["counter_snapshot"]["offline_bundle_insufficiency_count"],
         json!(0)
@@ -4087,7 +4383,10 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
         artifact["retained_commit_explorer"]["commit:rubber-shock"]["representative_sku"],
         json!("scooter-001")
     );
-    assert_eq!(artifact["portfolio_blast_radius"]["product_count"], json!(100));
+    assert_eq!(
+        artifact["portfolio_blast_radius"]["product_count"],
+        json!(100)
+    );
     assert_eq!(
         artifact["portfolio_blast_radius"]["positive_retail_delta_count"],
         json!(bundle.portfolio.positive_retail_delta_count)
@@ -4132,9 +4431,9 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
         entry["attack"] == json!("replay_policy_mismatch")
             && entry["classification"] == json!("ReplayPolicyConflict")
     }));
-    assert!(trust_attacks.iter().any(|entry| {
-        entry["attack"] == json!("simulation_damaging_material_ranked")
-    }));
+    assert!(trust_attacks
+        .iter()
+        .any(|entry| { entry["attack"] == json!("simulation_damaging_material_ranked") }));
     assert_eq!(
         artifact["trust_proof"]["suite_27"]["bundle_completeness_report"]["offline_sufficient"],
         json!(true)
@@ -4155,9 +4454,9 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
         entry["attack"] == json!("replay_policy_mismatch")
             && entry["classification"] == json!("ReplayPolicyConflict")
     }));
-    assert!(trust_attacks.iter().any(|entry| {
-        entry["attack"] == json!("simulation_damaging_material_ranked")
-    }));
+    assert!(trust_attacks
+        .iter()
+        .any(|entry| { entry["attack"] == json!("simulation_damaging_material_ranked") }));
     assert_eq!(
         artifact["demo_flow"][3],
         json!("measure portfolio blast radius")
@@ -4174,10 +4473,7 @@ fn pricing_shock_showcase_artifact_explains_retained_commit_without_hidden_memor
         artifact["timeline"][4]["snapshot"],
         json!(bundle.merge.merged_snapshot)
     );
-    assert_eq!(
-        shock_commit["snapshot"],
-        json!("snapshot:pricing-shock")
-    );
+    assert_eq!(shock_commit["snapshot"], json!("snapshot:pricing-shock"));
     assert_eq!(
         shock_commit["representative_retail_price_cents"],
         json!(bundle.provenance.representative_retail_price_cents)
@@ -4280,27 +4576,31 @@ fn pricing_shock_ml_pipeline_export_contains_full_traceable_simulation_artifacts
         export["lineage_provenance"]["causality"]["suite_25_causality_digest"],
         bundle.suite_25_artifact_json()["causality_digest"]
     );
-    assert!(
-        export["lineage_provenance_edges"]
-            .as_array()
-            .is_some_and(|edges| !edges.is_empty())
-    );
-    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
-        |edge| edge["kind"] == json!("commit_to_snapshot")
-            && edge["from"] == json!(bundle.provenance.shock_commit)
-            && edge["to"] == json!(bundle.provenance.shock_snapshot)
-    )));
-    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
-        |edge| edge["kind"] == json!("speculative_to_merged_snapshot")
+    assert!(export["lineage_provenance_edges"]
+        .as_array()
+        .is_some_and(|edges| !edges.is_empty()));
+    assert!(export["lineage_provenance_edges"]
+        .as_array()
+        .is_some_and(|edges| edges
+            .iter()
+            .any(|edge| edge["kind"] == json!("commit_to_snapshot")
+                && edge["from"] == json!(bundle.provenance.shock_commit)
+                && edge["to"] == json!(bundle.provenance.shock_snapshot))));
+    assert!(export["lineage_provenance_edges"]
+        .as_array()
+        .is_some_and(|edges| edges.iter().any(|edge| edge["kind"]
+            == json!("speculative_to_merged_snapshot")
             && edge["from"] == json!(bundle.merge.speculative_snapshot)
-            && edge["to"] == json!(bundle.merge.merged_snapshot)
-    )));
-    assert!(export["lineage_provenance_edges"].as_array().is_some_and(|edges| edges.iter().any(
-        |edge| edge["kind"] == json!("bundle_to_causality_digest")
-            && edge["from"] == json!(bundle.digest())
-    )));
+            && edge["to"] == json!(bundle.merge.merged_snapshot))));
+    assert!(export["lineage_provenance_edges"]
+        .as_array()
+        .is_some_and(|edges| edges
+            .iter()
+            .any(|edge| edge["kind"] == json!("bundle_to_causality_digest")
+                && edge["from"] == json!(bundle.digest()))));
     assert_eq!(
-        export["suite_27"]["reference_workload_bundle_comparison"]["simulation_identifies_at_least_one_damaging_material"],
+        export["suite_27"]["reference_workload_bundle_comparison"]
+            ["simulation_identifies_at_least_one_damaging_material"],
         json!(true)
     );
     assert_eq!(
@@ -4334,7 +4634,10 @@ fn pricing_shock_ml_pipeline_export_lineage_graph_is_well_formed() {
         bundle.aspect.aspect_registration_id.clone(),
         bundle.aspect.invalidation_target.clone(),
         bundle.promotion.promotion_session_identity.clone(),
-        bundle.promotion.authoritative_commit_boundary_digest.clone(),
+        bundle
+            .promotion
+            .authoritative_commit_boundary_digest
+            .clone(),
         bundle.promotion.authoritative_artifact_digest.clone(),
         bundle.fanout.second_source_commit.clone(),
         bundle.fanout.second_snapshot.clone(),
@@ -4386,7 +4689,12 @@ fn pricing_shock_ml_pipeline_export_lineage_graph_is_well_formed() {
             "lineage edge target `{to}` should be a known retained node"
         );
         assert!(
-            seen_edges.insert((from.to_owned(), to.to_owned(), kind.to_owned(), surface.to_owned())),
+            seen_edges.insert((
+                from.to_owned(),
+                to.to_owned(),
+                kind.to_owned(),
+                surface.to_owned()
+            )),
             "duplicate lineage edge detected: {kind} {from} -> {to} ({surface})"
         );
         seen_edge_kinds.insert(kind.to_owned());
@@ -4425,7 +4733,8 @@ fn pricing_shock_ml_pipeline_export_simulation_summaries_match_iteration_traces(
         .expect("ml export should expose branch_count") as usize;
     let iterations_per_branch = export["simulation"]["iterations_per_branch"]
         .as_u64()
-        .expect("ml export should expose iterations_per_branch") as usize;
+        .expect("ml export should expose iterations_per_branch")
+        as usize;
 
     let mut ranked_from_summaries = Vec::new();
 
@@ -4557,12 +4866,8 @@ fn pricing_shock_ml_pipeline_export_simulation_summaries_match_iteration_traces(
         ));
     }
 
-    ranked_from_summaries.sort_by(|left, right| {
-        right
-            .1
-            .cmp(&left.1)
-            .then_with(|| right.2.cmp(&left.2))
-    });
+    ranked_from_summaries
+        .sort_by(|left, right| right.1.cmp(&left.1).then_with(|| right.2.cmp(&left.2)));
     let expected_ranked_materials = ranked_from_summaries
         .into_iter()
         .map(|(material, _, _)| material)
@@ -4600,24 +4905,42 @@ fn pricing_shock_showcase_timeline_is_lineage_coherent() {
         .as_array()
         .expect("ml export should expose lineage graph edges");
 
-    assert_eq!(timeline.len(), 5, "showcase timeline should keep the five canonical phases");
+    assert_eq!(
+        timeline.len(),
+        5,
+        "showcase timeline should keep the five canonical phases"
+    );
 
     let has_edge = |from: &str, to: &str| {
-        edges.iter().any(|edge| {
-            edge["from"] == json!(from)
-                && edge["to"] == json!(to)
-        })
+        edges
+            .iter()
+            .any(|edge| edge["from"] == json!(from) && edge["to"] == json!(to))
     };
 
     let main_basis = &timeline[0];
     let speculative_shock = &timeline[2];
     let merged_authority = &timeline[4];
 
-    assert_eq!(main_basis["commit"], json!(bundle.matrix.reference.source_commit));
-    assert_eq!(main_basis["snapshot"], json!(bundle.matrix.reference.main_snapshot));
-    assert_eq!(speculative_shock["commit"], json!(bundle.provenance.shock_commit));
-    assert_eq!(speculative_shock["snapshot"], json!(bundle.provenance.shock_snapshot));
-    assert_eq!(merged_authority["snapshot"], json!(bundle.merge.merged_snapshot));
+    assert_eq!(
+        main_basis["commit"],
+        json!(bundle.matrix.reference.source_commit)
+    );
+    assert_eq!(
+        main_basis["snapshot"],
+        json!(bundle.matrix.reference.main_snapshot)
+    );
+    assert_eq!(
+        speculative_shock["commit"],
+        json!(bundle.provenance.shock_commit)
+    );
+    assert_eq!(
+        speculative_shock["snapshot"],
+        json!(bundle.provenance.shock_snapshot)
+    );
+    assert_eq!(
+        merged_authority["snapshot"],
+        json!(bundle.merge.merged_snapshot)
+    );
 
     assert!(
         has_edge(
@@ -4756,8 +5079,7 @@ fn pricing_shock_suite_artifacts_and_showcase_digests_are_semantically_coherent(
         "showcase certification digest should point at suite 27 certification digest"
     );
     assert_eq!(
-        artifact["demo_artifact_family"]["showcase_digest"],
-        export["bundle_digest"],
+        artifact["demo_artifact_family"]["showcase_digest"], export["bundle_digest"],
         "showcase digest should match the top-level ML export bundle digest"
     );
 
@@ -4788,8 +5110,7 @@ fn pricing_shock_suite_artifacts_and_showcase_digests_are_semantically_coherent(
         "control and hostile workload digests should remain distinct"
     );
     assert_ne!(
-        suite_25["reference_workload_bundle_digest"],
-        suite_27["certification_bundle_digest"],
+        suite_25["reference_workload_bundle_digest"], suite_27["certification_bundle_digest"],
         "reference and certification digests should remain distinct"
     );
     assert_ne!(
@@ -4816,9 +5137,18 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_direct_and_wrapped_sour
         "pricing-source-wrapped",
     );
 
-    assert_eq!(direct_bundle.suite_25_artifact_json(), wrapped_bundle.suite_25_artifact_json());
-    assert_eq!(direct_bundle.suite_26_artifact_json(), wrapped_bundle.suite_26_artifact_json());
-    assert_eq!(direct_bundle.suite_27_artifact_json(), wrapped_bundle.suite_27_artifact_json());
+    assert_eq!(
+        direct_bundle.suite_25_artifact_json(),
+        wrapped_bundle.suite_25_artifact_json()
+    );
+    assert_eq!(
+        direct_bundle.suite_26_artifact_json(),
+        wrapped_bundle.suite_26_artifact_json()
+    );
+    assert_eq!(
+        direct_bundle.suite_27_artifact_json(),
+        wrapped_bundle.suite_27_artifact_json()
+    );
     assert_eq!(direct_bundle.digest(), wrapped_bundle.digest());
 
     let direct_export = direct_bundle.ml_pipeline_export_json();
@@ -4833,7 +5163,10 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_direct_and_wrapped_sour
     );
     assert_eq!(direct_probe.summary, wrapped_probe.summary);
     assert_eq!(direct_probe.extensions, wrapped_probe.extensions);
-    assert_eq!(direct_probe.summary["failure_digest"], serde_json::Value::Null);
+    assert_eq!(
+        direct_probe.summary["failure_digest"],
+        serde_json::Value::Null
+    );
     assert_eq!(
         direct_probe.summary["truth_view_digest"],
         wrapped_probe.summary["truth_view_digest"]
@@ -4905,7 +5238,10 @@ fn pricing_shock_suite_25_through_27_parity_holds_across_source_and_policy_build
         );
         assert_eq!(baseline_probe.summary, candidate_probe.summary);
         assert_eq!(baseline_probe.extensions, candidate_probe.extensions);
-        assert_eq!(candidate_probe.summary["failure_digest"], serde_json::Value::Null);
+        assert_eq!(
+            candidate_probe.summary["failure_digest"],
+            serde_json::Value::Null
+        );
     }
 }
 
@@ -4964,7 +5300,10 @@ fn pricing_shock_missing_snapshot_fails_with_typed_delivery_record() {
     let runtime = build_pricing_runtime(source, sink);
     let failure = capture_pricing_missing_snapshot_failure_bundle(&runtime);
 
-    assert_eq!(failure.error_kind, BridgeDeliveryErrorKind::SnapshotAcquisitionFailure);
+    assert_eq!(
+        failure.error_kind,
+        BridgeDeliveryErrorKind::SnapshotAcquisitionFailure
+    );
     assert_eq!(
         failure.failure_class,
         BridgeFailureClass::Delivery(BridgeDeliveryErrorKind::SnapshotAcquisitionFailure)

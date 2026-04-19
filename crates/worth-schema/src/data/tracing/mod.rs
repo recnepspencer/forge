@@ -6,11 +6,10 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotId;
 use forge_relational::facade::transactions::{CommitLog, CommitResult, TransactionId};
 use forge_signal::facade::{
-    NodeId as SignalNodeId,
-    SignalGraph,
     diagnostics::{
         DiagnosticsAvailability as SignalDiagnosticsAvailability, LineageArtifactId, ReplayCursor,
     },
+    NodeId as SignalNodeId, SignalGraph,
 };
 use serde::{Deserialize, Serialize};
 
@@ -121,13 +120,19 @@ impl WorthAuthorityTraceEvidence {
     pub fn from_commit_results(branch_id: BranchId, commits: &[CommitResult]) -> Self {
         Self::from_commit_logs(
             branch_id,
-            commits.iter().map(|commit| commit.commit_log().clone()).collect(),
+            commits
+                .iter()
+                .map(|commit| commit.commit_log().clone())
+                .collect(),
         )
     }
 
     pub fn from_commit_logs(branch_id: BranchId, commit_logs: Vec<CommitLog>) -> Self {
         let commit_count = commit_logs.len();
-        let published_commit_count = commit_logs.iter().filter(|log| log.has_commit_published()).count();
+        let published_commit_count = commit_logs
+            .iter()
+            .filter(|log| log.has_commit_published())
+            .count();
         let total_phase_count = commit_logs
             .iter()
             .map(|log| log.summary().phase_count)
@@ -163,10 +168,7 @@ impl WorthAuthorityTraceEvidence {
                 "authority.published_commit_count",
                 self.published_commit_count as u64,
             ),
-            WorthNamedCounter::new(
-                "authority.total_phase_count",
-                self.total_phase_count as u64,
-            ),
+            WorthNamedCounter::new("authority.total_phase_count", self.total_phase_count as u64),
             WorthNamedCounter::new(
                 "authority.history_summary_count",
                 self.history_summary_count as u64,
@@ -202,7 +204,10 @@ impl WorthAuthorityTraceAnchor {
                 .map(|commit| commit.snapshot.runtime_instance_id)
                 .collect(),
             transaction_ids: commits.iter().map(|commit| commit.transaction_id).collect(),
-            commit_ids: commits.iter().map(|commit| commit.commit.commit_id).collect(),
+            commit_ids: commits
+                .iter()
+                .map(|commit| commit.commit.commit_id)
+                .collect(),
             snapshot_ids: commits
                 .iter()
                 .map(|commit| commit.snapshot.snapshot_id)
@@ -227,10 +232,7 @@ impl WorthAuthorityTraceAnchor {
         self.version_ids.last().copied()
     }
 
-    pub fn open_latest_snapshot(
-        &self,
-        runtime: &RelationalRuntime,
-    ) -> Option<RelationalReadView> {
+    pub fn open_latest_snapshot(&self, runtime: &RelationalRuntime) -> Option<RelationalReadView> {
         let snapshot_id = self.latest_snapshot_id()?;
         let version_id = self.latest_version_id()?;
         let runtime_instance_id = self.latest_runtime_instance_id()?;
@@ -375,9 +377,7 @@ impl WorthSignalTraceEvidence {
     }
 }
 
-fn format_signal_diagnostics_availability(
-    availability: SignalDiagnosticsAvailability,
-) -> String {
+fn format_signal_diagnostics_availability(availability: SignalDiagnosticsAvailability) -> String {
     format!("{availability:?}")
 }
 
@@ -446,13 +446,8 @@ impl<T> WorthBoundaryEnvelope<T> {
     }
 
     pub fn map_primary_result<U>(self, map: impl FnOnce(T) -> U) -> WorthBoundaryEnvelope<U> {
-        let (
-            primary_result,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
-        ) = self.into_parts();
+        let (primary_result, warnings, decision_trace, integrity_markers, performance_accounting) =
+            self.into_parts();
         WorthBoundaryEnvelope::success(
             map(primary_result),
             warnings,

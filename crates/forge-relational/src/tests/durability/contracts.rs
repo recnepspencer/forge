@@ -1593,4 +1593,3 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
     assert!(matches!(error, TransactionCommitError::Publication { .. }));
     assert!(runtime.history().latest_commit().is_none());
 }
-

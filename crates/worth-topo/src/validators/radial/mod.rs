@@ -12,13 +12,18 @@ pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValid
     Ok(())
 }
 
-fn validate_radial_presence(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_radial_presence(
+    view: &InterpretedTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     let topology = view.materialized().topology();
     for half_edge in &topology.half_edges {
         if half_edge.radial_next_half_edge_id.is_none() {
             return Err(err(
                 "radial.radial_presence",
-                format!("half-edge {:?} has no radial_next link", half_edge.entity_id),
+                format!(
+                    "half-edge {:?} has no radial_next link",
+                    half_edge.entity_id
+                ),
             ));
         }
     }
@@ -83,7 +88,10 @@ fn validate_radial_edge_consistency(
         let radial_next_id = half_edge.radial_next_half_edge_id.ok_or_else(|| {
             err(
                 "radial.edge_consistency",
-                format!("half-edge {:?} has no radial_next link", half_edge.entity_id),
+                format!(
+                    "half-edge {:?} has no radial_next link",
+                    half_edge.entity_id
+                ),
             )
         })?;
         let radial = topology

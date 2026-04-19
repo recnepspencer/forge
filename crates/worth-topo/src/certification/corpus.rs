@@ -3,9 +3,8 @@ use std::collections::BTreeMap;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::{
-    WorthMilestoneOnePrimitiveCase,
-    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
-    WorthMilestoneOnePrimitiveScenario, WorthMutationOrigin,
+    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
+    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario, WorthMutationOrigin,
 };
 
 use crate::certification::error::WorthMilestoneOneCertificationError;
@@ -104,8 +103,7 @@ where
         let mut runtime = runtime_factory();
         match scenario.expected_outcome {
             WorthMilestoneOnePrimitiveExpectedOutcome::Admit => {
-                let verified =
-                    verified_primitive(&mut runtime, &case_stem, &scenario.primitive)?;
+                let verified = verified_primitive(&mut runtime, &case_stem, &scenario.primitive)?;
                 let certification = certified_verified_commit(&mut runtime, &verified)?;
                 cases.push(WorthPrimitiveCorpusCaseReport {
                     stem: case_stem,
@@ -117,16 +115,16 @@ where
                 });
             }
             WorthMilestoneOnePrimitiveExpectedOutcome::Reject => {
-                let rejection = match verified_primitive(&mut runtime, &case_stem, &scenario.primitive)
-                {
-                    Ok(_) => {
-                        return Err(WorthMilestoneOneCertificationError::ReadView(format!(
-                            "out-of-class scenario `{}` unexpectedly admitted",
-                            scenario.family
-                        )));
-                    }
-                    Err(error) => summarize_primitive_rejection(&error),
-                };
+                let rejection =
+                    match verified_primitive(&mut runtime, &case_stem, &scenario.primitive) {
+                        Ok(_) => {
+                            return Err(WorthMilestoneOneCertificationError::ReadView(format!(
+                                "out-of-class scenario `{}` unexpectedly admitted",
+                                scenario.family
+                            )));
+                        }
+                        Err(error) => summarize_primitive_rejection(&error),
+                    };
                 rejected_cases.push(WorthPrimitiveCorpusRejectedCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
@@ -165,7 +163,10 @@ where
         let mut runtime = runtime_factory();
         runtime
             .history_authority()
-            .create_branch(BranchId(branch_id.to_string()), &BranchId("main".to_string()))
+            .create_branch(
+                BranchId(branch_id.to_string()),
+                &BranchId("main".to_string()),
+            )
             .map_err(|error| {
                 WorthMilestoneOneCertificationError::ReadView(format!(
                     "failed to create branch `{branch_id}`: {error:?}"
@@ -375,8 +376,13 @@ pub(crate) fn build_primitive_corpus_parity_report(
             .entry(case.family.clone())
             .or_insert_with(|| empty_corpus_parity_entry(&case.family));
         row.mainline_case_count += 1;
-        row.branch_ids
-            .push(case.certification.branch_local_topology_report.branch_id.0.clone());
+        row.branch_ids.push(
+            case.certification
+                .branch_local_topology_report
+                .branch_id
+                .0
+                .clone(),
+        );
         let is_branch_local = case.certification.branch_local_topology_report.branch_local;
         if is_branch_local {
             row.branch_local_case_count += 1;
@@ -428,8 +434,13 @@ pub(crate) fn build_primitive_corpus_parity_report(
                 .entry(case.family.clone())
                 .or_insert_with(|| empty_corpus_parity_entry(&case.family));
             row.branch_local_case_count += 1;
-            row.branch_ids
-                .push(case.certification.branch_local_topology_report.branch_id.0.clone());
+            row.branch_ids.push(
+                case.certification
+                    .branch_local_topology_report
+                    .branch_id
+                    .0
+                    .clone(),
+            );
             if case
                 .certification
                 .milestone_1_replay_parity_report

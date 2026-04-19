@@ -38,8 +38,16 @@ mod interpretation_tests {
         assert_eq!(interpretation.report().boundary_interpretation_count, 1);
         assert_eq!(interpretation.report().radial_interpretation_count, 1);
         assert_eq!(interpretation.interpretations().wires.len(), 1);
-        assert_eq!(interpretation.interpretations().wires[0].connected_component_count, 1);
-        assert_eq!(interpretation.interpretations().wires[0].terminal_vertex_ids.len(), 1);
+        assert_eq!(
+            interpretation.interpretations().wires[0].connected_component_count,
+            1
+        );
+        assert_eq!(
+            interpretation.interpretations().wires[0]
+                .terminal_vertex_ids
+                .len(),
+            1
+        );
         assert_eq!(
             interpretation.interpretations().wires[0].class,
             WorthWireInterpretationClass::OpenChain
@@ -51,8 +59,14 @@ mod interpretation_tests {
             WorthShellInterpretationClass::OpenSheet
         );
         assert_eq!(interpretation.interpretations().shells[0].face_count, 1);
-        assert_eq!(interpretation.interpretations().shells[0].boundary_component_count, 1);
-        assert_eq!(interpretation.interpretations().shells[0].boundary_half_edge_count, 1);
+        assert_eq!(
+            interpretation.interpretations().shells[0].boundary_component_count,
+            1
+        );
+        assert_eq!(
+            interpretation.interpretations().shells[0].boundary_half_edge_count,
+            1
+        );
         assert_eq!(interpretation.boundary_summaries().len(), 1);
         assert_eq!(interpretation.radial_summaries().len(), 1);
     }
@@ -87,7 +101,9 @@ mod interpretation_tests {
     #[test]
     fn closed_wire_cycle_interprets_as_closed_with_no_terminals() {
         let topology = closed_wire_cycle_view();
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
@@ -100,7 +116,9 @@ mod interpretation_tests {
     #[test]
     fn longer_open_wire_chain_interprets_as_open_chain_with_two_terminals() {
         let topology = open_wire_chain_view(4);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
@@ -113,7 +131,9 @@ mod interpretation_tests {
     #[test]
     fn larger_closed_wire_cycle_interprets_as_closed_cycle() {
         let topology = closed_wire_cycle_of_size(4);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
@@ -126,7 +146,9 @@ mod interpretation_tests {
     #[test]
     fn larger_connected_wire_branch_interprets_as_connected_branch() {
         let topology = connected_wire_branch_view(4);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
@@ -139,7 +161,9 @@ mod interpretation_tests {
     #[test]
     fn open_shell_with_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(3);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
@@ -152,7 +176,9 @@ mod interpretation_tests {
     #[test]
     fn larger_open_shell_nmt_edge_fan_interprets_as_open_and_non_manifold() {
         let topology = open_shell_nmt_fan_view(4);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
@@ -165,12 +191,17 @@ mod interpretation_tests {
     #[test]
     fn single_face_open_sheet_interprets_as_sheet_disk_member() {
         let topology = single_face_sheet_disk_view(5);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
         assert_eq!(interpretation.boundary_summaries().len(), 1);
-        assert_eq!(interpretation.boundary_summaries()[0].boundary_component_count, 1);
+        assert_eq!(
+            interpretation.boundary_summaries()[0].boundary_component_count,
+            1
+        );
         assert_eq!(shell.class, WorthShellInterpretationClass::OpenSheet);
         assert_eq!(shell.face_count, 1);
         assert_eq!(shell.boundary_component_count, 1);
@@ -181,7 +212,9 @@ mod interpretation_tests {
     #[test]
     fn multi_face_open_shell_interprets_as_sheet_patch_member() {
         let topology = open_sheet_patch_view(3);
-        let interpretation = interpret_topology_view(&crate::materialization::MaterializedTopologyView::whole_view(topology));
+        let interpretation = interpret_topology_view(
+            &crate::materialization::MaterializedTopologyView::whole_view(topology),
+        );
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
@@ -199,7 +232,10 @@ mod interpretation_tests {
     }
 
     fn open_wire_chain_view(length: usize) -> WorthTopologyView {
-        assert!(length >= 2, "open wire chain requires at least two half-edges");
+        assert!(
+            length >= 2,
+            "open wire chain requires at least two half-edges"
+        );
 
         let wire_id = entity(60);
         let mut half_edges = Vec::new();
@@ -255,7 +291,10 @@ mod interpretation_tests {
     }
 
     fn connected_wire_branch_view(branch_count: usize) -> WorthTopologyView {
-        assert!(branch_count >= 3, "connected wire branch requires at least three arms");
+        assert!(
+            branch_count >= 3,
+            "connected wire branch requires at least three arms"
+        );
 
         let wire_id = entity(500);
         let center_vertex = entity(501);
@@ -299,7 +338,10 @@ mod interpretation_tests {
     }
 
     fn closed_wire_cycle_of_size(length: usize) -> WorthTopologyView {
-        assert!(length >= 3, "closed wire cycle requires at least three half-edges");
+        assert!(
+            length >= 3,
+            "closed wire cycle requires at least three half-edges"
+        );
 
         let wire_id = entity(1);
         let mut half_edges = Vec::new();
@@ -348,7 +390,10 @@ mod interpretation_tests {
     }
 
     fn open_shell_nmt_fan_view(fan_size: usize) -> WorthTopologyView {
-        assert!(fan_size >= 3, "nmt fan requires at least three incident faces");
+        assert!(
+            fan_size >= 3,
+            "nmt fan requires at least three incident faces"
+        );
 
         let model_id = entity(20);
         let body_id = entity(21);
@@ -450,17 +495,44 @@ mod interpretation_tests {
         for index in 0..fan_size {
             let next_shared = shared_half_edge_ids[(index + 1) % fan_size];
             let current_shared = shared_half_edge_ids[index];
-            if let Some(record) = half_edges.iter_mut().find(|record| record.entity_id == current_shared) {
+            if let Some(record) = half_edges
+                .iter_mut()
+                .find(|record| record.entity_id == current_shared)
+            {
                 record.radial_next_half_edge_id = Some(next_shared);
             }
         }
 
         WorthTopologyView {
-            models: vec![WorthTopologyModel { entity_id: model_id, label: "model".into(), body_ids: vec![body_id] }],
-            bodies: vec![WorthTopologyBody { entity_id: body_id, label: "body".into(), model_id: Some(model_id), lump_ids: vec![lump_id] }],
-            lumps: vec![WorthTopologyLump { entity_id: lump_id, label: "lump".into(), body_id: Some(body_id), region_ids: vec![region_id] }],
-            regions: vec![WorthTopologyRegion { entity_id: region_id, label: "region".into(), lump_id: Some(lump_id), shell_ids: vec![shell_id] }],
-            shells: vec![WorthTopologyShell { entity_id: shell_id, label: "sheet".into(), region_id: Some(region_id), face_ids }],
+            models: vec![WorthTopologyModel {
+                entity_id: model_id,
+                label: "model".into(),
+                body_ids: vec![body_id],
+            }],
+            bodies: vec![WorthTopologyBody {
+                entity_id: body_id,
+                label: "body".into(),
+                model_id: Some(model_id),
+                lump_ids: vec![lump_id],
+            }],
+            lumps: vec![WorthTopologyLump {
+                entity_id: lump_id,
+                label: "lump".into(),
+                body_id: Some(body_id),
+                region_ids: vec![region_id],
+            }],
+            regions: vec![WorthTopologyRegion {
+                entity_id: region_id,
+                label: "region".into(),
+                lump_id: Some(lump_id),
+                shell_ids: vec![shell_id],
+            }],
+            shells: vec![WorthTopologyShell {
+                entity_id: shell_id,
+                label: "sheet".into(),
+                region_id: Some(region_id),
+                face_ids,
+            }],
             faces,
             loops,
             half_edges,
@@ -471,7 +543,10 @@ mod interpretation_tests {
     }
 
     fn single_face_sheet_disk_view(edge_count: usize) -> WorthTopologyView {
-        assert!(edge_count >= 3, "sheet disk requires at least three boundary edges");
+        assert!(
+            edge_count >= 3,
+            "sheet disk requires at least three boundary edges"
+        );
 
         let model_id = entity(700);
         let body_id = entity(701);
@@ -487,7 +562,10 @@ mod interpretation_tests {
         let mut half_edge_ids = Vec::new();
 
         for index in 0..edge_count {
-            vertices.push(vertex(&format!("disk-v{index}"), entity(710 + index as u64)));
+            vertices.push(vertex(
+                &format!("disk-v{index}"),
+                entity(710 + index as u64),
+            ));
         }
 
         for index in 0..edge_count {
@@ -515,11 +593,35 @@ mod interpretation_tests {
         }
 
         WorthTopologyView {
-            models: vec![WorthTopologyModel { entity_id: model_id, label: "model".into(), body_ids: vec![body_id] }],
-            bodies: vec![WorthTopologyBody { entity_id: body_id, label: "body".into(), model_id: Some(model_id), lump_ids: vec![lump_id] }],
-            lumps: vec![WorthTopologyLump { entity_id: lump_id, label: "lump".into(), body_id: Some(body_id), region_ids: vec![region_id] }],
-            regions: vec![WorthTopologyRegion { entity_id: region_id, label: "region".into(), lump_id: Some(lump_id), shell_ids: vec![shell_id] }],
-            shells: vec![WorthTopologyShell { entity_id: shell_id, label: "sheet-disk".into(), region_id: Some(region_id), face_ids: vec![face_id] }],
+            models: vec![WorthTopologyModel {
+                entity_id: model_id,
+                label: "model".into(),
+                body_ids: vec![body_id],
+            }],
+            bodies: vec![WorthTopologyBody {
+                entity_id: body_id,
+                label: "body".into(),
+                model_id: Some(model_id),
+                lump_ids: vec![lump_id],
+            }],
+            lumps: vec![WorthTopologyLump {
+                entity_id: lump_id,
+                label: "lump".into(),
+                body_id: Some(body_id),
+                region_ids: vec![region_id],
+            }],
+            regions: vec![WorthTopologyRegion {
+                entity_id: region_id,
+                label: "region".into(),
+                lump_id: Some(lump_id),
+                shell_ids: vec![shell_id],
+            }],
+            shells: vec![WorthTopologyShell {
+                entity_id: shell_id,
+                label: "sheet-disk".into(),
+                region_id: Some(region_id),
+                face_ids: vec![face_id],
+            }],
             faces: vec![WorthTopologyFace {
                 entity_id: face_id,
                 label: "disk-face".into(),
@@ -543,7 +645,10 @@ mod interpretation_tests {
 
     fn open_sheet_patch_view(face_count: usize) -> WorthTopologyView {
         assert!(face_count >= 2, "sheet patch requires at least two faces");
-        assert!(face_count <= 3, "test helper currently supports up to three faces");
+        assert!(
+            face_count <= 3,
+            "test helper currently supports up to three faces"
+        );
 
         let model_id = entity(800);
         let body_id = entity(801);
@@ -551,14 +656,34 @@ mod interpretation_tests {
         let region_id = entity(803);
         let shell_id = entity(804);
 
-        let vertex_ids = [entity(810), entity(811), entity(812), entity(813), entity(814)];
-        let edge_ids = [entity(820), entity(821), entity(822), entity(823), entity(824), entity(825), entity(826)];
+        let vertex_ids = [
+            entity(810),
+            entity(811),
+            entity(812),
+            entity(813),
+            entity(814),
+        ];
+        let edge_ids = [
+            entity(820),
+            entity(821),
+            entity(822),
+            entity(823),
+            entity(824),
+            entity(825),
+            entity(826),
+        ];
         let face_ids = [entity(830), entity(831), entity(832)];
         let loop_ids = [entity(840), entity(841), entity(842)];
         let half_edge_ids = [
-            entity(850), entity(851), entity(852),
-            entity(853), entity(854), entity(855),
-            entity(856), entity(857), entity(858),
+            entity(850),
+            entity(851),
+            entity(852),
+            entity(853),
+            entity(854),
+            entity(855),
+            entity(856),
+            entity(857),
+            entity(858),
         ];
 
         let all_faces = vec![
@@ -588,20 +713,134 @@ mod interpretation_tests {
             },
         ];
         let all_loops = vec![
-            WorthTopologyLoop { entity_id: loop_ids[0], label: "patch-l0".into(), face_ids: vec![face_ids[0]], half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]] },
-            WorthTopologyLoop { entity_id: loop_ids[1], label: "patch-l1".into(), face_ids: vec![face_ids[1]], half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]] },
-            WorthTopologyLoop { entity_id: loop_ids[2], label: "patch-l2".into(), face_ids: vec![face_ids[2]], half_edge_ids: vec![half_edge_ids[6], half_edge_ids[7], half_edge_ids[8]] },
+            WorthTopologyLoop {
+                entity_id: loop_ids[0],
+                label: "patch-l0".into(),
+                face_ids: vec![face_ids[0]],
+                half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
+            },
+            WorthTopologyLoop {
+                entity_id: loop_ids[1],
+                label: "patch-l1".into(),
+                face_ids: vec![face_ids[1]],
+                half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
+            },
+            WorthTopologyLoop {
+                entity_id: loop_ids[2],
+                label: "patch-l2".into(),
+                face_ids: vec![face_ids[2]],
+                half_edge_ids: vec![half_edge_ids[6], half_edge_ids[7], half_edge_ids[8]],
+            },
         ];
         let all_half_edges = vec![
-            half_edge_full(half_edge_ids[0], Some(loop_ids[0]), None, Some(half_edge_ids[1]), Some(half_edge_ids[2]), Some(half_edge_ids[0]), Some(edge_ids[0]), Some(vertex_ids[0]), Some(vertex_ids[1]), Some(face_ids[0])),
-            half_edge_full(half_edge_ids[1], Some(loop_ids[0]), None, Some(half_edge_ids[2]), Some(half_edge_ids[0]), Some(half_edge_ids[5]), Some(edge_ids[1]), Some(vertex_ids[1]), Some(vertex_ids[4]), Some(face_ids[0])),
-            half_edge_full(half_edge_ids[2], Some(loop_ids[0]), None, Some(half_edge_ids[0]), Some(half_edge_ids[1]), Some(half_edge_ids[2]), Some(edge_ids[2]), Some(vertex_ids[4]), Some(vertex_ids[0]), Some(face_ids[0])),
-            half_edge_full(half_edge_ids[3], Some(loop_ids[1]), None, Some(half_edge_ids[4]), Some(half_edge_ids[5]), Some(half_edge_ids[3]), Some(edge_ids[3]), Some(vertex_ids[1]), Some(vertex_ids[2]), Some(face_ids[1])),
-            half_edge_full(half_edge_ids[4], Some(loop_ids[1]), None, Some(half_edge_ids[5]), Some(half_edge_ids[3]), Some(half_edge_ids[8]), Some(edge_ids[4]), Some(vertex_ids[2]), Some(vertex_ids[4]), Some(face_ids[1])),
-            half_edge_full(half_edge_ids[5], Some(loop_ids[1]), None, Some(half_edge_ids[3]), Some(half_edge_ids[4]), Some(half_edge_ids[1]), Some(edge_ids[1]), Some(vertex_ids[4]), Some(vertex_ids[1]), Some(face_ids[1])),
-            half_edge_full(half_edge_ids[6], Some(loop_ids[2]), None, Some(half_edge_ids[7]), Some(half_edge_ids[8]), Some(half_edge_ids[6]), Some(edge_ids[5]), Some(vertex_ids[2]), Some(vertex_ids[3]), Some(face_ids[2])),
-            half_edge_full(half_edge_ids[7], Some(loop_ids[2]), None, Some(half_edge_ids[8]), Some(half_edge_ids[6]), Some(half_edge_ids[7]), Some(edge_ids[6]), Some(vertex_ids[3]), Some(vertex_ids[4]), Some(face_ids[2])),
-            half_edge_full(half_edge_ids[8], Some(loop_ids[2]), None, Some(half_edge_ids[6]), Some(half_edge_ids[7]), Some(half_edge_ids[4]), Some(edge_ids[4]), Some(vertex_ids[4]), Some(vertex_ids[2]), Some(face_ids[2])),
+            half_edge_full(
+                half_edge_ids[0],
+                Some(loop_ids[0]),
+                None,
+                Some(half_edge_ids[1]),
+                Some(half_edge_ids[2]),
+                Some(half_edge_ids[0]),
+                Some(edge_ids[0]),
+                Some(vertex_ids[0]),
+                Some(vertex_ids[1]),
+                Some(face_ids[0]),
+            ),
+            half_edge_full(
+                half_edge_ids[1],
+                Some(loop_ids[0]),
+                None,
+                Some(half_edge_ids[2]),
+                Some(half_edge_ids[0]),
+                Some(half_edge_ids[5]),
+                Some(edge_ids[1]),
+                Some(vertex_ids[1]),
+                Some(vertex_ids[4]),
+                Some(face_ids[0]),
+            ),
+            half_edge_full(
+                half_edge_ids[2],
+                Some(loop_ids[0]),
+                None,
+                Some(half_edge_ids[0]),
+                Some(half_edge_ids[1]),
+                Some(half_edge_ids[2]),
+                Some(edge_ids[2]),
+                Some(vertex_ids[4]),
+                Some(vertex_ids[0]),
+                Some(face_ids[0]),
+            ),
+            half_edge_full(
+                half_edge_ids[3],
+                Some(loop_ids[1]),
+                None,
+                Some(half_edge_ids[4]),
+                Some(half_edge_ids[5]),
+                Some(half_edge_ids[3]),
+                Some(edge_ids[3]),
+                Some(vertex_ids[1]),
+                Some(vertex_ids[2]),
+                Some(face_ids[1]),
+            ),
+            half_edge_full(
+                half_edge_ids[4],
+                Some(loop_ids[1]),
+                None,
+                Some(half_edge_ids[5]),
+                Some(half_edge_ids[3]),
+                Some(half_edge_ids[8]),
+                Some(edge_ids[4]),
+                Some(vertex_ids[2]),
+                Some(vertex_ids[4]),
+                Some(face_ids[1]),
+            ),
+            half_edge_full(
+                half_edge_ids[5],
+                Some(loop_ids[1]),
+                None,
+                Some(half_edge_ids[3]),
+                Some(half_edge_ids[4]),
+                Some(half_edge_ids[1]),
+                Some(edge_ids[1]),
+                Some(vertex_ids[4]),
+                Some(vertex_ids[1]),
+                Some(face_ids[1]),
+            ),
+            half_edge_full(
+                half_edge_ids[6],
+                Some(loop_ids[2]),
+                None,
+                Some(half_edge_ids[7]),
+                Some(half_edge_ids[8]),
+                Some(half_edge_ids[6]),
+                Some(edge_ids[5]),
+                Some(vertex_ids[2]),
+                Some(vertex_ids[3]),
+                Some(face_ids[2]),
+            ),
+            half_edge_full(
+                half_edge_ids[7],
+                Some(loop_ids[2]),
+                None,
+                Some(half_edge_ids[8]),
+                Some(half_edge_ids[6]),
+                Some(half_edge_ids[7]),
+                Some(edge_ids[6]),
+                Some(vertex_ids[3]),
+                Some(vertex_ids[4]),
+                Some(face_ids[2]),
+            ),
+            half_edge_full(
+                half_edge_ids[8],
+                Some(loop_ids[2]),
+                None,
+                Some(half_edge_ids[6]),
+                Some(half_edge_ids[7]),
+                Some(half_edge_ids[4]),
+                Some(edge_ids[4]),
+                Some(vertex_ids[4]),
+                Some(vertex_ids[2]),
+                Some(face_ids[2]),
+            ),
         ];
         let all_edges = vec![
             edge("patch-e0", edge_ids[0]),
@@ -619,11 +858,35 @@ mod interpretation_tests {
             .collect::<Vec<_>>();
 
         WorthTopologyView {
-            models: vec![WorthTopologyModel { entity_id: model_id, label: "model".into(), body_ids: vec![body_id] }],
-            bodies: vec![WorthTopologyBody { entity_id: body_id, label: "body".into(), model_id: Some(model_id), lump_ids: vec![lump_id] }],
-            lumps: vec![WorthTopologyLump { entity_id: lump_id, label: "lump".into(), body_id: Some(body_id), region_ids: vec![region_id] }],
-            regions: vec![WorthTopologyRegion { entity_id: region_id, label: "region".into(), lump_id: Some(lump_id), shell_ids: vec![shell_id] }],
-            shells: vec![WorthTopologyShell { entity_id: shell_id, label: "sheet-patch".into(), region_id: Some(region_id), face_ids: face_ids[..face_count].to_vec() }],
+            models: vec![WorthTopologyModel {
+                entity_id: model_id,
+                label: "model".into(),
+                body_ids: vec![body_id],
+            }],
+            bodies: vec![WorthTopologyBody {
+                entity_id: body_id,
+                label: "body".into(),
+                model_id: Some(model_id),
+                lump_ids: vec![lump_id],
+            }],
+            lumps: vec![WorthTopologyLump {
+                entity_id: lump_id,
+                label: "lump".into(),
+                body_id: Some(body_id),
+                region_ids: vec![region_id],
+            }],
+            regions: vec![WorthTopologyRegion {
+                entity_id: region_id,
+                label: "region".into(),
+                lump_id: Some(lump_id),
+                shell_ids: vec![shell_id],
+            }],
+            shells: vec![WorthTopologyShell {
+                entity_id: shell_id,
+                label: "sheet-patch".into(),
+                region_id: Some(region_id),
+                face_ids: face_ids[..face_count].to_vec(),
+            }],
             faces: all_faces[..face_count].to_vec(),
             loops: all_loops[..face_count].to_vec(),
             half_edges: all_half_edges[..(face_count * 3)].to_vec(),
@@ -638,11 +901,17 @@ mod interpretation_tests {
     }
 
     fn edge(label: &str, entity_id: EntityId) -> WorthTopologyEdge {
-        WorthTopologyEdge { entity_id, label: label.into() }
+        WorthTopologyEdge {
+            entity_id,
+            label: label.into(),
+        }
     }
 
     fn vertex(label: &str, entity_id: EntityId) -> WorthTopologyVertex {
-        WorthTopologyVertex { entity_id, label: label.into() }
+        WorthTopologyVertex {
+            entity_id,
+            label: label.into(),
+        }
     }
 
     fn half_edge_full(
@@ -672,4 +941,3 @@ mod interpretation_tests {
         }
     }
 }
-

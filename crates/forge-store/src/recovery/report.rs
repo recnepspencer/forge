@@ -480,7 +480,9 @@ impl ResumeEligibleRecoveredBulkChunk {
 
 fn disposition_for_source_kind(source_kind: RecoverySourceKind) -> BulkRecoveryDisposition {
     match source_kind {
-        RecoverySourceKind::PublishedAuthoritativeTruth => BulkRecoveryDisposition::AlreadyPublished,
+        RecoverySourceKind::PublishedAuthoritativeTruth => {
+            BulkRecoveryDisposition::AlreadyPublished
+        }
         RecoverySourceKind::HostedRuntimeCanonicalResult => BulkRecoveryDisposition::ResumeReady,
         RecoverySourceKind::IntentOnly => BulkRecoveryDisposition::DiscardableIntent,
         RecoverySourceKind::RequiresRebuild => BulkRecoveryDisposition::NeedsRebuild,

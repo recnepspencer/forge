@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use forge_relational::facade::identity::EntityId;
 
 use crate::data::topology_view::WorthTopologyHalfEdge;
-use crate::interpretation::vertex_branching::interpret_wire_branching;
 use crate::interpretation::types::WorthWireInterpretation;
+use crate::interpretation::vertex_branching::interpret_wire_branching;
 use crate::materialization::MaterializedTopologyView;
 
 pub fn interpret_wires(view: &MaterializedTopologyView) -> Vec<WorthWireInterpretation> {
@@ -19,8 +19,10 @@ pub fn interpret_wires(view: &MaterializedTopologyView) -> Vec<WorthWireInterpre
         .wires
         .iter()
         .map(|wire| {
-            let branching =
-                interpret_wire_branching(wire.half_edge_ids.iter().copied().collect(), &half_edge_map);
+            let branching = interpret_wire_branching(
+                wire.half_edge_ids.iter().copied().collect(),
+                &half_edge_map,
+            );
 
             WorthWireInterpretation {
                 wire_id: wire.entity_id,

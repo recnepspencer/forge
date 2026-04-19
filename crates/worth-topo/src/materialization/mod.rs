@@ -15,10 +15,10 @@ pub use types::{
     MaterializedTopologyView,
 };
 
-use forge_relational::facade::runtime::RelationalReadView;
 use crate::materialization::entity_catalog::collect_entity_kinds;
 use crate::materialization::relation_wiring::{apply_relation, finalize_topology_membership};
 use crate::materialization::view_builder::{has_topology_content, push_entity_record};
+use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct WorthTopologyMaterializer;

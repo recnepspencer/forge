@@ -192,7 +192,10 @@ where
     let mut payloads = Vec::new();
     for (key, (source, target), payload) in specs {
         client_keys.push(InternedString::Raw(key));
-        endpoints.push((crate::transactions::data::EntityReference::Existing(source), crate::transactions::data::EntityReference::Existing(target)));
+        endpoints.push((
+            crate::transactions::data::EntityReference::Existing(source),
+            crate::transactions::data::EntityReference::Existing(target),
+        ));
         payloads.push(Some(RecordPayload::StructuredJson(payload)));
     }
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -220,4 +223,3 @@ fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
         })
         .collect()
 }
-

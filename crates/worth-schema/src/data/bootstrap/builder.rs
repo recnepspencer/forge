@@ -97,8 +97,8 @@ mod tests {
         assert!(registry
             .entity_kinds
             .contains_key(&WorthEntityKind::Topology(WorthTopologyEntityKind::Shell).kind_id()));
-        assert!(registry
-            .entity_kinds
-            .contains_key(&WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName).kind_id()));
+        assert!(registry.entity_kinds.contains_key(
+            &WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName).kind_id()
+        ));
     }
 }

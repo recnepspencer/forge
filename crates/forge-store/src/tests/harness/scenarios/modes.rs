@@ -44,11 +44,13 @@ pub fn mode_contract_parity() -> ModeParityScenarioResult {
     let checkpoint_receipt = embedded
         .persist_external_checkpoint(
             embedded
-                .admit_external_checkpoint(BasisFreeCheckpoint::<
-                    DerivedDurableCheckpointKind,
-                    NoContainedCommits,
-                >::new("checkpoint-certified", "embedded-runtime")
-                .with_metadata(json!({"kind":"certified-checkpoint"})))
+                .admit_external_checkpoint(
+                    BasisFreeCheckpoint::<DerivedDurableCheckpointKind, NoContainedCommits>::new(
+                        "checkpoint-certified",
+                        "embedded-runtime",
+                    )
+                    .with_metadata(json!({"kind":"certified-checkpoint"})),
+                )
                 .unwrap(),
         )
         .unwrap();

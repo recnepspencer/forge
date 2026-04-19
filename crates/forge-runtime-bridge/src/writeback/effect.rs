@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use crate::identity::{
-    BridgeIdentity, WritebackCausalityIdentityTag, WritebackEffectIdentityTag,
-};
+use crate::identity::{BridgeIdentity, WritebackCausalityIdentityTag, WritebackEffectIdentityTag};
 
 use super::{BridgeMappedWritebackFamilyInput, BridgeWritebackEffectClass};
 

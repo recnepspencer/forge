@@ -34,10 +34,9 @@ pub(crate) use planning::build_recovery_plan;
 pub(crate) use precedence::{build_recovery_source_set, select_recovery_source};
 pub use precedence::{RecoverySourceKind, RecoverySourceReport};
 pub use report::{
-    BulkRecoveryDisposition, BulkRecoverySummary, DurableRecoverySourceSummary,
-    RecoveredBulkChunk, ResumeEligibleRecoveredBulkChunk,
+    BulkRecoveryDisposition, BulkRecoverySummary, DurableRecoverySourceSummary, RecoveredBulkChunk,
     RecoveryOperatorAction, RecoveryOperatorActionKind, RecoveryOperatorDisposition,
-    RecoveryStatusReport,
+    RecoveryStatusReport, ResumeEligibleRecoveredBulkChunk,
 };
 pub(crate) use support::build_support_artifact_recovery_report;
 pub use support::{

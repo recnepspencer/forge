@@ -17,11 +17,8 @@ impl SignalApp {
         nodes: impl IntoIterator<Item = NodeId>,
         listener: Box<dyn ObservationListener<(), (), (), (), ()>>,
     ) -> ObservationHandle {
-        self.observations.register_nodes(
-            policy,
-            ObservedNodeSet::from_nodes(nodes),
-            listener,
-        )
+        self.observations
+            .register_nodes(policy, ObservedNodeSet::from_nodes(nodes), listener)
     }
 
     pub fn observe<T: Clone + Send + Sync + 'static>(
@@ -93,7 +90,10 @@ pub(super) fn deliver_observation_boundary(
     for node in impacted_nodes.iter().copied() {
         app.observations
             .for_each_matching_observer_for_node(node, |observer_id| {
-                matched_by_observer.entry(observer_id).or_default().push(node);
+                matched_by_observer
+                    .entry(observer_id)
+                    .or_default()
+                    .push(node);
             });
     }
 

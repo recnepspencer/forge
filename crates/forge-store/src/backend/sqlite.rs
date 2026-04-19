@@ -1265,7 +1265,8 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             .query_map([], |row| deserialize_json(row.get(0)?))
             .map_err(sqlite_error)?;
         for row in rows {
-            let record: super::records::FrozenTransformPartitionRecord = row.map_err(sqlite_error)?;
+            let record: super::records::FrozenTransformPartitionRecord =
+                row.map_err(sqlite_error)?;
             state
                 .frozen_transform_partition_records
                 .insert(record.artifact_id.clone(), record);
@@ -1349,7 +1350,8 @@ fn load_state(connection: &Connection) -> Result<StoreState, StoreError> {
             .query_map([], |row| deserialize_json(row.get(0)?))
             .map_err(sqlite_error)?;
         for row in rows {
-            let record: super::records::ProgramChunkWitnessIndexRecord = row.map_err(sqlite_error)?;
+            let record: super::records::ProgramChunkWitnessIndexRecord =
+                row.map_err(sqlite_error)?;
             state
                 .program_chunk_witness_index_records
                 .insert(record.artifact_id.clone(), record);
@@ -2181,13 +2183,19 @@ fn persist_milestone_6_commit_coupled_layout_seed_records(
     transaction: &Transaction<'_>,
     state: &StoreState,
 ) -> Result<(), StoreError> {
-    for record in state.milestone_6_commit_coupled_layout_seed_records.values() {
+    for record in state
+        .milestone_6_commit_coupled_layout_seed_records
+        .values()
+    {
         persist_bulk_json_record(
             transaction,
             "milestone_6_commit_coupled_layout_seed_records",
             &record.artifact_id,
             vec![
-                ("branch_id".to_string(), record.request.target().branch_id().0.clone()),
+                (
+                    "branch_id".to_string(),
+                    record.request.target().branch_id().0.clone(),
+                ),
                 (
                     "frontier_commit_id".to_string(),
                     record.request.target().frontier_commit_id().0.to_string(),
@@ -2268,26 +2276,26 @@ fn persist_milestone_6_structural_block_records_impl(
             transaction,
             "milestone_6_structural_block_records",
             &record.artifact_id,
-                vec![
-                    (
-                        "structural_block_id".to_string(),
-                        record.structural_block_id.as_str().to_string(),
-                    ),
-                    ("scope_class".to_string(), record.scope_class.clone()),
-                    (
-                        "equivalence_contract_version".to_string(),
-                        record.equivalence_contract_version.value().to_string(),
-                    ),
-                    (
-                        "supporting_layout_materialization_count".to_string(),
-                        record
-                            .supporting_layout_materialization_artifact_ids
-                            .len()
-                            .to_string(),
-                    ),
-                ],
-                record,
-            )?;
+            vec![
+                (
+                    "structural_block_id".to_string(),
+                    record.structural_block_id.as_str().to_string(),
+                ),
+                ("scope_class".to_string(), record.scope_class.clone()),
+                (
+                    "equivalence_contract_version".to_string(),
+                    record.equivalence_contract_version.value().to_string(),
+                ),
+                (
+                    "supporting_layout_materialization_count".to_string(),
+                    record
+                        .supporting_layout_materialization_artifact_ids
+                        .len()
+                        .to_string(),
+                ),
+            ],
+            record,
+        )?;
     }
     Ok(())
 }
@@ -2344,7 +2352,10 @@ fn persist_frozen_transform_basis_records(
             &record.artifact_id,
             vec![
                 ("program_id".to_string(), record.program_id.clone()),
-                ("basis_digest".to_string(), record.basis.basis_digest().to_string()),
+                (
+                    "basis_digest".to_string(),
+                    record.basis.basis_digest().to_string(),
+                ),
             ],
             record,
         )?;

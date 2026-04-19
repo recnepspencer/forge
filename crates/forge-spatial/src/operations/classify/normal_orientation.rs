@@ -20,9 +20,9 @@
 //!               forge-core (ToleranceProvider).
 
 use forge_core::{KernelError, ToleranceProvider};
-use worth_geom::facade::compute_polygon_centroid;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
+use worth_geom::facade::compute_polygon_centroid;
 
 use super::point_in_solid::classify_point_in_solid;
 use super::schema::{NormalClassification, PointClassification};

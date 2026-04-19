@@ -10,6 +10,8 @@ use crate::data::output::CanonicalChangedRegions;
 use crate::data::performance::{
     AuthorityPolicy, PathClass, ResolvedExecutionStrategy, ResolvedMaintenanceStrategy,
 };
+#[cfg(feature = "parallel")]
+use crate::data::proof::SnapshotBatchCommit;
 use crate::data::proof::{
     DedupedNodeBatch, DirtyDelta, PartitionScopeSet, SortedSourceBatch, StructuralDelta,
     TouchedScopeSummary,
@@ -17,8 +19,6 @@ use crate::data::proof::{
 #[cfg(feature = "parallel")]
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::diagnostics::SignalRuntimePolicy;
-#[cfg(feature = "parallel")]
-use crate::data::proof::SnapshotBatchCommit;
 #[cfg(feature = "parallel")]
 use crate::logic::evaluation::collect_effect_dependency_inputs_iter;
 #[cfg(feature = "parallel")]

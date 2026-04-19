@@ -21,20 +21,19 @@ use crate::{
         BranchDeltaRewriteStrategy, SameBranchDescendantWitness, SharedBaseBranchCreationReceipt,
         SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
     },
-    layout::{
-        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
-        AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
-        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse, DedupBackedReadResult,
-        Milestone6LayoutMaterialization, Milestone7IndependentLayoutReference,
-        Milestone9PhysicalChunkReference, StructuralBlockLookup, StructuralBlockLookupResult,
-    },
     evidence::{
         CanonicalizationMetrics, Milestone6AccessStructureVerification,
-        Milestone6AccessStructureVerificationPath,
-        Milestone7AccessStructureVerification, Milestone7AccessStructureVerificationPath,
-        StoreCounterSnapshot, StoreCounters,
+        Milestone6AccessStructureVerificationPath, Milestone7AccessStructureVerification,
+        Milestone7AccessStructureVerificationPath, StoreCounterSnapshot, StoreCounters,
     },
     failure::{StoreError, StoreErrorKind},
+    layout::{
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadExecutionDecision,
+        AspectLayoutReadPlanDecision, AspectLayoutReadRequest, ChunkModelFrozenPhysicalLayout,
+        DedupAdmittedBlockReuse, DedupBackedReadResult, Milestone6LayoutMaterialization,
+        Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+        StructuralBlockLookup, StructuralBlockLookupResult,
+    },
     media::DurableMediaReport,
     publication::{
         classify_durable_publication, classify_snapshot_publication, durable_publication_facts,
@@ -61,15 +60,16 @@ use crate::{
 use forge_relational::facade::history::{BranchId, CommitId};
 use forge_relational::facade::identity::LineageId;
 use forge_relational::facade::lineage::LineageEventRecord;
+use std::collections::HashMap;
 
 use super::{
     integrity::{
         branch_key, bulk_checkpoint_artifact_id, bulk_plan_artifact_id, bulk_program_artifact_id,
-        commit_support_summary_artifact_id,
         bulk_witness_artifact_id, bulk_witness_index_artifact_id,
-        durable_cursor_identity_artifact_id, frozen_bulk_manifest_artifact_id,
-        frozen_transform_basis_artifact_id, frozen_transform_partition_artifact_id,
-        stable_structural_digest, subscriber_checkpoint_artifact_id,
+        commit_support_summary_artifact_id, durable_cursor_identity_artifact_id,
+        frozen_bulk_manifest_artifact_id, frozen_transform_basis_artifact_id,
+        frozen_transform_partition_artifact_id, stable_structural_digest,
+        subscriber_checkpoint_artifact_id,
     },
     records::{
         BulkChunkWitnessRecord, BulkDeterministicPlanRecord, BulkProgramIdentityRecord,
@@ -77,8 +77,8 @@ use super::{
         FrozenBulkManifestRecord, FrozenTransformBasisRecord, FrozenTransformPartitionRecord,
         LineageSupportRecord, Milestone6ChunkMembershipRecord,
         Milestone6LayoutMaterializationRecord, Milestone6ScopeSliceMembershipRecord,
-        Milestone6StructuralBlockRecord, ProgramChunkWitnessIndexRecord, SchemaSupportRecord, StoreState,
-        SubscriberCheckpointRecord,
+        Milestone6StructuralBlockRecord, ProgramChunkWitnessIndexRecord, SchemaSupportRecord,
+        StoreState, SubscriberCheckpointRecord,
     },
 };
 
@@ -94,6 +94,7 @@ pub(crate) struct StateBackedStoreBackend<P> {
     state: StoreState,
     milestone_6_access_structure_verification: Milestone6AccessStructureVerification,
     milestone_7_access_structure_verification: Milestone7AccessStructureVerification,
+    milestone_6_scope_prepare_counts: HashMap<String, u64>,
     counters: StoreCounters,
 }
 
@@ -202,6 +203,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             state,
             milestone_6_access_structure_verification,
             milestone_7_access_structure_verification,
+            milestone_6_scope_prepare_counts: HashMap::new(),
             counters: StoreCounters::default(),
         })
     }
@@ -220,6 +222,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             state,
             milestone_6_access_structure_verification,
             milestone_7_access_structure_verification,
+            milestone_6_scope_prepare_counts: HashMap::new(),
             counters: StoreCounters::default(),
         })
     }
@@ -239,8 +242,58 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             state,
             milestone_6_access_structure_verification,
             milestone_7_access_structure_verification,
+            milestone_6_scope_prepare_counts: HashMap::new(),
             counters: StoreCounters::default(),
         })
+    }
+
+    pub(crate) fn note_milestone_6_scope_prepare(
+        &mut self,
+        request: &AspectLayoutReadRequest,
+    ) -> Result<u64, StoreError> {
+        let artifact_id = crate::layout::published_layout_request_artifact_id(request)?;
+        let entry = self
+            .milestone_6_scope_prepare_counts
+            .entry(artifact_id)
+            .or_insert(0);
+        *entry += 1;
+        Ok(*entry)
+    }
+
+    pub(crate) fn milestone_6_branch_has_materialized_support(&self, branch_id: &BranchId) -> bool {
+        self.state
+            .milestone_6_layout_materialization_records
+            .values()
+            .any(|record| {
+                record
+                    .materialization
+                    .admitted_plan()
+                    .request()
+                    .target()
+                    .branch_id()
+                    == branch_id
+            })
+    }
+
+    pub(crate) fn record_milestone_6_proof_only_prepare(&self) {
+        self.counters.record_milestone_6_proof_only_prepare();
+    }
+
+    pub(crate) fn record_milestone_6_on_demand_materialize(&self) {
+        self.counters.record_milestone_6_on_demand_materialize();
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_resolution(&self) {
+        self.counters.record_milestone_6_policy_eager_resolution();
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_publish(&self) {
+        self.counters.record_milestone_6_policy_eager_publish();
+    }
+
+    pub(crate) fn record_milestone_6_policy_eager_reuse_existing(&self) {
+        self.counters
+            .record_milestone_6_policy_eager_reuse_existing();
     }
 
     pub fn create_branch(
@@ -524,22 +577,26 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     ) -> Result<AspectLayoutReadPlanDecision, StoreError> {
         let decision = self.state.plan_aspect_layout_read(request)?;
         match &decision {
-            AspectLayoutReadPlanDecision::Admitted(plan) => self.counters.record_aspect_layout_plan(
-                true,
-                false,
-                false,
-                plan.performance().layout_slices_read,
-                plan.performance().blocks_decoded,
-                plan.performance().control_replay_breadth,
-            ),
-            AspectLayoutReadPlanDecision::Fallback(plan) => self.counters.record_aspect_layout_plan(
-                false,
-                true,
-                false,
-                plan.performance().layout_slices_read,
-                plan.performance().blocks_decoded,
-                plan.performance().control_replay_breadth,
-            ),
+            AspectLayoutReadPlanDecision::Admitted(plan) => {
+                self.counters.record_aspect_layout_plan(
+                    true,
+                    false,
+                    false,
+                    plan.performance().layout_slices_read,
+                    plan.performance().blocks_decoded,
+                    plan.performance().control_replay_breadth,
+                )
+            }
+            AspectLayoutReadPlanDecision::Fallback(plan) => {
+                self.counters.record_aspect_layout_plan(
+                    false,
+                    true,
+                    false,
+                    plan.performance().layout_slices_read,
+                    plan.performance().blocks_decoded,
+                    plan.performance().control_replay_breadth,
+                )
+            }
             AspectLayoutReadPlanDecision::Rejected(_) => self
                 .counters
                 .record_aspect_layout_plan(false, false, true, 0, 0, 0),
@@ -581,8 +638,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         plan: AdmittedAspectLayoutReadPlan,
     ) -> Result<Milestone7IndependentLayoutReference, StoreError> {
-        let reference = self.state.admit_milestone_7_independent_layout_reference(plan)?;
-        self.counters.record_milestone_7_layout_reference_admission();
+        let reference = self
+            .state
+            .admit_milestone_7_independent_layout_reference(plan)?;
+        self.counters
+            .record_milestone_7_layout_reference_admission();
         Ok(reference)
     }
 
@@ -590,7 +650,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         frozen: ChunkModelFrozenPhysicalLayout,
     ) -> Result<Milestone9PhysicalChunkReference, StoreError> {
-        let reference = self.state.admit_milestone_9_physical_chunk_reference(frozen)?;
+        let reference = self
+            .state
+            .admit_milestone_9_physical_chunk_reference(frozen)?;
         self.counters
             .record_milestone_9_physical_chunk_reference_admission();
         Ok(reference)
@@ -645,8 +707,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             &materialization,
             authority_basis_commit,
         )?;
-        let scope_membership_record =
-            milestone_6_scope_slice_membership_record(&materialization)?;
+        let scope_membership_record = milestone_6_scope_slice_membership_record(&materialization)?;
         let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
         let structural_block_record = milestone_6_structural_block_record(&materialization);
 
@@ -664,7 +725,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         );
         attach_milestone_6_commit_coupled_layout_seed_to_commit_support_summary(
             &mut next,
-            materialization.admitted_plan().request().target().frontier_commit_id(),
+            materialization
+                .admitted_plan()
+                .request()
+                .target()
+                .frontier_commit_id(),
             &materialization,
         )?;
         next.milestone_6_scope_slice_membership_records.insert(
@@ -759,7 +824,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             let scope_membership_record =
                 milestone_6_scope_slice_membership_record(&materialization)?;
             let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
-              let structural_block_record = milestone_6_structural_block_record(&materialization);
+            let structural_block_record = milestone_6_structural_block_record(&materialization);
             next.milestone_6_scope_slice_membership_records.insert(
                 scope_membership_record.artifact_id.clone(),
                 scope_membership_record,
@@ -768,7 +833,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 chunk_membership_record.artifact_id.clone(),
                 chunk_membership_record,
             );
-              merge_milestone_6_structural_block_record(&mut next, structural_block_record);
+            merge_milestone_6_structural_block_record(&mut next, structural_block_record);
         }
 
         self.commit_replacement_state(next)?;
@@ -2013,9 +2078,13 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 checkpoint: checkpoint.clone(),
             },
         );
-        if let Some(index) = next.program_chunk_witness_index_records.get_mut(
-            &bulk_witness_index_artifact_id(input.program_id(), input.plan_id()),
-        ) {
+        if let Some(index) =
+            next.program_chunk_witness_index_records
+                .get_mut(&bulk_witness_index_artifact_id(
+                    input.program_id(),
+                    input.plan_id(),
+                ))
+        {
             index.index = ProgramChunkWitnessIndex::new(
                 index.program_id.clone(),
                 index.plan_id.clone(),
@@ -2605,12 +2674,12 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     ) -> Result<ResumeReadyBulkProgram, StoreError> {
         let plan = self.fetch_bulk_chunk_plan(program_id, plan_id)?;
         let resume_boundary = self.fetch_latest_resume_boundary(program_id, plan_id)?;
-        let witness_index = match self.fetch_program_chunk_witness_index_untracked(program_id, plan_id)
-        {
-            Ok(index) => Some(index),
-            Err(error) if matches!(error.kind(), StoreErrorKind::BulkChunkWitnessGap) => None,
-            Err(error) => return Err(error),
-        };
+        let witness_index =
+            match self.fetch_program_chunk_witness_index_untracked(program_id, plan_id) {
+                Ok(index) => Some(index),
+                Err(error) if matches!(error.kind(), StoreErrorKind::BulkChunkWitnessGap) => None,
+                Err(error) => return Err(error),
+            };
         let latest_checkpoint = match resume_boundary.latest_checkpoint_sequence() {
             Some(_) => Some(self.fetch_bulk_progress_checkpoint(program_id, plan_id)?),
             None => None,
@@ -2703,8 +2772,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     ),
                 )
             })?;
-        let witness =
-            self.publish_bulk_chunk_witness(BulkChunkCommitWitness::publish(&admitted, canonical_commit_id)?)?;
+        let witness = self.publish_bulk_chunk_witness(BulkChunkCommitWitness::publish(
+            &admitted,
+            canonical_commit_id,
+        )?)?;
         if let Some(sequence) = checkpoint_sequence {
             let latest_checkpoint_sequence = self
                 .fetch_program_chunk_witness_index_untracked(program_id, plan_id)
@@ -2757,11 +2828,12 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             .width_units();
         let admitted = BudgetAdmittedChunkPlan::admit(&plan, chunk_ordinal, admitted_memory_units)?;
 
-        let witness_index = match self.fetch_program_chunk_witness_index_untracked(program_id, plan_id) {
-            Ok(index) => Some(index),
-            Err(error) if matches!(error.kind(), StoreErrorKind::BulkChunkWitnessGap) => None,
-            Err(error) => return Err(error),
-        };
+        let witness_index =
+            match self.fetch_program_chunk_witness_index_untracked(program_id, plan_id) {
+                Ok(index) => Some(index),
+                Err(error) if matches!(error.kind(), StoreErrorKind::BulkChunkWitnessGap) => None,
+                Err(error) => return Err(error),
+            };
         let witness_present = witness_index
             .as_ref()
             .map(|index| index.highest_committed_chunk_ordinal().value() >= chunk_ordinal.value())
@@ -2769,14 +2841,18 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         let witness = if witness_present {
             None
         } else {
-            Some(self.publish_bulk_chunk_witness(BulkChunkCommitWitness::publish(
-                &admitted,
-                canonical_commit_id,
-            )?)?)
+            Some(
+                self.publish_bulk_chunk_witness(BulkChunkCommitWitness::publish(
+                    &admitted,
+                    canonical_commit_id,
+                )?)?,
+            )
         };
 
         if let Some(sequence) = checkpoint_sequence {
-            let latest_checkpoint_sequence = match self.fetch_program_chunk_witness_index_untracked(program_id, plan_id) {
+            let latest_checkpoint_sequence = match self
+                .fetch_program_chunk_witness_index_untracked(program_id, plan_id)
+            {
                 Ok(index) => index.latest_checkpoint_sequence(),
                 Err(error) if matches!(error.kind(), StoreErrorKind::BulkChunkWitnessGap) => None,
                 Err(error) => return Err(error),
@@ -2966,10 +3042,13 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
 }
 
 fn bulk_checkpoint_sequence_intent_for_wal_records(wal_records: &[&WalRecord]) -> Option<u64> {
-    wal_records.iter().rev().find_map(|record| match &record.payload {
-        WalRecordPayload::BulkCheckpointPublicationIntent(intent) => intent.checkpoint_sequence,
-        _ => None,
-    })
+    wal_records
+        .iter()
+        .rev()
+        .find_map(|record| match &record.payload {
+            WalRecordPayload::BulkCheckpointPublicationIntent(intent) => intent.checkpoint_sequence,
+            _ => None,
+        })
 }
 
 fn verify_milestone_7_access_structures(
@@ -3091,13 +3170,18 @@ fn verify_milestone_6_structural_block_keys(
                 record.artifact_id
             ));
         }
-        if record.supporting_layout_materialization_artifact_ids.is_empty() {
+        if record
+            .supporting_layout_materialization_artifact_ids
+            .is_empty()
+        {
             return Milestone6AccessStructureVerificationPath::debt(format!(
                 "open-time access structure verification failed: Milestone 6 structural block `{}` had no supporting layout materializations",
                 record.artifact_id
             ));
         }
-        for layout_materialization_artifact_id in &record.supporting_layout_materialization_artifact_ids {
+        for layout_materialization_artifact_id in
+            &record.supporting_layout_materialization_artifact_ids
+        {
             if !state
                 .milestone_6_layout_materialization_records
                 .contains_key(layout_materialization_artifact_id)
@@ -3209,16 +3293,18 @@ fn milestone_6_commit_coupled_layout_seed_record(
     materialization: &Milestone6LayoutMaterialization,
     authority_basis_commit: &crate::backend::records::StoredCommitEnvelope,
 ) -> Result<crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord, StoreError> {
-    Ok(crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord {
-        artifact_id: crate::layout::published_layout_request_artifact_id(
-            materialization.admitted_plan().request(),
-        )?,
-        request: materialization.admitted_plan().request().clone(),
-        layout_materialization_artifact_id: materialization.artifact_id().to_string(),
-        authority_basis_commit_id: authority_basis_commit.envelope.commit.commit_id,
-        authority_basis_commit_digest: authority_basis_commit.envelope_digest.clone(),
-        authority_basis_commit_sequence: authority_basis_commit.commit_sequence,
-    })
+    Ok(
+        crate::backend::records::Milestone6CommitCoupledLayoutSeedRecord {
+            artifact_id: crate::layout::published_layout_request_artifact_id(
+                materialization.admitted_plan().request(),
+            )?,
+            request: materialization.admitted_plan().request().clone(),
+            layout_materialization_artifact_id: materialization.artifact_id().to_string(),
+            authority_basis_commit_id: authority_basis_commit.envelope.commit.commit_id,
+            authority_basis_commit_digest: authority_basis_commit.envelope_digest.clone(),
+            authority_basis_commit_sequence: authority_basis_commit.commit_sequence,
+        },
+    )
 }
 
 fn milestone_6_chunk_membership_record(
@@ -3254,8 +3340,9 @@ fn attach_milestone_6_commit_coupled_layout_seed_to_commit_support_summary(
     commit_id: CommitId,
     materialization: &Milestone6LayoutMaterialization,
 ) -> Result<(), StoreError> {
-    let artifact_id =
-        crate::layout::published_layout_request_artifact_id(materialization.admitted_plan().request())?;
+    let artifact_id = crate::layout::published_layout_request_artifact_id(
+        materialization.admitted_plan().request(),
+    )?;
     let summary_digest = {
         let summary = state
             .commit_support_summaries
@@ -3323,9 +3410,7 @@ fn milestone_6_structural_block_record(
         ),
         structural_block_id: materialization.block_reuse().structural_block_id().clone(),
         scope_class: materialization.block_reuse().scope_class().to_string(),
-        equivalence_contract_version: materialization
-            .block_reuse()
-            .equivalence_contract_version(),
+        equivalence_contract_version: materialization.block_reuse().equivalence_contract_version(),
         slice_ids: materialization.block_reuse().slice_ids().to_vec(),
         supporting_layout_materialization_artifact_ids: vec![materialization
             .artifact_id()
@@ -3341,7 +3426,10 @@ fn merge_milestone_6_structural_block_record(
         .milestone_6_structural_block_records
         .get_mut(&record.artifact_id)
     {
-        for artifact_id in record.supporting_layout_materialization_artifact_ids.drain(..) {
+        for artifact_id in record
+            .supporting_layout_materialization_artifact_ids
+            .drain(..)
+        {
             if !existing
                 .supporting_layout_materialization_artifact_ids
                 .contains(&artifact_id)

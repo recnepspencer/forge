@@ -6,8 +6,8 @@ use crate::speculation::{
 };
 use crate::writeback::{
     BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
-    BridgeWritebackFamilyAdmissionRecord,
-    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
+    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
 };
 
 use super::continuity::BridgeCanonicalContinuityRecord;

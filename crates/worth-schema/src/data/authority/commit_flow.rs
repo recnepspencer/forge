@@ -140,7 +140,10 @@ pub struct CertifiedTopologyInterpretation {
 }
 
 impl RawWorthTopologyIntent {
-    pub fn new(mutations: Vec<WorthTopologyMutation>, mutation_origin: WorthMutationOrigin) -> Self {
+    pub fn new(
+        mutations: Vec<WorthTopologyMutation>,
+        mutation_origin: WorthMutationOrigin,
+    ) -> Self {
         Self {
             mutations,
             mutation_origin,

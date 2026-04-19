@@ -7,9 +7,9 @@
 //! All logic-layer functions that only READ geometry should accept
 //! `view: &impl GeometryView` instead of `&GeometryStore`.
 
+use forge_topo::handles::{FaceId, VertexId};
 use worth_geom::facade::Plane;
 use worth_math::arithmetic::Rational;
-use forge_topo::handles::{FaceId, VertexId};
 
 use super::super::data::position::ExactPosition;
 

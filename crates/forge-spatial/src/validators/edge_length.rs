@@ -3,10 +3,10 @@
 //! DOMAIN: Validate that no edge has length below its endpoint vertex tolerances.
 
 use forge_core::{KernelError, ToleranceProvider};
-use worth_math::linalg::{norm, sub};
 use forge_topo::b_rep::EntityBitset;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
+use worth_math::linalg::{norm, sub};
 
 /// Validate that no edge has length below the max of its endpoint tolerances.
 pub fn validate_zero_length_edges(

@@ -19,8 +19,8 @@ use crate::speculation::{
 };
 use crate::writeback::{
     BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
-    BridgeWritebackFamilyAdmissionRecord,
-    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
+    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
 };
 
 mod config;
@@ -102,8 +102,7 @@ pub(crate) struct BridgeDiagnosticsState {
         BTreeMap<String, Arc<BridgeWritebackExecutionRecord>>,
     latest_writeback_mapper_by_record_identity: BTreeMap<String, Arc<BridgeWritebackMapperRecord>>,
     latest_writeback_mapper_by_candidate_digest: BTreeMap<String, Arc<BridgeWritebackMapperRecord>>,
-    latest_writeback_replay_by_record_identity:
-        BTreeMap<String, Arc<BridgeWritebackReplayRecord>>,
+    latest_writeback_replay_by_record_identity: BTreeMap<String, Arc<BridgeWritebackReplayRecord>>,
     reserved_preview_session_identities: BTreeSet<String>,
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,

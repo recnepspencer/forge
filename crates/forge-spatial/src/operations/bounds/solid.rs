@@ -4,10 +4,10 @@
 //!         the full topology hierarchy to the solid body level.
 
 use forge_core::KernelError;
-use worth_geom::Aabb;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{BodyId, LumpId, RegionId, ShellId, VertexId};
 use forge_topo::queries::hierarchy::shell_faces;
+use worth_geom::Aabb;
 
 use super::face::face_bounds;
 

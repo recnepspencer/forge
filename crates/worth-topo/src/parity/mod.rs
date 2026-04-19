@@ -9,6 +9,4 @@ pub use facade::{
     digest_derived_validation_report, digest_interpreted_topology_view,
     digest_materialized_topology_view,
 };
-pub use types::{
-    WorthDerivedEquivalenceContractReport, WorthDerivedParityComparisonReport,
-};
+pub use types::{WorthDerivedEquivalenceContractReport, WorthDerivedParityComparisonReport};

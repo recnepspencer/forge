@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_signal::facade::{SignalGraph, diagnostics_for_graph};
 use forge_runtime_bridge::facade::BridgeDiagnosticsFacade;
+use forge_signal::facade::{diagnostics_for_graph, SignalGraph};
 use serde::{Deserialize, Serialize};
 
 use crate::data::tracing::{
@@ -139,8 +139,8 @@ pub fn explain_authority_trace(
         .map(|head| head.commit_id);
     let branch_head_matches_latest_commit =
         latest_commit_id.is_some() && latest_commit_id == branch_head_commit_id;
-    let inspection =
-        latest_commit_id.and_then(|commit_id| runtime.inspect_what_happened().inspect_commit(commit_id));
+    let inspection = latest_commit_id
+        .and_then(|commit_id| runtime.inspect_what_happened().inspect_commit(commit_id));
     let changed_record_count = inspection
         .as_ref()
         .map(|inspection| inspection.changed_records.len())
@@ -219,7 +219,10 @@ pub fn explain_authority_trace(
     if !changed_aspects.is_empty() {
         story_lines.push(WorthNarrativeLine::new(
             "Changed Aspects",
-            format!("Observed relational aspect tags: {}.", changed_aspects.join(", ")),
+            format!(
+                "Observed relational aspect tags: {}.",
+                changed_aspects.join(", ")
+            ),
         ));
     }
     let query_hints = vec![
@@ -364,8 +367,14 @@ pub fn explain_derived_trace(
     integrity_markers: Option<&WorthIntegrityMarkers>,
 ) -> WorthDerivedNarrative {
     let reopened = anchor.open_snapshot(runtime);
-    let entity_count = reopened.as_ref().map(|view| view.entities().len()).unwrap_or(0);
-    let relation_count = reopened.as_ref().map(|view| view.relations().len()).unwrap_or(0);
+    let entity_count = reopened
+        .as_ref()
+        .map(|view| view.entities().len())
+        .unwrap_or(0);
+    let relation_count = reopened
+        .as_ref()
+        .map(|view| view.relations().len())
+        .unwrap_or(0);
     let touched_aspects = integrity_markers
         .map(|markers| {
             markers
@@ -413,13 +422,19 @@ pub fn explain_derived_trace(
     if !touched_aspects.is_empty() {
         story_lines.push(WorthNarrativeLine::new(
             "Touched Worth Aspects",
-            format!("Worth marked these aspects as touched: {}.", touched_aspects.join(", ")),
+            format!(
+                "Worth marked these aspects as touched: {}.",
+                touched_aspects.join(", ")
+            ),
         ));
     }
     if !fallback_classes.is_empty() {
         story_lines.push(WorthNarrativeLine::new(
             "Fallbacks",
-            format!("Derived execution reported fallback classes: {}.", fallback_classes.join(", ")),
+            format!(
+                "Derived execution reported fallback classes: {}.",
+                fallback_classes.join(", ")
+            ),
         ));
     }
     if let Some(digest) = &equivalence_digest {
@@ -442,7 +457,10 @@ pub fn explain_derived_trace(
         branch_id: anchor.branch_id.0.clone(),
         snapshot_id: anchor.snapshot_id.0,
         version_id: anchor.version_id.0,
-        truth_basis_digest: anchor.truth_basis_identity.mutation_batch_digest_hex.clone(),
+        truth_basis_digest: anchor
+            .truth_basis_identity
+            .mutation_batch_digest_hex
+            .clone(),
         entity_count,
         relation_count,
         touched_aspects,
@@ -565,8 +583,9 @@ pub fn narrate_decision_trace(
         .authority_anchor()
         .map(|anchor| explain_authority_trace(runtime, anchor, decision_trace.authority.as_ref()));
     let bridge = decision_trace.bridge_anchor().and_then(|anchor| {
-        bridge_diagnostics
-            .map(|diagnostics| explain_bridge_trace(diagnostics, anchor, decision_trace.bridge.as_ref()))
+        bridge_diagnostics.map(|diagnostics| {
+            explain_bridge_trace(diagnostics, anchor, decision_trace.bridge.as_ref())
+        })
     });
     let derived = decision_trace.derived_anchor().map(|anchor| {
         explain_derived_trace(

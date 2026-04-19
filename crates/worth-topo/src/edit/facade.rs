@@ -1,8 +1,8 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::{
-    RawWorthTopologyIntent, VerifiedTopologyCommit, WorthBoundaryEnvelope,
-    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers, WorthPerformanceAccounting, WorthTopologyAuthority,
+    RawWorthTopologyIntent, VerifiedTopologyCommit, WorthBoundaryEnvelope, WorthBoundaryFailure,
+    WorthDecisionTrace, WorthIntegrityMarkers, WorthPerformanceAccounting, WorthTopologyAuthority,
     WorthTopologyAuthorityError, WorthTracedTopologyCommit,
 };
 
@@ -46,7 +46,10 @@ impl WorthTopologyEditBatch {
     }
 
     pub fn families(&self) -> Vec<super::types::WorthTopologyEditFamily> {
-        self.contracts.iter().map(|contract| contract.family).collect()
+        self.contracts
+            .iter()
+            .map(|contract| contract.family)
+            .collect()
     }
 
     pub fn into_raw_intent(
@@ -77,10 +80,7 @@ pub struct WorthTopologyEditRuntimeTrace {
 }
 
 impl WorthTopologyEditRuntimeTrace {
-    fn from_batch(
-        batch: &WorthTopologyEditBatch,
-        mode: &WorthTopologyEditApplicationMode,
-    ) -> Self {
+    fn from_batch(batch: &WorthTopologyEditBatch, mode: &WorthTopologyEditApplicationMode) -> Self {
         Self {
             mode: mode.clone(),
             families: batch.families(),
@@ -199,17 +199,18 @@ fn authority_error_with_trace(
     trace: WorthTopologyEditRuntimeTrace,
 ) -> WorthTopologyEditError {
     let naming_report = match source.error() {
-        WorthTopologyAuthorityError::DuplicateCreateKey(key) => trace
-            .naming_report
-            .clone()
-            .rejected(format!("duplicate create key `{}` in edit batch", key.as_str())),
-        WorthTopologyAuthorityError::DuplicateLiveEntityLabel(key) => trace
-            .naming_report
-            .clone()
-            .rejected(format!(
+        WorthTopologyAuthorityError::DuplicateCreateKey(key) => {
+            trace.naming_report.clone().rejected(format!(
+                "duplicate create key `{}` in edit batch",
+                key.as_str()
+            ))
+        }
+        WorthTopologyAuthorityError::DuplicateLiveEntityLabel(key) => {
+            trace.naming_report.clone().rejected(format!(
                 "live topology truth already contains entity label `{}`",
                 key.as_str()
-            )),
+            ))
+        }
         _ => trace.naming_report.clone(),
     };
     let trace = trace
@@ -267,9 +268,11 @@ impl<'a> WorthTopologyEditRunner<'a> {
             WorthTopologyEditApplicationMode::Mainline => WorthTopologyAuthority::new(self.runtime)
                 .apply_topology_intent_traced(intent)
                 .map_err(|error| authority_error_with_trace(error, trace)),
-            WorthTopologyEditApplicationMode::BranchLocal(branch_id) => WorthTopologyAuthority::new(self.runtime)
-                .apply_topology_intent_on_branch_traced(intent, branch_id)
-                .map_err(|error| authority_error_with_trace(error, trace)),
+            WorthTopologyEditApplicationMode::BranchLocal(branch_id) => {
+                WorthTopologyAuthority::new(self.runtime)
+                    .apply_topology_intent_on_branch_traced(intent, branch_id)
+                    .map_err(|error| authority_error_with_trace(error, trace))
+            }
         }
     }
 
@@ -283,8 +286,10 @@ impl<'a> WorthTopologyEditRunner<'a> {
         let authority = match mode.clone() {
             WorthTopologyEditApplicationMode::Mainline => WorthTopologyAuthority::new(self.runtime)
                 .apply_topology_intent_traced(batch.into_raw_intent(&mode)),
-            WorthTopologyEditApplicationMode::BranchLocal(branch_id) => WorthTopologyAuthority::new(self.runtime)
-                .apply_topology_intent_on_branch_traced(batch.into_raw_intent(&mode), branch_id),
+            WorthTopologyEditApplicationMode::BranchLocal(branch_id) => {
+                WorthTopologyAuthority::new(self.runtime)
+                    .apply_topology_intent_on_branch_traced(batch.into_raw_intent(&mode), branch_id)
+            }
         }
         .map_err(|error| authority_error_with_trace(error, trace.clone()))?;
         let verified_commit = authority.primary_result().clone();
@@ -314,5 +319,4 @@ impl<'a> WorthTopologyEditRunner<'a> {
             authority.performance_accounting().clone(),
         ))
     }
-
 }

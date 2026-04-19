@@ -65,7 +65,9 @@ fn milestone_2_suite() -> CertificationSuite<String, String> {
                     .admit_external_checkpoint(BasisFreeCheckpoint::<
                         DerivedDurableCheckpointKind,
                         NoContainedCommits,
-                    >::new("checkpoint-derived", "embedded-runtime"))
+                    >::new(
+                        "checkpoint-derived", "embedded-runtime"
+                    ))
                     .unwrap(),
             )
             .unwrap(),

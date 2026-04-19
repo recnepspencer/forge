@@ -52,13 +52,20 @@ fn validate_shell_closure_mode(
         .iter()
         .map(|record| (record.entity_id, record))
         .collect();
-    let face_map: BTreeMap<EntityId, _> = view.faces.iter().map(|record| (record.entity_id, record)).collect();
+    let face_map: BTreeMap<EntityId, _> = view
+        .faces
+        .iter()
+        .map(|record| (record.entity_id, record))
+        .collect();
 
     for shell in &view.shells {
         let Some(shell_class) = shell_classes.get(&shell.entity_id).copied() else {
             return Err(err(
                 "shell_closure.interpretation_summary",
-                format!("shell {:?} has no interpreted shell summary", shell.entity_id),
+                format!(
+                    "shell {:?} has no interpreted shell summary",
+                    shell.entity_id
+                ),
             ));
         };
         let shell_face_ids: BTreeSet<EntityId> = shell.face_ids.iter().copied().collect();
@@ -70,7 +77,10 @@ fn validate_shell_closure_mode(
             let half_edge = half_edge_map.get(half_edge_id).copied().ok_or_else(|| {
                 err(
                     "shell_closure.closure_mode",
-                    format!("shell {:?} references missing half-edge {:?}", shell.entity_id, half_edge_id),
+                    format!(
+                        "shell {:?} references missing half-edge {:?}",
+                        shell.entity_id, half_edge_id
+                    ),
                 )
             })?;
             let radial_id = half_edge.radial_next_half_edge_id.ok_or_else(|| {
@@ -88,7 +98,10 @@ fn validate_shell_closure_mode(
             let radial = half_edge_map.get(&radial_id).copied().ok_or_else(|| {
                 err(
                     "shell_closure.closure_mode",
-                    format!("half-edge {:?} references missing radial neighbor {:?}", half_edge.entity_id, radial_id),
+                    format!(
+                        "half-edge {:?} references missing radial neighbor {:?}",
+                        half_edge.entity_id, radial_id
+                    ),
                 )
             })?;
             if radial.edge_id != half_edge.edge_id {
@@ -106,7 +119,8 @@ fn validate_shell_closure_mode(
                     format!("radial neighbor {:?} has no face", radial.entity_id),
                 )
             })?;
-            if !face_map.contains_key(&radial_face_id) || !shell_face_ids.contains(&radial_face_id) {
+            if !face_map.contains_key(&radial_face_id) || !shell_face_ids.contains(&radial_face_id)
+            {
                 return Err(err(
                     "shell_closure.closure_mode",
                     format!(
@@ -118,7 +132,11 @@ fn validate_shell_closure_mode(
         }
 
         if boundary_half_edges.is_empty() {
-            validate_closed_shell_manifold_edges(shell.entity_id, &shell_half_edges, &half_edge_map)?;
+            validate_closed_shell_manifold_edges(
+                shell.entity_id,
+                &shell_half_edges,
+                &half_edge_map,
+            )?;
             if !matches!(
                 shell_class,
                 WorthShellInterpretationClass::ClosedSolid
@@ -134,7 +152,8 @@ fn validate_shell_closure_mode(
             }
         } else if matches!(
             shell_class,
-            WorthShellInterpretationClass::ClosedSolid | WorthShellInterpretationClass::ClosedNonManifold
+            WorthShellInterpretationClass::ClosedSolid
+                | WorthShellInterpretationClass::ClosedNonManifold
         ) {
             return Err(err(
                 "shell_closure.interpretation_summary",
@@ -150,7 +169,9 @@ fn validate_shell_closure_mode(
     Ok(())
 }
 
-fn validate_shell_faces(view: &crate::data::topology_view::WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_shell_faces(
+    view: &crate::data::topology_view::WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     for shell in &view.shells {
         if shell.face_ids.is_empty() {
             return Err(err(
@@ -181,20 +202,28 @@ fn validate_face_shell_membership(
         let Some(face_set) = shell_face_sets.get(&shell_id) else {
             return Err(err(
                 "shell_closure.face_shell_membership",
-                format!("face {:?} references missing shell {:?}", face.entity_id, shell_id),
+                format!(
+                    "face {:?} references missing shell {:?}",
+                    face.entity_id, shell_id
+                ),
             ));
         };
         if !face_set.contains(&face.entity_id) {
             return Err(err(
                 "shell_closure.face_shell_membership",
-                format!("shell {:?} does not list face {:?}", shell_id, face.entity_id),
+                format!(
+                    "shell {:?} does not list face {:?}",
+                    shell_id, face.entity_id
+                ),
             ));
         }
     }
     Ok(())
 }
 
-fn validate_face_boundaries(view: &crate::data::topology_view::WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_face_boundaries(
+    view: &crate::data::topology_view::WorthTopologyView,
+) -> Result<(), WorthTopologyValidationError> {
     for face in &view.faces {
         if face.boundary_half_edge_ids.is_empty() {
             return Err(err(
@@ -238,7 +267,10 @@ fn validate_closed_shell_manifold_edges(
         let half_edge = half_edge_map.get(half_edge_id).copied().ok_or_else(|| {
             err(
                 "shell_closure.closed_shell_manifold",
-                format!("shell {:?} references missing half-edge {:?}", shell_id, half_edge_id),
+                format!(
+                    "shell {:?} references missing half-edge {:?}",
+                    shell_id, half_edge_id
+                ),
             )
         })?;
         let edge_id = half_edge.edge_id.ok_or_else(|| {
@@ -263,10 +295,16 @@ fn validate_closed_shell_manifold_edges(
                 ),
             ));
         }
-        if !ring.iter().all(|radial_id| shell_half_edges.contains(radial_id)) {
+        if !ring
+            .iter()
+            .all(|radial_id| shell_half_edges.contains(radial_id))
+        {
             return Err(err(
                 "shell_closure.closed_shell_manifold",
-                format!("shell {:?} edge {:?} has radial uses outside the shell", shell_id, edge_id),
+                format!(
+                    "shell {:?} edge {:?} has radial uses outside the shell",
+                    shell_id, edge_id
+                ),
             ));
         }
 
@@ -315,7 +353,10 @@ fn walk_radial_ring(
             }
             return Err(err(
                 "shell_closure.closed_shell_manifold",
-                format!("radial ring seeded at {:?} revisits {:?} before closing", start_id, current_id),
+                format!(
+                    "radial ring seeded at {:?} revisits {:?} before closing",
+                    start_id, current_id
+                ),
             ));
         }
         ring.push(current_id);

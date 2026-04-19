@@ -211,7 +211,9 @@ pub struct WorthTopologyEditContract {
 }
 
 impl WorthTopologyEditContract {
-    pub fn mutation_origin_for(mode: &super::facade::WorthTopologyEditApplicationMode) -> WorthMutationOrigin {
+    pub fn mutation_origin_for(
+        mode: &super::facade::WorthTopologyEditApplicationMode,
+    ) -> WorthMutationOrigin {
         match mode {
             super::facade::WorthTopologyEditApplicationMode::Mainline => {
                 WorthMutationOrigin::LocalEdit
@@ -404,7 +406,10 @@ impl WorthTopologyEditContract {
         }
     }
 
-    pub fn detach_boundary_membership(relation_id: RelationId, kind: WorthBoundaryMembershipKind) -> Self {
+    pub fn detach_boundary_membership(
+        relation_id: RelationId,
+        kind: WorthBoundaryMembershipKind,
+    ) -> Self {
         let touched_aspects = BTreeSet::from([
             WorthAspect::Topology(WorthTopologyAspect::Boundary),
             WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
@@ -530,9 +535,7 @@ impl WorthTopologyEditContract {
         }];
         let changed_scope = match kind {
             WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => {
-                WorthTopologyEditChangedScope::Shell
-            }
+            | WorthShellOrWireMembershipKind::ShellOwnsFace => WorthTopologyEditChangedScope::Shell,
             WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyEditChangedScope::Wire,
         };
         let derived_region = match kind {
@@ -540,7 +543,9 @@ impl WorthTopologyEditContract {
             | WorthShellOrWireMembershipKind::ShellOwnsFace => {
                 WorthTopologyDerivedRegion::ShellRegion
             }
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyDerivedRegion::WireRegion,
+            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => {
+                WorthTopologyDerivedRegion::WireRegion
+            }
         };
         Self {
             family: WorthTopologyEditFamily::AttachShellOrWireMembership,
@@ -579,9 +584,7 @@ impl WorthTopologyEditContract {
         ]);
         let changed_scope = match kind {
             WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => {
-                WorthTopologyEditChangedScope::Shell
-            }
+            | WorthShellOrWireMembershipKind::ShellOwnsFace => WorthTopologyEditChangedScope::Shell,
             WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyEditChangedScope::Wire,
         };
         let derived_region = match kind {
@@ -589,7 +592,9 @@ impl WorthTopologyEditContract {
             | WorthShellOrWireMembershipKind::ShellOwnsFace => {
                 WorthTopologyDerivedRegion::ShellRegion
             }
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyDerivedRegion::WireRegion,
+            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => {
+                WorthTopologyDerivedRegion::WireRegion
+            }
         };
         let lowered_mutations = vec![WorthTopologyMutation::RemoveRelation { relation_id }];
         Self {

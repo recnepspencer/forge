@@ -1151,7 +1151,9 @@ fn bulk_relation_create_intents(
             .entry((relation.partition_id, relation.kind_id))
             .or_insert_with(|| (Vec::new(), Vec::new(), Vec::new()));
         entry.0.push(relation.client_key.clone());
-        entry.1.push((relation.source.clone(), relation.target.clone()));
+        entry
+            .1
+            .push((relation.source.clone(), relation.target.clone()));
         entry.2.push(relation.payload.clone());
     }
 
@@ -5869,8 +5871,12 @@ fn perf_rocketship_scale_matrix() {
                                     "rocket.batch.local.{}.{}",
                                     partition_index, edge_index
                                 )),
-                                source: crate::transactions::data::EntityReference::Existing(pair[0]),
-                                target: crate::transactions::data::EntityReference::Existing(pair[1]),
+                                source: crate::transactions::data::EntityReference::Existing(
+                                    pair[0],
+                                ),
+                                target: crate::transactions::data::EntityReference::Existing(
+                                    pair[1],
+                                ),
                                 payload: Some(RecordPayload::StructuredJson(json!({
                                     "edge_type": "batch-local",
                                     "partition": partition_index,

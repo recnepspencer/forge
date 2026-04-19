@@ -5,10 +5,10 @@
 //!         pre-filtering in the boolean pipeline.
 
 use forge_core::KernelError;
-use worth_geom::Aabb;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::queries::traverse::FaceAllEdgesIterator;
+use worth_geom::Aabb;
 
 /// Compute an AABB for a face by traversing all loops and collecting vertex positions.
 pub fn face_bounds(

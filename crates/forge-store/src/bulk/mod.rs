@@ -4,13 +4,13 @@ mod planning;
 mod receipts;
 mod witnesses;
 
-pub use checkpointing::{
-    BulkCheckpointPolicy, PublishedBulkProgressCheckpoint, RecoveredBulkChunkResume, ResumeBoundaryCandidate,
-    ResumeReadyBulkProgram,
-};
-pub(crate) use checkpointing::BulkProgressCheckpointRecordInput;
-pub use execution::{BulkCanonicalChunkExecutionRequest, DurablyExecutedBulkChunk};
 pub(crate) use checkpointing::compute_checkpoint_digest;
+pub(crate) use checkpointing::BulkProgressCheckpointRecordInput;
+pub use checkpointing::{
+    BulkCheckpointPolicy, PublishedBulkProgressCheckpoint, RecoveredBulkChunkResume,
+    ResumeBoundaryCandidate, ResumeReadyBulkProgram,
+};
+pub use execution::{BulkCanonicalChunkExecutionRequest, DurablyExecutedBulkChunk};
 pub use planning::{
     BudgetAdmittedChunkPlan, BulkIngestSourceRequest, BulkPlanKind, BulkSourceMember,
     BulkTransformRequest, CanonicalChunkPlan, ChunkOrdinal, ChunkWidthBudget,

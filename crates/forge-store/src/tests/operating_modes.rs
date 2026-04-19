@@ -100,16 +100,15 @@ fn derived_embedded_checkpoint_persists_without_changing_authority() {
     let receipt = embedded
         .persist_external_checkpoint(
             embedded
-                .admit_external_checkpoint(BasisBoundCheckpoint::<
-                    DerivedDurableCheckpointKind,
-                    NoContainedCommits,
-                >::new(
-                    "checkpoint-1",
-                    "embedded-runtime",
-                    forge_relational::facade::history::BranchId("main".to_string()),
-                    before_head.head_commit_id().expect("head commit"),
+                .admit_external_checkpoint(
+                    BasisBoundCheckpoint::<DerivedDurableCheckpointKind, NoContainedCommits>::new(
+                        "checkpoint-1",
+                        "embedded-runtime",
+                        forge_relational::facade::history::BranchId("main".to_string()),
+                        before_head.head_commit_id().expect("head commit"),
+                    )
+                    .with_metadata(json!({"kind":"session-checkpoint"})),
                 )
-                .with_metadata(json!({"kind":"session-checkpoint"})))
                 .unwrap(),
         )
         .expect("derived checkpoint should persist");
@@ -136,10 +135,7 @@ fn derived_embedded_checkpoint_persists_without_changing_authority() {
         .expect("stored checkpoint should round-trip");
     assert_eq!(fetched.checkpoint_id(), "checkpoint-1");
     assert_eq!(fetched.source_runtime_id(), "embedded-runtime");
-    assert_eq!(
-        fetched.basis_commit_id(),
-        before_head.head_commit_id()
-    );
+    assert_eq!(fetched.basis_commit_id(), before_head.head_commit_id());
 
     let counters = embedded.store().counters();
     assert_eq!(counters.external_checkpoint_intake_count, 1);

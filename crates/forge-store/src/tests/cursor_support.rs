@@ -6,8 +6,8 @@ use crate::{
         EmbeddedCheckpointRecord,
     },
     BasisBoundCheckpoint, DerivedDurableCheckpointKind, DurableCursorAcknowledgeRequest,
-    DurableCursorResumeRequest, ForgeStoreBuilder, HistoricalIdentityRequest,
-    NoContainedCommits, StoreErrorKind,
+    DurableCursorResumeRequest, ForgeStoreBuilder, HistoricalIdentityRequest, NoContainedCommits,
+    StoreErrorKind,
 };
 use forge_relational::facade::identity::LineageId;
 
@@ -108,13 +108,13 @@ fn cursor_resume_and_acknowledgment_support_explicit_witness_vocabulary() {
         .admit_resumed_cursor_advance(
             &admitted,
             DurableCursorAcknowledgeRequest::new(
-            "cursor-main",
-            "subscriber-a",
-            envelope.branch_context.clone(),
-            "demo-feed",
-            "schema:v1",
-            1,
-            envelope.commit.commit_id,
+                "cursor-main",
+                "subscriber-a",
+                envelope.branch_context.clone(),
+                "demo-feed",
+                "schema:v1",
+                1,
+                envelope.commit.commit_id,
             ),
         )
         .unwrap();

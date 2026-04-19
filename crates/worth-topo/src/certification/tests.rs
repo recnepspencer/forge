@@ -1,37 +1,32 @@
 #[cfg(test)]
 mod certification_tests {
-    use forge_relational::facade::history::BranchId;
-    use worth_schema::facade::{
-        RawWorthTopologyIntent,
-        WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
-        WorthMilestoneOnePrimitiveRole, WorthMutationOrigin, WorthTopologyAuthority,
-        WorthTopologyMutation,
-    };
-    use worth_schema::facade::{WorthShellInterpretationClass, WorthWireInterpretationClass};
     use crate::certification::report::WorthReplayParityStatus;
     use crate::facade::{
         milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
         milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
-        WorthCertificationCanonicalRow,
+        WorthAdmittedRangeSweepReport, WorthBridgeProofReport, WorthCertificationCanonicalRow,
         WorthCertificationParityRow, WorthCertificationRejectionRow,
         WorthCertificationRequiredOutput, WorthCertificationSuiteDefinition,
-        WorthAdmittedRangeSweepReport, WorthBridgeProofReport, WorthDeterministicDigest,
         WorthDerivedEquivalenceContractAggregateReport, WorthDerivedFallbackAggregateReport,
         WorthDerivedInvalidationAggregateReport, WorthDerivedRebuildAggregateReport,
-        WorthDerivedValidatorCoverageReport, WorthFailureLocalityReport, WorthMilestoneOneCounters,
-        WorthMilestoneTwoCloseoutReport, WorthMilestoneTwoCounters,
+        WorthDerivedValidatorCoverageReport, WorthDeterministicDigest, WorthFailureLocalityReport,
+        WorthMilestoneOneCounters, WorthMilestoneTwoCloseoutReport, WorthMilestoneTwoCounters,
         WorthPrimitiveCorpusCoverageMatrix, WorthPrimitiveCorpusParityReport,
     };
+    use forge_relational::facade::history::BranchId;
+    use worth_schema::facade::{
+        RawWorthTopologyIntent, WorthMilestoneOnePrimitiveCase,
+        WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
+        WorthMutationOrigin, WorthTopologyAuthority, WorthTopologyMutation,
+    };
+    use worth_schema::facade::{WorthShellInterpretationClass, WorthWireInterpretationClass};
 
     use crate::certification::{
-        certify_milestone_one_branch_local_primitive_scenarios,
-        certify_milestone_one_closeout,
-        certify_milestone_one_default_primitive_corpus,
-        certify_milestone_one_primitive_corpus,
-        certify_milestone_one_read_view_traced,
-        certify_milestone_two_default_derived_corpus,
-        certify_milestone_two_read_view_traced,
-        certify_milestone_two_verified_topology_commit_traced, certify_milestone_two_closeout,
+        certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
+        certify_milestone_one_default_primitive_corpus, certify_milestone_one_primitive_corpus,
+        certify_milestone_one_read_view_traced, certify_milestone_two_closeout,
+        certify_milestone_two_default_derived_corpus, certify_milestone_two_read_view_traced,
+        certify_milestone_two_verified_topology_commit_traced,
         certify_verified_topology_commit_traced,
     };
     use crate::fixtures::authored_topology::milestone_one_default_corpus_scenarios;
@@ -47,8 +42,7 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let seeded = seeded_bootstrap(&mut runtime, "cert-harness")
-            .expect("seed worth topology");
+        let seeded = seeded_bootstrap(&mut runtime, "cert-harness").expect("seed worth topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -82,12 +76,16 @@ mod certification_tests {
             WorthReplayParityStatus::NotChecked
         );
         assert_eq!(report.milestone_1_replay_parity_report.branch_id.0, "main");
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_checked);
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_verified);
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_checked
+        );
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_verified
+        );
         assert!(report
             .milestone_1_replay_parity_report
             .replayed_commit_id
@@ -97,13 +95,17 @@ mod certification_tests {
             .milestone_1_replay_parity_report
             .replay_failure
             .is_none());
-        assert!(report
-            .milestone_1_replay_parity_report
-            .interpretation_digest_match);
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .interpretation_digest_match
+        );
         assert!(report.milestone_1_replay_parity_report.truth_digest_match);
-        assert!(report
-            .milestone_1_replay_parity_report
-            .validation_digest_match);
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .validation_digest_match
+        );
         assert_eq!(report.counters.topology_entity_upsert_count, 0);
         assert_eq!(report.counters.topology_relation_upsert_count, 0);
         assert_eq!(report.counters.commit_boundary_validator_count, 6);
@@ -123,20 +125,16 @@ mod certification_tests {
             report.certified_interpretation.interpretations,
             report.read_artifact.interpretations
         );
-        assert!(
-            report
-                .primitive_family_coverage_matrix
-                .entries
-                .iter()
-                .any(|entry| entry.family == "WireOpen(n)" && entry.observed)
-        );
-        assert!(
-            report
-                .primitive_family_coverage_matrix
-                .entries
-                .iter()
-                .any(|entry| entry.family == "SheetDisk(n)" && entry.observed)
-        );
+        assert!(report
+            .primitive_family_coverage_matrix
+            .entries
+            .iter()
+            .any(|entry| entry.family == "WireOpen(n)" && entry.observed));
+        assert!(report
+            .primitive_family_coverage_matrix
+            .entries
+            .iter()
+            .any(|entry| entry.family == "SheetDisk(n)" && entry.observed));
     }
 
     #[test]
@@ -174,8 +172,8 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let seeded = seeded_bootstrap(&mut runtime, "cert-reader-parity")
-            .expect("seed worth topology");
+        let seeded =
+            seeded_bootstrap(&mut runtime, "cert-reader-parity").expect("seed worth topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -212,8 +210,8 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let seeded = seeded_bootstrap(&mut runtime, "cert-traced-surface")
-            .expect("seed worth topology");
+        let seeded =
+            seeded_bootstrap(&mut runtime, "cert-traced-surface").expect("seed worth topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -251,8 +249,7 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced")
-            .expect("seed worth topology");
+        let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced").expect("seed worth topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -385,8 +382,8 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let _seeded = seeded_bootstrap(&mut runtime, "cert-verified-commit")
-            .expect("seed worth topology");
+        let _seeded =
+            seeded_bootstrap(&mut runtime, "cert-verified-commit").expect("seed worth topology");
         let verified = WorthTopologyAuthority::new(&mut runtime)
             .apply_topology_intent_traced(RawWorthTopologyIntent::new(
                 Vec::<WorthTopologyMutation>::new(),
@@ -401,18 +398,25 @@ mod certification_tests {
 
         assert!(report.named_truth_validated);
         assert!(report.topology_validated);
-        assert_eq!(report.read_artifact.snapshot, verified.persisted_truth.snapshot);
+        assert_eq!(
+            report.read_artifact.snapshot,
+            verified.persisted_truth.snapshot
+        );
         assert_eq!(
             report.branch_local_topology_report.mutation_origin,
             WorthMutationOrigin::LocalEdit
         );
         assert_eq!(report.branch_local_topology_report.branch_id.0, "main");
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_checked);
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_verified);
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_checked
+        );
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_verified
+        );
         assert_eq!(
             report.milestone_1_replay_parity_report.parity_status,
             WorthReplayParityStatus::NotChecked
@@ -426,16 +430,22 @@ mod certification_tests {
             .expect("worth milestone one runtime builder")
             .build();
 
-        let _seeded = seeded_bootstrap(&mut runtime, "cert-branch-local")
-            .expect("seed worth topology");
+        let _seeded =
+            seeded_bootstrap(&mut runtime, "cert-branch-local").expect("seed worth topology");
         runtime
             .history_authority()
-            .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+            .create_branch(
+                BranchId("feature".to_string()),
+                &BranchId("main".to_string()),
+            )
             .expect("feature branch");
 
         let verified = WorthTopologyAuthority::new(&mut runtime)
             .apply_topology_intent_on_branch_traced(
-                RawWorthTopologyIntent::new(Vec::<WorthTopologyMutation>::new(), WorthMutationOrigin::BranchLocalApplication),
+                RawWorthTopologyIntent::new(
+                    Vec::<WorthTopologyMutation>::new(),
+                    WorthMutationOrigin::BranchLocalApplication,
+                ),
                 BranchId("feature".to_string()),
             )
             .expect("branch-local verified topology commit")
@@ -449,13 +459,20 @@ mod certification_tests {
         assert!(report.topology_validated);
         assert!(report.branch_local_topology_report.branch_local);
         assert_eq!(report.branch_local_topology_report.branch_id.0, "feature");
-        assert_eq!(report.milestone_1_replay_parity_report.branch_id.0, "feature");
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_checked);
-        assert!(!report
-            .milestone_1_replay_parity_report
-            .relational_replay_verified);
+        assert_eq!(
+            report.milestone_1_replay_parity_report.branch_id.0,
+            "feature"
+        );
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_checked
+        );
+        assert!(
+            !report
+                .milestone_1_replay_parity_report
+                .relational_replay_verified
+        );
         assert_eq!(
             report.milestone_1_replay_parity_report.parity_status,
             WorthReplayParityStatus::NotChecked
@@ -480,12 +497,16 @@ mod certification_tests {
             .expect("verified commit certification should succeed")
             .into_primary_result();
 
-        assert!(report
-            .milestone_1_replay_parity_report
-            .relational_replay_checked);
-        assert!(report
-            .milestone_1_replay_parity_report
-            .relational_replay_verified);
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .relational_replay_checked
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .relational_replay_verified
+        );
         assert_eq!(
             report.milestone_1_replay_parity_report.parity_status,
             WorthReplayParityStatus::Match
@@ -523,8 +544,14 @@ mod certification_tests {
         .expect("primitive corpus certification should succeed");
 
         assert_eq!(corpus.cases.len(), 7);
-        assert!(corpus.cases.iter().all(|case| case.certification.named_truth_validated));
-        assert!(corpus.cases.iter().all(|case| case.certification.topology_validated));
+        assert!(corpus
+            .cases
+            .iter()
+            .all(|case| case.certification.named_truth_validated));
+        assert!(corpus
+            .cases
+            .iter()
+            .all(|case| case.certification.topology_validated));
         assert_eq!(corpus.coverage_matrix.entries.len(), 7);
         assert!(corpus.coverage_matrix.entries.iter().all(|entry| {
             entry.admitted_generic_count == 1
@@ -637,11 +664,17 @@ mod certification_tests {
             .cases
             .iter()
             .any(|case| case.role == WorthMilestoneOnePrimitiveRole::HostileAdmitted));
+        assert!(
+            corpus
+                .rejected_cases
+                .iter()
+                .all(|case| case.expected_outcome
+                    == WorthMilestoneOnePrimitiveExpectedOutcome::Reject)
+        );
         assert!(corpus
             .rejected_cases
             .iter()
-            .all(|case| case.expected_outcome == WorthMilestoneOnePrimitiveExpectedOutcome::Reject));
-        assert!(corpus.rejected_cases.iter().all(|case| !case.rejection.detail.is_empty()));
+            .all(|case| !case.rejection.detail.is_empty()));
         assert!(corpus.rejected_cases.iter().all(|case| {
             matches!(
                 case.rejection.rejection_class.as_str(),
@@ -705,10 +738,10 @@ mod certification_tests {
 
         assert!(!corpus.cases.is_empty());
         assert!(corpus.rejected_cases.is_empty());
-        assert!(corpus.cases.iter().all(|case| case
-            .certification
-            .branch_local_topology_report
-            .branch_local));
+        assert!(corpus
+            .cases
+            .iter()
+            .all(|case| case.certification.branch_local_topology_report.branch_local));
         assert!(corpus.cases.iter().all(|case| {
             case.certification.branch_local_topology_report.branch_id.0 == "feature"
                 && case
@@ -742,55 +775,120 @@ mod certification_tests {
     #[test]
     fn admitted_family_parameter_sweeps_certify_across_ranges() {
         let cases = [
-            (WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 1 }, "WireOpen(n)"),
-            (WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 8 }, "WireOpen(n)"),
-            (WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 }, "WireClosed(n)"),
-            (WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 9 }, "WireClosed(n)"),
-            (WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 3 }, "WireBranch(k)"),
-            (WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 9 }, "WireBranch(k)"),
-            (WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 3 }, "SheetDisk(n)"),
-            (WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 10 }, "SheetDisk(n)"),
-            (WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 2 }, "SheetPatch(f)"),
-            (WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 8 }, "SheetPatch(f)"),
-            (WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 }, "SolidShell(f)"),
-            (WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 10 }, "SolidShell(f)"),
-            (WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 3 }, "NmtEdgeFan(k)"),
-            (WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 9 }, "NmtEdgeFan(k)"),
+            (
+                WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 1 },
+                "WireOpen(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 8 },
+                "WireOpen(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+                "WireClosed(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 9 },
+                "WireClosed(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 3 },
+                "WireBranch(k)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 9 },
+                "WireBranch(k)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 3 },
+                "SheetDisk(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 10 },
+                "SheetDisk(n)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
+                "SheetPatch(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 8 },
+                "SheetPatch(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+                "SolidShell(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 10 },
+                "SolidShell(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 3 },
+                "NmtEdgeFan(k)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 9 },
+                "NmtEdgeFan(k)",
+            ),
         ];
 
         for (index, (primitive, family)) in cases.into_iter().enumerate() {
             let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
                 .expect("worth milestone one runtime builder")
                 .build();
-            let verified = verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
-            .expect("admitted primitive commit");
+            let verified =
+                verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
+                    .expect("admitted primitive commit");
             let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
                 .expect("swept primitive certification should succeed")
                 .into_primary_result();
 
-            assert!(report.named_truth_validated, "{family} should retain naming truth");
-            assert!(report.topology_validated, "{family} should pass topology validation");
+            assert!(
+                report.named_truth_validated,
+                "{family} should retain naming truth"
+            );
+            assert!(
+                report.topology_validated,
+                "{family} should pass topology validation"
+            );
             assert!(report
                 .primitive_family_coverage_matrix
                 .entries
                 .iter()
                 .any(|entry| entry.family == family && entry.observed));
-            assert!(report
-                .milestone_1_replay_parity_report
-                .relational_replay_checked);
-            assert!(report
-                .milestone_1_replay_parity_report
-                .relational_replay_verified);
+            assert!(
+                report
+                    .milestone_1_replay_parity_report
+                    .relational_replay_checked
+            );
+            assert!(
+                report
+                    .milestone_1_replay_parity_report
+                    .relational_replay_verified
+            );
         }
     }
 
     #[test]
     fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
         let cases = [
-            (WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 8 }, "WireBranch(k)"),
-            (WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 7 }, "SheetPatch(f)"),
-            (WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 9 }, "SolidShell(f)"),
-            (WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 8 }, "NmtEdgeFan(k)"),
+            (
+                WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 8 },
+                "WireBranch(k)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 7 },
+                "SheetPatch(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 9 },
+                "SolidShell(f)",
+            ),
+            (
+                WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 8 },
+                "NmtEdgeFan(k)",
+            ),
         ];
 
         for (index, (primitive, family)) in cases.into_iter().enumerate() {
@@ -799,7 +897,10 @@ mod certification_tests {
                 .build();
             runtime
                 .history_authority()
-                .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+                .create_branch(
+                    BranchId("feature".to_string()),
+                    &BranchId("main".to_string()),
+                )
                 .expect("feature branch");
             let verified = verified_primitive_on_branch(
                 &mut runtime,
@@ -813,15 +914,25 @@ mod certification_tests {
                 .expect("branch-local swept primitive certification should succeed")
                 .into_primary_result();
 
-            assert!(report.branch_local_topology_report.branch_local, "{family} should remain branch-local");
+            assert!(
+                report.branch_local_topology_report.branch_local,
+                "{family} should remain branch-local"
+            );
             assert_eq!(report.branch_local_topology_report.branch_id.0, "feature");
-            assert_eq!(report.milestone_1_replay_parity_report.branch_id.0, "feature");
-            assert!(report
-                .milestone_1_replay_parity_report
-                .relational_replay_checked);
-            assert!(report
-                .milestone_1_replay_parity_report
-                .relational_replay_verified);
+            assert_eq!(
+                report.milestone_1_replay_parity_report.branch_id.0,
+                "feature"
+            );
+            assert!(
+                report
+                    .milestone_1_replay_parity_report
+                    .relational_replay_checked
+            );
+            assert!(
+                report
+                    .milestone_1_replay_parity_report
+                    .relational_replay_verified
+            );
         }
     }
 
@@ -924,21 +1035,46 @@ mod certification_tests {
             .branch_ids
             .iter()
             .any(|branch| branch == "feature"));
-        assert!(report
-            .branch_local_topology_report
-            .branch_local_closure_complete);
-        assert!(report.milestone_1_replay_parity_report.replay_checked_case_count >= 1);
-        assert!(report.milestone_1_replay_parity_report.replay_verified_case_count >= 1);
-        assert!(report
-            .milestone_1_replay_parity_report
-            .branch_local_replay_checked_case_count
-            >= 1);
-        assert!(report
-            .milestone_1_replay_parity_report
-            .branch_local_replay_verified_case_count
-            >= 1);
-        assert_eq!(report.milestone_1_replay_parity_report.replay_mismatch_case_count, 0);
-        assert!(report.milestone_1_replay_parity_report.replay_closure_complete);
+        assert!(
+            report
+                .branch_local_topology_report
+                .branch_local_closure_complete
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .replay_checked_case_count
+                >= 1
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .replay_verified_case_count
+                >= 1
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .branch_local_replay_checked_case_count
+                >= 1
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .branch_local_replay_verified_case_count
+                >= 1
+        );
+        assert_eq!(
+            report
+                .milestone_1_replay_parity_report
+                .replay_mismatch_case_count,
+            0
+        );
+        assert!(
+            report
+                .milestone_1_replay_parity_report
+                .replay_closure_complete
+        );
         assert!(report
             .rejection_class_report
             .rows
@@ -965,21 +1101,47 @@ mod certification_tests {
             .any(|row| row.family == "NmtEdgeFan(k)"
                 && row.validator_family.as_deref() == Some("radial")
                 && row.rejection_class == "IllegalAdmittedTopology"));
-        assert_eq!(report.seeded_bootstrap.topology_validation_report.rows.len(), 5);
-        assert!(!report
-            .seeded_bootstrap
-            .branch_local_topology_report
-            .branch_local);
-        assert!(!report
-            .seeded_bootstrap
-            .milestone_1_replay_parity_report
-            .relational_replay_checked);
         assert_eq!(
-            report.seeded_bootstrap.milestone_1_replay_parity_report.parity_status,
+            report
+                .seeded_bootstrap
+                .topology_validation_report
+                .rows
+                .len(),
+            5
+        );
+        assert!(
+            !report
+                .seeded_bootstrap
+                .branch_local_topology_report
+                .branch_local
+        );
+        assert!(
+            !report
+                .seeded_bootstrap
+                .milestone_1_replay_parity_report
+                .relational_replay_checked
+        );
+        assert_eq!(
+            report
+                .seeded_bootstrap
+                .milestone_1_replay_parity_report
+                .parity_status,
             WorthReplayParityStatus::NotChecked
         );
-        assert_eq!(report.seeded_bootstrap.counters.topology_entity_upsert_count, 11);
-        assert_eq!(report.seeded_bootstrap.counters.topology_relation_upsert_count, 14);
+        assert_eq!(
+            report
+                .seeded_bootstrap
+                .counters
+                .topology_entity_upsert_count,
+            11
+        );
+        assert_eq!(
+            report
+                .seeded_bootstrap
+                .counters
+                .topology_relation_upsert_count,
+            14
+        );
         assert_eq!(report.bridge_proof_report.proof_case_count, 7);
         assert!(report
             .bridge_proof_report
@@ -1000,17 +1162,54 @@ mod certification_tests {
             report.bridge_family_coverage_report.rows,
             report.bridge_proof_report.family_coverage_report.rows
         );
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "WireOpen(n)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "WireClosed(n)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "WireBranch(k)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "SheetDisk(n)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "SheetPatch(f)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "SolidShell(f)"));
-        assert!(report.bridge_proof_report.proved_families.iter().any(|family| family == "NmtEdgeFan(k)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "WireOpen(n)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "WireClosed(n)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "WireBranch(k)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "SheetDisk(n)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "SheetPatch(f)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "SolidShell(f)"));
+        assert!(report
+            .bridge_proof_report
+            .proved_families
+            .iter()
+            .any(|family| family == "NmtEdgeFan(k)"));
         assert!(report.bridge_proof_report.route_record_count >= 1);
-        assert!(report.bridge_proof_report.historical_evaluation_record_count >= 1);
+        assert!(
+            report
+                .bridge_proof_report
+                .historical_evaluation_record_count
+                >= 1
+        );
         assert_eq!(
-            report.bridge_proof_report.bridge_trace_anchor.route_identities.len(),
+            report
+                .bridge_proof_report
+                .bridge_trace_anchor
+                .route_identities
+                .len(),
             report.bridge_proof_report.route_record_count
         );
         assert_eq!(
@@ -1021,38 +1220,66 @@ mod certification_tests {
                 .len(),
             report.bridge_proof_report.route_record_count
         );
-        assert!(
-            !report
-                .bridge_proof_report
-                .bridge_trace_anchor
-                .snapshot_identities
-                .is_empty()
-        );
+        assert!(!report
+            .bridge_proof_report
+            .bridge_trace_anchor
+            .snapshot_identities
+            .is_empty());
         assert_eq!(
             report
                 .bridge_proof_report
                 .bridge_trace_anchor
                 .historical_record_identities
                 .len(),
-            report.bridge_proof_report.historical_evaluation_record_count
+            report
+                .bridge_proof_report
+                .historical_evaluation_record_count
         );
         assert!(report.bridge_proof_report.bridge_routing_digest.row_count >= 1);
-        assert!(report.bridge_proof_report.bridge_historical_evaluation_digest.row_count >= 1);
+        assert!(
+            report
+                .bridge_proof_report
+                .bridge_historical_evaluation_digest
+                .row_count
+                >= 1
+        );
 
         assert!(!report.primitive_corpus.cases.is_empty());
         assert!(!report.primitive_corpus.rejected_cases.is_empty());
         assert_eq!(report.illegal_topology_rejection_report.case_count, 7);
         assert_eq!(report.illegal_topology_rejection_report.cases.len(), 7);
-        assert_eq!(report.milestone_1_counter_report.commit_boundary_rejection_count, 7);
-        assert!(report.milestone_1_counter_report.topology_entity_upsert_count >= 11);
-        assert!(report.milestone_1_counter_report.topology_relation_upsert_count >= 14);
-        assert!(report.milestone_1_counter_report.commit_boundary_validator_count >= 6);
+        assert_eq!(
+            report
+                .milestone_1_counter_report
+                .commit_boundary_rejection_count,
+            7
+        );
+        assert!(
+            report
+                .milestone_1_counter_report
+                .topology_entity_upsert_count
+                >= 11
+        );
+        assert!(
+            report
+                .milestone_1_counter_report
+                .topology_relation_upsert_count
+                >= 14
+        );
+        assert!(
+            report
+                .milestone_1_counter_report
+                .commit_boundary_validator_count
+                >= 6
+        );
         assert!(report
             .illegal_topology_rejection_report
             .cases
             .iter()
-            .all(|case| case.rejection.rejection_class == "IllegalAdmittedTopology"
-                || case.rejection.rejection_class == "InvariantFailure"));
+            .all(
+                |case| case.rejection.rejection_class == "IllegalAdmittedTopology"
+                    || case.rejection.rejection_class == "InvariantFailure"
+            ));
         assert!(report
             .illegal_topology_rejection_report
             .cases
@@ -1078,11 +1305,13 @@ mod certification_tests {
             .cases
             .iter()
             .any(|case| case.name == "open_boundary_solid_shell"));
-        assert!(report
-            .illegal_topology_rejection_report
-            .rejection_digest
-            .row_count
-            >= 7);
+        assert!(
+            report
+                .illegal_topology_rejection_report
+                .rejection_digest
+                .row_count
+                >= 7
+        );
         assert!(report
             .primitive_corpus
             .coverage_matrix
@@ -1156,11 +1385,13 @@ mod certification_tests {
             .derived_branch_local_parity_report
             .branch_ids
             .is_empty());
-        assert!(report.derived_replay_parity_report.replay_checked_case_count > 0);
-        assert!(!report
-            .derived_bridge_family_coverage_report
-            .rows
-            .is_empty());
+        assert!(
+            report
+                .derived_replay_parity_report
+                .replay_checked_case_count
+                > 0
+        );
+        assert!(!report.derived_bridge_family_coverage_report.rows.is_empty());
         assert!(report.milestone_2_counter_report.derived_read_count > 0);
     }
 
@@ -1185,12 +1416,18 @@ mod certification_tests {
             .validator_expectations
             .iter()
             .any(|expectation| expectation.family == "WireBranch(k)"
-                && expectation.validators.iter().any(|validator| validator == "vertex_branching")));
+                && expectation
+                    .validators
+                    .iter()
+                    .any(|validator| validator == "vertex_branching")));
         assert!(requirements
             .validator_expectations
             .iter()
             .any(|expectation| expectation.family == "SolidShell(f)"
-                && expectation.validators.iter().any(|validator| validator == "shell_closure")));
+                && expectation
+                    .validators
+                    .iter()
+                    .any(|validator| validator == "shell_closure")));
     }
 
     #[test]
@@ -1229,12 +1466,18 @@ mod certification_tests {
             .validator_expectations
             .iter()
             .any(|expectation| expectation.family == "WireBranch(k)"
-                && expectation.validators.iter().any(|validator| validator == "vertex_branching")));
+                && expectation
+                    .validators
+                    .iter()
+                    .any(|validator| validator == "vertex_branching")));
         assert!(requirements
             .validator_expectations
             .iter()
             .any(|expectation| expectation.family == "SolidShell(f)"
-                && expectation.validators.iter().any(|validator| validator == "shell_closure")));
+                && expectation
+                    .validators
+                    .iter()
+                    .any(|validator| validator == "shell_closure")));
     }
 
     #[test]

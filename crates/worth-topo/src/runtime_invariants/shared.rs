@@ -205,15 +205,25 @@ pub fn naming_relation_kind() -> WorthRelationKind {
 
 pub fn owner_relation_for_kind(kind_id: KindId) -> Option<WorthRelationKind> {
     if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Body).kind_id() {
-        Some(WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody))
+        Some(WorthRelationKind::Topology(
+            WorthTopologyRelationKind::ModelOwnsBody,
+        ))
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Lump).kind_id() {
-        Some(WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump))
+        Some(WorthRelationKind::Topology(
+            WorthTopologyRelationKind::BodyOwnsLump,
+        ))
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Region).kind_id() {
-        Some(WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion))
+        Some(WorthRelationKind::Topology(
+            WorthTopologyRelationKind::LumpOwnsRegion,
+        ))
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Shell).kind_id() {
-        Some(WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell))
+        Some(WorthRelationKind::Topology(
+            WorthTopologyRelationKind::RegionOwnsShell,
+        ))
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Face).kind_id() {
-        Some(WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace))
+        Some(WorthRelationKind::Topology(
+            WorthTopologyRelationKind::ShellOwnsFace,
+        ))
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Loop).kind_id() {
         None
     } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id() {

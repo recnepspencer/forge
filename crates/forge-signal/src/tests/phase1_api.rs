@@ -2290,7 +2290,10 @@ fn easy_mode_watch_and_effect_use_observation_substrate() {
     assert_eq!(graph.get(doubled), 4);
 
     assert_eq!(
-        watch_hits.lock().expect("easy watch mutex poisoned").as_slice(),
+        watch_hits
+            .lock()
+            .expect("easy watch mutex poisoned")
+            .as_slice(),
         &[1]
     );
     assert_eq!(*effect_hits.lock().expect("easy effect mutex poisoned"), 1);
@@ -2364,9 +2367,15 @@ fn easy_mode_unobserve_stops_future_notifications() {
     });
 
     graph.set(count, 2);
-    assert_eq!(*hits.lock().expect("easy unobserve watch mutex poisoned"), 1);
+    assert_eq!(
+        *hits.lock().expect("easy unobserve watch mutex poisoned"),
+        1
+    );
 
     assert!(graph.unobserve(handle));
     graph.set(count, 3);
-    assert_eq!(*hits.lock().expect("easy unobserve watch mutex poisoned"), 1);
+    assert_eq!(
+        *hits.lock().expect("easy unobserve watch mutex poisoned"),
+        1
+    );
 }

@@ -386,4 +386,3 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::RelationEndpointDeletionIntegrityViolation));
 }
-

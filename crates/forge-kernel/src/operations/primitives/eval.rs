@@ -10,12 +10,12 @@
 //! This file contains NO inline math, data structures, or validation logic.
 
 use forge_core::KernelError;
-use worth_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
 use forge_topo::handles::VertexId;
 use forge_topo::provenance::{
     LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_SYSTEM,
 };
 use forge_topo::transactions::{MutableDraft, TopologyState};
+use worth_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
 
 use crate::engine::facade::SolidEnvelope;
 

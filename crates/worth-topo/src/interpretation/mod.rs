@@ -13,7 +13,7 @@ pub use facade::{
     WorthTopologyInterpreter,
 };
 pub use types::{
-    InterpretedTopologyView, InterpretationReport, WorthBoundaryInterpretationSummary,
+    InterpretationReport, InterpretedTopologyView, WorthBoundaryInterpretationSummary,
     WorthRadialInterpretationSummary, WorthShellInterpretation, WorthTopologyInterpretationSet,
     WorthWireInterpretation,
 };

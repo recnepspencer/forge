@@ -7,8 +7,8 @@
 
 #![forbid(unsafe_code)]
 
-mod certification;
 mod bridge;
+mod certification;
 mod data;
 mod diagnostics;
 mod edit;

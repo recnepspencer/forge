@@ -61,7 +61,9 @@ impl BridgeWritebackAuthorityOutcome {
             idempotence_digest: Arc::from(idempotence.digest().to_owned()),
             authoritative_artifact_digest,
             canonical_basis,
-            digest: Arc::from(format!("bridge-writeback-authority-outcome:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-writeback-authority-outcome:sha256:{digest:x}"
+            )),
         }
     }
 

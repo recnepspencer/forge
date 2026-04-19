@@ -4,8 +4,8 @@ mod loop_wiring;
 mod naming;
 mod ownership;
 mod radial;
-mod shell_closure;
 mod shared;
+mod shell_closure;
 mod tests;
 mod vertex_branching;
 
@@ -13,6 +13,6 @@ pub use error::WorthTopologyValidationError;
 pub use facade::{
     topology_validation_report, validate_interpreted_topology, validate_materialized_topology,
     validate_named_topology_truth, validate_topology_view, DerivedTopologyValidationReport,
-    WorthTopologyValidationInputClass, WorthTopologyValidationPhase,
-    WorthTopologyValidationReport, WorthTopologyValidationRow, WorthTopologyValidator,
+    WorthTopologyValidationInputClass, WorthTopologyValidationPhase, WorthTopologyValidationReport,
+    WorthTopologyValidationRow, WorthTopologyValidator,
 };

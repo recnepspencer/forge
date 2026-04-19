@@ -65,7 +65,8 @@ impl StoreState {
         };
         let expected_layout_materialization_artifact_id =
             layout_materialization_artifact_id(&expected_plan);
-        if record.layout_materialization_artifact_id != expected_layout_materialization_artifact_id {
+        if record.layout_materialization_artifact_id != expected_layout_materialization_artifact_id
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 commit-coupled layout seed `{expected_artifact_id}` drifted from expected layout materialization `{expected_layout_materialization_artifact_id}`"
             )));
@@ -144,28 +145,50 @@ impl StoreState {
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted between admitted plan and structural block reuse witness"
             )));
         }
-        if record.materialization.frozen_layout().witness().physical_chunk_id()
-            != record.materialization.milestone_9_reference().physical_chunk_id()
+        if record
+            .materialization
+            .frozen_layout()
+            .witness()
+            .physical_chunk_id()
+            != record
+                .materialization
+                .milestone_9_reference()
+                .physical_chunk_id()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted between frozen layout witness and milestone 9 physical chunk reference"
             )));
         }
-        if record.materialization.frozen_layout().witness().determinism_digest()
-            != record.materialization.milestone_9_reference().determinism_digest()
+        if record
+            .materialization
+            .frozen_layout()
+            .witness()
+            .determinism_digest()
+            != record
+                .materialization
+                .milestone_9_reference()
+                .determinism_digest()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted between frozen layout determinism and milestone 9 physical chunk determinism"
             )));
         }
         if record.materialization.milestone_7_reference().branch_id()
-            != record.materialization.admitted_plan().request().target().branch_id()
+            != record
+                .materialization
+                .admitted_plan()
+                .request()
+                .target()
+                .branch_id()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted between admitted plan target branch and milestone 7 reference"
             )));
         }
-        if record.materialization.milestone_7_reference().frontier_commit_id()
+        if record
+            .materialization
+            .milestone_7_reference()
+            .frontier_commit_id()
             != record
                 .materialization
                 .admitted_plan()
@@ -179,8 +202,15 @@ impl StoreState {
         }
         let control = self.read_branch_delta_control_from_milestone_7_reference(
             crate::Milestone7IndependentReference::new(
-                record.materialization.milestone_7_reference().branch_id().clone(),
-                record.materialization.milestone_7_reference().frontier_commit_id(),
+                record
+                    .materialization
+                    .milestone_7_reference()
+                    .branch_id()
+                    .clone(),
+                record
+                    .materialization
+                    .milestone_7_reference()
+                    .frontier_commit_id(),
             ),
         )?;
         let expected_semantic_truth_digest =
@@ -190,8 +220,11 @@ impl StoreState {
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted from canonical semantic truth digest"
             )));
         }
-        let expected_authoritative_commit_count = control.authoritative_export().commit_envelopes.len();
-        if record.materialization.authoritative_commit_count() != expected_authoritative_commit_count {
+        let expected_authoritative_commit_count =
+            control.authoritative_export().commit_envelopes.len();
+        if record.materialization.authoritative_commit_count()
+            != expected_authoritative_commit_count
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 layout materialization `{expected_artifact_id}` drifted from canonical authoritative commit count"
             )));
@@ -213,8 +246,9 @@ impl StoreState {
                     record.artifact_id, record.layout_materialization_artifact_id
                 ))
             })?;
-        let expected_artifact_id =
-            layout_scope_membership_artifact_id(materialization.materialization.admitted_plan().request())?;
+        let expected_artifact_id = layout_scope_membership_artifact_id(
+            materialization.materialization.admitted_plan().request(),
+        )?;
         if stored_key != expected_artifact_id {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership map key `{stored_key}` did not match expected artifact id `{expected_artifact_id}`"
@@ -226,7 +260,13 @@ impl StoreState {
                 record.artifact_id
             )));
         }
-        if record.branch_id != *materialization.materialization.admitted_plan().request().target().branch_id()
+        if record.branch_id
+            != *materialization
+                .materialization
+                .admitted_plan()
+                .request()
+                .target()
+                .branch_id()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership `{expected_artifact_id}` drifted from admitted plan branch"
@@ -368,12 +408,17 @@ impl StoreState {
                 record.artifact_id
             )));
         }
-        if record.supporting_layout_materialization_artifact_ids.is_empty() {
+        if record
+            .supporting_layout_materialization_artifact_ids
+            .is_empty()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 structural block `{expected_artifact_id}` has no supporting layout materializations"
             )));
         }
-        for layout_materialization_artifact_id in &record.supporting_layout_materialization_artifact_ids {
+        for layout_materialization_artifact_id in
+            &record.supporting_layout_materialization_artifact_ids
+        {
             let materialization = self
                 .milestone_6_layout_materialization_records
                 .get(layout_materialization_artifact_id)

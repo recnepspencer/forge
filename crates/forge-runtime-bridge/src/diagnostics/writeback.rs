@@ -1,10 +1,9 @@
 use crate::writeback::{
-    BridgeMappedWritebackFamilyInput, BridgeValidatedWritebackCandidate, BridgeWritebackAuthorityOutcome,
-    BridgeWritebackFamilyAdmissionRecord,
-    BridgeWritebackExecutionRecord, BridgeWritebackLoopPreventionReport,
-    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord,
-    BridgeWritebackReplayBundle, BridgeWritebackReplayRecord,
-    BridgeWritebackStrategyCompatibilityReport,
+    BridgeMappedWritebackFamilyInput, BridgeValidatedWritebackCandidate,
+    BridgeWritebackAuthorityOutcome, BridgeWritebackExecutionRecord,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackLoopPreventionReport,
+    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord, BridgeWritebackReplayBundle,
+    BridgeWritebackReplayRecord, BridgeWritebackStrategyCompatibilityReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -278,9 +277,7 @@ impl BridgeWritebackStrategyCompatibilityExplanation {
         &self.compatibility_digest
     }
 
-    pub fn disposition(
-        &self,
-    ) -> crate::writeback::BridgeWritebackStrategyCompatibilityDisposition {
+    pub fn disposition(&self) -> crate::writeback::BridgeWritebackStrategyCompatibilityDisposition {
         self.disposition
     }
 }

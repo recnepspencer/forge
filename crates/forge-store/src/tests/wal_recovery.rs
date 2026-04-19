@@ -1,9 +1,9 @@
 use crate::{
-    modes::SimulatedCrashPoint, BulkIngestSourceRequest, BulkPlanKind,
-    BulkRecoveryDisposition, BulkSourceMember, ChunkOrdinal, ChunkWidthBudget,
-    DurableMutationIdentity, DurableMutationRequest, DurablePublicationPhase, ForgeStore,
-    ForgeStoreBuilder, RecoveryDecisionClass, RecoveryOperatorActionKind,
-    RecoveryOperatorDisposition, RecoverySourceKind,
+    modes::SimulatedCrashPoint, BulkIngestSourceRequest, BulkPlanKind, BulkRecoveryDisposition,
+    BulkSourceMember, ChunkOrdinal, ChunkWidthBudget, DurableMutationIdentity,
+    DurableMutationRequest, DurablePublicationPhase, ForgeStore, ForgeStoreBuilder,
+    RecoveryDecisionClass, RecoveryOperatorActionKind, RecoveryOperatorDisposition,
+    RecoverySourceKind,
 };
 use forge_relational::facade::replay::CanonicalCommitEnvelope;
 
@@ -445,10 +445,7 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
             "bulk-program-recover",
             "bulk-source-recover",
             envelope.branch_context.clone(),
-            vec![
-                BulkSourceMember::new("a", 1),
-                BulkSourceMember::new("b", 2),
-            ],
+            vec![BulkSourceMember::new("a", 1), BulkSourceMember::new("b", 2)],
         ))
         .unwrap();
     let plan = store
@@ -473,7 +470,11 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
         )
         .unwrap();
     store
-        .record_bulk_checkpoint_publication_intent(&runtime_session_id, durable_mutation_id, Some(1))
+        .record_bulk_checkpoint_publication_intent(
+            &runtime_session_id,
+            durable_mutation_id,
+            Some(1),
+        )
         .unwrap();
     store
         .record_publication_phase(
@@ -499,7 +500,10 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
         .iter()
         .find(|report| report.durable_mutation_id() == durable_mutation_id)
         .expect("bulk mutation source report should be present");
-    assert_eq!(report.source_kind(), crate::RecoverySourceKind::HostedRuntimeCanonicalResult);
+    assert_eq!(
+        report.source_kind(),
+        crate::RecoverySourceKind::HostedRuntimeCanonicalResult
+    );
     assert_eq!(
         report.mutation_identity(),
         &DurableMutationIdentity::BulkChunk {
@@ -521,7 +525,10 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
     assert_eq!(bulk_chunk.program_id(), "bulk-program-recover");
     assert_eq!(bulk_chunk.plan_id(), plan.plan_id());
     assert_eq!(bulk_chunk.chunk_ordinal(), 0);
-    assert_eq!(bulk_chunk.disposition(), BulkRecoveryDisposition::ResumeReady);
+    assert_eq!(
+        bulk_chunk.disposition(),
+        BulkRecoveryDisposition::ResumeReady
+    );
     assert_eq!(
         bulk_chunk.decision(),
         Some(RecoveryDecisionClass::FinishPublicationFromCanonicalResult)
@@ -534,7 +541,10 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
     let recovered_resume = recovered
         .admit_recovered_bulk_chunk_resume(&bulk_chunk.admit_resume().unwrap())
         .expect("bulk recovery should reconstruct a resume-ready program");
-    assert_eq!(recovered_resume.resumed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        recovered_resume.resumed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(
         recovered_resume.resumed_program().plan().plan_id(),
         plan.plan_id()
@@ -547,7 +557,10 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
         .store()
         .fetch_program_chunk_witness_index("bulk-program-recover", plan.plan_id())
         .expect("bulk recovery should publish a witness index");
-    assert_eq!(witness_index.highest_committed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        witness_index.highest_committed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(witness_index.latest_checkpoint_sequence(), Some(1));
     let checkpoint = recovered
         .store()
@@ -556,9 +569,11 @@ fn bulk_finish_publication_recovery_reports_typed_bulk_identity() {
     assert_eq!(checkpoint.checkpoint_sequence(), 1);
     assert_eq!(
         recovered.resolve_retry(durable_mutation_id),
-        Ok(crate::DurableRetryResolution::PreviouslyAcknowledgedEquivalentCommit {
-            commit_id: envelope.commit.commit_id
-        })
+        Ok(
+            crate::DurableRetryResolution::PreviouslyAcknowledgedEquivalentCommit {
+                commit_id: envelope.commit.commit_id
+            }
+        )
     );
     let counters = recovered.store().counters();
     assert_eq!(counters.bulk_chunk_witness_write_count, 1);
@@ -655,7 +670,10 @@ fn retained_bulk_truth_uses_bulk_identity_in_operator_actions() {
     assert_eq!(bulk_chunk.program_id(), "bulk-program-retained");
     assert_eq!(bulk_chunk.plan_id(), plan.plan_id());
     assert_eq!(bulk_chunk.chunk_ordinal(), 0);
-    assert_eq!(bulk_chunk.disposition(), BulkRecoveryDisposition::AlreadyPublished);
+    assert_eq!(
+        bulk_chunk.disposition(),
+        BulkRecoveryDisposition::AlreadyPublished
+    );
     assert_eq!(
         bulk_chunk.decision(),
         Some(RecoveryDecisionClass::RetainPublishedTruth)
@@ -667,7 +685,10 @@ fn retained_bulk_truth_uses_bulk_identity_in_operator_actions() {
     let recovered_resume = recovered
         .admit_recovered_bulk_chunk_resume(&bulk_chunk.admit_resume().unwrap())
         .expect("already-published bulk chunk should still reconstruct program resume state");
-    assert_eq!(recovered_resume.resumed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        recovered_resume.resumed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(
         recovered_resume.resumed_program().plan().plan_id(),
         plan.plan_id()
@@ -680,7 +701,10 @@ fn retained_bulk_truth_uses_bulk_identity_in_operator_actions() {
         .store()
         .fetch_program_chunk_witness_index("bulk-program-retained", plan.plan_id())
         .expect("published truth recovery should reconstruct the chunk witness");
-    assert_eq!(witness_index.highest_committed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        witness_index.highest_committed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(witness_index.latest_checkpoint_sequence(), None);
 }
 
@@ -724,7 +748,11 @@ fn retained_bulk_truth_with_checkpoint_intent_recovers_checkpoint_artifacts() {
         )
         .unwrap();
     store
-        .record_bulk_checkpoint_publication_intent(&runtime_session_id, durable_mutation_id, Some(1))
+        .record_bulk_checkpoint_publication_intent(
+            &runtime_session_id,
+            durable_mutation_id,
+            Some(1),
+        )
         .unwrap();
     store
         .record_publication_phase(
@@ -757,7 +785,10 @@ fn retained_bulk_truth_with_checkpoint_intent_recovers_checkpoint_artifacts() {
         .store()
         .fetch_program_chunk_witness_index("bulk-program-retained-checkpoint", plan.plan_id())
         .expect("published truth recovery should reconstruct the chunk witness");
-    assert_eq!(witness_index.highest_committed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        witness_index.highest_committed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(witness_index.latest_checkpoint_sequence(), Some(1));
     let checkpoint = recovered
         .store()
@@ -791,10 +822,14 @@ fn repeated_bulk_recovery_loops_converge_after_hosted_result_with_checkpoint_int
         .expect("recovery handle should build")
         .recover()
         .expect("first recovery should complete");
-    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
-        decision.durable_mutation_id == durable_mutation_id
-            && decision.decision == RecoveryDecisionClass::FinishPublicationFromCanonicalResult
-    }));
+    assert!(recovered_once
+        .last_recovery()
+        .decisions
+        .iter()
+        .any(|decision| {
+            decision.durable_mutation_id == durable_mutation_id
+                && decision.decision == RecoveryDecisionClass::FinishPublicationFromCanonicalResult
+        }));
     assert_eq!(
         recovered_once
             .store()
@@ -805,9 +840,11 @@ fn repeated_bulk_recovery_loops_converge_after_hosted_result_with_checkpoint_int
     );
     assert_eq!(
         recovered_once.resolve_retry(durable_mutation_id),
-        Ok(crate::DurableRetryResolution::PreviouslyAcknowledgedEquivalentCommit {
-            commit_id: envelope.commit.commit_id
-        })
+        Ok(
+            crate::DurableRetryResolution::PreviouslyAcknowledgedEquivalentCommit {
+                commit_id: envelope.commit.commit_id
+            }
+        )
     );
     let export_once = recovered_once.store().export_authoritative_records();
     drop(recovered_once);
@@ -867,15 +904,22 @@ fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_wit
         .expect("recovery handle should build")
         .recover()
         .expect("first recovery should complete");
-    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
-        decision.durable_mutation_id == durable_mutation_id
-            && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
-    }));
+    assert!(recovered_once
+        .last_recovery()
+        .decisions
+        .iter()
+        .any(|decision| {
+            decision.durable_mutation_id == durable_mutation_id
+                && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
+        }));
     let witness_index = recovered_once
         .store()
         .fetch_program_chunk_witness_index("bulk-program-repeat-published-witness", plan.plan_id())
         .expect("witness index should exist");
-    assert_eq!(witness_index.highest_committed_chunk_ordinal(), ChunkOrdinal::new(0));
+    assert_eq!(
+        witness_index.highest_committed_chunk_ordinal(),
+        ChunkOrdinal::new(0)
+    );
     assert_eq!(witness_index.latest_checkpoint_sequence(), Some(1));
     let export_once = recovered_once.store().export_authoritative_records();
     drop(recovered_once);
@@ -906,8 +950,8 @@ fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_wit
 }
 
 #[test]
-fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_witness_and_checkpoint()
-{
+fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_witness_and_checkpoint(
+) {
     let path = unique_test_store_path("forge-store-bulk-repeat-published-checkpoint");
     let mut store = ForgeStoreBuilder::new()
         .local_file(path.clone())
@@ -946,10 +990,14 @@ fn repeated_bulk_recovery_loops_converge_after_published_truth_with_existing_wit
         .expect("recovery handle should build")
         .recover()
         .expect("first recovery should complete");
-    assert!(recovered_once.last_recovery().decisions.iter().any(|decision| {
-        decision.durable_mutation_id == durable_mutation_id
-            && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
-    }));
+    assert!(recovered_once
+        .last_recovery()
+        .decisions
+        .iter()
+        .any(|decision| {
+            decision.durable_mutation_id == durable_mutation_id
+                && decision.decision == RecoveryDecisionClass::RetainPublishedTruth
+        }));
     assert_eq!(
         recovered_once
             .store()

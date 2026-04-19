@@ -7,6 +7,7 @@ mod transaction;
 pub use computation::{DefinedComputation, DefinedKeyedComputation, Recipe};
 pub use config::SignalRuntimeConfig;
 pub use execution::{RuntimeExecutionRequest, TransactionExecutionRequest};
+pub(crate) use state::RuntimeObservationRegistry;
 pub use state::{branch_state_proof_report, canonical_digest};
 pub use state::{
     lowered_strategy_bundle_digest, merge_lineage_digest, replay_artifact_proof_report,
@@ -70,7 +71,6 @@ pub use state::{
     ReconstructabilityRecord, ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeHistory,
     RuntimeMaterializer, RuntimeMerge, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
 };
-pub(crate) use state::RuntimeObservationRegistry;
 pub use transaction::{
     AdvisoryRecord, BatchChangeSession, CommittedObservationEventSummary, DecisionDetail,
     DecisionLog, DecisionRecord, DecisionSummary, EvaluationSummary, IntegrityMarkers,

@@ -90,7 +90,7 @@ Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 3.5` ->
   `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
-  (`Milestone 7` and `Milestone 8`) -> `Milestone 10` -> `Milestone 10.5` ->
+  `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 10.5` ->
   `Milestone 11.5` -> `Milestone 12` -> `Milestone 12.5` -> `Milestone 17` ->
   `Milestone 18.5` -> certification
 
@@ -98,6 +98,19 @@ Parallel tracks:
 
 - `Milestone 9` can overlap with late `Milestone 6` once the physical chunk
   model is honest enough for canonical chunking.
+  Milestone 6 closeout now explicitly includes a three-lane layout-support
+  posture (`ProofOnly`, `OnDemandMaterialized`, `PolicyEagerMaterialized`)
+  with requested-vs-resolved lane evidence and explicit publication
+  disposition, so overlapping Milestone 9 work may depend on the materialized
+  lane without treating proof-only or policy resolution as ambient storage
+  behavior.
+- `Milestone 10` should be treated as concurrent with `Milestone 8`.
+  Milestone 10 depends on `Milestone 4`, `Milestone 5`, and `Milestone 6` to
+  make retention, compaction, and reclaim honest, while Milestone 8 depends on
+  `Milestone 7` for stable-basis and durable-cursor vocabulary.
+  The concurrency boundary is that Milestone 10 may publish basis-survival
+  conclusions and retained-range rules, but it must not absorb live-query or
+  cursor semantics.
 - `Milestone 11` can start after `Milestone 10` stabilizes rebuild and
   retention rules.
 - `Milestone 12.5` can begin once replication and rebuild contracts are stable,
@@ -505,11 +518,14 @@ scans or duplicate storage of identical structural regions.
 - aspect-aware physical layout for admitted partial reads and CDC narrowing
 - content-addressed structural block identity
 - cross-branch deduplication over structural blocks
+- explicit `ProofOnly` and `OnDemandMaterialized` Milestone 6 layout-support
+  lanes
 
 ### Must Preserve
 
 - aspect-aware layout does not become a second semantic schema
 - structural blocks remain derived from canonical commits
+- callers never get silent ambient materialization on cheap-looking read paths
 
 ### Complexity / Proof Obligations
 
@@ -521,6 +537,8 @@ scans or duplicate storage of identical structural regions.
 
 - some admitted fast paths may remain `Debt` if fallback classes are explicit
   and mechanically observable
+- proof-only layout lanes may remain `Debt`; on-demand materialized lanes may
+  not silently degrade
 
 ### Sequencing Notes
 
@@ -626,6 +644,17 @@ store would fake live-query semantics with ambient conventions.
 
 Can run in parallel with late `Milestone 6`.
 
+It may also progress concurrently with `Milestone 10` once `Milestone 4`,
+`Milestone 5`, and `Milestone 6` are already honest, so long as the two
+milestones keep their boundaries:
+
+- `Milestone 8` freezes durable read/sync basis meaning
+- `Milestone 10` freezes retention/compaction/reclaim behavior over retained
+  authority and derived families
+
+`Milestone 10` must not redefine stable-basis or cursor-continuation meaning,
+and `Milestone 8` must not absorb retention policy ownership.
+
 ## Milestone 9: Deterministic Bulk Ingest And Bulk Transform Paths
 
 Closeout: [milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-9-closeout.md)
@@ -728,6 +757,11 @@ artifact programs.
 ### Parallelization Notes
 
 Depends on `Milestone 4`, `Milestone 5`, and `Milestone 6`.
+
+Should be treated as concurrent with `Milestone 8` once `Milestone 7` has made
+stable-basis and durable-cursor vocabulary explicit. The concurrency boundary
+is that Milestone 10 owns retention, compaction, reclaim, and basis-survival
+conclusions, while Milestone 8 owns live-query continuation semantics.
 
 ## Milestone 10.5: Background Maintenance Isolation And Scheduling Contracts
 

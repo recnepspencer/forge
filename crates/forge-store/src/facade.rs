@@ -1,13 +1,13 @@
 use crate::{
     authority::{
-        canonicalize, AuthoritativeBranchHeadRecord, AuthoritativeExportBundle,
-        AuthoritativeExportRestoreRequest, AdvanceCursorWitness,
+        canonicalize, AdvanceCursorWitness, AuthoritativeBranchHeadRecord,
+        AuthoritativeExportBundle, AuthoritativeExportRestoreRequest,
         DurableCursorAcknowledgeRequest, DurableCursorResumePlan, DurableCursorResumeRequest,
-        FetchedAuthoritativeCommit, FetchedDurableCursorIdentity, FetchedLineageSupportArtifact,
-        FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact, HistoricalIdentityRequest,
-        HistoricalIdentityResolution, PersistedAuthoritativeCommit, PersistedEmbeddedCheckpoint,
-        PersistedSubscriberCheckpoint, RawRuntimeCommitEnvelope, ResumeAdmittedCursor,
-        EmbeddedCheckpointFetchRequest, CURRENT_CANONICALIZATION_VERSION,
+        EmbeddedCheckpointFetchRequest, FetchedAuthoritativeCommit, FetchedDurableCursorIdentity,
+        FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact,
+        HistoricalIdentityRequest, HistoricalIdentityResolution, PersistedAuthoritativeCommit,
+        PersistedEmbeddedCheckpoint, PersistedSubscriberCheckpoint, RawRuntimeCommitEnvelope,
+        ResumeAdmittedCursor, CURRENT_CANONICALIZATION_VERSION,
     },
     backend::{records::EmbeddedCheckpointRecord, StoreBackend, StoreBackendMode},
     bulk::{
@@ -35,7 +35,9 @@ use crate::{
     failure::{StoreError, StoreErrorKind},
     layout::{
         AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
-        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse,
+        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse, Milestone6LayoutSupportLane,
+        Milestone6LayoutSupportPolicy, Milestone6LayoutSupportPublicationDisposition,
+        Milestone6PreparedLayoutSupport, Milestone6ResolvedLayoutSupportLane,
         Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
     },
     media::DurableMediaReport,
@@ -375,7 +377,8 @@ impl ForgeStore {
         &self,
         frozen: ChunkModelFrozenPhysicalLayout,
     ) -> Result<Milestone9PhysicalChunkReference, StoreError> {
-        self.backend.admit_milestone_9_physical_chunk_reference(frozen)
+        self.backend
+            .admit_milestone_9_physical_chunk_reference(frozen)
     }
 
     pub fn materialize_milestone_6_layout_support(
@@ -390,6 +393,151 @@ impl ForgeStore {
         request: AspectLayoutReadRequest,
     ) -> Result<crate::Milestone6LayoutMaterialization, StoreError> {
         self.backend.fetch_milestone_6_layout_support(request)
+    }
+
+    pub fn prepare_milestone_6_layout_support(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+    ) -> Result<Milestone6PreparedLayoutSupport, StoreError> {
+        self.prepare_milestone_6_layout_support_with_policy(
+            request,
+            lane,
+            Milestone6LayoutSupportPolicy::new(false, false, 0),
+        )
+    }
+
+    pub fn prepare_milestone_6_layout_support_with_policy(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<Milestone6PreparedLayoutSupport, StoreError> {
+        match lane {
+            Milestone6LayoutSupportLane::ProofOnly => {
+                self.backend.record_milestone_6_proof_only_prepare();
+                self.require_admitted_aspect_layout_plan(
+                    request.clone(),
+                    "milestone 6 proof-only layout support",
+                )?;
+                Ok(Milestone6PreparedLayoutSupport::proof_only(request))
+            }
+            Milestone6LayoutSupportLane::OnDemandMaterialized => {
+                self.backend.record_milestone_6_on_demand_materialize();
+                let (materialization, publication_disposition) =
+                    self.fetch_or_publish_milestone_6_layout_materialization(request.clone())?;
+                Ok(Milestone6PreparedLayoutSupport::resolved(
+                    lane,
+                    Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized,
+                    publication_disposition,
+                    request,
+                    Some(materialization.artifact_id().to_string()),
+                ))
+            }
+            Milestone6LayoutSupportLane::PolicyEagerMaterialized => {
+                self.backend.record_milestone_6_policy_eager_resolution();
+                let resolution = self.resolve_milestone_6_policy_eager_lane(&request, policy)?;
+                match resolution {
+                    Milestone6ResolvedLayoutSupportLane::ProofOnly => {
+                        self.backend.record_milestone_6_proof_only_prepare();
+                        self.require_admitted_aspect_layout_plan(
+                            request.clone(),
+                            "milestone 6 policy-eager proof-only layout support",
+                        )?;
+                        Ok(Milestone6PreparedLayoutSupport::resolved(
+                            lane,
+                            resolution,
+                            Milestone6LayoutSupportPublicationDisposition::None,
+                            request,
+                            None,
+                        ))
+                    }
+                    Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+                    | Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting => {
+                        let (materialization, publication_disposition) = self
+                            .fetch_or_publish_milestone_6_layout_materialization(request.clone())?;
+                        let resolved_lane = match publication_disposition {
+                            Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation => {
+                                self.backend.record_milestone_6_policy_eager_publish();
+                                Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+                            }
+                            Milestone6LayoutSupportPublicationDisposition::ReusedExisting => {
+                                self.backend
+                                    .record_milestone_6_policy_eager_reuse_existing();
+                                Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting
+                            }
+                            Milestone6LayoutSupportPublicationDisposition::None => {
+                                return Err(StoreError::backend_integrity(
+                                    "policy-eager materialized lane completed without a publication disposition",
+                                ))
+                            }
+                        };
+                        Ok(Milestone6PreparedLayoutSupport::resolved(
+                            lane,
+                            resolved_lane,
+                            publication_disposition,
+                            request,
+                            Some(materialization.artifact_id().to_string()),
+                        ))
+                    }
+                    Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized => {
+                        Err(StoreError::backend_integrity(
+                            "policy-eager lane resolved to illegal on-demand posture",
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    fn fetch_or_publish_milestone_6_layout_materialization(
+        &mut self,
+        request: AspectLayoutReadRequest,
+    ) -> Result<
+        (
+            crate::Milestone6LayoutMaterialization,
+            Milestone6LayoutSupportPublicationDisposition,
+        ),
+        StoreError,
+    > {
+        match self.fetch_milestone_6_layout_support(request.clone()) {
+            Ok(materialization) => Ok((
+                materialization,
+                Milestone6LayoutSupportPublicationDisposition::ReusedExisting,
+            )),
+            Err(error) if matches!(error.kind(), StoreErrorKind::AspectLayoutArtifactMissing) => {
+                Ok((
+                    self.materialize_milestone_6_layout_support(request)?,
+                    Milestone6LayoutSupportPublicationDisposition::PublishedThisOperation,
+                ))
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn resolve_milestone_6_policy_eager_lane(
+        &mut self,
+        request: &AspectLayoutReadRequest,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<Milestone6ResolvedLayoutSupportLane, StoreError> {
+        let repeated_scope_count = self.backend.note_milestone_6_scope_prepare(request)?;
+        let branch_is_hot = policy.materialize_hot_branch_reads()
+            && self
+                .backend
+                .milestone_6_branch_has_materialized_support(request.target().branch_id());
+        let repeated_scope_is_hot = policy.materialize_repeated_scope_reads()
+            && policy.repeated_scope_threshold() > 0
+            && repeated_scope_count >= policy.repeated_scope_threshold();
+        if !(branch_is_hot || repeated_scope_is_hot) {
+            return Ok(Milestone6ResolvedLayoutSupportLane::ProofOnly);
+        }
+        match self.fetch_milestone_6_layout_support(request.clone()) {
+            Ok(_) => Ok(Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting),
+            Err(error) if matches!(error.kind(), StoreErrorKind::AspectLayoutArtifactMissing) => {
+                Ok(Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished)
+            }
+            Err(error) => Err(error),
+        }
     }
 
     pub fn rebuild_milestone_6_derived_artifacts_from_materializations(
@@ -420,14 +568,78 @@ impl ForgeStore {
         self.backend.execute_aspect_layout_read(request)
     }
 
+    pub fn execute_aspect_layout_read_in_lane(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+    ) -> Result<crate::AspectLayoutReadExecutionDecision, StoreError> {
+        self.execute_aspect_layout_read_in_lane_with_policy(
+            request,
+            lane,
+            Milestone6LayoutSupportPolicy::new(false, false, 0),
+        )
+    }
+
+    pub fn execute_aspect_layout_read_in_lane_with_policy(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<crate::AspectLayoutReadExecutionDecision, StoreError> {
+        let prepared =
+            self.prepare_milestone_6_layout_support_with_policy(request.clone(), lane, policy)?;
+        match prepared.resolved_lane() {
+            Milestone6ResolvedLayoutSupportLane::ProofOnly => {
+                let plan = self.require_admitted_aspect_layout_plan(
+                    request.clone(),
+                    "milestone 6 proof-only aspect layout execution",
+                )?;
+                let control = self.read_aspect_layout_control_truth(request)?;
+                Ok(crate::AspectLayoutReadExecutionDecision::Admitted(
+                    crate::AspectLayoutReadExecutionResult::new(
+                        plan.clone(),
+                        prepared.requested_lane(),
+                        prepared.resolved_lane(),
+                        prepared.publication_disposition(),
+                        None,
+                        crate::layout::structural_block_artifact_id(plan.structural_block_id()),
+                        None,
+                        None,
+                        control.authoritative_truth_digest().to_string(),
+                        control.authoritative_commit_count(),
+                    ),
+                ))
+            }
+            Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
+            | Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+            | Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting => {
+                let mut decision = self.backend.execute_aspect_layout_read(request)?;
+                if let crate::AspectLayoutReadExecutionDecision::Admitted(read) = &mut decision {
+                    *read = crate::AspectLayoutReadExecutionResult::new(
+                        read.plan().clone(),
+                        prepared.requested_lane(),
+                        prepared.resolved_lane(),
+                        prepared.publication_disposition(),
+                        read.scope_membership_artifact_id().map(ToOwned::to_owned),
+                        read.structural_block_artifact_id().to_string(),
+                        read.chunk_membership_artifact_id().map(ToOwned::to_owned),
+                        read.layout_materialization_artifact_id()
+                            .map(ToOwned::to_owned),
+                        read.semantic_truth_digest().to_string(),
+                        read.authoritative_commit_count(),
+                    );
+                }
+                Ok(decision)
+            }
+        }
+    }
+
     pub fn read_aspect_layout_control_truth(
         &self,
         request: AspectLayoutReadRequest,
     ) -> Result<crate::AspectLayoutControlTruth, StoreError> {
-        let plan = self.require_admitted_aspect_layout_plan(
-            request,
-            "aspect layout control truth",
-        )?;
+        let plan =
+            self.require_admitted_aspect_layout_plan(request, "aspect layout control truth")?;
         let milestone_7 = self.admit_milestone_7_independent_layout_reference(plan.clone())?;
         let control = self.read_branch_delta_control_from_milestone_7_reference(
             crate::Milestone7IndependentReference::new(
@@ -452,6 +664,64 @@ impl ForgeStore {
         self.backend.execute_dedup_backed_read(request)
     }
 
+    pub fn execute_dedup_backed_read_in_lane(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+    ) -> Result<crate::DedupBackedReadResult, StoreError> {
+        self.execute_dedup_backed_read_in_lane_with_policy(
+            request,
+            lane,
+            Milestone6LayoutSupportPolicy::new(false, false, 0),
+        )
+    }
+
+    pub fn execute_dedup_backed_read_in_lane_with_policy(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<crate::DedupBackedReadResult, StoreError> {
+        let read =
+            match self.execute_aspect_layout_read_in_lane_with_policy(request, lane, policy)? {
+                crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+                crate::AspectLayoutReadExecutionDecision::Fallback(plan) => {
+                    return Err(StoreError::new(
+                        StoreErrorKind::AspectLayoutFallbackRequired,
+                        plan.reason().to_string(),
+                    ))
+                }
+                crate::AspectLayoutReadExecutionDecision::Rejected(plan) => {
+                    return Err(StoreError::new(
+                        StoreErrorKind::AspectScopeUnsupported,
+                        plan.reason().to_string(),
+                    ))
+                }
+            };
+        let lookup = if read
+            .resolved_layout_support_lane()
+            .uses_materialized_support()
+        {
+            self.structural_block_lookup(crate::StructuralBlockLookup::new(
+                read.plan().structural_block_id().clone(),
+            ))?
+        } else {
+            crate::StructuralBlockLookupResult::new(
+                read.plan().structural_block_id().clone(),
+                read.plan().request().scope_class().label().to_string(),
+                crate::EQUIVALENCE_CONTRACT_VERSION,
+                read.plan().slice_ids().to_vec(),
+                Vec::new(),
+            )
+        };
+        if lookup.slice_ids() != read.plan().slice_ids() {
+            return Err(StoreError::backend_integrity(
+                "dedup-backed lane-aware read structural block lookup drifted from admitted plan slice ids",
+            ));
+        }
+        Ok(crate::DedupBackedReadResult::new(read, lookup))
+    }
+
     pub fn export_milestone_6_chunk_model(
         &self,
         request: AspectLayoutReadRequest,
@@ -471,24 +741,106 @@ impl ForgeStore {
                 ))
             }
         };
+        let materialization_artifact_id = read.layout_materialization_artifact_id().ok_or_else(|| {
+            StoreError::backend_integrity(
+                "default milestone 6 chunk export requires a materialized layout-support artifact id",
+            )
+        })?;
         let materialization = self
             .backend
-            .fetch_existing_milestone_6_layout_support(read.layout_materialization_artifact_id())?;
+            .fetch_existing_milestone_6_layout_support(materialization_artifact_id)?;
         self.backend.record_physical_chunk_export(
             materialization.milestone_9_reference().chunk_member_count() as u64,
         );
         Ok(crate::Milestone6ChunkModelExport::new(
+            crate::Milestone6LayoutSupportLane::OnDemandMaterialized,
+            crate::Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized,
+            crate::Milestone6LayoutSupportPublicationDisposition::ReusedExisting,
             materialization
                 .milestone_9_reference()
                 .physical_chunk_id()
                 .clone(),
-            read.chunk_membership_artifact_id().to_string(),
+            read.chunk_membership_artifact_id().map(ToOwned::to_owned),
             materialization
                 .milestone_9_reference()
                 .determinism_digest()
                 .to_string(),
             materialization.milestone_9_reference().chunk_member_count(),
-            read.layout_materialization_artifact_id().to_string(),
+            Some(materialization_artifact_id.to_string()),
+        ))
+    }
+
+    pub fn export_milestone_6_chunk_model_in_lane(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+    ) -> Result<crate::Milestone6ChunkModelExport, StoreError> {
+        self.export_milestone_6_chunk_model_in_lane_with_policy(
+            request,
+            lane,
+            Milestone6LayoutSupportPolicy::new(false, false, 0),
+        )
+    }
+
+    pub fn export_milestone_6_chunk_model_in_lane_with_policy(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<crate::Milestone6ChunkModelExport, StoreError> {
+        let read =
+            match self.execute_aspect_layout_read_in_lane_with_policy(request, lane, policy)? {
+                crate::AspectLayoutReadExecutionDecision::Admitted(read) => read,
+                crate::AspectLayoutReadExecutionDecision::Fallback(plan) => {
+                    return Err(StoreError::new(
+                        StoreErrorKind::AspectLayoutFallbackRequired,
+                        plan.reason().to_string(),
+                    ))
+                }
+                crate::AspectLayoutReadExecutionDecision::Rejected(plan) => {
+                    return Err(StoreError::new(
+                        StoreErrorKind::AspectScopeUnsupported,
+                        plan.reason().to_string(),
+                    ))
+                }
+            };
+        if !read
+            .resolved_layout_support_lane()
+            .uses_materialized_support()
+        {
+            return Err(StoreError::new(
+                StoreErrorKind::AspectLayoutArtifactMissing,
+                "proof-only milestone 6 chunk export is unsupported because chunk export requires materialized chunk membership",
+            ));
+        }
+        let materialization_artifact_id = read
+            .layout_materialization_artifact_id()
+            .ok_or_else(|| {
+                StoreError::backend_integrity(
+                    "materialized milestone 6 chunk export resolved without a layout materialization artifact id",
+                )
+            })?;
+        let materialization = self
+            .backend
+            .fetch_existing_milestone_6_layout_support(materialization_artifact_id)?;
+        self.backend.record_physical_chunk_export(
+            materialization.milestone_9_reference().chunk_member_count() as u64,
+        );
+        Ok(crate::Milestone6ChunkModelExport::new(
+            read.requested_layout_support_lane(),
+            read.resolved_layout_support_lane(),
+            read.layout_support_publication_disposition(),
+            materialization
+                .milestone_9_reference()
+                .physical_chunk_id()
+                .clone(),
+            read.chunk_membership_artifact_id().map(ToOwned::to_owned),
+            materialization
+                .milestone_9_reference()
+                .determinism_digest()
+                .to_string(),
+            materialization.milestone_9_reference().chunk_member_count(),
+            Some(materialization_artifact_id.to_string()),
         ))
     }
 
@@ -581,7 +933,9 @@ impl ForgeStore {
         &self,
         request: DurableCursorResumeRequest,
     ) -> Result<ResumeAdmittedCursor, StoreError> {
-        Ok(ResumeAdmittedCursor::new(self.backend.plan_cursor_resume(request)?))
+        Ok(ResumeAdmittedCursor::new(
+            self.backend.plan_cursor_resume(request)?,
+        ))
     }
 
     pub fn admit_cursor_advance(
@@ -638,10 +992,8 @@ impl ForgeStore {
         request: BulkIngestSourceRequest,
     ) -> Result<FrozenBulkSourceManifest, StoreError> {
         let manifest = FrozenBulkSourceManifest::freeze(request)?;
-        self.backend.record_bulk_source_manifest(
-            manifest.ordered_members().len() as u64,
-            1,
-        );
+        self.backend
+            .record_bulk_source_manifest(manifest.ordered_members().len() as u64, 1);
         self.backend.persist_frozen_bulk_manifest(manifest)
     }
 
@@ -766,7 +1118,8 @@ impl ForgeStore {
         program_id: &str,
         plan_id: &str,
     ) -> Result<PublishedBulkProgressCheckpoint, StoreError> {
-        self.backend.fetch_bulk_progress_checkpoint(program_id, plan_id)
+        self.backend
+            .fetch_bulk_progress_checkpoint(program_id, plan_id)
     }
 
     pub fn fetch_bulk_chunk_plan(
@@ -782,7 +1135,8 @@ impl ForgeStore {
         program_id: &str,
         plan_id: &str,
     ) -> Result<ProgramChunkWitnessIndex, StoreError> {
-        self.backend.fetch_program_chunk_witness_index(program_id, plan_id)
+        self.backend
+            .fetch_program_chunk_witness_index(program_id, plan_id)
     }
 
     pub fn fetch_latest_bulk_resume_boundary(
@@ -790,7 +1144,8 @@ impl ForgeStore {
         program_id: &str,
         plan_id: &str,
     ) -> Result<ResumeBoundaryCandidate, StoreError> {
-        self.backend.fetch_latest_resume_boundary(program_id, plan_id)
+        self.backend
+            .fetch_latest_resume_boundary(program_id, plan_id)
     }
 
     pub fn admit_bulk_ingest_resume(
@@ -943,11 +1298,8 @@ impl ForgeStore {
             DurablePublicationPhase::AuthoritativeAppendPublished,
             Some(persisted_commit_id),
         )?;
-        let outcome = self.finalize_bulk_chunk_execution(
-            &admitted,
-            persisted_commit_id,
-            checkpoint_policy,
-        )?;
+        let outcome =
+            self.finalize_bulk_chunk_execution(&admitted, persisted_commit_id, checkpoint_policy)?;
         self.record_publication_phase(
             &runtime_session_id,
             durable_mutation_id,
@@ -1005,7 +1357,9 @@ impl ForgeStore {
         let resume_boundary = self.fetch_latest_bulk_resume_boundary(program_id, plan_id)?;
         let witness_index = match self.fetch_program_chunk_witness_index(program_id, plan_id) {
             Ok(index) => Some(index),
-            Err(error) if matches!(error.kind(), crate::StoreErrorKind::BulkChunkWitnessGap) => None,
+            Err(error) if matches!(error.kind(), crate::StoreErrorKind::BulkChunkWitnessGap) => {
+                None
+            }
             Err(error) => return Err(error),
         };
         let latest_checkpoint = match resume_boundary.latest_checkpoint_sequence() {
@@ -1085,7 +1439,8 @@ impl ForgeStore {
         request: EmbeddedCheckpointFetchRequest,
     ) -> Result<PersistedEmbeddedCheckpoint, StoreError> {
         Ok(PersistedEmbeddedCheckpoint::new(
-            self.backend.fetch_embedded_checkpoint(request.checkpoint_id())?,
+            self.backend
+                .fetch_embedded_checkpoint(request.checkpoint_id())?,
         ))
     }
 
@@ -1327,7 +1682,10 @@ impl ForgeStore {
                 ));
             }
             Err(error)
-                if matches!(error.kind(), crate::StoreErrorKind::AspectLayoutArtifactMissing) => {}
+                if matches!(
+                    error.kind(),
+                    crate::StoreErrorKind::AspectLayoutArtifactMissing
+                ) => {}
             Err(error) => return Err(error),
         }
         let reuse = self.admit_structural_block_reuse(plan.clone())?;
@@ -1343,6 +1701,73 @@ impl ForgeStore {
             self.milestone_6_access_structure_verification(),
             self.counters(),
         ))
+    }
+
+    pub fn milestone_6_certification_bundle_in_lane(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+    ) -> Result<Milestone6CertificationBundle, StoreError> {
+        self.milestone_6_certification_bundle_in_lane_with_policy(
+            request,
+            lane,
+            Milestone6LayoutSupportPolicy::new(false, false, 0),
+        )
+    }
+
+    pub fn milestone_6_certification_bundle_in_lane_with_policy(
+        &mut self,
+        request: AspectLayoutReadRequest,
+        lane: Milestone6LayoutSupportLane,
+        policy: Milestone6LayoutSupportPolicy,
+    ) -> Result<Milestone6CertificationBundle, StoreError> {
+        let prepared =
+            self.prepare_milestone_6_layout_support_with_policy(request.clone(), lane, policy)?;
+        match prepared.resolved_lane() {
+            Milestone6ResolvedLayoutSupportLane::ProofOnly => {
+                let plan = self.require_admitted_aspect_layout_plan(
+                    request,
+                    "milestone 6 proof-only certification",
+                )?;
+                let reuse = self.admit_structural_block_reuse(plan.clone())?;
+                let frozen = self.freeze_chunk_model(plan.clone())?;
+                let milestone_7 =
+                    self.admit_milestone_7_independent_layout_reference(plan.clone())?;
+                let milestone_9 =
+                    self.admit_milestone_9_physical_chunk_reference(frozen.clone())?;
+                Ok(Milestone6CertificationBundle::for_lane(
+                    &plan,
+                    &reuse,
+                    &frozen,
+                    &milestone_7,
+                    &milestone_9,
+                    self.milestone_6_access_structure_verification(),
+                    self.counters(),
+                    prepared.requested_lane(),
+                    prepared.resolved_lane(),
+                    prepared.publication_disposition(),
+                ))
+            }
+            Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
+            | Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+            | Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting => {
+                let artifact_id = prepared
+                    .layout_materialization_artifact_id()
+                    .expect("materialized certification lane should always return an artifact id")
+                    .to_string();
+                let materialization = self
+                    .backend
+                    .fetch_existing_milestone_6_layout_support(&artifact_id)?;
+                Ok(Milestone6CertificationBundle::from_materialization_in_lane(
+                    &materialization,
+                    self.milestone_6_access_structure_verification(),
+                    self.counters(),
+                    prepared.requested_lane(),
+                    prepared.resolved_lane(),
+                    prepared.publication_disposition(),
+                ))
+            }
+        }
     }
 
     pub fn milestone_7_certification_bundle(

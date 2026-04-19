@@ -39,7 +39,10 @@ pub(crate) fn build_bridge_family_coverage_report(
     let family_map = family_rows
         .iter()
         .map(|(family, routed_case_count, historical_evaluation_count)| {
-            (family.as_str(), (*routed_case_count, *historical_evaluation_count))
+            (
+                family.as_str(),
+                (*routed_case_count, *historical_evaluation_count),
+            )
         })
         .collect::<BTreeMap<_, _>>();
 
@@ -83,7 +86,8 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                 ))
             })?
             .build();
-        let verified = verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
+        let verified =
+            verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
         let commit = verified.commits.last().ok_or_else(|| {
             WorthMilestoneOneCertificationError::ReadView(
                 "worth milestone one bridge proof requires a committed topology mutation"
@@ -103,11 +107,13 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                 "worth milestone one bridge proof could not build bridge: {error:?}"
             ))
         })?;
-        let _route = bridge.route(format!("commit-{commit_id}")).map_err(|error| {
-            WorthMilestoneOneCertificationError::ReadView(format!(
-                "worth milestone one bridge proof could not route committed truth: {error:?}"
-            ))
-        })?;
+        let _route = bridge
+            .route(format!("commit-{commit_id}"))
+            .map_err(|error| {
+                WorthMilestoneOneCertificationError::ReadView(format!(
+                    "worth milestone one bridge proof could not route committed truth: {error:?}"
+                ))
+            })?;
         let evaluation = bridge
             .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
                 TruthBranchIdentity::new(branch_id.as_str()),
@@ -120,7 +126,11 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         let route_records = bridge.diagnostics().route_records();
         let historical_records = bridge.diagnostics().historical_evaluation_records();
 
-        family_rows.push((family.clone(), route_records.len(), historical_records.len()));
+        family_rows.push((
+            family.clone(),
+            route_records.len(),
+            historical_records.len(),
+        ));
         proved_families.push(family);
         source_branch = Some(branch_id);
         source_commit = Some(commit_id);
@@ -141,7 +151,13 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
             historical_record_identities.push(record.record_identity().as_str().to_string());
-            snapshot_identities.push(record.decision_log().snapshot_identity().as_str().to_string());
+            snapshot_identities.push(
+                record
+                    .decision_log()
+                    .snapshot_identity()
+                    .as_str()
+                    .to_string(),
+            );
             format!(
                 "historical:{}:{}:{}:{}:{:?}",
                 record.record_identity().as_str(),

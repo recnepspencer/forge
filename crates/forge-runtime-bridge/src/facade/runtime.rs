@@ -43,7 +43,10 @@ impl std::fmt::Debug for RuntimeBridge {
                 "has_continuity_lineage_source",
                 &self.continuity_lineage_source.is_some(),
             )
-            .field("has_writeback_authority", &self.writeback_authority.is_some())
+            .field(
+                "has_writeback_authority",
+                &self.writeback_authority.is_some(),
+            )
             .field(
                 "has_snapshot_reader_pool",
                 &self.snapshot_reader_pool.is_some(),

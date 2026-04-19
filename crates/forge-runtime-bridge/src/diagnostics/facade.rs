@@ -6,12 +6,12 @@ use crate::routing::BridgeCanonicalBulkPlanRecord;
 use crate::speculation::{
     BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
 };
+use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 use crate::writeback::{
     BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
-    BridgeWritebackFamilyAdmissionRecord,
-    BridgeWritebackMapperEnvelope, BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
+    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
 };
-use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 
 use super::bulk::BridgeBulkPlanExplanation;
 use super::continuity::{BridgeCanonicalContinuityRecord, BridgeContinuityExplanation};
@@ -35,13 +35,11 @@ use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
 use super::writeback::{
-    BridgeWritebackAdmissionExplanation,
-    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackCandidateExplanation,
-    BridgeWritebackExecutionExplanation,
+    BridgeMappedWritebackFamilyInputExplanation, BridgeWritebackAdmissionExplanation,
+    BridgeWritebackCandidateExplanation, BridgeWritebackExecutionExplanation,
     BridgeWritebackLoopPreventionExplanation, BridgeWritebackMapperEnvelopeExplanation,
-    BridgeWritebackMapperExplanation,
-    BridgeWritebackOutcomeExplanation, BridgeWritebackReplayExplanation,
-    BridgeWritebackReplayRecordExplanation,
+    BridgeWritebackMapperExplanation, BridgeWritebackOutcomeExplanation,
+    BridgeWritebackReplayExplanation, BridgeWritebackReplayRecordExplanation,
     BridgeWritebackStrategyCompatibilityExplanation,
 };
 use super::BridgeRouteExplanation;

@@ -7,11 +7,10 @@ mod precision_fallback;
 mod topology_class;
 
 pub use commit_flow::{
-    AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch,
-    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
-    RawWorthTopologyIntent, WorthCreateKey, WorthDerivedTruthBasisIdentity,
-    WorthEntityReference, WorthMutationOrigin, WorthTopologyMutation,
-    WorthTopologyMutationBatch, WorthTopologyReadArtifact,
+    AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation,
+    DerivedTopologyReadBasis, PersistedTopologyTruthBatch, RawWorthTopologyIntent, WorthCreateKey,
+    WorthDerivedTruthBasisIdentity, WorthEntityReference, WorthMutationOrigin,
+    WorthTopologyMutation, WorthTopologyMutationBatch, WorthTopologyReadArtifact,
 };
 pub use derived_invalidation::{
     worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget,
@@ -22,9 +21,8 @@ pub use gateway::{
     WorthTracedTopologyCommit,
 };
 pub use geometry_binding::{
-    WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind,
-    WorthSurfaceBindingKind, WorthSurfaceRelationKind, WorthVertexGeometryProvenanceKind,
-    WorthVertexToleranceRegime,
+    WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind, WorthSurfaceBindingKind,
+    WorthSurfaceRelationKind, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,
 };
 pub use interpretation::{
     WorthShellInterpretationClass, WorthShellInterpretationRecord,

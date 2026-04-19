@@ -14,7 +14,9 @@ use forge_relational::facade::runtime::{
     RelationalRuntimeApi, RelationalRuntimeBuilder,
 };
 use forge_relational::facade::schema::SchemaRegistryError;
-use worth_schema::facade::{worth_bootstrap_runtime_invariant_plan, worth_bootstrap_schema_registry};
+use worth_schema::facade::{
+    worth_bootstrap_runtime_invariant_plan, worth_bootstrap_schema_registry,
+};
 
 #[derive(Debug)]
 pub enum WorthMilestoneOneRuntimeSetupError {
@@ -55,7 +57,9 @@ pub fn configure_worth_milestone_one_runtime_builder(
     let registrations = worth_milestone_one_runtime_invariants()?;
     Ok(registrations
         .into_iter()
-        .fold(builder, |builder, registration| builder.custom_invariant(registration)))
+        .fold(builder, |builder, registration| {
+            builder.custom_invariant(registration)
+        }))
 }
 
 pub fn worth_milestone_one_runtime_builder(

@@ -7,8 +7,8 @@
 //! DEPENDENCIES: `worth_math::linalg` for vector operations.
 //! INVARIANTS: Deterministic ordering — ties broken by edge index.
 
-use worth_math::linalg::{norm_sq, sub};
 use std::collections::BTreeMap;
+use worth_math::linalg::{norm_sq, sub};
 
 /// A directed edge with an ID, origin position, and destination position.
 #[derive(Clone, Debug)]

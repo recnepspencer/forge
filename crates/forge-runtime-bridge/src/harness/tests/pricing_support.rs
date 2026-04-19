@@ -625,7 +625,9 @@ impl PricingWorkloadCertificationBundle {
             entry["classification"]
                 .as_str()
                 .is_some_and(|value| !value.is_empty())
-                && entry["result"].as_str().is_some_and(|value| !value.is_empty())
+                && entry["result"]
+                    .as_str()
+                    .is_some_and(|value| !value.is_empty())
         });
 
         json!({
@@ -997,6 +999,9 @@ impl PricingWorkloadCertificationBundle {
     }
 
     pub(super) fn digest(&self) -> String {
-        digest_json("pricing-workload-certification-bundle", &self.summary_json())
+        digest_json(
+            "pricing-workload-certification-bundle",
+            &self.summary_json(),
+        )
     }
 }

@@ -14,9 +14,9 @@
 //! DEPENDENCIES: forge-topo (handles, arena), worth-geom (Plane)
 
 use forge_core::KernelError;
-use worth_geom::facade::Plane;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId};
+use worth_geom::facade::Plane;
 
 /// Convexity classification for a boundary edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

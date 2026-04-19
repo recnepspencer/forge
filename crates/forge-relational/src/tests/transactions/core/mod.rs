@@ -1399,29 +1399,35 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                 client_key: target_key.clone(),
                 payload: RecordPayload::StructuredJson(json!({"name":"same-commit-target"})),
             })))
-            .push(MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: InternedString::Raw("same-commit-edge".to_string()),
-                source: crate::facade::transactions::EntityReference::Created(
-                    crate::facade::transactions::CreatedEntityRef {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: source_key.clone(),
-                    },
-                ),
-                target: crate::facade::transactions::EntityReference::Created(
-                    crate::facade::transactions::CreatedEntityRef {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: target_key.clone(),
-                    },
-                ),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"same-commit"}))),
-            }))),
+            .push(MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("same-commit-edge".to_string()),
+                    source: crate::facade::transactions::EntityReference::Created(
+                        crate::facade::transactions::CreatedEntityRef {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: source_key.clone(),
+                        },
+                    ),
+                    target: crate::facade::transactions::EntityReference::Created(
+                        crate::facade::transactions::CreatedEntityRef {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: target_key.clone(),
+                        },
+                    ),
+                    payload: Some(RecordPayload::StructuredJson(
+                        json!({"label":"same-commit"}),
+                    )),
+                },
+            ))),
     );
 
-    let outcome = txn.commit().expect("same-commit graph creation should succeed");
+    let outcome = txn
+        .commit()
+        .expect("same-commit graph creation should succeed");
     let created_entities = changed_entities(&outcome);
     let created_relations = changed_relations(&outcome);
 
@@ -1514,12 +1520,17 @@ fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
         )),
     );
 
-    let error = txn.commit().expect_err("missing created ref should fail closed");
+    let error = txn
+        .commit()
+        .expect_err("missing created ref should fail closed");
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::InvalidRelationEndpoint);
         }
-        other => panic!("expected invalid relation endpoint conflict, got {:?}", other),
+        other => panic!(
+            "expected invalid relation endpoint conflict, got {:?}",
+            other
+        ),
     }
 }
 

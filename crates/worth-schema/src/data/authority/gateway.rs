@@ -21,15 +21,14 @@ use crate::data::authority::{
     RawWorthTopologyIntent, WorthCreateKey, WorthEntityReference, WorthTopologyMutation,
     WorthTopologyMutationBatch,
 };
-use crate::data::tracing::{
-    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers,
-    WorthPerformanceAccounting,
-};
 use crate::data::entities::{WorthDiagnosticsEntityKind, WorthEntityKind};
 use crate::data::relations::{
     WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
     WorthRelationKind, WorthTopologyRelationKind,
+};
+use crate::data::tracing::{
+    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
+    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers, WorthPerformanceAccounting,
 };
 
 #[derive(Debug)]
@@ -98,10 +97,7 @@ impl<'a> WorthTopologyAuthority<'a> {
         branch_id: BranchId,
     ) -> Result<WorthTracedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
         let snapshot = self.runtime.snapshots().snapshot();
-        let read = self
-            .runtime
-            .read_truth()
-            .read_snapshot(&snapshot);
+        let read = self.runtime.read_truth().read_snapshot(&snapshot);
 
         let touched_aspects = touched_aspects_for_intent(read.as_ref(), &intent)
             .map_err(|error| authority_failure_for_intent(error, &branch_id, &intent))?;
@@ -111,7 +107,9 @@ impl<'a> WorthTopologyAuthority<'a> {
 
         let commits = self
             .execute_canonical_batch(read.as_ref(), &canonical_batch.batch, &branch_id)
-            .map_err(|error| authority_failure_for_batch(error, &branch_id, &canonical_batch.batch))?;
+            .map_err(|error| {
+                authority_failure_for_batch(error, &branch_id, &canonical_batch.batch)
+            })?;
 
         let persisted_snapshot = commits
             .last()
@@ -164,19 +162,19 @@ impl<'a> WorthTopologyAuthority<'a> {
         read: Option<&forge_relational::facade::runtime::RelationalReadView>,
         batch: &WorthTopologyMutationBatch,
         branch_id: &BranchId,
-    ) -> Result<Vec<forge_relational::facade::transactions::CommitResult>, WorthTopologyAuthorityError>
-    {
+    ) -> Result<
+        Vec<forge_relational::facade::transactions::CommitResult>,
+        WorthTopologyAuthorityError,
+    > {
         let lowered = self.lower_canonical_batch(read, batch)?;
         if lowered.is_empty() {
             return Ok(Vec::new());
         }
 
-        let mut tx = self
-            .runtime
-            .begin_transaction(TransactionOptions {
-                target_branch: Some(branch_id.clone()),
-                ..TransactionOptions::default()
-            });
+        let mut tx = self.runtime.begin_transaction(TransactionOptions {
+            target_branch: Some(branch_id.clone()),
+            ..TransactionOptions::default()
+        });
         let batch = lowered.into_iter().fold(
             WorkerIntentBatch::new(batch_name(batch.mutation_origin)),
             |batch, mutation| batch.push(mutation),
@@ -197,9 +195,13 @@ impl<'a> WorthTopologyAuthority<'a> {
             match mutation {
                 WorthTopologyMutation::CreateEntity { create_key, kind } => {
                     if !seen.insert(create_key.clone()) {
-                        return Err(WorthTopologyAuthorityError::DuplicateCreateKey(create_key.clone()));
+                        return Err(WorthTopologyAuthorityError::DuplicateCreateKey(
+                            create_key.clone(),
+                        ));
                     }
-                    if read.is_some_and(|snapshot| live_entity_label_exists(snapshot, create_key.as_str())) {
+                    if read.is_some_and(|snapshot| {
+                        live_entity_label_exists(snapshot, create_key.as_str())
+                    }) {
                         return Err(WorthTopologyAuthorityError::DuplicateLiveEntityLabel(
                             create_key.clone(),
                         ));
@@ -213,12 +215,11 @@ impl<'a> WorthTopologyAuthority<'a> {
                         },
                     );
                 }
-                WorthTopologyMutation::CreateRelation {
-                    create_key,
-                    ..
-                } => {
+                WorthTopologyMutation::CreateRelation { create_key, .. } => {
                     if !seen.insert(create_key.clone()) {
-                        return Err(WorthTopologyAuthorityError::DuplicateCreateKey(create_key.clone()));
+                        return Err(WorthTopologyAuthorityError::DuplicateCreateKey(
+                            create_key.clone(),
+                        ));
                     }
                 }
                 _ => {}
@@ -245,14 +246,16 @@ impl<'a> WorthTopologyAuthority<'a> {
                     source,
                     target,
                 } => {
-                    lowered.push(MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                        partition_id: forge_relational::facade::identity::PartitionId::main(),
-                        kind_id: kind.kind_id(),
-                        client_key: InternedString::Raw(create_key.as_str().to_string()),
-                        source: resolve_entity_reference(source, &created_entities)?,
-                        target: resolve_entity_reference(target, &created_entities)?,
-                        payload: None,
-                    })));
+                    lowered.push(MutationIntent::Create(CreateIntent::Relation(
+                        RelationSpec {
+                            partition_id: forge_relational::facade::identity::PartitionId::main(),
+                            kind_id: kind.kind_id(),
+                            client_key: InternedString::Raw(create_key.as_str().to_string()),
+                            source: resolve_entity_reference(source, &created_entities)?,
+                            target: resolve_entity_reference(target, &created_entities)?,
+                            payload: None,
+                        },
+                    )));
                 }
                 _ => {
                     let read = read.ok_or_else(|| {
@@ -306,12 +309,12 @@ fn authority_failure_for_batch(
     batch: &WorthTopologyMutationBatch,
 ) -> WorthBoundaryFailure<WorthTopologyAuthorityError> {
     let authority = match &error {
-        WorthTopologyAuthorityError::Commit(commit_error) => Some(
-            WorthAuthorityTraceEvidence::from_commit_logs(
+        WorthTopologyAuthorityError::Commit(commit_error) => {
+            Some(WorthAuthorityTraceEvidence::from_commit_logs(
                 branch_id.clone(),
                 vec![commit_error.commit_log().clone()],
-            ),
-        ),
+            ))
+        }
         _ => None,
     };
     let performance_accounting = authority
@@ -350,7 +353,11 @@ fn integrity_markers_for_verified_commit(commit: &VerifiedTopologyCommit) -> Wor
         Some(commit.canonical_batch.batch.mutation_origin),
         Some(commit.read_basis.authority.truth_basis_identity.clone()),
         commit.canonical_batch.batch.precision_fallbacks.len(),
-        commit.canonical_batch.batch.precision_budget_fallbacks.len(),
+        commit
+            .canonical_batch
+            .batch
+            .precision_budget_fallbacks
+            .len(),
     )
 }
 
@@ -405,20 +412,22 @@ fn lower_existing_mutation(
     lowered: &mut Vec<MutationIntent>,
 ) -> Result<(), WorthTopologyAuthorityError> {
     match mutation {
-        WorthTopologyMutation::CreateEntity { .. } | WorthTopologyMutation::CreateRelation { .. } => {
+        WorthTopologyMutation::CreateEntity { .. }
+        | WorthTopologyMutation::CreateRelation { .. } => {
             unreachable!("create mutations are handled before lowering existing mutations")
         }
         WorthTopologyMutation::UpsertEntity { entity_id, kind } => {
             let Some(existing) = read.get_entity(*entity_id) else {
-                return Err(WorthTopologyAuthorityError::UnsupportedIdentityEntityMutation(
-                    *entity_id,
-                ));
+                return Err(
+                    WorthTopologyAuthorityError::UnsupportedIdentityEntityMutation(*entity_id),
+                );
             };
-            let found = WorthEntityKind::from_kind_id(existing.kind.kind_id)
-                .ok_or_else(|| WorthTopologyAuthorityError::ReadSnapshot(format!(
+            let found = WorthEntityKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
+                WorthTopologyAuthorityError::ReadSnapshot(format!(
                     "unknown worth entity kind id `{}` for entity `{:?}`",
                     existing.kind.kind_id.0, entity_id
-                )))?;
+                ))
+            })?;
             if found != *kind {
                 return Err(WorthTopologyAuthorityError::EntityKindMismatch {
                     entity_id: *entity_id,
@@ -434,19 +443,18 @@ fn lower_existing_mutation(
             target,
         } => {
             let Some(existing) = read.get_relation(*relation_id) else {
-                return Err(WorthTopologyAuthorityError::UnsupportedIdentityRelationMutation(
-                    *relation_id,
-                ));
+                return Err(
+                    WorthTopologyAuthorityError::UnsupportedIdentityRelationMutation(*relation_id),
+                );
             };
-            let found_kind = WorthRelationKind::from_kind_id(existing.kind.kind_id)
-                .ok_or_else(|| WorthTopologyAuthorityError::ReadSnapshot(format!(
-                    "unknown worth relation kind id `{}` for relation `{:?}`",
-                    existing.kind.kind_id.0, relation_id
-                )))?;
-            if found_kind != *kind
-                || existing.source != *source
-                || existing.target != *target
-            {
+            let found_kind =
+                WorthRelationKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
+                    WorthTopologyAuthorityError::ReadSnapshot(format!(
+                        "unknown worth relation kind id `{}` for relation `{:?}`",
+                        existing.kind.kind_id.0, relation_id
+                    ))
+                })?;
+            if found_kind != *kind || existing.source != *source || existing.target != *target {
                 return Err(WorthTopologyAuthorityError::RelationShapeMismatch {
                     relation_id: *relation_id,
                     expected_kind: *kind,
@@ -542,11 +550,13 @@ fn touched_aspects_for_intent(
                 let Some(existing) = read.get_entity(*entity_id) else {
                     return Err(WorthTopologyAuthorityError::MissingEntity(*entity_id));
                 };
-                let kind = WorthEntityKind::from_kind_id(existing.kind.kind_id)
-                    .ok_or_else(|| WorthTopologyAuthorityError::ReadSnapshot(format!(
-                        "unknown worth entity kind id `{}` for entity `{:?}`",
-                        existing.kind.kind_id.0, entity_id
-                    )))?;
+                let kind =
+                    WorthEntityKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
+                        WorthTopologyAuthorityError::ReadSnapshot(format!(
+                            "unknown worth entity kind id `{}` for entity `{:?}`",
+                            existing.kind.kind_id.0, entity_id
+                        ))
+                    })?;
                 aspects.extend(entity_aspects(kind));
             }
             WorthTopologyMutation::RemoveRelation { relation_id } => {
@@ -559,11 +569,13 @@ fn touched_aspects_for_intent(
                 let Some(existing) = read.get_relation(*relation_id) else {
                     return Err(WorthTopologyAuthorityError::MissingRelation(*relation_id));
                 };
-                let kind = WorthRelationKind::from_kind_id(existing.kind.kind_id)
-                    .ok_or_else(|| WorthTopologyAuthorityError::ReadSnapshot(format!(
-                        "unknown worth relation kind id `{}` for relation `{:?}`",
-                        existing.kind.kind_id.0, relation_id
-                    )))?;
+                let kind =
+                    WorthRelationKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
+                        WorthTopologyAuthorityError::ReadSnapshot(format!(
+                            "unknown worth relation kind id `{}` for relation `{:?}`",
+                            existing.kind.kind_id.0, relation_id
+                        ))
+                    })?;
                 aspects.extend(relation_aspects(kind));
             }
         }
@@ -576,9 +588,7 @@ fn entity_aspects(kind: WorthEntityKind) -> [WorthAspect; 2] {
         match kind {
             WorthEntityKind::Topology(_) => WorthAspect::Topology(WorthTopologyAspect::Structure),
             WorthEntityKind::Geometry(_) => WorthAspect::Geometry(WorthGeometryAspect::Binding),
-            WorthEntityKind::Naming(_) => {
-                WorthAspect::Naming(WorthNamingAspect::PersistentName)
-            }
+            WorthEntityKind::Naming(_) => WorthAspect::Naming(WorthNamingAspect::PersistentName),
             WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation)
             | WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation) => {
                 WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations)
@@ -632,12 +642,12 @@ fn relation_aspects(kind: WorthRelationKind) -> [WorthAspect; 2] {
 
 #[cfg(test)]
 mod tests {
-    use forge_relational::facade::runtime::RelationalRuntimeApi;
     use super::*;
     use crate::data::entities::{
         WorthDiagnosticsEntityKind, WorthEntityKind, WorthTopologyEntityKind,
     };
     use crate::data::seed::seed_minimal_topology;
+    use forge_relational::facade::runtime::RelationalRuntimeApi;
 
     #[test]
     fn authority_rejects_identity_shaped_entity_mutations_without_existing_truth() {
@@ -650,7 +660,11 @@ mod tests {
 
         let intent = RawWorthTopologyIntent::new(
             vec![WorthTopologyMutation::UpsertEntity {
-                entity_id: EntityId::new(forge_relational::facade::identity::PartitionId::main(), 999, 1),
+                entity_id: EntityId::new(
+                    forge_relational::facade::identity::PartitionId::main(),
+                    999,
+                    1,
+                ),
                 kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
             }],
             crate::data::authority::WorthMutationOrigin::LocalEdit,
@@ -710,7 +724,9 @@ mod tests {
             read.entities()
                 .iter()
                 .filter(|record| {
-                    record.payload.as_json()
+                    record
+                        .payload
+                        .as_json()
                         .and_then(|json| json.get("label"))
                         .and_then(|value| value.as_str())
                         .is_some_and(|label| label.starts_with("create."))
@@ -722,7 +738,8 @@ mod tests {
             read.relations()
                 .iter()
                 .filter(|record| record.kind.kind_id
-                    == WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody).kind_id())
+                    == WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody)
+                        .kind_id())
                 .count(),
             1
         );
@@ -801,14 +818,16 @@ mod tests {
             .read_snapshot(&verified.persisted_truth.snapshot)
             .expect("verified snapshot should remain readable");
         assert!(read.get_entity(seeded.vertex).is_none());
-        assert!(verified
-            .read_basis
-            .touched_aspects()
-            .contains(&WorthAspect::Topology(WorthTopologyAspect::Structure))
-            || verified
+        assert!(
+            verified
                 .read_basis
                 .touched_aspects()
-                .contains(&WorthAspect::Topology(WorthTopologyAspect::Boundary)));
+                .contains(&WorthAspect::Topology(WorthTopologyAspect::Structure))
+                || verified
+                    .read_basis
+                    .touched_aspects()
+                    .contains(&WorthAspect::Topology(WorthTopologyAspect::Boundary))
+        );
     }
 
     #[test]
@@ -822,7 +841,10 @@ mod tests {
         let seeded = seed_minimal_topology(&mut runtime, "authority-branch").unwrap();
         runtime
             .history_authority()
-            .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+            .create_branch(
+                BranchId("feature".to_string()),
+                &BranchId("main".to_string()),
+            )
             .expect("feature branch should be creatable");
 
         let intent = RawWorthTopologyIntent::new(
@@ -912,13 +934,17 @@ mod tests {
                     create_key: WorthCreateKey::new(
                         "authority-create-after-seed.added_vertex.persistent_name",
                     ),
-                    kind: WorthEntityKind::Naming(crate::data::entities::WorthNamingEntityKind::PersistentName),
+                    kind: WorthEntityKind::Naming(
+                        crate::data::entities::WorthNamingEntityKind::PersistentName,
+                    ),
                 },
                 WorthTopologyMutation::CreateRelation {
                     create_key: WorthCreateKey::new(
                         "authority-create-after-seed.added_vertex.persistent_name.targets",
                     ),
-                    kind: WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity),
+                    kind: WorthRelationKind::Naming(
+                        WorthNamingRelationKind::PersistentNameTargetsEntity,
+                    ),
                     source: WorthEntityReference::Created(WorthCreateKey::new(
                         "authority-create-after-seed.added_vertex.persistent_name",
                     )),
@@ -961,8 +987,10 @@ mod tests {
             .iter()
             .filter(|record| {
                 record.kind.kind_id
-                    == WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity)
-                        .kind_id()
+                    == WorthRelationKind::Naming(
+                        WorthNamingRelationKind::PersistentNameTargetsEntity,
+                    )
+                    .kind_id()
             })
             .count();
         assert_eq!(naming_targets, 12);

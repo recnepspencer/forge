@@ -303,6 +303,12 @@ mod tests {
             metadata.resolved_path_class(),
             &ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath
         );
+        assert_eq!(
+            resolved
+                .counters()
+                .history_work_avoided_by_retained_path_count(),
+            0
+        );
     }
 
     #[test]
@@ -523,8 +529,8 @@ mod tests {
             true,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
         );
-        let admission =
-            admit_historical_evaluation_path(request, capability).expect("admission should succeed");
+        let admission = admit_historical_evaluation_path(request, capability)
+            .expect("admission should succeed");
         let resolved = resolve_historical_materialization_path(
             admission,
             HistoricalMaterializationDescriptor::new(
@@ -536,8 +542,50 @@ mod tests {
 
         assert_eq!(resolved.counters().historical_admitted_path_count(), 1);
         assert_eq!(resolved.counters().historical_resolved_path_count(), 1);
-        assert_eq!(resolved.counters().historical_result_path_metadata_count(), 1);
-        assert_eq!(resolved.counters().historical_delta_replay_admission_count(), 1);
+        assert_eq!(
+            resolved.counters().historical_result_path_metadata_count(),
+            1
+        );
+        assert_eq!(
+            resolved
+                .counters()
+                .historical_delta_replay_admission_count(),
+            1
+        );
+        assert_eq!(
+            resolved
+                .counters()
+                .history_work_avoided_by_retained_path_count(),
+            0
+        );
+    }
+
+    #[test]
+    fn retained_reuse_counter_only_increments_when_capability_proves_reuse() {
+        let request = HistoricalEvaluationRequest::retained_snapshot(
+            "basis:retained-reuse",
+            3,
+            5,
+            HistoricalPathReuseDescriptor::retained_reuse(),
+        );
+        let capability = super::super::request::HistoricalCapabilityDescriptor::retained_snapshot(
+            "basis:retained-reuse",
+            HistoricalPathReuseDescriptor::retained_reuse(),
+        );
+        let admission = admit_historical_evaluation_path(request, capability)
+            .expect("admission should succeed");
+        let resolved = resolve_historical_materialization_path(
+            admission,
+            HistoricalMaterializationDescriptor::retained_snapshot("basis:retained-reuse"),
+        )
+        .expect("resolution should succeed");
+
+        assert_eq!(
+            resolved
+                .counters()
+                .history_work_avoided_by_retained_path_count(),
+            8
+        );
     }
 
     #[test]

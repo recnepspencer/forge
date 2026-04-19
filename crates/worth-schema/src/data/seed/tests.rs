@@ -1,8 +1,7 @@
-use forge_relational::facade::runtime::RelationalRuntimeApi;
 use forge_relational::facade::history::BranchId;
+use forge_relational::facade::runtime::RelationalRuntimeApi;
 use worth_math::predicates::orient2d;
 
-use crate::data::bootstrap::worth_bootstrap_schema_registry;
 use crate::data::aspects::{
     WorthAspect, WorthDiagnosticsAspect, WorthNamingAspect, WorthTopologyAspect,
 };
@@ -11,6 +10,7 @@ use crate::data::authority::{
     RawWorthTopologyIntent, WorthMutationOrigin, WorthPrecisionFallbackRecord,
     WorthTopologyMutationBatch,
 };
+use crate::data::bootstrap::worth_bootstrap_schema_registry;
 use crate::data::seed::{
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, seed_minimal_topology,
@@ -89,8 +89,17 @@ fn precision_fallback_record_threads_through_authority_flow() {
         replay_basis.authoritative_mutation_origin(),
         WorthMutationOrigin::Seed
     );
-    assert_eq!(replay_basis.derivation_origin(), WorthMutationOrigin::Replay);
-    assert_eq!(read_basis.authority.truth_basis_identity.touched_aspect_count, 3);
+    assert_eq!(
+        replay_basis.derivation_origin(),
+        WorthMutationOrigin::Replay
+    );
+    assert_eq!(
+        read_basis
+            .authority
+            .truth_basis_identity
+            .touched_aspect_count,
+        3
+    );
     assert!(!read_basis
         .authority
         .truth_basis_identity
@@ -109,13 +118,55 @@ fn admitted_range_sweep_generators_cover_the_declared_milestone_one_ranges() {
     });
 
     assert_eq!(unique_cases.len(), scenarios.len());
-    assert_eq!(scenarios.iter().filter(|s| s.family == "WireOpen(n)").count(), 12);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "WireClosed(n)").count(), 10);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "WireBranch(k)").count(), 10);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "SheetDisk(n)").count(), 10);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "SheetPatch(f)").count(), 9);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "SolidShell(f)").count(), 7);
-    assert_eq!(scenarios.iter().filter(|s| s.family == "NmtEdgeFan(k)").count(), 8);
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "WireOpen(n)")
+            .count(),
+        12
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "WireClosed(n)")
+            .count(),
+        10
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "WireBranch(k)")
+            .count(),
+        10
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "SheetDisk(n)")
+            .count(),
+        10
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "SheetPatch(f)")
+            .count(),
+        9
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "SolidShell(f)")
+            .count(),
+        7
+    );
+    assert_eq!(
+        scenarios
+            .iter()
+            .filter(|s| s.family == "NmtEdgeFan(k)")
+            .count(),
+        8
+    );
 
     assert_eq!(out_of_class.len(), 7);
     assert!(out_of_class.iter().all(|scenario| {

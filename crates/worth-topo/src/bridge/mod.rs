@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use forge_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::{BridgeBuildError, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSink};
+use forge_runtime_bridge::facade::{
+    BridgeBuildError, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSink,
+};
 
 pub use mappings::{
     worth_milestone_one_bridge_aspect_registrations,

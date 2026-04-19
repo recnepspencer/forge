@@ -85,8 +85,11 @@ mod tests {
             2
         );
         assert_eq!(
-            [BridgeWritebackRequestMode::ReadOnly, BridgeWritebackRequestMode::WritebackCapable]
-                .len(),
+            [
+                BridgeWritebackRequestMode::ReadOnly,
+                BridgeWritebackRequestMode::WritebackCapable
+            ]
+            .len(),
             2
         );
         assert_eq!(

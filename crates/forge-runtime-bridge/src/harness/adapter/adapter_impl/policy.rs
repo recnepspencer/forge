@@ -222,9 +222,7 @@ fn execute_provenance_certification(
     let optimized = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new(
-                "policy-cert:optimized-preview",
-            ),
+            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:optimized-preview"),
             crate::facade::BridgeRequestKind::Preview,
             crate::facade::BridgeExecutionPolicyClass::Optimized,
             crate::facade::BridgeDiagnosticsTier::Exhaustive,
@@ -238,13 +236,20 @@ fn execute_provenance_certification(
     );
     let replay_digest = combined_digest(
         "policy-provenance-replay",
-        &[deterministic.replay_bundle.digest(), optimized.replay_bundle.digest()],
+        &[
+            deterministic.replay_bundle.digest(),
+            optimized.replay_bundle.digest(),
+        ],
     );
     let diagnostics_digest = combined_digest(
         "policy-provenance-diagnostics",
-        &[deterministic.provenance.digest(), optimized.provenance.digest()],
+        &[
+            deterministic.provenance.digest(),
+            optimized.provenance.digest(),
+        ],
     );
-    let routing_digest = first_commit_routing_digest(runtime_bridge, fixture, &deterministic.route_policy)?;
+    let routing_digest =
+        first_commit_routing_digest(runtime_bridge, fixture, &deterministic.route_policy)?;
     let policy_matrix = json!({
         "rows": [
             admitted_policy_row_json("deterministic_authoritative", &deterministic),
@@ -325,11 +330,10 @@ fn execute_rejection_certification(
         false,
         false,
     );
-    let optimized_authoritative = rejected_policy_bundle(
-        runtime_bridge,
-        optimized_authoritative_declaration.clone(),
-    )?;
-    let replay_forbidden_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
+    let optimized_authoritative =
+        rejected_policy_bundle(runtime_bridge, optimized_authoritative_declaration.clone())?;
+    let replay_forbidden_source =
+        crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     let replay_forbidden_runtime = crate::facade::RuntimeBridge::builder()
         .with_relational_source(replay_forbidden_source.clone())
         .with_truth_branch_head_source(replay_forbidden_source)
@@ -380,7 +384,10 @@ fn execute_rejection_certification(
         ]
     });
     let counter_snapshot = crate::facade::BridgePolicyCounters::from_rejections(
-        &[&optimized_authoritative_declaration, &replay_conflict_declaration],
+        &[
+            &optimized_authoritative_declaration,
+            &replay_conflict_declaration,
+        ],
         &[&optimized_authoritative, &replay_conflict],
         0,
     );
@@ -422,9 +429,7 @@ fn execute_ambient_leak_certification(
     let authoritative_middle = admitted_policy_bundle(
         runtime_bridge,
         crate::facade::BridgePolicyDeclaration::new(
-            crate::facade::BridgePolicyDeclarationIdentity::new(
-                "policy-cert:authoritative-middle",
-            ),
+            crate::facade::BridgePolicyDeclarationIdentity::new("policy-cert:authoritative-middle"),
             crate::facade::BridgeRequestKind::Authoritative,
             crate::facade::BridgeExecutionPolicyClass::DeterministicCanonical,
             crate::facade::BridgeDiagnosticsTier::Standard,
@@ -713,9 +718,7 @@ fn route_policy_row_json(label: &str, bundle: &AdmittedPolicyBundle) -> serde_js
     })
 }
 
-fn semantic_route_policy_digest(
-    route_policy: &crate::facade::BridgeRoutePlanningPolicy,
-) -> String {
+fn semantic_route_policy_digest(route_policy: &crate::facade::BridgeRoutePlanningPolicy) -> String {
     combined_digest(
         "semantic-route-planning-policy",
         &[
@@ -739,8 +742,14 @@ fn combined_counter_snapshot<const N: usize>(
         .iter()
         .map(|bundle| bundle.contract.validated_declaration().declaration())
         .collect::<Vec<_>>();
-    let contracts = bundles.iter().map(|bundle| &bundle.contract).collect::<Vec<_>>();
-    let provenances = bundles.iter().map(|bundle| &bundle.provenance).collect::<Vec<_>>();
+    let contracts = bundles
+        .iter()
+        .map(|bundle| &bundle.contract)
+        .collect::<Vec<_>>();
+    let provenances = bundles
+        .iter()
+        .map(|bundle| &bundle.provenance)
+        .collect::<Vec<_>>();
     let replay_bundles = bundles
         .iter()
         .map(|bundle| &bundle.replay_bundle)
@@ -797,7 +806,7 @@ fn first_commit_routing_digest(
         .committed_patches()
         .first()
         .map(|patch| {
-                runtime_bridge
+            runtime_bridge
                 .deliver_invalidation(
                     runtime_bridge
                         .plan_committed_patch_with_route_policy(

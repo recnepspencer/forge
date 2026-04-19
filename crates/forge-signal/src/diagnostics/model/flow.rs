@@ -9,8 +9,8 @@ use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionReportSummary, ExplanationSummary,
 };
-use crate::logic::transaction::ObservationBoundarySummary;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport, StageExecutor};
+use crate::logic::transaction::ObservationBoundarySummary;
 
 /// Structured summary of one upstream change input to signal execution.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

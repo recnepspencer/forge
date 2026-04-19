@@ -9,10 +9,10 @@
 //!               forge-topo (TopologyArena, handles, FaceEdgeIterator)
 
 use forge_core::{KernelError, ToleranceProvider};
-use worth_geom::facade::{signed_distance, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
+use worth_geom::facade::{signed_distance, Plane};
 
 /// Validate that every vertex of each face lies within tolerance of the
 /// face's supporting plane.

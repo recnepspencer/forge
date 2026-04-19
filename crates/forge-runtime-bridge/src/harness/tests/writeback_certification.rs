@@ -48,9 +48,7 @@ fn execute_writeback_run(
 ) -> RunRecord<String> {
     let adapter = BridgeHarnessAdapter;
     let fixture = writeback_fixture(fixture_name, policy);
-    let mut runtime = adapter
-        .create_runtime()
-        .expect("writeback harness runtime");
+    let mut runtime = adapter.create_runtime().expect("writeback harness runtime");
     adapter
         .prepare_runtime(&mut runtime, &profile)
         .expect("writeback harness prepare");
@@ -176,7 +174,9 @@ fn duplicate_writeback_attempt_bundle_is_replay_safe_and_bounded() {
         bundle["counter_artifact"]["digest"],
         bundle["counter_digest"]
     );
-    assert!(bundle["counter_artifact"]["canonical_basis"].as_str().is_some());
+    assert!(bundle["counter_artifact"]["canonical_basis"]
+        .as_str()
+        .is_some());
     assert_eq!(
         bundle["repeated_bundle_digest"],
         control_run.summary["repeated_bundle_digest"]
@@ -193,9 +193,11 @@ fn duplicate_writeback_attempt_bundle_is_replay_safe_and_bounded() {
         bundle["duplicate_authority_matrix"]["replay_bundle_report"]["digest"],
         bundle["replay_bundle_digest"]
     );
-    assert!(bundle["duplicate_authority_matrix"]["replay_bundle_report"]["semantic_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["duplicate_authority_matrix"]["replay_bundle_report"]["semantic_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["duplicate_authority_matrix"]["replay_bundle_report"]["strategy_class"],
         json!("ProjectedStateDiffReconciliation")
@@ -215,34 +217,43 @@ fn duplicate_writeback_attempt_bundle_is_replay_safe_and_bounded() {
     assert!(bundle["duplicate_authority_matrix"]["causality_digest"]
         .as_str()
         .is_some());
-    assert!(bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
-        ["first_authority_request_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
-        ["first_authority_receipt_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
+            ["first_authority_request_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
+            ["first_authority_receipt_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["duplicate_authority_matrix"]["loop_prevention_report"]["first_disposition"],
         json!("AllowAuthoritativeAttempt")
     );
     assert_eq!(
-        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]["first_strategy_compatibility_disposition"],
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
+            ["first_strategy_compatibility_disposition"],
         json!("Compatible")
     );
     assert_eq!(
-        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]["repeated_strategy_compatibility_disposition"],
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
+            ["repeated_strategy_compatibility_disposition"],
         json!("Compatible")
     );
-    assert!(bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
-        ["first_candidate_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
-        ["repeated_candidate_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]["first_candidate_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["duplicate_authority_matrix"]["authority_boundary_matrix"]
+            ["repeated_candidate_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["duplicate_authority_matrix"]["boundedness_proof"]["authoritative_commit_count"],
         json!(1)
@@ -267,10 +278,7 @@ fn duplicate_writeback_attempt_bundle_is_replay_safe_and_bounded() {
         bundle["counter_snapshot"]["writeback_commit_count"],
         json!(1)
     );
-    assert_eq!(
-        bundle["counter_snapshot"]["writeback_noop_count"],
-        json!(1)
-    );
+    assert_eq!(bundle["counter_snapshot"]["writeback_noop_count"], json!(1));
     assert_eq!(
         bundle["counter_snapshot"]["writeback_authority_bypass_rejection_count"],
         json!(0)
@@ -283,7 +291,10 @@ fn duplicate_writeback_attempt_bundle_is_replay_safe_and_bounded() {
         bundle["duplicate_authority_matrix"]["boundedness_proof"],
         hostile_bundle["duplicate_authority_matrix"]["boundedness_proof"]
     );
-    assert_eq!(bundle["counter_snapshot"], hostile_bundle["counter_snapshot"]);
+    assert_eq!(
+        bundle["counter_snapshot"],
+        hostile_bundle["counter_snapshot"]
+    );
     assert_eq!(bundle["counter_digest"], hostile_bundle["counter_digest"]);
     assert_eq!(
         bundle["duplicate_authority_matrix"]["route_digest"],
@@ -297,8 +308,10 @@ fn writeback_bypass_rejection_is_typed_and_leaves_zero_authority_residue() {
         "bridge-writeback-bypass-certification",
         BridgeRuntimePolicy::development(),
     );
-    let request =
-        ExecutionRequest::target("writeback-bypass-control", "writeback-bypass-certify".to_string());
+    let request = ExecutionRequest::target(
+        "writeback-bypass-control",
+        "writeback-bypass-certify".to_string(),
+    );
 
     let report = certification_matrix(
         BridgeHarnessAdapter,
@@ -352,81 +365,108 @@ fn writeback_bypass_rejection_is_typed_and_leaves_zero_authority_residue() {
         bundle["counter_artifact"]["digest"],
         bundle["counter_digest"]
     );
-    assert!(bundle["counter_artifact"]["canonical_basis"].as_str().is_some());
-    assert_eq!(bundle["failure_digest"], control_run.summary["failure_digest"]);
+    assert!(bundle["counter_artifact"]["canonical_basis"]
+        .as_str()
+        .is_some());
+    assert_eq!(
+        bundle["failure_digest"],
+        control_run.summary["failure_digest"]
+    );
     assert_eq!(
         bundle["bypass_rejection"]["failure_kind"],
         json!("PreviewWritebackRejected")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["preview_validation_failure"]["bypass_class"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["preview_validation_failure"]
+            ["bypass_class"],
         json!("validation-short-circuit")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unbound_authority_failure"]["bypass_class"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unbound_authority_failure"]
+            ["bypass_class"],
         json!("unbound-authority-execution")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unbound_authority_failure"]["failure_kind"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unbound_authority_failure"]
+            ["failure_kind"],
         json!("AuthorityBypassRejected")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]["bypass_class"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
+            ["bypass_class"],
         json!("merge-authority-rejection")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]["failure_kind"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
+            ["failure_kind"],
         json!("MergeAuthorityRejected")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]["bypass_class"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]
+            ["bypass_class"],
         json!("unsafe-feedback-preauthority")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]["failure_kind"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]
+            ["failure_kind"],
         json!("InvariantRejected")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]["authority_request_digest"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]
+            ["authority_request_digest"],
         serde_json::Value::Null
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]["authority_receipt_digest"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["unsafe_feedback_failure"]
+            ["authority_receipt_digest"],
         serde_json::Value::Null
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]["bypass_class"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]
+            ["bypass_class"],
         json!("contradictory-feedback-preauthority")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]["failure_kind"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]
+            ["failure_kind"],
         json!("InvariantRejected")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]["authority_request_digest"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]
+            ["authority_request_digest"],
         serde_json::Value::Null
     );
     assert_eq!(
-        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]["authority_receipt_digest"],
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["contradictory_feedback_failure"]
+            ["authority_receipt_digest"],
         serde_json::Value::Null
     );
     assert_eq!(
-        bundle["bypass_rejection"]["loop_prevention_report"]["unsafe_feedback_partial"]["disposition"],
+        bundle["bypass_rejection"]["loop_prevention_report"]["unsafe_feedback_partial"]
+            ["disposition"],
         json!("RejectAsUnsafeFeedback")
     );
     assert_eq!(
-        bundle["bypass_rejection"]["loop_prevention_report"]["unsafe_feedback_contradictory"]["disposition"],
+        bundle["bypass_rejection"]["loop_prevention_report"]["unsafe_feedback_contradictory"]
+            ["disposition"],
         json!("RejectAsUnsafeFeedback")
     );
-    assert!(bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
-        ["authority_request_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
-        ["authority_receipt_digest"]
-        .as_str()
-        .is_some());
-    assert_eq!(bundle["bypass_rejection"]["replay_digest"], serde_json::Value::Null);
+    assert!(
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
+            ["authority_request_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["bypass_rejection"]["authority_boundary_matrix"]["merge_authority_failure"]
+            ["authority_receipt_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert_eq!(
+        bundle["bypass_rejection"]["replay_digest"],
+        serde_json::Value::Null
+    );
     assert_eq!(
         bundle["zero_residue_report"]["authoritative_commit_count"],
         json!(0)
@@ -451,10 +491,7 @@ fn writeback_bypass_rejection_is_typed_and_leaves_zero_authority_residue() {
         bundle["counter_snapshot"]["writeback_commit_count"],
         json!(0)
     );
-    assert_eq!(
-        bundle["counter_snapshot"]["writeback_noop_count"],
-        json!(0)
-    );
+    assert_eq!(bundle["counter_snapshot"]["writeback_noop_count"], json!(0));
     assert_eq!(
         bundle["counter_snapshot"]["writeback_request_count"],
         json!(1)
@@ -546,7 +583,9 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         bundle["counter_artifact"]["digest"],
         bundle["counter_digest"]
     );
-    assert!(bundle["counter_artifact"]["canonical_basis"].as_str().is_some());
+    assert!(bundle["counter_artifact"]["canonical_basis"]
+        .as_str()
+        .is_some());
     assert_eq!(
         bundle["feedback_loop_digest"],
         control_run.summary["feedback_loop_digest"]
@@ -559,9 +598,11 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         bundle["feedback_origin_matrix"]["replay_bundle_report"]["digest"],
         bundle["feedback_origin_matrix"]["replay_digest"]
     );
-    assert!(bundle["feedback_origin_matrix"]["replay_bundle_report"]["semantic_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["feedback_origin_matrix"]["replay_bundle_report"]["semantic_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["feedback_origin_matrix"]["replay_bundle_report"]["strategy_class"],
         json!("ProjectedStateDiffReconciliation")
@@ -603,15 +644,18 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         json!("InvariantRejected")
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["changed_effect_feedback_matrix"]["same_causality_as_initial"],
+        bundle["feedback_origin_matrix"]["changed_effect_feedback_matrix"]
+            ["same_causality_as_initial"],
         json!(true)
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["changed_effect_feedback_matrix"]["same_feedback_provenance_as_initial"],
+        bundle["feedback_origin_matrix"]["changed_effect_feedback_matrix"]
+            ["same_feedback_provenance_as_initial"],
         json!(false)
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["authority_boundary_matrix"]["strategy_compatibility_disposition"],
+        bundle["feedback_origin_matrix"]["authority_boundary_matrix"]
+            ["strategy_compatibility_disposition"],
         json!("Compatible")
     );
     assert_eq!(
@@ -623,23 +667,28 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         serde_json::Value::Null
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["interleaved_truth_matrix"]["ordinary_truth_commit_identity"],
+        bundle["feedback_origin_matrix"]["interleaved_truth_matrix"]
+            ["ordinary_truth_commit_identity"],
         json!("commit-ordinary")
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["interleaved_truth_matrix"]["interleaving_preserved_single_authoritative_commit"],
+        bundle["feedback_origin_matrix"]["interleaved_truth_matrix"]
+            ["interleaving_preserved_single_authoritative_commit"],
         json!(true)
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["restart_replay_matrix"]["rebuilt_loop_prevention_disposition"],
+        bundle["feedback_origin_matrix"]["restart_replay_matrix"]
+            ["rebuilt_loop_prevention_disposition"],
         json!("CanonicalNoop")
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["restart_replay_matrix"]["rebuilt_authority_receipt_present"],
+        bundle["feedback_origin_matrix"]["restart_replay_matrix"]
+            ["rebuilt_authority_receipt_present"],
         json!(false)
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["restart_replay_matrix"]["replay_equivalent_to_live_feedback"],
+        bundle["feedback_origin_matrix"]["restart_replay_matrix"]
+            ["replay_equivalent_to_live_feedback"],
         json!(true)
     );
     assert_eq!(
@@ -647,7 +696,8 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         json!(true)
     );
     assert_eq!(
-        bundle["feedback_origin_matrix"]["boundedness_proof"]["changed_effect_retrigger_failure_kind"],
+        bundle["feedback_origin_matrix"]["boundedness_proof"]
+            ["changed_effect_retrigger_failure_kind"],
         json!("InvariantRejected")
     );
     assert_eq!(
@@ -674,10 +724,7 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         bundle["counter_snapshot"]["writeback_commit_count"],
         json!(1)
     );
-    assert_eq!(
-        bundle["counter_snapshot"]["writeback_noop_count"],
-        json!(2)
-    );
+    assert_eq!(bundle["counter_snapshot"]["writeback_noop_count"], json!(2));
     assert_eq!(
         bundle["counter_snapshot"]["writeback_causality_match_count"],
         json!(3)
@@ -726,7 +773,10 @@ fn bridge_origin_feedback_lane_converges_without_second_authoritative_commit() {
         bundle["feedback_origin_matrix"]["boundedness_proof"],
         hostile_bundle["feedback_origin_matrix"]["boundedness_proof"]
     );
-    assert_eq!(bundle["counter_snapshot"], hostile_bundle["counter_snapshot"]);
+    assert_eq!(
+        bundle["counter_snapshot"],
+        hostile_bundle["counter_snapshot"]
+    );
     assert_eq!(bundle["counter_digest"], hostile_bundle["counter_digest"]);
 }
 
@@ -793,7 +843,9 @@ fn writeback_replay_mismatch_is_typed_and_counted() {
         bundle["counter_artifact"]["digest"],
         bundle["counter_digest"]
     );
-    assert!(bundle["counter_artifact"]["canonical_basis"].as_str().is_some());
+    assert!(bundle["counter_artifact"]["canonical_basis"]
+        .as_str()
+        .is_some());
     assert_eq!(
         bundle["replay_validation_digest"],
         control_run.summary["replay_validation_digest"]
@@ -856,32 +908,41 @@ fn extensible_writeback_families_remain_parity_safe_and_family_isolated() {
         bundle["family_extension_matrix"]["projected_family"]["causality_digest"],
         bundle["family_extension_matrix"]["aspect_family"]["causality_digest"]
     );
-    assert!(bundle["family_extension_matrix"]["projected_family"]["admission_record_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["family_extension_matrix"]["aspect_family"]["admission_record_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["projected_family"]["admission_record_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["family_extension_matrix"]["aspect_family"]["admission_record_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
-        bundle["family_extension_matrix"]["cross_family_replay_isolation"]["semantic_digest_separated"],
+        bundle["family_extension_matrix"]["cross_family_replay_isolation"]
+            ["semantic_digest_separated"],
         json!(true)
     );
     assert_eq!(
-        bundle["family_extension_matrix"]["cross_family_replay_isolation"]["bundle_digest_separated"],
+        bundle["family_extension_matrix"]["cross_family_replay_isolation"]
+            ["bundle_digest_separated"],
         json!(true)
     );
     assert_eq!(
         bundle["family_extension_matrix"]["cross_family_replay_isolation"]["failure_kind"],
         json!("ReplayMismatch")
     );
-    assert!(bundle["family_extension_matrix"]["cross_family_replay_isolation"]
-        ["family_replay_record_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["family_extension_matrix"]["cross_family_replay_isolation"]
-        ["decision_trace_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["cross_family_replay_isolation"]
+            ["family_replay_record_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["family_extension_matrix"]["cross_family_replay_isolation"]["decision_trace_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["family_extension_matrix"]["same_family_equivalence"]["semantic_digest_equal"],
         json!(true)
@@ -902,10 +963,11 @@ fn extensible_writeback_families_remain_parity_safe_and_family_isolated() {
         ["family_execution_record_digest"]
         .as_str()
         .is_some());
-    assert!(bundle["family_extension_matrix"]["same_family_equivalence"]
-        ["decision_trace_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["same_family_equivalence"]["decision_trace_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["family_extension_matrix"]["same_family_changed_causality"]
             ["causality_digest_separated"],
@@ -925,28 +987,34 @@ fn extensible_writeback_families_remain_parity_safe_and_family_isolated() {
         bundle["family_extension_matrix"]["same_family_changed_causality"]["failure_kind"],
         json!("ReplayMismatch")
     );
-    assert!(bundle["family_extension_matrix"]["same_family_changed_causality"]
-        ["family_replay_record_digest"]
-        .as_str()
-        .is_some());
-    assert!(bundle["family_extension_matrix"]["same_family_changed_causality"]
-        ["decision_trace_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["same_family_changed_causality"]
+            ["family_replay_record_digest"]
+            .as_str()
+            .is_some()
+    );
+    assert!(
+        bundle["family_extension_matrix"]["same_family_changed_causality"]["decision_trace_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["family_extension_matrix"]["cross_family_loop_isolation"]["disposition"],
         json!("RejectAsUnsafeFeedback")
     );
     assert_eq!(
-        bundle["family_extension_matrix"]["mapper_parity_matrix"]["projected_mapper_envelope_retained"],
+        bundle["family_extension_matrix"]["mapper_parity_matrix"]
+            ["projected_mapper_envelope_retained"],
         json!(true)
     );
     assert_eq!(
-        bundle["family_extension_matrix"]["mapper_parity_matrix"]["aspect_mapper_envelope_retained"],
+        bundle["family_extension_matrix"]["mapper_parity_matrix"]
+            ["aspect_mapper_envelope_retained"],
         json!(true)
     );
     assert_eq!(
-        bundle["family_extension_matrix"]["mapper_parity_matrix"]["projected_mapped_input_retained"],
+        bundle["family_extension_matrix"]["mapper_parity_matrix"]
+            ["projected_mapped_input_retained"],
         json!(true)
     );
     assert_eq!(
@@ -969,18 +1037,20 @@ fn extensible_writeback_families_remain_parity_safe_and_family_isolated() {
         ["aspect_family_execution_record_digest"]
         .as_str()
         .is_some());
-    assert!(bundle["family_extension_matrix"]["mapper_parity_matrix"]
-        ["decision_trace_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["mapper_parity_matrix"]["decision_trace_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["family_extension_matrix"]["shadow_protocol_rejection"]["failure_kind"],
         json!("FamilyBindingMismatch")
     );
-    assert!(bundle["family_extension_matrix"]["shadow_protocol_rejection"]
-        ["decision_trace_digest"]
-        .as_str()
-        .is_some());
+    assert!(
+        bundle["family_extension_matrix"]["shadow_protocol_rejection"]["decision_trace_digest"]
+            .as_str()
+            .is_some()
+    );
     assert_eq!(
         bundle["counter_snapshot"]["writeback_commit_count"],
         json!(4)
@@ -1013,7 +1083,10 @@ fn extensible_writeback_families_remain_parity_safe_and_family_isolated() {
         bundle["counter_snapshot"]["writeback_replay_request_count"],
         json!(3)
     );
-    assert_eq!(bundle["counter_snapshot"]["writeback_replay_mismatch_count"], json!(2));
+    assert_eq!(
+        bundle["counter_snapshot"]["writeback_replay_mismatch_count"],
+        json!(2)
+    );
 }
 
 #[test]
@@ -1024,8 +1097,12 @@ fn multi_family_writeback_admission_boundary_stays_bridge_native() {
         json!("multi-family-admission-boundary")
     );
     let matrix = &bundle["multi_family_admission_boundary_matrix"];
-    assert!(matrix["projected_family"]["admission_record_digest"].as_str().is_some());
-    assert!(matrix["aspect_family"]["admission_record_digest"].as_str().is_some());
+    assert!(matrix["projected_family"]["admission_record_digest"]
+        .as_str()
+        .is_some());
+    assert!(matrix["aspect_family"]["admission_record_digest"]
+        .as_str()
+        .is_some());
     assert_eq!(
         matrix["family_admission_matrix"]["projected_family_admitted"],
         json!(true)
@@ -1038,7 +1115,9 @@ fn multi_family_writeback_admission_boundary_stays_bridge_native() {
         matrix["family_admission_matrix"]["family_digest_separated"],
         json!(true)
     );
-    assert!(matrix["family_admission_matrix"]["decision_trace_digest"].as_str().is_some());
+    assert!(matrix["family_admission_matrix"]["decision_trace_digest"]
+        .as_str()
+        .is_some());
     assert_eq!(
         matrix["authority_boundary_matrix"]["failure_kind"],
         json!("FamilyBindingMismatch")
@@ -1111,7 +1190,9 @@ fn host_mapper_parity_rejects_shadow_protocol_behavior() {
         matrix["shadow_protocol_rejection"]["failure_kind"],
         json!("FamilyBindingMismatch")
     );
-    assert!(matrix["mapper_parity_matrix"]["decision_trace_digest"].as_str().is_some());
+    assert!(matrix["mapper_parity_matrix"]["decision_trace_digest"]
+        .as_str()
+        .is_some());
     assert_eq!(
         bundle["counter_snapshot"]["writeback_mapper_lowering_count"],
         json!(2)

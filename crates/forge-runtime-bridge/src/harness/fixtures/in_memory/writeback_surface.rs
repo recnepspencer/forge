@@ -77,10 +77,9 @@ impl TruthWritebackAuthority for RecordingTruthWritebackAuthority {
             ),
         )
         .to_string();
-        state.first_commit_by_family_and_causality.insert(
-            authority_key,
-            authoritative_artifact_digest.clone(),
-        );
+        state
+            .first_commit_by_family_and_causality
+            .insert(authority_key, authoritative_artifact_digest.clone());
 
         Ok(TruthWritebackReceipt::new(
             BridgeWritebackOutcomeClass::AuthoritativeCommit,

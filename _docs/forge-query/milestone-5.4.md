@@ -1,6 +1,6 @@
 # Milestone 5.4 Engineering Spec: Structural Correspondence And Historical Evaluation Contracts
 
-> **Status:** Draft engineering spec
+> **Status:** Closed on 2026-04-17 for the runtime-backed structural correspondence and historical materialization-path honesty scope
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -13,6 +13,8 @@
 > **Adjacent hardening milestones:** [milestone-5.1.md](./milestone-5.1.md) and [milestone-5.3.md](./milestone-5.3.md)
 >
 > **Prior closeout:** [milestone-5.3-closeout.md](./milestone-5.3-closeout.md)
+>
+> **Shipped closeout:** [milestone-5.4-closeout.md](./milestone-5.4-closeout.md)
 >
 > **Test requirements:** [test-requirements.md](./test-requirements.md)
 >

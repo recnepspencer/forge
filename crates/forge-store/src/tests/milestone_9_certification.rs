@@ -1,7 +1,7 @@
 use crate::{
     BulkCheckpointPolicy, BulkIngestSourceRequest, BulkPlanKind, BulkSourceMember,
-    BulkTransformRequest, ChunkOrdinal, ChunkWidthBudget, ForgeStore,
-    ForgeStoreBuilder, Milestone9CertificationBundle,
+    BulkTransformRequest, ChunkOrdinal, ChunkWidthBudget, ForgeStore, ForgeStoreBuilder,
+    Milestone9CertificationBundle,
 };
 
 use super::harness::fixtures::runtime::{
@@ -20,7 +20,11 @@ fn assert_certification_core(
     assert!(bundle.certification_summary.history_matches_control_lane);
     assert!(bundle.certification_summary.restore_truth_parity);
     assert!(bundle.certification_summary.restore_history_parity);
-    assert!(bundle.certification_summary.deterministic_chunk_plan_observed);
+    assert!(
+        bundle
+            .certification_summary
+            .deterministic_chunk_plan_observed
+    );
     assert!(!bundle.chunk_plan_digest.is_empty());
 }
 
@@ -61,12 +65,7 @@ fn ingest_bundle() -> crate::Milestone9CertificationBundle {
         )
         .unwrap();
     bulk_store
-        .execute_next_resumed_bulk_chunk(
-            &resumed,
-            1,
-            second.clone(),
-            BulkCheckpointPolicy::Publish,
-        )
+        .execute_next_resumed_bulk_chunk(&resumed, 1, second.clone(), BulkCheckpointPolicy::Publish)
         .unwrap()
         .expect("second ingest chunk should execute");
     let bulk_export = bulk_store.export_authoritative_records();
@@ -122,7 +121,9 @@ fn transform_bundle() -> crate::Milestone9CertificationBundle {
         first.commit.commit_id,
         vec![BulkSourceMember::new("a", 1), BulkSourceMember::new("b", 1)],
     );
-    let basis = bulk_store.freeze_bulk_transform_basis(request.clone()).unwrap();
+    let basis = bulk_store
+        .freeze_bulk_transform_basis(request.clone())
+        .unwrap();
     let partition = bulk_store
         .freeze_bulk_transform_target_partition(request, &basis)
         .unwrap();
@@ -148,12 +149,7 @@ fn transform_bundle() -> crate::Milestone9CertificationBundle {
         )
         .unwrap();
     bulk_store
-        .execute_next_resumed_bulk_chunk(
-            &resumed,
-            1,
-            second.clone(),
-            BulkCheckpointPolicy::Publish,
-        )
+        .execute_next_resumed_bulk_chunk(&resumed, 1, second.clone(), BulkCheckpointPolicy::Publish)
         .unwrap()
         .expect("second transform chunk should execute");
     let bulk_export = bulk_store.export_authoritative_records();
@@ -186,7 +182,11 @@ fn transform_bundle() -> crate::Milestone9CertificationBundle {
         .freeze_bulk_transform_target_partition(equivalent_request, &equivalent_basis)
         .unwrap();
     let equivalent_plan = equivalent_plan_store
-        .plan_bulk_transform(&equivalent_basis, &equivalent_partition, ChunkWidthBudget::new(1))
+        .plan_bulk_transform(
+            &equivalent_basis,
+            &equivalent_partition,
+            ChunkWidthBudget::new(1),
+        )
         .unwrap();
 
     Milestone9CertificationBundle::new(
@@ -206,7 +206,10 @@ fn wal_recovered_ingest_bundle() -> crate::Milestone9CertificationBundle {
     create_entity(&mut runtime, "bulk-cert-wal-alpha");
     let envelope = latest_envelope(&runtime);
 
-    let mut store = ForgeStoreBuilder::new().local_file(path.clone()).build().unwrap();
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
     let manifest = store
         .freeze_bulk_ingest_source(BulkIngestSourceRequest::new(
             "program-cert-wal-ingest",
@@ -237,7 +240,11 @@ fn wal_recovered_ingest_bundle() -> crate::Milestone9CertificationBundle {
         )
         .unwrap();
     store
-        .record_bulk_checkpoint_publication_intent(&runtime_session_id, durable_mutation_id, Some(1))
+        .record_bulk_checkpoint_publication_intent(
+            &runtime_session_id,
+            durable_mutation_id,
+            Some(1),
+        )
         .unwrap();
     store
         .record_publication_phase(
@@ -259,13 +266,14 @@ fn wal_recovered_ingest_bundle() -> crate::Milestone9CertificationBundle {
     let recovered_export = recovered.store().export_authoritative_records();
 
     let mut control_store = ForgeStoreBuilder::new().in_memory().build().unwrap();
-    control_store.append_canonical_commit(envelope.clone()).unwrap();
+    control_store
+        .append_canonical_commit(envelope.clone())
+        .unwrap();
     let control_export = control_store.export_authoritative_records();
 
-    let rebuilt = ForgeStore::restore_from_authoritative_export(
-        recovered_export.clone().admit_restore(),
-    )
-    .unwrap();
+    let rebuilt =
+        ForgeStore::restore_from_authoritative_export(recovered_export.clone().admit_restore())
+            .unwrap();
     let rebuilt_export = rebuilt.export_authoritative_records();
 
     let mut equivalent_plan_store = ForgeStoreBuilder::new().in_memory().build().unwrap();
@@ -298,7 +306,10 @@ fn wal_recovered_transform_bundle() -> crate::Milestone9CertificationBundle {
     create_entity(&mut runtime, "bulk-cert-wal-transform-alpha");
     let envelope = latest_envelope(&runtime);
 
-    let mut store = ForgeStoreBuilder::new().local_file(path.clone()).build().unwrap();
+    let mut store = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
     let request = BulkTransformRequest::new(
         "program-cert-wal-transform",
         "transform-cert-wal",
@@ -332,7 +343,11 @@ fn wal_recovered_transform_bundle() -> crate::Milestone9CertificationBundle {
         )
         .unwrap();
     store
-        .record_bulk_checkpoint_publication_intent(&runtime_session_id, durable_mutation_id, Some(1))
+        .record_bulk_checkpoint_publication_intent(
+            &runtime_session_id,
+            durable_mutation_id,
+            Some(1),
+        )
         .unwrap();
     store
         .record_publication_phase(
@@ -354,13 +369,14 @@ fn wal_recovered_transform_bundle() -> crate::Milestone9CertificationBundle {
     let recovered_export = recovered.store().export_authoritative_records();
 
     let mut control_store = ForgeStoreBuilder::new().in_memory().build().unwrap();
-    control_store.append_canonical_commit(envelope.clone()).unwrap();
+    control_store
+        .append_canonical_commit(envelope.clone())
+        .unwrap();
     let control_export = control_store.export_authoritative_records();
 
-    let rebuilt = ForgeStore::restore_from_authoritative_export(
-        recovered_export.clone().admit_restore(),
-    )
-    .unwrap();
+    let rebuilt =
+        ForgeStore::restore_from_authoritative_export(recovered_export.clone().admit_restore())
+            .unwrap();
     let rebuilt_export = rebuilt.export_authoritative_records();
 
     let mut equivalent_plan_store = ForgeStoreBuilder::new().in_memory().build().unwrap();
@@ -378,7 +394,11 @@ fn wal_recovered_transform_bundle() -> crate::Milestone9CertificationBundle {
         .freeze_bulk_transform_target_partition(equivalent_request, &equivalent_basis)
         .unwrap();
     let equivalent_plan = equivalent_plan_store
-        .plan_bulk_transform(&equivalent_basis, &equivalent_partition, ChunkWidthBudget::new(1))
+        .plan_bulk_transform(
+            &equivalent_basis,
+            &equivalent_partition,
+            ChunkWidthBudget::new(1),
+        )
         .unwrap();
 
     Milestone9CertificationBundle::new(

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::transactions::data::MergedCommitPlan;
 use crate::transactions::data::EntityReference;
+use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{
     InvariantCostClass, InvariantExecutionPoint, InvariantGroupSet, InvariantPlanContract,
     InvariantRegistration, InvariantViolation, InvariantViolationFields,

@@ -1,7 +1,7 @@
 use crate::authority::CanonicalDigest;
 use crate::backend::records::{
-    DurableCursorIdentityRecord, EmbeddedCheckpointRecord, LineageSupportRecord, SchemaSupportRecord,
-    SubscriberCheckpointRecord,
+    DurableCursorIdentityRecord, EmbeddedCheckpointRecord, LineageSupportRecord,
+    SchemaSupportRecord, SubscriberCheckpointRecord,
 };
 use crate::evidence::CanonicalizationMetrics;
 use forge_relational::facade::{

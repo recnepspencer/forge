@@ -59,9 +59,7 @@ impl BridgeWritebackFamilyAdmissionRecord {
             record_identity: BridgeWritebackFamilyAdmissionRecordIdentity::new(format!(
                 "bridge-writeback-family-admission-record:sha256:{digest:x}"
             )),
-            declaration_identity: Arc::from(
-                declaration.declaration_identity().as_str().to_owned(),
-            ),
+            declaration_identity: Arc::from(declaration.declaration_identity().as_str().to_owned()),
             contract_digest: Arc::from(contract.digest().to_owned()),
             family_kind: declaration
                 .family_kind()

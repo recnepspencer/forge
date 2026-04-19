@@ -37,16 +37,11 @@ impl BridgePolicyProvenanceReportRow {
         replay_bundle: &BridgePolicyReplayBundle,
     ) -> Self {
         let label = label.into();
-        let provenance_entries = Arc::<[BridgePolicyProvenanceEntry]>::from(
-            provenance.entries().to_vec(),
-        );
+        let provenance_entries =
+            Arc::<[BridgePolicyProvenanceEntry]>::from(provenance.entries().to_vec());
         let semantic_policy_digest = Arc::<str>::from(
-            semantic_policy_digest_from_parts(
-                contract,
-                lowered,
-                provenance_entries.as_ref(),
-            )
-            .to_string(),
+            semantic_policy_digest_from_parts(contract, lowered, provenance_entries.as_ref())
+                .to_string(),
         );
         let canonical_basis = Arc::<str>::from(format!(
             concat!(
@@ -56,7 +51,10 @@ impl BridgePolicyProvenanceReportRow {
                 "replay-digest:{}|entry-count:{}"
             ),
             label.as_ref(),
-            contract.validated_declaration().declaration().request_kind(),
+            contract
+                .validated_declaration()
+                .declaration()
+                .request_kind(),
             lowered.execution_class(),
             lowered.diagnostics_tier(),
             lowered.route_artifacts(),
@@ -71,7 +69,10 @@ impl BridgePolicyProvenanceReportRow {
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             label,
-            request_kind: contract.validated_declaration().declaration().request_kind(),
+            request_kind: contract
+                .validated_declaration()
+                .declaration()
+                .request_kind(),
             execution_class: lowered.execution_class(),
             diagnostics_tier: lowered.diagnostics_tier(),
             route_artifacts: lowered.route_artifacts(),
@@ -89,20 +90,48 @@ impl BridgePolicyProvenanceReportRow {
         }
     }
 
-    pub fn label(&self) -> &str { self.label.as_ref() }
-    pub fn request_kind(&self) -> BridgeRequestKind { self.request_kind }
-    pub fn execution_class(&self) -> super::BridgeExecutionPolicyClass { self.execution_class }
-    pub fn diagnostics_tier(&self) -> super::BridgeDiagnosticsTier { self.diagnostics_tier }
-    pub fn route_artifacts(&self) -> bool { self.route_artifacts }
-    pub fn replay_artifacts(&self) -> bool { self.replay_artifacts }
-    pub fn policy_digest(&self) -> &str { self.policy_digest.as_ref() }
-    pub fn semantic_policy_digest(&self) -> &str { self.semantic_policy_digest.as_ref() }
-    pub fn lowered_policy_digest(&self) -> &str { self.lowered_policy_digest.as_ref() }
-    pub fn provenance_digest(&self) -> &str { self.provenance_digest.as_ref() }
-    pub fn replay_digest(&self) -> &str { self.replay_digest.as_ref() }
-    pub fn provenance_entries(&self) -> &[BridgePolicyProvenanceEntry] { &self.provenance_entries }
-    pub fn canonical_basis(&self) -> &str { self.canonical_basis.as_ref() }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn label(&self) -> &str {
+        self.label.as_ref()
+    }
+    pub fn request_kind(&self) -> BridgeRequestKind {
+        self.request_kind
+    }
+    pub fn execution_class(&self) -> super::BridgeExecutionPolicyClass {
+        self.execution_class
+    }
+    pub fn diagnostics_tier(&self) -> super::BridgeDiagnosticsTier {
+        self.diagnostics_tier
+    }
+    pub fn route_artifacts(&self) -> bool {
+        self.route_artifacts
+    }
+    pub fn replay_artifacts(&self) -> bool {
+        self.replay_artifacts
+    }
+    pub fn policy_digest(&self) -> &str {
+        self.policy_digest.as_ref()
+    }
+    pub fn semantic_policy_digest(&self) -> &str {
+        self.semantic_policy_digest.as_ref()
+    }
+    pub fn lowered_policy_digest(&self) -> &str {
+        self.lowered_policy_digest.as_ref()
+    }
+    pub fn provenance_digest(&self) -> &str {
+        self.provenance_digest.as_ref()
+    }
+    pub fn replay_digest(&self) -> &str {
+        self.replay_digest.as_ref()
+    }
+    pub fn provenance_entries(&self) -> &[BridgePolicyProvenanceEntry] {
+        &self.provenance_entries
+    }
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,9 +160,15 @@ impl BridgePolicyProvenanceReport {
         }
     }
 
-    pub fn rows(&self) -> &[BridgePolicyProvenanceReportRow] { &self.rows }
-    pub fn canonical_basis(&self) -> &str { self.canonical_basis.as_ref() }
-    pub fn digest(&self) -> &str { self.digest.as_ref() }
+    pub fn rows(&self) -> &[BridgePolicyProvenanceReportRow] {
+        &self.rows
+    }
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
 }
 
 fn semantic_policy_digest_from_parts(
@@ -144,7 +179,10 @@ fn semantic_policy_digest_from_parts(
     let mut parts = vec![
         format!(
             "request-kind:{:?}",
-            contract.validated_declaration().declaration().request_kind()
+            contract
+                .validated_declaration()
+                .declaration()
+                .request_kind()
         ),
         format!("execution:{:?}", lowered.execution_class()),
         format!("diagnostics:{:?}", lowered.diagnostics_tier()),

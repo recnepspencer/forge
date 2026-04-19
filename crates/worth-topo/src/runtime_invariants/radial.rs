@@ -2,16 +2,22 @@ use std::sync::Arc;
 
 use forge_relational::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError, CustomInvariantRegistration,
-    CustomInvariantRule, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRule, CustomInvariantScopePlanner,
+    CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion, CustomInvariantVerdict,
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+    InvariantGroupSet,
 };
-use worth_schema::facade::{WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind};
+use worth_schema::facade::{
+    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
+};
 
 use super::shared::RuntimeTopologyGraph;
 
-pub fn registration() -> Result<CustomInvariantRegistration, forge_relational::facade::runtime::CustomInvariantRegistrationError> {
+pub fn registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
     CustomInvariantRegistration::new(RadialSurfaceRule)
 }
 
@@ -51,7 +57,8 @@ impl CustomInvariantRule for RadialSurfaceRule {
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
         let halfedge_kind = WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id();
-        let radial_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext);
+        let radial_kind =
+            WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext);
         let edge_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge);
 
         for (entity_id, kind_id) in &scope.topology_entities {

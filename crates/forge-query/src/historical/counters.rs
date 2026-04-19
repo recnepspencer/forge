@@ -14,6 +14,7 @@ pub struct HistoricalCounterSnapshot {
     historical_result_path_metadata_count: usize,
     historical_replay_span_drift_count: usize,
     historical_reconstruction_scope_drift_count: usize,
+    history_work_avoided_by_retained_path_count: usize,
     historical_executor_rediscovery_count: usize,
 }
 
@@ -74,6 +75,10 @@ impl HistoricalCounterSnapshot {
         self.historical_reconstruction_scope_drift_count
     }
 
+    pub fn history_work_avoided_by_retained_path_count(&self) -> usize {
+        self.history_work_avoided_by_retained_path_count
+    }
+
     pub fn historical_executor_rediscovery_count(&self) -> usize {
         self.historical_executor_rediscovery_count
     }
@@ -95,6 +100,7 @@ impl HistoricalCounterSnapshot {
             historical_result_path_metadata_count: 0,
             historical_replay_span_drift_count: 0,
             historical_reconstruction_scope_drift_count: 0,
+            history_work_avoided_by_retained_path_count: 0,
             historical_executor_rediscovery_count: 0,
         }
     }
@@ -118,6 +124,7 @@ impl HistoricalCounterSnapshot {
             historical_result_path_metadata_count: 0,
             historical_replay_span_drift_count: 0,
             historical_reconstruction_scope_drift_count: 0,
+            history_work_avoided_by_retained_path_count: 0,
             historical_executor_rediscovery_count: 0,
         }
     }
@@ -141,6 +148,7 @@ impl HistoricalCounterSnapshot {
             historical_result_path_metadata_count: 0,
             historical_replay_span_drift_count: 0,
             historical_reconstruction_scope_drift_count: 0,
+            history_work_avoided_by_retained_path_count: 0,
             historical_executor_rediscovery_count: 0,
         }
     }
@@ -164,6 +172,7 @@ impl HistoricalCounterSnapshot {
             historical_result_path_metadata_count: 0,
             historical_replay_span_drift_count: 0,
             historical_reconstruction_scope_drift_count: 0,
+            history_work_avoided_by_retained_path_count: 0,
             historical_executor_rediscovery_count: 0,
         }
     }
@@ -187,6 +196,7 @@ impl HistoricalCounterSnapshot {
             historical_result_path_metadata_count: 0,
             historical_replay_span_drift_count: 0,
             historical_reconstruction_scope_drift_count: 0,
+            history_work_avoided_by_retained_path_count: 0,
             historical_executor_rediscovery_count: 0,
         }
     }
@@ -214,6 +224,14 @@ impl HistoricalCounterSnapshot {
 
     pub(crate) fn with_historical_reconstruction_scope_drift(mut self, drift_count: usize) -> Self {
         self.historical_reconstruction_scope_drift_count = drift_count;
+        self
+    }
+
+    pub(crate) fn with_history_work_avoided_by_retained_path_count(
+        mut self,
+        work_avoided_count: usize,
+    ) -> Self {
+        self.history_work_avoided_by_retained_path_count = work_avoided_count;
         self
     }
 }

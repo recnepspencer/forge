@@ -1,6 +1,6 @@
 use crate::harness::certification::HostileExpectation;
 
-use super::{CorrespondenceHistoryFailureClass, CorrespondenceHistoryPerturbationClass};
+use super::model::{CorrespondenceHistoryFailureClass, CorrespondenceHistoryPerturbationClass};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CorrespondenceHistoryCanonicalRowSpec {
@@ -55,8 +55,64 @@ pub const CORRESPONDENCE_HISTORY_CANONICAL_ROW_SPECS: &[CorrespondenceHistoryCan
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
     CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "lineage-correspondence-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::LineageAuthoritativeParity,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "structural-correspondence-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::StructuralAdvisoryBoundary,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "correspondence-ambiguity-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::StructuralAmbiguityBoundary,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "retained-snapshot-path-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::HistoricalRetainedPathParity,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "delta-replay-path-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::HistoricalReplayPathParity,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "full-reconstruction-path-explicitness",
+        perturbation_class:
+            CorrespondenceHistoryPerturbationClass::HistoricalReconstructionPathParity,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "historical-path-no-substitution",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::HistoricalReplayPathParity,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "correspondence-cost-posture-parity",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::StructuralAdvisoryBoundary,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "historical-cost-posture-parity",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::HistoricalReplayPathParity,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
         row_name: "prediction-drift-explicit",
         perturbation_class: CorrespondenceHistoryPerturbationClass::PredictionDriftExplicitness,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "prediction-drift-explicitness",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::PredictionDriftExplicitness,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    CorrespondenceHistoryCanonicalRowSpec {
+        row_name: "work-avoided-counter-parity",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::HistoricalRetainedPathParity,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
 ];
@@ -109,9 +165,23 @@ pub const CORRESPONDENCE_HISTORY_REJECTION_ROW_SPECS: &[CorrespondenceHistoryRej
     },
     CorrespondenceHistoryRejectionRowSpec {
         row_name: "host-cache-history-authority-forbidden",
-        perturbation_class: CorrespondenceHistoryPerturbationClass::HostCacheHistoryAuthorityForbidden,
+        perturbation_class:
+            CorrespondenceHistoryPerturbationClass::HostCacheHistoryAuthorityForbidden,
         failure_class: CorrespondenceHistoryFailureClass::HistoricalPathDenied,
         compile_fail_case: None,
+    },
+    CorrespondenceHistoryRejectionRowSpec {
+        row_name: "raw-ambiguity-bool-forbidden",
+        perturbation_class: CorrespondenceHistoryPerturbationClass::AmbiguityCollapseForbidden,
+        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
+        compile_fail_case: Some("tests/ui/raw_ambiguity_bool_forbidden.rs"),
+    },
+    CorrespondenceHistoryRejectionRowSpec {
+        row_name: "naked-historical-payload-forbidden",
+        perturbation_class:
+            CorrespondenceHistoryPerturbationClass::HiddenMaterializationSubstitutionForbidden,
+        failure_class: CorrespondenceHistoryFailureClass::CompileFail,
+        compile_fail_case: Some("tests/ui/naked_historical_payload_forbidden.rs"),
     },
 ];
 
@@ -123,7 +193,18 @@ pub const CORRESPONDENCE_HISTORY_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "historical-retained-snapshot-path",
     "historical-delta-replay-path",
     "historical-full-reconstruction-path",
+    "lineage-correspondence-explicitness",
+    "structural-correspondence-explicitness",
+    "correspondence-ambiguity-explicitness",
+    "retained-snapshot-path-explicitness",
+    "delta-replay-path-explicitness",
+    "full-reconstruction-path-explicitness",
+    "historical-path-no-substitution",
+    "correspondence-cost-posture-parity",
+    "historical-cost-posture-parity",
     "prediction-drift-explicit",
+    "prediction-drift-explicitness",
+    "work-avoided-counter-parity",
 ];
 
 pub const CORRESPONDENCE_HISTORY_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
@@ -135,4 +216,6 @@ pub const CORRESPONDENCE_HISTORY_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "broad-candidate-scan-success-forbidden",
     "no-executor-path-mutation-after-planning",
     "host-cache-history-authority-forbidden",
+    "raw-ambiguity-bool-forbidden",
+    "naked-historical-payload-forbidden",
 ];

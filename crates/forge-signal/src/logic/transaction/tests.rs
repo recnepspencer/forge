@@ -1812,10 +1812,7 @@ fn observation_phase2_lowers_recomputed_and_meaningful_change_from_report() {
     assert!(classified[0].trigger_matched);
     assert_eq!(classified[0].matched_nodes.len(), 1);
     assert_eq!(
-        classified[0]
-            .matched_nodes
-            .iter()
-            .collect::<Vec<_>>(),
+        classified[0].matched_nodes.iter().collect::<Vec<_>>(),
         vec![source]
     );
 }
@@ -1864,10 +1861,7 @@ fn observation_phase2_distinguishes_output_suppressed_from_meaningful_change() {
     assert!(!classified[0].meaningful_change);
     assert!(!classified[0].trigger_matched);
     assert_eq!(
-        classified[0]
-            .matched_nodes
-            .iter()
-            .collect::<Vec<_>>(),
+        classified[0].matched_nodes.iter().collect::<Vec<_>>(),
         vec![source]
     );
 }
@@ -1914,10 +1908,7 @@ fn observation_phase2_coalesces_multiple_matching_nodes_into_one_classified_even
     assert_eq!(classified[0].matched_nodes.len(), 2);
     assert!(classified[0].trigger_matched);
     assert_eq!(
-        classified[0]
-            .matched_nodes
-            .iter()
-            .collect::<Vec<_>>(),
+        classified[0].matched_nodes.iter().collect::<Vec<_>>(),
         vec![source, derived]
     );
 }
@@ -1959,10 +1950,7 @@ fn observation_phase2_prepared_plan_execution_stages_and_classifies_observers() 
     assert_eq!(classified[0].observer_id, handle.observer_id());
     assert_eq!(classified[0].handle_id, handle.handle_id());
     assert_eq!(
-        classified[0]
-            .matched_nodes
-            .iter()
-            .collect::<Vec<_>>(),
+        classified[0].matched_nodes.iter().collect::<Vec<_>>(),
         vec![source]
     );
 }
@@ -2051,10 +2039,7 @@ fn observation_phase3_commit_dispatches_once_per_observer_per_transaction() {
     assert_eq!(result.observation.delivered_event_count, 1);
     assert_eq!(result.observation.rollback_suppressed_event_count, 0);
     assert_eq!(result.observation.boundary_events.len(), 1);
-    assert_eq!(
-        result.observation.boundary_events[0].matched_nodes.len(),
-        2
-    );
+    assert_eq!(result.observation.boundary_events[0].matched_nodes.len(), 2);
     assert_eq!(
         runtime.telemetry().transaction.delivered_observation_count,
         1
@@ -2248,8 +2233,14 @@ fn observation_phase4_diagnostics_surface_exposes_latest_boundary_summary() {
         .expect("latest observation summary should be retained");
     assert_eq!(latest_observation.delivered_event_count, 1);
     assert_eq!(latest_observation.boundary_events.len(), 1);
-    assert_eq!(latest_observation.boundary_events[0].observer_id, handle.observer_id());
-    assert_eq!(latest_observation.boundary_events[0].handle_id, handle.handle_id());
+    assert_eq!(
+        latest_observation.boundary_events[0].observer_id,
+        handle.observer_id()
+    );
+    assert_eq!(
+        latest_observation.boundary_events[0].handle_id,
+        handle.handle_id()
+    );
     assert_eq!(
         latest_observation.boundary_events[0]
             .matched_nodes

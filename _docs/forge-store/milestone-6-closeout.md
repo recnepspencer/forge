@@ -15,8 +15,9 @@ and explicit fallback surfaces, persisted layout materializations, durable
 scope/block/chunk derived families, semantic structural-block identity across
 equivalent branch publications, deterministic chunk-model export, authority-
 rooted rebuild of Milestone 6 derived artifacts, compile-time proof boundaries,
-and a named certification suite proving narrowing parity, rebuild parity, chunk
-determinism, and typed corruption failure across backend variation.
+an explicit three-lane layout-support model, and a named certification suite
+proving narrowing parity, rebuild parity, chunk determinism, lane honesty, and
+typed corruption failure across backend variation.
 
 The core closure claim is:
 
@@ -24,6 +25,9 @@ The core closure claim is:
   and explicit branch-delta control truth
 - persisted scope/block/chunk families make the published Milestone 6 read and
   export paths `Verified`, not just "fast in practice"
+- layout-support posture is explicit and policy-resolved rather than ambient:
+  callers can choose proof-only, on-demand materialized, or policy-eager
+  materialized lanes without silent promotion
 - structural block reuse is semantic and cross-branch stable rather than
   branch-local storage coincidence
 - chunk export is deterministic, non-authoritative, and stable across rebuild
@@ -55,6 +59,19 @@ The core closure claim is:
   - `execute_dedup_backed_read`
   - `export_milestone_6_chunk_model`
 - explicit branch-delta control truth surface for parity comparison
+- explicit layout-support lanes:
+  - `ProofOnly`
+  - `OnDemandMaterialized`
+  - `PolicyEagerMaterialized`
+- explicit resolved layout-support postures:
+  - `ProofOnly`
+  - `OnDemandMaterialized`
+  - `PolicyEagerMaterializedPublished`
+  - `PolicyEagerMaterializedReuseExisting`
+- explicit first-ship layout-support policy surface:
+  - `materialize_hot_branch_reads`
+  - `materialize_repeated_scope_reads`
+  - `repeated_scope_threshold`
 - authority-rooted rebuild of Milestone 6 materializations and derived families
   from commit-coupled layout seeds
 - commit-coupled layout seed publication under commit support summaries
@@ -77,6 +94,9 @@ The Milestone 6 evidence surface now explicitly carries:
 
 - layout read report
 - physical layout report
+- requested layout support lane
+- resolved layout support lane
+- layout support publication disposition
 - certification origin
 - layout materialization report where persisted support exists
 - access-structure contract and open-time verification
@@ -96,6 +116,12 @@ It covers:
 - admitted layout truth parity across backend variation
 - admitted counter-contract parity
 - admitted artifact parity
+- proof-only lane remaining unpublished
+- on-demand lane publishing exactly once then reusing
+- policy-eager resolving to proof-only when no trigger is active
+- policy-eager resolving to materialized when hot-branch or repeated-scope
+  policy triggers activate
+- requested-vs-resolved lane evidence and publication disposition honesty
 - authority rebuild preserving layout identity
 - authority rebuild preserving execution surfaces
 - overlapping-branch dedup/control parity
@@ -143,9 +169,12 @@ No in-scope Milestone 6 debt remains on the published/materialized path.
 The important honest boundary is:
 
 - live, unpublished proof-only layout paths still report `Debt` until real
-  materialized scope/block/chunk families exist for that lane
-- persisted/materialized Milestone 6 paths certify as `Verified`, and that is
-  the path Milestone 6 closes
+  materialized scope/block/chunk families are explicitly chosen for that lane
+- on-demand materialized Milestone 6 paths certify as `Verified`
+- policy-eager lanes are now first-class, but they only certify as `Verified`
+  when the resolved posture actually materializes or reuses durable support
+- proof-only lanes never silently auto-promote just because matching durable
+  support already exists elsewhere in the store
 
 Future work still exists, but it belongs to later milestones:
 

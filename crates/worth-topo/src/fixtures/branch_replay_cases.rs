@@ -15,7 +15,7 @@ pub(crate) fn milestone_one_default_branch_local_admitted_scenarios(
         .collect()
 }
 
-pub(crate) fn milestone_one_heavy_branch_local_scenarios(
-) -> Vec<WorthMilestoneOnePrimitiveScenario> {
+pub(crate) fn milestone_one_heavy_branch_local_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario>
+{
     milestone_one_heavy_branch_local_sweep_scenarios()
 }

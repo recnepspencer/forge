@@ -74,10 +74,7 @@ pub(super) fn allocate_relation(
         kind_id,
         payload,
         version_id,
-        Some(RelationEndpoints {
-            source,
-            target,
-        }),
+        Some(RelationEndpoints { source, target }),
     );
     if reused {
         state.mark_relation_free_list_changed(partition_id);

@@ -14,12 +14,12 @@
 //!               worth-geom (Aabb), worth-math (orient2d, orient3d, TriSign).
 
 use forge_core::{KernelError, ToleranceProvider};
-use worth_geom::Aabb;
-use worth_math::predicates::{orient2d, orient3d};
-use worth_math::sign::TriSign;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
+use worth_geom::Aabb;
+use worth_math::predicates::{orient2d, orient3d};
+use worth_math::sign::TriSign;
 
 use super::point_on_face::{classify_point_on_face, FacePointClassification};
 use super::schema::{PointClassification, SpatialAccelerator};

@@ -2,16 +2,20 @@ use std::sync::Arc;
 
 use forge_relational::facade::runtime::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
-    CustomInvariantOperationalMetadata, CustomInvariantPreparationError, CustomInvariantRegistration,
-    CustomInvariantRule, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRule, CustomInvariantScopePlanner,
+    CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion, CustomInvariantVerdict,
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+    InvariantGroupSet,
 };
 use worth_schema::facade::{WorthRelationKind, WorthTopologyEntityKind};
 
 use super::shared::{kind_name, owner_relation_for_kind, RuntimeTopologyGraph};
 
-pub fn registration() -> Result<CustomInvariantRegistration, forge_relational::facade::runtime::CustomInvariantRegistrationError> {
+pub fn registration() -> Result<
+    CustomInvariantRegistration,
+    forge_relational::facade::runtime::CustomInvariantRegistrationError,
+> {
     CustomInvariantRegistration::new(OwnershipSurfaceRule)
 }
 
@@ -51,10 +55,24 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
         for (entity_id, kind_id) in &scope.topology_entities {
-            if *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Model).kind_id()
-                || *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Wire).kind_id()
-                || *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Edge).kind_id()
-                || *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex).kind_id()
+            if *kind_id
+                == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Model)
+                    .kind_id()
+                || *kind_id
+                    == worth_schema::facade::WorthEntityKind::Topology(
+                        WorthTopologyEntityKind::Wire,
+                    )
+                    .kind_id()
+                || *kind_id
+                    == worth_schema::facade::WorthEntityKind::Topology(
+                        WorthTopologyEntityKind::Edge,
+                    )
+                    .kind_id()
+                || *kind_id
+                    == worth_schema::facade::WorthEntityKind::Topology(
+                        WorthTopologyEntityKind::Vertex,
+                    )
+                    .kind_id()
             {
                 continue;
             }
@@ -73,14 +91,21 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
                 continue;
             }
 
-            if *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Loop).kind_id() {
+            if *kind_id
+                == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::Loop)
+                    .kind_id()
+            {
                 let face_outer = scope.incoming_kind(
                     entity_id,
-                    WorthRelationKind::Topology(worth_schema::facade::WorthTopologyRelationKind::FaceOuterLoop),
+                    WorthRelationKind::Topology(
+                        worth_schema::facade::WorthTopologyRelationKind::FaceOuterLoop,
+                    ),
                 );
                 let face_inner = scope.incoming_kind(
                     entity_id,
-                    WorthRelationKind::Topology(worth_schema::facade::WorthTopologyRelationKind::FaceInnerLoop),
+                    WorthRelationKind::Topology(
+                        worth_schema::facade::WorthTopologyRelationKind::FaceInnerLoop,
+                    ),
                 );
                 let owners = face_outer.len() + face_inner.len();
                 if owners != 1 {
@@ -92,14 +117,23 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
                 continue;
             }
 
-            if *kind_id == worth_schema::facade::WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id() {
+            if *kind_id
+                == worth_schema::facade::WorthEntityKind::Topology(
+                    WorthTopologyEntityKind::HalfEdge,
+                )
+                .kind_id()
+            {
                 let loop_owners = scope.incoming_kind(
                     entity_id,
-                    WorthRelationKind::Topology(worth_schema::facade::WorthTopologyRelationKind::LoopOwnsHalfEdge),
+                    WorthRelationKind::Topology(
+                        worth_schema::facade::WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    ),
                 );
                 let wire_owners = scope.incoming_kind(
                     entity_id,
-                    WorthRelationKind::Topology(worth_schema::facade::WorthTopologyRelationKind::WireOwnsHalfEdge),
+                    WorthRelationKind::Topology(
+                        worth_schema::facade::WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    ),
                 );
                 if loop_owners.len() != 1 || wire_owners.len() != 1 {
                     return Err(CustomInvariantExecutionError::new(format!(

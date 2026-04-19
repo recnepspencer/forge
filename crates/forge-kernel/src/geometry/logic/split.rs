@@ -9,8 +9,8 @@
 use std::sync::Arc;
 
 use forge_core::KernelError;
-use worth_geom::facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
 use forge_topo::handles::EdgeId;
+use worth_geom::facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
 
 use super::super::data::store::GeometryStore;
 

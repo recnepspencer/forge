@@ -1,7 +1,7 @@
 use crate::interpretation::boundary::interpret_boundaries;
 use crate::interpretation::shells::interpret_shells;
 use crate::interpretation::types::{
-    InterpretedTopologyView, InterpretationReport, WorthTopologyInterpretationSet,
+    InterpretationReport, InterpretedTopologyView, WorthTopologyInterpretationSet,
 };
 use crate::interpretation::wires::interpret_wires;
 use crate::materialization::MaterializedTopologyView;

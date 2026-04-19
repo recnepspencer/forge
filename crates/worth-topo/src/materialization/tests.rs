@@ -24,8 +24,14 @@ mod materializer_tests {
             topology.report().fallback_class,
             Some(crate::materialization::MaterializationFallbackClass::WholeViewRebuild)
         );
-        assert_eq!(topology.report().breadth.entity_count, read_view.entities().len());
-        assert_eq!(topology.report().breadth.relation_count, read_view.relations().len());
+        assert_eq!(
+            topology.report().breadth.entity_count,
+            read_view.entities().len()
+        );
+        assert_eq!(
+            topology.report().breadth.relation_count,
+            read_view.relations().len()
+        );
         assert_eq!(topology.report().breadth.topology_entity_count, 11);
         assert_eq!(topology.report().breadth.topology_relation_count, 14);
 
@@ -81,4 +87,3 @@ mod materializer_tests {
         assert_eq!(topology.half_edges[0].face_id, Some(seeded.face));
     }
 }
-

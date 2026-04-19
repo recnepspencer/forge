@@ -1,7 +1,7 @@
 //! Data shapes for BSP convex cell construction.
 
-use worth_math::{GeometrySource, MathError, PlaneCoefficients};
 use serde::{Deserialize, Serialize};
+use worth_math::{GeometrySource, MathError, PlaneCoefficients};
 
 use crate::primitives::plane::Plane;
 

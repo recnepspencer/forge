@@ -5,12 +5,11 @@ use sha2::{Digest, Sha256};
 use crate::identity::{BridgeIdentity, WritebackLoopPreventionIdentityTag};
 
 use super::{
-    BridgeDerivedWritebackEffect, BridgeWritebackFeedbackProvenance, BridgeWritebackIdempotenceBasis,
-    BridgeWritebackLoopDisposition,
+    BridgeDerivedWritebackEffect, BridgeWritebackFeedbackProvenance,
+    BridgeWritebackIdempotenceBasis, BridgeWritebackLoopDisposition,
 };
 
-pub type BridgeWritebackLoopPreventionIdentity =
-    BridgeIdentity<WritebackLoopPreventionIdentityTag>;
+pub type BridgeWritebackLoopPreventionIdentity = BridgeIdentity<WritebackLoopPreventionIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackLoopPreventionReport {
@@ -35,8 +34,7 @@ impl BridgeWritebackLoopPreventionReport {
         let current_feedback_provenance = BridgeWritebackFeedbackProvenance::new(effect);
         let incoming_feedback_provenance_digest =
             incoming_feedback_provenance_digest.map(Into::into);
-        let incoming_feedback_causality_digest =
-            incoming_feedback_causality_digest.map(Into::into);
+        let incoming_feedback_causality_digest = incoming_feedback_causality_digest.map(Into::into);
         let disposition = classify_disposition(
             &current_feedback_provenance,
             idempotence,
@@ -72,7 +70,9 @@ impl BridgeWritebackLoopPreventionReport {
             idempotence_digest,
             disposition,
             canonical_basis,
-            digest: Arc::from(format!("bridge-writeback-loop-prevention:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-writeback-loop-prevention:sha256:{digest:x}"
+            )),
         }
     }
 
@@ -126,8 +126,10 @@ fn classify_disposition(
         (None, None) => BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt,
         (Some(_), None) | (None, Some(_)) => BridgeWritebackLoopDisposition::RejectAsUnsafeFeedback,
         (Some(incoming_feedback_provenance_digest), Some(incoming_feedback_causality_digest)) => {
-            let same_feedback = incoming_feedback_provenance_digest == current_feedback_provenance.digest();
-            let same_causality = incoming_feedback_causality_digest == current_feedback_provenance.causality_digest();
+            let same_feedback =
+                incoming_feedback_provenance_digest == current_feedback_provenance.digest();
+            let same_causality = incoming_feedback_causality_digest
+                == current_feedback_provenance.causality_digest();
             if same_feedback && same_causality {
                 match idempotence.idempotence_class() {
                     crate::writeback::BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression => {

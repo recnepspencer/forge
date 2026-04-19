@@ -11,8 +11,8 @@
 //! DEPENDENCIES: forge-topo (VertexId), worth-geom (is_same_point_within)
 //! CONSUMERS: forge-kernel (primitives/eval.rs)
 
-use worth_geom::is_same_point_within;
 use forge_topo::handles::VertexId;
+use worth_geom::is_same_point_within;
 
 /// Result of a vertex proximity query.
 ///

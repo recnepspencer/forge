@@ -1,8 +1,8 @@
 use crate::certification::core::{
     WorthCertificationBridgeExpectation, WorthCertificationCanonicalRow,
-    WorthCertificationParityRow, WorthCertificationRejectionRow,
-    WorthCertificationRequiredOutput, WorthCertificationSuiteDefinition,
-    WorthCertificationSuiteRequirements, WorthCertificationValidatorExpectation,
+    WorthCertificationParityRow, WorthCertificationRejectionRow, WorthCertificationRequiredOutput,
+    WorthCertificationSuiteDefinition, WorthCertificationSuiteRequirements,
+    WorthCertificationValidatorExpectation,
 };
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, derived_validator_expectations_for_family,

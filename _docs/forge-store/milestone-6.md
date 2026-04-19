@@ -234,6 +234,8 @@ Milestone 6 must survive this hostile condition:
   target frontier explicitly; "read whatever is cheap" is out of spec
 - fallback from admitted narrow reads to broader control paths must stay
   explicit in results, diagnostics, and counters
+- materialization of Milestone 6 layout support is an explicit lane choice, not
+  an ambient side effect of asking for a read or certification surface
 - chunk-aligned physical publication units frozen here are physical derivation
   units only; they do not become a second commit model or a bulk-only truth
   format
@@ -251,6 +253,9 @@ Normative consequence:
 
 - any implementation that claims aspect-local reads while decoding broad branch
   state on the admitted fast path is out of spec
+- any implementation that silently auto-materializes layout support on a
+  cheap-looking read path without the caller or an explicit policy choosing
+  that lane is out of spec
 - any implementation that makes dedup or block reuse authoritative for replay,
   restore, or branch-head meaning is out of spec
 - any implementation that forces Milestone 9 to invent its own chunk identity
@@ -399,6 +404,45 @@ Rules:
   frozen here
 
 This is the Law 26 protection against equivalence drift for block reuse.
+
+### Layout Support Lane Rule
+
+Milestone 6 must expose layout-support posture as an explicit lane choice
+rather than letting callers discover it accidentally through whichever helper
+they called first.
+
+Minimum lane vocabulary:
+
+- `ProofOnlyLayoutLane`
+  admitted planning, control parity, and witness construction are allowed, but
+  no durable Milestone 6 layout families are published by that choice
+- `OnDemandMaterializedLayoutLane`
+  admitted planning is followed by explicit publication or fetch of the durable
+  Milestone 6 layout materialization and its derived scope/block/chunk families
+
+Optional later policy lane:
+
+- `PolicyEagerMaterializedLayoutLane`
+  an operator or workload policy may choose eager publication for hot branches
+  or repeatedly demanded scopes, but this remains an explicit policy posture,
+  not an ambient read-path side effect
+
+Rules:
+
+- proof-only is a valid Milestone 6 posture and must remain visible as such in
+  evidence, diagnostics, and complexity status
+- on-demand materialization is the verified durable lane for Milestone 6
+  support families
+- later eager policies must compile to one of the explicit materialized lanes;
+  they may not create a silent third behavior
+- calling a narrow-read or certification API must not silently publish durable
+  layout support unless the caller or a resolved operator policy explicitly
+  selected a materialized lane
+- if an implementation opportunistically materializes because "the data was
+  already in hand," that materialization must still be represented as an
+  explicit lane or policy decision in counters and evidence
+
+This is the anti-ambient-materialization rule.
 
 ### Block And Chunk Identity Rule
 
@@ -1285,6 +1329,8 @@ Required work:
 
 - implement aspect narrow-read planning and execution
 - implement explicit broad-fallback and control-lane read surfaces
+- implement explicit proof-only and on-demand-materialized layout-support lane
+  selection without hidden auto-publication
 - implement structural-block lookup and cross-branch dedup reuse planning
 - expose strategy-typed result envelopes with fallback and breadth surfaces
 - expose typed illegal-target, broadening, and parity failures
@@ -1349,6 +1395,7 @@ Exit condition:
 - content-addressed structural block family with declared semantic equivalence
 - cross-branch deduplication over structural blocks
 - explicit narrow-read, broad-fallback, and control-lane read surfaces
+- explicit proof-only and on-demand-materialized layout-support lanes
 - deterministic chunk-model export suitable for concurrent Milestone 9 work
 - rebuild of layout and block families from canonical authoritative artifacts
 - stable Milestone 7- and Milestone 9-facing boundary surfaces that do not
@@ -1390,6 +1437,8 @@ Milestone-specific proof obligations:
 
 - admitted fast paths match authoritative truth
 - fallback broadening remains explicit rather than hidden
+- proof-only versus on-demand-materialized posture remains explicit in evidence
+  and never changes silently under the caller
 - block dedup does not change replay or restore conclusions
 - rebuilt layout and block families match original truth-visible meaning
 - Milestone 9-facing chunk exports remain deterministic and non-authoritative

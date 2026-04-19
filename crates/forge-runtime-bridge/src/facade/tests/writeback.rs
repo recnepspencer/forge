@@ -2,11 +2,10 @@ use super::*;
 use crate::facade::{
     BridgeExecutionPolicyClass, BridgePolicyDeclaration, BridgePolicyDeclarationIdentity,
     BridgeRequestKind, BridgeRuntimePolicy, BridgeWritebackDeclaration,
-    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
-    BridgeWritebackEffectIdentity, BridgeWritebackErrorKind, BridgeWritebackFailureClass,
-    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackIdempotenceIdentity, BridgeWritebackLoopDisposition,
-    BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
+    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
+    BridgeWritebackErrorKind, BridgeWritebackFailureClass, BridgeWritebackFamilyKind,
+    BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
+    BridgeWritebackLoopDisposition, BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
     BridgeWritebackStrategyCompatibilityDisposition,
 };
 use std::sync::{Arc, RwLock};
@@ -49,16 +48,16 @@ impl crate::adapter::TruthWritebackAuthority for RejectingWritebackAuthority {
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
-        Ok(crate::adapter::TruthWritebackReceipt::new_with_failure_class(
-            crate::facade::BridgeWritebackOutcomeClass::Rejected,
-            Some(self.failure_class),
-            format!("authoritative-rejection:{}", request.digest()),
-            &request,
-        ))
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
+        Ok(
+            crate::adapter::TruthWritebackReceipt::new_with_failure_class(
+                crate::facade::BridgeWritebackOutcomeClass::Rejected,
+                Some(self.failure_class),
+                format!("authoritative-rejection:{}", request.digest()),
+                &request,
+            ),
+        )
     }
 }
 
@@ -66,10 +65,8 @@ impl crate::adapter::TruthWritebackAuthority for FailingWritebackAuthority {
     fn execute_writeback(
         &self,
         _request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         Err(crate::adapter::TruthWritebackAuthorityError::new(
             "writeback authority transport failure",
         ))
@@ -80,10 +77,8 @@ impl crate::adapter::TruthWritebackAuthority for PanickingWritebackAuthority {
     fn execute_writeback(
         &self,
         _request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         panic!("writeback strategy panic");
     }
 }
@@ -92,10 +87,8 @@ impl crate::adapter::TruthWritebackAuthority for InspectingWritebackAuthority {
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         *self
             .last_request
             .write()
@@ -112,10 +105,8 @@ impl crate::adapter::TruthWritebackAuthority for MismatchedReceiptWritebackAutho
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         let mismatched_request = crate::adapter::TruthWritebackRequest::new(
             request.family_kind(),
             "contract:sha256:mismatched",
@@ -147,10 +138,8 @@ impl crate::adapter::TruthWritebackAuthority for MalformedRejectedReceiptWriteba
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
         Ok(crate::adapter::TruthWritebackReceipt::new(
             crate::facade::BridgeWritebackOutcomeClass::Rejected,
             format!("authoritative-rejection:{}", request.digest()),
@@ -163,16 +152,16 @@ impl crate::adapter::TruthWritebackAuthority for MalformedSuccessfulReceiptWrite
     fn execute_writeback(
         &self,
         request: crate::adapter::TruthWritebackRequest,
-    ) -> Result<
-        crate::adapter::TruthWritebackReceipt,
-        crate::adapter::TruthWritebackAuthorityError,
-    > {
-        Ok(crate::adapter::TruthWritebackReceipt::new_with_failure_class(
-            crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
-            Some(BridgeWritebackFailureClass::StrategyFailed),
-            format!("authoritative-artifact:{}", request.digest()),
-            &request,
-        ))
+    ) -> Result<crate::adapter::TruthWritebackReceipt, crate::adapter::TruthWritebackAuthorityError>
+    {
+        Ok(
+            crate::adapter::TruthWritebackReceipt::new_with_failure_class(
+                crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+                Some(BridgeWritebackFailureClass::StrategyFailed),
+                format!("authoritative-artifact:{}", request.digest()),
+                &request,
+            ),
+        )
     }
 }
 
@@ -203,15 +192,17 @@ fn writeback_declaration(
             BridgeWritebackEffectClass::ProjectedStateDiff,
             BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
         ),
-        BridgeWritebackRequestMode::WritebackCapable => BridgeWritebackDeclaration::writeback_capable(
-            BridgeWritebackDeclarationIdentity::new(declaration_identity),
-            request_kind,
-            BridgeWritebackFamilyKind::ProjectedStateDiff,
-            BridgeWritebackEffectClass::ProjectedStateDiff,
-            BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
-            strategy_descriptor_digest,
-            BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
-        ),
+        BridgeWritebackRequestMode::WritebackCapable => {
+            BridgeWritebackDeclaration::writeback_capable(
+                BridgeWritebackDeclarationIdentity::new(declaration_identity),
+                request_kind,
+                BridgeWritebackFamilyKind::ProjectedStateDiff,
+                BridgeWritebackEffectClass::ProjectedStateDiff,
+                BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+                strategy_descriptor_digest,
+                BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+            )
+        }
     }
 }
 
@@ -230,29 +221,31 @@ fn writeback_declaration_with_shape(
             effect_class,
             idempotence_class,
         ),
-        BridgeWritebackRequestMode::WritebackCapable => BridgeWritebackDeclaration::writeback_capable(
-            BridgeWritebackDeclarationIdentity::new(declaration_identity),
-            request_kind,
-            match effect_class {
-                BridgeWritebackEffectClass::ProjectedStateDiff => {
-                    BridgeWritebackFamilyKind::ProjectedStateDiff
-                }
-                BridgeWritebackEffectClass::AspectReconciliation => {
-                    BridgeWritebackFamilyKind::AspectReconciliation
-                }
-            },
-            effect_class,
-            match effect_class {
-                BridgeWritebackEffectClass::ProjectedStateDiff => {
-                    BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation
-                }
-                BridgeWritebackEffectClass::AspectReconciliation => {
-                    BridgeWritebackStrategyClass::AspectReconciliationCommit
-                }
-            },
-            strategy_descriptor_digest,
-            idempotence_class,
-        ),
+        BridgeWritebackRequestMode::WritebackCapable => {
+            BridgeWritebackDeclaration::writeback_capable(
+                BridgeWritebackDeclarationIdentity::new(declaration_identity),
+                request_kind,
+                match effect_class {
+                    BridgeWritebackEffectClass::ProjectedStateDiff => {
+                        BridgeWritebackFamilyKind::ProjectedStateDiff
+                    }
+                    BridgeWritebackEffectClass::AspectReconciliation => {
+                        BridgeWritebackFamilyKind::AspectReconciliation
+                    }
+                },
+                effect_class,
+                match effect_class {
+                    BridgeWritebackEffectClass::ProjectedStateDiff => {
+                        BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation
+                    }
+                    BridgeWritebackEffectClass::AspectReconciliation => {
+                        BridgeWritebackStrategyClass::AspectReconciliationCommit
+                    }
+                },
+                strategy_descriptor_digest,
+                idempotence_class,
+            )
+        }
     }
 }
 
@@ -283,7 +276,10 @@ fn runtime_rejects_preview_writeback_declarations() {
         .validate_writeback_declaration(declaration)
         .expect_err("preview writeback must fail closed");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::PreviewWritebackRejected);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::PreviewWritebackRejected
+    );
 }
 
 #[test]
@@ -304,7 +300,10 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_binding() {
         .validate_writeback_declaration(declaration)
         .expect_err("read-only declarations must not bind strategy digests");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::WritebackNotRequested);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::WritebackNotRequested
+    );
 }
 
 #[test]
@@ -325,7 +324,10 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_class_binding(
         .validate_writeback_declaration(declaration)
         .expect_err("read-only declarations must not bind strategy classes");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::WritebackNotRequested);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::WritebackNotRequested
+    );
 }
 
 #[test]
@@ -346,7 +348,10 @@ fn runtime_rejects_read_only_writeback_declarations_with_family_binding() {
         .validate_writeback_declaration(declaration)
         .expect_err("read-only declarations must not bind writeback family");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::WritebackNotRequested);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::WritebackNotRequested
+    );
 }
 
 #[test]
@@ -363,7 +368,10 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_descriptor() {
         .validate_writeback_declaration(declaration)
         .expect_err("writeback-capable declaration must bind a non-empty strategy descriptor");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::StrategyDescriptorMismatch);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::StrategyDescriptorMismatch
+    );
 }
 
 #[test]
@@ -384,7 +392,10 @@ fn runtime_rejects_writeback_capable_declaration_without_family_kind() {
         .validate_writeback_declaration(declaration)
         .expect_err("writeback-capable declaration must bind an explicit writeback family");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::FamilyBindingMismatch);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::FamilyBindingMismatch
+    );
 }
 
 #[test]
@@ -405,7 +416,10 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_class() {
         .validate_writeback_declaration(declaration)
         .expect_err("writeback-capable declaration must bind an explicit strategy class");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::StrategyDescriptorMismatch);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::StrategyDescriptorMismatch
+    );
 }
 
 #[test]
@@ -447,7 +461,10 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         .validated_declaration()
         .family_basis()
         .expect("admitted writeback contract should preserve family basis");
-    let causality = causality_basis("writeback:aspect-reconciliation:causality", "truth-trigger:aspect");
+    let causality = causality_basis(
+        "writeback:aspect-reconciliation:causality",
+        "truth-trigger:aspect",
+    );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
@@ -455,9 +472,18 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         "effect:sha256:aspect-reconciliation",
     );
 
-    assert_eq!(family_basis.family_kind(), BridgeWritebackFamilyKind::AspectReconciliation);
-    assert_eq!(effect.family_kind(), BridgeWritebackFamilyKind::AspectReconciliation);
-    assert_eq!(effect.effect_class(), BridgeWritebackEffectClass::AspectReconciliation);
+    assert_eq!(
+        family_basis.family_kind(),
+        BridgeWritebackFamilyKind::AspectReconciliation
+    );
+    assert_eq!(
+        effect.family_kind(),
+        BridgeWritebackFamilyKind::AspectReconciliation
+    );
+    assert_eq!(
+        effect.effect_class(),
+        BridgeWritebackEffectClass::AspectReconciliation
+    );
     let admission_record = runtime
         .diagnostics()
         .last_writeback_admission_record()
@@ -467,7 +493,10 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         .explain_last_writeback_admission_record()
         .expect("writeback family admission explanation should exist");
     assert_eq!(admission_record.contract_digest(), contract.digest());
-    assert_eq!(admission_record.family_kind(), BridgeWritebackFamilyKind::AspectReconciliation);
+    assert_eq!(
+        admission_record.family_kind(),
+        BridgeWritebackFamilyKind::AspectReconciliation
+    );
     assert_eq!(admission_explanation.contract_digest(), contract.digest());
     assert_eq!(
         admission_explanation.family_kind(),
@@ -492,10 +521,11 @@ fn runtime_rejects_phase_1_unadmitted_repeated_authority_attempts() {
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect_err("phase 1 writeback should reject repeated authority attempt admission");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::FamilyBindingMismatch);
-    assert!(error
-        .to_string()
-        .contains("RequireSemanticNoopSuppression"));
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::FamilyBindingMismatch
+    );
+    assert!(error.to_string().contains("RequireSemanticNoopSuppression"));
 }
 
 #[test]
@@ -535,7 +565,9 @@ fn runtime_lowers_writeback_effect_with_canonical_causality_and_strategy_basis()
         .starts_with("bridge-writeback-strategy-basis:sha256:"));
     assert_eq!(effect.effect_digest(), "effect:sha256:update-profile");
     assert_eq!(effect.causality_digest(), causality.digest());
-    assert!(effect.digest().starts_with("bridge-derived-writeback-effect:sha256:"));
+    assert!(effect
+        .digest()
+        .starts_with("bridge-derived-writeback-effect:sha256:"));
 }
 
 #[test]
@@ -594,7 +626,10 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
         mapper_envelope.domain_evidence_digest(),
         "evidence:sha256:mapped-family-input"
     );
-    assert_eq!(mapped_input.mapper_envelope_digest(), mapper_envelope.digest());
+    assert_eq!(
+        mapped_input.mapper_envelope_digest(),
+        mapper_envelope.digest()
+    );
     assert_eq!(mapped_input.contract_digest(), contract.digest());
     assert_eq!(
         mapped_input.family_kind(),
@@ -625,7 +660,10 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
     let mapper_envelope_explanation = runtime
         .diagnostics()
         .explain_writeback_mapper_envelope(&retained_envelope);
-    assert_eq!(mapper_envelope_explanation.envelope_digest(), mapper_envelope.digest());
+    assert_eq!(
+        mapper_envelope_explanation.envelope_digest(),
+        mapper_envelope.digest()
+    );
     assert_eq!(
         mapper_envelope_explanation.domain_payload_digest(),
         mapper_envelope.domain_payload_digest()
@@ -644,12 +682,30 @@ fn runtime_maps_writeback_family_input_before_effect_lowering() {
         effect.mapper_envelope_digest(),
         lowered_path_mapped_input.mapper_envelope_digest()
     );
-    assert_eq!(effect.mapped_input_digest(), lowered_path_mapped_input.digest());
-    assert_eq!(effect.contract_digest(), lowered_path_mapped_input.contract_digest());
-    assert_eq!(effect.family_kind(), lowered_path_mapped_input.family_kind());
-    assert_eq!(effect.effect_class(), lowered_path_mapped_input.effect_class());
-    assert_eq!(effect.strategy_class(), lowered_path_mapped_input.strategy_class());
-    assert_eq!(effect.causality_digest(), lowered_path_mapped_input.causality_digest());
+    assert_eq!(
+        effect.mapped_input_digest(),
+        lowered_path_mapped_input.digest()
+    );
+    assert_eq!(
+        effect.contract_digest(),
+        lowered_path_mapped_input.contract_digest()
+    );
+    assert_eq!(
+        effect.family_kind(),
+        lowered_path_mapped_input.family_kind()
+    );
+    assert_eq!(
+        effect.effect_class(),
+        lowered_path_mapped_input.effect_class()
+    );
+    assert_eq!(
+        effect.strategy_class(),
+        lowered_path_mapped_input.strategy_class()
+    );
+    assert_eq!(
+        effect.causality_digest(),
+        lowered_path_mapped_input.causality_digest()
+    );
     assert_eq!(
         effect.effect_digest(),
         lowered_path_mapped_input.domain_payload_digest()
@@ -783,7 +839,10 @@ fn runtime_classifies_strategy_compatibility_for_matching_shapes() {
         .expect("writeback declaration should admit");
     let effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:strategy-compatibility", "trigger:sha256:commit-a"),
+        &causality_basis(
+            "causality:strategy-compatibility",
+            "trigger:sha256:commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:strategy-compatibility"),
         "effect:sha256:strategy-compatibility",
     );
@@ -795,7 +854,8 @@ fn runtime_classifies_strategy_compatibility_for_matching_shapes() {
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
-    let report = runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
+    let report =
+        runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
 
     assert_eq!(
         report.disposition(),
@@ -835,7 +895,8 @@ fn runtime_replay_writeback_bundle_changes_when_outcome_changes() {
         "authoritative-artifact:sha256:commit-a",
     );
 
-    let noop_bundle = runtime.replay_writeback_bundle(&contract, &effect, &idempotence, &noop_outcome);
+    let noop_bundle =
+        runtime.replay_writeback_bundle(&contract, &effect, &idempotence, &noop_outcome);
     let commit_bundle =
         runtime.replay_writeback_bundle(&contract, &effect, &idempotence, &commit_outcome);
     let noop_bundle_repeat =
@@ -855,7 +916,10 @@ fn runtime_replay_writeback_bundle_changes_when_outcome_changes() {
             .expect("admitted writeback contract should preserve strategy basis")
             .strategy_descriptor_digest()
     );
-    assert_ne!(noop_bundle.semantic_digest(), commit_bundle.semantic_digest());
+    assert_ne!(
+        noop_bundle.semantic_digest(),
+        commit_bundle.semantic_digest()
+    );
     assert_eq!(noop_bundle.causality_digest(), effect.causality_digest());
     assert_eq!(noop_bundle.lowered_policy_digest(), lowered_policy.digest());
     assert_eq!(
@@ -944,12 +1008,25 @@ fn runtime_replay_writeback_bundle_changes_when_family_changes() {
         &projected_idempotence,
         &projected_outcome,
     );
-    let aspect_bundle =
-        runtime.replay_writeback_bundle(&aspect_contract, &aspect_effect, &aspect_idempotence, &aspect_outcome);
+    let aspect_bundle = runtime.replay_writeback_bundle(
+        &aspect_contract,
+        &aspect_effect,
+        &aspect_idempotence,
+        &aspect_outcome,
+    );
 
-    assert_eq!(projected_bundle.family_kind(), BridgeWritebackFamilyKind::ProjectedStateDiff);
-    assert_eq!(aspect_bundle.family_kind(), BridgeWritebackFamilyKind::AspectReconciliation);
-    assert_ne!(projected_bundle.semantic_digest(), aspect_bundle.semantic_digest());
+    assert_eq!(
+        projected_bundle.family_kind(),
+        BridgeWritebackFamilyKind::ProjectedStateDiff
+    );
+    assert_eq!(
+        aspect_bundle.family_kind(),
+        BridgeWritebackFamilyKind::AspectReconciliation
+    );
+    assert_ne!(
+        projected_bundle.semantic_digest(),
+        aspect_bundle.semantic_digest()
+    );
     assert_ne!(projected_bundle.digest(), aspect_bundle.digest());
 }
 
@@ -988,13 +1065,16 @@ fn runtime_executes_writeback_through_bound_authority() {
         receipt.outcome_class(),
         crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit
     );
-    assert!(
-        receipt
-            .authoritative_artifact_digest()
-            .starts_with("authoritative-artifact:truth-writeback-request:sha256:")
-    );
+    assert!(receipt
+        .authoritative_artifact_digest()
+        .starts_with("authoritative-artifact:truth-writeback-request:sha256:"));
     assert_eq!(receipt.failure_class(), None);
-    assert_eq!(outcome.digest().starts_with("bridge-writeback-authority-outcome:sha256:"), true);
+    assert_eq!(
+        outcome
+            .digest()
+            .starts_with("bridge-writeback-authority-outcome:sha256:"),
+        true
+    );
 }
 
 #[test]
@@ -1197,26 +1277,47 @@ fn runtime_passes_explicit_semantic_fields_to_bound_authority() {
         .diagnostics()
         .last_writeback_mapper_record()
         .expect("runtime should retain a native writeback mapper record");
-    assert_eq!(request.mapper_witness_digest(), mapper_record.witness_digest());
+    assert_eq!(
+        request.mapper_witness_digest(),
+        mapper_record.witness_digest()
+    );
     assert_eq!(mapper_record.candidate_digest(), candidate.digest());
     assert_eq!(mapper_record.family_kind(), effect.family_kind());
     assert_eq!(mapper_record.effect_class(), effect.effect_class());
     assert_eq!(mapper_record.strategy_class(), effect.strategy_class());
-    assert_eq!(mapper_record.mapper_envelope_digest(), effect.mapper_envelope_digest());
-    assert_eq!(mapper_record.mapped_input_digest(), effect.mapped_input_digest());
+    assert_eq!(
+        mapper_record.mapper_envelope_digest(),
+        effect.mapper_envelope_digest()
+    );
+    assert_eq!(
+        mapper_record.mapped_input_digest(),
+        effect.mapped_input_digest()
+    );
     let mapper_explanation = runtime
         .diagnostics()
         .explain_last_writeback_mapper_record()
         .expect("writeback mapper explanation should exist");
-    assert_eq!(mapper_explanation.witness_digest(), mapper_record.witness_digest());
+    assert_eq!(
+        mapper_explanation.witness_digest(),
+        mapper_record.witness_digest()
+    );
     assert_eq!(mapper_explanation.candidate_digest(), candidate.digest());
-    assert_eq!(mapper_explanation.envelope_digest(), effect.mapper_envelope_digest());
-    assert_eq!(mapper_explanation.mapped_input_digest(), effect.mapped_input_digest());
+    assert_eq!(
+        mapper_explanation.envelope_digest(),
+        effect.mapper_envelope_digest()
+    );
+    assert_eq!(
+        mapper_explanation.mapped_input_digest(),
+        effect.mapped_input_digest()
+    );
     let mapper_envelope = runtime
         .diagnostics()
         .writeback_mapper_envelope_for_digest(effect.mapper_envelope_digest())
         .expect("runtime should retain mapper envelope for effect lineage");
-    assert_eq!(mapper_envelope.causality_digest(), effect.causality_digest());
+    assert_eq!(
+        mapper_envelope.causality_digest(),
+        effect.causality_digest()
+    );
     let execution_explanation = runtime
         .diagnostics()
         .explain_last_writeback_execution_record()
@@ -1258,7 +1359,10 @@ fn runtime_rejects_authority_execution_when_no_writeback_authority_is_bound() {
         .execute_writeback_authority(&contract, &effect, &idempotence)
         .expect_err("missing authority binding must fail closed");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::AuthorityBypassRejected);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::AuthorityBypassRejected
+    );
     assert!(error.to_string().contains("no truth writeback authority"));
 }
 
@@ -1409,7 +1513,10 @@ fn runtime_rejects_contradictory_feedback_context_as_unsafe() {
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
-    let causality = causality_basis("causality:contradictory-feedback", "trigger:sha256:commit-a");
+    let causality = causality_basis(
+        "causality:contradictory-feedback",
+        "trigger:sha256:commit-a",
+    );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
@@ -1677,9 +1784,7 @@ fn runtime_rejects_successful_receipt_with_failure_class() {
         .expect_err("successful receipts with failure class must fail closed");
 
     assert_eq!(error.kind(), BridgeWritebackErrorKind::InvariantRejected);
-    assert!(error
-        .to_string()
-        .contains("non-rejected receipt"));
+    assert!(error.to_string().contains("non-rejected receipt"));
 }
 
 #[test]
@@ -1732,7 +1837,10 @@ fn runtime_rejects_strategy_compatibility_mismatch_before_authority_execution() 
         .execute_writeback_authority(&contract_a, &effect_a, &mismatched_idempotence)
         .expect_err("strategy compatibility drift should fail before authority execution");
 
-    assert_eq!(error.kind(), BridgeWritebackErrorKind::StrategyDescriptorMismatch);
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::StrategyDescriptorMismatch
+    );
 }
 
 #[test]
@@ -1784,10 +1892,11 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
     let (outcome, _) = runtime
         .execute_writeback_authority(&contract, &effect, &idempotence)
         .expect("authority execution should succeed");
-    let replay_bundle =
-        runtime.replay_writeback_bundle(&contract, &effect, &idempotence, &outcome);
+    let replay_bundle = runtime.replay_writeback_bundle(&contract, &effect, &idempotence, &outcome);
 
-    let candidate_explanation = runtime.diagnostics().explain_writeback_candidate(&candidate);
+    let candidate_explanation = runtime
+        .diagnostics()
+        .explain_writeback_candidate(&candidate);
     let loop_explanation = runtime
         .diagnostics()
         .explain_writeback_loop_prevention(&loop_prevention);
@@ -1820,7 +1929,10 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
         candidate_explanation.retry_disposition(),
         crate::facade::BridgeWritebackRetryDisposition::SemanticNoopSuppressionRequired
     );
-    assert_eq!(loop_explanation.loop_prevention_digest(), loop_prevention.digest());
+    assert_eq!(
+        loop_explanation.loop_prevention_digest(),
+        loop_prevention.digest()
+    );
     assert_eq!(
         loop_explanation.disposition(),
         BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt
@@ -1880,7 +1992,10 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
                 .digest()
         )
     );
-    assert_eq!(replay_explanation.replay_bundle_digest(), replay_bundle.digest());
+    assert_eq!(
+        replay_explanation.replay_bundle_digest(),
+        replay_bundle.digest()
+    );
     assert_eq!(
         replay_explanation.family_kind(),
         BridgeWritebackFamilyKind::ProjectedStateDiff
@@ -1889,7 +2004,10 @@ fn writeback_diagnostics_explanations_are_artifact_derived_and_stable() {
         replay_explanation.strategy_class(),
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation
     );
-    assert_eq!(replay_explanation.causality_digest(), effect.causality_digest());
+    assert_eq!(
+        replay_explanation.causality_digest(),
+        effect.causality_digest()
+    );
     assert_eq!(
         replay_explanation.retry_disposition(),
         crate::facade::BridgeWritebackRetryDisposition::SemanticNoopSuppressionRequired
@@ -1991,12 +2109,18 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
         .explain_writeback_replay_bundle(&exhaustive_bundle);
 
     assert_ne!(standard_bundle.digest(), exhaustive_bundle.digest());
-    assert_eq!(standard_bundle.semantic_digest(), exhaustive_bundle.semantic_digest());
+    assert_eq!(
+        standard_bundle.semantic_digest(),
+        exhaustive_bundle.semantic_digest()
+    );
     assert_eq!(
         standard_explanation.semantic_digest(),
         exhaustive_explanation.semantic_digest()
     );
-    assert_eq!(standard_explanation.strategy_class(), exhaustive_explanation.strategy_class());
+    assert_eq!(
+        standard_explanation.strategy_class(),
+        exhaustive_explanation.strategy_class()
+    );
     assert_eq!(
         standard_explanation.causality_digest(),
         exhaustive_explanation.causality_digest()
@@ -2057,13 +2181,17 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
         "effect:sha256:feedback-provenance",
     );
 
-    let standard_provenance = standard_runtime.derive_writeback_feedback_provenance(&standard_effect);
+    let standard_provenance =
+        standard_runtime.derive_writeback_feedback_provenance(&standard_effect);
     let exhaustive_provenance =
         exhaustive_runtime.derive_writeback_feedback_provenance(&exhaustive_effect);
 
     assert_ne!(standard_contract.digest(), exhaustive_contract.digest());
     assert_ne!(standard_effect.digest(), exhaustive_effect.digest());
-    assert_eq!(standard_provenance.effect_digest(), exhaustive_provenance.effect_digest());
+    assert_eq!(
+        standard_provenance.effect_digest(),
+        exhaustive_provenance.effect_digest()
+    );
     assert_eq!(
         standard_provenance.causality_digest(),
         exhaustive_provenance.causality_digest()
@@ -2150,10 +2278,19 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
         replay_record.failure_class(),
         Some(crate::facade::BridgeWritebackFailureClass::ReplayMismatch)
     );
-    assert_eq!(replay_record.expected_replay_digest(), original_bundle.digest());
-    assert_eq!(replay_record.replayed_replay_digest(), drifted_bundle.digest());
+    assert_eq!(
+        replay_record.expected_replay_digest(),
+        original_bundle.digest()
+    );
+    assert_eq!(
+        replay_record.replayed_replay_digest(),
+        drifted_bundle.digest()
+    );
     assert_eq!(replay_record.counters().writeback_replay_request_count(), 1);
-    assert_eq!(replay_record.counters().writeback_replay_mismatch_count(), 1);
+    assert_eq!(
+        replay_record.counters().writeback_replay_mismatch_count(),
+        1
+    );
 
     let replay_record_explanation = runtime
         .diagnostics()
