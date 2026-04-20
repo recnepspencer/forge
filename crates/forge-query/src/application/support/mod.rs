@@ -7,6 +7,7 @@ pub use registry::{
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
 };
 pub use report::{
-    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryContextSupportProfile,
-    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryCompositionSupportProfile,
+    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport,
+    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
 };

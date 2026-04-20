@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/view_shape_live_lowering_requires_view_plan.rs:14:43
+   |
+14 |     let _ = lower_view_shape_plan_to_live(&canonical(), basis(), None);
+   |             ----------------------------- ^^^^^^^^^^^^ expected `&ViewShapePlanArtifact`, found `&CanonicalQueryBundle`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&ViewShapePlanArtifact`
+              found reference `&CanonicalQueryBundle`
+note: function defined here
+  --> src/view_shape_live/promotion.rs
+   |
+   | pub fn lower_view_shape_plan_to_live(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

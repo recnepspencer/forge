@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/grouped_live_execution_requires_grouped_admission.rs:11:14
+   |
+ 7 |       let _fn_ptr: fn(
+   |  __________________-
+ 8 | |         &LiveViewShapeArtifact,
+ 9 | |         &BridgeChangeSummary,
+10 | |         &GroupedExecutionSurfaceArtifact,
+11 | |     ) -> _ = execute_grouped_live_view_shape_change;
+   | |          -   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
+   | |__________|
+   |            expected due to this
+   |
+   = note: expected fn pointer `for<'a, 'b, 'c> fn(&'a LiveViewShapeArtifact, &'b BridgeChangeSummary, &'c GroupedExecutionSurfaceArtifact) -> _`
+                 found fn item `for<'a, 'b, 'c> fn(GroupedLiveViewShapeArtifact<'a>, &'b BridgeChangeSummary, &'c GroupedExecutionSurfaceArtifact) -> std::result::Result<LiveViewShapeExecutionEnvelope, ViewShapeLiveError> {execute_grouped_live_view_shape_change}`

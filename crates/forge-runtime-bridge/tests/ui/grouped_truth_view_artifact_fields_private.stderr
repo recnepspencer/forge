@@ -1,0 +1,21 @@
+warning: unreachable expression
+  --> tests/ui/grouped_truth_view_artifact_fields_private.rs:10:18
+   |
+ 9 |         contract: todo!(),
+   |                   ------- any code following this expression is unreachable
+10 |         members: vec![],
+   |                  ^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+   = note: this warning originates in the macro `vec` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/grouped_truth_view_artifact_fields_private.rs:11:47
+   |
+11 |         digest: BridgeGroupedTruthViewDigest::new(&[]),
+   |                                               ^^^ private associated function
+   |
+  ::: src/source/grouped_truth_view.rs
+   |
+   |     fn new(parts: &[String]) -> Self {
+   |     -------------------------------- private associated function defined here

@@ -1,0 +1,30 @@
+warning: unused import: `SavedQueryMetadata`
+ --> tests/ui/saved_query_artifact_constructor_private.rs:1:47
+  |
+1 | use forge_query::facade::{SavedQueryArtifact, SavedQueryMetadata, SavedQueryPersistenceFamily};
+  |                                               ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable expression
+ --> tests/ui/saved_query_artifact_constructor_private.rs:6:19
+  |
+5 |         digest: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         metadata: todo!(),
+  |                   ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `digest`, `metadata` and `persistence_family` of struct `SavedQueryArtifact` are private
+ --> tests/ui/saved_query_artifact_constructor_private.rs:5:9
+  |
+4 |     let _ = SavedQueryArtifact {
+  |             ------------------ in this type
+5 |         digest: todo!(),
+  |         ^^^^^^ private field
+6 |         metadata: todo!(),
+  |         ^^^^^^^^ private field
+7 |         persistence_family: SavedQueryPersistenceFamily::EphemeralProcessOwned,
+  |         ^^^^^^^^^^^^^^^^^^ private field

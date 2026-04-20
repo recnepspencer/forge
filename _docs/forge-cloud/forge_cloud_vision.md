@@ -446,6 +446,65 @@ What this enables:
 - future certification
 - cloud operations that understand Forge-native objects
 
+### Global Infrastructure Architecture
+
+#### Native Cloud Orchestration (Kubernetes or Direct IaaS)
+
+Technical role:
+Forge Cloud does not strictly require Kubernetes as a middleman. It can operate as its own
+Native IaaS Control Plane. Your Forge code can dynamically orchestrate raw cloud primitives
+(like AWS EC2 instances, Firecracker microVMs, and EBS volumes) directly via cloud APIs.
+Workspaces are deterministically routed to the correct nodes, ensuring that memory-heavy
+signal graphs are evaluated optimally without redundant processing.
+
+What this enables:
+
+- extreme multi-tenant density using scale-to-zero microVMs instead of heavy K8s pods
+- direct application control over resource provisioning (e.g., dynamically provisioning a dedicated EC2 node when a workspace experiences a traffic spike)
+- removal of CNI/kube-proxy overhead for lower latency on raw NVMe instances
+- flexibility to deploy on standard Kubernetes for traditional enterprise environments, or direct AWS APIs for maximum performance
+
+#### Distributed Databases and Global Consensus
+
+Technical role:
+For true global scale, `forge-store` implements its own distributed, consensus-driven replication
+logic (e.g., a Forge-native implementation of Paxos or Raft). You are not forced to use AWS
+Aurora, DynamoDB, or hosted CockroachDB as a black box. Your custom runtime scales horizontally
+and synchronously or asynchronously replicates data across regions on raw infrastructure.
+
+What this enables:
+
+- multi-region survivability and disaster recovery (cross-region replication)
+- strong consistency guarantees even when network partitions occur
+- the ability to run Edge Read Replicas globally while committing mutations to a regional master
+- massive storage capacity exceeding the limits of a single machine's NVMe drive
+
+#### Cold Storage and Data Tiering
+
+Technical role:
+Historical truth, old branches, and stale snapshots are continuously and transparently
+tiered out of expensive hot SSD storage into cheap, durable object storage (S3/Blob). The
+storage engine seamlessly rehydrates this data if a time-travel or historical query requests it.
+
+What this enables:
+
+- infinite retention of workspace history without exponential SSD cost
+- cost-effective long-term archival for compliance and audit requirements
+- fast in-memory performance for current-branch / current-head truth
+
+#### Zero-Downtime Distributed Schema Migrations
+
+Technical role:
+In a globally distributed cloud, you cannot pause the world to run a schema migration. Forge
+Cloud supports non-blocking schema evolution. Migrations are declarative and branch-aware,
+allowing active WebSocket subscriptions to negotiate backwards-compatibility on the fly.
+
+What this enables:
+
+- Enterprise SaaS deployments without maintenance windows
+- schema changes applied to a draft branch before being merged to the main branch
+- graceful degradation for outdated clients still holding active sync leases
+
 ## Domain Fit
 
 ### Web Apps

@@ -4,7 +4,7 @@ use super::resolution::{
 };
 use super::witnesses::{
     HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
-    PreviewSessionCapability, QueryContextCapability, QueryReadCapability,
+    PreviewSessionCapability, QueryCompositionCapability, QueryContextCapability, QueryReadCapability,
     WorkflowOrchestrationCapability,
 };
 use crate::application::config::{
@@ -88,6 +88,25 @@ impl ForgeQueryApplicationFacade {
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(ForgeQueryCapabilityFamily::QueryRead)
+    }
+
+    pub fn query_composition_capability(
+        &self,
+    ) -> Result<
+        ForgeQueryCapabilityResolution<QueryCompositionCapability>,
+        CapabilityAdmissionError,
+    > {
+        let admission = self.query_composition_admission_decision()?;
+        Ok(ForgeQueryCapabilityResolution::new(
+            QueryCompositionCapability::new(self.facade_digest.clone()),
+            admission,
+        ))
+    }
+
+    pub(crate) fn query_composition_admission_decision(
+        &self,
+    ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
+        self.require_capability(ForgeQueryCapabilityFamily::QueryComposition)
     }
 
     pub fn live_query_capability(

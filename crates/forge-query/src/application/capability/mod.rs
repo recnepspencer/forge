@@ -11,6 +11,6 @@ pub use facade::ForgeQueryApplicationFacade;
 pub use resolution::{CapabilityAdmissionDecision, ForgeQueryCapabilityResolution};
 pub use witnesses::{
     HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
-    PreviewSessionCapability, QueryContextCapability, QueryReadCapability,
+    PreviewSessionCapability, QueryCompositionCapability, QueryContextCapability, QueryReadCapability,
     WorkflowOrchestrationCapability,
 };

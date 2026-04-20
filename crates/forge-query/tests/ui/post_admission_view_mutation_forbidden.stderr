@@ -1,0 +1,5 @@
+error[E0616]: field `descriptor` of struct `AdmittedViewShape` is private
+ --> tests/ui/post_admission_view_mutation_forbidden.rs:4:14
+  |
+4 |     admitted.descriptor = ViewShapeDescriptor::table();
+  |              ^^^^^^^^^^ private field

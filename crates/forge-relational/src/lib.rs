@@ -36,6 +36,7 @@ mod inspection;
 mod lineage;
 mod logic;
 mod merge;
+mod grouped_truth;
 mod payloads;
 mod performance;
 mod presentation;

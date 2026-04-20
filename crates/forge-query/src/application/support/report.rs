@@ -6,6 +6,9 @@ use crate::application::config::{
     ValidatedForgeQueryConfig,
 };
 use crate::identity::hash_parts;
+use crate::composition::{
+    runtime_backed_query_composition_support_profile, QueryCompositionSupportProfile,
+};
 use crate::identity_evolution::{
     runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionSupportProfile,
 };
@@ -15,6 +18,7 @@ use crate::query_context::{
 
 pub type ForgeQueryQueryContextSupportProfile = QueryContextSupportProfile;
 pub type ForgeQueryIdentityEvolutionSupportProfile = IdentityEvolutionSupportProfile;
+pub type ForgeQueryQueryCompositionSupportProfile = QueryCompositionSupportProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQuerySupportReportCounters {
@@ -79,6 +83,7 @@ pub struct ForgeQuerySupportReport {
     unsupported_capability_families: Vec<ForgeQueryCapabilityFamily>,
     section_postures: Vec<ForgeQuerySupportSectionPosture>,
     query_context_support_profile: Option<ForgeQueryQueryContextSupportProfile>,
+    query_composition_support_profile: Option<ForgeQueryQueryCompositionSupportProfile>,
     identity_evolution_support_profile: Option<ForgeQueryIdentityEvolutionSupportProfile>,
     validated_config_digest: String,
     counters: ForgeQuerySupportReportCounters,
@@ -131,6 +136,10 @@ impl ForgeQuerySupportReport {
                 config.resolve_section(ForgeQueryConfigSectionFamily::Store),
             ),
         ];
+        let query_composition_support_profile = support_matrix
+            .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
+            .map(|_| runtime_backed_query_composition_support_profile());
         let query_context_support_profile = support_matrix
             .descriptor(ForgeQueryCapabilityFamily::QueryContext)
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
@@ -186,6 +195,13 @@ impl ForgeQuerySupportReport {
                     .join("|")
             ),
             format!(
+                "query_composition_profile:{}",
+                query_composition_support_profile
+                    .as_ref()
+                    .map(ForgeQueryQueryCompositionSupportProfile::profile_digest)
+                    .unwrap_or("none")
+            ),
+            format!(
                 "query_context_profile:{}",
                 query_context_support_profile
                     .as_ref()
@@ -215,6 +231,7 @@ impl ForgeQuerySupportReport {
             unsupported_capability_families,
             section_postures,
             query_context_support_profile,
+            query_composition_support_profile,
             identity_evolution_support_profile,
             validated_config_digest,
             counters,
@@ -256,6 +273,12 @@ impl ForgeQuerySupportReport {
 
     pub fn query_context_support_profile(&self) -> Option<&ForgeQueryQueryContextSupportProfile> {
         self.query_context_support_profile.as_ref()
+    }
+
+    pub fn query_composition_support_profile(
+        &self,
+    ) -> Option<&ForgeQueryQueryCompositionSupportProfile> {
+        self.query_composition_support_profile.as_ref()
     }
 
     pub fn identity_evolution_support_profile(

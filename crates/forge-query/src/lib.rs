@@ -16,6 +16,7 @@ mod basis;
 mod binding;
 mod canonicalization;
 mod collection;
+mod composition;
 mod correspondence;
 mod correspondence_history;
 mod correspondence_history_parity;
@@ -33,11 +34,14 @@ mod planning;
 mod preview;
 mod query_context;
 mod result_shape;
+mod saved_query;
 #[macro_use]
 mod schema_macro;
 mod schema_view;
 mod typed;
 mod validation;
+mod view_shape;
+mod view_shape_live;
 mod workflow;
 
 #[cfg(test)]

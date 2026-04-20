@@ -304,3 +304,20 @@ pub fn milestone_seven_requirements() -> SuiteRequirements {
         missing_rows_block_offline_ready: true,
     }
 }
+
+pub fn milestone_eight_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Scope / Template / View-Shape Semantic Parity Test",
+        required_canonical_rows:
+            crate::harness::milestone_eight_certification::MILESTONE_EIGHT_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::milestone_eight_certification::MILESTONE_EIGHT_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}

@@ -15,13 +15,13 @@ mod result_shape_family;
 mod result_shape_field;
 mod traversal;
 
-pub(crate) use collection::CollectionFamily;
+pub use collection::CollectionFamily;
 pub use collection::{CollectionAuthoredQuery, CollectionQueryBuilder};
-pub(crate) use collection_result_shape::CollectionResultShapeFamily;
+pub use collection_result_shape::CollectionResultShapeFamily;
 pub use collection_result_shape::{CollectionAuthoredResultShape, CollectionResultShapeBuilder};
-pub(crate) use detail::DetailFamily;
+pub use detail::DetailFamily;
 pub use detail::{DetailAuthoredQuery, DetailQueryBuilder};
-pub(crate) use detail_result_shape::DetailResultShapeFamily;
+pub use detail_result_shape::DetailResultShapeFamily;
 pub use detail_result_shape::{DetailAuthoredResultShape, DetailResultShapeBuilder};
 pub use error::{AuthoringError, AuthoringFailureClass};
 pub use names::{AspectFieldKey, AspectName, DeliveredFieldName, FieldName, RelationName};
@@ -31,7 +31,7 @@ pub use predicate::{
     PresencePredicate, ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate,
 };
 pub use projection::AspectFieldSelector;
-pub(crate) use query_family::{AuthoredQuery, QueryAuthoringFamily, QueryBuilder};
+pub use query_family::{AuthoredQuery, QueryAuthoringFamily, QueryBuilder};
 pub(crate) use raw_query::InternalQueryFamily;
 pub use raw_query::{QueryFamily, RawAuthoredQuery, RootEntityKey};
 pub(crate) use raw_result_shape::InternalResultShapeFamily;
@@ -40,8 +40,6 @@ pub use request::{
     AuthoredBundleError, AuthoredBundleFailureClass, AuthoredQueryBundleRequest,
     GuidedAuthoringPath,
 };
-pub(crate) use result_shape_family::{
-    AuthoredResultShape, ResultShapeAuthoringFamily, ResultShapeBuilder,
-};
+pub use result_shape_family::{AuthoredResultShape, ResultShapeAuthoringFamily, ResultShapeBuilder};
 pub use result_shape_field::AuthoredResultShapeField;
 pub use traversal::TraversalSelector;

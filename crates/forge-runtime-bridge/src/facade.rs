@@ -202,8 +202,14 @@ pub use crate::snapshot::{
     ValidatedSnapshotReadPacketResult, ValidatedTruthViewSelectorSet,
 };
 pub use crate::source::{
-    AdmittedSourceContract, AdmittedSourceRegistry, BridgeSourceCapability,
-    BridgeSourceCapabilitySet, MaterializedTruthViewPacketSet, PlannedSourceReadPacketSet,
+    materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
+    AdmittedSourceContract, AdmittedSourceRegistry, BridgeGroupedLaneValue,
+    BridgeGroupedMemberRow, BridgeGroupedTruthViewArtifact, BridgeGroupedTruthViewDigest,
+    BridgeGroupedTruthViewError, BridgeMaterializedFieldValue,
+    BridgeMaterializedRowArtifact, BridgeMaterializedRowSetArtifact,
+    BridgeMaterializedRowSetDigest, BridgeRowIdentity, BridgeRowSetMaterializationError,
+    BridgeSourceCapability, BridgeSourceCapabilitySet, GroupedProjectionMemberSource,
+    GroupedProjectionSource, MaterializedTruthViewPacketSet, PlannedSourceReadPacketSet,
     SourceDeclaration, SourceDeclarationIdentity, SourceFailureClass, SourceFailureRecord,
     SourceFailureRecordIdentity, SourceMaterializationCounters, SourceMaterializationRecord,
     SourceMaterializationRecordIdentity, ValidatedSourceDeclaration,

@@ -1,4 +1,8 @@
 use crate::basis::ExecutionPreflightBundle;
+use crate::composition::{
+    ExpandedComposedIntent, GuidedCompositionPath, QueryCompositionError,
+    QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet,
+};
 use crate::execution::{execute_preflight_bundle, ExecutionError, ExecutionResultEnvelope};
 use crate::historical::{
     admit_historical_evaluation_path, HistoricalCapabilityDescriptor,
@@ -32,6 +36,61 @@ use crate::workflow::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryReadCapability {
     facade_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryCompositionCapability {
+    facade_digest: String,
+}
+
+impl QueryCompositionCapability {
+    pub(crate) fn new(facade_digest: String) -> Self {
+        Self { facade_digest }
+    }
+
+    pub fn expand_detail_scopes(
+        &self,
+        query: crate::authoring::DetailAuthoredQuery,
+        result_shape: crate::authoring::DetailAuthoredResultShape,
+        scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
+    ) -> Result<(crate::composition::ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
+        let _ = &self.facade_digest;
+        GuidedCompositionPath::expand_detail_scopes(query, result_shape, scopes)
+    }
+
+    pub fn expand_collection_scopes(
+        &self,
+        query: crate::authoring::CollectionAuthoredQuery,
+        result_shape: crate::authoring::CollectionAuthoredResultShape,
+        scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
+    ) -> Result<(crate::composition::ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
+        let _ = &self.facade_digest;
+        GuidedCompositionPath::expand_collection_scopes(query, result_shape, scopes)
+    }
+
+    pub fn instantiate_detail_template(
+        &self,
+        template: QueryTemplateDescriptor<
+            crate::authoring::DetailFamily,
+            crate::authoring::DetailResultShapeFamily,
+        >,
+        bindings: TemplateBindingSet,
+    ) -> Result<(crate::composition::TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+        let _ = &self.facade_digest;
+        GuidedCompositionPath::instantiate_detail_template(template, bindings)
+    }
+
+    pub fn instantiate_collection_template(
+        &self,
+        template: QueryTemplateDescriptor<
+            crate::authoring::CollectionFamily,
+            crate::authoring::CollectionResultShapeFamily,
+        >,
+        bindings: TemplateBindingSet,
+    ) -> Result<(crate::composition::TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+        let _ = &self.facade_digest;
+        GuidedCompositionPath::instantiate_collection_template(template, bindings)
+    }
 }
 
 impl QueryReadCapability {

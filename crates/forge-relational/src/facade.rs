@@ -14,6 +14,17 @@ pub mod config {
     };
 }
 
+pub mod grouped_truth {
+    pub use crate::grouped_truth::{
+        materialize_relational_authoritative_row_set, project_relational_grouped_truth,
+        GroupedProjectionContract, RelationalAuthoritativeRowArtifact,
+        RelationalAuthoritativeRowSetArtifact, RelationalFieldBindingKey, RelationalFieldValue,
+        RelationalGroupedMemberRow, RelationalGroupedProjectionArtifact,
+        RelationalGroupedProjectionDigest, RelationalGroupedTruthError, RelationalGroupingValue,
+        RelationalRowIdentity, RelationalRowSetDigest,
+    };
+}
+
 pub mod commit_strategies {
     pub use crate::commit_strategies::data::{
         CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact,

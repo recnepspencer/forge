@@ -67,6 +67,9 @@ fn facade_support_matrix_stays_in_sync_with_capability_admission() {
     assert!(report
         .admitted_capability_families()
         .contains(&ForgeQueryCapabilityFamily::QueryRead));
+    assert!(report
+        .admitted_capability_families()
+        .contains(&ForgeQueryCapabilityFamily::QueryComposition));
     assert_eq!(
         report.deferred_capability_families(),
         &[ForgeQueryCapabilityFamily::DurableArtifacts]
@@ -93,6 +96,20 @@ fn facade_support_matrix_stays_in_sync_with_capability_admission() {
                 && posture.enabled()
         ));
     assert!(!report.report_digest().is_empty());
+}
+
+#[test]
+fn query_composition_capability_is_admitted_with_query_section() {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let composition = facade
+        .query_composition_capability()
+        .expect("runtime-backed facade should admit query composition");
+
+    assert_eq!(
+        composition.admission().descriptor().family(),
+        ForgeQueryCapabilityFamily::QueryComposition
+    );
+    assert_eq!(composition.counters().capability_lookup_count(), 1);
 }
 
 #[test]
@@ -547,6 +564,112 @@ fn support_report_includes_query_context_capability() {
             "store_backed_historical",
             "store_backed_diff",
             "broad_collection_diff"
+        ]
+    );
+}
+
+#[test]
+fn support_report_includes_query_composition_capability_and_profile() {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let support = facade.support_matrix();
+    let report = facade.support_report();
+
+    assert_eq!(
+        support
+            .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+            .expect("query composition descriptor should exist")
+            .status(),
+        ForgeQueryCapabilityStatus::Admitted
+    );
+    assert!(report
+        .admitted_capability_families()
+        .contains(&ForgeQueryCapabilityFamily::QueryComposition));
+    let profile = report
+        .query_composition_support_profile()
+        .expect("query composition profile should be present");
+    assert_eq!(
+        profile
+            .admitted_scope_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "predicate_scope",
+            "ordering_scope",
+            "projection_scope",
+            "traversal_bound_scope",
+            "basis_aware_scope"
+        ]
+    );
+    assert_eq!(
+        profile
+            .admitted_template_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec!["detail_template", "collection_template"]
+    );
+    assert_eq!(
+        profile
+            .composition_statuses()
+            .iter()
+            .map(|(family, status)| format!("{}:{}", family.as_str(), status.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            "named_scope_expansion:debt".to_string(),
+            "template_instantiation:debt".to_string()
+        ]
+    );
+    assert_eq!(
+        profile
+            .admitted_saved_query_persistence_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec!["ephemeral_process_owned"]
+    );
+    assert_eq!(
+        profile
+            .admitted_view_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "table",
+            "detail",
+            "inspector_detail_observed",
+            "inspector_detail_focused",
+            "kanban_grouped"
+        ]
+    );
+    assert_eq!(
+        profile
+            .deferred_view_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        Vec::<&str>::new()
+    );
+    assert_eq!(
+        profile
+            .saved_query_statuses()
+            .iter()
+            .map(|(family, status)| format!("{}:{}", family.as_str(), status.as_str()))
+            .collect::<Vec<_>>(),
+        vec!["ephemeral_process_owned:debt".to_string()]
+    );
+    assert_eq!(
+        profile
+            .view_shape_statuses()
+            .iter()
+            .map(|(family, status)| format!("{}:{}", family.as_str(), status.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            "table:debt".to_string(),
+            "detail:debt".to_string(),
+            "inspector_detail_observed:debt".to_string(),
+            "inspector_detail_focused:debt".to_string(),
+            "kanban_grouped:debt".to_string()
         ]
     );
 }

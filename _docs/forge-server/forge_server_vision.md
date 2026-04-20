@@ -251,6 +251,20 @@ What this enables:
 - background tabs that catch up cheaply when foregrounded
 - durable integrations that resume from exactly where they stopped
 
+#### Anti-entropy state reconciliation (Fallback)
+
+Technical role:
+When a client is disconnected so long that its cursor expires (e.g., WAL compaction),
+the protocol falls back to Merkle-tree based state reconciliation. The client sends a
+structural hash tree of its local state; the server compares it to the canonical state
+and delivers only the specific branches/aspects that differ, without sending the full workspace.
+
+What this enables:
+
+- robust recovery from long-term offline states
+- avoidance of full-workspace downloads when cursors are lost
+- true distributed local-first data sync
+
 #### Typed delivery classes
 
 Technical role:
@@ -329,7 +343,48 @@ What this enables:
 - server-side resource management that matches client attention
 - progressive refinement where initial load is fast and detail follows
 
+#### Multiplexed protocol framing
+
+Technical role:
+The binary protocol (via postcard) supports chunked interleaving and multiplexed lanes.
+Massive authoritative patches can be paused to inject high-priority ephemeral presence
+frames, and then resumed, avoiding Head-of-Line (HoL) blocking on single WebSockets.
+
+What this enables:
+
+- smooth UI UX even when downloading huge geometric assets over the sync channel
+- presence and cursor movements never freeze behind multi-megabyte data syncs
+- priority queuing natively within the application protocol
+
+#### Adaptive delivery degradation (Backpressure)
+
+Technical role:
+The server's outbox is backpressure-aware. If the TCP socket buffer fills up due to a
+slow client connection, the server dynamically degrades the client's freshness mode
+(e.g., from `live_strict` to `live_coalesced`, or dropping to `invalidate_only`).
+
+What this enables:
+
+- server memory protection against slow-drain attacks or terrible mobile networks
+- graceful degradation of fidelity under network congestion
+- clients stay connected and aware of invalidations rather than being forcefully disconnected
+
 ### HTTP Surface Architecture
+
+#### Background HTTP Delivery
+
+Technical role:
+While WebSockets are the default for interactive frontends, the server natively
+supports HTTP-based sync (long-polling, webhooks, or scheduled pull) for
+background tasks, serverless workers, and external applications where maintaining
+a persistent WebSocket connection is impractical or impossible.
+
+What this enables:
+
+- mobile OS background tasks that wake up and pull patches via HTTP
+- serverless functions (e.g., AWS Lambda) consuming the sync protocol
+- third-party webhook endpoints receiving pushed CDC events
+- graceful fallback when restrictive corporate proxies block WebSockets
 
 #### REST endpoints
 
@@ -437,7 +492,7 @@ What this enables:
 
 - impossible to accidentally create an unprotected endpoint
 - uniform authentication across REST, sync, and file operations
-- pluggable authentication providers (OAuth, JWT, API keys, SSO)
+- pluggable authentication providers (OAuth, JWT, API keys, SSO) with built-in integrations for common systems like Auth0
 - session management integrated with lease lifecycle
 
 #### Subscription-scoped authorization
@@ -548,6 +603,20 @@ What this enables:
 - developers never write per-endpoint boilerplate for cross-cutting
   concerns — they declare pipeline policy once
 
+#### Priority-based load shedding
+
+Technical role:
+The middleware pipeline includes an adaptive feedback loop (like a PID controller) monitoring
+event-loop latency. As CPU contention rises, the server proactively returns `503 Service Unavailable`
+for low-priority polling, background HTTP tasks, and advisory requests, protecting resources for
+live WebSockets and authoritative mutations.
+
+What this enables:
+
+- self-healing auto-scaling triggers based on latency telemetry
+- protection of the interactive user experience during massive truth commits
+- deterministic graceful degradation under hostile traffic spikes
+
 #### Policy pipeline and declarative authorization
 
 Technical role:
@@ -574,6 +643,22 @@ What this enables:
 - authorization that composes with shared subscription bases (shared base
   evaluation, per-client aspect masking on top)
 - zero per-endpoint authorization boilerplate
+
+### Zero-Trust & Cryptography Architecture
+
+#### End-to-End Encryption (E2EE) and Blind Servers
+
+Technical role:
+For high-security or IP-sensitive domains, the server acts as a "Blind Relay." Clients
+encrypt aspect payloads locally before mutation. The server performs CDC, structural diffing,
+and routing based entirely on unencrypted metadata (knowing *that* an aspect changed)
+without ever possessing the keys to read the underlying bytes.
+
+What this enables:
+
+- military-grade or high-IP (e.g., Geometry Kernel) data security in the cloud
+- server compromise does not lead to payload data breaches
+- structural reactivity and live sync maintained over completely opaque data
 
 ### View-Specific Delivery Architecture
 
@@ -660,6 +745,95 @@ What this enables:
 - server-side validation without sacrificing responsive UI
 - collaborative editing where local edits appear immediately and
   settle against canonical truth asynchronously
+
+#### Distributed sagas and the outbox pattern
+
+Technical role:
+Because the server integrates with external APIs (Stripe, Auth0), truth is split across
+systems. The mutation protocol supports an Outbox pattern: mutations involving external
+APIs are durably written to a local queue within the same transaction as the local data
+change, and then processed asynchronously with exactly-once delivery guarantees to external providers.
+
+What this enables:
+
+- avoidance of split-brain state between Forge and external SaaS providers
+- safe optimistic UI updates that span network boundaries
+- resilient recovery from partial failures during cross-system workflows
+
+### Integration & Extensibility Architecture
+
+#### First-Party Integration Packages
+
+Technical role:
+The server provides built-in, pre-wired integration packages for common external
+ecosystems (Auth0, Stripe, major SSO providers, etc.). These are not generic libraries
+but highly opinionated Forge-native modules that map external events directly
+into the truth runtime and signal graph.
+
+What this enables:
+
+- drop-in authentication via Auth0/SSO without custom middleware wiring
+- subscription and billing state synced automatically with Stripe webhooks
+- standardized, audited implementations of critical security paths
+- immediate developer velocity for table-stakes SaaS capabilities
+
+#### Extensible Integration Wiring
+
+Technical role:
+For the millions of external APIs that cannot be supported first-party, the
+server provides a structured integration framework. Developers can declare typed
+integration points where external webhooks, API polling, or OAuth callbacks are
+automatically routed into schema-validated truth mutations or mapped to external
+signals.
+
+What this enables:
+
+- standardized webhook ingestion pipelines that map external JSON to Forge entities
+- graceful handling of external API rate limits and backoff strategies
+- external state represented as proxy entities in the truth runtime
+- isolation of external API flakiness from internal synchronous paths
+
+### Distributed Scalability Architecture
+
+#### Workspace affinity routing
+
+Technical role:
+For horizontal scaling, the server assumes ingress load balancers use Consistent Hashing
+to route connections based on the workspace/tenant ID. All clients for "Workspace A" must
+deterministically route to the same physical server node.
+
+What this enables:
+
+- guaranteed O(1) shared base subscription optimization, even across 100 node clusters
+- elimination of redundant signal graph evaluation for the same data across multiple nodes
+- maximum memory efficiency for high-density collaborative rooms
+
+#### Edge-to-cloud topology (Read Replicas & Data Sovereignty)
+
+Technical role:
+The server can operate as an Edge Read Replica, maintaining a local `forge-store` cache and
+evaluating signal graphs instantly near the user, while securely forwarding authoritative
+mutations to a primary regional master. Additionally, routing is geographically aware to
+ensure data residency compliance.
+
+What this enables:
+
+- global latency reduction via edge-evaluated signal graphs
+- Enterprise SaaS data sovereignty (e.g., EU data never touches US memory)
+- highly available reads even if the cross-ocean link to the primary master is degraded
+
+#### Control plane gossip (Distributed invalidation)
+
+Technical role:
+When multiple `forge-server` nodes exist in a cluster, they communicate via a lightweight
+peer-to-peer Gossip protocol or distributed pub/sub. When Node A commits a mutation to the
+shared database, it broadcasts a tiny invalidation token so Node B can wake up its signal graph.
+
+What this enables:
+
+- horizontal scaling without stale reads
+- decoupling of mutation processing from WebSocket subscription delivery
+- cluster-wide reactivity without relying exclusively on database polling
 
 ### Multi-Tenant Architecture
 

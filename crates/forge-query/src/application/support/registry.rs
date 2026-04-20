@@ -6,6 +6,7 @@ use crate::identity::hash_parts;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryCapabilityFamily {
     QueryRead,
+    QueryComposition,
     QueryContext,
     IdentityEvolution,
     LiveQuery,
@@ -19,6 +20,7 @@ impl ForgeQueryCapabilityFamily {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::QueryRead => "query_read",
+            Self::QueryComposition => "query_composition",
             Self::QueryContext => "query_context",
             Self::IdentityEvolution => "identity_evolution",
             Self::LiveQuery => "live_query",
@@ -31,7 +33,10 @@ impl ForgeQueryCapabilityFamily {
 
     pub fn config_section(&self) -> ForgeQueryConfigSectionFamily {
         match self {
-            Self::QueryRead | Self::QueryContext | Self::IdentityEvolution => {
+            Self::QueryRead
+            | Self::QueryComposition
+            | Self::QueryContext
+            | Self::IdentityEvolution => {
                 ForgeQueryConfigSectionFamily::Query
             }
             Self::LiveQuery => ForgeQueryConfigSectionFamily::Signal,
@@ -130,6 +135,20 @@ impl ForgeQueryCapabilityRegistry {
                     "runtime-backed query execution is admitted through the daily-driver facade"
                 } else {
                     "runtime-backed query execution is disabled by the query config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::QueryComposition,
+                if config.query().runtime_backed_reads_enabled() {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Query,
+                if config.query().runtime_backed_reads_enabled() {
+                    "query composition is admitted through the query config section"
+                } else {
+                    "query composition is disabled by the query config section"
                 },
             ),
             ForgeQueryCapabilityDescriptor::new(

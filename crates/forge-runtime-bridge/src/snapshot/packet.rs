@@ -29,7 +29,7 @@ enum SnapshotReadShape {
 }
 
 impl SnapshotReadRequest {
-    pub(crate) fn for_coarse(
+    pub fn for_coarse(
         entity_identity: impl Into<Arc<str>>,
         aspect_label: impl Into<Arc<str>>,
     ) -> Self {
@@ -43,7 +43,7 @@ impl SnapshotReadRequest {
         }
     }
 
-    pub(crate) fn for_subscription_slice(
+    pub fn for_subscription_slice(
         entity_identity: impl Into<Arc<str>>,
         aspect_label: impl Into<Arc<str>>,
         surface_label: impl Into<Arc<str>>,
@@ -129,7 +129,7 @@ pub struct SnapshotReadPacket {
 }
 
 impl SnapshotReadPacket {
-    pub(crate) fn new(reads: Vec<SnapshotReadRequest>) -> Self {
+    pub fn new(reads: Vec<SnapshotReadRequest>) -> Self {
         let read_basis = reads
             .iter()
             .map(SnapshotReadRequest::canonical_basis)
