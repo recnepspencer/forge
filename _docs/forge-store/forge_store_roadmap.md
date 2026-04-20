@@ -90,9 +90,9 @@ Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 3.5` ->
   `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
-  `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 10.5` ->
-  `Milestone 11.5` -> `Milestone 12` -> `Milestone 12.5` -> `Milestone 17` ->
-  `Milestone 18.5` -> certification
+  `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 11` ->
+  `Milestone 12` -> `Milestone 14` -> `Milestone 15` -> `Milestone 20` ->
+  `Milestone 22` -> certification
 
 Parallel tracks:
 
@@ -111,12 +111,16 @@ Parallel tracks:
   The concurrency boundary is that Milestone 10 may publish basis-survival
   conclusions and retained-range rules, but it must not absorb live-query or
   cursor semantics.
-- `Milestone 11` can start after `Milestone 10` stabilizes rebuild and
-  retention rules.
-- `Milestone 12.5` can begin once replication and rebuild contracts are stable,
+- `Milestone 13` can start after `Milestone 10` stabilizes rebuild and
+  retention rules. It may progress concurrently with `Milestone 11` once
+  placement work classes, recall posture, and non-authority boundaries are
+  explicit. The concurrency boundary is that Milestone 13 owns placement
+  meaning, tier classes, and recall semantics, while Milestone 11 owns pacing,
+  isolation, and debt-escalation policy for that work.
+- `Milestone 15` can begin once replication and rebuild contracts are stable,
   but must close before advanced derived-family proliferation makes extension
   containment ambiguous.
-- `Milestone 13`, `Milestone 14`, `Milestone 15`, and `Milestone 16` are late
+- `Milestone 16`, `Milestone 17`, `Milestone 18`, and `Milestone 19` are late
   platform programs and can progress in parallel once replication, integrity,
   and rebuild contracts are stable.
 
@@ -763,7 +767,7 @@ stable-basis and durable-cursor vocabulary explicit. The concurrency boundary
 is that Milestone 10 owns retention, compaction, reclaim, and basis-survival
 conclusions, while Milestone 8 owns live-query continuation semantics.
 
-## Milestone 10.5: Background Maintenance Isolation And Scheduling Contracts
+## Milestone 11: Background Maintenance Isolation And Scheduling Contracts
 
 ### Goal
 
@@ -808,9 +812,10 @@ correctness is not enough without operational isolation.
 
 ### Parallelization Notes
 
-Can progress alongside late `Milestone 11`.
+Can progress alongside late `Milestone 13` once placement work classes, tier
+recall posture, and scheduler handoff boundaries are explicit.
 
-## Milestone 11.5: Artifact Format Evolution And Rolling Compatibility
+## Milestone 12: Artifact Format Evolution And Rolling Compatibility
 
 ### Goal
 
@@ -857,10 +862,10 @@ systems need explicit format evolution before they spread artifacts widely.
 
 ### Parallelization Notes
 
-Can progress in parallel with late `Milestone 10.5` once retention and rebuild
+Can progress in parallel with late `Milestone 11` once retention and rebuild
 rules are stable.
 
-## Milestone 11: Tiering And Durable Working-Set Intelligence
+## Milestone 13: Tiering And Durable Working-Set Intelligence
 
 ### Goal
 
@@ -901,9 +906,13 @@ retention and rebuild rules.
 
 ### Parallelization Notes
 
-Can run in parallel with late `Milestone 10`.
+Can progress in parallel with `Milestone 11` once `Milestone 10` has stabilized
+retention and rebuild rules. The concurrency boundary is that Milestone 13 owns
+placement semantics, tier classes, and recall meaning, while Milestone 11 owns
+pacing, foreground isolation, and debt-escalation policy for those placement
+work units.
 
-## Milestone 12: Replication, Capsules, And Integrity Verification
+## Milestone 14: Replication, Capsules, And Integrity Verification
 
 ### Goal
 
@@ -947,7 +956,7 @@ This belongs after retention and rebuild rules are stable.
 
 Depends on `Milestone 10` and `Milestone 8`.
 
-## Milestone 12.5: Extensible Durable Artifact Families And Storage Strategies
+## Milestone 15: Extensible Durable Artifact Families And Storage Strategies
 
 ### Goal
 
@@ -1002,9 +1011,9 @@ platform.
 
 ### Parallelization Notes
 
-Can begin once `Milestone 11.5` and `Milestone 12` are stable.
+Can begin once `Milestone 12` and `Milestone 14` are stable.
 
-## Milestone 13: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
+## Milestone 16: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
 
 ### Goal
 
@@ -1045,9 +1054,9 @@ need to know how these artifacts travel and rehydrate.
 
 ### Parallelization Notes
 
-Can run in parallel with `Milestone 14`, `Milestone 15`, and `Milestone 16`.
+Can run in parallel with `Milestone 17`, `Milestone 18`, and `Milestone 19`.
 
-## Milestone 14: Derived Durable Artifact Families And Accuracy Taxonomy
+## Milestone 17: Derived Durable Artifact Families And Accuracy Taxonomy
 
 ### Goal
 
@@ -1093,10 +1102,10 @@ inherit an already-honest accuracy model.
 
 ### Parallelization Notes
 
-Can run in parallel with `Milestone 13`, `Milestone 15`, and `Milestone 16`
+Can run in parallel with `Milestone 16`, `Milestone 18`, and `Milestone 19`
 once replication and rebuild contracts are stable.
 
-## Milestone 15: Analysis Lanes
+## Milestone 18: Analysis Lanes
 
 ### Goal
 
@@ -1134,9 +1143,9 @@ pretend to be more trustworthy than they are.
 
 ### Parallelization Notes
 
-Can run in parallel with `Milestone 13`, `Milestone 14`, and `Milestone 16`.
+Can run in parallel with `Milestone 16`, `Milestone 17`, and `Milestone 19`.
 
-## Milestone 16: Correspondence Indexes, Structural Fingerprints, And Locality Clustering
+## Milestone 19: Correspondence Indexes, Structural Fingerprints, And Locality Clustering
 
 ### Goal
 
@@ -1179,9 +1188,9 @@ ship with explicit trust classes.
 
 ### Parallelization Notes
 
-Can run in parallel with `Milestone 13`, `Milestone 14`, and `Milestone 15`.
+Can run in parallel with `Milestone 16`, `Milestone 17`, and `Milestone 18`.
 
-## Milestone 17: Native Blob And Object Storage
+## Milestone 20: Native Blob And Object Storage
 
 ### Goal
 
@@ -1224,9 +1233,9 @@ This belongs after retention and replication semantics are stable.
 
 ### Parallelization Notes
 
-Can begin in parallel with late `Milestone 14` through `Milestone 16`.
+Can begin in parallel with late `Milestone 17` through `Milestone 19`.
 
-## Milestone 18: Admission Control And Budget Contracts
+## Milestone 21: Admission Control And Budget Contracts
 
 ### Goal
 
@@ -1276,10 +1285,10 @@ and tiers they govern.
 
 ### Parallelization Notes
 
-Can proceed in parallel with late `Milestone 17`, but should close after major
+Can proceed in parallel with late `Milestone 20`, but should close after major
 artifact families and tiers are known.
 
-## Milestone 18.5: Operator Repair, Audit, And Forensic Recovery Tooling
+## Milestone 22: Operator Repair, Audit, And Forensic Recovery Tooling
 
 ### Goal
 
@@ -1327,9 +1336,9 @@ operator-grade recovery and forensic truth, not just internal correctness.
 
 ### Parallelization Notes
 
-Can progress alongside late `Milestone 18`, but must close before certification.
+Can progress alongside late `Milestone 21`, but must close before certification.
 
-## Milestone 19: Generic Store Certification Program
+## Milestone 23: Generic Store Certification Program
 
 ### Goal
 
@@ -1358,7 +1367,7 @@ mode, and admitted fast path the store claims to support.
 
 Each certification run must emit machine-checkable artifact bundles.
 
-## Milestone 20: Domain Store Certification Program
+## Milestone 24: Domain Store Certification Program
 
 ### Goal
 

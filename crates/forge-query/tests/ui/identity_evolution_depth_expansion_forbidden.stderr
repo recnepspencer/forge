@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `with_max_depth` found for struct `LineageTraversalDescriptor` in the current scope
+ --> tests/ui/identity_evolution_depth_expansion_forbidden.rs:5:37
+  |
+5 |         LineageTraversalDescriptor::with_max_depth;
+  |                                     ^^^^^^^^^^^^^^ function or associated item not found in `LineageTraversalDescriptor`

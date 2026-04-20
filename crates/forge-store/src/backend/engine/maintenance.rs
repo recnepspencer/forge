@@ -106,20 +106,28 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         super::super::retention::evidence::milestone_10_complexity_surface(self)
     }
 
-    pub fn milestone_10_5_counter_contract(&self) -> crate::Milestone10_5CounterContract {
-        super::super::maintenance::evidence::milestone_10_5_counter_contract(self)
+    pub fn milestone_11_counter_contract(&self) -> crate::Milestone11CounterContract {
+        super::super::maintenance::evidence::milestone_11_counter_contract(self)
     }
 
-    pub fn milestone_10_5_complexity_surface(&self) -> crate::Milestone10_5ComplexitySurface {
-        super::super::maintenance::evidence::milestone_10_5_complexity_surface(self)
+    pub fn milestone_11_complexity_surface(&self) -> crate::Milestone11ComplexitySurface {
+        super::super::maintenance::evidence::milestone_11_complexity_surface(self)
     }
 
-    pub fn milestone_10_5_maintenance_report(&self) -> crate::Milestone10_5MaintenanceReport {
-        super::super::maintenance::evidence::milestone_10_5_maintenance_report(self)
+    pub fn milestone_13_counter_contract(&self) -> crate::Milestone13CounterContract {
+        super::super::tiering::milestone_13_counter_contract(self)
     }
 
-    pub fn maintenance_evidence(&self) -> crate::Milestone10_5MaintenanceReport {
-        self.milestone_10_5_maintenance_report()
+    pub fn milestone_13_complexity_surface(&self) -> crate::Milestone13ComplexitySurface {
+        super::super::tiering::milestone_13_complexity_surface(self)
+    }
+
+    pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
+        super::super::maintenance::evidence::milestone_11_maintenance_report(self)
+    }
+
+    pub fn maintenance_evidence(&self) -> crate::Milestone11MaintenanceReport {
+        self.milestone_11_maintenance_report()
     }
 
     pub fn milestone_10_artifact_report(

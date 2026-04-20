@@ -49,6 +49,8 @@ impl Default for StoreState {
             next_snapshot_id: 1,
             snapshot_basis_records: std::collections::BTreeMap::new(),
             snapshot_image_records: std::collections::BTreeMap::new(),
+            tier_residency_records: std::collections::BTreeMap::new(),
+            tier_transfer_records: std::collections::BTreeMap::new(),
             next_durable_mutation_id: 1,
             next_wal_sequence: 1,
             wal_records: std::collections::BTreeMap::new(),

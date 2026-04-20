@@ -1,4 +1,4 @@
 mod basis;
 mod certification;
 mod continuation;
-mod helpers;
+pub(crate) mod helpers;

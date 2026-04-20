@@ -7,6 +7,7 @@ use crate::identity::hash_parts;
 pub enum ForgeQueryCapabilityFamily {
     QueryRead,
     QueryContext,
+    IdentityEvolution,
     LiveQuery,
     PreviewSession,
     WorkflowOrchestration,
@@ -19,6 +20,7 @@ impl ForgeQueryCapabilityFamily {
         match self {
             Self::QueryRead => "query_read",
             Self::QueryContext => "query_context",
+            Self::IdentityEvolution => "identity_evolution",
             Self::LiveQuery => "live_query",
             Self::PreviewSession => "preview_session",
             Self::WorkflowOrchestration => "workflow_orchestration",
@@ -29,7 +31,9 @@ impl ForgeQueryCapabilityFamily {
 
     pub fn config_section(&self) -> ForgeQueryConfigSectionFamily {
         match self {
-            Self::QueryRead | Self::QueryContext => ForgeQueryConfigSectionFamily::Query,
+            Self::QueryRead | Self::QueryContext | Self::IdentityEvolution => {
+                ForgeQueryConfigSectionFamily::Query
+            }
             Self::LiveQuery => ForgeQueryConfigSectionFamily::Signal,
             Self::PreviewSession => ForgeQueryConfigSectionFamily::RuntimeBridge,
             Self::WorkflowOrchestration | Self::HistoricalEvaluation => {
@@ -140,6 +144,20 @@ impl ForgeQueryCapabilityRegistry {
                     "query context binding is admitted through the query config section"
                 } else {
                     "query context binding is disabled by the query config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::IdentityEvolution,
+                if config.query().runtime_backed_reads_enabled() {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Query,
+                if config.query().runtime_backed_reads_enabled() {
+                    "identity evolution is admitted through the query config section"
+                } else {
+                    "identity evolution is disabled by the query config section"
                 },
             ),
             ForgeQueryCapabilityDescriptor::new(

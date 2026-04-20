@@ -10,6 +10,7 @@ pub use errors::{
 pub use facade::ForgeQueryApplicationFacade;
 pub use resolution::{CapabilityAdmissionDecision, ForgeQueryCapabilityResolution};
 pub use witnesses::{
-    HistoricalEvaluationCapability, LiveQueryCapability, PreviewSessionCapability,
-    QueryContextCapability, QueryReadCapability, WorkflowOrchestrationCapability,
+    HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
+    PreviewSessionCapability, QueryContextCapability, QueryReadCapability,
+    WorkflowOrchestrationCapability,
 };

@@ -1,8 +1,14 @@
 use crate::{
-    AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration,
-    MaintenanceBatchClass, MaintenanceDeclaration, MaintenanceDeclarationClass,
-    MaintenanceDeclarationId, MaintenanceExecutionStatus, RebuildMaintenanceDeclaration,
-    ReclaimMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration, FreshnessWindow,
+    LocalityScopeToken, MaintenanceBatchClass, MaintenanceDeclaration,
+    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceDebtFamily,
+    MaintenanceDescriptorDemand, MaintenanceEquivalenceKey, MaintenanceEscalationDecision,
+    MaintenanceExecutionPosture, MaintenanceExecutionStatus, MaintenanceExecutionTransition,
+    MaintenanceForegroundImpact, MaintenanceLocalityScope, MaintenancePlanFamily,
+    MaintenanceReadmissionStatus, MaintenanceReservationFamily, MaintenanceReservationTransition,
+    MaintenanceWorkClass, MaintenanceWorkDescriptor, MaintenanceWorkIdentity, PlanGeneration,
+    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    SupersessionEpoch, TierWorkContainerClass,
 };
 use forge_relational::facade::history::{BranchId, CommitId};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -18,6 +24,7 @@ pub struct MaintenanceDeclarationRecord {
     pub retained_basis_label: Option<String>,
     pub family_label: Option<String>,
     pub debt_link_artifact_id: Option<String>,
+    pub work_descriptor: MaintenanceWorkDescriptor,
     pub created_order: u64,
 }
 
@@ -50,7 +57,29 @@ struct PersistedMaintenanceDeclarationRecord {
     retained_basis_label: Option<String>,
     family_label: Option<String>,
     debt_link_artifact_id: Option<String>,
+    #[serde(default)]
+    work_descriptor: Option<PersistedMaintenanceWorkDescriptor>,
     created_order: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct PersistedMaintenanceWorkDescriptor {
+    declaration_id: String,
+    work_class: MaintenanceWorkClass,
+    execution_posture: MaintenanceExecutionPosture,
+    locality_scope: MaintenanceLocalityScope,
+    locality_scope_token: LocalityScopeToken,
+    demand: MaintenanceDescriptorDemand,
+    reservation_family: MaintenanceReservationFamily,
+    work_identity: String,
+    equivalence_key: String,
+    plan_generation: PlanGeneration,
+    supersession_epoch: SupersessionEpoch,
+    freshness_window: FreshnessWindow,
+    debt_family: Option<MaintenanceDebtFamily>,
+    escalation_decision: MaintenanceEscalationDecision,
+    tier_work_container_class: Option<TierWorkContainerClass>,
+    recovered_from_restart: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +133,9 @@ impl From<&MaintenanceDeclarationRecord> for PersistedMaintenanceDeclarationReco
             retained_basis_label: record.retained_basis_label.clone(),
             family_label: record.family_label.clone(),
             debt_link_artifact_id: record.debt_link_artifact_id.clone(),
+            work_descriptor: Some(PersistedMaintenanceWorkDescriptor::from(
+                &record.work_descriptor,
+            )),
             created_order: record.created_order,
         }
     }
@@ -114,6 +146,11 @@ impl TryFrom<PersistedMaintenanceDeclarationRecord> for MaintenanceDeclarationRe
 
     fn try_from(record: PersistedMaintenanceDeclarationRecord) -> Result<Self, Self::Error> {
         let declaration = MaintenanceDeclaration::try_from(record.declaration)?;
+        let work_descriptor = record
+            .work_descriptor
+            .map(MaintenanceWorkDescriptor::try_from)
+            .transpose()?
+            .unwrap_or_else(|| declaration.work_descriptor());
         Ok(Self {
             artifact_id: record.artifact_id,
             family_version: record.family_version,
@@ -123,8 +160,57 @@ impl TryFrom<PersistedMaintenanceDeclarationRecord> for MaintenanceDeclarationRe
             retained_basis_label: record.retained_basis_label,
             family_label: record.family_label,
             debt_link_artifact_id: record.debt_link_artifact_id,
+            work_descriptor,
             created_order: record.created_order,
         })
+    }
+}
+
+impl From<&MaintenanceWorkDescriptor> for PersistedMaintenanceWorkDescriptor {
+    fn from(descriptor: &MaintenanceWorkDescriptor) -> Self {
+        Self {
+            declaration_id: descriptor.declaration_id().as_str().to_string(),
+            work_class: descriptor.work_class(),
+            execution_posture: descriptor.execution_posture(),
+            locality_scope: descriptor.locality_scope().clone(),
+            locality_scope_token: descriptor.locality_scope_token().clone(),
+            demand: descriptor.demand().clone(),
+            reservation_family: descriptor.reservation_family(),
+            work_identity: descriptor.work_identity().as_str().to_string(),
+            equivalence_key: descriptor.equivalence_key().as_str().to_string(),
+            plan_generation: descriptor.plan_generation(),
+            supersession_epoch: descriptor.supersession_epoch(),
+            freshness_window: descriptor.freshness_window(),
+            debt_family: descriptor.debt_family(),
+            escalation_decision: descriptor.escalation_decision(),
+            tier_work_container_class: descriptor.tier_work_container_class(),
+            recovered_from_restart: descriptor.recovered_from_restart(),
+        }
+    }
+}
+
+impl TryFrom<PersistedMaintenanceWorkDescriptor> for MaintenanceWorkDescriptor {
+    type Error = String;
+
+    fn try_from(descriptor: PersistedMaintenanceWorkDescriptor) -> Result<Self, Self::Error> {
+        Ok(MaintenanceWorkDescriptor::new(
+            MaintenanceDeclarationId::new(descriptor.declaration_id),
+            descriptor.work_class,
+            descriptor.execution_posture,
+            descriptor.locality_scope,
+            descriptor.locality_scope_token,
+            descriptor.demand,
+            descriptor.reservation_family,
+            MaintenanceWorkIdentity::new(descriptor.work_identity),
+            MaintenanceEquivalenceKey::new(descriptor.equivalence_key),
+            descriptor.plan_generation,
+            descriptor.supersession_epoch,
+            descriptor.freshness_window,
+            descriptor.debt_family,
+            descriptor.escalation_decision,
+            descriptor.tier_work_container_class,
+            descriptor.recovered_from_restart,
+        ))
     }
 }
 
@@ -265,9 +351,23 @@ pub struct MaintenanceExecutionRecord {
     pub family_version: u32,
     pub declaration_id: String,
     pub execution_status: MaintenanceExecutionStatus,
+    #[serde(default)]
+    pub plan_family: Option<MaintenancePlanFamily>,
     pub last_completed_phase: Option<String>,
+    #[serde(default)]
+    pub pending_reason: Option<String>,
     pub durable_error_kind: Option<String>,
     pub durable_error_message: Option<String>,
+    #[serde(default)]
+    pub last_quantum_units: Option<u64>,
+    #[serde(default)]
+    pub reservation_transition: Option<MaintenanceReservationTransition>,
+    #[serde(default)]
+    pub execution_transition: Option<MaintenanceExecutionTransition>,
+    #[serde(default)]
+    pub restart_readmission_status: Option<MaintenanceReadmissionStatus>,
+    #[serde(default = "MaintenanceForegroundImpact::none")]
+    pub foreground_impact: MaintenanceForegroundImpact,
     pub resume_count: u64,
 }
 

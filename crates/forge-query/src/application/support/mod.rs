@@ -1,11 +1,12 @@
 mod registry;
 mod report;
 
+pub use crate::query_context::QueryContextDeferredScopeMarker;
 pub use registry::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
 };
 pub use report::{
-    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
-    ForgeQuerySupportSectionPosture, QueryContextDeferredScopeMarker,
+    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryContextSupportProfile,
+    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
 };

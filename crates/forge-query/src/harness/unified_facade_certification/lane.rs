@@ -20,6 +20,7 @@ pub enum UnifiedFacadeFailureClass {
     MissingOwningSection,
     InvalidComposedSupportPosture,
     DeferredCapability,
+    QueryContextBroadeningDenied,
     InvalidConfiguration,
 }
 
@@ -43,6 +44,11 @@ pub struct UnifiedFacadeLane {
     pub query_context_basis_families: Vec<String>,
     pub query_context_comparison_families: Vec<String>,
     pub query_context_deferred_scope_markers: Vec<String>,
+    pub identity_evolution_support_profile_digest: String,
+    pub identity_evolution_traversal_families: Vec<String>,
+    pub identity_evolution_deferred_scope_markers: Vec<String>,
+    pub identity_evolution_result_digest: String,
+    pub identity_evolution_branch_locality_digest: String,
     pub basis_result_digest: String,
     pub diff_result_digest: String,
     pub query_context_replay_digest: String,
@@ -93,6 +99,11 @@ impl UnifiedFacadeLane {
             query_context_basis_families: Vec::new(),
             query_context_comparison_families: Vec::new(),
             query_context_deferred_scope_markers: Vec::new(),
+            identity_evolution_support_profile_digest: String::new(),
+            identity_evolution_traversal_families: Vec::new(),
+            identity_evolution_deferred_scope_markers: Vec::new(),
+            identity_evolution_result_digest: String::new(),
+            identity_evolution_branch_locality_digest: String::new(),
             basis_result_digest: String::new(),
             diff_result_digest: String::new(),
             query_context_replay_digest: String::new(),
@@ -139,6 +150,28 @@ impl UnifiedFacadeLane {
         self
     }
 
+    pub fn with_identity_evolution_support_profile(
+        mut self,
+        profile_digest: String,
+        traversal_families: Vec<String>,
+        deferred_scope_markers: Vec<String>,
+    ) -> Self {
+        self.identity_evolution_support_profile_digest = profile_digest;
+        self.identity_evolution_traversal_families = traversal_families;
+        self.identity_evolution_deferred_scope_markers = deferred_scope_markers;
+        self
+    }
+
+    pub fn with_identity_evolution_result_digests(
+        mut self,
+        result_digest: String,
+        branch_locality_digest: String,
+    ) -> Self {
+        self.identity_evolution_result_digest = result_digest;
+        self.identity_evolution_branch_locality_digest = branch_locality_digest;
+        self
+    }
+
     pub fn with_query_context_result_digests(
         mut self,
         basis_result_digest: String,
@@ -161,6 +194,8 @@ pub struct UnifiedFacadeRejection {
     pub unsupported_composition_denial_count: usize,
     pub deferred_capability_denial_count: usize,
     pub config_validation_denial_count: usize,
+    pub query_context_denial_width: usize,
+    pub query_context_broadening_denial_count: usize,
 }
 
 impl UnifiedFacadeRejection {
@@ -189,6 +224,8 @@ impl UnifiedFacadeRejection {
                 .unsupported_composition_denial_count(),
             deferred_capability_denial_count: error.counters().deferred_capability_denial_count(),
             config_validation_denial_count: 0,
+            query_context_denial_width: 0,
+            query_context_broadening_denial_count: 0,
             counter_snapshot_digest: digest_parts(&[
                 format!("lookups:{}", error.counters().capability_lookup_count()),
                 format!(
@@ -203,6 +240,8 @@ impl UnifiedFacadeRejection {
                     "deferred_denials:{}",
                     error.counters().deferred_capability_denial_count()
                 ),
+                "query_context_denial_width:0".to_string(),
+                "query_context_broadening_denials:0".to_string(),
             ]),
         }
     }
@@ -217,6 +256,8 @@ impl UnifiedFacadeRejection {
             unsupported_composition_denial_count: 0,
             deferred_capability_denial_count: 0,
             config_validation_denial_count: error.counters().config_validation_denial_count(),
+            query_context_denial_width: 0,
+            query_context_broadening_denial_count: 0,
             counter_snapshot_digest: digest_parts(&[
                 format!(
                     "validation_denials:{}",
@@ -229,6 +270,53 @@ impl UnifiedFacadeRejection {
                 "lookups:0".to_string(),
                 "unsupported_denials:0".to_string(),
                 "deferred_denials:0".to_string(),
+                "query_context_denial_width:0".to_string(),
+                "query_context_broadening_denials:0".to_string(),
+            ]),
+        }
+    }
+
+    pub fn from_query_context_error(
+        facade_counters: &crate::facade::ForgeQueryFacadeCounters,
+        error: &crate::query_context::QueryContextAdmissionError,
+    ) -> Self {
+        Self {
+            failure_class: match error.failure_class() {
+                crate::query_context::QueryContextAdmissionFailureClass::ComparisonBroadeningRequired => {
+                    UnifiedFacadeFailureClass::QueryContextBroadeningDenied
+                }
+                other => panic!("unexpected query-context rejection for unified facade row: {other:?}"),
+            },
+            capability_lookup_count: facade_counters.capability_lookup_count(),
+            configuration_section_resolution_count: facade_counters
+                .configuration_section_resolution_count(),
+            unsupported_composition_denial_count: facade_counters
+                .unsupported_composition_denial_count(),
+            deferred_capability_denial_count: facade_counters.deferred_capability_denial_count(),
+            config_validation_denial_count: 0,
+            query_context_denial_width: error.counters().denial_width(),
+            query_context_broadening_denial_count: error
+                .counters()
+                .comparison_broadening_denial_count(),
+            counter_snapshot_digest: digest_parts(&[
+                format!("lookups:{}", facade_counters.capability_lookup_count()),
+                format!(
+                    "section_resolutions:{}",
+                    facade_counters.configuration_section_resolution_count()
+                ),
+                format!(
+                    "unsupported_denials:{}",
+                    facade_counters.unsupported_composition_denial_count()
+                ),
+                format!(
+                    "deferred_denials:{}",
+                    facade_counters.deferred_capability_denial_count()
+                ),
+                format!("query_context_denial_width:{}", error.counters().denial_width()),
+                format!(
+                    "query_context_broadening_denials:{}",
+                    error.counters().comparison_broadening_denial_count()
+                ),
             ]),
         }
     }

@@ -11,5 +11,6 @@ pub(crate) mod records;
 mod retention;
 mod sqlite;
 mod state;
+mod tiering;
 
 pub use facade::{StoreBackend, StoreBackendMode};

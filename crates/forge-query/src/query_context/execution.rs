@@ -2,7 +2,7 @@ use crate::collection::{
     AggregateFunctionFamily, CollectionResultFamily, DerivedFieldComputationClass,
 };
 use crate::execution::execute_preflight_bundle;
-use crate::identity::ResultDigest;
+use crate::identity::{hash_parts, ResultDigest};
 
 use super::basis::{
     AdmittedQueryBasisContext, HistoricalAdmissionClass, QueryContextAdmissionError,
@@ -67,6 +67,7 @@ pub struct QueryContextExecutionArtifact {
     query_digest: String,
     basis_digest: String,
     result_digest: String,
+    result_shape_digest: String,
     payload: Vec<String>,
     family: QueryContextExecutionFamily,
     cost_class: QueryContextCostClass,
@@ -94,6 +95,10 @@ impl QueryContextExecutionArtifact {
 
     pub fn result_digest(&self) -> &str {
         &self.result_digest
+    }
+
+    pub fn result_shape_digest(&self) -> &str {
+        &self.result_shape_digest
     }
 
     pub fn payload(&self) -> &[String] {
@@ -171,6 +176,12 @@ pub fn execute_query_basis_context(
                 query_digest: execution.report().query_digest().as_str().to_string(),
                 basis_digest: execution.report().basis_digest().as_str().to_string(),
                 result_digest: execution.report().result_digest().as_str().to_string(),
+                result_shape_digest: preflight
+                    .plan()
+                    .result_shape()
+                    .canonical_result_shape_digest()
+                    .as_str()
+                    .to_string(),
                 payload: execution.payload().to_vec(),
                 family,
                 cost_class: context.cost_class().clone(),
@@ -222,6 +233,15 @@ pub fn execute_query_basis_context(
                         QueryContextCounters::for_denial(true, false),
                     )
                 })?;
+            if historical_admission_class == HistoricalAdmissionClass::RuntimeReconstruction
+                && query_preflight.plan().result_shape().binding_count() > 1
+            {
+                return Err(QueryContextAdmissionError::new(
+                    QueryContextAdmissionFailureClass::HistoricalPathTooBroadDenied,
+                    "historical execution denies reconstruction lanes that would broaden beyond the admitted narrow result shape",
+                    QueryContextCounters::for_historical_broadening_denial(),
+                ));
+            }
             let payload = synthetic_payload(
                 query_preflight,
                 context.basis_digest(),
@@ -239,6 +259,12 @@ pub fn execute_query_basis_context(
                 query_digest: context.query_digest().to_string(),
                 basis_digest: context.basis_digest().to_string(),
                 result_digest: result_digest.as_str().to_string(),
+                result_shape_digest: query_preflight
+                    .plan()
+                    .result_shape()
+                    .canonical_result_shape_digest()
+                    .as_str()
+                    .to_string(),
                 payload,
                 family: QueryContextExecutionFamily::HistoricalMaterialized,
                 cost_class: context.cost_class().clone(),
@@ -301,6 +327,14 @@ pub fn execute_query_basis_context(
                 query_digest: context.query_digest().to_string(),
                 basis_digest: context.basis_digest().to_string(),
                 result_digest: result_digest.as_str().to_string(),
+                result_shape_digest: hash_parts(&[
+                    format!(
+                        "preview_query:{}",
+                        foundation.validated_query_digest().as_str()
+                    ),
+                    format!("shape_check_width:{}", foundation.shape_check_width()),
+                    "preview_query_context_shape".to_string(),
+                ]),
                 payload,
                 family: QueryContextExecutionFamily::PreviewDerivedHistorical,
                 cost_class: context.cost_class().clone(),

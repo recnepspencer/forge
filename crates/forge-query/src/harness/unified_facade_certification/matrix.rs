@@ -9,8 +9,9 @@ use super::row_catalog::{
 use crate::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus,
     ForgeQueryConfig, ForgeQueryConfigSectionFamily, ForgeQueryQueryConfig, ForgeQuerySignalConfig,
-    PreviewEvaluationClass, PreviewSessionQueryContext, QueryBasisContextRequest,
-    QueryContextBindingSource, QueryContextDeferredScopeMarker, WorkflowAuthorityTargetFamily,
+    IdentityEvolutionComparisonBasisFamily, IdentityEvolutionQueryContext,
+    LineageTraversalDescriptor, PreviewEvaluationClass, PreviewSessionQueryContext,
+    QueryBasisContextRequest, QueryContextBindingSource, WorkflowAuthorityTargetFamily,
     WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily,
     WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
 };
@@ -25,12 +26,14 @@ impl MilestoneFivePointSixUnifiedFacadeCertificationAdapter {
     pub fn unified_facade_and_configuration_boundary_test() -> UnifiedFacadeCertificationMatrix {
         let runtime_query = query_read_lane();
         let query_context = query_context_lane();
+        let identity_evolution = identity_evolution_lane();
         let runtime_live = live_lane();
         let preview = preview_lane();
         let workflow = workflow_lane();
         let historical = historical_lane();
         let config_section = workflow_section_lane();
         let support_sync = support_sync_lane();
+        let identity_support_sync = identity_evolution_support_sync_lane();
 
         UnifiedFacadeCertificationMatrix {
             suite_name: "Unified Facade And Configuration Boundary Test",
@@ -41,12 +44,14 @@ impl MilestoneFivePointSixUnifiedFacadeCertificationAdapter {
                         spec,
                         &runtime_query,
                         &query_context,
+                        &identity_evolution,
                         &runtime_live,
                         &preview,
                         &workflow,
                         &historical,
                         &config_section,
                         &support_sync,
+                        &identity_support_sync,
                     )
                 })
                 .collect(),
@@ -56,6 +61,61 @@ impl MilestoneFivePointSixUnifiedFacadeCertificationAdapter {
                 .collect(),
         }
     }
+}
+
+fn identity_evolution_lane() -> UnifiedFacadeLane {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let preflight = execution_preflights::direct_runtime_preflight();
+    let support = facade.support_matrix();
+    let report = facade.support_report();
+    let identity = facade
+        .identity_evolution_capability()
+        .expect("identity evolution should admit");
+    let admitted = identity
+        .capability()
+        .admit_query(IdentityEvolutionQueryContext::lineage_traversal(
+            crate::identity::CanonicalQueryDigest::from_parts(&[format!(
+                "unified-facade-identity-evolution:{}",
+                preflight.plan().query().validated_query_digest().as_str()
+            )]),
+            crate::identity::BasisDigest::from_parts(&[
+                "unified-facade-identity-evolution".to_string(),
+            ]),
+            LineageTraversalDescriptor::direct_replacement("entity:replacement"),
+        ))
+        .expect("identity evolution should admit a direct replacement query");
+    let execution = identity
+        .capability()
+        .execute_query(&admitted)
+        .expect("identity evolution should execute");
+    UnifiedFacadeLane::new(
+        preflight
+            .plan()
+            .query()
+            .validated_query_digest()
+            .as_str()
+            .to_string(),
+        preflight.plan().query().plan_digest().as_str().to_string(),
+        support.support_matrix_digest().to_string(),
+        support.capability_registry().registry_digest().to_string(),
+        identity.counters(),
+        ForgeQueryCapabilityFamily::IdentityEvolution,
+        identity.descriptor().status(),
+        identity.descriptor().config_section(),
+    )
+    .with_report_digest(
+        report.report_digest().to_string(),
+        report.counters().support_report_generation_count(),
+    )
+    .with_identity_evolution_result_digests(
+        execution.result_digest().to_string(),
+        execution
+            .result_bundle()
+            .metadata()
+            .branch_locality_digest()
+            .as_str()
+            .to_string(),
+    )
 }
 
 fn query_read_lane() -> UnifiedFacadeLane {
@@ -226,7 +286,10 @@ fn query_context_lane() -> UnifiedFacadeLane {
     )
     .with_query_context_result_digests(
         basis_bundle.metadata().result_digest().to_string(),
-        diff_bundle.metadata().comparison_result_digest().to_string(),
+        diff_bundle
+            .metadata()
+            .comparison_result_digest()
+            .to_string(),
         diff_bundle.replay_digest().to_string(),
     )
 }
@@ -446,22 +509,105 @@ fn support_sync_lane() -> UnifiedFacadeLane {
     )
 }
 
+fn identity_evolution_support_sync_lane() -> UnifiedFacadeLane {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let preflight = execution_preflights::direct_runtime_preflight();
+    let support = facade.support_matrix();
+    let report = facade.support_report();
+    let identity = facade
+        .identity_evolution_capability()
+        .expect("identity evolution capability should be admitted in the unified facade");
+    let profile = report
+        .identity_evolution_support_profile()
+        .expect("identity evolution support profile should be present");
+    let admitted = identity
+        .capability()
+        .admit_query(IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            crate::identity::CanonicalQueryDigest::from_parts(&[format!(
+                "identity-evolution-support-sync:{}",
+                preflight.plan().query().validated_query_digest().as_str()
+            )]),
+            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+            crate::identity::BasisDigest::from_parts(&["identity-left".to_string()]),
+            crate::identity::BasisDigest::from_parts(&["identity-right".to_string()]),
+            crate::facade::CorrespondenceIdentityComparison::advisory_between(
+                "entity:left",
+                "entity:right",
+            ),
+        ))
+        .expect("identity evolution comparison should admit");
+    let execution = identity
+        .capability()
+        .execute_query(&admitted)
+        .expect("identity evolution comparison should execute");
+    UnifiedFacadeLane::new(
+        preflight
+            .plan()
+            .query()
+            .validated_query_digest()
+            .as_str()
+            .to_string(),
+        preflight.plan().query().plan_digest().as_str().to_string(),
+        support.support_matrix_digest().to_string(),
+        support.capability_registry().registry_digest().to_string(),
+        identity.counters(),
+        ForgeQueryCapabilityFamily::IdentityEvolution,
+        identity.descriptor().status(),
+        identity.descriptor().config_section(),
+    )
+    .with_report_digest(
+        report.report_digest().to_string(),
+        report.counters().support_report_generation_count(),
+    )
+    .with_identity_evolution_support_profile(
+        profile.profile_digest().to_string(),
+        profile
+            .admitted_traversal_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        profile
+            .deferred_scope_markers()
+            .iter()
+            .map(|marker| marker.as_str().to_string())
+            .collect(),
+    )
+    .with_identity_evolution_result_digests(
+        execution.result_digest().to_string(),
+        execution
+            .result_bundle()
+            .metadata()
+            .branch_locality_digest()
+            .as_str()
+            .to_string(),
+    )
+}
+
 fn canonical_row(
     spec: &UnifiedFacadeCanonicalRowSpec,
     runtime_query: &UnifiedFacadeLane,
     query_context: &UnifiedFacadeLane,
+    identity_evolution: &UnifiedFacadeLane,
     runtime_live: &UnifiedFacadeLane,
     preview: &UnifiedFacadeLane,
     workflow: &UnifiedFacadeLane,
     historical: &UnifiedFacadeLane,
     config_section: &UnifiedFacadeLane,
     support_sync: &UnifiedFacadeLane,
+    identity_support_sync: &UnifiedFacadeLane,
 ) -> CanonicalCertificationRow<UnifiedFacadePerturbationClass, UnifiedFacadeLane> {
     let (control_lane, hostile_lane) = match spec.row_name {
         "unified-query-read-capability" => (runtime_query.clone(), runtime_query.clone()),
         "unified-query-context-capability" => (query_context.clone(), query_context.clone()),
-        "unified-query-context-basis-result-bundle" => (query_context.clone(), query_context.clone()),
-        "unified-query-context-diff-result-bundle" => (query_context.clone(), query_context.clone()),
+        "unified-identity-evolution-capability" => {
+            (identity_evolution.clone(), identity_evolution.clone())
+        }
+        "unified-query-context-basis-result-bundle" => {
+            (query_context.clone(), query_context.clone())
+        }
+        "unified-query-context-diff-result-bundle" => {
+            (query_context.clone(), query_context.clone())
+        }
         "unified-live-capability" => (runtime_live.clone(), runtime_live.clone()),
         "unified-preview-capability" => (preview.clone(), preview.clone()),
         "unified-workflow-capability" => (workflow.clone(), workflow.clone()),
@@ -469,6 +615,9 @@ fn canonical_row(
         "unified-config-section-explicitness" => (runtime_query.clone(), config_section.clone()),
         "capability-support-metadata-sync" => (support_sync.clone(), support_sync.clone()),
         "query-context-support-profile-sync" => (support_sync.clone(), support_sync.clone()),
+        "identity-evolution-support-profile-sync" => {
+            (identity_support_sync.clone(), identity_support_sync.clone())
+        }
         other => panic!("unexpected unified facade canonical row {other}"),
     };
 
@@ -534,20 +683,57 @@ fn rejection_row(
             .expect_err("invalid unified config should deny before facade construction");
             UnifiedFacadeRejection::from_config_error(&error)
         }
-        "broad-collection-diff-deferred" => UnifiedFacadeRejection {
-            failure_class: UnifiedFacadeFailureClass::DeferredCapability,
-            counter_snapshot_digest: crate::harness::certification::digest_parts(&[
-                "lookups:1".to_string(),
-                "section_resolutions:1".to_string(),
-                "unsupported_denials:0".to_string(),
-                "deferred_denials:1".to_string(),
-            ]),
-            capability_lookup_count: 1,
-            configuration_section_resolution_count: 1,
-            unsupported_composition_denial_count: 0,
-            deferred_capability_denial_count: 1,
-            config_validation_denial_count: 0,
-        },
+        "broad-collection-diff-denied" => {
+            let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+            let contexts = facade
+                .query_context_capability()
+                .expect("query context capability should admit");
+            let left_preflight =
+                execution_preflights::ordered_collection_without_traversal_preflight();
+            let right_preflight =
+                execution_preflights::alternate_basis_ordered_collection_preflight();
+            let left = contexts
+                .capability()
+                .admit_basis_context(
+                    contexts
+                        .capability()
+                        .bind_basis_context(
+                            QueryBasisContextRequest::current_branch_head(),
+                            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+                        )
+                        .expect("left context should bind"),
+                )
+                .expect("left context should admit");
+            let right = contexts
+                .capability()
+                .admit_basis_context(
+                    contexts
+                        .capability()
+                        .bind_basis_context(
+                            QueryBasisContextRequest::branch_head("branch:ordered-collection"),
+                            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+                        )
+                        .expect("right context should bind"),
+                )
+                .expect("right context should admit");
+            let diff = contexts
+                .capability()
+                .bind_diff_context(&left, &right)
+                .expect("diff context should bind");
+            let left_execution = contexts
+                .capability()
+                .execute_basis_context(&left)
+                .expect("left context should execute");
+            let right_execution = contexts
+                .capability()
+                .execute_basis_context(&right)
+                .expect("right context should execute");
+            let error = contexts
+                .capability()
+                .shape_diff_result_bundle(&diff, &left_execution, &right_execution)
+                .expect_err("broad collection diff should deny through the unified facade");
+            UnifiedFacadeRejection::from_query_context_error(contexts.counters(), &error)
+        }
         other => panic!("unexpected unified facade rejection row {other}"),
     };
 

@@ -6,8 +6,8 @@ pub use capability::{
     CapabilityAdmissionDecision, CapabilityAdmissionError, CapabilityAdmissionFailureClass,
     ForgeQueryApplicationFacade, ForgeQueryCapabilityResolution, ForgeQueryFacadeCounters,
     ForgeQueryFacadeError, ForgeQueryFacadeFailureClass, HistoricalEvaluationCapability,
-    LiveQueryCapability, PreviewSessionCapability, QueryContextCapability, QueryReadCapability,
-    WorkflowOrchestrationCapability,
+    IdentityEvolutionCapability, LiveQueryCapability, PreviewSessionCapability,
+    QueryContextCapability, QueryReadCapability, WorkflowOrchestrationCapability,
 };
 pub use config::{
     ConfigurationAdmissionError, ConfigurationAdmissionFailureClass, ForgeQueryConfig,
@@ -18,9 +18,10 @@ pub use config::{
 };
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
-    ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
-    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport,
-    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus,
+    ForgeQueryIdentityEvolutionSupportProfile, ForgeQueryQueryContextSupportProfile,
+    ForgeQuerySupportMatrix, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
+    ForgeQuerySupportSectionPosture,
     QueryContextDeferredScopeMarker,
 };
 

@@ -11,6 +11,7 @@ mod live_query;
 mod maintenance;
 mod snapshots;
 mod support;
+mod tiering;
 
 use crate::backend::{StoreBackend, StoreBackendMode};
 use crate::failure::StoreError;

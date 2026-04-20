@@ -14,6 +14,7 @@ mod publication;
 mod recovery;
 mod retention;
 mod snapshot;
+mod tiering;
 mod wal;
 
 pub use authority::{
@@ -52,8 +53,11 @@ pub use evidence::{
     AbsentModeLaneEvidence, CanonicalizationMetrics, CheckpointAuthorityReport,
     Milestone10ArtifactReport, Milestone10CertificationBundle, Milestone10CertificationSummary,
     Milestone10ComplexityPathStatus, Milestone10ComplexitySurface, Milestone10CounterContract,
-    Milestone10_5ComplexityPathStatus, Milestone10_5ComplexitySurface,
-    Milestone10_5CounterContract, Milestone10_5MaintenanceReport, Milestone1CertificationBundle,
+    Milestone11ComplexityPathStatus, Milestone11ComplexitySurface, Milestone11CounterContract,
+    Milestone13ComplexityPathStatus, Milestone13ComplexitySurface, Milestone13CounterContract,
+    Milestone11LocalityScopeCount, Milestone11MaintenanceReport,
+    Milestone11ReservationFamilyCount, Milestone11SchedulerTopologyReport,
+    Milestone11WorkClassCount, Milestone1CertificationBundle,
     Milestone1SemanticCertificationEvidence, Milestone2CertificationBundle,
     Milestone35CertificationBundle, Milestone36CertificationBundle, Milestone3CertificationBundle,
     Milestone4CertificationBundle, Milestone5CertificationBundle, Milestone5DeltaStorageReport,
@@ -109,12 +113,27 @@ pub use live_query::{
 };
 pub use maintenance::{
     AdmittedMaintenanceDeclaration, AuthoritativeReclaimMaintenanceDeclaration,
-    CompactionMaintenanceDeclaration, CompletedMaintenance, FailedMaintenance,
+    AdmittedMaintenanceWork, BackgroundPacedMaintenancePlan, BackgroundReservationFamily,
+    CancelledMaintenanceWork, CompactionMaintenanceDeclaration, CompletedMaintenance,
+    CpuBudgetUnits, DeferredMaintenancePlan, DiscoveredMaintenanceWork,
+    EscalatedMaintenancePlan, ExecutingMaintenanceWork, FailedMaintenance,
+    ForegroundLatencyGuard, ForegroundReservationFamily, ForegroundReservationWitness,
+    ForegroundReservedMaintenancePlan, FreshnessWindow, IoBudgetUnits, LocalityScopeToken,
     MaintenanceAdmissionReceipt, MaintenanceAdmissionRejection, MaintenanceBatch,
-    MaintenanceBatchClass, MaintenanceBatchSummary, MaintenanceDeclaration,
-    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceExecutionStatus,
-    MaintenanceStatusReport, RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
-    RetentionMaintenanceDeclaration, StartedMaintenance,
+    MaintenanceBatchClass, MaintenanceBatchSummary, MaintenanceDebtFamily,
+    MaintenanceDeclaration, MaintenanceDeclarationClass, MaintenanceDeclarationId,
+    MaintenanceDescriptorDemand, MaintenanceEquivalenceKey, MaintenanceEscalationDecision,
+    MaintenanceExecutionPosture, MaintenanceExecutionStatus, MaintenanceExecutionTransition,
+    MaintenanceFailureKind, MaintenanceForegroundImpact,
+    MaintenanceLocalityScope, MaintenancePlanFamily, MaintenanceQuantum,
+    MaintenanceReadmissionStatus,
+    MaintenanceReservationFamily, MaintenanceStatusReport, MaintenanceWorkClass,
+    MaintenanceWorkDescriptor, MaintenanceWorkIdentity, MemoryBudgetUnits, PacingWindow,
+    PlanGeneration, PublicationSlotBudget, QuantumBudgetReceipt,
+    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
+    RecoveredMaintenanceDescriptor, ReservedMaintenanceWork, RestartMaintenanceAdmission,
+    RetentionMaintenanceDeclaration, MaintenanceReservationTransition, SupersessionEpoch,
+    SupersededMaintenanceWitness, TierWorkContainerClass,
 };
 pub use media::{DurabilityBarrierClass, DurableBackendFamily, DurableMediaReport};
 pub use modes::{
@@ -164,6 +183,28 @@ pub use snapshot::{
     PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
     SnapshotReadMode, SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
     SnapshotRestorePlan, SnapshotRestoreRequest,
+};
+pub use tiering::{
+    AdaptivePlacementDebtMarker, AuthoritativeTierMovePlan, AuthoritativeTierMoveUnit,
+    AuthoritativeTierResidency, AuthoritativePlacementPlanningReport, BroadenedRecallPlan,
+    CanonicalResidencyManifest, ColdDerivedFamilyPolicy, ColdRecallLease, ColdRecallTierPath,
+    ConservativePlacementPolicy, DeltaRecallUnit, DerivedTierMovePlan,
+    DerivedPlacementPlanningReport, DerivedTierMoveUnit, DerivedTierResidency,
+    FamilyLocalPlacementPlan, FamilyLocalRecallUnit,
+    HotnessClassificationVerdict, LayoutFamilyRecallUnit, PlacementArtifactFamily,
+    PlacementBoundArtifactRef, PlacementBudgetClass, PlacementDemandSummary,
+    PlacementExecutionOrigin, PlacementNonAuthorityWitness, PlacementObservationScopeClass,
+    PlacementObservationUnit,
+    PlacementPolicyClass, PlacementResolvedReadHandle, PlacementStabilityPlan,
+    ReadPlacementPlanningReport, RecallAmplificationBudget, RecallBreadthSummary,
+    RecallCoalescingKey, RecallCompletionWitness, RecallCostClass, RecallEligibilityWitness,
+    RecallPreparationPlan, ResidentReadLease, RetainedRangePlacementPlan,
+    RetiredTierReplica, SchedulerPlacementWorkToken, SnapshotRecallUnit,
+    TIERING_FAMILY_VERSION, TierCoolingCandidate, TierCutoverWitness,
+    TierLocalityFootprint, TierMoveBreadthSummary, TierMoveRejection,
+    TierPlacementEvidence, TierPromotionCandidate, TierResidenceClass,
+    TierTransferIntent, TransferredTierReplica, VerifiedTierReplica,
+    WorkingSetDebtSummary, WorkingSetObservationWindow,
 };
 pub use wal::{DurableMutationId, DurablePublicationPhase, RecoveryDecisionClass};
 

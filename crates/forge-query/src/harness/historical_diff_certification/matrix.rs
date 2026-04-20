@@ -14,12 +14,12 @@ use crate::facade::{
     HistoricalPathReuseDescriptor, PreviewEvaluationClass, PreviewSessionQueryContext,
 };
 use crate::harness::certification::{
-    digest_parts, CanonicalCertificationRow, ParityAnchor, RejectionCertificationRow,
+    CanonicalCertificationRow, ParityAnchor, RejectionCertificationRow,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::query_context::{
-    admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
-    bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
+    admit_query_basis_context, bind_diff_query_context, bind_query_basis_context,
+    build_query_basis_result_bundle, build_query_diff_result_bundle, execute_query_basis_context,
     reject_raw_storage_delta_access, shape_query_diff_change_set, QueryBasisContextRequest,
     QueryContextAdmissionError, QueryContextBindingSource,
 };
@@ -37,7 +37,7 @@ impl MilestoneSixHistoricalDiffCertificationAdapter {
         let current_historical_diff = current_historical_diff_lane();
 
         HistoricalDiffCertificationMatrix {
-            suite_name: "Branch-Scoped, Historical, And Diff Query Context Test",
+            suite_name: "Historical / Diff / Basis Parity Test",
             rows: HISTORICAL_DIFF_CANONICAL_ROW_SPECS
                 .iter()
                 .map(|spec| {
@@ -72,9 +72,10 @@ fn current_lane() -> HistoricalDiffLane {
     .expect("current context should admit");
     let result = execute_query_basis_context(&context)
         .expect("current query-context execution should succeed");
-    let metadata = attach_query_basis_metadata(&context, &result).expect("metadata should shape");
+    let bundle = build_query_basis_result_bundle(&context, result)
+        .expect("basis result bundle should shape");
 
-    HistoricalDiffLane::from_basis_metadata(&metadata, context.counters())
+    HistoricalDiffLane::from_basis_result_bundle(&bundle)
 }
 
 fn branch_lane() -> HistoricalDiffLane {
@@ -89,9 +90,10 @@ fn branch_lane() -> HistoricalDiffLane {
     .expect("branch context should admit");
     let result = execute_query_basis_context(&context)
         .expect("branch query-context execution should succeed");
-    let metadata = attach_query_basis_metadata(&context, &result).expect("metadata should shape");
+    let bundle = build_query_basis_result_bundle(&context, result)
+        .expect("basis result bundle should shape");
 
-    HistoricalDiffLane::from_basis_metadata(&metadata, context.counters())
+    HistoricalDiffLane::from_basis_result_bundle(&bundle)
 }
 
 fn historical_lane() -> HistoricalDiffLane {
@@ -128,9 +130,10 @@ fn historical_lane() -> HistoricalDiffLane {
     .expect("historical context should admit");
     let result = execute_query_basis_context(&context)
         .expect("historical query-context execution should succeed");
-    let shaped = attach_query_basis_metadata(&context, &result).expect("metadata should shape");
+    let bundle = build_query_basis_result_bundle(&context, result)
+        .expect("basis result bundle should shape");
 
-    HistoricalDiffLane::from_basis_metadata(&shaped, context.counters())
+    HistoricalDiffLane::from_basis_result_bundle(&bundle)
 }
 
 fn preview_lane() -> HistoricalDiffLane {
@@ -159,10 +162,10 @@ fn preview_lane() -> HistoricalDiffLane {
     .expect("preview-derived context should admit");
     let result = execute_query_basis_context(&context)
         .expect("preview-derived query-context execution should succeed");
-    let metadata = attach_query_basis_metadata(&context, &result)
-        .expect("preview-derived metadata should shape");
+    let bundle = build_query_basis_result_bundle(&context, result)
+        .expect("basis result bundle should shape");
 
-    HistoricalDiffLane::from_basis_metadata(&metadata, context.counters())
+    HistoricalDiffLane::from_basis_result_bundle(&bundle)
 }
 
 fn branch_diff_lane() -> HistoricalDiffLane {
@@ -191,90 +194,16 @@ fn branch_diff_lane() -> HistoricalDiffLane {
         execute_query_basis_context(&right).expect("right query-context execution should succeed");
     let change_set = shape_query_diff_change_set(&diff, &left_result, &right_result)
         .expect("diff change-set should shape");
-    let metadata = attach_diff_query_metadata(&diff, &left_result, &right_result, &change_set)
-        .expect("diff metadata should shape");
+    let bundle = build_query_diff_result_bundle(&diff, change_set, &left_result, &right_result)
+        .expect("diff result bundle should shape");
 
-    HistoricalDiffLane {
-        query_digest: metadata.query_digest().to_string(),
-        basis_digest: metadata.left_basis_digest().to_string(),
-        result_digest: change_set.result_digest().to_string(),
-        replay_digest: digest_parts(&[
-            format!("query:{}", metadata.query_digest()),
-            format!("left_basis:{}", metadata.left_basis_digest()),
-            format!("right_basis:{}", metadata.right_basis_digest()),
-            format!("diff_result:{}", change_set.result_digest()),
-            format!("change_rows:{}", change_set.rows().len()),
-            format!("drift:{}", metadata.drift_outcome().as_str()),
-        ]),
-        basis_family: left.family().as_str().to_string(),
-        cost_class: metadata.cost_class().as_str().to_string(),
-        budget_class: metadata.budget_class().as_str().to_string(),
-        historical_admission_class: "none".to_string(),
-        comparison_family: metadata.comparison_basis_family().as_str().to_string(),
-        prediction_drift_outcome: metadata.prediction_drift_outcome().as_str().to_string(),
-        exact_counter_values: vec![
-            format!(
-                "comparison_lookups:{}",
-                diff.counters().comparison_basis_lookup_count()
-            ),
-            format!("scope_width:{}", diff.counters().comparison_scope_width()),
-            format!("row_width:{}", diff.counters().comparison_row_width()),
-            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
-            format!("binding_width:{}", diff.counters().basis_binding_width()),
-            format!(
-                "historical_width:{}",
-                diff.counters().historical_lookup_width()
-            ),
-            format!("denial_width:{}", diff.counters().denial_width()),
-            format!(
-                "comparison_broadening_denials:{}",
-                diff.counters().comparison_broadening_denial_count()
-            ),
-            format!(
-                "basis_rediscovery:{}",
-                diff.counters().basis_rediscovery_count()
-            ),
-            format!(
-                "historical_path_rediscovery:{}",
-                diff.counters().historical_path_rediscovery_count()
-            ),
-            format!(
-                "comparison_family_rediscovery:{}",
-                diff.counters().comparison_family_rediscovery_count()
-            ),
-        ],
-        counter_snapshot_digest: digest_parts(&[
-            format!(
-                "comparison_lookups:{}",
-                diff.counters().comparison_basis_lookup_count()
-            ),
-            format!("scope_width:{}", diff.counters().comparison_scope_width()),
-            format!("row_width:{}", diff.counters().comparison_row_width()),
-            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
-            format!("binding_width:{}", diff.counters().basis_binding_width()),
-            format!(
-                "historical_width:{}",
-                diff.counters().historical_lookup_width()
-            ),
-            format!("denial_width:{}", diff.counters().denial_width()),
-            format!(
-                "comparison_broadening_denials:{}",
-                diff.counters().comparison_broadening_denial_count()
-            ),
-            format!(
-                "basis_rediscovery:{}",
-                diff.counters().basis_rediscovery_count()
-            ),
-            format!(
-                "historical_path_rediscovery:{}",
-                diff.counters().historical_path_rediscovery_count()
-            ),
-            format!(
-                "comparison_family_rediscovery:{}",
-                diff.counters().comparison_family_rediscovery_count()
-            ),
-        ]),
-    }
+    HistoricalDiffLane::from_diff_result_bundle(
+        &bundle,
+        left_result.counters().context_execution_count(),
+        right_result.counters().context_execution_count(),
+        left_result.counters().executor_rediscovery_count()
+            + right_result.counters().executor_rediscovery_count(),
+    )
 }
 
 fn current_historical_diff_lane() -> HistoricalDiffLane {
@@ -325,66 +254,17 @@ fn current_historical_diff_lane() -> HistoricalDiffLane {
         .expect("historical query-context execution should succeed");
     let change_set = shape_query_diff_change_set(&diff, &current_result, &historical_result)
         .expect("current-to-historical diff change-set should shape");
-    let diff_metadata =
-        attach_diff_query_metadata(&diff, &current_result, &historical_result, &change_set)
-            .expect("current-to-historical diff metadata should shape");
+    let bundle =
+        build_query_diff_result_bundle(&diff, change_set, &current_result, &historical_result)
+            .expect("current-to-historical diff result bundle should shape");
 
-    HistoricalDiffLane {
-        query_digest: diff_metadata.query_digest().to_string(),
-        basis_digest: diff_metadata.left_basis_digest().to_string(),
-        result_digest: change_set.result_digest().to_string(),
-        replay_digest: digest_parts(&[
-            format!("query:{}", diff_metadata.query_digest()),
-            format!("left_basis:{}", diff_metadata.left_basis_digest()),
-            format!("right_basis:{}", diff_metadata.right_basis_digest()),
-            format!("diff_result:{}", change_set.result_digest()),
-            format!("change_rows:{}", change_set.rows().len()),
-            format!("drift:{}", diff_metadata.drift_outcome().as_str()),
-        ]),
-        basis_family: current.family().as_str().to_string(),
-        cost_class: diff_metadata.cost_class().as_str().to_string(),
-        budget_class: diff_metadata.budget_class().as_str().to_string(),
-        historical_admission_class: "runtime_retained".to_string(),
-        comparison_family: diff_metadata.comparison_basis_family().as_str().to_string(),
-        prediction_drift_outcome: diff_metadata
-            .prediction_drift_outcome()
-            .as_str()
-            .to_string(),
-        exact_counter_values: vec![
-            format!(
-                "comparison_lookups:{}",
-                diff.counters().comparison_basis_lookup_count()
-            ),
-            format!("scope_width:{}", diff.counters().comparison_scope_width()),
-            format!("row_width:{}", diff.counters().comparison_row_width()),
-            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
-            format!(
-                "comparison_broadening_denials:{}",
-                diff.counters().comparison_broadening_denial_count()
-            ),
-            format!(
-                "comparison_family_rediscovery:{}",
-                diff.counters().comparison_family_rediscovery_count()
-            ),
-        ],
-        counter_snapshot_digest: digest_parts(&[
-            format!(
-                "comparison_lookups:{}",
-                diff.counters().comparison_basis_lookup_count()
-            ),
-            format!("scope_width:{}", diff.counters().comparison_scope_width()),
-            format!("row_width:{}", diff.counters().comparison_row_width()),
-            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
-            format!(
-                "comparison_broadening_denials:{}",
-                diff.counters().comparison_broadening_denial_count()
-            ),
-            format!(
-                "comparison_family_rediscovery:{}",
-                diff.counters().comparison_family_rediscovery_count()
-            ),
-        ]),
-    }
+    HistoricalDiffLane::from_diff_result_bundle(
+        &bundle,
+        current_result.counters().context_execution_count(),
+        historical_result.counters().context_execution_count(),
+        current_result.counters().executor_rediscovery_count()
+            + historical_result.counters().executor_rediscovery_count(),
+    )
 }
 
 fn canonical_row(
@@ -399,16 +279,29 @@ fn canonical_row(
     let (control_lane, hostile_lane) = match spec.row_name {
         "current-vs-branch-basis-explicitness" => (current.clone(), branch.clone()),
         "current-vs-historical-basis-explicitness" => (current.clone(), historical.clone()),
-        "historical-materialization-path-explicitness" => (historical.clone(), historical.clone()),
+        "historical-materialization-path-explicitness" => (current.clone(), historical.clone()),
         "diff-comparison-family-explicitness" => (branch_diff.clone(), branch.clone()),
         "branch-to-branch-diff-shaped" => (branch.clone(), branch_diff.clone()),
         "current-to-historical-diff-shaped" => {
             (historical.clone(), current_historical_diff.clone())
         }
-        "result-shape-parity-across-basis-variants" => (current.clone(), current.clone()),
+        "result-shape-parity-across-basis-variants" => (current.clone(), historical.clone()),
         "preview-derived-historical-basis-explicitness" => (historical.clone(), preview.clone()),
         "admitted-diff-cost-class-explicitness" => (branch.clone(), branch_diff.clone()),
         "prediction-versus-realization-explicitness" => (branch.clone(), branch_diff.clone()),
+        other => panic!("unexpected historical diff canonical row {other}"),
+    };
+    let parity_lane = match spec.row_name {
+        "current-vs-branch-basis-explicitness" => current_lane(),
+        "current-vs-historical-basis-explicitness" => current_lane(),
+        "historical-materialization-path-explicitness" => historical_lane(),
+        "diff-comparison-family-explicitness" => branch_diff_lane(),
+        "branch-to-branch-diff-shaped" => branch_diff_lane(),
+        "current-to-historical-diff-shaped" => current_historical_diff_lane(),
+        "result-shape-parity-across-basis-variants" => current_lane(),
+        "preview-derived-historical-basis-explicitness" => preview_lane(),
+        "admitted-diff-cost-class-explicitness" => branch_diff_lane(),
+        "prediction-versus-realization-explicitness" => branch_diff_lane(),
         other => panic!("unexpected historical diff canonical row {other}"),
     };
 
@@ -417,9 +310,9 @@ fn canonical_row(
         perturbation_class: spec.perturbation_class,
         hostile_expectation: spec.hostile_expectation,
         parity_anchor: ParityAnchor::Control,
-        control_lane: control_lane.clone(),
+        control_lane,
         hostile_lane,
-        parity_lane: control_lane,
+        parity_lane,
     }
 }
 
@@ -476,6 +369,9 @@ fn rejection_row(
         "raw-storage-delta-leakage-forbidden" => {
             HistoricalDiffRejection::from_error(&reject_raw_storage_delta_access())
         }
+        "historical-broadening-denied" => {
+            HistoricalDiffRejection::from_error(&historical_broadening_error())
+        }
         "broadening-required-comparison-denial" => {
             HistoricalDiffRejection::from_error(&comparison_broadening_error())
         }
@@ -492,6 +388,43 @@ fn rejection_row(
         hostile_lane,
         parity_lane,
     }
+}
+
+fn historical_broadening_error() -> QueryContextAdmissionError {
+    let preflight = execution_preflights::ordered_collection_preflight();
+    let request = HistoricalEvaluationRequest::full_reconstruction(
+        "history:reconstruction",
+        4,
+        8,
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::full_reconstruction(
+        "history:reconstruction",
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let admission =
+        admit_historical_evaluation_path(request, capability).expect("reconstruction should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::full_reconstruction("history:reconstruction"),
+    )
+    .expect("reconstruction should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let context = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:reconstruction"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("historical reconstruction context should bind"),
+    )
+    .expect("historical reconstruction context should admit");
+
+    execute_query_basis_context(&context)
+        .expect_err("reconstruction lane should deny broadening before rich execution")
 }
 
 fn preview_lane_context() -> crate::query_context::AdmittedQueryBasisContext {

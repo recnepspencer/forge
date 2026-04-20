@@ -95,19 +95,27 @@ impl ForgeStore {
         self.backend.milestone_10_complexity_surface()
     }
 
-    pub fn milestone_10_5_counter_contract(&self) -> crate::Milestone10_5CounterContract {
-        self.backend.milestone_10_5_counter_contract()
+    pub fn milestone_11_counter_contract(&self) -> crate::Milestone11CounterContract {
+        self.backend.milestone_11_counter_contract()
     }
 
-    pub fn milestone_10_5_complexity_surface(&self) -> crate::Milestone10_5ComplexitySurface {
-        self.backend.milestone_10_5_complexity_surface()
+    pub fn milestone_11_complexity_surface(&self) -> crate::Milestone11ComplexitySurface {
+        self.backend.milestone_11_complexity_surface()
     }
 
-    pub fn milestone_10_5_maintenance_report(&self) -> crate::Milestone10_5MaintenanceReport {
-        self.backend.milestone_10_5_maintenance_report()
+    pub fn milestone_13_counter_contract(&self) -> crate::Milestone13CounterContract {
+        self.backend.milestone_13_counter_contract()
     }
 
-    pub fn maintenance_evidence(&self) -> crate::Milestone10_5MaintenanceReport {
+    pub fn milestone_13_complexity_surface(&self) -> crate::Milestone13ComplexitySurface {
+        self.backend.milestone_13_complexity_surface()
+    }
+
+    pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
+        self.backend.milestone_11_maintenance_report()
+    }
+
+    pub fn maintenance_evidence(&self) -> crate::Milestone11MaintenanceReport {
         self.backend.maintenance_evidence()
     }
 

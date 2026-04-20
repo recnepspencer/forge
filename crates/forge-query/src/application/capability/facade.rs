@@ -3,8 +3,9 @@ use super::resolution::{
     deny_capability, CapabilityAdmissionDecision, ForgeQueryCapabilityResolution,
 };
 use super::witnesses::{
-    HistoricalEvaluationCapability, LiveQueryCapability, PreviewSessionCapability,
-    QueryContextCapability, QueryReadCapability, WorkflowOrchestrationCapability,
+    HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
+    PreviewSessionCapability, QueryContextCapability, QueryReadCapability,
+    WorkflowOrchestrationCapability,
 };
 use crate::application::config::{
     ConfigurationAdmissionError, ForgeQueryConfig, ForgeQueryConfigSectionFamily,
@@ -175,6 +176,25 @@ impl ForgeQueryApplicationFacade {
         &self,
     ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
         self.require_capability(ForgeQueryCapabilityFamily::QueryContext)
+    }
+
+    pub fn identity_evolution_capability(
+        &self,
+    ) -> Result<
+        ForgeQueryCapabilityResolution<IdentityEvolutionCapability>,
+        CapabilityAdmissionError,
+    > {
+        let admission = self.identity_evolution_admission_decision()?;
+        Ok(ForgeQueryCapabilityResolution::new(
+            IdentityEvolutionCapability::new(self.facade_digest.clone()),
+            admission,
+        ))
+    }
+
+    pub(crate) fn identity_evolution_admission_decision(
+        &self,
+    ) -> Result<CapabilityAdmissionDecision, CapabilityAdmissionError> {
+        self.require_capability(ForgeQueryCapabilityFamily::IdentityEvolution)
     }
 
     pub fn durable_artifact_capability(

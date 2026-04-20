@@ -271,11 +271,29 @@ pub fn milestone_five_point_six_requirements() -> SuiteRequirements {
 
 pub fn milestone_six_requirements() -> SuiteRequirements {
     SuiteRequirements {
-        suite_name: "Branch-Scoped, Historical, And Diff Query Context Test",
+        suite_name: "Historical / Diff / Basis Parity Test",
         required_canonical_rows: crate::harness::historical_diff_certification::
             HISTORICAL_DIFF_REQUIRED_CANONICAL_ROW_NAMES,
         required_rejection_rows: crate::harness::historical_diff_certification::
             HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_seven_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Lineage And Correspondence Query Parity Test",
+        required_canonical_rows: crate::harness::identity_evolution_certification::
+            IDENTITY_EVOLUTION_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows: crate::harness::identity_evolution_certification::
+            IDENTITY_EVOLUTION_REQUIRED_REJECTION_ROW_NAMES,
         required_assertion_classes: &[
             RequiredAssertionClass::Equality,
             RequiredAssertionClass::Inequality,

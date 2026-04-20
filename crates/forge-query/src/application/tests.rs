@@ -8,6 +8,10 @@ use crate::harness::fixtures::{execution_preflights, preview_bridge::active_prev
 use crate::historical::{
     HistoricalCapabilityDescriptor, HistoricalEvaluationRequest, HistoricalPathReuseDescriptor,
 };
+use crate::identity_evolution::{
+    CorrespondenceIdentityComparison, IdentityEvolutionComparisonBasisFamily,
+    IdentityEvolutionQueryContext,
+};
 use crate::preview::{PreviewEvaluationClass, PreviewSessionQueryContext};
 use crate::query_context::{QueryBasisContextRequest, QueryContextBindingSource};
 use crate::workflow::{
@@ -440,6 +444,14 @@ fn query_context_capability_binds_branch_and_diff_contexts_without_mode_flags() 
         .capability()
         .execute_basis_context(&right)
         .expect("branch context should execute through query-context capability");
+    let basis_bundle = contexts
+        .capability()
+        .execute_basis_result_bundle(&left)
+        .expect("basis result bundle should remain query-owned");
+    let diff_bundle = contexts
+        .capability()
+        .shape_diff_result_bundle(&diff, &left_execution, &right_execution)
+        .expect("diff result bundle should remain query-owned");
     let change_set = contexts
         .capability()
         .shape_diff_change_set(&diff, &left_execution, &right_execution)
@@ -448,7 +460,33 @@ fn query_context_capability_binds_branch_and_diff_contexts_without_mode_flags() 
     assert_eq!(left.family().as_str(), "current_branch_head");
     assert_eq!(right.family().as_str(), "branch_head");
     assert_eq!(diff.family().as_str(), "branch_to_branch");
+    assert_eq!(
+        basis_bundle.context().family().as_str(),
+        "current_branch_head"
+    );
+    assert_eq!(
+        basis_bundle.metadata().basis_digest(),
+        basis_bundle.context().basis_digest()
+    );
+    assert_eq!(
+        basis_bundle.metadata().result_digest(),
+        basis_bundle.execution().result_digest()
+    );
+    assert!(!basis_bundle.replay_digest().is_empty());
     assert_eq!(change_set.comparison_basis_family(), diff.family());
+    assert_eq!(
+        diff_bundle.metadata().comparison_basis_family(),
+        diff.family()
+    );
+    assert_eq!(
+        diff_bundle.metadata().comparison_result_digest(),
+        diff_bundle.change_set().result_digest()
+    );
+    assert_eq!(
+        diff_bundle.metadata().prediction_drift_outcome(),
+        diff_bundle.change_set().prediction_drift_outcome()
+    );
+    assert!(!diff_bundle.replay_digest().is_empty());
     assert!(!change_set.rows().is_empty());
     assert_eq!(contexts.counters().capability_lookup_count(), 1);
 }
@@ -469,6 +507,204 @@ fn support_report_includes_query_context_capability() {
     assert!(report
         .admitted_capability_families()
         .contains(&ForgeQueryCapabilityFamily::QueryContext));
+    let profile = report
+        .query_context_support_profile()
+        .expect("query context support profile should be present");
+    assert_eq!(
+        profile
+            .admitted_basis_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "current_branch_head",
+            "branch_head",
+            "historical_snapshot",
+            "historical_commit",
+            "preview_derived_historical"
+        ]
+    );
+    assert_eq!(
+        profile
+            .admitted_comparison_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "branch_to_branch",
+            "current_to_historical",
+            "historical_to_historical",
+            "preview_to_authoritative"
+        ]
+    );
+    assert_eq!(
+        profile
+            .deferred_scope_markers()
+            .iter()
+            .map(|marker| marker.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "store_backed_historical",
+            "store_backed_diff",
+            "broad_collection_diff"
+        ]
+    );
+}
+
+#[test]
+fn support_report_includes_identity_evolution_capability_and_profile() {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let support = facade.support_matrix();
+    let report = facade.support_report();
+
+    assert_eq!(
+        support
+            .descriptor(ForgeQueryCapabilityFamily::IdentityEvolution)
+            .expect("identity evolution descriptor should exist")
+            .status(),
+        ForgeQueryCapabilityStatus::Admitted
+    );
+    assert!(report
+        .admitted_capability_families()
+        .contains(&ForgeQueryCapabilityFamily::IdentityEvolution));
+    let profile = report
+        .identity_evolution_support_profile()
+        .expect("identity evolution profile should be present");
+    assert_eq!(
+        profile
+            .admitted_traversal_families()
+            .iter()
+            .map(|family| family.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "direct_predecessor",
+            "direct_successor",
+            "direct_replacement",
+            "direct_split_successors",
+            "direct_merge_successor",
+            "branch_local_direct_evolution"
+        ]
+    );
+}
+
+#[test]
+fn identity_evolution_capability_admits_and_executes_query_surface() {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let identity_evolution = facade
+        .identity_evolution_capability()
+        .expect("runtime-backed facade should admit identity evolution");
+    let admission = identity_evolution.admission().clone();
+
+    let admitted = identity_evolution
+        .capability()
+        .admit_query(IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            crate::identity::CanonicalQueryDigest::from_parts(&["app:identity".to_string()]),
+            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+            crate::identity::BasisDigest::from_parts(&["basis:left".to_string()]),
+            crate::identity::BasisDigest::from_parts(&["basis:right".to_string()]),
+            CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+        ))
+        .expect("identity evolution comparison should admit");
+    let execution = identity_evolution
+        .capability()
+        .execute_query(&admitted)
+        .expect("identity evolution comparison should execute");
+
+    assert_eq!(
+        admission.descriptor().family(),
+        ForgeQueryCapabilityFamily::IdentityEvolution
+    );
+    assert_eq!(
+        execution.family().as_str(),
+        "branch_to_branch_comparison"
+    );
+    assert!(execution
+        .result_bundle()
+        .as_advisory_identity_candidate_set()
+        .is_some());
+    assert_eq!(identity_evolution.counters().capability_lookup_count(), 1);
+}
+
+#[test]
+fn identity_evolution_capability_disables_typed_and_early_when_query_section_is_off() {
+    let facade = ForgeQueryApplicationFacade::new(
+        ForgeQueryConfig::runtime_backed_default()
+            .with_query(ForgeQueryQueryConfig::disabled())
+            .with_signal(ForgeQuerySignalConfig::disabled())
+            .with_runtime_bridge(ForgeQueryRuntimeBridgeConfig::disabled())
+            .with_relational(
+                ForgeQueryRelationalConfig::disabled().with_historical_evaluation(false),
+            ),
+    )
+    .expect("query-disabled facade config should still validate");
+
+    let error = facade
+        .identity_evolution_capability()
+        .expect_err("disabled query section should deny identity evolution");
+    assert_eq!(
+        error.failure_class(),
+        ForgeQueryFacadeFailureClass::MissingOwningSection
+    );
+    assert_eq!(
+        error.capability_family(),
+        Some(ForgeQueryCapabilityFamily::IdentityEvolution)
+    );
+}
+
+#[test]
+fn broad_collection_diff_remains_denied_before_diff_bundle_construction() {
+    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+    let contexts = facade
+        .query_context_capability()
+        .expect("query context capability should admit");
+    let left_preflight = execution_preflights::ordered_collection_without_traversal_preflight();
+    let right_preflight = execution_preflights::alternate_basis_ordered_collection_preflight();
+    let left = contexts
+        .capability()
+        .admit_basis_context(
+            contexts
+                .capability()
+                .bind_basis_context(
+                    QueryBasisContextRequest::current_branch_head(),
+                    QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+                )
+                .expect("left context should bind"),
+        )
+        .expect("left context should admit");
+    let right = contexts
+        .capability()
+        .admit_basis_context(
+            contexts
+                .capability()
+                .bind_basis_context(
+                    QueryBasisContextRequest::branch_head("branch:ordered-collection"),
+                    QueryContextBindingSource::RuntimeBranch(&right_preflight),
+                )
+                .expect("right context should bind"),
+        )
+        .expect("right context should admit");
+    let diff = contexts
+        .capability()
+        .bind_diff_context(&left, &right)
+        .expect("diff context should bind");
+    let left_execution = contexts
+        .capability()
+        .execute_basis_context(&left)
+        .expect("left context should execute");
+    let right_execution = contexts
+        .capability()
+        .execute_basis_context(&right)
+        .expect("right context should execute");
+
+    let error = contexts
+        .capability()
+        .shape_diff_result_bundle(&diff, &left_execution, &right_execution)
+        .expect_err("broad collection diff should deny before bundle construction");
+
+    assert_eq!(
+        error.failure_class().clone(),
+        crate::query_context::QueryContextAdmissionFailureClass::ComparisonBroadeningRequired
+    );
 }
 
 #[test]

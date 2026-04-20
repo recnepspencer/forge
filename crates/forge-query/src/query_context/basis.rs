@@ -104,6 +104,7 @@ pub enum QueryContextAdmissionFailureClass {
     BroadComparisonForbidden,
     ComparisonShapeMismatch,
     ComparisonBroadeningRequired,
+    HistoricalPathTooBroadDenied,
     RawStorageDeltaLeakageForbidden,
     BasisSubstitutionForbidden,
     NonQueryOwnedHistoricalArtifact,

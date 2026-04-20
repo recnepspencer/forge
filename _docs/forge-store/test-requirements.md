@@ -11,9 +11,9 @@ already closed elsewhere.
 
 It governs milestone closeout for:
 
-- Milestone 1 through Milestone 18, including Milestone 3.5 and Milestone 3.6
-- the generic certification program in Milestone 19
-- the domain certification program in Milestone 20
+- Milestone 1 through Milestone 22, including Milestone 3.5 and Milestone 3.6
+- the generic certification program in Milestone 23
+- the domain certification program in Milestone 24
 
 ## Purpose
 
@@ -162,16 +162,33 @@ The following do not count as certification:
 | M8 | Live-query basis continuation equivalence test |
 | M9 | Bulk ingest and transform resume parity test |
 | M10 | Retention/compaction/reclaim parity test |
-| M11 | Tiering and working-set non-authority test |
-| M12 | Replication capsule equivalence and integrity test |
-| M13 | Time-travel diff and merge-assistance parity test |
-| M14 | Derived artifact accuracy classification test |
-| M15 | Analysis checkpoint basis parity test |
-| M16 | Correspondence/locality non-authority test |
-| M17 | Blob identity retention and replication parity test |
-| M18 | Budget admission honesty test |
+| M11 | Background maintenance isolation and scheduling test |
+| M12 | Artifact format evolution and rolling compatibility test |
+| M13 | Tiering and working-set non-authority test |
+| M14 | Replication capsule equivalence and integrity test |
+| M15 | Extensible durable artifact family containment test |
+| M16 | Time-travel diff and merge-assistance parity test |
+| M17 | Derived artifact accuracy classification test |
+| M18 | Analysis checkpoint basis parity test |
+| M19 | Correspondence/locality non-authority test |
+| M20 | Blob identity retention and replication parity test |
+| M21 | Budget admission honesty test |
+| M22 | Operator repair, audit, and forensic recovery test |
 
 Each milestone is not closeable until its required named suite passes.
+
+Milestones `23` and `24` are intentionally not listed in this table.
+
+- `Milestone 23` is the generic certification program and is governed by the
+  dedicated `Generic Store Certification Program` section in this document
+  rather than by one single milestone-closeout suite row.
+- `Milestone 24` is the domain certification program and is governed by the
+  dedicated `Domain Store Certification Program` section in this document
+  rather than by one single milestone-closeout suite row.
+
+The table above is therefore complete for the feature and platform milestones
+that close through one primary named suite. Milestones `23` and `24` close
+through their broader certification-program requirements.
 
 ## Cross-Cutting Beta Suites
 
@@ -949,7 +966,93 @@ Pass condition
 
 Retention policy is physically real and semantically honest.
 
-### 11. Tiering And Working-Set Non-Authority Test
+### 11. Background Maintenance Isolation And Scheduling Test
+
+Purpose
+
+Prove that background maintenance remains operationally bounded and foreground
+safe rather than becoming the hidden scheduler of truth visibility.
+
+Scenario
+
+- execute admitted compaction, rebuild, snapshot refresh, and
+  replication-preparation work under active foreground read and write load
+- compare isolated foreground lanes against hostile backlog lanes
+- exercise deferred, escalated, and restart-recovered maintenance lanes
+- submit duplicate or superseded work and verify coalescing or cancellation
+- run locality-bounded lanes and explicit cross-locality escalation lanes
+- run a tier-move flood lane against compaction-cutover work
+
+Must verify
+
+- foreground truth-visible results remain equal across isolated and hostile
+  backlog lanes for equivalent admitted work
+- background maintenance does not silently broaden or delay foreground work
+- duplicate or superseded work is coalesced or cancelled through explicit
+  equivalence rules
+- restart-recovered backlog re-enters through the same admission model as fresh
+  work
+- queue order and worker timing change cost only, not semantic truth
+- tier work does not bypass foreground reservations or hiddenly outrank
+  compaction cutover or retained rebuild work
+
+Required verification output
+
+- `truth_digest`
+- `diagnostics_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `scheduler_topology_report`
+- `maintenance_interference_matrix`
+- `debt_escalation_report`
+
+Pass condition
+
+Background maintenance is explicit, bounded, restart-honest, and
+foreground-safe.
+
+### 12. Artifact Format Evolution And Rolling Compatibility Test
+
+Purpose
+
+Prove that old artifacts with new code, new artifacts with old readers, and
+mixed-version stores or replicas remain semantically exact where admitted and
+fail explicitly where not admitted.
+
+Scenario
+
+- read older authoritative artifacts with newer code
+- reject newer authoritative artifacts from older readers where compatibility
+  is not declared
+- exercise derived-artifact rebuild invalidation after format drift
+- run mixed-version store or replica lanes during rolling upgrade
+- exercise backup, restore, and disaster-recovery lanes across admitted version
+  windows
+
+Must verify
+
+- compatible artifacts preserve authoritative meaning across version windows
+- incompatible artifacts fail explicitly and typed rather than drifting into
+  partial truth acceptance
+- derived families rebuild or invalidate exactly where the compatibility model
+  requires
+- rolling-upgrade and restore readers honor declared compatibility boundaries
+- deserialization success alone is not accepted as compatibility proof
+
+Required verification output
+
+- `artifact_digest`
+- `failure_digest`
+- `compatibility_matrix`
+- `version_skew_report`
+- `diagnostics_digest`
+
+Pass condition
+
+Compatibility is explicit, machine-checkable, and semantically exact where
+admitted.
+
+### 13. Tiering And Working-Set Non-Authority Test
 
 Purpose
 
@@ -979,7 +1082,7 @@ Pass condition
 
 Tiering and working-set logic affect cost only.
 
-### 12. Replication Capsule Equivalence And Integrity Test
+### 14. Replication Capsule Equivalence And Integrity Test
 
 Purpose
 
@@ -1010,7 +1113,46 @@ Pass condition
 
 Replication and capsules preserve canonical meaning and verifiable integrity.
 
-### 13. Time-Travel Diff And Merge-Assistance Parity Test
+### 15. Extensible Durable Artifact Family Containment Test
+
+Purpose
+
+Prove that extension-defined durable artifact families and storage strategies
+cannot become shadow authority, bypass rebuild rules, or evade retention,
+compatibility, replication, and certification boundaries.
+
+Scenario
+
+- register extension-defined derived artifact families with declared authority,
+  accuracy, rebuild, retention, export, and compatibility contracts
+- rebuild extension families from their declared authority basis
+- attempt stale, undeclared, over-privileged, or incompatible extension-family
+  publication
+- exercise retention and export participation for admitted extension families
+
+Must verify
+
+- extension families remain derived and cannot claim authoritative truth
+- extension families that violate declared contracts fail explicitly and typed
+- rebuild, retention, and export participation follow the declared family
+  contract rather than extension-local heuristics
+- stale or incompatible extension families trigger typed rejection or explicit
+  fallback, never silent acceptance
+
+Required verification output
+
+- `artifact_digest`
+- `failure_digest`
+- `extension_family_matrix`
+- `diagnostics_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Extensibility expands platform breadth without weakening authority,
+compatibility, or certification boundaries.
+
+### 16. Time-Travel Diff And Merge-Assistance Parity Test
 
 Purpose
 
@@ -1039,7 +1181,7 @@ Pass condition
 
 Assistance artifacts improve cost only.
 
-### 14. Derived Artifact Accuracy Classification Test
+### 17. Derived Artifact Accuracy Classification Test
 
 Purpose
 
@@ -1068,7 +1210,7 @@ Pass condition
 
 Accuracy taxonomy is enforced mechanically, not by convention.
 
-### 15. Analysis Checkpoint Basis Parity Test
+### 18. Analysis Checkpoint Basis Parity Test
 
 Purpose
 
@@ -1098,7 +1240,7 @@ Pass condition
 
 Analysis lanes are durable, basis-pinned, and non-authoritative.
 
-### 16. Correspondence/Locality Non-Authority Test
+### 19. Correspondence/Locality Non-Authority Test
 
 Purpose
 
@@ -1128,7 +1270,7 @@ Pass condition
 
 Correspondence and locality programs remain derived and non-authoritative.
 
-### 17. Blob Identity Retention And Replication Parity Test
+### 20. Blob Identity Retention And Replication Parity Test
 
 Purpose
 
@@ -1160,7 +1302,7 @@ Pass condition
 
 Blob storage behaves as a native content-addressed store, not a shadow system.
 
-### 18. Budget Admission Honesty Test
+### 21. Budget Admission Honesty Test
 
 Purpose
 
@@ -1188,6 +1330,48 @@ Required verification output
 Pass condition
 
 Budget pressure produces explicit policy outcomes rather than silent drift.
+
+### 22. Operator Repair, Audit, And Forensic Recovery Test
+
+Purpose
+
+Prove that operator-facing audit, repair, quarantine, and forensic workflows
+stay typed, bounded, and authority-safe under corruption, drift, and damaged
+media conditions.
+
+Scenario
+
+- run offline audit and integrity-walk lanes over healthy and damaged stores
+- generate repair plans for rebuildable derived damage and quarantinable
+  unrecoverable damage
+- exercise quarantine, salvage, and trusted-truth versus degraded-derived
+  reporting lanes
+- produce operator-visible forensic bundles for representative corruption and
+  repair scenarios
+
+Must verify
+
+- audit and repair surfaces identify the correct trusted versus degraded
+  artifact boundary
+- repair plans do not mutate authority implicitly
+- quarantine and salvage remain explicit typed outcomes rather than ordinary
+  success
+- operator-visible forensic bundles contain enough machine-checkable detail to
+  distinguish trusted truth from rebuildable or unrecoverable damage
+
+Required verification output
+
+- `failure_digest`
+- `diagnostics_digest`
+- `repair_plan_report`
+- `quarantine_report`
+- `forensic_bundle_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Operator recovery tooling is explicit, auditable, and authority-safe under real
+damage pressure.
 
 ## What These Suites Collectively Prove
 

@@ -10,6 +10,7 @@ mod opening;
 mod publication;
 mod snapshots;
 mod support;
+mod tiering;
 
 use std::path::PathBuf;
 

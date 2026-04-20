@@ -82,16 +82,22 @@ impl StoreBackend {
     pub fn milestone_10_complexity_surface(&self) -> crate::Milestone10ComplexitySurface {
         dispatch_ref!(self, |backend| backend.milestone_10_complexity_surface())
     }
-    pub fn milestone_10_5_counter_contract(&self) -> crate::Milestone10_5CounterContract {
-        dispatch_ref!(self, |backend| backend.milestone_10_5_counter_contract())
+    pub fn milestone_11_counter_contract(&self) -> crate::Milestone11CounterContract {
+        dispatch_ref!(self, |backend| backend.milestone_11_counter_contract())
     }
-    pub fn milestone_10_5_complexity_surface(&self) -> crate::Milestone10_5ComplexitySurface {
-        dispatch_ref!(self, |backend| backend.milestone_10_5_complexity_surface())
+    pub fn milestone_11_complexity_surface(&self) -> crate::Milestone11ComplexitySurface {
+        dispatch_ref!(self, |backend| backend.milestone_11_complexity_surface())
     }
-    pub fn milestone_10_5_maintenance_report(&self) -> crate::Milestone10_5MaintenanceReport {
-        dispatch_ref!(self, |backend| backend.milestone_10_5_maintenance_report())
+    pub fn milestone_13_counter_contract(&self) -> crate::Milestone13CounterContract {
+        dispatch_ref!(self, |backend| backend.milestone_13_counter_contract())
     }
-    pub fn maintenance_evidence(&self) -> crate::Milestone10_5MaintenanceReport {
+    pub fn milestone_13_complexity_surface(&self) -> crate::Milestone13ComplexitySurface {
+        dispatch_ref!(self, |backend| backend.milestone_13_complexity_surface())
+    }
+    pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
+        dispatch_ref!(self, |backend| backend.milestone_11_maintenance_report())
+    }
+    pub fn maintenance_evidence(&self) -> crate::Milestone11MaintenanceReport {
         dispatch_ref!(self, |backend| backend.maintenance_evidence())
     }
     pub fn milestone_10_artifact_report(

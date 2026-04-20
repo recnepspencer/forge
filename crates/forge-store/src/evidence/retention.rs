@@ -29,10 +29,15 @@ pub(super) struct RetentionCounters {
     maintenance_admission_count: AtomicU64,
     maintenance_rejection_count: AtomicU64,
     maintenance_resume_count: AtomicU64,
+    maintenance_restart_readmission_count: AtomicU64,
+    maintenance_restart_rejection_count: AtomicU64,
     maintenance_checkpoint_count: AtomicU64,
     maintenance_completion_count: AtomicU64,
     maintenance_failure_count: AtomicU64,
     maintenance_debt_link_count: AtomicU64,
+    maintenance_foreground_borrow_count: AtomicU64,
+    maintenance_foreground_wait_count: AtomicU64,
+    maintenance_cutover_dependency_count: AtomicU64,
 }
 
 impl StoreCounters {
@@ -61,10 +66,15 @@ impl StoreCounters {
     pub fn record_maintenance_admissions(&self, count: u64) { self.retention.maintenance_admission_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_rejections(&self, count: u64) { self.retention.maintenance_rejection_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_resumes(&self, count: u64) { self.retention.maintenance_resume_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_maintenance_restart_readmissions(&self, count: u64) { self.retention.maintenance_restart_readmission_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_maintenance_restart_rejections(&self, count: u64) { self.retention.maintenance_restart_rejection_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_checkpoints(&self, count: u64) { self.retention.maintenance_checkpoint_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_completions(&self, count: u64) { self.retention.maintenance_completion_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_failures(&self, count: u64) { self.retention.maintenance_failure_count.fetch_add(count, Ordering::Relaxed); }
     pub fn record_maintenance_debt_links(&self, count: u64) { self.retention.maintenance_debt_link_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_maintenance_foreground_borrow(&self, count: u64) { self.retention.maintenance_foreground_borrow_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_maintenance_foreground_wait(&self, count: u64) { self.retention.maintenance_foreground_wait_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_maintenance_cutover_dependency(&self, count: u64) { self.retention.maintenance_cutover_dependency_count.fetch_add(count, Ordering::Relaxed); }
 }
 
 pub(super) fn write_snapshot(counters: &RetentionCounters, snapshot: &mut StoreCounterSnapshot) {
@@ -81,7 +91,9 @@ pub(super) fn write_snapshot(counters: &RetentionCounters, snapshot: &mut StoreC
     load!(retention_truth_parity_failure_count); load!(retention_restore_parity_failure_count);
     load!(retention_artifact_rebuild_failure_count); load!(maintenance_declaration_count);
     load!(maintenance_admission_count); load!(maintenance_rejection_count);
-    load!(maintenance_resume_count); load!(maintenance_checkpoint_count);
+    load!(maintenance_resume_count); load!(maintenance_restart_readmission_count);
+    load!(maintenance_restart_rejection_count); load!(maintenance_checkpoint_count);
     load!(maintenance_completion_count); load!(maintenance_failure_count);
-    load!(maintenance_debt_link_count);
+    load!(maintenance_debt_link_count); load!(maintenance_foreground_borrow_count);
+    load!(maintenance_foreground_wait_count); load!(maintenance_cutover_dependency_count);
 }

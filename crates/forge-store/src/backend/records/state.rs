@@ -15,6 +15,7 @@ use super::{
     Milestone6StructuralBlockRecord, ProgramChunkWitnessIndexRecord, RebuildDebtRecord,
     RetentionBasisRecord, RetentionClosureRecord, SchemaSupportRecord, SnapshotBasisRecord,
     SnapshotImageRecord, StableBasisRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
+    TierResidencyRecord, TierTransferRecord,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +103,10 @@ pub(crate) struct StoreState {
     pub snapshot_basis_records: BTreeMap<u64, SnapshotBasisRecord>,
     #[serde(default)]
     pub snapshot_image_records: BTreeMap<u64, SnapshotImageRecord>,
+    #[serde(default)]
+    pub tier_residency_records: BTreeMap<String, TierResidencyRecord>,
+    #[serde(default)]
+    pub tier_transfer_records: BTreeMap<String, TierTransferRecord>,
     #[serde(default)]
     pub next_durable_mutation_id: u64,
     #[serde(default)]

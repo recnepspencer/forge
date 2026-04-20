@@ -15,6 +15,7 @@ impl StoreState {
         self.verify_layout_record_family()?;
         self.verify_bulk_record_family()?;
         self.verify_snapshot_record_family()?;
+        self.verify_tiering_record_family()?;
         Ok(())
     }
 
@@ -29,6 +30,7 @@ impl StoreState {
         self.verify_layout_record_family()?;
         self.verify_bulk_record_family()?;
         self.verify_snapshot_record_family()?;
+        self.verify_tiering_record_family()?;
         Ok(())
     }
 }

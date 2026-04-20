@@ -12,6 +12,7 @@ mod maintenance_records;
 mod retention_records;
 mod snapshot_records;
 mod support_records;
+mod tiering_records;
 mod verification;
 
 pub(crate) use access_structure_verification::{

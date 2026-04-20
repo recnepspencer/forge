@@ -1,0 +1,41 @@
+error: cannot construct `QueryContextExecutionArtifact` with struct literal syntax due to private fields
+  --> tests/ui/query_context_execution_artifact_constructor_private.rs:4:13
+   |
+ 4 |     let _ = QueryContextExecutionArtifact {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         query_digest: String::new(),
+   |         --------------------------- private field
+ 6 |         basis_digest: String::new(),
+   |         --------------------------- private field
+ 7 |         result_digest: String::new(),
+   |         ---------------------------- private field
+ 8 |         payload: Vec::new(),
+   |         ------------------- private field
+ 9 |         family: unsafe { std::mem::zeroed() },
+   |         ------------------------------------- private field
+10 |         cost_class: unsafe { std::mem::zeroed() },
+   |         ----------------------------------------- private field
+11 |         budget_class: unsafe { std::mem::zeroed() },
+   |         ------------------------------------------- private field
+12 |         prediction_report: None,
+   |         ----------------------- private field
+13 |         prediction_drift_outcome: unsafe { std::mem::zeroed() },
+   |         ------------------------------------------------------- private field
+14 |         historical_admission_class: None,
+   |         -------------------------------- private field
+15 |         historical_materialization_cost_class: None,
+   |         ------------------------------------------- private field
+16 |         requested_path_identity: None,
+   |         ----------------------------- private field
+17 |         admitted_path_identity: None,
+   |         ---------------------------- private field
+18 |         resolved_path_identity: None,
+   |         ---------------------------- private field
+19 |         materialization_path_identity: None,
+   |         ----------------------------------- private field
+20 |         preview_provenance_identity: None,
+   |         --------------------------------- private field
+21 |         counters: unsafe { std::mem::zeroed() },
+   |         --------------------------------------- private field
+   |
+   = note: ...and other private field `result_shape_digest` that was not provided

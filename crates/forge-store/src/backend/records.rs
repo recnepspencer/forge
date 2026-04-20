@@ -12,6 +12,8 @@ mod maintenance;
 mod retention;
 #[path = "records/snapshot.rs"]
 mod snapshot;
+#[path = "records/tiering.rs"]
+mod tiering;
 #[path = "records/state.rs"]
 mod state;
 
@@ -22,4 +24,5 @@ pub(crate) use layout::*;
 pub(crate) use maintenance::*;
 pub(crate) use retention::*;
 pub(crate) use snapshot::*;
+pub(crate) use tiering::*;
 pub(crate) use state::*;

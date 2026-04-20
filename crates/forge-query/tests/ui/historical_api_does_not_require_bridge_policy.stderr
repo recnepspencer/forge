@@ -6,8 +6,8 @@ error[E0308]: mismatched types
    |     |
    |     arguments to this function are incorrect
    |
-   = note: expected fn pointer `fn(HistoricalEvaluationRequest, ResolvedTruthViewPolicy) -> Result<HistoricalEvaluationAdmission, HistoricalEvaluationError>`
-                 found fn item `fn(HistoricalEvaluationRequest, HistoricalCapabilityDescriptor) -> Result<HistoricalEvaluationAdmission, HistoricalEvaluationError> {admit_historical_evaluation_path}`
+   = note: expected fn pointer `fn(HistoricalEvaluationRequest, ResolvedTruthViewPolicy) -> std::result::Result<HistoricalEvaluationAdmission, HistoricalEvaluationError>`
+                 found fn item `fn(HistoricalEvaluationRequest, HistoricalCapabilityDescriptor) -> std::result::Result<HistoricalEvaluationAdmission, HistoricalEvaluationError> {admit_historical_evaluation_path}`
 note: function defined here
   --> tests/ui/historical_api_does_not_require_bridge_policy.rs:11:4
    |

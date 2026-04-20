@@ -9,14 +9,19 @@ use crate::preview::{
     bind_preflight_to_preview_session, PreviewBindingError, PreviewSessionPlanBinding,
     PreviewSessionQueryContext,
 };
+use crate::identity_evolution::{
+    admit_identity_evolution_query, execute_admitted_identity_evolution_query,
+    AdmittedIdentityEvolutionQuery, IdentityEvolutionAdmissionError,
+    IdentityEvolutionExecutionArtifact, IdentityEvolutionQueryContext,
+};
 use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
     bind_diff_query_context, bind_query_basis_context, build_query_basis_result_bundle,
     build_query_diff_result_bundle, execute_query_basis_context, shape_query_diff_change_set,
     AdmittedDiffQueryContext, AdmittedQueryBasisContext, DiffQueryMetadata,
-    QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata,
-    QueryBasisResultBundle, QueryContextAdmissionError, QueryContextBindingSource,
-    QueryContextExecutionArtifact, QueryDiffChangeSetArtifact, QueryDiffResultBundle,
+    QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata, QueryBasisResultBundle,
+    QueryContextAdmissionError, QueryContextBindingSource, QueryContextExecutionArtifact,
+    QueryDiffChangeSetArtifact, QueryDiffResultBundle,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, QueryWorkflowDeclaration,
@@ -222,5 +227,32 @@ impl QueryContextCapability {
         let _ = &self.facade_digest;
         let change_set = shape_query_diff_change_set(context, left_result, right_result)?;
         build_query_diff_result_bundle(context, change_set, left_result, right_result)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IdentityEvolutionCapability {
+    facade_digest: String,
+}
+
+impl IdentityEvolutionCapability {
+    pub(crate) fn new(facade_digest: String) -> Self {
+        Self { facade_digest }
+    }
+
+    pub fn admit_query(
+        &self,
+        context: IdentityEvolutionQueryContext,
+    ) -> Result<AdmittedIdentityEvolutionQuery, IdentityEvolutionAdmissionError> {
+        let _ = &self.facade_digest;
+        admit_identity_evolution_query(context)
+    }
+
+    pub fn execute_query(
+        &self,
+        admitted: &AdmittedIdentityEvolutionQuery,
+    ) -> Result<IdentityEvolutionExecutionArtifact, IdentityEvolutionAdmissionError> {
+        let _ = &self.facade_digest;
+        execute_admitted_identity_evolution_query(admitted)
     }
 }

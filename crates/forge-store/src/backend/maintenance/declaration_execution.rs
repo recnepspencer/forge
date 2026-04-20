@@ -4,7 +4,7 @@ use crate::{
         integrity::rebuild_debt_artifact_id,
     },
     failure::{StoreError, StoreErrorKind},
-    maintenance::{MaintenanceDeclaration, StartedMaintenance},
+    maintenance::{ExecutingMaintenanceWork, MaintenanceDeclaration},
     retention::{CompactionPlan, SupersededPhysicalFamily},
 };
 
@@ -48,9 +48,13 @@ pub(crate) fn ensure_execution_eligibility<P: StatePersistence>(
 
 pub(crate) fn execute_started_declaration<P: StatePersistence>(
     backend: &mut StateBackedStoreBackend<P>,
-    started: &StartedMaintenance,
+    executing_work: &ExecutingMaintenanceWork,
 ) -> Result<String, StoreError> {
-    match started.declaration() {
+    match executing_work
+        .reserved_work()
+        .admitted_work()
+        .declaration()
+    {
         MaintenanceDeclaration::Retention { .. } => Ok("retention_root_observed".to_string()),
         MaintenanceDeclaration::Compaction { declaration, .. } => {
             let closure_witness = crate::RetentionClosureWitness::new(

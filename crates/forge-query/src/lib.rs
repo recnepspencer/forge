@@ -26,6 +26,7 @@ mod frontier_planning;
 mod frontier_signal_adapter;
 mod historical;
 mod identity;
+mod identity_evolution;
 mod live;
 mod live_performance;
 mod planning;

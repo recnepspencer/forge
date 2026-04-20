@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_lineage_match_bool` found for struct `forge_query::facade::CorrespondenceIdentityComparison` in the current scope
+ --> tests/ui/identity_evolution_bool_shortcut_forbidden.rs:5:43
+  |
+5 |         CorrespondenceIdentityComparison::from_lineage_match_bool;
+  |                                           ^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `forge_query::facade::CorrespondenceIdentityComparison`

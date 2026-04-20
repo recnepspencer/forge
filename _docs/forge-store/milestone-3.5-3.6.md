@@ -1187,7 +1187,7 @@ physical-storage or derived-recovery acceleration work.
 
 - `Milestone 4` and `Milestone 5` should be treated as semantically correct but
   possibly needing conformance hardening underneath once this program lands.
-- `Milestone 10.5`, `Milestone 11.5`, `Milestone 12`, and `Milestone 18.5`
+- `Milestone 11`, `Milestone 12`, `Milestone 14`, and `Milestone 22`
   directly depend on this milestone's barrier, precedence, degraded-state, and
   compatibility vocabulary.
 - future extension-defined artifact families are not allowed to bypass this

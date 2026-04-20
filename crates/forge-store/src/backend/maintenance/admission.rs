@@ -21,14 +21,16 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
     let mut declaration_ids = Vec::new();
 
     for declaration in batch.declarations().iter().cloned() {
+        let descriptor = declaration.work_descriptor();
         let declaration_id = declaration.id().as_str().to_string();
-        if next
-            .maintenance_declaration_records
-            .contains_key(&declaration_id)
-        {
+        let duplicate_id = next.maintenance_declaration_records.contains_key(&declaration_id);
+        let duplicate_equivalence = next.maintenance_declaration_records.values().any(|record| {
+            record.work_descriptor.equivalence_key() == descriptor.equivalence_key()
+        });
+        if duplicate_id || duplicate_equivalence {
             rejections.push(MaintenanceAdmissionRejection::new(
                 declaration.id().clone(),
-                "maintenance declaration with identical identity was already admitted",
+                "maintenance declaration with identical identity or equivalence key was already admitted",
             ));
             continue;
         }
@@ -65,6 +67,7 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
                 retained_basis_label: declaration.retained_basis_label().map(ToString::to_string),
                 family_label,
                 debt_link_artifact_id: debt_link_artifact_id.clone(),
+                work_descriptor: descriptor.clone(),
                 declaration: declaration.clone(),
                 created_order: next.next_maintenance_declaration_order,
             },
@@ -76,13 +79,27 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
                 family_version: 1,
                 declaration_id: declaration_id.clone(),
                 execution_status: MaintenanceExecutionStatus::Admitted,
+                plan_family: None,
                 last_completed_phase: Some("admitted".to_string()),
+                pending_reason: None,
                 durable_error_kind: None,
                 durable_error_message: None,
+                last_quantum_units: None,
+                reservation_transition: None,
+                execution_transition: None,
+                restart_readmission_status: if descriptor.recovered_from_restart() {
+                    Some(crate::MaintenanceReadmissionStatus::PendingRecoveredReadmission)
+                } else {
+                    None
+                },
+                foreground_impact: crate::MaintenanceForegroundImpact::none(),
                 resume_count: 0,
             },
         );
-        admitted.push(AdmittedMaintenanceDeclaration::new(declaration));
+        admitted.push(AdmittedMaintenanceDeclaration::new(
+            declaration,
+            descriptor,
+        ));
     }
 
     next.maintenance_batch_records.insert(

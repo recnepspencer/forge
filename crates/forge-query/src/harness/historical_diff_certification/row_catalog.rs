@@ -35,6 +35,7 @@ pub const HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "store-backed-historical-deferred-debt",
     "forbidden-basis-substitution",
     "raw-storage-delta-leakage-forbidden",
+    "historical-broadening-denied",
     "broadening-required-comparison-denial",
     "declared-result-shape-mismatch",
 ];
@@ -122,6 +123,11 @@ pub const HISTORICAL_DIFF_REJECTION_ROW_SPECS: &[HistoricalDiffRejectionRowSpec]
         row_name: "raw-storage-delta-leakage-forbidden",
         perturbation_class: HistoricalDiffPerturbationClass::BroadDiffDenied,
         failure_class: HistoricalDiffFailureClass::RawStorageDeltaLeakageForbidden,
+    },
+    HistoricalDiffRejectionRowSpec {
+        row_name: "historical-broadening-denied",
+        perturbation_class: HistoricalDiffPerturbationClass::HistoricalBasis,
+        failure_class: HistoricalDiffFailureClass::HistoricalPathTooBroadDenied,
     },
     HistoricalDiffRejectionRowSpec {
         row_name: "broadening-required-comparison-denial",

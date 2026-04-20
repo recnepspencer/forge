@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `from_raw_lineage_event` found for struct `IdentityEvolutionQueryContext` in the current scope
+ --> tests/ui/identity_evolution_raw_lineage_event_input_forbidden.rs:5:40
+  |
+5 |         IdentityEvolutionQueryContext::from_raw_lineage_event;
+  |                                        ^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `IdentityEvolutionQueryContext`

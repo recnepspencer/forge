@@ -14,6 +14,8 @@ mod mode;
 mod retention;
 #[path = "snapshot.rs"]
 mod snapshot;
+#[path = "tiering.rs"]
+mod tiering;
 
 use serde::Serialize;
 
@@ -216,10 +218,40 @@ pub struct StoreCounterSnapshot {
     pub maintenance_admission_count: u64,
     pub maintenance_rejection_count: u64,
     pub maintenance_resume_count: u64,
+    pub maintenance_restart_readmission_count: u64,
+    pub maintenance_restart_rejection_count: u64,
     pub maintenance_checkpoint_count: u64,
     pub maintenance_completion_count: u64,
     pub maintenance_failure_count: u64,
     pub maintenance_debt_link_count: u64,
+    pub maintenance_foreground_borrow_count: u64,
+    pub maintenance_foreground_wait_count: u64,
+    pub maintenance_cutover_dependency_count: u64,
+    pub placement_state_manifest_load_count: u64,
+    pub placement_state_recovery_count: u64,
+    pub working_set_observation_window_count: u64,
+    pub working_set_reclassification_count: u64,
+    pub hot_tier_resident_read_count: u64,
+    pub warm_tier_resident_read_count: u64,
+    pub cold_tier_recall_count: u64,
+    pub foreground_cold_recall_count: u64,
+    pub background_tier_move_count: u64,
+    pub restart_recall_count: u64,
+    pub tier_move_plan_count: u64,
+    pub tier_move_cutover_count: u64,
+    pub tier_move_cutover_rejection_count: u64,
+    pub authoritative_tier_move_count: u64,
+    pub derived_tier_move_count: u64,
+    pub tier_move_rejection_count: u64,
+    pub tier_miss_count: u64,
+    pub broadened_recall_plan_count: u64,
+    pub recall_coalesced_request_count: u64,
+    pub recall_duplicate_suppression_count: u64,
+    pub placement_debt_count: u64,
+    pub working_set_debt_count: u64,
+    pub tier_truth_parity_failure_count: u64,
+    pub tier_restore_parity_failure_count: u64,
+    pub tier_recall_failure_count: u64,
 }
 
 #[derive(Debug, Default)]
@@ -232,6 +264,7 @@ pub(crate) struct StoreCounters {
     delta_layout: delta_layout::DeltaLayoutCounters,
     bulk: bulk::BulkCounters,
     retention: retention::RetentionCounters,
+    tiering: tiering::TieringCounters,
 }
 
 impl StoreCounters {
@@ -245,6 +278,7 @@ impl StoreCounters {
         delta_layout::write_snapshot(&self.delta_layout, &mut snapshot);
         bulk::write_snapshot(&self.bulk, &mut snapshot);
         retention::write_snapshot(&self.retention, &mut snapshot);
+        tiering::write_snapshot(&self.tiering, &mut snapshot);
         snapshot
     }
 }

@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `promote_to_authoritative_continuity` found for struct `forge_query::facade::AdvisoryIdentityCandidateSet` in the current scope
+ --> tests/ui/identity_evolution_advisory_promotion_forbidden.rs:5:39
+  |
+5 |         AdvisoryIdentityCandidateSet::promote_to_authoritative_continuity;
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `forge_query::facade::AdvisoryIdentityCandidateSet`

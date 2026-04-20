@@ -110,6 +110,7 @@ pub struct DiffQueryMetadata {
     comparison_basis_family: ComparisonBasisFamily,
     left_basis_digest: String,
     right_basis_digest: String,
+    result_shape_digest: String,
     left_result_digest: String,
     right_result_digest: String,
     comparison_result_digest: String,
@@ -201,6 +202,10 @@ impl DiffQueryMetadata {
 
     pub fn left_result_digest(&self) -> &str {
         &self.left_result_digest
+    }
+
+    pub fn result_shape_digest(&self) -> &str {
+        &self.result_shape_digest
     }
 
     pub fn right_result_digest(&self) -> &str {
@@ -304,10 +309,7 @@ pub fn build_query_basis_result_bundle(
             "historical_lookup:{}",
             context.counters().historical_basis_lookup_count()
         ),
-        format!(
-            "binding_width:{}",
-            context.counters().basis_binding_width()
-        ),
+        format!("binding_width:{}", context.counters().basis_binding_width()),
         format!(
             "historical_width:{}",
             context.counters().historical_lookup_width()
@@ -316,10 +318,7 @@ pub fn build_query_basis_result_bundle(
             "execution_count:{}",
             execution.counters().context_execution_count()
         ),
-        format!(
-            "payload_rows:{}",
-            execution.counters().payload_row_count()
-        ),
+        format!("payload_rows:{}", execution.counters().payload_row_count()),
         format!(
             "result_shape_width:{}",
             execution.counters().result_shape_width()
@@ -361,6 +360,14 @@ pub fn attach_diff_query_metadata(
         ));
     }
 
+    if left_result.result_shape_digest() != right_result.result_shape_digest() {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonShapeMismatch,
+            "diff metadata requires execution artifacts that preserve one declared result-shape identity",
+            QueryContextCounters::for_diff_denial(false, false),
+        ));
+    }
+
     if change_set.left_basis_digest() != context.left().basis_digest()
         || change_set.right_basis_digest() != context.right().basis_digest()
         || change_set.query_digest() != context.left().query_digest()
@@ -377,6 +384,7 @@ pub fn attach_diff_query_metadata(
         comparison_basis_family: context.family().clone(),
         left_basis_digest: context.left().basis_digest().to_string(),
         right_basis_digest: context.right().basis_digest().to_string(),
+        result_shape_digest: left_result.result_shape_digest().to_string(),
         left_result_digest: left_result.result_digest().to_string(),
         right_result_digest: right_result.result_digest().to_string(),
         comparison_result_digest: change_set.result_digest().to_string(),

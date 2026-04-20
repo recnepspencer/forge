@@ -19,10 +19,10 @@
 > - `Milestone 8` (`Live-Query Substrate And Durable Sync Basis`)
 >
 > **Impacted later milestones:**
-> - `Milestone 10.5` (`Background Maintenance Isolation And Scheduling Contracts`)
-> - `Milestone 11` (`Tiering And Durable Working-Set Intelligence`)
-> - `Milestone 12` (`Replication, Capsules, And Integrity Verification`)
-> - `Milestone 17` (`Native Blob And Object Storage`)
+> - `Milestone 11` (`Background Maintenance Isolation And Scheduling Contracts`)
+> - `Milestone 13` (`Tiering And Durable Working-Set Intelligence`)
+> - `Milestone 14` (`Replication, Capsules, And Integrity Verification`)
+> - `Milestone 20` (`Native Blob And Object Storage`)
 >
 > **Primary architectural driver:** make retention policy physically executable
 > across snapshots, branch-delta layers, and Milestone 6 derived layout/block
@@ -832,7 +832,7 @@ eventually" tests.
   command eventually orchestrates them together.
 - Milestone 10 should publish basis-survival conclusions that Milestone 8 can
   consume, but it must not absorb live-query continuation semantics.
-- Milestone 10.5 should inherit named work classes and debt surfaces from this
+- Milestone 11 should inherit named work classes and debt surfaces from this
   milestone instead of redefining what maintenance work exists.
 
 ## Sequencing Notes
@@ -845,9 +845,9 @@ families all have explicit authority and rebuild boundaries.
   needs the stable basis and cursor model from Milestone 7 plus the retention
   and basis-survival honesty defined here, but Milestone 10 must not wait for
   full live-query implementation to make retention policy exact.
-- `Milestone 10.5` should follow this milestone because scheduling maintenance
+- `Milestone 11` should follow this milestone because scheduling maintenance
   safely is a weaker problem until the maintenance semantics themselves are
   already exact.
-- `Milestone 11`, `Milestone 12`, and `Milestone 17` should inherit this
+- `Milestone 13`, `Milestone 14`, and `Milestone 20` should inherit this
   milestone's retained-range, rebuild, and reclaim rules rather than inventing
   new lifecycle semantics for tier movement, replication capsules, or blobs.

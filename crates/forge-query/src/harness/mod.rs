@@ -21,6 +21,8 @@ mod frontier_planning;
 #[cfg(test)]
 mod historical_diff_certification;
 #[cfg(test)]
+mod identity_evolution_certification;
+#[cfg(test)]
 mod live_certification;
 #[cfg(test)]
 mod matrices;

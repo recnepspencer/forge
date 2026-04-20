@@ -1,7 +1,8 @@
 mod counters;
 mod milestone_1;
 mod milestone_10;
-mod milestone_10_5;
+mod milestone_11;
+mod milestone_13;
 mod milestone_2;
 mod milestone_3;
 mod milestone_3_5_3_6;
@@ -18,9 +19,15 @@ pub use milestone_10::{
     Milestone10ArtifactReport, Milestone10CertificationBundle, Milestone10CertificationSummary,
     Milestone10ComplexityPathStatus, Milestone10ComplexitySurface, Milestone10CounterContract,
 };
-pub use milestone_10_5::{
-    Milestone10_5ComplexityPathStatus, Milestone10_5ComplexitySurface,
-    Milestone10_5CounterContract, Milestone10_5MaintenanceReport,
+pub use milestone_11::{
+    Milestone11ComplexityPathStatus, Milestone11ComplexitySurface,
+    Milestone11CounterContract, Milestone11LocalityScopeCount, Milestone11MaintenanceReport,
+    Milestone11ReservationFamilyCount, Milestone11SchedulerTopologyReport,
+    Milestone11WorkClassCount,
+};
+pub use milestone_13::{
+    Milestone13ComplexityPathStatus, Milestone13ComplexitySurface,
+    Milestone13CounterContract,
 };
 pub use milestone_2::{
     AbsentModeLaneEvidence, CheckpointAuthorityReport, Milestone2CertificationBundle,

@@ -14,6 +14,7 @@ mod maintenance;
 mod publication_recovery;
 mod snapshots;
 mod support;
+mod tiering;
 
 use crate::evidence::{
     Milestone6AccessStructureVerification, Milestone7AccessStructureVerification, StoreCounters,

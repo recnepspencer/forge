@@ -1,19 +1,35 @@
 use serde::Serialize;
 
-use super::{MaintenanceBatchSummary, MaintenanceDeclaration, MaintenanceDeclarationId};
+use super::{
+    AdmittedMaintenanceWork, MaintenanceBatchSummary, MaintenanceDeclaration,
+    MaintenanceDeclarationId, MaintenanceWorkDescriptor,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AdmittedMaintenanceDeclaration {
-    declaration: MaintenanceDeclaration,
+    admitted_work: AdmittedMaintenanceWork,
 }
 
 impl AdmittedMaintenanceDeclaration {
-    pub(crate) fn new(declaration: MaintenanceDeclaration) -> Self {
-        Self { declaration }
+    pub(crate) fn new(
+        declaration: MaintenanceDeclaration,
+        descriptor: MaintenanceWorkDescriptor,
+    ) -> Self {
+        Self {
+            admitted_work: AdmittedMaintenanceWork::new(declaration, descriptor),
+        }
     }
 
     pub fn declaration(&self) -> &MaintenanceDeclaration {
-        &self.declaration
+        self.admitted_work.declaration()
+    }
+
+    pub fn descriptor(&self) -> &MaintenanceWorkDescriptor {
+        self.admitted_work.descriptor()
+    }
+
+    pub fn admitted_work(&self) -> &AdmittedMaintenanceWork {
+        &self.admitted_work
     }
 }
 

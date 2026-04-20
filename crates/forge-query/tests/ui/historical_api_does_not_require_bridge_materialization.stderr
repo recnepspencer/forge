@@ -14,8 +14,8 @@ error[E0308]: mismatched types
    |     |
    |     arguments to this function are incorrect
    |
-   = note: expected fn pointer `fn(HistoricalEvaluationAdmission, BridgeHistoricalEvaluationDecisionLog) -> Result<HistoricalPathResolved, HistoricalEvaluationError>`
-                 found fn item `fn(HistoricalEvaluationAdmission, HistoricalMaterializationDescriptor) -> Result<HistoricalPathResolved, HistoricalEvaluationError> {resolve_historical_materialization_path}`
+   = note: expected fn pointer `fn(HistoricalEvaluationAdmission, BridgeHistoricalEvaluationDecisionLog) -> std::result::Result<HistoricalPathResolved, HistoricalEvaluationError>`
+                 found fn item `fn(HistoricalEvaluationAdmission, HistoricalMaterializationDescriptor) -> std::result::Result<HistoricalPathResolved, HistoricalEvaluationError> {resolve_historical_materialization_path}`
 note: function defined here
   --> tests/ui/historical_api_does_not_require_bridge_materialization.rs:14:4
    |

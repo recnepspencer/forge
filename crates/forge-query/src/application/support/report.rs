@@ -6,104 +6,15 @@ use crate::application::config::{
     ValidatedForgeQueryConfig,
 };
 use crate::identity::hash_parts;
-use crate::query_context::{ComparisonBasisFamily, QueryContextFamily};
+use crate::identity_evolution::{
+    runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionSupportProfile,
+};
+use crate::query_context::{
+    runtime_backed_narrow_query_context_support_profile, QueryContextSupportProfile,
+};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum QueryContextDeferredScopeMarker {
-    StoreBackedHistorical,
-    StoreBackedDiff,
-    BroadCollectionDiff,
-}
-
-impl QueryContextDeferredScopeMarker {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::StoreBackedHistorical => "store_backed_historical",
-            Self::StoreBackedDiff => "store_backed_diff",
-            Self::BroadCollectionDiff => "broad_collection_diff",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryQueryContextSupportProfile {
-    admitted_basis_families: Vec<QueryContextFamily>,
-    admitted_comparison_families: Vec<ComparisonBasisFamily>,
-    deferred_scope_markers: Vec<QueryContextDeferredScopeMarker>,
-    profile_digest: String,
-}
-
-impl ForgeQueryQueryContextSupportProfile {
-    fn runtime_backed_narrow() -> Self {
-        let admitted_basis_families = vec![
-            QueryContextFamily::CurrentBranchHead,
-            QueryContextFamily::BranchHead,
-            QueryContextFamily::HistoricalSnapshot,
-            QueryContextFamily::HistoricalCommit,
-            QueryContextFamily::PreviewDerivedHistorical,
-        ];
-        let admitted_comparison_families = vec![
-            ComparisonBasisFamily::BranchToBranch,
-            ComparisonBasisFamily::CurrentToHistorical,
-            ComparisonBasisFamily::HistoricalToHistorical,
-            ComparisonBasisFamily::PreviewToAuthoritative,
-        ];
-        let deferred_scope_markers = vec![
-            QueryContextDeferredScopeMarker::StoreBackedHistorical,
-            QueryContextDeferredScopeMarker::StoreBackedDiff,
-            QueryContextDeferredScopeMarker::BroadCollectionDiff,
-        ];
-        let profile_digest = hash_parts(&[
-            format!(
-                "basis:{}",
-                admitted_basis_families
-                    .iter()
-                    .map(QueryContextFamily::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "comparison:{}",
-                admitted_comparison_families
-                    .iter()
-                    .map(ComparisonBasisFamily::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-            format!(
-                "deferred:{}",
-                deferred_scope_markers
-                    .iter()
-                    .map(QueryContextDeferredScopeMarker::as_str)
-                    .collect::<Vec<_>>()
-                    .join(",")
-            ),
-        ]);
-
-        Self {
-            admitted_basis_families,
-            admitted_comparison_families,
-            deferred_scope_markers,
-            profile_digest,
-        }
-    }
-
-    pub fn admitted_basis_families(&self) -> &[QueryContextFamily] {
-        &self.admitted_basis_families
-    }
-
-    pub fn admitted_comparison_families(&self) -> &[ComparisonBasisFamily] {
-        &self.admitted_comparison_families
-    }
-
-    pub fn deferred_scope_markers(&self) -> &[QueryContextDeferredScopeMarker] {
-        &self.deferred_scope_markers
-    }
-
-    pub fn profile_digest(&self) -> &str {
-        &self.profile_digest
-    }
-}
+pub type ForgeQueryQueryContextSupportProfile = QueryContextSupportProfile;
+pub type ForgeQueryIdentityEvolutionSupportProfile = IdentityEvolutionSupportProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQuerySupportReportCounters {
@@ -168,6 +79,7 @@ pub struct ForgeQuerySupportReport {
     unsupported_capability_families: Vec<ForgeQueryCapabilityFamily>,
     section_postures: Vec<ForgeQuerySupportSectionPosture>,
     query_context_support_profile: Option<ForgeQueryQueryContextSupportProfile>,
+    identity_evolution_support_profile: Option<ForgeQueryIdentityEvolutionSupportProfile>,
     validated_config_digest: String,
     counters: ForgeQuerySupportReportCounters,
     report_digest: String,
@@ -222,7 +134,11 @@ impl ForgeQuerySupportReport {
         let query_context_support_profile = support_matrix
             .descriptor(ForgeQueryCapabilityFamily::QueryContext)
             .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
-            .map(|_| ForgeQueryQueryContextSupportProfile::runtime_backed_narrow());
+            .map(|_| runtime_backed_narrow_query_context_support_profile());
+        let identity_evolution_support_profile = support_matrix
+            .descriptor(ForgeQueryCapabilityFamily::IdentityEvolution)
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
+            .map(|_| runtime_backed_direct_identity_evolution_support_profile());
         let validated_config_digest = config.validated_digest().to_string();
         let counters = ForgeQuerySupportReportCounters::generated_once();
         let report_digest = hash_parts(&[
@@ -277,6 +193,13 @@ impl ForgeQuerySupportReport {
                     .unwrap_or("none")
             ),
             format!(
+                "identity_evolution_profile:{}",
+                identity_evolution_support_profile
+                    .as_ref()
+                    .map(ForgeQueryIdentityEvolutionSupportProfile::profile_digest)
+                    .unwrap_or("none")
+            ),
+            format!(
                 "report_generation:{}",
                 counters.support_report_generation_count()
             ),
@@ -292,6 +215,7 @@ impl ForgeQuerySupportReport {
             unsupported_capability_families,
             section_postures,
             query_context_support_profile,
+            identity_evolution_support_profile,
             validated_config_digest,
             counters,
             report_digest,
@@ -332,6 +256,12 @@ impl ForgeQuerySupportReport {
 
     pub fn query_context_support_profile(&self) -> Option<&ForgeQueryQueryContextSupportProfile> {
         self.query_context_support_profile.as_ref()
+    }
+
+    pub fn identity_evolution_support_profile(
+        &self,
+    ) -> Option<&ForgeQueryIdentityEvolutionSupportProfile> {
+        self.identity_evolution_support_profile.as_ref()
     }
 
     pub fn validated_config_digest(&self) -> &str {

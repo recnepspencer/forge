@@ -1,0 +1,214 @@
+use crate::harness::certification::CertificationMatrix;
+use crate::identity::{BasisDigest, CanonicalQueryDigest};
+use crate::identity_evolution::{
+    compare_identity_evolution_denial_replay, compare_identity_evolution_result_replay,
+    IdentityEvolutionAdmissionError, IdentityEvolutionCertificationDenialEvidence,
+    IdentityEvolutionCertificationResultEvidence, IdentityEvolutionExecutionArtifact,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum IdentityEvolutionCertificationPerturbationClass {
+    LineageTraversal,
+    CorrespondenceComparison,
+    BranchLocality,
+    IdentityBreak,
+    Disagreement,
+    ReplayParity,
+    Performance,
+    ComplexityContract,
+    FallbackBoundary,
+    CompileTimeBoundary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IdentityEvolutionCertificationFailureClass {
+    AdmissionDenied,
+    ExecutionDenied,
+    CompileFail,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IdentityEvolutionCertificationLane {
+    pub query_digest: String,
+    pub basis_digest: String,
+    pub lineage_digest: String,
+    pub branch_locality_digest: String,
+    pub complexity_contract_digest: String,
+    pub result_digest: String,
+    pub failure_digest: String,
+    pub replay_digest: String,
+    pub counter_snapshot_digest: String,
+    pub outcome_family: String,
+    pub branch_locality_class: String,
+    pub complexity_status: String,
+    pub prediction_drift_outcome: String,
+    pub exact_counter_values: Vec<String>,
+}
+
+impl IdentityEvolutionCertificationLane {
+    pub fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
+        let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(
+            artifact,
+        );
+        let replay = compare_identity_evolution_result_replay(&evidence, &evidence);
+        Self {
+            query_digest: evidence.query_digest().as_str().to_string(),
+            basis_digest: evidence.basis_digest().as_str().to_string(),
+            lineage_digest: evidence.lineage_digest().as_str().to_string(),
+            branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
+            complexity_contract_digest: evidence
+                .complexity_contract_digest()
+                .as_str()
+                .to_string(),
+            result_digest: evidence.result_digest().to_string(),
+            failure_digest: evidence.failure_digest().as_str().to_string(),
+            replay_digest: replay.replay_digest().as_str().to_string(),
+            counter_snapshot_digest: evidence
+                .counter_snapshot()
+                .counter_snapshot_digest()
+                .as_str()
+                .to_string(),
+            outcome_family: evidence.outcome_family().as_str().to_string(),
+            branch_locality_class: evidence.branch_locality_class().as_str().to_string(),
+            complexity_status: evidence.complexity_status().as_str().to_string(),
+            prediction_drift_outcome: artifact
+                .prediction_drift_outcome()
+                .as_str()
+                .to_string(),
+            exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
+        }
+    }
+
+    pub fn has_required_outputs(&self) -> bool {
+        !self.query_digest.is_empty()
+            && !self.basis_digest.is_empty()
+            && !self.lineage_digest.is_empty()
+            && !self.branch_locality_digest.is_empty()
+            && !self.complexity_contract_digest.is_empty()
+            && !self.result_digest.is_empty()
+            && !self.failure_digest.is_empty()
+            && !self.replay_digest.is_empty()
+            && !self.counter_snapshot_digest.is_empty()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IdentityEvolutionCertificationRejection {
+    pub failure_class: IdentityEvolutionCertificationFailureClass,
+    pub query_digest: String,
+    pub basis_digest: String,
+    pub lineage_digest: String,
+    pub branch_locality_digest: String,
+    pub complexity_contract_digest: String,
+    pub result_digest: String,
+    pub failure_digest: String,
+    pub replay_digest: String,
+    pub counter_snapshot_digest: String,
+    pub exact_counter_values: Vec<String>,
+    pub compile_fail_case: Option<&'static str>,
+}
+
+impl IdentityEvolutionCertificationRejection {
+    pub fn from_admission_error(
+        error: &IdentityEvolutionAdmissionError,
+        query_digest: &CanonicalQueryDigest,
+        basis_digest: &BasisDigest,
+    ) -> Self {
+        let evidence = IdentityEvolutionCertificationDenialEvidence::from_admission_error(
+            error,
+            query_digest,
+            basis_digest,
+        );
+        let replay = compare_identity_evolution_denial_replay(&evidence, &evidence);
+        Self {
+            failure_class: IdentityEvolutionCertificationFailureClass::AdmissionDenied,
+            query_digest: evidence.query_digest().as_str().to_string(),
+            basis_digest: evidence.basis_digest().as_str().to_string(),
+            lineage_digest: evidence.lineage_digest().as_str().to_string(),
+            branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
+            complexity_contract_digest: evidence
+                .complexity_contract_digest()
+                .as_str()
+                .to_string(),
+            result_digest: evidence.result_digest().to_string(),
+            failure_digest: evidence.failure_digest().as_str().to_string(),
+            replay_digest: replay.replay_digest().as_str().to_string(),
+            counter_snapshot_digest: evidence
+                .counter_snapshot()
+                .counter_snapshot_digest()
+                .as_str()
+                .to_string(),
+            exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
+            compile_fail_case: None,
+        }
+    }
+
+    pub fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
+        let evidence = IdentityEvolutionCertificationDenialEvidence::from_execution_artifact(
+            artifact,
+        );
+        let replay = compare_identity_evolution_denial_replay(&evidence, &evidence);
+        Self {
+            failure_class: IdentityEvolutionCertificationFailureClass::ExecutionDenied,
+            query_digest: evidence.query_digest().as_str().to_string(),
+            basis_digest: evidence.basis_digest().as_str().to_string(),
+            lineage_digest: evidence.lineage_digest().as_str().to_string(),
+            branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
+            complexity_contract_digest: evidence
+                .complexity_contract_digest()
+                .as_str()
+                .to_string(),
+            result_digest: evidence.result_digest().to_string(),
+            failure_digest: evidence.failure_digest().as_str().to_string(),
+            replay_digest: replay.replay_digest().as_str().to_string(),
+            counter_snapshot_digest: evidence
+                .counter_snapshot()
+                .counter_snapshot_digest()
+                .as_str()
+                .to_string(),
+            exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
+            compile_fail_case: None,
+        }
+    }
+
+    pub fn compile_fail(
+        row_name: &'static str,
+        file: &'static str,
+        query_digest: &CanonicalQueryDigest,
+        basis_digest: &BasisDigest,
+    ) -> Self {
+        let evidence = IdentityEvolutionCertificationDenialEvidence::compile_fail(
+            row_name,
+            query_digest,
+            basis_digest,
+        );
+        let replay = compare_identity_evolution_denial_replay(&evidence, &evidence);
+        Self {
+            failure_class: IdentityEvolutionCertificationFailureClass::CompileFail,
+            query_digest: evidence.query_digest().as_str().to_string(),
+            basis_digest: evidence.basis_digest().as_str().to_string(),
+            lineage_digest: evidence.lineage_digest().as_str().to_string(),
+            branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
+            complexity_contract_digest: evidence
+                .complexity_contract_digest()
+                .as_str()
+                .to_string(),
+            result_digest: evidence.result_digest().to_string(),
+            failure_digest: evidence.failure_digest().as_str().to_string(),
+            replay_digest: replay.replay_digest().as_str().to_string(),
+            counter_snapshot_digest: evidence
+                .counter_snapshot()
+                .counter_snapshot_digest()
+                .as_str()
+                .to_string(),
+            exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
+            compile_fail_case: Some(file),
+        }
+    }
+}
+
+pub type IdentityEvolutionCertificationMatrix = CertificationMatrix<
+    IdentityEvolutionCertificationPerturbationClass,
+    IdentityEvolutionCertificationLane,
+    IdentityEvolutionCertificationRejection,
+>;

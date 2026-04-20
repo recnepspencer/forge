@@ -120,13 +120,17 @@ Why:
 
 ### After Milestone 8: Live-Query Substrate And Durable Sync Basis
 
-You can fully move on to:
+You are partway clear for:
 
-- `Milestone 12` Replication, Capsules, And Integrity Verification
+- `Milestone 14` Replication, Capsules, And Integrity Verification
+
+But you should not close it yet without `Milestone 10` and `Milestone 12`.
 
 Why:
 
-- export/replication can now reason about durable read/sync basis honestly
+- export/replication can now reason about durable read/sync basis honestly,
+  but it should not close before retention/rebuild and compatibility rules are
+  explicit
 
 ### After Milestone 9: Bulk Ingest And Bulk Transform Paths
 
@@ -141,54 +145,86 @@ What it means:
 
 You can fully move on to:
 
-- `Milestone 11` Tiering And Durable Working-Set Intelligence
-- `Milestone 12` Replication, Capsules, And Integrity Verification
-- `Milestone 17` Native Blob And Object Storage
+- `Milestone 11` Background Maintenance Isolation And Scheduling Contracts
+- `Milestone 12` Artifact Format Evolution And Rolling Compatibility
+- `Milestone 13` Tiering And Durable Working-Set Intelligence
 
 Why:
 
 - rebuild and retention rules are now stable enough for these later systems
 
-### After Milestone 11: Tiering And Durable Working-Set Intelligence
+### After Milestone 11: Background Maintenance Isolation And Scheduling Contracts
+
+You do not unlock a new major foundation milestone by itself.
+
+What it means:
+
+- maintenance work classes, pacing, and debt surfaces are now explicit
+- later replication, extension, and certification work can build on a typed
+  maintenance runtime boundary instead of ad hoc background behavior
+
+### After Milestone 12: Artifact Format Evolution And Rolling Compatibility
 
 You can fully move on to:
 
-- `Milestone 18` Admission Control And Budget Contracts
+- `Milestone 14` Replication, Capsules, And Integrity Verification
+
+Why:
+
+- rolling compatibility and rebuild invalidation rules are now explicit enough
+  to spread artifacts across machines honestly
+
+### After Milestone 13: Tiering And Durable Working-Set Intelligence
+
+You can fully move on to:
+
+- `Milestone 21` Admission Control And Budget Contracts
 
 Why:
 
 - budget controls now have a real placement/tiering model to govern
 
-### After Milestone 12: Replication, Capsules, And Integrity Verification
+### After Milestone 14: Replication, Capsules, And Integrity Verification
 
 You can fully move on to:
 
-- `Milestone 13` Time-Travel Diff Acceleration And Merge-Assistance Artifacts
-- `Milestone 14` Derived Durable Artifact Families And Accuracy Taxonomy
-- `Milestone 17` Native Blob And Object Storage
+- `Milestone 15` Extensible Durable Artifact Families And Storage Strategies
+- `Milestone 16` Time-Travel Diff Acceleration And Merge-Assistance Artifacts
+- `Milestone 17` Derived Durable Artifact Families And Accuracy Taxonomy
+- `Milestone 20` Native Blob And Object Storage
 
 Why:
 
 - export, rebuild, and integrity contracts are now stable enough for advanced
   derived and blob programs
 
-### After Milestone 13: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
+### After Milestone 15: Extensible Durable Artifact Families And Storage Strategies
+
+You do not unlock a new major foundation milestone by itself.
+
+What it means:
+
+- extension-family containment and per-family contracts are now explicit
+- later certification can reason about extension-defined durable families
+  honestly
+
+### After Milestone 16: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
 
 You are clear to keep going on advanced derived-storage programs, but it does
 not unlock a new major foundation milestone by itself.
 
-### After Milestone 14: Derived Durable Artifact Families And Accuracy Taxonomy
+### After Milestone 17: Derived Durable Artifact Families And Accuracy Taxonomy
 
 You can fully move on to:
 
-- `Milestone 15` Analysis Lanes
-- `Milestone 16` Correspondence Indexes, Structural Fingerprints, And Locality Clustering
+- `Milestone 18` Analysis Lanes
+- `Milestone 19` Correspondence Indexes, Structural Fingerprints, And Locality Clustering
 
 Why:
 
 - these programs now inherit an honest accuracy/trust model
 
-### After Milestone 15: Analysis Lanes
+### After Milestone 18: Analysis Lanes
 
 You do not unlock a new major foundation milestone by itself.
 
@@ -197,7 +233,7 @@ What it means:
 - analysis durability is now real
 - domain certification can include basis-pinned analysis honestly
 
-### After Milestone 16: Correspondence Indexes, Structural Fingerprints, And Locality Clustering
+### After Milestone 19: Correspondence Indexes, Structural Fingerprints, And Locality Clustering
 
 You do not unlock a new major foundation milestone by itself.
 
@@ -206,32 +242,41 @@ What it means:
 - advanced derived lookup and locality programs are now real
 - domain certification can include them honestly
 
-### After Milestone 17: Native Blob And Object Storage
+### After Milestone 20: Native Blob And Object Storage
 
 You can fully move on to:
 
-- `Milestone 18` Admission Control And Budget Contracts
+- `Milestone 21` Admission Control And Budget Contracts
 - certification with blob-bearing workloads
 
 Why:
 
 - budget controls and certification now have the real blob model available
 
-### After Milestone 18: Admission Control And Budget Contracts
+### After Milestone 21: Admission Control And Budget Contracts
 
 You can fully move on to:
 
-- `Milestone 19` Generic Store Certification Program
+- `Milestone 23` Generic Store Certification Program
 
 Why:
 
 - the store now has explicit operational limits and failure policy
 
-### After Milestone 19: Generic Store Certification Program
+### After Milestone 22: Operator Repair, Audit, And Forensic Recovery Tooling
+
+You do not unlock a new major foundation milestone by itself.
+
+What it means:
+
+- operator audit, repair, quarantine, and forensic posture are now explicit
+- final certification can close without leaving operator-grade recovery implied
+
+### After Milestone 23: Generic Store Certification Program
 
 You can fully move on to:
 
-- `Milestone 20` Domain Store Certification Program
+- `Milestone 24` Domain Store Certification Program
 
 Why:
 
@@ -249,12 +294,13 @@ If you want the shortest possible version:
 - `M5` unlocks `M6` and `M9`
 - `M6 + M7` unlock `M8`
 - `M4 + M5 + M6` unlock `M10`
-- `M10` unlocks `M11`, `M12`, and `M17`
-- `M12` unlocks `M13`, `M14`, and `M17`
-- `M14` unlocks `M15` and `M16`
-- `M11 + M17` unlock `M18`
-- `M18` unlocks `M19`
-- `M19` unlocks `M20`
+- `M10` unlocks `M11`, `M12`, and `M13`
+- `M12` unlocks `M14`
+- `M14` unlocks `M15`, `M16`, `M17`, and `M20`
+- `M17` unlocks `M18` and `M19`
+- `M13` and later `M20` unlock `M21`
+- `M21` unlocks `M23`
+- `M23` unlocks `M24`
 
 ## Recommended "What Next?" Answers
 
@@ -263,10 +309,11 @@ If you just closed:
 - `M3`: do `M4`, `M5`, and durable `M7`
 - `M5`: do `M6` and `M9`
 - `M6`: finish toward `M8` and `M10`
-- `M10`: do `M11`, `M12`, and `M17`
-- `M12`: do `M13`, `M14`, and `M17`
-- `M14`: do `M15` and `M16`
-- `M18`: do `M19`
+- `M10`: do `M11`, `M12`, and `M13`
+- `M12`: do `M14`
+- `M14`: do `M15`, `M16`, `M17`, and `M20`
+- `M17`: do `M18` and `M19`
+- `M20`: finish toward `M21` and blob-bearing certification
 
 ## Companion Documents
 

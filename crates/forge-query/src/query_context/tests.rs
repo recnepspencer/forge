@@ -666,3 +666,54 @@ fn broadening_required_comparison_denies_before_rich_artifact_shaping() {
     assert_eq!(error.counters().comparison_family_rediscovery_count(), 0);
     assert_eq!(error.counters().denial_width(), 1);
 }
+
+#[test]
+fn historical_reconstruction_broadening_denies_before_rich_execution() {
+    let preflight = execution_preflights::ordered_collection_preflight();
+    let request = HistoricalEvaluationRequest::full_reconstruction(
+        "history:reconstruction",
+        4,
+        8,
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::full_reconstruction(
+        "history:reconstruction",
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let admission =
+        admit_historical_evaluation_path(request, capability).expect("reconstruction should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::full_reconstruction("history:reconstruction"),
+    )
+    .expect("reconstruction should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let admitted = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:reconstruction"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("historical reconstruction context should bind"),
+    )
+    .expect("historical reconstruction context should admit");
+
+    let error = execute_query_basis_context(&admitted)
+        .expect_err("reconstruction lane should deny broadening before execution");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::HistoricalPathTooBroadDenied
+    );
+    assert_eq!(
+        error
+            .counters()
+            .materialization_path_compatibility_check_count(),
+        1
+    );
+    assert_eq!(error.counters().historical_broadening_denial_count(), 1);
+    assert_eq!(error.counters().denial_width(), 1);
+}

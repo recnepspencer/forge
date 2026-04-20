@@ -18,6 +18,7 @@ pub struct UnifiedFacadeRejectionRowSpec {
 pub const UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "unified-query-read-capability",
     "unified-query-context-capability",
+    "unified-identity-evolution-capability",
     "unified-query-context-basis-result-bundle",
     "unified-query-context-diff-result-bundle",
     "unified-live-capability",
@@ -27,6 +28,7 @@ pub const UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "unified-config-section-explicitness",
     "capability-support-metadata-sync",
     "query-context-support-profile-sync",
+    "identity-evolution-support-profile-sync",
 ];
 
 pub const UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
@@ -34,7 +36,7 @@ pub const UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "invalid-workflow-support-posture",
     "deferred-durable-artifacts",
     "invalid-unified-configuration",
-    "broad-collection-diff-deferred",
+    "broad-collection-diff-denied",
 ];
 
 pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
@@ -44,6 +46,7 @@ pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
     "workflow_orchestration_capability_constructor_private",
     "historical_evaluation_capability_constructor_private",
     "query_context_capability_constructor_private",
+    "identity_evolution_capability_constructor_private",
     "validated_forge_query_config_constructor_private",
     "forge_query_support_report_constructor_private",
     "capability_admission_decision_constructor_private",
@@ -67,6 +70,11 @@ pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] =
     UnifiedFacadeCanonicalRowSpec {
         row_name: "unified-query-context-capability",
         perturbation_class: UnifiedFacadePerturbationClass::QueryContextCapability,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    UnifiedFacadeCanonicalRowSpec {
+        row_name: "unified-identity-evolution-capability",
+        perturbation_class: UnifiedFacadePerturbationClass::ApplicationCapability,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
     UnifiedFacadeCanonicalRowSpec {
@@ -114,6 +122,11 @@ pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] =
         perturbation_class: UnifiedFacadePerturbationClass::SupportMetadata,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
+    UnifiedFacadeCanonicalRowSpec {
+        row_name: "identity-evolution-support-profile-sync",
+        perturbation_class: UnifiedFacadePerturbationClass::SupportMetadata,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
 ];
 
 pub const UNIFIED_FACADE_REJECTION_ROW_SPECS: &[UnifiedFacadeRejectionRowSpec] = &[
@@ -138,8 +151,8 @@ pub const UNIFIED_FACADE_REJECTION_ROW_SPECS: &[UnifiedFacadeRejectionRowSpec] =
         failure_class: UnifiedFacadeFailureClass::InvalidConfiguration,
     },
     UnifiedFacadeRejectionRowSpec {
-        row_name: "broad-collection-diff-deferred",
-        perturbation_class: UnifiedFacadePerturbationClass::DeferredComposition,
-        failure_class: UnifiedFacadeFailureClass::DeferredCapability,
+        row_name: "broad-collection-diff-denied",
+        perturbation_class: UnifiedFacadePerturbationClass::QueryContextCapability,
+        failure_class: UnifiedFacadeFailureClass::QueryContextBroadeningDenied,
     },
 ];

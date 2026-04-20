@@ -50,7 +50,7 @@ pub(super) fn stable_basis_request(
     )
 }
 
-pub(super) fn stable_basis_request_for_store(
+pub(crate) fn stable_basis_request_for_store(
     store: &ForgeStore,
     branch_id: forge_relational::facade::history::BranchId,
     commit_id: CommitId,
