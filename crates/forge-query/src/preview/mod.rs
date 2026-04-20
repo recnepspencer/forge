@@ -1662,6 +1662,7 @@ pub struct PreviewWorkflowFoundationArtifact {
     lifecycle_state_kind: BridgePreviewLifecycleStateKind,
     evaluation_class: PreviewEvaluationClass,
     execution_record_identity: PreviewExecutionRecordIdentity,
+    shape_check_width: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1879,6 +1880,10 @@ impl PreviewWorkflowFoundationArtifact {
     pub fn execution_record_identity(&self) -> &PreviewExecutionRecordIdentity {
         &self.execution_record_identity
     }
+
+    pub fn shape_check_width(&self) -> usize {
+        self.shape_check_width
+    }
 }
 
 impl AdmittedPreviewWorkflowFoundation {
@@ -1924,6 +1929,10 @@ impl AdmittedPreviewWorkflowFoundation {
 
     pub fn execution_record_identity(&self) -> &PreviewExecutionRecordIdentity {
         self.artifact.execution_record_identity()
+    }
+
+    pub fn shape_check_width(&self) -> usize {
+        self.artifact.shape_check_width()
     }
 
     pub fn counters(&self) -> &PreviewExecutionCounters {
@@ -2220,6 +2229,8 @@ fn derive_preview_workflow_foundation(
         lifecycle_state_kind: binding_tuple.lifecycle_state_kind(),
         evaluation_class: binding_tuple.evaluation_class().clone(),
         execution_record_identity,
+        shape_check_width: PreviewComparisonShapeContract::from_preflight(binding.preflight())
+            .shape_check_width,
     }
 }
 

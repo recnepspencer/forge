@@ -102,6 +102,9 @@ pub enum QueryContextAdmissionFailureClass {
     AmbiguousComparisonBasis,
     StoreBackedHistoricalDeferred,
     BroadComparisonForbidden,
+    ComparisonShapeMismatch,
+    ComparisonBroadeningRequired,
+    RawStorageDeltaLeakageForbidden,
     BasisSubstitutionForbidden,
     NonQueryOwnedHistoricalArtifact,
     UnsupportedHistoricalMaterializationPathClass,
@@ -372,6 +375,20 @@ impl AdmittedQueryBasisContext {
 
     pub fn drift_outcome(&self) -> &QueryContextDriftOutcome {
         self.binding.drift_outcome()
+    }
+
+    pub(crate) fn predicted_result_shape_width(&self) -> usize {
+        match self.binding.evidence() {
+            QueryBasisBindingEvidenceView::Runtime { preflight } => {
+                preflight.plan().result_shape().binding_count()
+            }
+            QueryBasisBindingEvidenceView::Historical {
+                query_preflight, ..
+            } => query_preflight.plan().result_shape().binding_count(),
+            QueryBasisBindingEvidenceView::PreviewDerived { foundation } => {
+                foundation.shape_check_width()
+            }
+        }
     }
 
     pub(crate) fn binding(&self) -> &QueryBasisContextBinding {

@@ -2,7 +2,7 @@ use crate::{
     failure::StoreError,
     live_query::{
         acknowledgment::admit_continuation_advance as admit_live_query_continuation_advance,
-        basis::validate_stable_basis_request,
+        basis::{validate_stable_basis_handle, validate_stable_basis_request},
         compatibility::plan_cursor_continuation as plan_live_query_cursor_continuation,
         LiveQueryBasisEvidence, LiveQueryContinuationSessionEvidence, Milestone8TruthSurface,
     },
@@ -40,12 +40,25 @@ impl ForgeStore {
         &self,
         request: crate::CursorContinuationRequest,
     ) -> Result<crate::CursorContinuationPlan, StoreError> {
+        validate_stable_basis_handle(request.stable_basis())?;
+        let basis_survival = crate::live_query::restart::StableBasisSurvival::from_handle(
+            request.stable_basis(),
+        );
+        self.backend.record_stable_basis_lookup();
+        self.backend.record_stable_basis_read(
+            1,
+            1,
+            !matches!(basis_survival, crate::live_query::restart::StableBasisSurvival::Retained),
+        );
+        self.backend.record_continuation_identity_lookup();
+        self.backend.record_continuation_checkpoint_lookup();
         let resume_plan = self
             .backend
             .plan_cursor_resume(request.resume_request().clone())?;
         match plan_live_query_cursor_continuation(request, resume_plan) {
             Ok(planned) => {
                 let (plan, effects) = planned.into_parts();
+                self.backend.verify_cursor_continuation_budget(&plan)?;
                 self.record_continuation_planning_effects(effects);
                 Ok(plan)
             }
@@ -76,7 +89,12 @@ impl ForgeStore {
         receipt: crate::ContinuationAdvanceReceipt,
     ) -> Result<crate::AcknowledgedContinuationAdvance, StoreError> {
         match admit_live_query_continuation_advance(receipt) {
-            Ok(advance) => Ok(advance),
+            Ok(advance) => {
+                self.record_continuation_ack_effects(vec![
+                    crate::live_query::acknowledgment::ContinuationAcknowledgmentEffect::Parity,
+                ]);
+                Ok(advance)
+            }
             Err(failure) => {
                 let (error, effects) = failure.into_parts();
                 self.record_continuation_ack_effects(effects);

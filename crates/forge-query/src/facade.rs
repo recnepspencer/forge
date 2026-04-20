@@ -11,11 +11,11 @@ pub use crate::application::{
     ForgeQueryConfigSectionResolution, ForgeQueryFacadeCounters, ForgeQueryFacadeError,
     ForgeQueryFacadeFailureClass, ForgeQueryQueryConfig, ForgeQueryRelationalConfig,
     ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalConfig, ForgeQueryStoreConfig,
-    ForgeQuerySubsystemOwner, ForgeQuerySupportMatrix, ForgeQuerySupportReport,
-    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    ForgeQueryQueryContextSupportProfile, ForgeQuerySubsystemOwner, ForgeQuerySupportMatrix,
+    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
     HistoricalEvaluationCapability, LiveQueryCapability, PreviewSessionCapability,
-    QueryContextCapability, QueryReadCapability, ValidatedForgeQueryConfig,
-    WorkflowOrchestrationCapability,
+    QueryContextCapability, QueryContextDeferredScopeMarker, QueryReadCapability,
+    ValidatedForgeQueryConfig, WorkflowOrchestrationCapability,
 };
 pub use crate::authoring::{
     AspectFieldSelector, AuthoredBundleError, AuthoredBundleFailureClass, AuthoredResultShapeField,
@@ -195,16 +195,17 @@ pub use crate::preview::{
 };
 pub use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
-    bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
-    shape_query_diff_change_set, AdmittedDiffQueryContext, AdmittedQueryBasisContext,
-    ComparisonBasisFamily, DiffQueryMetadata, HistoricalAdmissionClass,
-    HistoricalMaterializationCostClass, QueryBasisContextBinding, QueryBasisContextRequest,
-    QueryBasisMetadata, QueryContextAdmissionError, QueryContextAdmissionFailureClass,
+    bind_diff_query_context, bind_query_basis_context, build_query_basis_result_bundle,
+    build_query_diff_result_bundle, execute_query_basis_context, shape_query_diff_change_set,
+    AdmittedDiffQueryContext, AdmittedQueryBasisContext, ComparisonBasisFamily,
+    DiffQueryMetadata, HistoricalAdmissionClass, HistoricalMaterializationCostClass,
+    QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata,
+    QueryBasisResultBundle, QueryContextAdmissionError, QueryContextAdmissionFailureClass,
     QueryContextBindingSource, QueryContextBudgetClass, QueryContextCostClass,
     QueryContextCounters, QueryContextDriftOutcome, QueryContextExecutionArtifact,
     QueryContextExecutionCounters, QueryContextExecutionFamily, QueryContextFamily,
     QueryContextPredictionDriftOutcome, QueryContextPredictionReport, QueryDiffChangeFamily,
-    QueryDiffChangeRow, QueryDiffChangeSetArtifact,
+    QueryDiffChangeRow, QueryDiffChangeSetArtifact, QueryDiffResultBundle,
 };
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,

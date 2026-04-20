@@ -19,7 +19,9 @@ pub use config::{
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
-    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport,
+    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    QueryContextDeferredScopeMarker,
 };
 
 #[cfg(test)]

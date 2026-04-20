@@ -23,6 +23,9 @@ pub enum HistoricalDiffFailureClass {
     BasisSubstitutionForbidden,
     BroadComparisonForbidden,
     AmbiguousComparisonBasis,
+    ComparisonShapeMismatch,
+    ComparisonBroadeningRequired,
+    RawStorageDeltaLeakageForbidden,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,6 +40,7 @@ pub struct HistoricalDiffLane {
     pub historical_admission_class: String,
     pub comparison_family: String,
     pub prediction_drift_outcome: String,
+    pub exact_counter_values: Vec<String>,
     pub counter_snapshot_digest: String,
 }
 
@@ -67,42 +71,57 @@ impl HistoricalDiffLane {
                 .prediction_drift_outcome()
                 .map(|value| value.as_str().to_string())
                 .unwrap_or_else(|| "none".to_string()),
-            counter_snapshot_digest: digest_parts(&[
-                format!("bindings:{}", counters.query_basis_binding_count()),
-                format!(
-                    "historical_lookups:{}",
-                    counters.historical_basis_lookup_count()
-                ),
-                format!("binding_width:{}", counters.basis_binding_width()),
-                format!("historical_width:{}", counters.historical_lookup_width()),
-                format!("denial_width:{}", counters.denial_width()),
-                format!(
-                    "comparison_lookups:{}",
-                    counters.comparison_basis_lookup_count()
-                ),
-                format!("scope_width:{}", counters.comparison_scope_width()),
-                format!("diff_breadth:{}", counters.diff_input_breadth()),
-                format!(
-                    "unsupported_denials:{}",
-                    counters.unsupported_basis_denial_count()
-                ),
-                format!(
-                    "basis_substitution_denials:{}",
-                    counters.basis_substitution_denial_count()
-                ),
-                format!("basis_rediscovery:{}", counters.basis_rediscovery_count()),
-                format!(
-                    "historical_path_rediscovery:{}",
-                    counters.historical_path_rediscovery_count()
-                ),
-            ]),
+            exact_counter_values: counter_values(counters),
+            counter_snapshot_digest: digest_parts(&counter_values(counters)),
         }
     }
+}
+
+fn counter_values(counters: &QueryContextCounters) -> Vec<String> {
+    vec![
+        format!("bindings:{}", counters.query_basis_binding_count()),
+        format!(
+            "historical_lookups:{}",
+            counters.historical_basis_lookup_count()
+        ),
+        format!("binding_width:{}", counters.basis_binding_width()),
+        format!("historical_width:{}", counters.historical_lookup_width()),
+        format!("denial_width:{}", counters.denial_width()),
+        format!(
+            "comparison_lookups:{}",
+            counters.comparison_basis_lookup_count()
+        ),
+        format!("scope_width:{}", counters.comparison_scope_width()),
+        format!("row_width:{}", counters.comparison_row_width()),
+        format!("diff_breadth:{}", counters.diff_input_breadth()),
+        format!(
+            "unsupported_denials:{}",
+            counters.unsupported_basis_denial_count()
+        ),
+        format!(
+            "basis_substitution_denials:{}",
+            counters.basis_substitution_denial_count()
+        ),
+        format!(
+            "comparison_broadening_denials:{}",
+            counters.comparison_broadening_denial_count()
+        ),
+        format!("basis_rediscovery:{}", counters.basis_rediscovery_count()),
+        format!(
+            "historical_path_rediscovery:{}",
+            counters.historical_path_rediscovery_count()
+        ),
+        format!(
+            "comparison_family_rediscovery:{}",
+            counters.comparison_family_rediscovery_count()
+        ),
+    ]
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalDiffRejection {
     pub failure_class: HistoricalDiffFailureClass,
+    pub exact_counter_values: Vec<String>,
     pub counter_snapshot_digest: String,
 }
 
@@ -128,46 +147,22 @@ impl HistoricalDiffRejection {
                 QueryContextAdmissionFailureClass::AmbiguousComparisonBasis => {
                     HistoricalDiffFailureClass::AmbiguousComparisonBasis
                 }
+                QueryContextAdmissionFailureClass::ComparisonShapeMismatch => {
+                    HistoricalDiffFailureClass::ComparisonShapeMismatch
+                }
+                QueryContextAdmissionFailureClass::ComparisonBroadeningRequired => {
+                    HistoricalDiffFailureClass::ComparisonBroadeningRequired
+                }
+                QueryContextAdmissionFailureClass::RawStorageDeltaLeakageForbidden => {
+                    HistoricalDiffFailureClass::RawStorageDeltaLeakageForbidden
+                }
                 QueryContextAdmissionFailureClass::NonQueryOwnedHistoricalArtifact => {
                     HistoricalDiffFailureClass::UnsupportedHistoricalBasis
                 }
                 other => panic!("unexpected historical diff failure class {other:?}"),
             },
-            counter_snapshot_digest: digest_parts(&[
-                format!("bindings:{}", error.counters().query_basis_binding_count()),
-                format!(
-                    "historical_lookups:{}",
-                    error.counters().historical_basis_lookup_count()
-                ),
-                format!("binding_width:{}", error.counters().basis_binding_width()),
-                format!(
-                    "historical_width:{}",
-                    error.counters().historical_lookup_width()
-                ),
-                format!("denial_width:{}", error.counters().denial_width()),
-                format!(
-                    "comparison_lookups:{}",
-                    error.counters().comparison_basis_lookup_count()
-                ),
-                format!("scope_width:{}", error.counters().comparison_scope_width()),
-                format!("diff_breadth:{}", error.counters().diff_input_breadth()),
-                format!(
-                    "unsupported_denials:{}",
-                    error.counters().unsupported_basis_denial_count()
-                ),
-                format!(
-                    "basis_substitution_denials:{}",
-                    error.counters().basis_substitution_denial_count()
-                ),
-                format!(
-                    "basis_rediscovery:{}",
-                    error.counters().basis_rediscovery_count()
-                ),
-                format!(
-                    "historical_path_rediscovery:{}",
-                    error.counters().historical_path_rediscovery_count()
-                ),
-            ]),
+            exact_counter_values: counter_values(error.counters()),
+            counter_snapshot_digest: digest_parts(&counter_values(error.counters())),
         }
     }
 }

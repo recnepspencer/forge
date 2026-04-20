@@ -6,5 +6,6 @@ pub use registry::{
     ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
 };
 pub use report::{
-    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    ForgeQueryQueryContextSupportProfile, ForgeQuerySupportReport, ForgeQuerySupportReportCounters,
+    ForgeQuerySupportSectionPosture, QueryContextDeferredScopeMarker,
 };

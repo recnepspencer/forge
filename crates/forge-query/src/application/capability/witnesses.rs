@@ -11,11 +11,12 @@ use crate::preview::{
 };
 use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
-    bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
-    shape_query_diff_change_set, AdmittedDiffQueryContext, AdmittedQueryBasisContext,
-    DiffQueryMetadata, QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata,
-    QueryContextAdmissionError, QueryContextBindingSource, QueryContextExecutionArtifact,
-    QueryDiffChangeSetArtifact,
+    bind_diff_query_context, bind_query_basis_context, build_query_basis_result_bundle,
+    build_query_diff_result_bundle, execute_query_basis_context, shape_query_diff_change_set,
+    AdmittedDiffQueryContext, AdmittedQueryBasisContext, DiffQueryMetadata,
+    QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata,
+    QueryBasisResultBundle, QueryContextAdmissionError, QueryContextBindingSource,
+    QueryContextExecutionArtifact, QueryDiffChangeSetArtifact, QueryDiffResultBundle,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, QueryWorkflowDeclaration,
@@ -173,6 +174,15 @@ impl QueryContextCapability {
         execute_query_basis_context(context)
     }
 
+    pub fn execute_basis_result_bundle(
+        &self,
+        context: &AdmittedQueryBasisContext,
+    ) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {
+        let _ = &self.facade_digest;
+        let execution = execute_query_basis_context(context)?;
+        build_query_basis_result_bundle(context, execution)
+    }
+
     pub fn attach_basis_metadata(
         &self,
         context: &AdmittedQueryBasisContext,
@@ -187,9 +197,10 @@ impl QueryContextCapability {
         context: &AdmittedDiffQueryContext,
         left_result: &QueryContextExecutionArtifact,
         right_result: &QueryContextExecutionArtifact,
+        change_set: &QueryDiffChangeSetArtifact,
     ) -> Result<DiffQueryMetadata, QueryContextAdmissionError> {
         let _ = &self.facade_digest;
-        attach_diff_query_metadata(context, left_result, right_result)
+        attach_diff_query_metadata(context, left_result, right_result, change_set)
     }
 
     pub fn shape_diff_change_set(
@@ -200,5 +211,16 @@ impl QueryContextCapability {
     ) -> Result<QueryDiffChangeSetArtifact, QueryContextAdmissionError> {
         let _ = &self.facade_digest;
         shape_query_diff_change_set(context, left_result, right_result)
+    }
+
+    pub fn shape_diff_result_bundle(
+        &self,
+        context: &AdmittedDiffQueryContext,
+        left_result: &QueryContextExecutionArtifact,
+        right_result: &QueryContextExecutionArtifact,
+    ) -> Result<QueryDiffResultBundle, QueryContextAdmissionError> {
+        let _ = &self.facade_digest;
+        let change_set = shape_query_diff_change_set(context, left_result, right_result)?;
+        build_query_diff_result_bundle(context, change_set, left_result, right_result)
     }
 }

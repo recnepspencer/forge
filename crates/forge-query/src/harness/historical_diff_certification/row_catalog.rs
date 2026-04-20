@@ -20,8 +20,12 @@ pub const HISTORICAL_DIFF_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "current-vs-historical-basis-explicitness",
     "historical-materialization-path-explicitness",
     "diff-comparison-family-explicitness",
+    "branch-to-branch-diff-shaped",
+    "current-to-historical-diff-shaped",
     "result-shape-parity-across-basis-variants",
     "preview-derived-historical-basis-explicitness",
+    "admitted-diff-cost-class-explicitness",
+    "prediction-versus-realization-explicitness",
 ];
 
 pub const HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
@@ -31,6 +35,8 @@ pub const HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "store-backed-historical-deferred-debt",
     "forbidden-basis-substitution",
     "raw-storage-delta-leakage-forbidden",
+    "broadening-required-comparison-denial",
+    "declared-result-shape-mismatch",
 ];
 
 pub const HISTORICAL_DIFF_CANONICAL_ROW_SPECS: &[HistoricalDiffCanonicalRowSpec] = &[
@@ -55,6 +61,16 @@ pub const HISTORICAL_DIFF_CANONICAL_ROW_SPECS: &[HistoricalDiffCanonicalRowSpec]
         hostile_expectation: HostileExpectation::DistinctFromControl,
     },
     HistoricalDiffCanonicalRowSpec {
+        row_name: "branch-to-branch-diff-shaped",
+        perturbation_class: HistoricalDiffPerturbationClass::ComparisonFamily,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    HistoricalDiffCanonicalRowSpec {
+        row_name: "current-to-historical-diff-shaped",
+        perturbation_class: HistoricalDiffPerturbationClass::ComparisonFamily,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    HistoricalDiffCanonicalRowSpec {
         row_name: "result-shape-parity-across-basis-variants",
         perturbation_class: HistoricalDiffPerturbationClass::MetadataShaping,
         hostile_expectation: HostileExpectation::EquivalentToControl,
@@ -62,6 +78,16 @@ pub const HISTORICAL_DIFF_CANONICAL_ROW_SPECS: &[HistoricalDiffCanonicalRowSpec]
     HistoricalDiffCanonicalRowSpec {
         row_name: "preview-derived-historical-basis-explicitness",
         perturbation_class: HistoricalDiffPerturbationClass::PreviewDerivedBasis,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    HistoricalDiffCanonicalRowSpec {
+        row_name: "admitted-diff-cost-class-explicitness",
+        perturbation_class: HistoricalDiffPerturbationClass::ComparisonFamily,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    HistoricalDiffCanonicalRowSpec {
+        row_name: "prediction-versus-realization-explicitness",
+        perturbation_class: HistoricalDiffPerturbationClass::ComparisonFamily,
         hostile_expectation: HostileExpectation::DistinctFromControl,
     },
 ];
@@ -95,6 +121,16 @@ pub const HISTORICAL_DIFF_REJECTION_ROW_SPECS: &[HistoricalDiffRejectionRowSpec]
     HistoricalDiffRejectionRowSpec {
         row_name: "raw-storage-delta-leakage-forbidden",
         perturbation_class: HistoricalDiffPerturbationClass::BroadDiffDenied,
-        failure_class: HistoricalDiffFailureClass::BroadComparisonForbidden,
+        failure_class: HistoricalDiffFailureClass::RawStorageDeltaLeakageForbidden,
+    },
+    HistoricalDiffRejectionRowSpec {
+        row_name: "broadening-required-comparison-denial",
+        perturbation_class: HistoricalDiffPerturbationClass::BroadDiffDenied,
+        failure_class: HistoricalDiffFailureClass::ComparisonBroadeningRequired,
+    },
+    HistoricalDiffRejectionRowSpec {
+        row_name: "declared-result-shape-mismatch",
+        perturbation_class: HistoricalDiffPerturbationClass::BroadDiffDenied,
+        failure_class: HistoricalDiffFailureClass::ComparisonShapeMismatch,
     },
 ];

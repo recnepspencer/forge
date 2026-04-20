@@ -18,12 +18,15 @@ pub struct UnifiedFacadeRejectionRowSpec {
 pub const UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "unified-query-read-capability",
     "unified-query-context-capability",
+    "unified-query-context-basis-result-bundle",
+    "unified-query-context-diff-result-bundle",
     "unified-live-capability",
     "unified-preview-capability",
     "unified-workflow-capability",
     "unified-historical-capability",
     "unified-config-section-explicitness",
     "capability-support-metadata-sync",
+    "query-context-support-profile-sync",
 ];
 
 pub const UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
@@ -31,6 +34,7 @@ pub const UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "invalid-workflow-support-posture",
     "deferred-durable-artifacts",
     "invalid-unified-configuration",
+    "broad-collection-diff-deferred",
 ];
 
 pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
@@ -48,6 +52,10 @@ pub const UNIFIED_FACADE_REQUIRED_COMPILE_FAIL_BOUNDARY_NAMES: &[&str] = &[
     "facade_historical_capability_cannot_bind_query_context",
     "facade_has_no_dynamic_capability_routing",
     "legacy_broad_facade_has_no_preview_workflow_shortcut",
+    "query_basis_result_bundle_constructor_private",
+    "query_diff_result_bundle_constructor_private",
+    "facade_query_read_capability_has_no_query_context_basis_bundle",
+    "facade_historical_capability_has_no_query_context_diff_bundle",
 ];
 
 pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] = &[
@@ -58,6 +66,16 @@ pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] =
     },
     UnifiedFacadeCanonicalRowSpec {
         row_name: "unified-query-context-capability",
+        perturbation_class: UnifiedFacadePerturbationClass::QueryContextCapability,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    UnifiedFacadeCanonicalRowSpec {
+        row_name: "unified-query-context-basis-result-bundle",
+        perturbation_class: UnifiedFacadePerturbationClass::QueryContextCapability,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    UnifiedFacadeCanonicalRowSpec {
+        row_name: "unified-query-context-diff-result-bundle",
         perturbation_class: UnifiedFacadePerturbationClass::QueryContextCapability,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
@@ -91,6 +109,11 @@ pub const UNIFIED_FACADE_CANONICAL_ROW_SPECS: &[UnifiedFacadeCanonicalRowSpec] =
         perturbation_class: UnifiedFacadePerturbationClass::SupportMetadata,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
+    UnifiedFacadeCanonicalRowSpec {
+        row_name: "query-context-support-profile-sync",
+        perturbation_class: UnifiedFacadePerturbationClass::SupportMetadata,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
 ];
 
 pub const UNIFIED_FACADE_REJECTION_ROW_SPECS: &[UnifiedFacadeRejectionRowSpec] = &[
@@ -113,5 +136,10 @@ pub const UNIFIED_FACADE_REJECTION_ROW_SPECS: &[UnifiedFacadeRejectionRowSpec] =
         row_name: "invalid-unified-configuration",
         perturbation_class: UnifiedFacadePerturbationClass::ConfigurationSection,
         failure_class: UnifiedFacadeFailureClass::InvalidConfiguration,
+    },
+    UnifiedFacadeRejectionRowSpec {
+        row_name: "broad-collection-diff-deferred",
+        perturbation_class: UnifiedFacadePerturbationClass::DeferredComposition,
+        failure_class: UnifiedFacadeFailureClass::DeferredCapability,
     },
 ];

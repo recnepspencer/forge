@@ -1,0 +1,19 @@
+error[E0451]: fields `query_digest`, `comparison_basis_family`, `left_basis_digest`, `right_basis_digest`, `result_digest`, `prediction_drift_outcome` and `rows` of struct `QueryDiffChangeSetArtifact` are private
+  --> tests/ui/query_diff_change_set_artifact_constructor_private.rs:7:9
+   |
+ 6 |     let _ = QueryDiffChangeSetArtifact {
+   |             -------------------------- in this type
+ 7 |         query_digest: String::from("query"),
+   |         ^^^^^^^^^^^^ private field
+ 8 |         comparison_basis_family: ComparisonBasisFamily::BranchToBranch,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         left_basis_digest: String::from("left"),
+   |         ^^^^^^^^^^^^^^^^^ private field
+10 |         right_basis_digest: String::from("right"),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+11 |         result_digest: String::from("result"),
+   |         ^^^^^^^^^^^^^ private field
+12 |         prediction_drift_outcome: QueryContextPredictionDriftOutcome::WithinBudget,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         rows: Vec::new(),
+   |         ^^^^ private field

@@ -20,8 +20,8 @@ use crate::harness::fixtures::{execution_preflights, preview_bridge::active_prev
 use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
     bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
-    shape_query_diff_change_set, QueryBasisContextRequest, QueryContextAdmissionError,
-    QueryContextBindingSource,
+    reject_raw_storage_delta_access, shape_query_diff_change_set, QueryBasisContextRequest,
+    QueryContextAdmissionError, QueryContextBindingSource,
 };
 
 pub struct MilestoneSixHistoricalDiffCertificationAdapter;
@@ -34,13 +34,22 @@ impl MilestoneSixHistoricalDiffCertificationAdapter {
         let historical = historical_lane();
         let preview = preview_lane();
         let branch_diff = branch_diff_lane();
+        let current_historical_diff = current_historical_diff_lane();
 
         HistoricalDiffCertificationMatrix {
             suite_name: "Branch-Scoped, Historical, And Diff Query Context Test",
             rows: HISTORICAL_DIFF_CANONICAL_ROW_SPECS
                 .iter()
                 .map(|spec| {
-                    canonical_row(spec, &current, &branch, &historical, &preview, &branch_diff)
+                    canonical_row(
+                        spec,
+                        &current,
+                        &branch,
+                        &historical,
+                        &preview,
+                        &branch_diff,
+                        &current_historical_diff,
+                    )
                 })
                 .collect(),
             rejection_rows: HISTORICAL_DIFF_REJECTION_ROW_SPECS
@@ -182,7 +191,7 @@ fn branch_diff_lane() -> HistoricalDiffLane {
         execute_query_basis_context(&right).expect("right query-context execution should succeed");
     let change_set = shape_query_diff_change_set(&diff, &left_result, &right_result)
         .expect("diff change-set should shape");
-    let metadata = attach_diff_query_metadata(&diff, &left_result, &right_result)
+    let metadata = attach_diff_query_metadata(&diff, &left_result, &right_result, &change_set)
         .expect("diff metadata should shape");
 
     HistoricalDiffLane {
@@ -198,17 +207,18 @@ fn branch_diff_lane() -> HistoricalDiffLane {
             format!("drift:{}", metadata.drift_outcome().as_str()),
         ]),
         basis_family: left.family().as_str().to_string(),
-        cost_class: left.cost_class().as_str().to_string(),
-        budget_class: left.budget_class().as_str().to_string(),
+        cost_class: metadata.cost_class().as_str().to_string(),
+        budget_class: metadata.budget_class().as_str().to_string(),
         historical_admission_class: "none".to_string(),
         comparison_family: metadata.comparison_basis_family().as_str().to_string(),
-        prediction_drift_outcome: "none".to_string(),
-        counter_snapshot_digest: digest_parts(&[
+        prediction_drift_outcome: metadata.prediction_drift_outcome().as_str().to_string(),
+        exact_counter_values: vec![
             format!(
                 "comparison_lookups:{}",
                 diff.counters().comparison_basis_lookup_count()
             ),
             format!("scope_width:{}", diff.counters().comparison_scope_width()),
+            format!("row_width:{}", diff.counters().comparison_row_width()),
             format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
             format!("binding_width:{}", diff.counters().basis_binding_width()),
             format!(
@@ -217,12 +227,161 @@ fn branch_diff_lane() -> HistoricalDiffLane {
             ),
             format!("denial_width:{}", diff.counters().denial_width()),
             format!(
+                "comparison_broadening_denials:{}",
+                diff.counters().comparison_broadening_denial_count()
+            ),
+            format!(
                 "basis_rediscovery:{}",
                 diff.counters().basis_rediscovery_count()
             ),
             format!(
                 "historical_path_rediscovery:{}",
                 diff.counters().historical_path_rediscovery_count()
+            ),
+            format!(
+                "comparison_family_rediscovery:{}",
+                diff.counters().comparison_family_rediscovery_count()
+            ),
+        ],
+        counter_snapshot_digest: digest_parts(&[
+            format!(
+                "comparison_lookups:{}",
+                diff.counters().comparison_basis_lookup_count()
+            ),
+            format!("scope_width:{}", diff.counters().comparison_scope_width()),
+            format!("row_width:{}", diff.counters().comparison_row_width()),
+            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
+            format!("binding_width:{}", diff.counters().basis_binding_width()),
+            format!(
+                "historical_width:{}",
+                diff.counters().historical_lookup_width()
+            ),
+            format!("denial_width:{}", diff.counters().denial_width()),
+            format!(
+                "comparison_broadening_denials:{}",
+                diff.counters().comparison_broadening_denial_count()
+            ),
+            format!(
+                "basis_rediscovery:{}",
+                diff.counters().basis_rediscovery_count()
+            ),
+            format!(
+                "historical_path_rediscovery:{}",
+                diff.counters().historical_path_rediscovery_count()
+            ),
+            format!(
+                "comparison_family_rediscovery:{}",
+                diff.counters().comparison_family_rediscovery_count()
+            ),
+        ]),
+    }
+}
+
+fn current_historical_diff_lane() -> HistoricalDiffLane {
+    let current_preflight = execution_preflights::direct_runtime_preflight();
+    let historical_preflight = execution_preflights::direct_runtime_preflight();
+    let current = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&current_preflight),
+        )
+        .expect("current should bind"),
+    )
+    .expect("current should admit");
+    let request = HistoricalEvaluationRequest::retained_snapshot(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let admission =
+        admit_historical_evaluation_path(request, capability).expect("history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+    )
+    .expect("history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let historical = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &historical_preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("historical should bind"),
+    )
+    .expect("historical should admit");
+    let diff = bind_diff_query_context(&current, &historical).expect("diff should bind");
+    let current_result = execute_query_basis_context(&current)
+        .expect("current query-context execution should succeed");
+    let historical_result = execute_query_basis_context(&historical)
+        .expect("historical query-context execution should succeed");
+    let change_set = shape_query_diff_change_set(&diff, &current_result, &historical_result)
+        .expect("current-to-historical diff change-set should shape");
+    let diff_metadata =
+        attach_diff_query_metadata(&diff, &current_result, &historical_result, &change_set)
+            .expect("current-to-historical diff metadata should shape");
+
+    HistoricalDiffLane {
+        query_digest: diff_metadata.query_digest().to_string(),
+        basis_digest: diff_metadata.left_basis_digest().to_string(),
+        result_digest: change_set.result_digest().to_string(),
+        replay_digest: digest_parts(&[
+            format!("query:{}", diff_metadata.query_digest()),
+            format!("left_basis:{}", diff_metadata.left_basis_digest()),
+            format!("right_basis:{}", diff_metadata.right_basis_digest()),
+            format!("diff_result:{}", change_set.result_digest()),
+            format!("change_rows:{}", change_set.rows().len()),
+            format!("drift:{}", diff_metadata.drift_outcome().as_str()),
+        ]),
+        basis_family: current.family().as_str().to_string(),
+        cost_class: diff_metadata.cost_class().as_str().to_string(),
+        budget_class: diff_metadata.budget_class().as_str().to_string(),
+        historical_admission_class: "runtime_retained".to_string(),
+        comparison_family: diff_metadata.comparison_basis_family().as_str().to_string(),
+        prediction_drift_outcome: diff_metadata
+            .prediction_drift_outcome()
+            .as_str()
+            .to_string(),
+        exact_counter_values: vec![
+            format!(
+                "comparison_lookups:{}",
+                diff.counters().comparison_basis_lookup_count()
+            ),
+            format!("scope_width:{}", diff.counters().comparison_scope_width()),
+            format!("row_width:{}", diff.counters().comparison_row_width()),
+            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
+            format!(
+                "comparison_broadening_denials:{}",
+                diff.counters().comparison_broadening_denial_count()
+            ),
+            format!(
+                "comparison_family_rediscovery:{}",
+                diff.counters().comparison_family_rediscovery_count()
+            ),
+        ],
+        counter_snapshot_digest: digest_parts(&[
+            format!(
+                "comparison_lookups:{}",
+                diff.counters().comparison_basis_lookup_count()
+            ),
+            format!("scope_width:{}", diff.counters().comparison_scope_width()),
+            format!("row_width:{}", diff.counters().comparison_row_width()),
+            format!("diff_breadth:{}", diff.counters().diff_input_breadth()),
+            format!(
+                "comparison_broadening_denials:{}",
+                diff.counters().comparison_broadening_denial_count()
+            ),
+            format!(
+                "comparison_family_rediscovery:{}",
+                diff.counters().comparison_family_rediscovery_count()
             ),
         ]),
     }
@@ -235,14 +394,21 @@ fn canonical_row(
     historical: &HistoricalDiffLane,
     preview: &HistoricalDiffLane,
     branch_diff: &HistoricalDiffLane,
+    current_historical_diff: &HistoricalDiffLane,
 ) -> CanonicalCertificationRow<HistoricalDiffPerturbationClass, HistoricalDiffLane> {
     let (control_lane, hostile_lane) = match spec.row_name {
         "current-vs-branch-basis-explicitness" => (current.clone(), branch.clone()),
         "current-vs-historical-basis-explicitness" => (current.clone(), historical.clone()),
         "historical-materialization-path-explicitness" => (historical.clone(), historical.clone()),
         "diff-comparison-family-explicitness" => (branch_diff.clone(), branch.clone()),
+        "branch-to-branch-diff-shaped" => (branch.clone(), branch_diff.clone()),
+        "current-to-historical-diff-shaped" => {
+            (historical.clone(), current_historical_diff.clone())
+        }
         "result-shape-parity-across-basis-variants" => (current.clone(), current.clone()),
         "preview-derived-historical-basis-explicitness" => (historical.clone(), preview.clone()),
+        "admitted-diff-cost-class-explicitness" => (branch.clone(), branch_diff.clone()),
+        "prediction-versus-realization-explicitness" => (branch.clone(), branch_diff.clone()),
         other => panic!("unexpected historical diff canonical row {other}"),
     };
 
@@ -308,19 +474,13 @@ fn rejection_row(
             HistoricalDiffRejection::from_error(&basis_substitution_error())
         }
         "raw-storage-delta-leakage-forbidden" => {
-            let left_preflight = execution_preflights::direct_runtime_preflight();
-            let left = admit_query_basis_context(
-                bind_query_basis_context(
-                    QueryBasisContextRequest::current_branch_head(),
-                    QueryContextBindingSource::RuntimeCurrent(&left_preflight),
-                )
-                .expect("left should bind"),
-            )
-            .expect("left should admit");
-            HistoricalDiffRejection::from_error(
-                &bind_diff_query_context(&left, &left)
-                    .expect_err("identical basis diff should deny broad comparison"),
-            )
+            HistoricalDiffRejection::from_error(&reject_raw_storage_delta_access())
+        }
+        "broadening-required-comparison-denial" => {
+            HistoricalDiffRejection::from_error(&comparison_broadening_error())
+        }
+        "declared-result-shape-mismatch" => {
+            HistoricalDiffRejection::from_error(&comparison_shape_mismatch_error())
         }
         other => panic!("unexpected historical diff rejection row {other}"),
     };
@@ -413,4 +573,62 @@ fn basis_substitution_error() -> QueryContextAdmissionError {
         },
     )
     .expect_err("basis substitution must deny")
+}
+
+fn comparison_broadening_error() -> QueryContextAdmissionError {
+    let left_preflight = execution_preflights::ordered_collection_without_traversal_preflight();
+    let right_preflight = execution_preflights::alternate_basis_ordered_collection_preflight();
+    let left = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+        )
+        .expect("left should bind"),
+    )
+    .expect("left should admit");
+    let right = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::branch_head("branch:ordered-collection"),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+        )
+        .expect("right should bind"),
+    )
+    .expect("right should admit");
+    let diff = bind_diff_query_context(&left, &right).expect("diff should bind");
+    let left_result =
+        execute_query_basis_context(&left).expect("left query-context execution should succeed");
+    let right_result =
+        execute_query_basis_context(&right).expect("right query-context execution should succeed");
+
+    shape_query_diff_change_set(&diff, &left_result, &right_result)
+        .expect_err("ordered collection diff should deny hidden broadening")
+}
+
+fn comparison_shape_mismatch_error() -> QueryContextAdmissionError {
+    let left_preflight = execution_preflights::direct_runtime_preflight();
+    let right_preflight = execution_preflights::alternate_basis_runtime_preflight();
+    let left = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+        )
+        .expect("left should bind"),
+    )
+    .expect("left should admit");
+    let right = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::branch_head("branch:snapshot-2"),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+        )
+        .expect("right should bind"),
+    )
+    .expect("right should admit");
+    let diff = bind_diff_query_context(&left, &right).expect("diff should bind");
+    let left_result =
+        execute_query_basis_context(&left).expect("left query-context execution should succeed");
+    let wrong_right_result =
+        execute_query_basis_context(&left).expect("left query-context execution should succeed");
+
+    shape_query_diff_change_set(&diff, &left_result, &wrong_right_result)
+        .expect_err("basis-mismatched execution artifact should deny comparison shaping")
 }

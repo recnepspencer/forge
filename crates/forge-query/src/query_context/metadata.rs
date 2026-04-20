@@ -4,12 +4,13 @@ use super::basis::{
     QueryContextAdmissionError, QueryContextAdmissionFailureClass, QueryContextDriftOutcome,
     QueryContextFamily,
 };
-use super::comparison::AdmittedDiffQueryContext;
+use super::comparison::{AdmittedDiffQueryContext, QueryDiffChangeSetArtifact};
 use super::execution::QueryContextExecutionArtifact;
 use super::performance::{
     HistoricalMaterializationCostClass, QueryContextBudgetClass, QueryContextCostClass,
     QueryContextCounters, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
 };
+use crate::identity::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryBasisMetadata {
@@ -111,7 +112,74 @@ pub struct DiffQueryMetadata {
     right_basis_digest: String,
     left_result_digest: String,
     right_result_digest: String,
+    comparison_result_digest: String,
+    cost_class: QueryContextCostClass,
+    budget_class: QueryContextBudgetClass,
+    prediction_report: QueryContextPredictionReport,
+    prediction_drift_outcome: QueryContextPredictionDriftOutcome,
     drift_outcome: QueryContextDriftOutcome,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryBasisResultBundle {
+    context: AdmittedQueryBasisContext,
+    execution: QueryContextExecutionArtifact,
+    metadata: QueryBasisMetadata,
+    replay_digest: String,
+    counter_snapshot_digest: String,
+}
+
+impl QueryBasisResultBundle {
+    pub fn context(&self) -> &AdmittedQueryBasisContext {
+        &self.context
+    }
+
+    pub fn execution(&self) -> &QueryContextExecutionArtifact {
+        &self.execution
+    }
+
+    pub fn metadata(&self) -> &QueryBasisMetadata {
+        &self.metadata
+    }
+
+    pub fn replay_digest(&self) -> &str {
+        &self.replay_digest
+    }
+
+    pub fn counter_snapshot_digest(&self) -> &str {
+        &self.counter_snapshot_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QueryDiffResultBundle {
+    context: AdmittedDiffQueryContext,
+    change_set: QueryDiffChangeSetArtifact,
+    metadata: DiffQueryMetadata,
+    replay_digest: String,
+    counter_snapshot_digest: String,
+}
+
+impl QueryDiffResultBundle {
+    pub fn context(&self) -> &AdmittedDiffQueryContext {
+        &self.context
+    }
+
+    pub fn change_set(&self) -> &QueryDiffChangeSetArtifact {
+        &self.change_set
+    }
+
+    pub fn metadata(&self) -> &DiffQueryMetadata {
+        &self.metadata
+    }
+
+    pub fn replay_digest(&self) -> &str {
+        &self.replay_digest
+    }
+
+    pub fn counter_snapshot_digest(&self) -> &str {
+        &self.counter_snapshot_digest
+    }
 }
 
 impl DiffQueryMetadata {
@@ -137,6 +205,26 @@ impl DiffQueryMetadata {
 
     pub fn right_result_digest(&self) -> &str {
         &self.right_result_digest
+    }
+
+    pub fn comparison_result_digest(&self) -> &str {
+        &self.comparison_result_digest
+    }
+
+    pub fn cost_class(&self) -> &QueryContextCostClass {
+        &self.cost_class
+    }
+
+    pub fn budget_class(&self) -> &QueryContextBudgetClass {
+        &self.budget_class
+    }
+
+    pub fn prediction_report(&self) -> &QueryContextPredictionReport {
+        &self.prediction_report
+    }
+
+    pub fn prediction_drift_outcome(&self) -> &QueryContextPredictionDriftOutcome {
+        &self.prediction_drift_outcome
     }
 
     pub fn drift_outcome(&self) -> &QueryContextDriftOutcome {
@@ -188,10 +276,70 @@ pub fn attach_query_basis_metadata(
     })
 }
 
+pub fn build_query_basis_result_bundle(
+    context: &AdmittedQueryBasisContext,
+    execution: QueryContextExecutionArtifact,
+) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {
+    let metadata = attach_query_basis_metadata(context, &execution)?;
+    let replay_digest = hash_parts(&[
+        format!("query:{}", context.query_digest()),
+        format!("basis:{}", context.basis_digest()),
+        format!("family:{}", context.family().as_str()),
+        format!("result:{}", execution.result_digest()),
+        format!("metadata_result:{}", metadata.result_digest()),
+        format!(
+            "prediction:{}",
+            metadata
+                .prediction_drift_outcome()
+                .map(QueryContextPredictionDriftOutcome::as_str)
+                .unwrap_or("none")
+        ),
+    ]);
+    let counter_snapshot_digest = hash_parts(&[
+        format!(
+            "binding_count:{}",
+            context.counters().query_basis_binding_count()
+        ),
+        format!(
+            "historical_lookup:{}",
+            context.counters().historical_basis_lookup_count()
+        ),
+        format!(
+            "binding_width:{}",
+            context.counters().basis_binding_width()
+        ),
+        format!(
+            "historical_width:{}",
+            context.counters().historical_lookup_width()
+        ),
+        format!(
+            "execution_count:{}",
+            execution.counters().context_execution_count()
+        ),
+        format!(
+            "payload_rows:{}",
+            execution.counters().payload_row_count()
+        ),
+        format!(
+            "result_shape_width:{}",
+            execution.counters().result_shape_width()
+        ),
+    ]);
+
+    Ok(QueryBasisResultBundle {
+        context: context.clone(),
+        execution,
+        metadata,
+        replay_digest,
+        counter_snapshot_digest,
+    })
+}
+
 pub fn attach_diff_query_metadata(
     context: &AdmittedDiffQueryContext,
     left_result: &QueryContextExecutionArtifact,
     right_result: &QueryContextExecutionArtifact,
+    change_set: &QueryDiffChangeSetArtifact,
 ) -> Result<DiffQueryMetadata, QueryContextAdmissionError> {
     if left_result.query_digest() != context.left().query_digest()
         || right_result.query_digest() != context.right().query_digest()
@@ -199,7 +347,28 @@ pub fn attach_diff_query_metadata(
         return Err(QueryContextAdmissionError::new(
             QueryContextAdmissionFailureClass::DiffScopeMismatch,
             "diff metadata requires result envelopes that match the admitted context pair",
-            QueryContextCounters::for_diff_denial(true),
+            QueryContextCounters::for_diff_denial(true, false),
+        ));
+    }
+
+    if left_result.basis_digest() != context.left().basis_digest()
+        || right_result.basis_digest() != context.right().basis_digest()
+    {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonShapeMismatch,
+            "diff metadata requires execution artifacts bound to the admitted basis pair",
+            QueryContextCounters::for_diff_denial(false, false),
+        ));
+    }
+
+    if change_set.left_basis_digest() != context.left().basis_digest()
+        || change_set.right_basis_digest() != context.right().basis_digest()
+        || change_set.query_digest() != context.left().query_digest()
+    {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonShapeMismatch,
+            "diff metadata requires the realized query-shaped change set for the admitted basis pair",
+            QueryContextCounters::for_diff_denial(false, false),
         ));
     }
 
@@ -210,6 +379,62 @@ pub fn attach_diff_query_metadata(
         right_basis_digest: context.right().basis_digest().to_string(),
         left_result_digest: left_result.result_digest().to_string(),
         right_result_digest: right_result.result_digest().to_string(),
+        comparison_result_digest: change_set.result_digest().to_string(),
+        cost_class: context.cost_class().clone(),
+        budget_class: context.budget_class().clone(),
+        prediction_report: context.prediction_report().clone(),
+        prediction_drift_outcome: change_set.prediction_drift_outcome().clone(),
         drift_outcome: context.drift_outcome().clone(),
+    })
+}
+
+pub fn build_query_diff_result_bundle(
+    context: &AdmittedDiffQueryContext,
+    change_set: QueryDiffChangeSetArtifact,
+    left_result: &QueryContextExecutionArtifact,
+    right_result: &QueryContextExecutionArtifact,
+) -> Result<QueryDiffResultBundle, QueryContextAdmissionError> {
+    let metadata = attach_diff_query_metadata(context, left_result, right_result, &change_set)?;
+    let replay_digest = hash_parts(&[
+        format!("query:{}", context.left().query_digest()),
+        format!("comparison_family:{}", context.family().as_str()),
+        format!("left_basis:{}", context.left().basis_digest()),
+        format!("right_basis:{}", context.right().basis_digest()),
+        format!("comparison_result:{}", change_set.result_digest()),
+        format!(
+            "prediction:{}",
+            change_set.prediction_drift_outcome().as_str()
+        ),
+    ]);
+    let counter_snapshot_digest = hash_parts(&[
+        format!(
+            "comparison_lookups:{}",
+            context.counters().comparison_basis_lookup_count()
+        ),
+        format!(
+            "comparison_scope_width:{}",
+            context.counters().comparison_scope_width()
+        ),
+        format!(
+            "comparison_row_width:{}",
+            context.counters().comparison_row_width()
+        ),
+        format!(
+            "diff_input_breadth:{}",
+            context.counters().diff_input_breadth()
+        ),
+        format!(
+            "comparison_broadening_denials:{}",
+            context.counters().comparison_broadening_denial_count()
+        ),
+        format!("change_rows:{}", change_set.rows().len()),
+    ]);
+
+    Ok(QueryDiffResultBundle {
+        context: context.clone(),
+        change_set,
+        metadata,
+        replay_digest,
+        counter_snapshot_digest,
     })
 }

@@ -5,7 +5,10 @@ use super::basis::{
     QueryContextAdmissionFailureClass, QueryContextDriftOutcome, QueryContextFamily,
 };
 use super::execution::QueryContextExecutionArtifact;
-use super::performance::QueryContextCounters;
+use super::performance::{
+    QueryContextBudgetClass, QueryContextCostClass, QueryContextCounters,
+    QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedDiffQueryContext {
@@ -13,6 +16,10 @@ pub struct AdmittedDiffQueryContext {
     right: AdmittedQueryBasisContext,
     family: ComparisonBasisFamily,
     drift_outcome: QueryContextDriftOutcome,
+    cost_class: QueryContextCostClass,
+    budget_class: QueryContextBudgetClass,
+    prediction_report: QueryContextPredictionReport,
+    prediction_drift_outcome: QueryContextPredictionDriftOutcome,
     counters: QueryContextCounters,
 }
 
@@ -31,6 +38,22 @@ impl AdmittedDiffQueryContext {
 
     pub fn drift_outcome(&self) -> &QueryContextDriftOutcome {
         &self.drift_outcome
+    }
+
+    pub fn cost_class(&self) -> &QueryContextCostClass {
+        &self.cost_class
+    }
+
+    pub fn budget_class(&self) -> &QueryContextBudgetClass {
+        &self.budget_class
+    }
+
+    pub fn prediction_report(&self) -> &QueryContextPredictionReport {
+        &self.prediction_report
+    }
+
+    pub fn prediction_drift_outcome(&self) -> &QueryContextPredictionDriftOutcome {
+        &self.prediction_drift_outcome
     }
 
     pub fn counters(&self) -> &QueryContextCounters {
@@ -90,6 +113,7 @@ pub struct QueryDiffChangeSetArtifact {
     left_basis_digest: String,
     right_basis_digest: String,
     result_digest: String,
+    prediction_drift_outcome: QueryContextPredictionDriftOutcome,
     rows: Vec<QueryDiffChangeRow>,
 }
 
@@ -114,9 +138,22 @@ impl QueryDiffChangeSetArtifact {
         &self.result_digest
     }
 
+    pub fn prediction_drift_outcome(&self) -> &QueryContextPredictionDriftOutcome {
+        &self.prediction_drift_outcome
+    }
+
     pub fn rows(&self) -> &[QueryDiffChangeRow] {
         &self.rows
     }
+}
+
+#[cfg(test)]
+pub(crate) fn reject_raw_storage_delta_access() -> QueryContextAdmissionError {
+    QueryContextAdmissionError::new(
+        QueryContextAdmissionFailureClass::RawStorageDeltaLeakageForbidden,
+        "diff comparison exposes query-shaped change sets only and forbids raw storage delta access",
+        QueryContextCounters::for_diff_denial(false, true),
+    )
 }
 
 pub fn bind_diff_query_context(
@@ -151,7 +188,7 @@ pub fn bind_diff_query_context(
             return Err(QueryContextAdmissionError::new(
                 QueryContextAdmissionFailureClass::AmbiguousComparisonBasis,
                 "diff comparison requires an explicit supported basis pairing",
-                QueryContextCounters::for_diff_denial(false),
+                QueryContextCounters::for_diff_denial(false, false),
             ));
         }
     };
@@ -160,7 +197,7 @@ pub fn bind_diff_query_context(
         return Err(QueryContextAdmissionError::new(
             QueryContextAdmissionFailureClass::DiffScopeMismatch,
             "diff comparison forbids query reinterpretation across basis contexts",
-            QueryContextCounters::for_diff_denial(true),
+            QueryContextCounters::for_diff_denial(true, false),
         ));
     }
 
@@ -168,16 +205,24 @@ pub fn bind_diff_query_context(
         return Err(QueryContextAdmissionError::new(
             QueryContextAdmissionFailureClass::BroadComparisonForbidden,
             "diff comparison requires two distinct admitted bases",
-            QueryContextCounters::for_diff_denial(false),
+            QueryContextCounters::for_diff_denial(false, true),
         ));
     }
+
+    let predicted_row_width = left
+        .predicted_result_shape_width()
+        .max(right.predicted_result_shape_width());
 
     Ok(AdmittedDiffQueryContext {
         left: left.clone(),
         right: right.clone(),
         family,
         drift_outcome: QueryContextDriftOutcome::BasisExact,
-        counters: QueryContextCounters::for_diff(),
+        cost_class: QueryContextCostClass::DiffComparisonBounded,
+        budget_class: QueryContextBudgetClass::ComparisonBounded,
+        prediction_report: QueryContextPredictionReport::for_diff_binding(predicted_row_width),
+        prediction_drift_outcome: QueryContextPredictionDriftOutcome::PendingComparison,
+        counters: QueryContextCounters::for_diff(predicted_row_width),
     })
 }
 
@@ -192,7 +237,33 @@ pub fn shape_query_diff_change_set(
         return Err(QueryContextAdmissionError::new(
             QueryContextAdmissionFailureClass::DiffScopeMismatch,
             "diff change-set shaping requires execution artifacts that match the admitted context pair",
-            QueryContextCounters::for_diff_denial(true),
+            QueryContextCounters::for_diff_denial(true, false),
+        ));
+    }
+
+    if left_result.basis_digest() != context.left().basis_digest()
+        || right_result.basis_digest() != context.right().basis_digest()
+    {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonShapeMismatch,
+            "diff change-set shaping requires execution artifacts bound to the admitted basis pair",
+            QueryContextCounters::for_diff_denial(false, false),
+        ));
+    }
+
+    if left_result.counters().result_shape_width() != right_result.counters().result_shape_width() {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonShapeMismatch,
+            "diff change-set shaping requires both admitted bases to preserve one declared result-shape width",
+            QueryContextCounters::for_diff_denial(false, false),
+        ));
+    }
+
+    if context.prediction_report().comparison_row_width() > 1 {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonBroadeningRequired,
+            "phase-three diff shaping is intentionally narrow and denies multi-row comparisons that would require broader collection or lineage semantics",
+            QueryContextCounters::for_diff_denial(false, true),
         ));
     }
 
@@ -200,6 +271,15 @@ pub fn shape_query_diff_change_set(
         .payload()
         .len()
         .max(right_result.payload().len());
+
+    if width > context.prediction_report().comparison_row_width() {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::ComparisonBroadeningRequired,
+            "diff change-set shaping denies when the admitted basis pair would require hidden broadening or reconstruction",
+            QueryContextCounters::for_diff_denial(false, true),
+        ));
+    }
+
     let mut rows = Vec::with_capacity(width);
     for ordinal in 0..width {
         let left_value = left_result.payload().get(ordinal).cloned();
@@ -252,6 +332,7 @@ pub fn shape_query_diff_change_set(
         left_basis_digest: context.left().basis_digest().to_string(),
         right_basis_digest: context.right().basis_digest().to_string(),
         result_digest: result_digest.as_str().to_string(),
+        prediction_drift_outcome: QueryContextPredictionDriftOutcome::WithinBudget,
         rows,
     })
 }

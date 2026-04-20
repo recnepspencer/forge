@@ -242,6 +242,11 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
         metadata.prediction_drift_outcome(),
         Some(&QueryContextPredictionDriftOutcome::WithinBudget)
     );
+    assert_eq!(
+        execution.counters().result_shape_width(),
+        foundation.shape_check_width()
+    );
+    assert_eq!(execution.payload().len(), foundation.shape_check_width());
 }
 
 #[test]
@@ -271,13 +276,31 @@ fn diff_context_binding_preserves_both_basis_identities() {
         execute_query_basis_context(&right).expect("right context execution should succeed");
     let change_set = shape_query_diff_change_set(&diff, &left_result, &right_result)
         .expect("diff change-set should shape");
-    let metadata = attach_diff_query_metadata(&diff, &left_result, &right_result)
+    let metadata = attach_diff_query_metadata(&diff, &left_result, &right_result, &change_set)
         .expect("diff metadata should shape");
 
     assert_eq!(diff.family(), &ComparisonBasisFamily::BranchToBranch);
     assert_eq!(
+        diff.cost_class(),
+        &QueryContextCostClass::DiffComparisonBounded
+    );
+    assert_eq!(
+        diff.budget_class(),
+        &QueryContextBudgetClass::ComparisonBounded
+    );
+    assert_eq!(
+        diff.prediction_drift_outcome(),
+        &QueryContextPredictionDriftOutcome::PendingComparison
+    );
+    assert_eq!(diff.prediction_report().comparison_binding_width(), 2);
+    assert_eq!(diff.prediction_report().comparison_row_width(), 1);
+    assert_eq!(
         change_set.comparison_basis_family(),
         &ComparisonBasisFamily::BranchToBranch
+    );
+    assert_eq!(
+        change_set.prediction_drift_outcome(),
+        &QueryContextPredictionDriftOutcome::WithinBudget
     );
     assert_eq!(change_set.left_basis_digest(), left.basis_digest());
     assert_eq!(change_set.right_basis_digest(), right.basis_digest());
@@ -287,8 +310,28 @@ fn diff_context_binding_preserves_both_basis_identities() {
     );
     assert_eq!(metadata.left_basis_digest(), left.basis_digest());
     assert_eq!(metadata.right_basis_digest(), right.basis_digest());
+    assert_eq!(
+        metadata.cost_class(),
+        &QueryContextCostClass::DiffComparisonBounded
+    );
+    assert_eq!(
+        metadata.budget_class(),
+        &QueryContextBudgetClass::ComparisonBounded
+    );
+    assert_eq!(metadata.prediction_report().comparison_binding_width(), 2);
+    assert_eq!(
+        metadata.comparison_result_digest(),
+        change_set.result_digest()
+    );
+    assert_eq!(
+        metadata.prediction_drift_outcome(),
+        &QueryContextPredictionDriftOutcome::WithinBudget
+    );
     assert_eq!(diff.counters().comparison_scope_width(), 2);
     assert_eq!(diff.counters().comparison_basis_lookup_count(), 1);
+    assert_eq!(diff.counters().comparison_row_width(), 1);
+    assert_eq!(diff.counters().comparison_broadening_denial_count(), 0);
+    assert_eq!(diff.counters().comparison_family_rediscovery_count(), 0);
 }
 
 #[test]
@@ -480,5 +523,146 @@ fn basis_substitution_attempt_rejects_typed_and_early() {
     );
     assert_eq!(error.counters().basis_substitution_denial_count(), 1);
     assert_eq!(error.counters().historical_lookup_width(), 1);
+    assert_eq!(error.counters().denial_width(), 1);
+}
+
+#[test]
+fn current_to_historical_diff_admission_attaches_cost_budget_and_prediction_posture() {
+    let current_preflight = execution_preflights::direct_runtime_preflight();
+    let historical_preflight = execution_preflights::direct_runtime_preflight();
+    let current = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&current_preflight),
+        )
+        .expect("current context should bind"),
+    )
+    .expect("current context should admit");
+    let request = HistoricalEvaluationRequest::retained_snapshot(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let admission = admit_historical_evaluation_path(request, capability)
+        .expect("retained history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+    )
+    .expect("retained history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let historical = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &historical_preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("historical context should bind"),
+    )
+    .expect("historical context should admit");
+
+    let diff = bind_diff_query_context(&current, &historical).expect("diff should bind");
+
+    assert_eq!(diff.family(), &ComparisonBasisFamily::CurrentToHistorical);
+    assert_eq!(
+        diff.cost_class(),
+        &QueryContextCostClass::DiffComparisonBounded
+    );
+    assert_eq!(
+        diff.budget_class(),
+        &QueryContextBudgetClass::ComparisonBounded
+    );
+    assert_eq!(
+        diff.prediction_drift_outcome(),
+        &QueryContextPredictionDriftOutcome::PendingComparison
+    );
+    assert_eq!(diff.prediction_report().comparison_binding_width(), 2);
+    assert_eq!(diff.counters().comparison_basis_lookup_count(), 1);
+    assert_eq!(diff.counters().comparison_scope_width(), 2);
+    assert_eq!(diff.counters().comparison_family_rediscovery_count(), 0);
+}
+
+#[test]
+fn diff_change_set_rejects_basis_mismatched_execution_artifacts_before_materialization() {
+    let left_preflight = execution_preflights::direct_runtime_preflight();
+    let right_preflight = execution_preflights::alternate_basis_runtime_preflight();
+    let left = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+        )
+        .expect("left context should bind"),
+    )
+    .expect("left context should admit");
+    let right = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::branch_head("branch:snapshot-2"),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+        )
+        .expect("right context should bind"),
+    )
+    .expect("right context should admit");
+    let diff = bind_diff_query_context(&left, &right).expect("diff should bind");
+    let left_result =
+        execute_query_basis_context(&left).expect("left context execution should succeed");
+    let wrong_right_result =
+        execute_query_basis_context(&left).expect("left context execution should succeed");
+
+    let error = shape_query_diff_change_set(&diff, &left_result, &wrong_right_result)
+        .expect_err("basis-mismatched execution artifact must reject before row shaping");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::ComparisonShapeMismatch
+    );
+    assert_eq!(error.counters().comparison_basis_lookup_count(), 1);
+    assert_eq!(error.counters().comparison_broadening_denial_count(), 0);
+    assert_eq!(error.counters().denial_width(), 1);
+}
+
+#[test]
+fn broadening_required_comparison_denies_before_rich_artifact_shaping() {
+    let left_preflight = execution_preflights::ordered_collection_without_traversal_preflight();
+    let right_preflight = execution_preflights::alternate_basis_ordered_collection_preflight();
+    let left = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::current_branch_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+        )
+        .expect("left context should bind"),
+    )
+    .expect("left context should admit");
+    let right = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::branch_head("branch:ordered-collection"),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+        )
+        .expect("right context should bind"),
+    )
+    .expect("right context should admit");
+    let diff = bind_diff_query_context(&left, &right).expect("diff should bind");
+    let left_result =
+        execute_query_basis_context(&left).expect("left context execution should succeed");
+    let right_result =
+        execute_query_basis_context(&right).expect("right context execution should succeed");
+
+    let error = shape_query_diff_change_set(&diff, &left_result, &right_result)
+        .expect_err("ordered collection diff should deny hidden broadening");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::ComparisonBroadeningRequired
+    );
+    assert_eq!(error.counters().comparison_basis_lookup_count(), 1);
+    assert_eq!(error.counters().comparison_broadening_denial_count(), 1);
+    assert_eq!(error.counters().comparison_family_rediscovery_count(), 0);
     assert_eq!(error.counters().denial_width(), 1);
 }

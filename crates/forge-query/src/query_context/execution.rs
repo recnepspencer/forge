@@ -271,18 +271,32 @@ pub fn execute_query_basis_context(
                         QueryContextCounters::for_denial(false, false),
                     )
                 })?;
-            let payload = vec![format!(
-                "preview:{}:{}:{}",
-                foundation.validated_query_digest().as_str(),
-                context.basis_digest(),
-                preview_identity
-            )];
-            let result_digest = ResultDigest::from_parts(&[
-                format!("query:{}", context.query_digest()),
-                format!("basis:{}", context.basis_digest()),
-                format!("preview:{}", preview_identity),
-                format!("foundation:{}", foundation.digest()),
-            ]);
+            let payload = (0..foundation.shape_check_width())
+                .map(|index| {
+                    format!(
+                        "preview:{}:{}:{}:{}",
+                        foundation.validated_query_digest().as_str(),
+                        context.basis_digest(),
+                        preview_identity,
+                        index
+                    )
+                })
+                .collect::<Vec<_>>();
+            let payload_row_count = payload.len();
+            let result_digest = ResultDigest::from_parts(
+                &payload
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| format!("row:{}:{}", index, value))
+                    .chain(std::iter::once(format!("query:{}", context.query_digest())))
+                    .chain(std::iter::once(format!("basis:{}", context.basis_digest())))
+                    .chain(std::iter::once(format!("preview:{}", preview_identity)))
+                    .chain(std::iter::once(format!(
+                        "foundation:{}",
+                        foundation.digest()
+                    )))
+                    .collect::<Vec<_>>(),
+            );
             Ok(QueryContextExecutionArtifact {
                 query_digest: context.query_digest().to_string(),
                 basis_digest: context.basis_digest().to_string(),
@@ -302,8 +316,8 @@ pub fn execute_query_basis_context(
                 preview_provenance_identity: Some(preview_identity),
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
-                    payload_row_count: 1,
-                    result_shape_width: 1,
+                    payload_row_count,
+                    result_shape_width: foundation.shape_check_width(),
                     executor_rediscovery_count: 0,
                 },
             })

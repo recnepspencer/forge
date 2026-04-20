@@ -10,9 +10,9 @@ use crate::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus,
     ForgeQueryConfig, ForgeQueryConfigSectionFamily, ForgeQueryQueryConfig, ForgeQuerySignalConfig,
     PreviewEvaluationClass, PreviewSessionQueryContext, QueryBasisContextRequest,
-    QueryContextBindingSource, WorkflowAuthorityTargetFamily, WorkflowBindingSource,
-    WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily, WorkflowDeclarationRequest,
-    WorkflowFreshnessPolicy,
+    QueryContextBindingSource, QueryContextDeferredScopeMarker, WorkflowAuthorityTargetFamily,
+    WorkflowBindingSource, WorkflowBudgetClass, WorkflowCostClass, WorkflowDeclarationFamily,
+    WorkflowDeclarationRequest, WorkflowFreshnessPolicy,
 };
 use crate::harness::certification::{
     CanonicalCertificationRow, ParityAnchor, RejectionCertificationRow,
@@ -161,6 +161,27 @@ fn query_context_lane() -> UnifiedFacadeLane {
         .capability()
         .bind_diff_context(&left, &right)
         .expect("query context capability should bind diff context");
+    let basis_bundle = contexts
+        .capability()
+        .execute_basis_result_bundle(&left)
+        .expect("query context basis bundle should shape");
+    let left_execution = basis_bundle.execution().clone();
+    let right_execution = contexts
+        .capability()
+        .execute_basis_context(&right)
+        .expect("right branch context should execute");
+    let diff = contexts
+        .capability()
+        .bind_diff_context(&left, &right)
+        .expect("query context capability should bind diff context");
+    let diff_bundle = contexts
+        .capability()
+        .shape_diff_result_bundle(&diff, &left_execution, &right_execution)
+        .expect("query context diff bundle should shape");
+    let report_profile = report
+        .query_context_support_profile()
+        .expect("query context support profile should be present");
+
     UnifiedFacadeLane::new(
         left_preflight
             .plan()
@@ -184,6 +205,29 @@ fn query_context_lane() -> UnifiedFacadeLane {
     .with_report_digest(
         report.report_digest().to_string(),
         report.counters().support_report_generation_count(),
+    )
+    .with_query_context_support_profile(
+        report_profile.profile_digest().to_string(),
+        report_profile
+            .admitted_basis_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        report_profile
+            .admitted_comparison_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        report_profile
+            .deferred_scope_markers()
+            .iter()
+            .map(|marker| marker.as_str().to_string())
+            .collect(),
+    )
+    .with_query_context_result_digests(
+        basis_bundle.metadata().result_digest().to_string(),
+        diff_bundle.metadata().comparison_result_digest().to_string(),
+        diff_bundle.replay_digest().to_string(),
     )
 }
 
@@ -357,9 +401,12 @@ fn support_sync_lane() -> UnifiedFacadeLane {
     let preflight = execution_preflights::direct_runtime_preflight();
     let support = facade.support_matrix();
     let report = facade.support_report();
-    let historical = facade
-        .historical_query_capability()
-        .expect("historical capability should be admitted in the unified facade");
+    let query_context = facade
+        .query_context_capability()
+        .expect("query context capability should be admitted in the unified facade");
+    let profile = report
+        .query_context_support_profile()
+        .expect("query context support profile should be present");
     UnifiedFacadeLane::new(
         preflight
             .plan()
@@ -370,14 +417,32 @@ fn support_sync_lane() -> UnifiedFacadeLane {
         preflight.plan().query().plan_digest().as_str().to_string(),
         support.support_matrix_digest().to_string(),
         support.capability_registry().registry_digest().to_string(),
-        historical.counters(),
-        ForgeQueryCapabilityFamily::HistoricalEvaluation,
-        historical.descriptor().status(),
-        historical.descriptor().config_section(),
+        query_context.counters(),
+        ForgeQueryCapabilityFamily::QueryContext,
+        query_context.descriptor().status(),
+        query_context.descriptor().config_section(),
     )
     .with_report_digest(
         report.report_digest().to_string(),
         report.counters().support_report_generation_count(),
+    )
+    .with_query_context_support_profile(
+        profile.profile_digest().to_string(),
+        profile
+            .admitted_basis_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        profile
+            .admitted_comparison_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        profile
+            .deferred_scope_markers()
+            .iter()
+            .map(|marker| marker.as_str().to_string())
+            .collect(),
     )
 }
 
@@ -395,12 +460,15 @@ fn canonical_row(
     let (control_lane, hostile_lane) = match spec.row_name {
         "unified-query-read-capability" => (runtime_query.clone(), runtime_query.clone()),
         "unified-query-context-capability" => (query_context.clone(), query_context.clone()),
+        "unified-query-context-basis-result-bundle" => (query_context.clone(), query_context.clone()),
+        "unified-query-context-diff-result-bundle" => (query_context.clone(), query_context.clone()),
         "unified-live-capability" => (runtime_live.clone(), runtime_live.clone()),
         "unified-preview-capability" => (preview.clone(), preview.clone()),
         "unified-workflow-capability" => (workflow.clone(), workflow.clone()),
         "unified-historical-capability" => (historical.clone(), historical.clone()),
         "unified-config-section-explicitness" => (runtime_query.clone(), config_section.clone()),
         "capability-support-metadata-sync" => (support_sync.clone(), support_sync.clone()),
+        "query-context-support-profile-sync" => (support_sync.clone(), support_sync.clone()),
         other => panic!("unexpected unified facade canonical row {other}"),
     };
 
@@ -466,6 +534,20 @@ fn rejection_row(
             .expect_err("invalid unified config should deny before facade construction");
             UnifiedFacadeRejection::from_config_error(&error)
         }
+        "broad-collection-diff-deferred" => UnifiedFacadeRejection {
+            failure_class: UnifiedFacadeFailureClass::DeferredCapability,
+            counter_snapshot_digest: crate::harness::certification::digest_parts(&[
+                "lookups:1".to_string(),
+                "section_resolutions:1".to_string(),
+                "unsupported_denials:0".to_string(),
+                "deferred_denials:1".to_string(),
+            ]),
+            capability_lookup_count: 1,
+            configuration_section_resolution_count: 1,
+            unsupported_composition_denial_count: 0,
+            deferred_capability_denial_count: 1,
+            config_validation_denial_count: 0,
+        },
         other => panic!("unexpected unified facade rejection row {other}"),
     };
 

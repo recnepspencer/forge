@@ -39,6 +39,13 @@ pub struct UnifiedFacadeLane {
     pub capability_family: String,
     pub capability_status: String,
     pub config_section: String,
+    pub query_context_support_profile_digest: String,
+    pub query_context_basis_families: Vec<String>,
+    pub query_context_comparison_families: Vec<String>,
+    pub query_context_deferred_scope_markers: Vec<String>,
+    pub basis_result_digest: String,
+    pub diff_result_digest: String,
+    pub query_context_replay_digest: String,
 }
 
 impl UnifiedFacadeLane {
@@ -82,6 +89,13 @@ impl UnifiedFacadeLane {
             capability_family: capability_family.as_str().to_string(),
             capability_status: capability_status.as_str().to_string(),
             config_section: config_section.as_str().to_string(),
+            query_context_support_profile_digest: String::new(),
+            query_context_basis_families: Vec::new(),
+            query_context_comparison_families: Vec::new(),
+            query_context_deferred_scope_markers: Vec::new(),
+            basis_result_digest: String::new(),
+            diff_result_digest: String::new(),
+            query_context_replay_digest: String::new(),
         }
     }
 
@@ -108,6 +122,32 @@ impl UnifiedFacadeLane {
                 self.support_report_generation_count
             ),
         ]);
+        self
+    }
+
+    pub fn with_query_context_support_profile(
+        mut self,
+        profile_digest: String,
+        basis_families: Vec<String>,
+        comparison_families: Vec<String>,
+        deferred_scope_markers: Vec<String>,
+    ) -> Self {
+        self.query_context_support_profile_digest = profile_digest;
+        self.query_context_basis_families = basis_families;
+        self.query_context_comparison_families = comparison_families;
+        self.query_context_deferred_scope_markers = deferred_scope_markers;
+        self
+    }
+
+    pub fn with_query_context_result_digests(
+        mut self,
+        basis_result_digest: String,
+        diff_result_digest: String,
+        replay_digest: String,
+    ) -> Self {
+        self.basis_result_digest = basis_result_digest;
+        self.diff_result_digest = diff_result_digest;
+        self.query_context_replay_digest = replay_digest;
         self
     }
 }

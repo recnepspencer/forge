@@ -234,6 +234,7 @@ fn load_digest_records(connection: &Connection, state: &mut StoreState) -> Resul
                 "SubscriberCheckpointRecord" => {
                     records::AuthoritativeArtifactFamily::SubscriberCheckpointRecord
                 }
+                "StableBasisRecord" => records::AuthoritativeArtifactFamily::StableBasisRecord,
                 other => {
                     return Err(rusqlite::Error::FromSqlConversionFailure(
                         0,

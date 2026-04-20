@@ -38,9 +38,6 @@ impl StoreBackend {
     pub(crate) fn record_continuation_checkpoint_lookup(&self) {
         dispatch_ref!(self, |backend| backend.record_continuation_checkpoint_lookup())
     }
-    pub(crate) fn record_continuation_batch(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_batch())
-    }
     pub(crate) fn record_continuation_broadening(&self) {
         dispatch_ref!(self, |backend| backend.record_continuation_broadening())
     }
