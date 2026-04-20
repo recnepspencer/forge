@@ -1321,7 +1321,8 @@ pub mod merge {
         IdentityResolutionReason, LoweredAspectAction, LoweredAspectOutcome, LoweredMergeAction,
         LoweredMergeBlockedReason, LoweredMergePlanRecord, LoweredMergePlanSummary,
         LoweredMergeRejectedReason, LoweredRecordDecision, LoweredRecordDecisionKind,
-        LoweredRecordDenialKind, MergeAncestrySummary, MergeArtifactDigestBasis,
+        LoweredRecordDenialBundle, LoweredRecordDenialKind, LoweredRecordExecutionBundle,
+        LoweredRecordExecutionIntentKind, MergeAncestrySummary, MergeArtifactDigestBasis,
         MergeBaseSelectionRule, MergeCausalEvidenceModel, MergeConflictClass,
         MergeConflictClassification, MergeExecutableClass, MergeExecutionAuthorityContract,
         MergeExecutionAuthorizationRule, MergeExecutionCompilationError,
@@ -1338,7 +1339,9 @@ pub mod merge {
         MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis,
         MergeVisibilityEvidence, MergeVisibilityEvidenceKind, MergeVisibilityState,
         PreparedMergeExecution, RelationConflictPropagation, RelationContinuityClass,
-        ResolvedMergeBase, SchemaDeclaredCorrespondenceValidationSummary, TopologyExecutionClass,
+        RelationalMergeInspectionAdmission, RelationalMergeInspectionArtifact,
+        RelationalMergeInspectionInput, RelationalMergeInspectionRow, ResolvedMergeBase,
+        SchemaDeclaredCorrespondenceValidationSummary, TopologyExecutionClass,
         TopologyRegionConflictReason, TopologyRewireAdmissionPolicy,
     };
     pub use crate::merge::logic::MergeAccess;

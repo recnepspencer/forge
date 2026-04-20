@@ -2,6 +2,21 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+pub use crate::application::{
+    CapabilityAdmissionDecision, CapabilityAdmissionError, CapabilityAdmissionFailureClass,
+    ConfigurationAdmissionError, ConfigurationAdmissionFailureClass, ForgeQueryApplicationFacade,
+    ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
+    ForgeQueryCapabilityResolution, ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus,
+    ForgeQueryConfig, ForgeQueryConfigCounters, ForgeQueryConfigSectionFamily,
+    ForgeQueryConfigSectionResolution, ForgeQueryFacadeCounters, ForgeQueryFacadeError,
+    ForgeQueryFacadeFailureClass, ForgeQueryQueryConfig, ForgeQueryRelationalConfig,
+    ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalConfig, ForgeQueryStoreConfig,
+    ForgeQuerySubsystemOwner, ForgeQuerySupportMatrix, ForgeQuerySupportReport,
+    ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+    HistoricalEvaluationCapability, LiveQueryCapability, PreviewSessionCapability,
+    QueryContextCapability, QueryReadCapability, ValidatedForgeQueryConfig,
+    WorkflowOrchestrationCapability,
+};
 pub use crate::authoring::{
     AspectFieldSelector, AuthoredBundleError, AuthoredBundleFailureClass, AuthoredResultShapeField,
     AuthoringError, AuthoringFailureClass, CollectionAuthoredQuery, CollectionAuthoredResultShape,
@@ -178,6 +193,19 @@ pub use crate::preview::{
     PromotionEligiblePreviewSessionPlanBinding, PromotionParityPreviewComparisonAdmission,
     ReadOnlyPreviewEvaluation, ReadOnlyPreviewExecutionEnvelope, ReadOnlyPreviewSessionPlanBinding,
 };
+pub use crate::query_context::{
+    admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
+    bind_diff_query_context, bind_query_basis_context, execute_query_basis_context,
+    shape_query_diff_change_set, AdmittedDiffQueryContext, AdmittedQueryBasisContext,
+    ComparisonBasisFamily, DiffQueryMetadata, HistoricalAdmissionClass,
+    HistoricalMaterializationCostClass, QueryBasisContextBinding, QueryBasisContextRequest,
+    QueryBasisMetadata, QueryContextAdmissionError, QueryContextAdmissionFailureClass,
+    QueryContextBindingSource, QueryContextBudgetClass, QueryContextCostClass,
+    QueryContextCounters, QueryContextDriftOutcome, QueryContextExecutionArtifact,
+    QueryContextExecutionCounters, QueryContextExecutionFamily, QueryContextFamily,
+    QueryContextPredictionDriftOutcome, QueryContextPredictionReport, QueryDiffChangeFamily,
+    QueryDiffChangeRow, QueryDiffChangeSetArtifact,
+};
 pub use crate::schema_view::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView,
 };
@@ -195,4 +223,27 @@ pub use crate::validation::{
     ValidatedPredicateSet, ValidatedProjectionEntry, ValidatedQueryArtifact, ValidatedQueryBundle,
     ValidatedResultShapeArtifact, ValidatedResultShapeBinding, ValidatedTraversalEntry,
     ValidationEvent, ValidationFailureClass, ValidationRejectionMatrix, ValidationWarning,
+};
+pub use crate::workflow::{
+    admit_query_workflow_declaration, bind_workflow_context, build_workflow_replay_bundle,
+    inspect_merge_conflicts, inspect_post_merge_outcome, lower_merge_workflow_declaration,
+    lower_mutation_intent_declaration, lower_query_writeback_declaration,
+    shape_merge_authority_outcome, shape_mutation_authority_outcome,
+    shape_writeback_authority_outcome, ConflictInspectionFamily, ConflictInspectionRow,
+    LoweredMergeWorkflowDeclaration, LoweredMutationIntentDeclaration, MergeAuthorityTarget,
+    MergeClassAdmission, MergeLoweringInput, MergeWorkflowIntent, MutationIntentFamily,
+    MutationLoweringInput, PostMergeInspectionFamily, PostMergeInspectionRow,
+    QueryConflictInspectionArtifact, QueryPostMergeInspectionArtifact, QueryWorkflowDeclaration,
+    QueryWritebackDeclaration, RelationalStrategyTarget, WorkflowAdmissionError,
+    WorkflowAdmissionFailureClass, WorkflowAdmissionReport, WorkflowAuthorityOutcomeArtifact,
+    WorkflowAuthorityOutcomeFamily, WorkflowAuthorityTargetFamily, WorkflowBasisFamily,
+    WorkflowBindingSource, WorkflowBudgetClass, WorkflowBudgetOutcome, WorkflowContextBinding,
+    WorkflowCostClass, WorkflowCounters, WorkflowDeclarationFamily, WorkflowDeclarationRequest,
+    WorkflowExplicitRebindArtifact, WorkflowFreshnessBinding, WorkflowFreshnessPolicy,
+    WorkflowInspectionBudget, WorkflowInspectionCounters, WorkflowInspectionError,
+    WorkflowInspectionFailureClass, WorkflowLoweringCounters, WorkflowLoweringError,
+    WorkflowLoweringFailureClass, WorkflowPredictionDriftOutcome, WorkflowPredictionReport,
+    WorkflowPreviewEvaluationClass, WorkflowReplayBundle, WorkflowStalenessClass,
+    WorkflowStalenessOutcome, WritebackCausalityBinding, WritebackDeclarationFamily,
+    WritebackLoweringInput,
 };

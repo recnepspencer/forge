@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected struct `VerifiedEmbeddedCheckpoint<_, _>`
               found struct `ExternalRuntimeCheckpointEnvelope`
 note: method defined here
-  --> src/modes/embedded.rs
+  --> src/modes/embedded/builder.rs
    |
    |     pub fn persist_external_checkpoint<K, C>(
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

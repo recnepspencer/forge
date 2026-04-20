@@ -6,6 +6,7 @@ pub mod execution_preflights;
 pub mod planning_requests;
 pub mod preview_bridge;
 pub mod query_parity;
+pub mod relational_merge_inspection;
 pub mod resolved_bases;
 pub mod result_shape_parity;
 pub mod schema_view;

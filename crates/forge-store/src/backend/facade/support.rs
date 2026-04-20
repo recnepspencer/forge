@@ -1,0 +1,31 @@
+use crate::authority::{
+    FetchedLineageSupportArtifact, FetchedSchemaSupportArtifact, HistoricalIdentityRequest,
+    HistoricalIdentityResolution,
+};
+use crate::failure::StoreError;
+use forge_relational::facade::history::CommitId;
+
+use super::{dispatch_ref, StoreBackend};
+
+impl StoreBackend {
+    pub fn fetch_schema_support(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<FetchedSchemaSupportArtifact, StoreError> {
+        dispatch_ref!(self, |backend| backend.fetch_schema_support(commit_id))
+    }
+
+    pub fn fetch_lineage_support(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<FetchedLineageSupportArtifact, StoreError> {
+        dispatch_ref!(self, |backend| backend.fetch_lineage_support(commit_id))
+    }
+
+    pub fn fetch_lineage_history(
+        &self,
+        request: HistoricalIdentityRequest,
+    ) -> Result<HistoricalIdentityResolution, StoreError> {
+        dispatch_ref!(self, |backend| backend.fetch_lineage_history(request))
+    }
+}

@@ -1,0 +1,74 @@
+use serde::Serialize;
+
+use super::{MaintenanceBatchSummary, MaintenanceDeclaration, MaintenanceDeclarationId};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AdmittedMaintenanceDeclaration {
+    declaration: MaintenanceDeclaration,
+}
+
+impl AdmittedMaintenanceDeclaration {
+    pub(crate) fn new(declaration: MaintenanceDeclaration) -> Self {
+        Self { declaration }
+    }
+
+    pub fn declaration(&self) -> &MaintenanceDeclaration {
+        &self.declaration
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MaintenanceAdmissionRejection {
+    declaration_id: MaintenanceDeclarationId,
+    reason: String,
+}
+
+impl MaintenanceAdmissionRejection {
+    pub(crate) fn new(declaration_id: MaintenanceDeclarationId, reason: impl Into<String>) -> Self {
+        Self {
+            declaration_id,
+            reason: reason.into(),
+        }
+    }
+
+    pub fn declaration_id(&self) -> &MaintenanceDeclarationId {
+        &self.declaration_id
+    }
+
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MaintenanceAdmissionReceipt {
+    batch_summary: MaintenanceBatchSummary,
+    admitted_declarations: Vec<AdmittedMaintenanceDeclaration>,
+    rejections: Vec<MaintenanceAdmissionRejection>,
+}
+
+impl MaintenanceAdmissionReceipt {
+    pub(crate) fn new(
+        batch_summary: MaintenanceBatchSummary,
+        admitted_declarations: Vec<AdmittedMaintenanceDeclaration>,
+        rejections: Vec<MaintenanceAdmissionRejection>,
+    ) -> Self {
+        Self {
+            batch_summary,
+            admitted_declarations,
+            rejections,
+        }
+    }
+
+    pub fn batch_summary(&self) -> &MaintenanceBatchSummary {
+        &self.batch_summary
+    }
+
+    pub fn admitted_declarations(&self) -> &[AdmittedMaintenanceDeclaration] {
+        &self.admitted_declarations
+    }
+
+    pub fn rejections(&self) -> &[MaintenanceAdmissionRejection] {
+        &self.rejections
+    }
+}

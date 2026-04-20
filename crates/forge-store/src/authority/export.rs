@@ -1,7 +1,7 @@
 use crate::backend::records::{
     AuthoritativeArtifactDigestRecord, BranchHeadRecord, BranchRecord, CommitParentRecord,
     CommitSupportSummaryRecord, DurableCursorIdentityRecord, LineageSupportRecord,
-    SchemaSupportRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
+    SchemaSupportRecord, StableBasisRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,7 @@ pub struct AuthoritativeExportBundle {
     pub(crate) lineage_support_records: Vec<LineageSupportRecord>,
     pub(crate) durable_cursor_identity_records: Vec<DurableCursorIdentityRecord>,
     pub(crate) subscriber_checkpoint_records: Vec<SubscriberCheckpointRecord>,
+    pub(crate) stable_basis_records: Vec<StableBasisRecord>,
     pub(crate) authoritative_artifact_digests: Vec<AuthoritativeArtifactDigestRecord>,
 }
 
@@ -52,6 +53,8 @@ impl AuthoritativeExportBundle {
                 .cmp(&right.cursor_id)
                 .then(left.checkpoint_sequence.cmp(&right.checkpoint_sequence))
         });
+        self.stable_basis_records
+            .sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
         self.authoritative_artifact_digests.sort();
     }
 

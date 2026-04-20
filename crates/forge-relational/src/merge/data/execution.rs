@@ -22,6 +22,20 @@ pub struct MergeExecutionRequest {
     pub merge_intent: crate::merge::data::MergeIntent,
 }
 
+impl MergeExecutionRequest {
+    pub fn target_branch(&self) -> &crate::history::data::BranchId {
+        &self.target_branch
+    }
+
+    pub fn source_branch(&self) -> &crate::history::data::BranchId {
+        &self.source_branch
+    }
+
+    pub fn merge_intent(&self) -> &crate::merge::data::MergeIntent {
+        &self.merge_intent
+    }
+}
+
 impl From<MergeExecutionRequest> for MergePlanningRequest {
     fn from(value: MergeExecutionRequest) -> Self {
         Self {

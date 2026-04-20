@@ -10,6 +10,7 @@
 
 #![forbid(unsafe_code)]
 
+mod application;
 mod authoring;
 mod basis;
 mod binding;
@@ -29,12 +30,14 @@ mod live;
 mod live_performance;
 mod planning;
 mod preview;
+mod query_context;
 mod result_shape;
 #[macro_use]
 mod schema_macro;
 mod schema_view;
 mod typed;
 mod validation;
+mod workflow;
 
 #[cfg(test)]
 mod harness;

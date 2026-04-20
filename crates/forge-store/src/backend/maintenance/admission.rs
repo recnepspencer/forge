@@ -1,0 +1,126 @@
+use crate::{
+    backend::{
+        engine::{StateBackedStoreBackend, StatePersistence},
+        records::{
+            MaintenanceBatchRecord, MaintenanceDeclarationRecord, MaintenanceExecutionRecord,
+        },
+    },
+    maintenance::{
+        AdmittedMaintenanceDeclaration, MaintenanceAdmissionReceipt, MaintenanceAdmissionRejection,
+        MaintenanceBatch, MaintenanceExecutionStatus,
+    },
+};
+
+pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
+    backend: &mut StateBackedStoreBackend<P>,
+    batch: MaintenanceBatch,
+) -> Result<MaintenanceAdmissionReceipt, crate::StoreError> {
+    let mut next = backend.state().clone();
+    let mut admitted = Vec::new();
+    let mut rejections = Vec::new();
+    let mut declaration_ids = Vec::new();
+
+    for declaration in batch.declarations().iter().cloned() {
+        let declaration_id = declaration.id().as_str().to_string();
+        if next
+            .maintenance_declaration_records
+            .contains_key(&declaration_id)
+        {
+            rejections.push(MaintenanceAdmissionRejection::new(
+                declaration.id().clone(),
+                "maintenance declaration with identical identity was already admitted",
+            ));
+            continue;
+        }
+        let family_label = match &declaration {
+            crate::MaintenanceDeclaration::Retention { .. } => None,
+            crate::MaintenanceDeclaration::Compaction { declaration, .. } => {
+                declaration.family_labels().first().cloned()
+            }
+            crate::MaintenanceDeclaration::Reclaim { declaration, .. } => {
+                Some(declaration.artifact_family().to_string())
+            }
+            crate::MaintenanceDeclaration::AuthoritativeReclaim { .. } => {
+                Some("authoritative_range".to_string())
+            }
+            crate::MaintenanceDeclaration::Rebuild { declaration, .. } => {
+                Some(declaration.family_label().to_string())
+            }
+        };
+        let debt_link_artifact_id = match &declaration {
+            crate::MaintenanceDeclaration::Rebuild { declaration, .. } => {
+                declaration.debt_link_artifact_id().map(ToString::to_string)
+            }
+            _ => None,
+        };
+        next.next_maintenance_declaration_order += 1;
+        declaration_ids.push(declaration_id.clone());
+        next.maintenance_declaration_records.insert(
+            declaration_id.clone(),
+            MaintenanceDeclarationRecord {
+                artifact_id: declaration_id.clone(),
+                family_version: 1,
+                batch_id: batch.batch_id().to_string(),
+                declaration_class: declaration.class(),
+                retained_basis_label: declaration.retained_basis_label().map(ToString::to_string),
+                family_label,
+                debt_link_artifact_id: debt_link_artifact_id.clone(),
+                declaration: declaration.clone(),
+                created_order: next.next_maintenance_declaration_order,
+            },
+        );
+        next.maintenance_execution_records.insert(
+            declaration_id.clone(),
+            MaintenanceExecutionRecord {
+                artifact_id: declaration_id.clone(),
+                family_version: 1,
+                declaration_id: declaration_id.clone(),
+                execution_status: MaintenanceExecutionStatus::Admitted,
+                last_completed_phase: Some("admitted".to_string()),
+                durable_error_kind: None,
+                durable_error_message: None,
+                resume_count: 0,
+            },
+        );
+        admitted.push(AdmittedMaintenanceDeclaration::new(declaration));
+    }
+
+    next.maintenance_batch_records.insert(
+        batch.batch_id().to_string(),
+        MaintenanceBatchRecord {
+            artifact_id: batch.batch_id().to_string(),
+            family_version: 1,
+            batch_class: batch.batch_class(),
+            declaration_ids,
+            declaration_count: admitted.len() as u64,
+        },
+    );
+    backend.commit_replacement_state(next)?;
+    backend
+        .counters()
+        .record_maintenance_admissions(admitted.len() as u64);
+    backend
+        .counters()
+        .record_maintenance_rejections(rejections.len() as u64);
+    backend.counters().record_maintenance_debt_links(
+        admitted
+            .iter()
+            .filter(|declaration| match declaration.declaration() {
+                crate::MaintenanceDeclaration::Rebuild { declaration, .. } => {
+                    declaration.debt_link_artifact_id().is_some()
+                }
+                _ => false,
+            })
+            .count() as u64,
+    );
+
+    Ok(MaintenanceAdmissionReceipt::new(
+        crate::MaintenanceBatchSummary::new(
+            batch.batch_id().to_string(),
+            batch.batch_class(),
+            admitted.len() as u64,
+        ),
+        admitted,
+        rejections,
+    ))
+}

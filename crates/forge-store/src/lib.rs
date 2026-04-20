@@ -6,10 +6,13 @@ mod evidence;
 mod facade;
 mod failure;
 mod layout;
+mod live_query;
+mod maintenance;
 mod media;
 mod modes;
 mod publication;
 mod recovery;
+mod retention;
 mod snapshot;
 mod wal;
 
@@ -47,15 +50,19 @@ pub use delta::{
 };
 pub use evidence::{
     AbsentModeLaneEvidence, CanonicalizationMetrics, CheckpointAuthorityReport,
-    Milestone1CertificationBundle, Milestone1SemanticCertificationEvidence,
-    Milestone2CertificationBundle, Milestone35CertificationBundle, Milestone36CertificationBundle,
-    Milestone3CertificationBundle, Milestone4CertificationBundle, Milestone5CertificationBundle,
-    Milestone5DeltaStorageReport, Milestone5ReadPathReport, Milestone6AccessStructureClaim,
-    Milestone6AccessStructureContract, Milestone6AccessStructureVerification,
-    Milestone6AccessStructureVerificationPath, Milestone6CertificationBundle,
-    Milestone6CertificationOrigin, Milestone6CertificationSummary, Milestone6ComplexityPathStatus,
-    Milestone6ComplexitySurface, Milestone6CounterContract, Milestone6LayoutMaterializationReport,
-    Milestone6LayoutReadReport, Milestone6PhysicalLayoutReport, Milestone7AccessStructureClaim,
+    Milestone10ArtifactReport, Milestone10CertificationBundle, Milestone10CertificationSummary,
+    Milestone10ComplexityPathStatus, Milestone10ComplexitySurface, Milestone10CounterContract,
+    Milestone10_5ComplexityPathStatus, Milestone10_5ComplexitySurface,
+    Milestone10_5CounterContract, Milestone10_5MaintenanceReport, Milestone1CertificationBundle,
+    Milestone1SemanticCertificationEvidence, Milestone2CertificationBundle,
+    Milestone35CertificationBundle, Milestone36CertificationBundle, Milestone3CertificationBundle,
+    Milestone4CertificationBundle, Milestone5CertificationBundle, Milestone5DeltaStorageReport,
+    Milestone5ReadPathReport, Milestone6AccessStructureClaim, Milestone6AccessStructureContract,
+    Milestone6AccessStructureVerification, Milestone6AccessStructureVerificationPath,
+    Milestone6CertificationBundle, Milestone6CertificationOrigin, Milestone6CertificationSummary,
+    Milestone6ComplexityPathStatus, Milestone6ComplexitySurface, Milestone6CounterContract,
+    Milestone6LayoutMaterializationReport, Milestone6LayoutReadReport,
+    Milestone6PhysicalLayoutReport, Milestone7AccessStructureClaim,
     Milestone7AccessStructureContract, Milestone7AccessStructureVerification,
     Milestone7AccessStructureVerificationPath, Milestone7CertificationBundle,
     Milestone7ComplexityPathStatus, Milestone7ComplexitySurface, Milestone7CounterContract,
@@ -79,15 +86,35 @@ pub use layout::{
     Milestone6ChunkModelExport, Milestone6DerivedArtifactRebuildReport,
     Milestone6LayoutMaterialization, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
     Milestone6LayoutSupportPublicationDisposition, Milestone6PreparedLayoutSupport,
-    Milestone6ResolvedLayoutSupportLane,
-    Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference, PhysicalChunkId,
-    RejectedAspectLayoutReadPlan, SingleEntityAspectScope, StructuralBlockId,
-    StructuralBlockLookup, StructuralBlockLookupResult, CHUNK_SHAPE_VERSION,
-    EQUIVALENCE_CONTRACT_VERSION, FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ,
-    FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
+    Milestone6ResolvedLayoutSupportLane, Milestone7IndependentLayoutReference,
+    Milestone9PhysicalChunkReference, PhysicalChunkId, RejectedAspectLayoutReadPlan,
+    SingleEntityAspectScope, StructuralBlockId, StructuralBlockLookup, StructuralBlockLookupResult,
+    CHUNK_SHAPE_VERSION, EQUIVALENCE_CONTRACT_VERSION,
+    FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ, FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
     FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY,
     FIRST_SHIP_MAX_DETERMINISTIC_CHUNK_WIDTH, LAYOUT_FAMILY_VERSION,
     STRUCTURAL_BLOCK_FAMILY_VERSION,
+};
+pub use live_query::{
+    AcknowledgedContinuationAdvance, AdmittedNarrowBatchReceipt, BroadenedBatchReceipt,
+    CaughtUpContinuationBatch, ContinuationAdvanceReceipt, ContinuationBatchBudget,
+    ContinuationBatchId, ContinuationBatchResult, ContinuationCompatibilityWitness,
+    ContinuationRetentionDescriptor, ContinuationRetentionStatus, ContinuationStrategy,
+    ControlLaneBatchReceipt, CursorContinuationPlan, CursorContinuationRequest, FetchWidth,
+    LiveQueryBasisEvidence, LiveQueryComplexityStatus, LiveQueryContinuationSessionEvidence,
+    MaxBatchItems, MaxCoveredCommits, MaxMaterializedBytes, MaxSupportRowsPerBatch,
+    Milestone8CertificationBundle, Milestone8CertificationRequest, Milestone8CertificationSummary,
+    Milestone8TruthSurface, StableBasisHandle, StableBasisId, StableBasisLayoutPosture,
+    StableBasisReadPlan, StableBasisReadRequest, StableBasisReadScope,
+};
+pub use maintenance::{
+    AdmittedMaintenanceDeclaration, AuthoritativeReclaimMaintenanceDeclaration,
+    CompactionMaintenanceDeclaration, CompletedMaintenance, FailedMaintenance,
+    MaintenanceAdmissionReceipt, MaintenanceAdmissionRejection, MaintenanceBatch,
+    MaintenanceBatchClass, MaintenanceBatchSummary, MaintenanceDeclaration,
+    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceExecutionStatus,
+    MaintenanceStatusReport, RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
+    RetentionMaintenanceDeclaration, StartedMaintenance,
 };
 pub use media::{DurabilityBarrierClass, DurableBackendFamily, DurableMediaReport};
 pub use modes::{
@@ -115,6 +142,23 @@ pub use recovery::{
     RecoveryStatusReport, ResumeEligibleRecoveredBulkChunk, SnapshotMaintenanceRecoveryAction,
     SnapshotMaintenanceRecoveryReport, SupportArtifactFamily, SupportArtifactRecoveryDisposition,
     SupportArtifactRecoveryEntry, SupportArtifactRecoveryReport,
+};
+pub use retention::{
+    AggressiveRetentionDebtMarker, AuthoritativeRangeReclaimUnit, AuthoritativeReclaimReport,
+    BasisSurvivalVerdict, BranchHistoryWindowPolicy, CompactionBackedRetentionPlan,
+    CompactionCandidateRejection, CompactionCutoverReport, CompactionCutoverWitness,
+    CompactionPlan, CompactionPublicationReport, ConservativeRetentionPlan,
+    ConservativeRetentionPolicy, DeltaLayerCompactionUnit, DerivedFamilyReclaimUnit,
+    DerivedFamilyRetentionPolicy, LayoutFamilyCompactionUnit, LoweredCompactionDeclaration,
+    LoweredRebuildDeclaration, LoweredReclaimDeclaration, LoweredRetentionMaintenanceBatch,
+    PinnedSnapshotPolicy, PolicyExpiredAuthorityRange, PublishedCompactionProduct,
+    RebuildDebtSummary, RebuildRequiredRetentionPlan, ReclaimEligibilityWitness,
+    ReclaimExecutionReport, RetainedAuthoritativeRange, RetainedHeadSet,
+    RetainedRangeRebuildReport, RetainedRangeRebuildUnit, RetainedReadCostSurface,
+    RetainedReadPath, RetentionCandidatePlan, RetentionClosureSummary, RetentionClosureWitness,
+    RetentionMaintenanceVerification, RetentionPlanningReport, RetentionPolicyClass,
+    RetentionTargetStateVerification, SnapshotCompactionUnit, StableBasisSet,
+    SupersededPhysicalFamily, COMPACTION_PRODUCT_FAMILY_VERSION, RETENTION_FAMILY_VERSION,
 };
 pub use snapshot::{
     PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,

@@ -1,5 +1,7 @@
 mod counters;
 mod milestone_1;
+mod milestone_10;
+mod milestone_10_5;
 mod milestone_2;
 mod milestone_3;
 mod milestone_3_5_3_6;
@@ -12,6 +14,14 @@ mod milestone_9;
 pub(crate) use counters::StoreCounters;
 pub use counters::{CanonicalizationMetrics, StoreCounterSnapshot};
 pub use milestone_1::{Milestone1CertificationBundle, Milestone1SemanticCertificationEvidence};
+pub use milestone_10::{
+    Milestone10ArtifactReport, Milestone10CertificationBundle, Milestone10CertificationSummary,
+    Milestone10ComplexityPathStatus, Milestone10ComplexitySurface, Milestone10CounterContract,
+};
+pub use milestone_10_5::{
+    Milestone10_5ComplexityPathStatus, Milestone10_5ComplexitySurface,
+    Milestone10_5CounterContract, Milestone10_5MaintenanceReport,
+};
 pub use milestone_2::{
     AbsentModeLaneEvidence, CheckpointAuthorityReport, Milestone2CertificationBundle,
     ObservedModeFailure, OperatingModeContractMatrix, OperatingModeCounterSnapshot,

@@ -12,6 +12,10 @@ pub(crate) struct AppliedBranchCreation {
 }
 
 impl StoreState {
+    pub(crate) fn branch_head_record(&self, branch_id: &BranchId) -> Option<&BranchHeadRecord> {
+        self.branch_head_records.get(&branch_key(branch_id))
+    }
+
     pub fn apply_branch_creation_in_place(
         &mut self,
         new_branch: BranchId,

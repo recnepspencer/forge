@@ -27,9 +27,8 @@ pub use proofs::{
     MaxAdmittedControlReplayBreadthForParity, MaxDeterministicChunkWidth,
     Milestone6ChunkModelExport, Milestone6DerivedArtifactRebuildReport,
     Milestone6LayoutMaterialization, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
-    Milestone6PreparedLayoutSupport, Milestone6ResolvedLayoutSupportLane,
-    Milestone6LayoutSupportPublicationDisposition,
-    Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference, PhysicalChunkId,
-    RejectedAspectLayoutReadPlan, SingleEntityAspectScope, StructuralBlockId,
-    StructuralBlockLookup, StructuralBlockLookupResult,
+    Milestone6LayoutSupportPublicationDisposition, Milestone6PreparedLayoutSupport,
+    Milestone6ResolvedLayoutSupportLane, Milestone7IndependentLayoutReference,
+    Milestone9PhysicalChunkReference, PhysicalChunkId, RejectedAspectLayoutReadPlan,
+    SingleEntityAspectScope, StructuralBlockId, StructuralBlockLookup, StructuralBlockLookupResult,
 };

@@ -8,8 +8,10 @@ pub use core::{
     ParityAnchor, RejectionCertificationRow,
 };
 pub use requirements::{
-    milestone_five_point_four_requirements, milestone_five_point_one_requirements,
+    milestone_five_point_five_requirements, milestone_five_point_four_requirements,
+    milestone_five_point_one_requirements, milestone_five_point_six_requirements,
     milestone_five_point_three_requirements, milestone_five_point_two_requirements,
     milestone_five_requirements, milestone_four_requirements, milestone_one_requirements,
-    milestone_three_requirements, milestone_two_requirements, RequiredAssertionClass,
+    milestone_six_requirements, milestone_three_requirements, milestone_two_requirements,
+    RequiredAssertionClass,
 };

@@ -1,0 +1,37 @@
+warning: unreachable expression
+ --> tests/ui/forge_query_support_report_constructor_private.rs:6:36
+  |
+5 |         support_matrix: todo!(),
+  |                         ------- any code following this expression is unreachable
+6 |         admitted_capability_count: 0,
+  |                                    ^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `support_matrix`, `admitted_capability_count`, `deferred_capability_count`, `unsupported_capability_count`, `admitted_capability_families`, `deferred_capability_families`, `unsupported_capability_families`, `section_postures`, `validated_config_digest`, `counters` and `report_digest` of struct `ForgeQuerySupportReport` are private
+  --> tests/ui/forge_query_support_report_constructor_private.rs:5:9
+   |
+ 4 |     let _ = ForgeQuerySupportReport {
+   |             ----------------------- in this type
+ 5 |         support_matrix: todo!(),
+   |         ^^^^^^^^^^^^^^ private field
+ 6 |         admitted_capability_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         deferred_capability_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         unsupported_capability_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         admitted_capability_families: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         deferred_capability_families: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         unsupported_capability_families: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         section_postures: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+13 |         validated_config_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         counters: todo!(),
+   |         ^^^^^^^^ private field
+15 |         report_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

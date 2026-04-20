@@ -27,6 +27,7 @@ impl StoreState {
                 .values()
                 .cloned()
                 .collect(),
+            stable_basis_records: self.stable_basis_records.values().cloned().collect(),
             authoritative_artifact_digests: self
                 .authoritative_artifact_digests
                 .values()
@@ -167,6 +168,21 @@ impl StoreState {
                     StoreErrorKind::DuplicateArtifactIdentity,
                     format!(
                         "duplicate subscriber checkpoint artifact `{}` in authoritative export",
+                        record.artifact_id
+                    ),
+                ));
+            }
+        }
+        for record in bundle.stable_basis_records {
+            if state
+                .stable_basis_records
+                .insert(record.artifact_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err(StoreError::new(
+                    StoreErrorKind::DuplicateArtifactIdentity,
+                    format!(
+                        "duplicate stable basis artifact `{}` in authoritative export",
                         record.artifact_id
                     ),
                 ));

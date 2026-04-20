@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |                   arguments to this method are incorrect
   |
 note: method defined here
- --> src/facade.rs
+ --> src/facade/authority.rs
   |
   |     pub fn read_branch_delta(
   |            ^^^^^^^^^^^^^^^^^

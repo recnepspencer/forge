@@ -1,0 +1,10 @@
+error[E0451]: fields `request` and `lowered_plan` of struct `RelationalMergeInspectionInput` are private
+  --> tests/ui/merge/relational_merge_inspection_input_private.rs:8:9
+   |
+ 7 |     let _ = RelationalMergeInspectionInput {
+   |             ------------------------------ in this type
+ 8 |         request: MergeExecutionRequest {
+   |         ^^^^^^^ private field
+...
+13 |         lowered_plan: LoweredMergePlanSummary {
+   |         ^^^^^^^^^^^^ private field

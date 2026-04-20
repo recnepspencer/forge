@@ -1,0 +1,330 @@
+use crate::application::config::{
+    ForgeQueryConfigSectionFamily, ForgeQuerySubsystemOwner, ValidatedForgeQueryConfig,
+};
+use crate::identity::hash_parts;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum ForgeQueryCapabilityFamily {
+    QueryRead,
+    QueryContext,
+    LiveQuery,
+    PreviewSession,
+    WorkflowOrchestration,
+    HistoricalEvaluation,
+    DurableArtifacts,
+}
+
+impl ForgeQueryCapabilityFamily {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::QueryRead => "query_read",
+            Self::QueryContext => "query_context",
+            Self::LiveQuery => "live_query",
+            Self::PreviewSession => "preview_session",
+            Self::WorkflowOrchestration => "workflow_orchestration",
+            Self::HistoricalEvaluation => "historical_evaluation",
+            Self::DurableArtifacts => "durable_artifacts",
+        }
+    }
+
+    pub fn config_section(&self) -> ForgeQueryConfigSectionFamily {
+        match self {
+            Self::QueryRead | Self::QueryContext => ForgeQueryConfigSectionFamily::Query,
+            Self::LiveQuery => ForgeQueryConfigSectionFamily::Signal,
+            Self::PreviewSession => ForgeQueryConfigSectionFamily::RuntimeBridge,
+            Self::WorkflowOrchestration | Self::HistoricalEvaluation => {
+                ForgeQueryConfigSectionFamily::Relational
+            }
+            Self::DurableArtifacts => ForgeQueryConfigSectionFamily::Store,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForgeQueryCapabilityStatus {
+    Admitted,
+    DeferredDebt,
+    Unsupported,
+}
+
+pub type ForgeQueryCapabilitySupportStatus = ForgeQueryCapabilityStatus;
+
+impl ForgeQueryCapabilityStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Admitted => "admitted",
+            Self::DeferredDebt => "deferred_debt",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryCapabilityDescriptor {
+    family: ForgeQueryCapabilityFamily,
+    status: ForgeQueryCapabilityStatus,
+    owner: ForgeQuerySubsystemOwner,
+    config_section: ForgeQueryConfigSectionFamily,
+    reason: &'static str,
+}
+
+impl ForgeQueryCapabilityDescriptor {
+    pub(crate) fn new(
+        family: ForgeQueryCapabilityFamily,
+        status: ForgeQueryCapabilityStatus,
+        owner: ForgeQuerySubsystemOwner,
+        reason: &'static str,
+    ) -> Self {
+        Self {
+            family,
+            status,
+            owner,
+            config_section: family.config_section(),
+            reason,
+        }
+    }
+
+    pub fn family(&self) -> ForgeQueryCapabilityFamily {
+        self.family
+    }
+
+    pub fn status(&self) -> ForgeQueryCapabilityStatus {
+        self.status
+    }
+
+    pub fn owner(&self) -> ForgeQuerySubsystemOwner {
+        self.owner
+    }
+
+    pub fn config_section(&self) -> ForgeQueryConfigSectionFamily {
+        self.config_section
+    }
+
+    pub fn reason(&self) -> &'static str {
+        self.reason
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryCapabilityRegistry {
+    descriptors: Vec<ForgeQueryCapabilityDescriptor>,
+    registry_digest: String,
+}
+
+impl ForgeQueryCapabilityRegistry {
+    pub(crate) fn from_validated_config(config: &ValidatedForgeQueryConfig) -> Self {
+        let descriptors = vec![
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::QueryRead,
+                if config.query().runtime_backed_reads_enabled() {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Query,
+                if config.query().runtime_backed_reads_enabled() {
+                    "runtime-backed query execution is admitted through the daily-driver facade"
+                } else {
+                    "runtime-backed query execution is disabled by the query config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::QueryContext,
+                if config.query().runtime_backed_reads_enabled() {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Query,
+                if config.query().runtime_backed_reads_enabled() {
+                    "query context binding is admitted through the query config section"
+                } else {
+                    "query context binding is disabled by the query config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::LiveQuery,
+                if config.query().runtime_backed_reads_enabled()
+                    && config.signal().live_promotion_enabled()
+                {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Signal,
+                if config.signal().live_promotion_enabled() {
+                    "live query promotion is admitted through the signal config section"
+                } else {
+                    "live query promotion is disabled by the signal config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::PreviewSession,
+                if config.query().runtime_backed_reads_enabled()
+                    && config.runtime_bridge().preview_session_enabled()
+                {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::RuntimeBridge,
+                if config.runtime_bridge().preview_session_enabled() {
+                    "preview session composition is admitted through the runtime bridge config section"
+                } else {
+                    "preview session composition is disabled by the runtime bridge config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::WorkflowOrchestration,
+                if config.query().runtime_backed_reads_enabled()
+                    && config.relational().workflow_orchestration_enabled()
+                {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Relational,
+                if config.relational().workflow_orchestration_enabled() {
+                    "workflow orchestration is admitted through the relational config section"
+                } else {
+                    "workflow orchestration is disabled by the relational config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::HistoricalEvaluation,
+                if config.query().runtime_backed_reads_enabled()
+                    && config.relational().historical_evaluation_enabled()
+                {
+                    ForgeQueryCapabilityStatus::Admitted
+                } else {
+                    ForgeQueryCapabilityStatus::Unsupported
+                },
+                ForgeQuerySubsystemOwner::Relational,
+                if config.relational().historical_evaluation_enabled() {
+                    "historical evaluation is admitted through the relational config section"
+                } else {
+                    "historical evaluation is disabled by the relational config section"
+                },
+            ),
+            ForgeQueryCapabilityDescriptor::new(
+                ForgeQueryCapabilityFamily::DurableArtifacts,
+                ForgeQueryCapabilityStatus::DeferredDebt,
+                ForgeQuerySubsystemOwner::Store,
+                "durable artifacts remain store-gated debt until the later durability milestones close",
+            ),
+        ];
+
+        let registry_digest = hash_parts(
+            &descriptors
+                .iter()
+                .map(|descriptor| {
+                    format!(
+                        "{}:{}:{}:{}:{}",
+                        descriptor.family().as_str(),
+                        descriptor.status().as_str(),
+                        descriptor.owner().as_str(),
+                        descriptor.config_section().as_str(),
+                        descriptor.reason()
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        Self {
+            descriptors,
+            registry_digest,
+        }
+    }
+
+    pub fn descriptors(&self) -> &[ForgeQueryCapabilityDescriptor] {
+        &self.descriptors
+    }
+
+    pub fn descriptor(
+        &self,
+        family: ForgeQueryCapabilityFamily,
+    ) -> Option<&ForgeQueryCapabilityDescriptor> {
+        self.descriptors
+            .iter()
+            .find(|descriptor| descriptor.family == family)
+    }
+
+    pub fn registry_digest(&self) -> &str {
+        &self.registry_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQuerySupportMatrix {
+    registry: ForgeQueryCapabilityRegistry,
+    support_matrix_digest: String,
+}
+
+impl ForgeQuerySupportMatrix {
+    pub(crate) fn new(registry: ForgeQueryCapabilityRegistry) -> Self {
+        let admitted = registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
+            .count();
+        let deferred = registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::DeferredDebt)
+            .count();
+        let unsupported = registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Unsupported)
+            .count();
+        let support_matrix_digest = hash_parts(&[
+            format!("registry:{}", registry.registry_digest()),
+            format!("admitted:{admitted}"),
+            format!("deferred:{deferred}"),
+            format!("unsupported:{unsupported}"),
+        ]);
+        Self {
+            registry,
+            support_matrix_digest,
+        }
+    }
+
+    pub fn descriptor(
+        &self,
+        family: ForgeQueryCapabilityFamily,
+    ) -> Option<&ForgeQueryCapabilityDescriptor> {
+        self.registry.descriptor(family)
+    }
+
+    pub fn capability_registry(&self) -> &ForgeQueryCapabilityRegistry {
+        &self.registry
+    }
+
+    pub fn support_matrix_digest(&self) -> &str {
+        &self.support_matrix_digest
+    }
+
+    pub fn admitted_capability_count(&self) -> usize {
+        self.registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Admitted)
+            .count()
+    }
+
+    pub fn deferred_capability_count(&self) -> usize {
+        self.registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::DeferredDebt)
+            .count()
+    }
+
+    pub fn unsupported_capability_count(&self) -> usize {
+        self.registry
+            .descriptors()
+            .iter()
+            .filter(|descriptor| descriptor.status() == ForgeQueryCapabilityStatus::Unsupported)
+            .count()
+    }
+}

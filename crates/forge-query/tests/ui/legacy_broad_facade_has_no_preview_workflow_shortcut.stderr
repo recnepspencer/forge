@@ -1,0 +1,5 @@
+error[E0425]: cannot find function `preview_workflow_composition` in module `facade`
+ --> tests/ui/legacy_broad_facade_has_no_preview_workflow_shortcut.rs:4:21
+  |
+4 |     let _ = facade::preview_workflow_composition();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `facade`

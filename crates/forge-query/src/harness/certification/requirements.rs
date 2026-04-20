@@ -232,3 +232,57 @@ pub fn milestone_five_point_four_requirements() -> SuiteRequirements {
         missing_rows_block_offline_ready: true,
     }
 }
+
+pub fn milestone_five_point_five_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Query Workflow Lowering And Writeback Boundary Test",
+        required_canonical_rows:
+            crate::harness::workflow_certification::WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::workflow_certification::WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_five_point_six_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Unified Facade And Configuration Boundary Test",
+        required_canonical_rows: crate::harness::unified_facade_certification::
+            UNIFIED_FACADE_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows: crate::harness::unified_facade_certification::
+            UNIFIED_FACADE_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_six_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Branch-Scoped, Historical, And Diff Query Context Test",
+        required_canonical_rows: crate::harness::historical_diff_certification::
+            HISTORICAL_DIFF_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows: crate::harness::historical_diff_certification::
+            HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}

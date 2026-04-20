@@ -19,6 +19,8 @@ mod frontier_certification;
 #[cfg(test)]
 mod frontier_planning;
 #[cfg(test)]
+mod historical_diff_certification;
+#[cfg(test)]
 mod live_certification;
 #[cfg(test)]
 mod matrices;
@@ -45,8 +47,12 @@ mod semantics;
 #[cfg(test)]
 mod typed;
 #[cfg(test)]
+mod unified_facade_certification;
+#[cfg(test)]
 mod validation_cases;
 #[cfg(test)]
 mod validation_certification;
 #[cfg(test)]
 mod validation_matrix;
+#[cfg(test)]
+mod workflow_certification;

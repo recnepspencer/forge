@@ -44,6 +44,37 @@ pub(crate) fn subscriber_checkpoint_artifact_id(
     format!("subscriber-checkpoint:{cursor_id}:{checkpoint_sequence}")
 }
 
+pub(crate) fn stable_basis_artifact_id(stable_basis_id: &str) -> String {
+    stable_basis_id.to_string()
+}
+
+pub(crate) fn compaction_product_artifact_id(
+    retained_basis_label: &str,
+    compacted_family_labels: &[String],
+) -> String {
+    format!(
+        "compaction-product:{}:{}",
+        retained_basis_label,
+        compacted_family_labels.join("+")
+    )
+}
+
+pub(crate) fn retention_basis_artifact_id(basis_label: &str) -> String {
+    format!("retention-basis:{basis_label}")
+}
+
+pub(crate) fn retention_closure_artifact_id(retained_basis_label: &str) -> String {
+    format!("retention-closure:{retained_basis_label}")
+}
+
+pub(crate) fn rebuild_debt_artifact_id(
+    family_label: &str,
+    retained_basis_label: &str,
+    rebuild_target_id: &str,
+) -> String {
+    format!("rebuild-debt:{family_label}:{retained_basis_label}:{rebuild_target_id}")
+}
+
 pub(crate) fn bulk_program_artifact_id(program_id: &str) -> String {
     format!("bulk-program:{program_id}")
 }

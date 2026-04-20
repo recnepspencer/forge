@@ -14,7 +14,10 @@ mod policy;
 use std::time::Instant;
 
 use crate::logic::runtime::RelationalRuntime;
-use crate::merge::data::{MergePlanningArtifactCore, MergePlanningError, MergePlanningRequest};
+use crate::merge::data::{
+    MergePlanningArtifactCore, MergePlanningError, MergePlanningRequest,
+    RelationalMergeInspectionArtifact,
+};
 pub(crate) use execution_diagnostics::{
     merge_execution_failure_artifact, merge_execution_success_artifact,
     merge_execution_summary_entry,
@@ -48,5 +51,15 @@ impl<'runtime> MergeAccess<'runtime> {
             .performance_access()
             .count_merge_planning_elapsed(started_at.elapsed().as_nanos());
         Ok(artifact)
+    }
+
+    pub fn inspect_execution_surface(
+        &self,
+        request: MergePlanningRequest,
+    ) -> Result<RelationalMergeInspectionArtifact, MergePlanningError> {
+        let artifact = self.inspect_planning_scope(request)?;
+        Ok(RelationalMergeInspectionArtifact::from_input(
+            artifact.inspection_input(),
+        ))
     }
 }

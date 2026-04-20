@@ -1653,6 +1653,8 @@ pub struct PreviewComparisonEligibilityArtifact {
 pub struct PreviewWorkflowFoundationArtifact {
     digest: String,
     binding_digest: String,
+    canonical_query_digest: CanonicalQueryDigest,
+    validated_query_digest: ValidatedQueryDigest,
     request_family: PreviewWorkflowFoundationRequest,
     preview_session_identity: BridgePreviewSessionIdentity,
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
@@ -1786,6 +1788,8 @@ pub struct PreviewExecutionComparisonAdmission {
     preview_execution_digest: String,
     preview_comparison_digest: String,
     candidate_comparison_digest: String,
+    canonical_query_digest: CanonicalQueryDigest,
+    validated_query_digest: ValidatedQueryDigest,
     candidate_basis_digest: String,
     candidate_result_digest: ResultDigest,
     shape_check_width: usize,
@@ -1844,6 +1848,14 @@ impl PreviewWorkflowFoundationArtifact {
         &self.request_family
     }
 
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        &self.canonical_query_digest
+    }
+
+    pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
+        &self.validated_query_digest
+    }
+
     pub fn preview_session_identity(&self) -> &BridgePreviewSessionIdentity {
         &self.preview_session_identity
     }
@@ -1880,6 +1892,14 @@ impl AdmittedPreviewWorkflowFoundation {
 
     pub fn request_family(&self) -> &PreviewWorkflowFoundationRequest {
         self.artifact.request_family()
+    }
+
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        self.artifact.canonical_query_digest()
+    }
+
+    pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
+        self.artifact.validated_query_digest()
     }
 
     pub fn preview_session_identity(&self) -> &BridgePreviewSessionIdentity {
@@ -2028,6 +2048,14 @@ impl PreviewExecutionComparisonAdmission {
         &self.candidate_comparison_digest
     }
 
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        &self.canonical_query_digest
+    }
+
+    pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
+        &self.validated_query_digest
+    }
+
     pub fn candidate_basis_digest(&self) -> &str {
         &self.candidate_basis_digest
     }
@@ -2060,6 +2088,14 @@ impl PromotionParityPreviewComparisonAdmission {
 
     pub fn candidate_comparison_digest(&self) -> &str {
         self.inner.candidate_comparison_digest()
+    }
+
+    pub fn canonical_query_digest(&self) -> &CanonicalQueryDigest {
+        self.inner.canonical_query_digest()
+    }
+
+    pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
+        self.inner.validated_query_digest()
     }
 
     pub fn candidate_basis_digest(&self) -> &str {
@@ -2175,6 +2211,8 @@ fn derive_preview_workflow_foundation(
     PreviewWorkflowFoundationArtifact {
         digest,
         binding_digest: binding_tuple.digest().to_string(),
+        canonical_query_digest: binding_tuple.canonical_query_digest().clone(),
+        validated_query_digest: binding_tuple.validated_query_digest().clone(),
         request_family: request,
         preview_session_identity: binding_tuple.preview_session_identity().clone(),
         declaration_identity: binding_tuple.declaration_identity().clone(),
@@ -2462,6 +2500,8 @@ fn admit_preview_execution_comparison(
             .to_string(),
         preview_comparison_digest: preview.digest().to_string(),
         candidate_comparison_digest: candidate.digest().to_string(),
+        canonical_query_digest: candidate.canonical_query_digest().clone(),
+        validated_query_digest: candidate.validated_query_digest().clone(),
         candidate_basis_digest: candidate.basis_digest().to_string(),
         candidate_result_digest: candidate.result_digest().clone(),
         shape_check_width,

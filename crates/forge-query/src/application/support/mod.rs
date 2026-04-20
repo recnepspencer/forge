@@ -1,0 +1,10 @@
+mod registry;
+mod report;
+
+pub use registry::{
+    ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
+    ForgeQueryCapabilityStatus, ForgeQueryCapabilitySupportStatus, ForgeQuerySupportMatrix,
+};
+pub use report::{
+    ForgeQuerySupportReport, ForgeQuerySupportReportCounters, ForgeQuerySupportSectionPosture,
+};
