@@ -315,6 +315,11 @@ impl StoreCounters {
             .maintenance_reservation_violation_count
             .fetch_add(count, Ordering::Relaxed);
     }
+    pub fn record_maintenance_cross_locality_escalation(&self, count: u64) {
+        self.retention
+            .maintenance_cross_locality_escalation_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
     pub fn record_maintenance_freshness_rejections(&self, count: u64) {
         self.retention
             .maintenance_freshness_rejection_count

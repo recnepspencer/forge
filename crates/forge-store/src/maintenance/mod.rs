@@ -10,8 +10,12 @@ pub use admission::{
 pub use batches::{MaintenanceBatch, MaintenanceBatchClass, MaintenanceBatchSummary};
 pub use declarations::{
     AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration,
+    DerivedFamilyRebuildMaintenanceDeclaration, MaintenanceAuditMaintenanceDeclaration,
     MaintenanceDeclaration, MaintenanceDeclarationClass, MaintenanceDeclarationId,
-    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
+    ReplicationPreparationMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    SnapshotRefreshMaintenanceDeclaration, TierMoveMaintenanceDeclaration,
+    TierPlacementMaintenanceDeclaration,
 };
 pub use lifecycle::{
     CompletedMaintenance, FailedMaintenance, ForegroundBroadeningCause,

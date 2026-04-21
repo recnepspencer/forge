@@ -652,6 +652,101 @@ fn sqlite_invalid_tiering_execution_origin_fails_on_open() {
 }
 
 #[test]
+fn sqlite_residency_verification_label_drift_fails_on_open() {
+    let path = super::harness::fixtures::stores::unique_test_sqlite_path(
+        "forge-store-tiering-phase3-sqlite-bad-verification-label",
+    );
+    let (mut store, _, _, snapshot_id, _) = tiering_phase3_sqlite_fixture(path.clone());
+    let snapshot_basis_label = format!("snapshot:{snapshot_id}");
+
+    let report = store
+        .plan_authoritative_tier_move(
+            conservative_policy(),
+            PlacementObservationScopeClass::RetainedBasis,
+            &snapshot_basis_label,
+            PlacementExecutionOrigin::Background,
+        )
+        .unwrap();
+    let plan = report.tier_move_plan().cloned().unwrap();
+    let intent = store.prepare_authoritative_tier_move(plan).unwrap();
+    let transferred = store.transfer_tier_replica(intent).unwrap();
+    let verified = store.verify_tier_replica(transferred).unwrap();
+    let cutover = store.cutover_tier_replica(verified).unwrap();
+    store.retire_tier_replica(cutover).unwrap();
+    drop(store);
+
+    let connection = Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "UPDATE tier_residency_records SET verification_label = ?1",
+            params!["synthetic-verification-label"],
+        )
+        .unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .sqlite_file(path)
+        .build()
+        .expect_err("open should reconstruct and reject drifted verification label");
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
+    assert!(
+        error.message().contains("verification label drifted"),
+        "unexpected error: {}",
+        error.message()
+    );
+}
+
+#[test]
+fn sqlite_completed_cutover_with_inconsistent_residency_fails_on_open() {
+    let path = super::harness::fixtures::stores::unique_test_sqlite_path(
+        "forge-store-tiering-phase3-sqlite-inconsistent-cutover-residency",
+    );
+    let (mut store, _, _, snapshot_id, _) = tiering_phase3_sqlite_fixture(path.clone());
+    let snapshot_basis_label = format!("snapshot:{snapshot_id}");
+
+    let report = store
+        .plan_authoritative_tier_move(
+            conservative_policy(),
+            PlacementObservationScopeClass::RetainedBasis,
+            &snapshot_basis_label,
+            PlacementExecutionOrigin::Background,
+        )
+        .unwrap();
+    let plan = report.tier_move_plan().cloned().unwrap();
+    let intent = store.prepare_authoritative_tier_move(plan).unwrap();
+    let transferred = store.transfer_tier_replica(intent).unwrap();
+    let verified = store.verify_tier_replica(transferred).unwrap();
+    store.cutover_tier_replica(verified).unwrap();
+    drop(store);
+
+    let connection = Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "UPDATE tier_residency_records SET canonical_residence = ?1",
+            params![crate::TierResidenceClass::Hot.label()],
+        )
+        .unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .sqlite_file(path)
+        .build()
+        .expect_err("open should reject completed transfer inconsistent with residency");
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::BackendIntegrityViolation
+    );
+    assert!(
+        error
+            .message()
+            .contains("inconsistent with canonical residency truth"),
+        "unexpected error: {}",
+        error.message()
+    );
+}
+
+#[test]
 fn sqlite_cutover_completed_transfer_without_required_witness_fields_fails_on_open() {
     let path = super::harness::fixtures::stores::unique_test_sqlite_path(
         "forge-store-tiering-phase3-sqlite-bad-cutover",

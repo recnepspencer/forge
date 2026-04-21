@@ -128,6 +128,56 @@ fn maintenance_status_survives_sqlite_restart() {
 }
 
 #[test]
+fn cold_start_and_warm_start_recovered_backlog_have_equivalent_scheduler_shape() {
+    let path = unique_test_store_path("forge-store-m11-maintenance-cold-warm-equivalence");
+    let (mut store, batch) = build_maintenance_ready_store_with_builder(
+        ForgeStoreBuilder::new().local_file(path.clone()),
+    );
+    let receipt = store.admit_maintenance_batch(batch).unwrap();
+    let declaration_id = receipt.admitted_declarations()[0]
+        .declaration()
+        .id()
+        .clone();
+    drop(store);
+    force_local_file_recovered(&path, &declaration_id);
+
+    let warm_reopen = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
+    let warm_report = warm_reopen.milestone_11_maintenance_report();
+    let warm_export = warm_reopen.export_authoritative_records();
+    let warm_shape_digest = stable_digest(&(
+        &warm_report.work_class_counts,
+        &warm_report.reservation_family_counts,
+        &warm_report.locality_scope_counts,
+        warm_report.recovered_declaration_count,
+        warm_report.recovered_intake.pending_recovered_count(),
+    ));
+    drop(warm_reopen);
+
+    let cold_reopen = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+    let cold_report = cold_reopen.milestone_11_maintenance_report();
+    let cold_export = cold_reopen.export_authoritative_records();
+    let cold_shape_digest = stable_digest(&(
+        &cold_report.work_class_counts,
+        &cold_report.reservation_family_counts,
+        &cold_report.locality_scope_counts,
+        cold_report.recovered_declaration_count,
+        cold_report.recovered_intake.pending_recovered_count(),
+    ));
+
+    assert_eq!(warm_shape_digest, cold_shape_digest);
+    assert_eq!(warm_export.canonical_json(), cold_export.canonical_json());
+    assert_eq!(
+        cold_reopen
+            .milestone_11_counter_contract()
+            .maintenance_cold_start_global_scan_count,
+        0
+    );
+}
+
+#[test]
 fn queue_summary_counts_survive_restart_in_both_durable_lanes() {
     let duplicate_id = "maintenance-compaction-restart-coalesced";
 

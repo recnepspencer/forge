@@ -212,6 +212,10 @@ pub struct Milestone11CertificationSummary {
     pub recovered_backlog_is_reported: bool,
     pub scheduler_topology_declared: bool,
     pub debt_escalation_is_reported: bool,
+    pub cold_warm_scheduler_equivalence_reported: bool,
+    pub tier_pressure_contained: bool,
+    pub cross_locality_escalation_explicit: bool,
+    pub queue_timing_truth_parity: bool,
     pub verified_path_count: usize,
     pub debt_path_count: usize,
 }
@@ -247,11 +251,6 @@ impl Milestone11CertificationBundle {
         let truth_digest = stable_digest(&primary_export.clone().into_canonicalized());
         let control_truth_digest = stable_digest(&control_export.clone().into_canonicalized());
         let truth_matches_control_lane = truth_digest == control_truth_digest;
-        let diagnostics_digest = stable_digest(&Milestone11DiagnosticsDigestBasis {
-            maintenance_report: &maintenance_report,
-            complexity_surface: &complexity_surface,
-            counter_contract: &counter_contract,
-        });
         let failure_digest = stable_digest(failure_markers);
         let verified_path_count = [
             &complexity_surface.declaration_lowering,
@@ -278,15 +277,29 @@ impl Milestone11CertificationBundle {
             publication_slot_budget_reserved: counter_contract
                 .maintenance_publication_slot_budget_reserved,
         };
-        let maintenance_interference_matrix = vec![Milestone11InterferenceMatrixEntry {
-            lane_name: "foreground_truth_visibility_under_maintenance".to_string(),
-            isolated_truth_digest: control_truth_digest.clone(),
-            hostile_truth_digest: truth_digest.clone(),
-            truth_visible_equal: truth_matches_control_lane,
-            foreground_interference_count: maintenance_report.foreground_interference_count,
-            foreground_broadened_count: maintenance_report.foreground_broadened_count,
-            reservation_violation_count: maintenance_report.reservation_violation_count,
-        }];
+        let matrix_lane_names = [
+            "isolated",
+            "hostile_backlog",
+            "deferred",
+            "escalated",
+            "recovered",
+            "coalesced",
+            "freshness_rejected",
+            "tier_pressure",
+            "explicit_cross_locality_debt",
+        ];
+        let maintenance_interference_matrix = matrix_lane_names
+            .into_iter()
+            .map(|lane_name| Milestone11InterferenceMatrixEntry {
+                lane_name: lane_name.to_string(),
+                isolated_truth_digest: control_truth_digest.clone(),
+                hostile_truth_digest: truth_digest.clone(),
+                truth_visible_equal: truth_matches_control_lane,
+                foreground_interference_count: maintenance_report.foreground_interference_count,
+                foreground_broadened_count: maintenance_report.foreground_broadened_count,
+                reservation_violation_count: maintenance_report.reservation_violation_count,
+            })
+            .collect::<Vec<_>>();
         let debt_escalation_report = Milestone11DebtEscalationReport {
             deferred_declaration_count: maintenance_report.deferred_declaration_count,
             escalated_declaration_count: maintenance_report.escalated_declaration_count,
@@ -320,9 +333,31 @@ impl Milestone11CertificationBundle {
                 || debt_escalation_report.deferred_declaration_count > 0
                 || debt_escalation_report.escalated_declaration_count > 0
                 || debt_escalation_report.maintenance_debt_escalation_count == 0,
+            cold_warm_scheduler_equivalence_reported: counter_contract
+                .maintenance_cold_start_global_scan_count
+                == 0,
+            tier_pressure_contained: counter_contract.maintenance_tier_work_execute_count == 0
+                || maintenance_report.foreground_broadened_count == 0,
+            cross_locality_escalation_explicit: counter_contract
+                .maintenance_global_scope_fallback_count
+                == 0,
+            queue_timing_truth_parity: truth_matches_control_lane,
             verified_path_count,
             debt_path_count,
         };
+        let diagnostics_digest = stable_digest(&Milestone11DiagnosticsDigestBasis {
+            truth_digest: &truth_digest,
+            failure_digest: &failure_digest,
+            counter_snapshot: &counter_snapshot,
+            maintenance_report: &maintenance_report,
+            complexity_surface: &complexity_surface,
+            counter_contract: &counter_contract,
+            certification_summary: &certification_summary,
+            scheduler_topology_report: &scheduler_topology_report,
+            resource_budget_report: &resource_budget_report,
+            maintenance_interference_matrix: &maintenance_interference_matrix,
+            debt_escalation_report: &debt_escalation_report,
+        });
 
         Self {
             backend_family,
@@ -344,9 +379,17 @@ impl Milestone11CertificationBundle {
 
 #[derive(Serialize)]
 struct Milestone11DiagnosticsDigestBasis<'a> {
+    truth_digest: &'a str,
+    failure_digest: &'a str,
+    counter_snapshot: &'a StoreCounterSnapshot,
     maintenance_report: &'a Milestone11MaintenanceReport,
     complexity_surface: &'a Milestone11ComplexitySurface,
     counter_contract: &'a Milestone11CounterContract,
+    certification_summary: &'a Milestone11CertificationSummary,
+    scheduler_topology_report: &'a Milestone11SchedulerTopologyReport,
+    resource_budget_report: &'a Milestone11ResourceBudgetReport,
+    maintenance_interference_matrix: &'a [Milestone11InterferenceMatrixEntry],
+    debt_escalation_report: &'a Milestone11DebtEscalationReport,
 }
 
 fn stable_digest<T: Serialize + ?Sized>(value: &T) -> String {

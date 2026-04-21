@@ -6,7 +6,7 @@
 use egui::{Color32, CornerRadius, Frame, Stroke};
 use forge_ui_theme::ForgeTheme;
 
-use crate::{fg_button, FgButton, FgButtonVariant};
+use crate::{FgButton, FgButtonVariant};
 
 /// Describes a button action on the alert.
 pub struct AlertAction<'a> {

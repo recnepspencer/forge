@@ -54,6 +54,7 @@ pub(crate) fn maintenance_status<P: StatePersistence>(
         declaration.work_descriptor.freshness_window(),
         declaration.work_descriptor.debt_family(),
         declaration.work_descriptor.escalation_decision(),
+        declaration.work_descriptor.tier_work_container_class(),
         declaration.work_descriptor.recovered_from_restart(),
         execution.restart_readmission_status,
         execution.reservation_transition.clone(),

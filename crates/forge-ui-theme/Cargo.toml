@@ -9,7 +9,4 @@ workspace = true
 
 [dependencies]
 forge-ui-types = { workspace = true }
-egui      = { workspace = true }
-egui-wgpu = { workspace = true }
-wgpu      = { workspace = true }
-bytemuck  = { version = "1", features = ["derive"] }
+egui = { workspace = true }

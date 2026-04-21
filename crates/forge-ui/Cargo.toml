@@ -12,8 +12,10 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
+forge-ui-theme      = { workspace = true }
+forge-ui-components = { workspace = true }
 forge-query          = { workspace = true }
-forge-runtime-bridge = { workspace = true }
+serde_json           = { workspace = true }
 
 # UI framework
 eframe = { workspace = true }

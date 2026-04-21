@@ -3,7 +3,7 @@
 //! Always includes a search filter. Designed to be standalone so it can plug into
 //! forms, toolbars, or nested list selectors.
 
-use egui::{Color32, CornerRadius, Frame, Pos2, Stroke, Ui, Vec2};
+use egui::{Color32, CornerRadius, Frame, Pos2, Sense, Stroke, Ui, Vec2};
 use forge_ui_theme::ForgeTheme;
 
 /// A single item in the dropdown.
@@ -137,7 +137,8 @@ pub fn fg_dropdown(
                 });
             });
         })
-        .response;
+        .response
+        .interact(Sense::click());
 
     if trigger_resp.clicked() {
         props.dropdown_state.open = !props.dropdown_state.open;

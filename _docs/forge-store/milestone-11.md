@@ -1,6 +1,8 @@
 # Milestone 11 Engineering Spec: Background Maintenance Isolation And Scheduling Contracts
 
-> **Status:** Draft
+> **Status:** Completed on 2026-04-21
+>
+> **Closeout:** [milestone-11-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-11-closeout.md)
 >
 > **Roadmap parent:** [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)
 >

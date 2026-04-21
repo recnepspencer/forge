@@ -1,6 +1,7 @@
 use crate::{
-    AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration, FreshnessWindow,
-    LocalityScopeToken, MaintenanceBatchClass, MaintenanceCoalescingDecision,
+    AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration,
+    DerivedFamilyRebuildMaintenanceDeclaration, FreshnessWindow, LocalityScopeToken,
+    MaintenanceAuditMaintenanceDeclaration, MaintenanceBatchClass, MaintenanceCoalescingDecision,
     MaintenanceDebtFamily, MaintenanceDebtSummary, MaintenanceDeclaration,
     MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceDescriptorDemand,
     MaintenanceEquivalenceKey, MaintenanceEscalationDecision, MaintenanceEscalationVerdict,
@@ -11,8 +12,10 @@ use crate::{
     MaintenanceReservationTransition, MaintenanceResourceBudgetGrant,
     MaintenanceResourceBudgetSummary, MaintenanceStarvationStatus, MaintenanceWorkClass,
     MaintenanceWorkDescriptor, MaintenanceWorkIdentity, PlanGeneration,
-    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration, RetentionMaintenanceDeclaration,
-    SupersessionEpoch, TierWorkContainerClass,
+    RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
+    ReplicationPreparationMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    SnapshotRefreshMaintenanceDeclaration, SupersessionEpoch, TierMoveMaintenanceDeclaration,
+    TierPlacementMaintenanceDeclaration, TierWorkContainerClass,
 };
 use forge_relational::facade::history::{BranchId, CommitId};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -123,6 +126,43 @@ enum PersistedMaintenanceDeclaration {
         family_label: String,
         rebuild_target_id: String,
         debt_link_artifact_id: Option<String>,
+    },
+    DerivedFamilyRebuild {
+        id: String,
+        retained_basis_label: String,
+        family_label: String,
+        rebuild_target_id: String,
+    },
+    SnapshotRefresh {
+        id: String,
+        snapshot_family: String,
+        locality_label: String,
+        refresh_label: String,
+    },
+    ReplicationPreparation {
+        id: String,
+        replication_family: String,
+        locality_label: String,
+        preparation_label: String,
+    },
+    MaintenanceAudit {
+        id: String,
+        audit_family: String,
+        locality_label: String,
+        audit_label: String,
+    },
+    TierPlacementProposal {
+        id: String,
+        placement_family: String,
+        locality_label: String,
+        proposal_label: String,
+    },
+    TierMoveExecution {
+        id: String,
+        placement_family: String,
+        locality_label: String,
+        move_label: String,
+        cross_locality_debt: bool,
     },
 }
 
@@ -259,6 +299,53 @@ impl From<&MaintenanceDeclaration> for PersistedMaintenanceDeclaration {
                 rebuild_target_id: declaration.rebuild_target_id().to_string(),
                 debt_link_artifact_id: declaration.debt_link_artifact_id().map(ToString::to_string),
             },
+            MaintenanceDeclaration::DerivedFamilyRebuild { id, declaration } => {
+                Self::DerivedFamilyRebuild {
+                    id: id.as_str().to_string(),
+                    retained_basis_label: declaration.retained_basis_label().to_string(),
+                    family_label: declaration.family_label().to_string(),
+                    rebuild_target_id: declaration.rebuild_target_id().to_string(),
+                }
+            }
+            MaintenanceDeclaration::SnapshotRefresh { id, declaration } => Self::SnapshotRefresh {
+                id: id.as_str().to_string(),
+                snapshot_family: declaration.snapshot_family().to_string(),
+                locality_label: declaration.locality_label().to_string(),
+                refresh_label: declaration.refresh_label().to_string(),
+            },
+            MaintenanceDeclaration::ReplicationPreparation { id, declaration } => {
+                Self::ReplicationPreparation {
+                    id: id.as_str().to_string(),
+                    replication_family: declaration.replication_family().to_string(),
+                    locality_label: declaration.locality_label().to_string(),
+                    preparation_label: declaration.preparation_label().to_string(),
+                }
+            }
+            MaintenanceDeclaration::MaintenanceAudit { id, declaration } => {
+                Self::MaintenanceAudit {
+                    id: id.as_str().to_string(),
+                    audit_family: declaration.audit_family().to_string(),
+                    locality_label: declaration.locality_label().to_string(),
+                    audit_label: declaration.audit_label().to_string(),
+                }
+            }
+            MaintenanceDeclaration::TierPlacementProposal { id, declaration } => {
+                Self::TierPlacementProposal {
+                    id: id.as_str().to_string(),
+                    placement_family: declaration.placement_family().to_string(),
+                    locality_label: declaration.locality_label().to_string(),
+                    proposal_label: declaration.proposal_label().to_string(),
+                }
+            }
+            MaintenanceDeclaration::TierMoveExecution { id, declaration } => {
+                Self::TierMoveExecution {
+                    id: id.as_str().to_string(),
+                    placement_family: declaration.placement_family().to_string(),
+                    locality_label: declaration.locality_label().to_string(),
+                    move_label: declaration.move_label().to_string(),
+                    cross_locality_debt: declaration.cross_locality_debt(),
+                }
+            }
         }
     }
 }
@@ -343,6 +430,86 @@ impl TryFrom<PersistedMaintenanceDeclaration> for MaintenanceDeclaration {
                     family_label,
                     rebuild_target_id,
                     debt_link_artifact_id,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::DerivedFamilyRebuild {
+                id,
+                retained_basis_label,
+                family_label,
+                rebuild_target_id,
+            } => MaintenanceDeclaration::derived_family_rebuild(
+                MaintenanceDeclarationId::new(id),
+                DerivedFamilyRebuildMaintenanceDeclaration::new(
+                    retained_basis_label,
+                    family_label,
+                    rebuild_target_id,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::SnapshotRefresh {
+                id,
+                snapshot_family,
+                locality_label,
+                refresh_label,
+            } => MaintenanceDeclaration::snapshot_refresh(
+                MaintenanceDeclarationId::new(id),
+                SnapshotRefreshMaintenanceDeclaration::new(
+                    snapshot_family,
+                    locality_label,
+                    refresh_label,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::ReplicationPreparation {
+                id,
+                replication_family,
+                locality_label,
+                preparation_label,
+            } => MaintenanceDeclaration::replication_preparation(
+                MaintenanceDeclarationId::new(id),
+                ReplicationPreparationMaintenanceDeclaration::new(
+                    replication_family,
+                    locality_label,
+                    preparation_label,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::MaintenanceAudit {
+                id,
+                audit_family,
+                locality_label,
+                audit_label,
+            } => MaintenanceDeclaration::maintenance_audit(
+                MaintenanceDeclarationId::new(id),
+                MaintenanceAuditMaintenanceDeclaration::new(
+                    audit_family,
+                    locality_label,
+                    audit_label,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::TierPlacementProposal {
+                id,
+                placement_family,
+                locality_label,
+                proposal_label,
+            } => MaintenanceDeclaration::tier_placement_proposal(
+                MaintenanceDeclarationId::new(id),
+                TierPlacementMaintenanceDeclaration::new(
+                    placement_family,
+                    locality_label,
+                    proposal_label,
+                ),
+            ),
+            PersistedMaintenanceDeclaration::TierMoveExecution {
+                id,
+                placement_family,
+                locality_label,
+                move_label,
+                cross_locality_debt,
+            } => MaintenanceDeclaration::tier_move_execution(
+                MaintenanceDeclarationId::new(id),
+                TierMoveMaintenanceDeclaration::new(
+                    placement_family,
+                    locality_label,
+                    move_label,
+                    cross_locality_debt,
                 ),
             ),
         })

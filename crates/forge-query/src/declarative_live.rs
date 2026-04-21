@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
     OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
@@ -301,6 +303,248 @@ impl DeclarativeLiveQuerySession {
     pub fn live_view(&self) -> &LiveViewShapeArtifact {
         &self.live_view
     }
+
+    pub(crate) fn advance_live_view(&mut self, live_view: LiveViewShapeArtifact) {
+        self.live_view = live_view;
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeBranchCompareValue {
+    aspect: String,
+    field: String,
+    value: String,
+}
+
+impl DeclarativeBranchCompareValue {
+    pub fn new(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    fn key(&self) -> String {
+        format!("{}.{}", self.aspect, self.field)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeBranchCompareInputRow {
+    identity: String,
+    label: String,
+    values: Vec<DeclarativeBranchCompareValue>,
+}
+
+impl DeclarativeBranchCompareInputRow {
+    pub fn new(
+        identity: impl Into<String>,
+        label: impl Into<String>,
+        values: impl IntoIterator<Item = DeclarativeBranchCompareValue>,
+    ) -> Self {
+        Self {
+            identity: identity.into(),
+            label: label.into(),
+            values: values.into_iter().collect(),
+        }
+    }
+
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn values(&self) -> &[DeclarativeBranchCompareValue] {
+        &self.values
+    }
+
+    fn value_for(&self, key: &str) -> Option<&DeclarativeBranchCompareValue> {
+        self.values.iter().find(|value| value.key() == key)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeclarativeBranchCompareChangeFamily {
+    Added,
+    Removed,
+    Modified,
+}
+
+impl DeclarativeBranchCompareChangeFamily {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Added => "added",
+            Self::Removed => "removed",
+            Self::Modified => "modified",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeclarativeBranchCompareIdentityClass {
+    AuthoritativeIdentity,
+    BranchLocalAddition,
+    BranchLocalRemoval,
+}
+
+impl DeclarativeBranchCompareIdentityClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::AuthoritativeIdentity => "authoritative_identity",
+            Self::BranchLocalAddition => "branch_local_addition",
+            Self::BranchLocalRemoval => "branch_local_removal",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeBranchCompareFieldDelta {
+    aspect: String,
+    field: String,
+    left_value: Option<String>,
+    right_value: Option<String>,
+    family: DeclarativeBranchCompareChangeFamily,
+}
+
+impl DeclarativeBranchCompareFieldDelta {
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn left_value(&self) -> Option<&str> {
+        self.left_value.as_deref()
+    }
+
+    pub fn right_value(&self) -> Option<&str> {
+        self.right_value.as_deref()
+    }
+
+    pub fn family(&self) -> &DeclarativeBranchCompareChangeFamily {
+        &self.family
+    }
+
+    fn digest_part(&self) -> String {
+        format!(
+            "delta:{}:{}:{}:{}:{}",
+            self.aspect,
+            self.field,
+            self.left_value.as_deref().unwrap_or("none"),
+            self.right_value.as_deref().unwrap_or("none"),
+            self.family.as_str()
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeBranchCompareRow {
+    left_identity: Option<String>,
+    right_identity: Option<String>,
+    label: String,
+    identity_class: DeclarativeBranchCompareIdentityClass,
+    field_deltas: Vec<DeclarativeBranchCompareFieldDelta>,
+}
+
+impl DeclarativeBranchCompareRow {
+    pub fn left_identity(&self) -> Option<&str> {
+        self.left_identity.as_deref()
+    }
+
+    pub fn right_identity(&self) -> Option<&str> {
+        self.right_identity.as_deref()
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn identity_class(&self) -> &DeclarativeBranchCompareIdentityClass {
+        &self.identity_class
+    }
+
+    pub fn field_deltas(&self) -> &[DeclarativeBranchCompareFieldDelta] {
+        &self.field_deltas
+    }
+
+    fn digest_part(&self) -> String {
+        let mut deltas = self
+            .field_deltas
+            .iter()
+            .map(DeclarativeBranchCompareFieldDelta::digest_part)
+            .collect::<Vec<_>>();
+        deltas.sort();
+        format!(
+            "compare_row:{}:{}:{}:{}",
+            self.left_identity.as_deref().unwrap_or("none"),
+            self.right_identity.as_deref().unwrap_or("none"),
+            self.identity_class.as_str(),
+            deltas.join("|")
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeBranchCompareArtifact {
+    left_live_view_digest: String,
+    right_live_view_digest: String,
+    left_basis_digest: String,
+    right_basis_digest: String,
+    query_digest: String,
+    result_digest: String,
+    rows: Vec<DeclarativeBranchCompareRow>,
+}
+
+impl DeclarativeBranchCompareArtifact {
+    pub fn left_live_view_digest(&self) -> &str {
+        &self.left_live_view_digest
+    }
+
+    pub fn right_live_view_digest(&self) -> &str {
+        &self.right_live_view_digest
+    }
+
+    pub fn left_basis_digest(&self) -> &str {
+        &self.left_basis_digest
+    }
+
+    pub fn right_basis_digest(&self) -> &str {
+        &self.right_basis_digest
+    }
+
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn result_digest(&self) -> &str {
+        &self.result_digest
+    }
+
+    pub fn rows(&self) -> &[DeclarativeBranchCompareRow] {
+        &self.rows
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -515,6 +759,157 @@ pub fn declare_writeback_from_live_session(
         changes: intent.changes,
         declaration,
         artifact_digest,
+    })
+}
+
+pub fn declare_branch_compare_from_live_sessions(
+    left: &DeclarativeLiveQuerySession,
+    right: &DeclarativeLiveQuerySession,
+    left_rows: impl IntoIterator<Item = DeclarativeBranchCompareInputRow>,
+    right_rows: impl IntoIterator<Item = DeclarativeBranchCompareInputRow>,
+) -> Result<DeclarativeBranchCompareArtifact, DeclarativeLiveQueryError> {
+    let left_query_digest = left.canonical().query().digest().as_str();
+    let right_query_digest = right.canonical().query().digest().as_str();
+    if left_query_digest != right_query_digest {
+        return Err(DeclarativeLiveQueryError::ViewShape(
+            "branch compare requires matching canonical query identity".to_string(),
+        ));
+    }
+
+    let left_by_identity = left_rows
+        .into_iter()
+        .map(|row| (row.identity().to_string(), row))
+        .collect::<BTreeMap<_, _>>();
+    let right_by_identity = right_rows
+        .into_iter()
+        .map(|row| (row.identity().to_string(), row))
+        .collect::<BTreeMap<_, _>>();
+    let identities = left_by_identity
+        .keys()
+        .chain(right_by_identity.keys())
+        .cloned()
+        .collect::<BTreeSet<_>>();
+
+    let mut rows = Vec::new();
+    for identity in identities {
+        let left_row = left_by_identity.get(&identity);
+        let right_row = right_by_identity.get(&identity);
+        let value_keys = left_row
+            .into_iter()
+            .flat_map(|row| row.values().iter().map(DeclarativeBranchCompareValue::key))
+            .chain(
+                right_row
+                    .into_iter()
+                    .flat_map(|row| row.values().iter().map(DeclarativeBranchCompareValue::key)),
+            )
+            .collect::<BTreeSet<_>>();
+        let mut field_deltas = Vec::new();
+        for key in value_keys {
+            let (aspect, field) = key.split_once('.').unwrap_or((&key, "value"));
+            let left_value = left_row
+                .and_then(|row| row.value_for(&key))
+                .map(|value| value.value().to_string());
+            let right_value = right_row
+                .and_then(|row| row.value_for(&key))
+                .map(|value| value.value().to_string());
+            let family = match (&left_value, &right_value) {
+                (Some(left), Some(right)) if left == right => continue,
+                (Some(_), Some(_)) => DeclarativeBranchCompareChangeFamily::Modified,
+                (None, Some(_)) => DeclarativeBranchCompareChangeFamily::Added,
+                (Some(_), None) => DeclarativeBranchCompareChangeFamily::Removed,
+                (None, None) => continue,
+            };
+            field_deltas.push(DeclarativeBranchCompareFieldDelta {
+                aspect: aspect.to_string(),
+                field: field.to_string(),
+                left_value,
+                right_value,
+                family,
+            });
+        }
+        if field_deltas.is_empty() {
+            continue;
+        }
+        rows.push(DeclarativeBranchCompareRow {
+            left_identity: left_row.map(|row| row.identity().to_string()),
+            right_identity: right_row.map(|row| row.identity().to_string()),
+            label: right_row
+                .or(left_row)
+                .map(|row| row.label().to_string())
+                .unwrap_or_else(|| identity.clone()),
+            identity_class: match (left_row, right_row) {
+                (Some(_), Some(_)) => DeclarativeBranchCompareIdentityClass::AuthoritativeIdentity,
+                (None, Some(_)) => DeclarativeBranchCompareIdentityClass::BranchLocalAddition,
+                (Some(_), None) => DeclarativeBranchCompareIdentityClass::BranchLocalRemoval,
+                (None, None) => continue,
+            },
+            field_deltas,
+        });
+    }
+
+    let result_digest = hash_parts(
+        &rows
+            .iter()
+            .map(DeclarativeBranchCompareRow::digest_part)
+            .chain([
+                format!("query:{left_query_digest}"),
+                format!(
+                    "left_basis:{}",
+                    left.preflight().basis().proof().digest().as_str()
+                ),
+                format!(
+                    "right_basis:{}",
+                    right.preflight().basis().proof().digest().as_str()
+                ),
+                format!(
+                    "left_live:{}",
+                    left.live_view()
+                        .core_live_plan()
+                        .subscription_digest()
+                        .as_str()
+                ),
+                format!(
+                    "right_live:{}",
+                    right
+                        .live_view()
+                        .core_live_plan()
+                        .subscription_digest()
+                        .as_str()
+                ),
+            ])
+            .collect::<Vec<_>>(),
+    );
+
+    Ok(DeclarativeBranchCompareArtifact {
+        left_live_view_digest: left
+            .live_view()
+            .core_live_plan()
+            .subscription_digest()
+            .as_str()
+            .to_string(),
+        right_live_view_digest: right
+            .live_view()
+            .core_live_plan()
+            .subscription_digest()
+            .as_str()
+            .to_string(),
+        left_basis_digest: left
+            .preflight()
+            .basis()
+            .proof()
+            .digest()
+            .as_str()
+            .to_string(),
+        right_basis_digest: right
+            .preflight()
+            .basis()
+            .proof()
+            .digest()
+            .as_str()
+            .to_string(),
+        query_digest: left_query_digest.to_string(),
+        result_digest,
+        rows,
     })
 }
 

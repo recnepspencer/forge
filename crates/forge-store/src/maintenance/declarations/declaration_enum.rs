@@ -2,8 +2,11 @@ use super::{
     declaration_id::MaintenanceDeclarationId,
     payloads::{
         AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration,
+        DerivedFamilyRebuildMaintenanceDeclaration, MaintenanceAuditMaintenanceDeclaration,
         MaintenanceDeclarationClass, RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
-        RetentionMaintenanceDeclaration,
+        ReplicationPreparationMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+        SnapshotRefreshMaintenanceDeclaration, TierMoveMaintenanceDeclaration,
+        TierPlacementMaintenanceDeclaration,
     },
 };
 use serde::Serialize;
@@ -29,6 +32,30 @@ pub enum MaintenanceDeclaration {
     Rebuild {
         id: MaintenanceDeclarationId,
         declaration: RebuildMaintenanceDeclaration,
+    },
+    DerivedFamilyRebuild {
+        id: MaintenanceDeclarationId,
+        declaration: DerivedFamilyRebuildMaintenanceDeclaration,
+    },
+    SnapshotRefresh {
+        id: MaintenanceDeclarationId,
+        declaration: SnapshotRefreshMaintenanceDeclaration,
+    },
+    ReplicationPreparation {
+        id: MaintenanceDeclarationId,
+        declaration: ReplicationPreparationMaintenanceDeclaration,
+    },
+    MaintenanceAudit {
+        id: MaintenanceDeclarationId,
+        declaration: MaintenanceAuditMaintenanceDeclaration,
+    },
+    TierPlacementProposal {
+        id: MaintenanceDeclarationId,
+        declaration: TierPlacementMaintenanceDeclaration,
+    },
+    TierMoveExecution {
+        id: MaintenanceDeclarationId,
+        declaration: TierMoveMaintenanceDeclaration,
     },
 }
 
@@ -69,13 +96,61 @@ impl MaintenanceDeclaration {
         Self::Rebuild { id, declaration }
     }
 
+    pub(crate) fn tier_placement_proposal(
+        id: MaintenanceDeclarationId,
+        declaration: TierPlacementMaintenanceDeclaration,
+    ) -> Self {
+        Self::TierPlacementProposal { id, declaration }
+    }
+
+    pub(crate) fn snapshot_refresh(
+        id: MaintenanceDeclarationId,
+        declaration: SnapshotRefreshMaintenanceDeclaration,
+    ) -> Self {
+        Self::SnapshotRefresh { id, declaration }
+    }
+
+    pub(crate) fn derived_family_rebuild(
+        id: MaintenanceDeclarationId,
+        declaration: DerivedFamilyRebuildMaintenanceDeclaration,
+    ) -> Self {
+        Self::DerivedFamilyRebuild { id, declaration }
+    }
+
+    pub(crate) fn replication_preparation(
+        id: MaintenanceDeclarationId,
+        declaration: ReplicationPreparationMaintenanceDeclaration,
+    ) -> Self {
+        Self::ReplicationPreparation { id, declaration }
+    }
+
+    pub(crate) fn maintenance_audit(
+        id: MaintenanceDeclarationId,
+        declaration: MaintenanceAuditMaintenanceDeclaration,
+    ) -> Self {
+        Self::MaintenanceAudit { id, declaration }
+    }
+
+    pub(crate) fn tier_move_execution(
+        id: MaintenanceDeclarationId,
+        declaration: TierMoveMaintenanceDeclaration,
+    ) -> Self {
+        Self::TierMoveExecution { id, declaration }
+    }
+
     pub fn id(&self) -> &MaintenanceDeclarationId {
         match self {
             Self::Retention { id, .. }
             | Self::Compaction { id, .. }
             | Self::Reclaim { id, .. }
             | Self::AuthoritativeReclaim { id, .. }
-            | Self::Rebuild { id, .. } => id,
+            | Self::Rebuild { id, .. }
+            | Self::DerivedFamilyRebuild { id, .. }
+            | Self::SnapshotRefresh { id, .. }
+            | Self::ReplicationPreparation { id, .. }
+            | Self::MaintenanceAudit { id, .. }
+            | Self::TierPlacementProposal { id, .. }
+            | Self::TierMoveExecution { id, .. } => id,
         }
     }
 
@@ -87,6 +162,16 @@ impl MaintenanceDeclaration {
                 MaintenanceDeclarationClass::Reclaim
             }
             Self::Rebuild { .. } => MaintenanceDeclarationClass::Rebuild,
+            Self::DerivedFamilyRebuild { .. } => MaintenanceDeclarationClass::DerivedFamilyRebuild,
+            Self::SnapshotRefresh { .. } => MaintenanceDeclarationClass::SnapshotRefresh,
+            Self::ReplicationPreparation { .. } => {
+                MaintenanceDeclarationClass::ReplicationPreparation
+            }
+            Self::MaintenanceAudit { .. } => MaintenanceDeclarationClass::MaintenanceAudit,
+            Self::TierPlacementProposal { .. } => {
+                MaintenanceDeclarationClass::TierPlacementProposal
+            }
+            Self::TierMoveExecution { .. } => MaintenanceDeclarationClass::TierMoveExecution,
         }
     }
 
@@ -97,6 +182,14 @@ impl MaintenanceDeclaration {
             Self::Reclaim { declaration, .. } => Some(declaration.retained_basis_label()),
             Self::AuthoritativeReclaim { .. } => None,
             Self::Rebuild { declaration, .. } => Some(declaration.retained_basis_label()),
+            Self::DerivedFamilyRebuild { declaration, .. } => {
+                Some(declaration.retained_basis_label())
+            }
+            Self::SnapshotRefresh { .. }
+            | Self::ReplicationPreparation { .. }
+            | Self::MaintenanceAudit { .. }
+            | Self::TierPlacementProposal { .. }
+            | Self::TierMoveExecution { .. } => None,
         }
     }
 }

@@ -6,6 +6,9 @@ pub use declaration_enum::MaintenanceDeclaration;
 pub use declaration_id::MaintenanceDeclarationId;
 pub use payloads::{
     AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration,
+    DerivedFamilyRebuildMaintenanceDeclaration, MaintenanceAuditMaintenanceDeclaration,
     MaintenanceDeclarationClass, RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration,
-    RetentionMaintenanceDeclaration,
+    ReplicationPreparationMaintenanceDeclaration, RetentionMaintenanceDeclaration,
+    SnapshotRefreshMaintenanceDeclaration, TierMoveMaintenanceDeclaration,
+    TierPlacementMaintenanceDeclaration,
 };

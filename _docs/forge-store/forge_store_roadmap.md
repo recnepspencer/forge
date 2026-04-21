@@ -769,6 +769,18 @@ conclusions, while Milestone 8 owns live-query continuation semantics.
 
 ## Milestone 11: Background Maintenance Isolation And Scheduling Contracts
 
+Closeout: [milestone-11-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-11-closeout.md)
+
+Current state:
+
+- implemented and closed through the named Milestone 11 certification lane
+- maintenance work classes, locality buckets, reservation families, budget
+  grants, queue summaries, debt summaries, foreground-interference reporting,
+  restart readmission, and certification surfaces are present in `forge-store`
+- the concurrent Milestone 13 boundary remains intact: Milestone 13 owns
+  placement semantics while Milestone 11 owns scheduling, pacing, foreground
+  isolation, and debt visibility
+
 ### Goal
 
 Make compaction, rebuild, snapshotting, replication preparation, and other
@@ -866,6 +878,17 @@ Can progress in parallel with late `Milestone 11` once retention and rebuild
 rules are stable.
 
 ## Milestone 13: Tiering And Durable Working-Set Intelligence
+
+Closeout: [milestone-13-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13-closeout.md)
+
+Current state:
+
+- implemented and closed through the named Milestone 13 certification lane
+- tier residency, transfer, recall, working-set observation, restart
+  reconstruction, and certification surfaces are present in `forge-store`
+- the concurrent Milestone 11 boundary remains intact: Milestone 13 owns
+  placement semantics while Milestone 11 owns scheduling and foreground
+  isolation policy
 
 ### Goal
 

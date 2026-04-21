@@ -105,5 +105,48 @@ pub(crate) fn execute_started_declaration<P: StatePersistence>(
             ))?;
             Ok("rebuild".to_string())
         }
+        MaintenanceDeclaration::DerivedFamilyRebuild { declaration, .. } => Ok(format!(
+            "derived_family_rebuild_container:{}:{}:{}",
+            declaration.retained_basis_label(),
+            declaration.family_label(),
+            declaration.rebuild_target_id()
+        )),
+        MaintenanceDeclaration::SnapshotRefresh { declaration, .. } => Ok(format!(
+            "snapshot_refresh_container:{}:{}:{}",
+            declaration.snapshot_family(),
+            declaration.locality_label(),
+            declaration.refresh_label()
+        )),
+        MaintenanceDeclaration::ReplicationPreparation { declaration, .. } => Ok(format!(
+            "replication_preparation_container:{}:{}:{}",
+            declaration.replication_family(),
+            declaration.locality_label(),
+            declaration.preparation_label()
+        )),
+        MaintenanceDeclaration::MaintenanceAudit { declaration, .. } => Ok(format!(
+            "maintenance_audit_container:{}:{}:{}",
+            declaration.audit_family(),
+            declaration.locality_label(),
+            declaration.audit_label()
+        )),
+        MaintenanceDeclaration::TierPlacementProposal { declaration, .. } => Ok(format!(
+            "tier_placement_container:{}:{}:{}",
+            declaration.placement_family(),
+            declaration.locality_label(),
+            declaration.proposal_label()
+        )),
+        MaintenanceDeclaration::TierMoveExecution { declaration, .. } => {
+            if declaration.cross_locality_debt() {
+                backend
+                    .counters()
+                    .record_maintenance_cross_locality_escalation(1);
+            }
+            Ok(format!(
+                "tier_move_container:{}:{}:{}",
+                declaration.placement_family(),
+                declaration.locality_label(),
+                declaration.move_label()
+            ))
+        }
     }
 }

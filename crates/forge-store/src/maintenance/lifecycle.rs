@@ -489,6 +489,7 @@ pub struct MaintenanceStatusReport {
     freshness_window: FreshnessWindow,
     debt_family: Option<MaintenanceDebtFamily>,
     escalation_decision: MaintenanceEscalationDecision,
+    tier_work_container_class: Option<crate::TierWorkContainerClass>,
     recovered_from_restart: bool,
     restart_readmission_status: Option<MaintenanceReadmissionStatus>,
     reservation_transition: Option<MaintenanceReservationTransition>,
@@ -522,6 +523,7 @@ impl MaintenanceStatusReport {
         freshness_window: FreshnessWindow,
         debt_family: Option<MaintenanceDebtFamily>,
         escalation_decision: MaintenanceEscalationDecision,
+        tier_work_container_class: Option<crate::TierWorkContainerClass>,
         recovered_from_restart: bool,
         restart_readmission_status: Option<MaintenanceReadmissionStatus>,
         reservation_transition: Option<MaintenanceReservationTransition>,
@@ -553,6 +555,7 @@ impl MaintenanceStatusReport {
             freshness_window,
             debt_family,
             escalation_decision,
+            tier_work_container_class,
             recovered_from_restart,
             restart_readmission_status,
             reservation_transition,
@@ -619,6 +622,10 @@ impl MaintenanceStatusReport {
 
     pub fn escalation_decision(&self) -> MaintenanceEscalationDecision {
         self.escalation_decision
+    }
+
+    pub fn tier_work_container_class(&self) -> Option<crate::TierWorkContainerClass> {
+        self.tier_work_container_class
     }
 
     pub fn recovered_from_restart(&self) -> bool {

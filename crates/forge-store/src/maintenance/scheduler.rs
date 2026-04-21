@@ -1306,6 +1306,12 @@ impl MaintenanceDeclaration {
             Self::Reclaim { .. } => MaintenanceWorkClass::DerivedArtifactReclaim,
             Self::AuthoritativeReclaim { .. } => MaintenanceWorkClass::AuthoritativeReclaim,
             Self::Rebuild { .. } => MaintenanceWorkClass::RetainedRangeRebuild,
+            Self::DerivedFamilyRebuild { .. } => MaintenanceWorkClass::DerivedFamilyRebuild,
+            Self::SnapshotRefresh { .. } => MaintenanceWorkClass::SnapshotRefresh,
+            Self::ReplicationPreparation { .. } => MaintenanceWorkClass::ReplicationPreparation,
+            Self::MaintenanceAudit { .. } => MaintenanceWorkClass::MaintenanceAudit,
+            Self::TierPlacementProposal { .. } => MaintenanceWorkClass::TierPlacementProposal,
+            Self::TierMoveExecution { .. } => MaintenanceWorkClass::TierMoveExecution,
         }
     }
 
@@ -1355,6 +1361,36 @@ impl MaintenanceDeclaration {
                     family_label: declaration.family_label().to_string(),
                 }
             }
+            Self::DerivedFamilyRebuild { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.family_label().to_string(),
+                }
+            }
+            Self::SnapshotRefresh { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.locality_label().to_string(),
+                }
+            }
+            Self::ReplicationPreparation { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.locality_label().to_string(),
+                }
+            }
+            Self::MaintenanceAudit { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.locality_label().to_string(),
+                }
+            }
+            Self::TierPlacementProposal { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.locality_label().to_string(),
+                }
+            }
+            Self::TierMoveExecution { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.locality_label().to_string(),
+                }
+            }
         }
     }
 
@@ -1394,19 +1430,76 @@ impl MaintenanceDeclaration {
                 PublicationSlotBudget::new(1),
                 ForegroundLatencyGuard::new(1),
             ),
+            Self::DerivedFamilyRebuild { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(2),
+                CpuBudgetUnits::new(2),
+                MemoryBudgetUnits::new(1),
+                PublicationSlotBudget::new(1),
+                ForegroundLatencyGuard::new(1),
+            ),
+            Self::SnapshotRefresh { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(1),
+                CpuBudgetUnits::new(1),
+                MemoryBudgetUnits::new(2),
+                PublicationSlotBudget::new(1),
+                ForegroundLatencyGuard::new(1),
+            ),
+            Self::ReplicationPreparation { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(2),
+                CpuBudgetUnits::new(1),
+                MemoryBudgetUnits::new(1),
+                PublicationSlotBudget::new(1),
+                ForegroundLatencyGuard::new(1),
+            ),
+            Self::MaintenanceAudit { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(1),
+                CpuBudgetUnits::new(1),
+                MemoryBudgetUnits::new(1),
+                PublicationSlotBudget::new(0),
+                ForegroundLatencyGuard::new(1),
+            ),
+            Self::TierPlacementProposal { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(1),
+                CpuBudgetUnits::new(1),
+                MemoryBudgetUnits::new(1),
+                PublicationSlotBudget::new(0),
+                ForegroundLatencyGuard::new(1),
+            ),
+            Self::TierMoveExecution { .. } => MaintenanceDescriptorDemand::new(
+                IoBudgetUnits::new(2),
+                CpuBudgetUnits::new(2),
+                MemoryBudgetUnits::new(1),
+                PublicationSlotBudget::new(0),
+                ForegroundLatencyGuard::new(1),
+            ),
         }
     }
 
     pub fn debt_family(&self) -> Option<MaintenanceDebtFamily> {
         match self {
             Self::Compaction { .. } => Some(MaintenanceDebtFamily::CompactionDebt),
-            Self::Rebuild { .. } => Some(MaintenanceDebtFamily::RebuildDebt),
+            Self::Rebuild { .. } | Self::DerivedFamilyRebuild { .. } => {
+                Some(MaintenanceDebtFamily::RebuildDebt)
+            }
+            Self::SnapshotRefresh { .. } => Some(MaintenanceDebtFamily::SnapshotDebt),
+            Self::ReplicationPreparation { .. } => {
+                Some(MaintenanceDebtFamily::ReplicationPreparationDebt)
+            }
+            Self::TierPlacementProposal { .. } | Self::TierMoveExecution { .. } => {
+                Some(MaintenanceDebtFamily::TierPlacementDebt)
+            }
             _ => None,
         }
     }
 
     pub fn tier_work_container_class(&self) -> Option<TierWorkContainerClass> {
-        None
+        match self {
+            Self::TierPlacementProposal { .. } => {
+                Some(TierWorkContainerClass::TierPlacementProposal)
+            }
+            Self::TierMoveExecution { .. } => Some(TierWorkContainerClass::TierMoveExecution),
+            _ => None,
+        }
     }
 
     fn equivalence_key_string(&self) -> String {
@@ -1440,6 +1533,43 @@ impl MaintenanceDeclaration {
                 declaration.retained_basis_label(),
                 declaration.family_label(),
                 declaration.rebuild_target_id(),
+            ),
+            Self::DerivedFamilyRebuild { declaration, .. } => format!(
+                "derived-family-rebuild:{}:{}:{}",
+                declaration.retained_basis_label(),
+                declaration.family_label(),
+                declaration.rebuild_target_id(),
+            ),
+            Self::SnapshotRefresh { declaration, .. } => format!(
+                "snapshot-refresh:{}:{}:{}",
+                declaration.snapshot_family(),
+                declaration.locality_label(),
+                declaration.refresh_label(),
+            ),
+            Self::ReplicationPreparation { declaration, .. } => format!(
+                "replication-preparation:{}:{}:{}",
+                declaration.replication_family(),
+                declaration.locality_label(),
+                declaration.preparation_label(),
+            ),
+            Self::MaintenanceAudit { declaration, .. } => format!(
+                "maintenance-audit:{}:{}:{}",
+                declaration.audit_family(),
+                declaration.locality_label(),
+                declaration.audit_label(),
+            ),
+            Self::TierPlacementProposal { declaration, .. } => format!(
+                "tier-placement:{}:{}:{}",
+                declaration.placement_family(),
+                declaration.locality_label(),
+                declaration.proposal_label(),
+            ),
+            Self::TierMoveExecution { declaration, .. } => format!(
+                "tier-move:{}:{}:{}:{}",
+                declaration.placement_family(),
+                declaration.locality_label(),
+                declaration.move_label(),
+                declaration.cross_locality_debt(),
             ),
         }
     }

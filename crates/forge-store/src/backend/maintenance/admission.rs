@@ -52,6 +52,24 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
             crate::MaintenanceDeclaration::Rebuild { declaration, .. } => {
                 Some(declaration.family_label().to_string())
             }
+            crate::MaintenanceDeclaration::DerivedFamilyRebuild { declaration, .. } => {
+                Some(declaration.family_label().to_string())
+            }
+            crate::MaintenanceDeclaration::SnapshotRefresh { declaration, .. } => {
+                Some(declaration.snapshot_family().to_string())
+            }
+            crate::MaintenanceDeclaration::ReplicationPreparation { declaration, .. } => {
+                Some(declaration.replication_family().to_string())
+            }
+            crate::MaintenanceDeclaration::MaintenanceAudit { declaration, .. } => {
+                Some(declaration.audit_family().to_string())
+            }
+            crate::MaintenanceDeclaration::TierPlacementProposal { declaration, .. } => {
+                Some(declaration.placement_family().to_string())
+            }
+            crate::MaintenanceDeclaration::TierMoveExecution { declaration, .. } => {
+                Some(declaration.placement_family().to_string())
+            }
         };
         let debt_link_artifact_id = match &declaration {
             crate::MaintenanceDeclaration::Rebuild { declaration, .. } => {

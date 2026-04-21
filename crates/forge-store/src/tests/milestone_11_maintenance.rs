@@ -114,7 +114,7 @@ fn stable_basis_request_for_store(
     let support_summary = export
         .commit_support_summaries
         .iter()
-        .find(|summary| summary.commit_id == commit_id)
+        .find(|summary| summary.branch_id == branch_id && summary.commit_id == commit_id)
         .expect("stable-basis maintenance fixture requires a commit support summary")
         .clone();
     let commit = export
@@ -189,6 +189,101 @@ fn same_lane_distinct_compaction_batch(
         format!("{}-same-lane-distinct", batch.batch_id()),
         MaintenanceBatchClass::Retention,
         declarations,
+    )
+}
+
+fn tier_placement_batch(batch_id: &str, declaration_id: &str) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::tier_placement_proposal(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::TierPlacementMaintenanceDeclaration::new(
+                "snapshot_family",
+                "family:tier-local",
+                "proposal:conservative-cold",
+            ),
+        )],
+    )
+}
+
+fn snapshot_refresh_batch(batch_id: &str, declaration_id: &str) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::snapshot_refresh(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::SnapshotRefreshMaintenanceDeclaration::new(
+                "snapshot_family",
+                "family:snapshot-local",
+                "refresh:publication-support",
+            ),
+        )],
+    )
+}
+
+fn derived_family_rebuild_batch(batch_id: &str, declaration_id: &str) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::derived_family_rebuild(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::DerivedFamilyRebuildMaintenanceDeclaration::new(
+                "basis:derived-rebuild",
+                "family:derived-local",
+                "rebuild:derived-index",
+            ),
+        )],
+    )
+}
+
+fn replication_preparation_batch(batch_id: &str, declaration_id: &str) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::replication_preparation(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::ReplicationPreparationMaintenanceDeclaration::new(
+                "replication_family",
+                "family:replication-local",
+                "prepare:capsule-handoff",
+            ),
+        )],
+    )
+}
+
+fn maintenance_audit_batch(batch_id: &str, declaration_id: &str) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::maintenance_audit(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::MaintenanceAuditMaintenanceDeclaration::new(
+                "audit_family",
+                "family:audit-local",
+                "audit:queue-summary-parity",
+            ),
+        )],
+    )
+}
+
+fn tier_move_batch(
+    batch_id: &str,
+    declaration_id: &str,
+    cross_locality_debt: bool,
+) -> MaintenanceBatch {
+    MaintenanceBatch::new(
+        batch_id,
+        MaintenanceBatchClass::Retention,
+        vec![MaintenanceDeclaration::tier_move_execution(
+            MaintenanceDeclarationId::new(declaration_id.to_string()),
+            crate::TierMoveMaintenanceDeclaration::new(
+                "snapshot_family",
+                "family:tier-local",
+                "move:cold-placement",
+                cross_locality_debt,
+            ),
+        )],
     )
 }
 

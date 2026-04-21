@@ -31,6 +31,7 @@ mod identity;
 mod identity_evolution;
 mod live;
 mod live_performance;
+mod memory_workspace;
 mod planning;
 mod preview;
 mod query_context;

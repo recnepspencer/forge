@@ -90,11 +90,15 @@ pub use crate::correspondence_history_parity::{
     CorrespondenceHistoricalParityBundleError, CorrespondenceHistoricalParityVariant,
 };
 pub use crate::declarative_live::{
-    declare_live_query_session, declare_runtime_live_query_session,
-    declare_writeback_from_live_session, DeclarativeEqualityFilter, DeclarativeLiveQueryError,
-    DeclarativeLiveQueryRequest, DeclarativeLiveQuerySession, DeclarativeLiveViewShape,
-    DeclarativeProjectionField, DeclarativeWritebackArtifact, DeclarativeWritebackChange,
-    DeclarativeWritebackIntent, DeclarativeWritebackValue,
+    declare_branch_compare_from_live_sessions, declare_live_query_session,
+    declare_runtime_live_query_session, declare_writeback_from_live_session,
+    DeclarativeBranchCompareArtifact, DeclarativeBranchCompareChangeFamily,
+    DeclarativeBranchCompareFieldDelta, DeclarativeBranchCompareIdentityClass,
+    DeclarativeBranchCompareInputRow, DeclarativeBranchCompareRow, DeclarativeBranchCompareValue,
+    DeclarativeEqualityFilter, DeclarativeLiveQueryError, DeclarativeLiveQueryRequest,
+    DeclarativeLiveQuerySession, DeclarativeLiveViewShape, DeclarativeProjectionField,
+    DeclarativeWritebackArtifact, DeclarativeWritebackChange, DeclarativeWritebackIntent,
+    DeclarativeWritebackValue,
 };
 pub use crate::diagnostics::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
@@ -204,6 +208,12 @@ pub use crate::live_performance::{
     LiveMaintenanceWorkUnit, LivePerformanceReport, PatchWidthBudget, PatchWidthPolicy,
     PatchWidthUnit, PerformanceStatus, PerformanceStatusMarker, RefreshAdmissionStatus,
     RefreshCostClass, VerifiedPerformance,
+};
+pub use crate::memory_workspace::{
+    ForgeQueryAspect, ForgeQueryCollection, ForgeQueryEntity, ForgeQueryLivePatch,
+    ForgeQueryLiveViewHandle, ForgeQueryMemoryApp, ForgeQueryMemoryWorkspace,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQueryWorkspaceError,
 };
 pub use crate::planning::{
     plan_validated_bundle, plan_validated_bundle_for_collection_family,

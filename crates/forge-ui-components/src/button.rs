@@ -177,47 +177,13 @@ pub fn fg_button(
         // Pressed scale-down effect: inset rect by 1px
         let draw_rect = if is_pressed { rect.shrink(1.0) } else { rect };
 
-        let use_metal = matches!(
-            props.variant,
-            FgButtonVariant::Primary | FgButtonVariant::Secondary | FgButtonVariant::Danger
+        ui.painter().rect(
+            draw_rect,
+            rounding,
+            actual_bg,
+            egui::Stroke::new(1.0, border),
+            egui::StrokeKind::Outside,
         );
-
-        if use_metal && !props.disabled && !props.loading {
-            use forge_ui_theme::metal::{paint_metal_rect, MetalOpts};
-
-            let highlight_shift = if is_hovered { 0.4 } else { 0.0 };
-
-            // Pick the best base color for the metallic effect.
-            // For Danger, we want the bright red, not the faded surface.
-            let mut base_c = actual_bg;
-            if props.variant == FgButtonVariant::Danger && !is_hovered && !is_pressed {
-                base_c = theme.danger;
-            }
-
-            // Force full alpha for the GPU shader path
-            let metal_color = egui::Color32::from_rgb(base_c.r(), base_c.g(), base_c.b());
-
-            paint_metal_rect(
-                ui,
-                draw_rect,
-                metal_color,
-                &MetalOpts {
-                    gradient_strength: theme.metal_gradient,
-                    highlight_shift,
-                    rim_alpha: theme.metal_rim_alpha as f32 / 255.0,
-                    rounding: theme.radius_md,
-                    pressed: is_pressed,
-                },
-            );
-        } else {
-            ui.painter().rect(
-                draw_rect,
-                rounding,
-                actual_bg,
-                egui::Stroke::new(1.0, border),
-                egui::StrokeKind::Outside,
-            );
-        }
 
         let extra_space = final_width - natural_width;
         let align_offset = Vec2::new(extra_space / 2.0, 0.0);

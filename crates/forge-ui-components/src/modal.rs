@@ -7,6 +7,11 @@
 use egui::{Color32, CornerRadius, Frame, Stroke};
 use forge_ui_theme::ForgeTheme;
 
+pub struct FgModalResponse<R> {
+    pub inner: egui::InnerResponse<R>,
+    pub outside_clicked: bool,
+}
+
 /// Render a modal overlay. Only call when the modal should be visible.
 /// Returns the inner response from the content closure.
 pub fn fg_modal<R>(
@@ -15,9 +20,9 @@ pub fn fg_modal<R>(
     id: &str,
     width: f32,
     add_contents: impl FnOnce(&mut egui::Ui) -> R,
-) -> egui::InnerResponse<R> {
+) -> FgModalResponse<R> {
     // Dark scrim
-    let _scrim_resp = egui::Area::new(egui::Id::new(format!("{id}_scrim")))
+    let scrim_resp = egui::Area::new(egui::Id::new(format!("{id}_scrim")))
         .fixed_pos(egui::Pos2::ZERO)
         .order(egui::Order::Foreground)
         .interactable(true)
@@ -30,7 +35,7 @@ pub fn fg_modal<R>(
         });
 
     // Content card
-    egui::Area::new(egui::Id::new(id))
+    let inner = egui::Area::new(egui::Id::new(id))
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
@@ -50,5 +55,10 @@ pub fn fg_modal<R>(
                     add_contents(ui)
                 })
                 .inner
-        })
+        });
+
+    FgModalResponse {
+        outside_clicked: scrim_resp.inner.clicked() && !inner.response.hovered(),
+        inner,
+    }
 }

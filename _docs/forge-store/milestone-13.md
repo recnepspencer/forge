@@ -1,6 +1,8 @@
 # Milestone 13 Engineering Spec: Tiering And Durable Working-Set Intelligence
 
-> **Status:** Draft
+> **Status:** Closed via [milestone-13-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13-closeout.md)
+>
+> **Closeout:** [milestone-13-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13-closeout.md)
 >
 > **Roadmap parent:** [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)
 >
