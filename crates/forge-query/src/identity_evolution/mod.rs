@@ -3,6 +3,7 @@ mod contracts;
 mod evidence;
 mod execution;
 mod families;
+mod inspector;
 mod metadata;
 mod performance;
 mod replay;
@@ -11,12 +12,12 @@ mod results;
 mod support;
 mod synthetic;
 
+#[allow(unused_imports)]
+pub(crate) use admission::admit_identity_evolution_query_for_scenario;
 pub use admission::{
     admit_identity_evolution_query, AdmittedIdentityEvolutionQuery,
     IdentityEvolutionAdmissionError, IdentityEvolutionAdmissionFailureClass,
 };
-#[allow(unused_imports)]
-pub(crate) use admission::admit_identity_evolution_query_for_scenario;
 pub use contracts::{IdentityEvolutionComplexityContract, IdentityEvolutionComplexityStatus};
 #[allow(unused_imports)]
 pub use evidence::{
@@ -27,8 +28,14 @@ pub use execution::{
     execute_admitted_identity_evolution_query, IdentityEvolutionExecutionArtifact,
     IdentityEvolutionExecutionCounters, IdentityEvolutionExecutionFamily,
 };
+#[allow(unused_imports)]
 pub use families::{
-    IdentityEvolutionOutcomeFamily, IdentityEvolutionQueryFamily, LineageTraversalFamily,
+    IdentityEvolutionAmbiguityReason, IdentityEvolutionDenialReason,
+    IdentityEvolutionIdentityBreakReason, IdentityEvolutionOutcomeFamily,
+    IdentityEvolutionQueryFamily, LineageTraversalFamily,
+};
+pub use inspector::{
+    InspectorIdentityArtifact, InspectorIdentityClassification, InspectorIdentityDigest,
 };
 pub use metadata::{
     BranchLocalityClass, IdentityEvolutionComplexityReport, IdentityEvolutionMetadata,
@@ -51,11 +58,12 @@ pub use request::{
 };
 pub use results::{
     AdvisoryIdentityCandidateSet, IdentityEvolutionAmbiguityBundle, IdentityEvolutionDeniedBundle,
-    IdentityEvolutionResultBundle, PluralIdentitySuccessorSet, SingularIdentityContinuityResult,
+    IdentityEvolutionIdentityBreakBundle, IdentityEvolutionResultBundle,
+    PluralIdentitySuccessorSet, SingularIdentityContinuityResult,
 };
 pub use support::{
-    runtime_backed_direct_identity_evolution_support_profile,
-    IdentityEvolutionDeferredScopeMarker, IdentityEvolutionSupportProfile,
+    runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionDeferredScopeMarker,
+    IdentityEvolutionSupportProfile,
 };
 #[allow(unused_imports)]
 pub(crate) use synthetic::IdentityEvolutionSyntheticScenario;

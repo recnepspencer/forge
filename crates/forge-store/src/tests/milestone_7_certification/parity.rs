@@ -201,7 +201,6 @@ fn milestone_7_backend_contracts_are_family_specific() {
     );
 }
 
-
 #[test]
 fn milestone_7_bundle_proves_exactly_once_support_publication_under_duplicate_append() {
     let mut runtime = runtime_with_demo_schema();
@@ -235,4 +234,3 @@ fn milestone_7_bundle_proves_exactly_once_support_publication_under_duplicate_ap
         control_bundle.support_truth_digest
     );
 }
-

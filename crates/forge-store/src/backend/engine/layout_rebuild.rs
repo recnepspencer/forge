@@ -1,11 +1,11 @@
 use crate::failure::StoreError;
 
-use super::{StateBackedStoreBackend, StatePersistence};
 use super::layout_support::{
     merge_milestone_6_structural_block_record, milestone_6_chunk_membership_record,
     milestone_6_commit_coupled_layout_seed_rebuild_records,
     milestone_6_scope_slice_membership_record, milestone_6_structural_block_record,
 };
+use super::{StateBackedStoreBackend, StatePersistence};
 
 impl<P: StatePersistence> StateBackedStoreBackend<P> {
     pub fn rebuild_milestone_6_derived_artifacts_from_materializations(

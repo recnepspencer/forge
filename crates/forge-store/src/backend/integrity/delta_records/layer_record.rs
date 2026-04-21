@@ -1,6 +1,6 @@
 use crate::{
     backend::records::{BranchDeltaLayerRecord, StoreState},
-    delta::{BRANCH_DELTA_FAMILY_VERSION, stable_branch_delta_layer_authority_digest},
+    delta::{stable_branch_delta_layer_authority_digest, BRANCH_DELTA_FAMILY_VERSION},
     failure::{StoreError, StoreErrorKind},
 };
 
@@ -18,7 +18,10 @@ impl StoreState {
     }
 }
 
-fn verify_layer_shape(state: &StoreState, record: &BranchDeltaLayerRecord) -> Result<(), StoreError> {
+fn verify_layer_shape(
+    state: &StoreState,
+    record: &BranchDeltaLayerRecord,
+) -> Result<(), StoreError> {
     if record.delta_family_version != BRANCH_DELTA_FAMILY_VERSION {
         return Err(StoreError::new(
             StoreErrorKind::BranchDeltaFamilyVersionUnsupported,

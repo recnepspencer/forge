@@ -188,7 +188,6 @@ pub fn force_embedded_checkpoint_shape_violation(path: &std::path::Path, checkpo
     .expect("embedded checkpoint shape violation state should write");
 }
 
-
 pub fn force_first_lineage_support_gap(path: &std::path::Path) {
     let raw = std::fs::read(path).expect("store file should exist");
     let mut state: StoreState = serde_json::from_slice(&raw).expect("store state should decode");
@@ -205,4 +204,3 @@ pub fn force_first_lineage_support_gap(path: &std::path::Path) {
     )
     .expect("lineage support gap state should write");
 }
-

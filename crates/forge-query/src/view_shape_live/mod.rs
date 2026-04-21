@@ -11,33 +11,30 @@ mod promotion;
 
 pub use artifact::{
     DetailFieldPatchArtifact, FocusedInspectorAspectPatchArtifact, GroupedLiveViewShapeArtifact,
-    LiveViewShapeArtifact,
-    LiveViewShapeExecutionEnvelope, ObservedInspectorPatchArtifact, TableRowPatchArtifact,
-    ViewShapeLiveLowering, ViewShapeLiveReport, ViewShapePatchEnvelope, ViewShapePatchFamily,
-    ViewShapePatchPayload, ViewShapeRefreshDisposition, ViewShapeReplayBundle,
-    ViewShapeSuppressionDisposition,
+    LiveViewShapeArtifact, LiveViewShapeExecutionEnvelope, ObservedInspectorPatchArtifact,
+    TableRowPatchArtifact, ViewShapeLiveLowering, ViewShapeLiveReport, ViewShapePatchEnvelope,
+    ViewShapePatchFamily, ViewShapePatchPayload, ViewShapeRefreshDisposition,
+    ViewShapeReplayBundle, ViewShapeSuppressionDisposition,
 };
 pub use counters::ViewShapeLiveCounters;
 pub use error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
+pub use execution::{
+    admit_grouped_live_view, execute_grouped_live_view_shape_change, execute_live_view_shape_change,
+};
 pub use family::LiveViewShapeFamily;
 pub use grouped_baseline::{
     materialize_authoritative_grouped_baseline, AuthoritativeGroupedBaselineArtifact,
+};
+pub use grouped_delta::{
+    GroupedDeltaArtifact, GroupedDeltaComputation, GroupedMembershipTransition,
+    GroupedMembershipTransitionKind, GroupedRefreshReason,
 };
 pub use grouped_execution::{
     materialize_grouped_execution_surface_from_truth_view, GroupedExecutionLaneValue,
     GroupedExecutionMemberRow, GroupedExecutionSurfaceArtifact,
 };
-pub use grouped_delta::{
-    GroupedDeltaComputation, GroupedDeltaArtifact, GroupedMembershipTransition,
-    GroupedMembershipTransitionKind, GroupedRefreshReason,
-};
 pub use grouped_state::{
-    GroupedDesiredStateArtifact, GroupedLaneIdentity, GroupedMemberState,
-    GroupedViewResultArtifact,
-};
-pub use execution::{
-    admit_grouped_live_view, execute_grouped_live_view_shape_change,
-    execute_live_view_shape_change,
+    GroupedDesiredStateArtifact, GroupedLaneIdentity, GroupedMemberState, GroupedViewResultArtifact,
 };
 pub use promotion::lower_view_shape_plan_to_live;
 

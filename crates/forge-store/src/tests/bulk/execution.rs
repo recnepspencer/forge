@@ -289,4 +289,3 @@ fn bulk_canonical_chunk_execution_request_rejects_branch_mismatch() {
         &StoreErrorKind::ConcurrentBulkBoundaryViolation
     );
 }
-

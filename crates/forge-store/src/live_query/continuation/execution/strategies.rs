@@ -8,14 +8,14 @@ use super::core::{
     ContinuationExecutionEffect, ContinuationExecutionMetrics, ExecutedContinuationBatch,
 };
 use crate::live_query::continuation::batch_surface::{
-    AdmittedNarrowBatchReceipt, BroadenedBatchReceipt, ContinuationBatchId,
-    ContinuationBatchResult,
+    AdmittedNarrowBatchReceipt, BroadenedBatchReceipt, ContinuationBatchId, ContinuationBatchResult,
 };
 
 pub(crate) fn execute_admitted_batch(
     basis: &StableBasisHandle,
     identity: &DurableCursorIdentityRecord,
     batch_id: ContinuationBatchId,
+    foreground_isolation: crate::ForegroundIsolationOutcome,
     commit_ids: Vec<CommitId>,
     covered_commit_range: (CommitId, CommitId),
     from_frontier_commit_id: CommitId,
@@ -30,27 +30,30 @@ pub(crate) fn execute_admitted_batch(
         ));
     }
     Ok(ExecutedContinuationBatch::new(
-        ContinuationBatchResult::AdmittedNarrow(AdmittedNarrowBatchReceipt::new(
-            batch_id,
-            basis.stable_basis_id().clone(),
-            identity.cursor_id.clone(),
-            identity.subscriber_id.clone(),
-            identity.branch_id.clone(),
-            identity.feed_shape_id.clone(),
-            identity.schema_interpretation_id.clone(),
-            identity.cursor_semantics_version,
-            basis.schema_boundary_artifact_id().to_string(),
-            covered_commit_range,
-            commit_ids,
-            from_frontier_commit_id,
-            covered_commit_range.1,
-            basis.read_scope().clone(),
-            1,
-            covered_commit_count,
-            covered_commit_count,
-            support_rows_read,
-            scope_lookup_count,
-        )),
+        ContinuationBatchResult::AdmittedNarrow(
+            AdmittedNarrowBatchReceipt::new(
+                batch_id,
+                basis.stable_basis_id().clone(),
+                identity.cursor_id.clone(),
+                identity.subscriber_id.clone(),
+                identity.branch_id.clone(),
+                identity.feed_shape_id.clone(),
+                identity.schema_interpretation_id.clone(),
+                identity.cursor_semantics_version,
+                basis.schema_boundary_artifact_id().to_string(),
+                covered_commit_range,
+                commit_ids,
+                from_frontier_commit_id,
+                covered_commit_range.1,
+                basis.read_scope().clone(),
+                1,
+                covered_commit_count,
+                covered_commit_count,
+                support_rows_read,
+                scope_lookup_count,
+            )
+            .with_foreground_isolation(foreground_isolation),
+        ),
         ContinuationExecutionMetrics {
             support_rows_read,
             narrowed_item_count: covered_commit_count,
@@ -64,6 +67,7 @@ pub(crate) fn execute_admitted_batch(
 pub(crate) fn execute_broadened_batch(
     basis: &StableBasisHandle,
     batch_id: ContinuationBatchId,
+    foreground_isolation: crate::ForegroundIsolationOutcome,
     commit_ids: Vec<CommitId>,
     covered_commit_range: (CommitId, CommitId),
     from_frontier_commit_id: CommitId,
@@ -77,20 +81,23 @@ pub(crate) fn execute_broadened_batch(
         _ => "explicit_broadening",
     };
     Ok(ExecutedContinuationBatch::new(
-        ContinuationBatchResult::Broadened(BroadenedBatchReceipt::new(
-            batch_id,
-            covered_commit_range,
-            commit_ids,
-            from_frontier_commit_id,
-            covered_commit_range.1,
-            basis.read_scope().clone(),
-            1,
-            covered_commit_count,
-            covered_commit_count,
-            support_rows_read,
-            scope_lookup_count,
-            fallback_class,
-        )),
+        ContinuationBatchResult::Broadened(
+            BroadenedBatchReceipt::new(
+                batch_id,
+                covered_commit_range,
+                commit_ids,
+                from_frontier_commit_id,
+                covered_commit_range.1,
+                basis.read_scope().clone(),
+                1,
+                covered_commit_count,
+                covered_commit_count,
+                support_rows_read,
+                scope_lookup_count,
+                fallback_class,
+            )
+            .with_foreground_isolation(foreground_isolation),
+        ),
         ContinuationExecutionMetrics {
             support_rows_read,
             narrowed_item_count: 0,

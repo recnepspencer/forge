@@ -1,9 +1,6 @@
 use crate::identity::ResultDigest;
 
-use super::{
-    families::LineageTraversalFamily,
-    request::IdentityEvolutionComparisonBasisFamily,
-};
+use super::{families::LineageTraversalFamily, request::IdentityEvolutionComparisonBasisFamily};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum IdentityEvolutionComplexityStatus {

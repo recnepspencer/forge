@@ -2,6 +2,7 @@ use forge_relational::facade::history::CommitId;
 use serde::Serialize;
 
 use crate::live_query::basis::StableBasisReadScope;
+use crate::ForegroundIsolationOutcome;
 
 use super::ContinuationBatchId;
 
@@ -19,6 +20,7 @@ pub struct ControlLaneBatchReceipt {
     support_rows_read: u64,
     scope_lookup_count: u64,
     fallback_class: String,
+    foreground_isolation: ForegroundIsolationOutcome,
 }
 
 impl ControlLaneBatchReceipt {
@@ -50,19 +52,57 @@ impl ControlLaneBatchReceipt {
             support_rows_read,
             scope_lookup_count,
             fallback_class: fallback_class.into(),
+            foreground_isolation: ForegroundIsolationOutcome::stayed_isolated(
+                crate::ForegroundReservationClass::Continuation,
+            ),
         }
     }
 
-    pub fn batch_id(&self) -> &ContinuationBatchId { &self.batch_id }
-    pub fn covered_commit_range(&self) -> (CommitId, CommitId) { self.covered_commit_range }
-    pub fn covered_commit_ids(&self) -> &[CommitId] { &self.covered_commit_ids }
-    pub fn from_frontier_commit_id(&self) -> CommitId { self.from_frontier_commit_id }
-    pub fn to_frontier_commit_id(&self) -> CommitId { self.to_frontier_commit_id }
-    pub fn resolved_scope(&self) -> &StableBasisReadScope { &self.resolved_scope }
-    pub fn batch_family_version(&self) -> u32 { self.batch_family_version }
-    pub fn covered_commit_count(&self) -> u64 { self.covered_commit_count }
-    pub fn control_replay_breadth(&self) -> u64 { self.control_replay_breadth }
-    pub fn support_rows_read(&self) -> u64 { self.support_rows_read }
-    pub fn scope_lookup_count(&self) -> u64 { self.scope_lookup_count }
-    pub fn fallback_class(&self) -> &str { &self.fallback_class }
+    pub fn batch_id(&self) -> &ContinuationBatchId {
+        &self.batch_id
+    }
+    pub fn covered_commit_range(&self) -> (CommitId, CommitId) {
+        self.covered_commit_range
+    }
+    pub fn covered_commit_ids(&self) -> &[CommitId] {
+        &self.covered_commit_ids
+    }
+    pub fn from_frontier_commit_id(&self) -> CommitId {
+        self.from_frontier_commit_id
+    }
+    pub fn to_frontier_commit_id(&self) -> CommitId {
+        self.to_frontier_commit_id
+    }
+    pub fn resolved_scope(&self) -> &StableBasisReadScope {
+        &self.resolved_scope
+    }
+    pub fn batch_family_version(&self) -> u32 {
+        self.batch_family_version
+    }
+    pub fn covered_commit_count(&self) -> u64 {
+        self.covered_commit_count
+    }
+    pub fn control_replay_breadth(&self) -> u64 {
+        self.control_replay_breadth
+    }
+    pub fn support_rows_read(&self) -> u64 {
+        self.support_rows_read
+    }
+    pub fn scope_lookup_count(&self) -> u64 {
+        self.scope_lookup_count
+    }
+    pub fn fallback_class(&self) -> &str {
+        &self.fallback_class
+    }
+    pub fn foreground_isolation(&self) -> &ForegroundIsolationOutcome {
+        &self.foreground_isolation
+    }
+
+    pub(crate) fn with_foreground_isolation(
+        mut self,
+        foreground_isolation: ForegroundIsolationOutcome,
+    ) -> Self {
+        self.foreground_isolation = foreground_isolation;
+        self
+    }
 }

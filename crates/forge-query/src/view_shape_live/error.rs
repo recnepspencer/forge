@@ -10,6 +10,7 @@ pub enum ViewShapeLiveFailureClass {
     LivePromotionRejected,
     LiveExecutionRejected,
     UnderlyingLiveFamilyMismatch,
+    InspectorIdentityBindingRejected,
     FocusedInspectorWideningDenied,
     FocusedInspectorRefreshForbidden,
     GroupedRefreshForbidden,

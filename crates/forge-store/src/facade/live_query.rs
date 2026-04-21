@@ -26,14 +26,24 @@ impl ForgeStore {
         &mut self,
         request: crate::StableBasisReadRequest,
     ) -> Result<crate::StableBasisHandle, StoreError> {
-        self.backend.publish_stable_basis(request)
+        let branch_id = request.branch_id().clone();
+        let handle = self.backend.publish_stable_basis(request)?;
+        Ok(handle.with_foreground_isolation(
+            self.backend
+                .assess_read_foreground_isolation(&branch_id, false),
+        ))
     }
 
     pub fn fetch_stable_basis(
         &self,
         stable_basis_id: &crate::StableBasisId,
     ) -> Result<crate::StableBasisHandle, StoreError> {
-        self.backend.fetch_stable_basis(stable_basis_id.as_str())
+        let handle = self.backend.fetch_stable_basis(stable_basis_id.as_str())?;
+        let branch_id = handle.branch_id().clone();
+        Ok(handle.with_foreground_isolation(
+            self.backend
+                .assess_read_foreground_isolation(&branch_id, false),
+        ))
     }
 
     pub fn plan_cursor_continuation(
@@ -41,14 +51,17 @@ impl ForgeStore {
         request: crate::CursorContinuationRequest,
     ) -> Result<crate::CursorContinuationPlan, StoreError> {
         validate_stable_basis_handle(request.stable_basis())?;
-        let basis_survival = crate::live_query::restart::StableBasisSurvival::from_handle(
-            request.stable_basis(),
-        );
+        let basis_survival =
+            crate::live_query::restart::StableBasisSurvival::from_handle(request.stable_basis());
+        let continuation_branch_id = request.stable_basis().branch_id().clone();
         self.backend.record_stable_basis_lookup();
         self.backend.record_stable_basis_read(
             1,
             1,
-            !matches!(basis_survival, crate::live_query::restart::StableBasisSurvival::Retained),
+            !matches!(
+                basis_survival,
+                crate::live_query::restart::StableBasisSurvival::Retained
+            ),
         );
         self.backend.record_continuation_identity_lookup();
         self.backend.record_continuation_checkpoint_lookup();
@@ -60,7 +73,10 @@ impl ForgeStore {
                 let (plan, effects) = planned.into_parts();
                 self.backend.verify_cursor_continuation_budget(&plan)?;
                 self.record_continuation_planning_effects(effects);
-                Ok(plan)
+                Ok(plan.with_foreground_isolation(
+                    self.backend
+                        .assess_continuation_foreground_isolation(&continuation_branch_id, true),
+                ))
             }
             Err(failure) => {
                 let (error, effects) = failure.into_parts();
@@ -118,8 +134,10 @@ impl ForgeStore {
         let restored_export =
             Self::restore_from_authoritative_export(primary_export.clone().admit_restore())?
                 .export_authoritative_records();
-        let truth_surface =
-            Milestone8TruthSurface::from_basis_and_frontier(request.basis(), request.final_frontier_commit_id());
+        let truth_surface = Milestone8TruthSurface::from_basis_and_frontier(
+            request.basis(),
+            request.final_frontier_commit_id(),
+        );
         let basis = LiveQueryBasisEvidence::from_handle(request.basis());
         let continuation = LiveQueryContinuationSessionEvidence::from_batch_results(
             request.continuation_strategy(),
@@ -144,6 +162,5 @@ impl ForgeStore {
             self.counters(),
             request.failure_markers(),
         )
-
     }
 }

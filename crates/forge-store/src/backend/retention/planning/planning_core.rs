@@ -54,7 +54,11 @@ pub(crate) fn plan_retention_candidates<P: StatePersistence>(
     let mut stable_basis_frontiers = Vec::new();
 
     for snapshot_policy in policy.pinned_snapshots() {
-        if let Some(record) = backend.state().snapshot_basis_records.get(&snapshot_policy.snapshot_id().0) {
+        if let Some(record) = backend
+            .state()
+            .snapshot_basis_records
+            .get(&snapshot_policy.snapshot_id().0)
+        {
             let label = snapshot_basis_label(record.snapshot_id);
             stable_basis_labels.push(label.clone());
             stable_basis_frontiers.push((
@@ -68,11 +72,16 @@ pub(crate) fn plan_retention_candidates<P: StatePersistence>(
     for record in backend.state().durable_cursor_identity_records.values() {
         let label = durable_cursor_basis_label(&record.cursor_id);
         stable_basis_labels.push(label.clone());
-        stable_basis_frontiers.push((label, record.branch_id.clone(), record.latest_basis_commit_id));
+        stable_basis_frontiers.push((
+            label,
+            record.branch_id.clone(),
+            record.latest_basis_commit_id,
+        ));
         frontier_commit_ids.push(record.latest_basis_commit_id);
     }
     for record in backend.state().subscriber_checkpoint_records.values() {
-        let label = subscriber_checkpoint_basis_label(&record.cursor_id, record.checkpoint_sequence);
+        let label =
+            subscriber_checkpoint_basis_label(&record.cursor_id, record.checkpoint_sequence);
         stable_basis_labels.push(label.clone());
         stable_basis_frontiers.push((label, record.branch_id.clone(), record.basis_commit_id));
         frontier_commit_ids.push(record.basis_commit_id);
@@ -131,7 +140,12 @@ pub(crate) fn plan_retention_candidates<P: StatePersistence>(
         &mut rebuild_debts,
         backend.counters(),
     );
-    for record in backend.state().rebuild_debt_records.values().filter(|record| !record.cleared) {
+    for record in backend
+        .state()
+        .rebuild_debt_records
+        .values()
+        .filter(|record| !record.cleared)
+    {
         let already_present = rebuild_debts.iter().any(|summary| {
             summary.family_label() == record.family_label
                 && summary.retained_basis_label() == record.retained_basis_label
@@ -207,7 +221,11 @@ fn compaction_candidates<P: StatePersistence>(
     let mut compaction_rejections = Vec::new();
 
     for snapshot_policy in policy.pinned_snapshots() {
-        if let Some(record) = backend.state().snapshot_basis_records.get(&snapshot_policy.snapshot_id().0) {
+        if let Some(record) = backend
+            .state()
+            .snapshot_basis_records
+            .get(&snapshot_policy.snapshot_id().0)
+        {
             if closure_commit_set.contains(&record.snapshot_frontier_commit_id) {
                 compaction_plans.push(CompactionPlan::new(
                     snapshot_basis_label(record.snapshot_id),
@@ -250,7 +268,11 @@ fn compaction_candidates<P: StatePersistence>(
             ));
         }
     }
-    for record in backend.state().milestone_6_layout_materialization_records.values() {
+    for record in backend
+        .state()
+        .milestone_6_layout_materialization_records
+        .values()
+    {
         let branch_id = record
             .materialization
             .admitted_plan()

@@ -14,10 +14,7 @@ mod tiering;
 
 use std::path::PathBuf;
 
-use super::{
-    embedded::EmbeddedStoreBackend,
-    sqlite::SqliteStoreBackend,
-};
+use super::{embedded::EmbeddedStoreBackend, sqlite::SqliteStoreBackend};
 
 #[derive(Debug, Clone)]
 pub enum StoreBackendMode {

@@ -113,8 +113,14 @@ fn live_query_basis_continuation_equivalence_across_fetch_widths_is_certified() 
             .continuation_control_lane_fallback_count,
         0
     );
-    assert_eq!(primary_store.counters().continuation_broadened_item_count, 0);
-    assert_eq!(control_store.counters().continuation_broadened_item_count, 0);
+    assert_eq!(
+        primary_store.counters().continuation_broadened_item_count,
+        0
+    );
+    assert_eq!(
+        control_store.counters().continuation_broadened_item_count,
+        0
+    );
     assert!(!bundle.canonical_json().is_empty());
 }
 
@@ -171,7 +177,9 @@ fn live_query_basis_continuation_equivalence_through_restart_is_certified() {
     update_entity_on_branch(&mut runtime, entity_id, "gamma", None);
     let third = latest_envelope(&runtime);
     let mut reopened_store = ForgeStoreBuilder::new().sqlite_file(path).build().unwrap();
-    reopened_store.append_canonical_commit(third.clone()).unwrap();
+    reopened_store
+        .append_canonical_commit(third.clone())
+        .unwrap();
     let reopened_basis = reopened_store.fetch_stable_basis(&stable_basis_id).unwrap();
     let plan = reopened_store
         .plan_cursor_continuation(CursorContinuationRequest::new(
@@ -198,7 +206,9 @@ fn live_query_basis_continuation_equivalence_through_restart_is_certified() {
     let after_restart_results = vec![after_restart_result];
 
     let mut control_store = ForgeStoreBuilder::new().in_memory().build().unwrap();
-    control_store.append_canonical_commit(initial.clone()).unwrap();
+    control_store
+        .append_canonical_commit(initial.clone())
+        .unwrap();
     control_store
         .acknowledge_cursor(crate::DurableCursorAcknowledgeRequest::new(
             "cursor-main",
@@ -210,8 +220,12 @@ fn live_query_basis_continuation_equivalence_through_restart_is_certified() {
             initial.commit.commit_id,
         ))
         .unwrap();
-    control_store.append_canonical_commit(second.clone()).unwrap();
-    control_store.append_canonical_commit(third.clone()).unwrap();
+    control_store
+        .append_canonical_commit(second.clone())
+        .unwrap();
+    control_store
+        .append_canonical_commit(third.clone())
+        .unwrap();
     let control_basis = control_store
         .read_stable_basis(stable_basis_request_for_store(
             &control_store,
@@ -283,6 +297,8 @@ fn live_query_basis_continuation_equivalence_through_restart_is_certified() {
             .continuation_control_lane_fallback_count,
         0
     );
-    assert_eq!(reopened_store.counters().continuation_broadened_item_count, 1);
+    assert_eq!(
+        reopened_store.counters().continuation_broadened_item_count,
+        1
+    );
 }
-

@@ -32,7 +32,9 @@ fn load_branch_shared_base_records(
         .query_map([], |row| {
             Ok(records::BranchSharedBaseRecord {
                 branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(0)?),
-                source_branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(1)?),
+                source_branch_id: forge_relational::facade::history::BranchId(
+                    row.get::<_, String>(1)?,
+                ),
                 source_frontier_commit_id: row
                     .get::<_, Option<i64>>(2)?
                     .map(|value| forge_relational::facade::history::CommitId(value as u64)),
@@ -72,7 +74,9 @@ fn load_branch_delta_layer_records(
             let replacement_of_layer_ids: Vec<u64> = deserialize_json(row.get(8)?)?;
             let replacement_lineage_proof = deserialize_json(row.get(9)?)?;
             Ok(records::BranchDeltaLayerRecord {
-                branch_delta_layer_id: crate::delta::BranchDeltaLayerId(row.get::<_, i64>(0)? as u64),
+                branch_delta_layer_id: crate::delta::BranchDeltaLayerId(
+                    row.get::<_, i64>(0)? as u64
+                ),
                 branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(1)?),
                 base_frontier_commit_id: row
                     .get::<_, Option<i64>>(2)?

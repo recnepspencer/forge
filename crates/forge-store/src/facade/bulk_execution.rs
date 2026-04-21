@@ -1,5 +1,8 @@
 use crate::{
-    bulk::{BudgetAdmittedChunkPlan, BulkCanonicalChunkExecutionRequest, BulkCheckpointPolicy, BulkChunkExecutionOutcome, DurablyExecutedBulkChunk, ResumeReadyBulkProgram},
+    bulk::{
+        BudgetAdmittedChunkPlan, BulkCanonicalChunkExecutionRequest, BulkCheckpointPolicy,
+        BulkChunkExecutionOutcome, DurablyExecutedBulkChunk, ResumeReadyBulkProgram,
+    },
     failure::StoreError,
     wal::DurablePublicationPhase,
 };

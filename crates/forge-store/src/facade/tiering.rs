@@ -46,12 +46,8 @@ impl ForgeStore {
         artifact_id: &str,
         execution_origin: crate::PlacementExecutionOrigin,
     ) -> Result<DerivedPlacementPlanningReport, StoreError> {
-        self.backend.plan_derived_tier_move(
-            policy_class,
-            family,
-            artifact_id,
-            execution_origin,
-        )
+        self.backend
+            .plan_derived_tier_move(policy_class, family, artifact_id, execution_origin)
     }
 
     pub fn plan_resident_read_lease(
@@ -93,8 +89,44 @@ impl ForgeStore {
         self.backend.canonical_residency_manifest()
     }
 
-    pub fn recover_tiering_state(&self) -> crate::CanonicalResidencyManifest {
+    pub fn recover_tiering_state(&self) -> Result<crate::CanonicalResidencyManifest, StoreError> {
         self.backend.recover_tiering_state()
+    }
+
+    pub fn resolve_resident_read_handle(
+        &self,
+        lease: &crate::ResidentReadLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        self.backend.resolve_resident_read_handle(lease)
+    }
+
+    pub fn resolve_cold_recall_read_handle(
+        &self,
+        lease: &crate::ColdRecallLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        self.backend.resolve_cold_recall_read_handle(lease)
+    }
+
+    pub fn observe_placement_read_interleaving(
+        &self,
+        handle: &crate::PlacementResolvedReadHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        self.backend.observe_placement_read_interleaving(handle)
+    }
+
+    pub fn observe_stable_basis_interleaving(
+        &self,
+        basis: &crate::StableBasisHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        self.backend.observe_stable_basis_interleaving(basis)
+    }
+
+    pub fn observe_continuation_interleaving(
+        &self,
+        plan: &crate::CursorContinuationPlan,
+        result: Option<&crate::ContinuationBatchResult>,
+    ) -> Result<crate::InterleavedContinuationParityReport, StoreError> {
+        self.backend.observe_continuation_interleaving(plan, result)
     }
 
     pub fn prepare_authoritative_tier_move(
@@ -143,7 +175,17 @@ impl ForgeStore {
         &mut self,
         lease: crate::ColdRecallLease,
         witness: crate::RecallEligibilityWitness,
-    ) -> Result<crate::RecallCompletionWitness, StoreError> {
+    ) -> Result<crate::CoalescedRecallReport, StoreError> {
         self.backend.execute_cold_recall(lease, witness)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn admit_inflight_cold_recall(
+        &mut self,
+        artifact_ref: crate::PlacementBoundArtifactRef,
+        execution_origin: crate::PlacementExecutionOrigin,
+    ) -> Result<(), StoreError> {
+        self.backend
+            .admit_inflight_cold_recall(artifact_ref, execution_origin)
     }
 }

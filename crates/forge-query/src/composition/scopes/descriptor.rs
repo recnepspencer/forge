@@ -115,10 +115,7 @@ pub struct OrderingScopeDescriptor {
 }
 
 impl OrderingScopeDescriptor {
-    fn new(
-        label: impl Into<String>,
-        ordering: impl IntoIterator<Item = OrderingSelector>,
-    ) -> Self {
+    fn new(label: impl Into<String>, ordering: impl IntoIterator<Item = OrderingSelector>) -> Self {
         Self {
             label: label.into(),
             ordering: ordering.into_iter().collect(),

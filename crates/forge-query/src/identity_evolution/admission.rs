@@ -106,9 +106,9 @@ impl AdmittedIdentityEvolutionQuery {
 
     pub fn traversal_descriptor(&self) -> Option<&LineageTraversalDescriptor> {
         match &self.shape {
-            AdmittedIdentityEvolutionQueryShape::LineageTraversal { traversal_descriptor } => {
-                Some(traversal_descriptor)
-            }
+            AdmittedIdentityEvolutionQueryShape::LineageTraversal {
+                traversal_descriptor,
+            } => Some(traversal_descriptor),
             AdmittedIdentityEvolutionQueryShape::CorrespondenceIdentityComparison { .. } => None,
         }
     }
@@ -184,14 +184,16 @@ pub(crate) fn admit_identity_evolution_query_for_scenario(
     }
     if let Some((basis_family, left_basis_digest, right_basis_digest, comparison)) = query_context
         .correspondence_identity_comparison_descriptor()
-        .map(|(basis_family, left_basis_digest, right_basis_digest, comparison)| {
-            (
-                basis_family,
-                left_basis_digest.clone(),
-                right_basis_digest.clone(),
-                comparison.clone(),
-            )
-        })
+        .map(
+            |(basis_family, left_basis_digest, right_basis_digest, comparison)| {
+                (
+                    basis_family,
+                    left_basis_digest.clone(),
+                    right_basis_digest.clone(),
+                    comparison.clone(),
+                )
+            },
+        )
     {
         return admit_comparison(
             query_context,

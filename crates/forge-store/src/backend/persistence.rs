@@ -10,6 +10,8 @@ pub(super) fn load_state(path: &Path) -> Result<StoreState, StoreError> {
     let raw = std::fs::read(path)?;
     let mut state: StoreState = serde_json::from_slice(&raw).map_err(store_state_decode_error)?;
     state.backfill_missing_branch_delta_layer_artifacts()?;
+    super::maintenance::summaries::record_scheduler_boot_state(&mut state);
+    super::maintenance::summaries::backfill_scheduler_summaries_if_missing(&mut state);
     Ok(state)
 }
 

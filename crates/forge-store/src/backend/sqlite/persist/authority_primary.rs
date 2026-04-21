@@ -33,7 +33,10 @@ fn persist_branch_records(
                 ",
                 params![
                     record.branch_id.0,
-                    record.created_from_branch.as_ref().map(|value| value.0.clone()),
+                    record
+                        .created_from_branch
+                        .as_ref()
+                        .map(|value| value.0.clone()),
                     record.created_from_commit_id.map(as_i64),
                     record.created_at_commit_sequence.map(as_i64_u64),
                 ],

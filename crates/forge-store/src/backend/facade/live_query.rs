@@ -33,10 +33,12 @@ impl StoreBackend {
         dispatch_ref!(self, |backend| backend.record_continuation_plan())
     }
     pub(crate) fn record_continuation_identity_lookup(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_identity_lookup())
+        dispatch_ref!(self, |backend| backend
+            .record_continuation_identity_lookup())
     }
     pub(crate) fn record_continuation_checkpoint_lookup(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_checkpoint_lookup())
+        dispatch_ref!(self, |backend| backend
+            .record_continuation_checkpoint_lookup())
     }
     pub(crate) fn record_continuation_broadening(&self) {
         dispatch_ref!(self, |backend| backend.record_continuation_broadening())
@@ -45,16 +47,19 @@ impl StoreBackend {
         dispatch_ref!(self, |backend| backend.record_continuation_parity())
     }
     pub(crate) fn record_continuation_illegal_acknowledgment(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_illegal_acknowledgment())
+        dispatch_ref!(self, |backend| backend
+            .record_continuation_illegal_acknowledgment())
     }
     pub(crate) fn record_continuation_batch_gap(&self) {
         dispatch_ref!(self, |backend| backend.record_continuation_batch_gap())
     }
     pub(crate) fn record_continuation_batch_duplicate(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_batch_duplicate())
+        dispatch_ref!(self, |backend| backend
+            .record_continuation_batch_duplicate())
     }
     pub(crate) fn record_continuation_schema_mismatch(&self) {
-        dispatch_ref!(self, |backend| backend.record_continuation_schema_mismatch())
+        dispatch_ref!(self, |backend| backend
+            .record_continuation_schema_mismatch())
     }
     pub(crate) fn record_continuation_scope_mismatch(&self) {
         dispatch_ref!(self, |backend| backend.record_continuation_scope_mismatch())
@@ -88,13 +93,15 @@ impl StoreBackend {
         &self,
         plan: &CursorContinuationPlan,
     ) -> Result<(), StoreError> {
-        dispatch_ref!(self, |backend| backend.verify_cursor_continuation_budget(plan))
+        dispatch_ref!(self, |backend| backend
+            .verify_cursor_continuation_budget(plan))
     }
     pub fn acknowledge_cursor_continuation(
         &mut self,
         receipt: ContinuationAdvanceReceipt,
     ) -> Result<AcknowledgedContinuationAdvance, StoreError> {
-        dispatch_mut!(self, |backend| backend.acknowledge_cursor_continuation(receipt))
+        dispatch_mut!(self, |backend| backend
+            .acknowledge_cursor_continuation(receipt))
     }
     pub fn acknowledge_cursor(
         &mut self,
@@ -106,7 +113,8 @@ impl StoreBackend {
         &self,
         cursor_id: &str,
     ) -> Result<FetchedDurableCursorIdentity, StoreError> {
-        dispatch_ref!(self, |backend| backend.fetch_durable_cursor_identity(cursor_id))
+        dispatch_ref!(self, |backend| backend
+            .fetch_durable_cursor_identity(cursor_id))
     }
     pub fn plan_cursor_resume(
         &self,

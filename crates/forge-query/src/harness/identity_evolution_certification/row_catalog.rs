@@ -23,6 +23,7 @@ pub const IDENTITY_EVOLUTION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "branch-local-divergence-explicitness",
     "ambiguous-correspondence-explicitness",
     "identity-break-explicitness",
+    "identity-aware-inspector-consumption-parity",
     "lineage-versus-structural-disagreement-explicitness",
     "lineage-replay-parity",
     "lineage-replay-preserves-classification",
@@ -70,6 +71,12 @@ pub const IDENTITY_EVOLUTION_CANONICAL_ROW_SPECS: &[IdentityEvolutionCanonicalRo
         row_name: "identity-break-explicitness",
         perturbation_class: IdentityEvolutionCertificationPerturbationClass::IdentityBreak,
         hostile_expectation: HostileExpectation::DistinctFromControl,
+    },
+    IdentityEvolutionCanonicalRowSpec {
+        row_name: "identity-aware-inspector-consumption-parity",
+        perturbation_class:
+            IdentityEvolutionCertificationPerturbationClass::CrossFeatureConsumption,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
     },
     IdentityEvolutionCanonicalRowSpec {
         row_name: "lineage-versus-structural-disagreement-explicitness",

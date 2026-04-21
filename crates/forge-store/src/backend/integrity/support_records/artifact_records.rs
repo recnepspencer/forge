@@ -1,10 +1,10 @@
 use crate::failure::{StoreError, StoreErrorKind};
 
-use crate::backend::records::{
-    AuthoritativeArtifactFamily, LineageSupportRecord, SchemaSupportRecord, StoreState,
-};
 use crate::backend::integrity::{
     lineage_support_artifact_id, schema_support_artifact_id, stable_structural_digest,
+};
+use crate::backend::records::{
+    AuthoritativeArtifactFamily, LineageSupportRecord, SchemaSupportRecord, StoreState,
 };
 
 impl StoreState {

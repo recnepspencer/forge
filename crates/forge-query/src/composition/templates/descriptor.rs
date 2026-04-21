@@ -1,5 +1,5 @@
 use crate::authoring::{
-    AuthoredResultShape, AuthoredQuery, CollectionFamily, CollectionResultShapeFamily,
+    AuthoredQuery, AuthoredResultShape, CollectionFamily, CollectionResultShapeFamily,
     DetailFamily, DetailResultShapeFamily, QueryAuthoringFamily, ResultShapeAuthoringFamily,
 };
 use crate::composition::TemplateFamily;

@@ -91,3 +91,44 @@ fn started_maintenance_can_resume_after_restart_in_both_durable_lanes() {
         1
     );
 }
+
+#[test]
+fn resumed_started_work_preserves_escalated_plan_posture() {
+    let path = unique_test_store_path("forge-store-m11-maintenance-resume-escalated-local");
+    let (mut store, batch) = build_maintenance_ready_store_with_builder(
+        ForgeStoreBuilder::new().local_file(path.clone()),
+    );
+    let receipt = store.admit_maintenance_batch(batch).unwrap();
+    let compaction = receipt
+        .admitted_declarations()
+        .iter()
+        .find(|declaration| {
+            matches!(
+                declaration.declaration(),
+                crate::MaintenanceDeclaration::Compaction { .. }
+            )
+        })
+        .expect("compaction declaration")
+        .declaration()
+        .id()
+        .clone();
+    drop(store);
+    force_local_file_reserved(
+        &path,
+        &compaction,
+        crate::MaintenancePlanFamily::Escalated,
+        2,
+    );
+    force_local_file_started(&path, &compaction);
+
+    let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+    reopened
+        .resume_maintenance_declaration(&compaction)
+        .unwrap();
+    let status = reopened.maintenance_status(&compaction).unwrap();
+    assert_eq!(
+        status.plan_family(),
+        Some(crate::MaintenancePlanFamily::Escalated)
+    );
+    assert!(status.foreground_impact().borrowed_foreground_reservation());
+}

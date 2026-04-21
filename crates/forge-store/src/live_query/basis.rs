@@ -15,6 +15,5 @@ pub use request::{StableBasisLayoutPosture, StableBasisReadRequest};
 pub use scope::StableBasisReadScope;
 pub(crate) use validation::{
     stable_basis_handle_from_record_with_survival, validate_stable_basis_handle,
-    validate_stable_basis_request,
-    StableBasisPublicationPlan,
+    validate_stable_basis_request, StableBasisPublicationPlan,
 };

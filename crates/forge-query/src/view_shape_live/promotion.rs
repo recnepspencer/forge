@@ -1,4 +1,5 @@
 use crate::basis::{preflight_execution_basis, ResolvedSnapshotBasis};
+use crate::identity_evolution::InspectorIdentityArtifact;
 use crate::view_shape::{ViewShapeComplexityStatus, ViewShapePlanArtifact};
 
 use super::artifact::{LiveViewShapeArtifact, ViewShapeLiveLowering};
@@ -11,6 +12,7 @@ pub fn lower_view_shape_plan_to_live(
     plan: &ViewShapePlanArtifact,
     basis: ResolvedSnapshotBasis,
     grouped_baseline: Option<AuthoritativeGroupedBaselineArtifact>,
+    inspector_identity: Option<InspectorIdentityArtifact>,
 ) -> Result<LiveViewShapeArtifact, ViewShapeLiveError> {
     if basis.identity().schema_basis() != plan.validated().query().schema_basis()
         || basis.identity().schema_basis() != plan.validated().result_shape().schema_basis()
@@ -27,6 +29,48 @@ pub fn lower_view_shape_plan_to_live(
     }
 
     let family = LiveViewShapeFamily::from(plan.family());
+    match plan.delivery_metadata().identity_consumption() {
+        crate::view_shape::ViewShapeIdentityConsumption::None => {
+            if inspector_identity.is_some() {
+                return Err(ViewShapeLiveError::new(
+                    ViewShapeLiveFailureClass::InspectorIdentityBindingRejected,
+                    "ordinary view-shape live lowering may not accept inspector identity evidence",
+                    ViewShapeLiveCounters::default(),
+                ));
+            }
+        }
+        crate::view_shape::ViewShapeIdentityConsumption::InspectorIdentitySummary => {
+            if inspector_identity.is_none() {
+                return Err(ViewShapeLiveError::new(
+                    ViewShapeLiveFailureClass::InspectorIdentityBindingRejected,
+                    "identity-aware inspector summary lowering requires bound identity evidence",
+                    ViewShapeLiveCounters::default(),
+                ));
+            }
+        }
+        crate::view_shape::ViewShapeIdentityConsumption::FocusedInspectorIdentityClassification(
+            expected_classification,
+        ) => {
+            let Some(bound_identity) = inspector_identity.as_ref() else {
+                return Err(ViewShapeLiveError::new(
+                    ViewShapeLiveFailureClass::InspectorIdentityBindingRejected,
+                    "identity-aware focused inspector lowering requires bound identity evidence",
+                    ViewShapeLiveCounters::default(),
+                ));
+            };
+            if bound_identity.classification() != *expected_classification {
+                return Err(ViewShapeLiveError::new(
+                    ViewShapeLiveFailureClass::InspectorIdentityBindingRejected,
+                    format!(
+                        "identity-aware focused inspector expected identity classification '{}' but received '{}'",
+                        expected_classification.as_str(),
+                        bound_identity.classification().as_str()
+                    ),
+                    ViewShapeLiveCounters::default(),
+                ));
+            }
+        }
+    }
     let (grouped_state, grouped_policy) = if family == LiveViewShapeFamily::KanbanGrouped {
         let Some(grouped_baseline) = grouped_baseline else {
             return Err(ViewShapeLiveError::new(
@@ -92,13 +136,7 @@ pub fn lower_view_shape_plan_to_live(
         counters.add_complexity_status_debt();
     }
     if family == LiveViewShapeFamily::Table {
-        counters.set_table_ordering_key_count(
-            plan.validated()
-                .query()
-                .ordering()
-                .entries()
-                .len(),
-        );
+        counters.set_table_ordering_key_count(plan.validated().query().ordering().entries().len());
     }
 
     Ok(LiveViewShapeArtifact::new(
@@ -109,5 +147,6 @@ pub fn lower_view_shape_plan_to_live(
         counters,
         grouped_state,
         grouped_policy,
+        inspector_identity,
     ))
 }

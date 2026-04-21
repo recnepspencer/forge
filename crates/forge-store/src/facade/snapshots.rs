@@ -1,6 +1,10 @@
 use crate::{
     failure::StoreError,
-    snapshot::{PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle, SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome, SnapshotRestorePlan, SnapshotRestoreRequest},
+    snapshot::{
+        PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
+        SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome, SnapshotRestorePlan,
+        SnapshotRestoreRequest,
+    },
 };
 use forge_relational::facade::history::CommitId;
 

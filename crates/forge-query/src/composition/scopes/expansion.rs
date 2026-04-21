@@ -54,7 +54,11 @@ pub(crate) fn expand_scopes(
     let mut lineage_parts = Vec::with_capacity(scopes.len() * 3);
 
     for scope in scopes {
-        lineage_parts.push(format!("scope:{}:{}", scope.family().as_str(), scope.label()));
+        lineage_parts.push(format!(
+            "scope:{}:{}",
+            scope.family().as_str(),
+            scope.label()
+        ));
         match scope {
             QueryScopeDescriptor::Predicate(descriptor) => {
                 width += descriptor.predicates().len();

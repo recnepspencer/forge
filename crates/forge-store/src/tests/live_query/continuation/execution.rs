@@ -68,7 +68,6 @@ fn degraded_basis_continuation_executes_as_broadened_and_counts_breadth() {
     assert_eq!(counters.continuation_support_rows_read, 1);
 }
 
-
 #[test]
 fn admitted_continuation_executes_and_acknowledges_monotonically() {
     let mut runtime = runtime_with_demo_schema();
@@ -136,7 +135,10 @@ fn admitted_continuation_executes_and_acknowledges_monotonically() {
         ContinuationStrategy::AdmittedLayoutNarrow
     );
     assert_eq!(batch.fallback_class(), None);
-    assert_eq!(batch.complexity_status(), LiveQueryComplexityStatus::Verified);
+    assert_eq!(
+        batch.complexity_status(),
+        LiveQueryComplexityStatus::Verified
+    );
     assert_eq!(batch.covered_commit_count(), 1);
     assert_eq!(batch.narrowed_item_count(), 1);
 
@@ -267,4 +269,3 @@ fn continuation_batch_partitioning_is_deterministic_across_fetch_widths() {
         latest.commit.commit_id
     );
 }
-

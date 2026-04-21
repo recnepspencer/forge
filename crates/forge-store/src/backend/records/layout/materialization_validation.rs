@@ -63,31 +63,39 @@ pub(super) fn validate_persisted_milestone_6_layout_materialization(
             materialization.artifact_id
         ));
     }
-    if materialization.admitted_plan != PersistedAdmittedAspectLayoutReadPlan::from(&expected_plan) {
+    if materialization.admitted_plan != PersistedAdmittedAspectLayoutReadPlan::from(&expected_plan)
+    {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical admitted layout plan for its request",
             materialization.artifact_id
         ));
     }
-    if materialization.block_reuse != PersistedDedupAdmittedBlockReuse::from(&expected_block_reuse) {
+    if materialization.block_reuse != PersistedDedupAdmittedBlockReuse::from(&expected_block_reuse)
+    {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical structural block reuse witness for its admitted plan",
             materialization.artifact_id
         ));
     }
-    if materialization.frozen_layout != PersistedChunkModelFrozenPhysicalLayout::from(&expected_frozen_layout) {
+    if materialization.frozen_layout
+        != PersistedChunkModelFrozenPhysicalLayout::from(&expected_frozen_layout)
+    {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical frozen chunk layout for its admitted plan",
             materialization.artifact_id
         ));
     }
-    if materialization.milestone_7_reference != PersistedMilestone7IndependentLayoutReference::from(&expected_milestone_7_reference) {
+    if materialization.milestone_7_reference
+        != PersistedMilestone7IndependentLayoutReference::from(&expected_milestone_7_reference)
+    {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical Milestone 7 reference for its admitted plan",
             materialization.artifact_id
         ));
     }
-    if materialization.milestone_9_reference != PersistedMilestone9PhysicalChunkReference::from(&expected_milestone_9_reference) {
+    if materialization.milestone_9_reference
+        != PersistedMilestone9PhysicalChunkReference::from(&expected_milestone_9_reference)
+    {
         return Err(format!(
             "persisted milestone 6 materialization `{}` drifted from the canonical Milestone 9 physical chunk reference for its frozen layout",
             materialization.artifact_id

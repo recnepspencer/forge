@@ -3,10 +3,7 @@ mod layer_record;
 mod replacement;
 mod shared_base;
 
-use crate::{
-    backend::records::StoreState,
-    failure::StoreError,
-};
+use crate::{backend::records::StoreState, failure::StoreError};
 
 impl StoreState {
     pub fn verify_delta_record_family(&self) -> Result<(), StoreError> {

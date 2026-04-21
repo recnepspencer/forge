@@ -45,7 +45,10 @@ pub fn freeze_direct_saved_query(
     let composition_digest = CompositionDigest::from_parts(&[
         "source:direct_canonical".to_string(),
         format!("query:{}", canonical.query().digest().as_str()),
-        format!("result_shape:{}", canonical.result_shape().digest().as_str()),
+        format!(
+            "result_shape:{}",
+            canonical.result_shape().digest().as_str()
+        ),
     ]);
 
     build_saved_query_artifact(
@@ -98,6 +101,20 @@ fn build_saved_query_artifact(
         template_binding_digest,
         view_plan.view_shape_digest().clone(),
         view_plan.family(),
+        view_plan.delivery_metadata().identity_consumption().clone(),
+        view_plan
+            .delivery_metadata()
+            .identity_consumption()
+            .digest(),
+        crate::identity_evolution::InspectorIdentityDigest::from_parts(&[format!(
+            "classification:{}",
+            view_plan
+                .delivery_metadata()
+                .identity_consumption()
+                .classification()
+                .map(|classification| classification.as_str())
+                .unwrap_or("none")
+        )]),
         view_plan.validated().query().schema_basis().clone(),
         composition.and_then(|report| report.basis_family().cloned()),
         canonical.result_shape().family().clone(),
@@ -106,13 +123,24 @@ fn build_saved_query_artifact(
         template_slot_count,
     );
     let digest = SavedQueryArtifactDigest::from_parts(&[
-        format!("canonical_query:{}", metadata.canonical_query_digest().as_str()),
+        format!(
+            "canonical_query:{}",
+            metadata.canonical_query_digest().as_str()
+        ),
         format!(
             "canonical_result_shape:{}",
             metadata.canonical_result_shape_digest().as_str()
         ),
         format!("composition:{}", metadata.composition_digest().as_str()),
         format!("view_shape:{}", metadata.view_shape_digest().as_str()),
+        format!(
+            "identity_consumption:{}",
+            metadata.identity_consumption_digest().as_str()
+        ),
+        format!(
+            "identity_classification:{}",
+            metadata.inspector_identity_classification_digest().as_str()
+        ),
         format!("schema_basis:{}", metadata.schema_basis_digest().as_str()),
         format!("support:{}", metadata.support_profile_digest()),
         format!("capability:{}", metadata.capability_family_identity()),

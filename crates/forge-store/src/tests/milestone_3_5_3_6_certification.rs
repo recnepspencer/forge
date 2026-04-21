@@ -27,15 +27,15 @@ use super::harness::{
     },
 };
 
+#[path = "milestone_3_5_3_6_certification/evidence_bundles.rs"]
+mod evidence_bundles;
 #[path = "milestone_3_5_3_6_certification/helpers.rs"]
 mod helpers;
+#[path = "milestone_3_5_3_6_certification/snapshot_maintenance.rs"]
+mod snapshot_maintenance;
 #[path = "milestone_3_5_3_6_certification/suite_publication.rs"]
 mod suite_publication;
 #[path = "milestone_3_5_3_6_certification/suite_recovery.rs"]
 mod suite_recovery;
-#[path = "milestone_3_5_3_6_certification/evidence_bundles.rs"]
-mod evidence_bundles;
-#[path = "milestone_3_5_3_6_certification/snapshot_maintenance.rs"]
-mod snapshot_maintenance;
 
 use helpers::*;

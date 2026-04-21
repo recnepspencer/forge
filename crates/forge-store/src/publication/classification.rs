@@ -129,7 +129,10 @@ pub(crate) fn classify_durable_publication(
         ),
         observed_family_state(
             PublicationFamily::AuthoritativeCommitAppendUnit,
-            contract_for_family(PublicationFamily::AuthoritativeCommitAppendUnit, backend_report),
+            contract_for_family(
+                PublicationFamily::AuthoritativeCommitAppendUnit,
+                backend_report,
+            ),
             facts.authoritative_commit_present,
             Some(backend_report),
             facts.authoritative_commit_present,
@@ -168,7 +171,11 @@ pub(crate) fn classify_durable_publication(
         PublicationClassification::RequireQuarantine
     } else if prerequisites_published && facts.acknowledgment_marker_present {
         PublicationClassification::RetainTrusted
-    } else if prerequisites_published || facts.authoritative_commit_present || facts.branch_head_present || facts.canonical_result_present {
+    } else if prerequisites_published
+        || facts.authoritative_commit_present
+        || facts.branch_head_present
+        || facts.canonical_result_present
+    {
         PublicationClassification::FinishPublication
     } else {
         PublicationClassification::DiscardUnpublished

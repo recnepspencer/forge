@@ -1,8 +1,8 @@
 use crate::{
     ContinuationBatchBudget, ContinuationBatchResult, ContinuationRetentionDescriptor,
-    ContinuationRetentionStatus, CursorContinuationRequest, FetchWidth, ForgeStore,
-    MaxBatchItems, MaxCoveredCommits, MaxMaterializedBytes, MaxSupportRowsPerBatch,
-    StableBasisLayoutPosture, StableBasisReadRequest, StableBasisReadScope,
+    ContinuationRetentionStatus, CursorContinuationRequest, FetchWidth, ForgeStore, MaxBatchItems,
+    MaxCoveredCommits, MaxMaterializedBytes, MaxSupportRowsPerBatch, StableBasisLayoutPosture,
+    StableBasisReadRequest, StableBasisReadScope,
 };
 use forge_relational::facade::history::CommitId;
 use serde::Serialize;
@@ -13,7 +13,7 @@ pub(super) use super::super::harness::fixtures::runtime::{
 };
 pub(super) use super::super::harness::fixtures::stores::unique_test_sqlite_path;
 
-pub(super) fn demo_budget() -> ContinuationBatchBudget {
+pub(crate) fn demo_budget() -> ContinuationBatchBudget {
     ContinuationBatchBudget::new(
         FetchWidth::new(16),
         MaxBatchItems::new(32),

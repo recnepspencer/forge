@@ -28,7 +28,6 @@ fn assert_certification_core(
     assert!(!bundle.chunk_plan_digest.is_empty());
 }
 
-
 #[path = "milestone_9_certification/ingest.rs"]
 mod ingest;
 #[path = "milestone_9_certification/transform.rs"]

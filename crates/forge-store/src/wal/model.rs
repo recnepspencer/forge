@@ -112,7 +112,8 @@ impl WalRecord {
     }
 
     pub(crate) fn decode_from_media_bytes(bytes: Vec<u8>) -> Result<Self, StoreError> {
-        let validated = crate::media::validate_raw_record(crate::media::RawDurableBytes::new(bytes))?;
+        let validated =
+            crate::media::validate_raw_record(crate::media::RawDurableBytes::new(bytes))?;
         if validated.family() != crate::media::DurableMediaFamily::WalRecord {
             return Err(StoreError::new(
                 crate::failure::StoreErrorKind::DurableRecordFramingInvalid,

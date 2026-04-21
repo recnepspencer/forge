@@ -113,14 +113,13 @@ fn persist_transform_artifacts(
     (basis, partition, plan)
 }
 
-
+#[path = "bulk/execution.rs"]
+mod execution;
 #[path = "bulk/freeze_and_plan.rs"]
 mod freeze_and_plan;
-#[path = "bulk/sqlite_reopen.rs"]
-mod sqlite_reopen;
 #[path = "bulk/local_file_reopen.rs"]
 mod local_file_reopen;
 #[path = "bulk/resume.rs"]
 mod resume;
-#[path = "bulk/execution.rs"]
-mod execution;
+#[path = "bulk/sqlite_reopen.rs"]
+mod sqlite_reopen;

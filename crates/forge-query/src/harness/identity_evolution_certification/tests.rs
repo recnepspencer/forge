@@ -22,7 +22,10 @@ fn identity_evolution_matrix_covers_milestone_seven_rows() {
         missing_rows.is_empty(),
         "missing identity-evolution certification rows: {missing_rows:?}"
     );
-    assert_eq!(matrix.rows.len(), IDENTITY_EVOLUTION_CANONICAL_ROW_SPECS.len());
+    assert_eq!(
+        matrix.rows.len(),
+        IDENTITY_EVOLUTION_CANONICAL_ROW_SPECS.len()
+    );
     assert_eq!(
         matrix.rejection_rows.len(),
         IDENTITY_EVOLUTION_REJECTION_ROW_SPECS.len()
@@ -69,6 +72,9 @@ fn identity_evolution_lanes_emit_required_verification_artifacts() {
         for lane in [&row.control_lane, &row.hostile_lane, &row.parity_lane] {
             assert!(lane.has_required_outputs());
             assert!(!lane.outcome_family.is_empty());
+            assert!(!lane.inspector_identity_digest.is_empty());
+            assert!(!lane.inspector_identity_classification.is_empty());
+            assert!(!lane.inspector_replay_stable_digest.is_empty());
             assert!(!lane.branch_locality_class.is_empty());
             assert!(!lane.complexity_status.is_empty());
             assert!(!lane.prediction_drift_outcome.is_empty());
@@ -129,7 +135,10 @@ fn identity_evolution_rows_preserve_expected_semantics() {
         .iter()
         .find(|row| row.row_name == "branch-local-divergence-explicitness")
         .expect("branch-local row should exist");
-    assert_eq!(branch_local.hostile_lane.branch_locality_class, "branch_local_only");
+    assert_eq!(
+        branch_local.hostile_lane.branch_locality_class,
+        "branch_local_only"
+    );
     assert!(branch_local
         .hostile_lane
         .exact_counter_values
@@ -152,19 +161,67 @@ fn identity_evolution_rows_preserve_expected_semantics() {
         .iter()
         .find(|row| row.row_name == "identity-break-explicitness")
         .expect("identity-break row should exist");
-    assert_eq!(identity_break.hostile_lane.outcome_family, "denied");
+    assert_eq!(identity_break.hostile_lane.outcome_family, "identity_break");
+    assert_eq!(
+        identity_break
+            .hostile_lane
+            .inspector_identity_classification,
+        "identity_break"
+    );
     assert!(identity_break
         .hostile_lane
         .exact_counter_values
         .iter()
         .any(|value| value == "identity_break_count:1"));
 
+    let inspector_consumption = matrix
+        .rows
+        .iter()
+        .find(|row| row.row_name == "identity-aware-inspector-consumption-parity")
+        .expect("identity-aware inspector row should exist");
+    assert_eq!(
+        inspector_consumption.control_lane.outcome_family,
+        inspector_consumption.hostile_lane.outcome_family
+    );
+    assert_eq!(
+        inspector_consumption.control_lane.result_digest,
+        inspector_consumption.hostile_lane.result_digest
+    );
+    assert_eq!(
+        inspector_consumption
+            .control_lane
+            .inspector_identity_classification,
+        inspector_consumption
+            .hostile_lane
+            .inspector_identity_classification
+    );
+    assert_eq!(
+        inspector_consumption.control_lane.branch_locality_class,
+        inspector_consumption.hostile_lane.branch_locality_class
+    );
+    assert_eq!(
+        inspector_consumption
+            .control_lane
+            .inspector_replay_stable_digest,
+        inspector_consumption
+            .hostile_lane
+            .inspector_replay_stable_digest
+    );
+    assert_ne!(
+        inspector_consumption.control_lane.inspector_identity_digest,
+        inspector_consumption.hostile_lane.inspector_identity_digest
+    );
+    assert_eq!(
+        inspector_consumption.hostile_lane.inspector_identity_digest,
+        inspector_consumption.parity_lane.inspector_identity_digest
+    );
+
     let disagreement = matrix
         .rows
         .iter()
         .find(|row| row.row_name == "lineage-versus-structural-disagreement-explicitness")
         .expect("disagreement row should exist");
-    assert_eq!(disagreement.control_lane.outcome_family, "denied");
+    assert_eq!(disagreement.control_lane.outcome_family, "identity_break");
     assert_eq!(
         disagreement.hostile_lane.outcome_family,
         "advisory_identity_candidate_set"
@@ -175,8 +232,14 @@ fn identity_evolution_rows_preserve_expected_semantics() {
         .iter()
         .find(|row| row.row_name == "lineage-replay-parity")
         .expect("replay row should exist");
-    assert_eq!(replay.control_lane.result_digest, replay.hostile_lane.result_digest);
-    assert_eq!(replay.control_lane.replay_digest, replay.parity_lane.replay_digest);
+    assert_eq!(
+        replay.control_lane.result_digest,
+        replay.hostile_lane.result_digest
+    );
+    assert_eq!(
+        replay.control_lane.replay_digest,
+        replay.parity_lane.replay_digest
+    );
     let replay_classification = matrix
         .rows
         .iter()
@@ -210,7 +273,10 @@ fn identity_evolution_rows_preserve_expected_semantics() {
         .iter()
         .find(|row| row.row_name == "identity-evolution-width-drift-explicitness")
         .expect("width drift row should exist");
-    assert_eq!(width.hostile_lane.prediction_drift_outcome, "width_drift_detected");
+    assert_eq!(
+        width.hostile_lane.prediction_drift_outcome,
+        "width_drift_detected"
+    );
     assert!(width
         .hostile_lane
         .exact_counter_values
@@ -233,11 +299,21 @@ fn identity_evolution_rows_preserve_expected_semantics() {
         .find(|row| row.row_name == "correspondence-complexity-contract-parity")
         .expect("correspondence contract row should exist");
     assert_ne!(
-        correspondence_contract.control_lane.complexity_contract_digest,
-        correspondence_contract.hostile_lane.complexity_contract_digest
+        correspondence_contract
+            .control_lane
+            .complexity_contract_digest,
+        correspondence_contract
+            .hostile_lane
+            .complexity_contract_digest
     );
-    assert_eq!(correspondence_contract.control_lane.complexity_status, "debt");
-    assert_eq!(correspondence_contract.hostile_lane.complexity_status, "debt");
+    assert_eq!(
+        correspondence_contract.control_lane.complexity_status,
+        "debt"
+    );
+    assert_eq!(
+        correspondence_contract.hostile_lane.complexity_status,
+        "debt"
+    );
 
     let status = matrix
         .rows

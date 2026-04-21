@@ -1,9 +1,16 @@
 use std::collections::BTreeSet;
 
-use crate::{authority::AuthoritativeExportBundle, delta::BranchDeltaReadPlan, failure::{StoreError, StoreErrorKind}};
+use crate::{
+    authority::AuthoritativeExportBundle,
+    delta::BranchDeltaReadPlan,
+    failure::{StoreError, StoreErrorKind},
+};
 use forge_relational::facade::history::BranchId;
 
-use crate::backend::{integrity::branch_key, records::{BranchHeadRecord, StoreState}};
+use crate::backend::{
+    integrity::branch_key,
+    records::{BranchHeadRecord, StoreState},
+};
 
 use super::digests::empty_authoritative_export;
 use crate::backend::state::delta::artifacts::branch_delta_layer_artifacts_empty;
@@ -100,14 +107,17 @@ pub(super) fn hydrate_export_support_records(
         .durable_cursor_identity_records
         .values()
         .filter(|record| {
-            record.branch_id == branch_id && final_commit_set.contains(&record.latest_basis_commit_id)
+            record.branch_id == branch_id
+                && final_commit_set.contains(&record.latest_basis_commit_id)
         })
         .cloned()
         .collect();
     export.subscriber_checkpoint_records = state
         .subscriber_checkpoint_records
         .values()
-        .filter(|record| record.branch_id == branch_id && final_commit_set.contains(&record.basis_commit_id))
+        .filter(|record| {
+            record.branch_id == branch_id && final_commit_set.contains(&record.basis_commit_id)
+        })
         .cloned()
         .collect();
 
@@ -118,7 +128,10 @@ pub(super) fn hydrate_export_support_records(
         .ok_or_else(|| {
             StoreError::new(
                 StoreErrorKind::BranchDeltaReadTargetIllegal,
-                format!("target commit for branch `{}` not found during branch delta materialization", branch_id.0),
+                format!(
+                    "target commit for branch `{}` not found during branch delta materialization",
+                    branch_id.0
+                ),
             )
         })?;
     let target_record = state.commit_record(target_commit_id).ok_or_else(|| {

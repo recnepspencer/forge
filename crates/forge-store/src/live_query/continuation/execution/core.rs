@@ -77,13 +77,16 @@ pub(crate) fn execute_cursor_continuation(
 
     if commit_ids.is_empty() {
         return Ok(ExecutedContinuationBatch::new(
-            ContinuationBatchResult::CaughtUp(CaughtUpContinuationBatch::new(
-                basis.stable_basis_id().clone(),
-                basis.branch_id().clone(),
-                frontier_commit_id,
-                basis.read_scope().clone(),
-                plan.strategy(),
-            )),
+            ContinuationBatchResult::CaughtUp(
+                CaughtUpContinuationBatch::new(
+                    basis.stable_basis_id().clone(),
+                    basis.branch_id().clone(),
+                    frontier_commit_id,
+                    basis.read_scope().clone(),
+                    plan.strategy(),
+                )
+                .with_foreground_isolation(plan.foreground_isolation().clone()),
+            ),
             ContinuationExecutionMetrics {
                 support_rows_read: 0,
                 narrowed_item_count: 0,
@@ -115,6 +118,7 @@ pub(crate) fn execute_cursor_continuation(
             basis,
             identity,
             batch_id,
+            plan.foreground_isolation().clone(),
             commit_ids,
             covered_commit_range,
             latest_checkpoint.basis_commit_id,
@@ -125,6 +129,7 @@ pub(crate) fn execute_cursor_continuation(
         ContinuationStrategy::ExplicitBroadened => execute_broadened_batch(
             basis,
             batch_id,
+            plan.foreground_isolation().clone(),
             commit_ids,
             covered_commit_range,
             latest_checkpoint.basis_commit_id,
@@ -133,20 +138,23 @@ pub(crate) fn execute_cursor_continuation(
             scope_lookup_count,
         ),
         ContinuationStrategy::AuthorityReplayControlLane => Ok(ExecutedContinuationBatch::new(
-            ContinuationBatchResult::ControlLane(ControlLaneBatchReceipt::new(
-                batch_id,
-                covered_commit_range,
-                commit_ids,
-                latest_checkpoint.basis_commit_id,
-                covered_commit_range.1,
-                basis.read_scope().clone(),
-                1,
-                covered_commit_count,
-                covered_commit_count,
-                support_rows_read,
-                scope_lookup_count,
-                "authority_replay",
-            )),
+            ContinuationBatchResult::ControlLane(
+                ControlLaneBatchReceipt::new(
+                    batch_id,
+                    covered_commit_range,
+                    commit_ids,
+                    latest_checkpoint.basis_commit_id,
+                    covered_commit_range.1,
+                    basis.read_scope().clone(),
+                    1,
+                    covered_commit_count,
+                    covered_commit_count,
+                    support_rows_read,
+                    scope_lookup_count,
+                    "authority_replay",
+                )
+                .with_foreground_isolation(plan.foreground_isolation().clone()),
+            ),
             ContinuationExecutionMetrics {
                 support_rows_read,
                 narrowed_item_count: 0,

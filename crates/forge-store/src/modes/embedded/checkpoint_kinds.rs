@@ -1,7 +1,10 @@
 use serde::Serialize;
 
-pub trait EmbeddedCheckpointKindMarker: crate::modes::embedded::checkpoint_envelopes::sealed::Sealed {
-    const CLASSIFICATION: crate::modes::embedded::checkpoint_envelopes::EmbeddedCheckpointClassification;
+pub trait EmbeddedCheckpointKindMarker:
+    crate::modes::embedded::checkpoint_envelopes::sealed::Sealed
+{
+    const CLASSIFICATION:
+        crate::modes::embedded::checkpoint_envelopes::EmbeddedCheckpointClassification;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -18,7 +21,8 @@ impl crate::modes::embedded::checkpoint_envelopes::sealed::Sealed for DerivedDur
 pub struct EphemeralCheckpointKind;
 
 impl EmbeddedCheckpointKindMarker for EphemeralCheckpointKind {
-    const CLASSIFICATION: crate::modes::embedded::checkpoint_envelopes::EmbeddedCheckpointClassification =
+    const CLASSIFICATION:
+        crate::modes::embedded::checkpoint_envelopes::EmbeddedCheckpointClassification =
         crate::modes::embedded::checkpoint_envelopes::EmbeddedCheckpointClassification::Ephemeral;
 }
 

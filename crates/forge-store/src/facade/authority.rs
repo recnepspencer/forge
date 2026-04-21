@@ -1,9 +1,21 @@
 use crate::{
-    authority::{AdvanceCursorWitness, AuthoritativeBranchHeadRecord, DurableCursorAcknowledgeRequest, DurableCursorResumePlan, DurableCursorResumeRequest, FetchedAuthoritativeCommit, FetchedDurableCursorIdentity, PersistedAuthoritativeCommit, PersistedSubscriberCheckpoint, ResumeAdmittedCursor},
-    delta::{BranchDeltaReadPlan, BranchDeltaReadRequest, BranchDeltaReadResult, SameBranchDescendantWitness, SharedBaseBranchCreationReceipt, SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness},
+    authority::{
+        AdvanceCursorWitness, AuthoritativeBranchHeadRecord, DurableCursorAcknowledgeRequest,
+        DurableCursorResumePlan, DurableCursorResumeRequest, FetchedAuthoritativeCommit,
+        FetchedDurableCursorIdentity, PersistedAuthoritativeCommit, PersistedSubscriberCheckpoint,
+        ResumeAdmittedCursor,
+    },
+    delta::{
+        BranchDeltaReadPlan, BranchDeltaReadRequest, BranchDeltaReadResult,
+        SameBranchDescendantWitness, SharedBaseBranchCreationReceipt,
+        SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
+    },
     failure::StoreError,
 };
-use forge_relational::facade::{history::{BranchId, CommitId}, replay::CanonicalCommitEnvelope};
+use forge_relational::facade::{
+    history::{BranchId, CommitId},
+    replay::CanonicalCommitEnvelope,
+};
 
 use super::ForgeStore;
 
@@ -13,7 +25,11 @@ impl ForgeStore {
         new_branch: BranchId,
         from_branch: Option<&BranchId>,
     ) -> Result<AuthoritativeBranchHeadRecord, StoreError> {
-        self.backend.create_branch(new_branch, from_branch)
+        let result = self
+            .backend
+            .create_branch(new_branch.clone(), from_branch)?;
+        Ok(result
+            .with_foreground_isolation(self.backend.assess_write_foreground_isolation(&new_branch)))
     }
 
     pub fn create_shared_base_branch(
@@ -117,7 +133,6 @@ impl ForgeStore {
         self.backend.plan_cursor_resume(request)
     }
 
-
     pub fn admit_cursor_resume(
         &self,
         request: DurableCursorResumeRequest,
@@ -159,7 +174,11 @@ impl ForgeStore {
         &mut self,
         witness: AdvanceCursorWitness,
     ) -> Result<PersistedSubscriberCheckpoint, StoreError> {
-        self.backend.acknowledge_cursor(witness.into_request())
+        let branch_id = witness.request().branch_id().clone();
+        Ok(self
+            .backend
+            .acknowledge_cursor(witness.into_request())?
+            .with_foreground_isolation(self.backend.assess_write_foreground_isolation(&branch_id)))
     }
 
     pub fn acknowledge_resumed_cursor_progress(
@@ -173,6 +192,10 @@ impl ForgeStore {
                 "resume-admitted cursor and advance witness must reference the same cursor identity",
             ));
         }
-        self.backend.acknowledge_cursor(witness.into_request())
+        let branch_id = witness.request().branch_id().clone();
+        Ok(self
+            .backend
+            .acknowledge_cursor(witness.into_request())?
+            .with_foreground_isolation(self.backend.assess_write_foreground_isolation(&branch_id)))
     }
 }

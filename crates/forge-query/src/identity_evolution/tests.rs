@@ -1,18 +1,21 @@
 use super::{
     admit_identity_evolution_query, admit_identity_evolution_query_for_scenario,
+    compare_identity_evolution_denial_replay, compare_identity_evolution_result_replay,
     execute_admitted_identity_evolution_query,
     runtime_backed_direct_identity_evolution_support_profile, AdvisoryIdentityCandidateSet,
-    BranchLocalityClass, CorrespondenceIdentityComparison, IdentityEvolutionAmbiguityBundle,
-    IdentityEvolutionCertificationDenialEvidence, IdentityEvolutionCertificationResultEvidence,
-    IdentityComparisonIntent, IdentityEvolutionAdmissionFailureClass,
-    IdentityEvolutionComparisonBasisFamily, IdentityEvolutionComplexityContract,
-    IdentityEvolutionComplexityReport, IdentityEvolutionComplexityStatus,
-    IdentityEvolutionDeniedBundle, IdentityEvolutionExecutionFamily, IdentityEvolutionMetadata,
-    IdentityEvolutionOutcomeFamily, IdentityEvolutionQueryContext, IdentityEvolutionQueryFamily,
-    IdentityEvolutionReplayParityClass, IdentityEvolutionResultBundle,
-    IdentityEvolutionSyntheticScenario, LineageTraversalDescriptor, LineageTraversalFamily,
+    BranchLocalityClass, CorrespondenceIdentityComparison, IdentityComparisonIntent,
+    IdentityEvolutionAdmissionFailureClass, IdentityEvolutionAmbiguityBundle,
+    IdentityEvolutionAmbiguityReason, IdentityEvolutionCertificationDenialEvidence,
+    IdentityEvolutionCertificationResultEvidence, IdentityEvolutionComparisonBasisFamily,
+    IdentityEvolutionComplexityContract, IdentityEvolutionComplexityReport,
+    IdentityEvolutionComplexityStatus, IdentityEvolutionDenialReason,
+    IdentityEvolutionDeniedBundle, IdentityEvolutionExecutionFamily,
+    IdentityEvolutionIdentityBreakBundle, IdentityEvolutionIdentityBreakReason,
+    IdentityEvolutionMetadata, IdentityEvolutionOutcomeFamily, IdentityEvolutionQueryContext,
+    IdentityEvolutionQueryFamily, IdentityEvolutionReplayParityClass,
+    IdentityEvolutionResultBundle, IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact,
+    InspectorIdentityClassification, LineageTraversalDescriptor, LineageTraversalFamily,
     PluralIdentitySuccessorSet, PromotionOrMergeAuthorityState, SingularIdentityContinuityResult,
-    compare_identity_evolution_denial_replay, compare_identity_evolution_result_replay,
 };
 use crate::identity::{BasisDigest, CanonicalQueryDigest, LineageDigest};
 
@@ -65,6 +68,26 @@ fn identity_evolution_family_vocabulary_is_stable() {
         IdentityEvolutionOutcomeFamily::AdvisoryIdentityCandidateSet.as_str(),
         "advisory_identity_candidate_set"
     );
+    assert_eq!(
+        IdentityEvolutionOutcomeFamily::IdentityBreak.as_str(),
+        "identity_break"
+    );
+    assert_eq!(
+        IdentityEvolutionComparisonBasisFamily::PreviewToAuthoritative.as_str(),
+        "preview_to_authoritative"
+    );
+    assert_eq!(
+        IdentityEvolutionAmbiguityReason::AmbiguousCorrespondenceCandidates.as_str(),
+        "ambiguous_correspondence_candidates"
+    );
+    assert_eq!(
+        IdentityEvolutionDenialReason::RecursiveTraversalDeferred.as_str(),
+        "recursive_traversal_deferred"
+    );
+    assert_eq!(
+        IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak.as_str(),
+        "explicit_identity_break"
+    );
 }
 
 #[test]
@@ -82,7 +105,63 @@ fn direct_only_support_profile_is_explicit() {
             LineageTraversalFamily::BranchLocalDirectEvolution,
         ]
     );
-    assert_eq!(support_profile.deferred_scope_markers().len(), 3);
+    assert_eq!(
+        support_profile.admitted_comparison_basis_families(),
+        &[
+            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+            IdentityEvolutionComparisonBasisFamily::CurrentToHistorical,
+            IdentityEvolutionComparisonBasisFamily::HistoricalToHistorical,
+            IdentityEvolutionComparisonBasisFamily::PreviewToAuthoritative,
+        ]
+    );
+    assert_eq!(
+        support_profile.deferred_scope_markers(),
+        &[
+            super::IdentityEvolutionDeferredScopeMarker::RecursiveTraversal,
+            super::IdentityEvolutionDeferredScopeMarker::BroadCollectionDiscovery,
+            super::IdentityEvolutionDeferredScopeMarker::StoreBackedParity,
+            super::IdentityEvolutionDeferredScopeMarker::IdentityAwareNonInspectorViews,
+        ]
+    );
+    assert_eq!(
+        support_profile
+            .lineage_complexity_contracts()
+            .iter()
+            .map(IdentityEvolutionComplexityContract::contract_name)
+            .collect::<Vec<_>>(),
+        vec![
+            "direct_predecessor",
+            "direct_successor",
+            "direct_replacement",
+            "direct_split_successors",
+            "direct_merge_successor",
+            "branch_local_direct_evolution",
+        ]
+    );
+    assert_eq!(
+        support_profile
+            .comparison_complexity_contracts()
+            .iter()
+            .map(IdentityEvolutionComplexityContract::contract_name)
+            .collect::<Vec<_>>(),
+        vec![
+            "branch_to_branch_identity_comparison",
+            "current_to_historical_identity_comparison",
+            "historical_to_historical_identity_comparison",
+            "preview_to_authoritative_identity_comparison",
+        ]
+    );
+    assert_eq!(
+        support_profile.admitted_inspector_consumable_identity_classifications(),
+        &[
+            InspectorIdentityClassification::IdentitySummary,
+            InspectorIdentityClassification::AuthoritativeContinuity,
+            InspectorIdentityClassification::AdvisoryCandidates,
+            InspectorIdentityClassification::Ambiguity,
+            InspectorIdentityClassification::IdentityBreak,
+            InspectorIdentityClassification::Denied,
+        ]
+    );
     assert!(!support_profile.profile_digest().is_empty());
 }
 
@@ -121,14 +200,15 @@ fn result_family_cardinality_stays_separated() {
 
     let singular_bundle = IdentityEvolutionResultBundle::singular_identity_continuity(singular);
     let plural_bundle = IdentityEvolutionResultBundle::plural_identity_successor_set(plural);
-    let advisory_bundle =
-        IdentityEvolutionResultBundle::advisory_identity_candidate_set(advisory);
+    let advisory_bundle = IdentityEvolutionResultBundle::advisory_identity_candidate_set(advisory);
 
     assert!(singular_bundle.as_singular_identity_continuity().is_some());
     assert!(singular_bundle.as_plural_identity_successor_set().is_none());
     assert!(plural_bundle.as_plural_identity_successor_set().is_some());
     assert!(plural_bundle.as_advisory_identity_candidate_set().is_none());
-    assert!(advisory_bundle.as_advisory_identity_candidate_set().is_some());
+    assert!(advisory_bundle
+        .as_advisory_identity_candidate_set()
+        .is_some());
     assert!(advisory_bundle.as_singular_identity_continuity().is_none());
 }
 
@@ -160,7 +240,10 @@ fn branch_locality_fields_participate_in_metadata_digest() {
         BranchLocalityClass::BranchLocalOnly,
     );
 
-    assert_eq!(metadata.branch_locality_class(), BranchLocalityClass::BranchLocalOnly);
+    assert_eq!(
+        metadata.branch_locality_class(),
+        BranchLocalityClass::BranchLocalOnly
+    );
     assert_eq!(
         metadata.promotion_or_merge_authority_state(),
         PromotionOrMergeAuthorityState::NotRequired
@@ -189,11 +272,9 @@ fn query_context_keeps_lineage_and_correspondence_shapes_distinct() {
         IdentityEvolutionQueryFamily::LineageTraversal
     );
     assert!(lineage_context.lineage_traversal_descriptor().is_some());
-    assert!(
-        correspondence_context
-            .correspondence_identity_comparison_descriptor()
-            .is_some()
-    );
+    assert!(correspondence_context
+        .correspondence_identity_comparison_descriptor()
+        .is_some());
 }
 
 #[test]
@@ -204,7 +285,7 @@ fn ambiguity_and_denial_remain_distinct_result_families() {
             IdentityEvolutionComplexityContract::denied_or_deferred("ambiguity"),
             BranchLocalityClass::CrossBranchDenied,
         ),
-        "multiple authoritative continuities",
+        IdentityEvolutionAmbiguityReason::MultipleAuthoritativeContinuities,
     );
     let denied = IdentityEvolutionDeniedBundle::new(
         metadata(
@@ -212,7 +293,7 @@ fn ambiguity_and_denial_remain_distinct_result_families() {
             IdentityEvolutionComplexityContract::denied_or_deferred("denied"),
             BranchLocalityClass::CrossBranchDenied,
         ),
-        "recursive traversal deferred",
+        IdentityEvolutionDenialReason::RecursiveTraversalDeferred,
     );
 
     let ambiguity_bundle = IdentityEvolutionResultBundle::ambiguity(ambiguity);
@@ -225,7 +306,35 @@ fn ambiguity_and_denial_remain_distinct_result_families() {
 }
 
 #[test]
-fn lineage_traversal_admission_rejects_correspondence_contexts() {
+fn identity_break_remains_distinct_from_denial() {
+    let identity_break = IdentityEvolutionIdentityBreakBundle::new(
+        metadata(
+            IdentityEvolutionOutcomeFamily::IdentityBreak,
+            IdentityEvolutionComplexityContract::denied_or_deferred("identity_break"),
+            BranchLocalityClass::CrossBranchAuthoritative,
+        ),
+        IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak,
+    );
+    let denied = IdentityEvolutionDeniedBundle::new(
+        metadata(
+            IdentityEvolutionOutcomeFamily::Denied,
+            IdentityEvolutionComplexityContract::denied_or_deferred("denied"),
+            BranchLocalityClass::CrossBranchDenied,
+        ),
+        IdentityEvolutionDenialReason::RecursiveTraversalDeferred,
+    );
+
+    let identity_break_bundle = IdentityEvolutionResultBundle::identity_break(identity_break);
+    let denied_bundle = IdentityEvolutionResultBundle::denied(denied);
+
+    assert!(identity_break_bundle.as_identity_break().is_some());
+    assert!(identity_break_bundle.as_denied().is_none());
+    assert!(denied_bundle.as_denied().is_some());
+    assert!(denied_bundle.as_identity_break().is_none());
+}
+
+#[test]
+fn correspondence_context_admits_as_distinct_shape() {
     let context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
         query_digest("correspondence"),
         IdentityEvolutionComparisonBasisFamily::BranchToBranch,
@@ -236,6 +345,7 @@ fn lineage_traversal_admission_rejects_correspondence_contexts() {
 
     let admitted = admit_identity_evolution_query(context).expect("comparison should now admit");
     assert!(admitted.correspondence_identity_comparison().is_some());
+    assert!(admitted.traversal_descriptor().is_none());
 }
 
 #[test]
@@ -246,7 +356,8 @@ fn lineage_traversal_admission_requires_anchor_identity() {
         LineageTraversalDescriptor::direct_predecessor(""),
     );
 
-    let error = admit_identity_evolution_query(context).expect_err("empty anchors must be rejected");
+    let error =
+        admit_identity_evolution_query(context).expect_err("empty anchors must be rejected");
     assert_eq!(
         error.failure_class(),
         &IdentityEvolutionAdmissionFailureClass::MissingLineageAnchor
@@ -255,12 +366,13 @@ fn lineage_traversal_admission_requires_anchor_identity() {
 
 #[test]
 fn split_successor_execution_shapes_plural_result() {
-    let admitted = admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
-        query_digest("split"),
-        basis_digest("basis"),
-        LineageTraversalDescriptor::direct_split_successors("anchor"),
-    ))
-    .expect("split traversal should admit");
+    let admitted =
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+            query_digest("split"),
+            basis_digest("basis"),
+            LineageTraversalDescriptor::direct_split_successors("anchor"),
+        ))
+        .expect("split traversal should admit");
 
     let artifact = execute_admitted_identity_evolution_query(&admitted)
         .expect("split traversal should execute");
@@ -269,28 +381,29 @@ fn split_successor_execution_shapes_plural_result() {
         artifact.family(),
         &IdentityEvolutionExecutionFamily::DirectSplitSuccessors
     );
-    assert!(artifact.result_bundle().as_plural_identity_successor_set().is_some());
+    assert!(artifact
+        .result_bundle()
+        .as_plural_identity_successor_set()
+        .is_some());
     assert_eq!(artifact.counters().split_successor_fanout_width(), 2);
     assert_eq!(artifact.counters().executor_rediscovery_count(), 0);
 }
 
 #[test]
 fn branch_local_execution_keeps_locality_explicit() {
-    let admitted = admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
-        query_digest("branch-local"),
-        basis_digest("basis"),
-        LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
-    ))
-    .expect("branch-local traversal should admit");
+    let admitted =
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+            query_digest("branch-local"),
+            basis_digest("basis"),
+            LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
+        ))
+        .expect("branch-local traversal should admit");
 
     let artifact = execute_admitted_identity_evolution_query(&admitted)
         .expect("branch-local traversal should execute");
 
     assert_eq!(
-        artifact
-            .result_bundle()
-            .metadata()
-            .branch_locality_class(),
+        artifact.result_bundle().metadata().branch_locality_class(),
         BranchLocalityClass::BranchLocalOnly
     );
     assert_eq!(artifact.counters().branch_local_boundary_check_count(), 1);
@@ -313,10 +426,7 @@ fn branch_crossing_probe_shapes_denial_bundle() {
 
     assert!(artifact.result_bundle().as_denied().is_some());
     assert_eq!(
-        artifact
-            .result_bundle()
-            .metadata()
-            .branch_locality_class(),
+        artifact.result_bundle().metadata().branch_locality_class(),
         BranchLocalityClass::CrossBranchDenied
     );
     assert_eq!(artifact.counters().unsupported_lineage_denial_count(), 1);
@@ -356,7 +466,8 @@ fn comparison_admission_requires_distinct_bases() {
         CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
     );
 
-    let error = admit_identity_evolution_query(context).expect_err("same-basis comparison must deny");
+    let error =
+        admit_identity_evolution_query(context).expect_err("same-basis comparison must deny");
     assert_eq!(
         error.failure_class(),
         &IdentityEvolutionAdmissionFailureClass::ComparisonBasisPairingRequired
@@ -365,25 +476,35 @@ fn comparison_admission_requires_distinct_bases() {
 
 #[test]
 fn advisory_comparison_shapes_candidate_set() {
-    let admitted = admit_identity_evolution_query(IdentityEvolutionQueryContext::correspondence_identity_comparison(
-        query_digest("comparison"),
-        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-        basis_digest("left"),
-        basis_digest("right"),
-        CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
-    ))
+    let admitted = admit_identity_evolution_query(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            query_digest("comparison"),
+            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+            basis_digest("left"),
+            basis_digest("right"),
+            CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+        ),
+    )
     .expect("comparison should admit");
 
-    let artifact = execute_admitted_identity_evolution_query(&admitted)
-        .expect("comparison should execute");
+    let artifact =
+        execute_admitted_identity_evolution_query(&admitted).expect("comparison should execute");
 
     assert_eq!(
         artifact.family(),
         &IdentityEvolutionExecutionFamily::BranchToBranchComparison
     );
-    assert!(artifact.result_bundle().as_advisory_identity_candidate_set().is_some());
+    assert!(artifact
+        .result_bundle()
+        .as_advisory_identity_candidate_set()
+        .is_some());
     assert_eq!(artifact.counters().correspondence_candidate_count(), 2);
-    assert_eq!(artifact.counters().lineage_to_correspondence_fallback_count(), 0);
+    assert_eq!(
+        artifact
+            .counters()
+            .lineage_to_correspondence_fallback_count(),
+        0
+    );
 }
 
 #[test]
@@ -404,7 +525,10 @@ fn authoritative_comparison_denies_when_authority_is_unavailable() {
         .expect("comparison should shape denial");
 
     assert!(artifact.result_bundle().as_denied().is_some());
-    assert_eq!(artifact.counters().advisory_as_authoritative_denial_count(), 1);
+    assert_eq!(
+        artifact.counters().advisory_as_authoritative_denial_count(),
+        1
+    );
     assert_eq!(artifact.counters().branch_crossing_denial_count(), 1);
 }
 
@@ -422,8 +546,8 @@ fn ambiguous_comparison_shapes_ambiguity_bundle() {
     )
     .expect("comparison should admit");
 
-    let artifact = execute_admitted_identity_evolution_query(&admitted)
-        .expect("comparison should execute");
+    let artifact =
+        execute_admitted_identity_evolution_query(&admitted).expect("comparison should execute");
 
     assert!(artifact.result_bundle().as_ambiguity().is_some());
     assert_eq!(artifact.counters().ambiguous_correspondence_count(), 1);
@@ -443,8 +567,8 @@ fn branch_local_comparison_preserves_branch_locality_metadata() {
     )
     .expect("comparison should admit");
 
-    let artifact = execute_admitted_identity_evolution_query(&admitted)
-        .expect("comparison should execute");
+    let artifact =
+        execute_admitted_identity_evolution_query(&admitted).expect("comparison should execute");
 
     assert_eq!(
         artifact.result_bundle().metadata().branch_locality_class(),
@@ -455,19 +579,23 @@ fn branch_local_comparison_preserves_branch_locality_metadata() {
 
 #[test]
 fn result_evidence_exposes_required_digests() {
-    let admitted = admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
-        query_digest("replacement-evidence"),
-        basis_digest("basis"),
-        LineageTraversalDescriptor::direct_replacement("anchor"),
-    ))
-    .expect("replacement should admit");
-    let artifact = execute_admitted_identity_evolution_query(&admitted)
-        .expect("replacement should execute");
+    let admitted =
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+            query_digest("replacement-evidence"),
+            basis_digest("basis"),
+            LineageTraversalDescriptor::direct_replacement("anchor"),
+        ))
+        .expect("replacement should admit");
+    let artifact =
+        execute_admitted_identity_evolution_query(&admitted).expect("replacement should execute");
     let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(&artifact);
 
     assert_eq!(evidence.query_digest().as_str(), artifact.query_digest());
     assert_eq!(evidence.basis_digest().as_str(), artifact.basis_digest());
-    assert_eq!(evidence.lineage_digest().as_str(), artifact.lineage_digest());
+    assert_eq!(
+        evidence.lineage_digest().as_str(),
+        artifact.lineage_digest()
+    );
     assert_eq!(evidence.result_digest(), artifact.result_digest());
     assert!(!evidence.branch_locality_digest().as_str().is_empty());
     assert!(!evidence.complexity_contract_digest().as_str().is_empty());
@@ -496,7 +624,10 @@ fn denial_evidence_exposes_required_digests() {
 
     assert_eq!(evidence.query_digest().as_str(), artifact.query_digest());
     assert_eq!(evidence.basis_digest().as_str(), artifact.basis_digest());
-    assert_eq!(evidence.lineage_digest().as_str(), artifact.lineage_digest());
+    assert_eq!(
+        evidence.lineage_digest().as_str(),
+        artifact.lineage_digest()
+    );
     assert_eq!(evidence.result_digest(), artifact.result_digest());
     assert!(!evidence.failure_digest().as_str().is_empty());
     assert!(!evidence
@@ -507,19 +638,92 @@ fn denial_evidence_exposes_required_digests() {
 }
 
 #[test]
+fn inspector_identity_artifact_preserves_identity_break_classification() {
+    let bundle =
+        IdentityEvolutionResultBundle::identity_break(IdentityEvolutionIdentityBreakBundle::new(
+            metadata(
+                IdentityEvolutionOutcomeFamily::IdentityBreak,
+                IdentityEvolutionComplexityContract::denied_or_deferred("identity_break"),
+                BranchLocalityClass::BranchLocalOnly,
+            ),
+            IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak,
+        ));
+
+    let artifact = InspectorIdentityArtifact::from_result_bundle(&bundle);
+    assert_eq!(
+        artifact.classification(),
+        InspectorIdentityClassification::IdentityBreak
+    );
+    assert!(artifact.identity_break());
+    assert_eq!(
+        artifact.branch_locality_class(),
+        BranchLocalityClass::BranchLocalOnly
+    );
+}
+
+#[test]
+fn typed_reason_taxonomy_stays_closed_inside_result_bundles() {
+    let ambiguity = IdentityEvolutionAmbiguityBundle::new(
+        metadata(
+            IdentityEvolutionOutcomeFamily::Ambiguity,
+            IdentityEvolutionComplexityContract::denied_or_deferred("ambiguity"),
+            BranchLocalityClass::CrossBranchDenied,
+        ),
+        IdentityEvolutionAmbiguityReason::AmbiguousCorrespondenceCandidates,
+    );
+    let denial = IdentityEvolutionDeniedBundle::new(
+        metadata(
+            IdentityEvolutionOutcomeFamily::Denied,
+            IdentityEvolutionComplexityContract::denied_or_deferred("denied"),
+            BranchLocalityClass::CrossBranchDenied,
+        ),
+        IdentityEvolutionDenialReason::ComplexityContractViolationDenied,
+    );
+    let identity_break = IdentityEvolutionIdentityBreakBundle::new(
+        metadata(
+            IdentityEvolutionOutcomeFamily::IdentityBreak,
+            IdentityEvolutionComplexityContract::denied_or_deferred("identity_break"),
+            BranchLocalityClass::CrossBranchAuthoritative,
+        ),
+        IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak,
+    );
+
+    assert_eq!(
+        ambiguity.ambiguity_reason(),
+        IdentityEvolutionAmbiguityReason::AmbiguousCorrespondenceCandidates
+    );
+    assert_eq!(
+        denial.denial_reason(),
+        IdentityEvolutionDenialReason::ComplexityContractViolationDenied
+    );
+    assert_eq!(
+        identity_break.identity_break_reason(),
+        IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak
+    );
+    assert_ne!(
+        ambiguity.ambiguity_digest().as_str(),
+        denial.denial_digest().as_str()
+    );
+}
+
+#[test]
 fn replay_artifact_stays_equivalent_for_same_result_evidence() {
-    let admitted = admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
-        query_digest("replay"),
-        basis_digest("basis"),
-        LineageTraversalDescriptor::direct_replacement("anchor"),
-    ))
-    .expect("replacement should admit");
-    let artifact = execute_admitted_identity_evolution_query(&admitted)
-        .expect("replacement should execute");
+    let admitted =
+        admit_identity_evolution_query(IdentityEvolutionQueryContext::lineage_traversal(
+            query_digest("replay"),
+            basis_digest("basis"),
+            LineageTraversalDescriptor::direct_replacement("anchor"),
+        ))
+        .expect("replacement should admit");
+    let artifact =
+        execute_admitted_identity_evolution_query(&admitted).expect("replacement should execute");
     let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(&artifact);
     let replay = compare_identity_evolution_result_replay(&evidence, &evidence);
 
-    assert_eq!(replay.parity_class(), IdentityEvolutionReplayParityClass::ReplayEquivalent);
+    assert_eq!(
+        replay.parity_class(),
+        IdentityEvolutionReplayParityClass::ReplayEquivalent
+    );
     assert!(!replay.replay_digest().as_str().is_empty());
 }
 
@@ -537,5 +741,8 @@ fn replay_artifact_detects_divergent_denial_classification() {
     );
     let replay = compare_identity_evolution_denial_replay(&left, &right);
 
-    assert_eq!(replay.parity_class(), IdentityEvolutionReplayParityClass::ReplayDivergent);
+    assert_eq!(
+        replay.parity_class(),
+        IdentityEvolutionReplayParityClass::ReplayDivergent
+    );
 }

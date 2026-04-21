@@ -31,9 +31,15 @@ pub struct RecoveryOperatorAction {
 }
 
 impl RecoveryOperatorAction {
-    pub fn kind(&self) -> RecoveryOperatorActionKind { self.kind }
-    pub fn scope_identity(&self) -> &str { &self.scope_identity }
-    pub fn reason(&self) -> &str { &self.reason }
+    pub fn kind(&self) -> RecoveryOperatorActionKind {
+        self.kind
+    }
+    pub fn scope_identity(&self) -> &str {
+        &self.scope_identity
+    }
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 }
 
 pub(super) fn determine_operator_disposition(
@@ -116,14 +122,20 @@ pub(super) fn build_recommended_actions(
             MaintenanceRecoveryDisposition::RequireRebuild => {
                 actions.push(RecoveryOperatorAction {
                     kind: RecoveryOperatorActionKind::RebuildMaintenanceArtifact,
-                    scope_identity: format_maintenance_scope(entry.family(), entry.scope_identity()),
+                    scope_identity: format_maintenance_scope(
+                        entry.family(),
+                        entry.scope_identity(),
+                    ),
                     reason: entry.reason().to_string(),
                 });
             }
             MaintenanceRecoveryDisposition::RequireQuarantine => {
                 actions.push(RecoveryOperatorAction {
                     kind: RecoveryOperatorActionKind::QuarantineScope,
-                    scope_identity: format_maintenance_scope(entry.family(), entry.scope_identity()),
+                    scope_identity: format_maintenance_scope(
+                        entry.family(),
+                        entry.scope_identity(),
+                    ),
                     reason: entry.reason().to_string(),
                 });
             }

@@ -196,4 +196,3 @@ pub fn force_clear_milestone_6_materializations_and_derived_access_structures(
     )
     .expect("milestone 6 materialization and derived clear should write");
 }
-

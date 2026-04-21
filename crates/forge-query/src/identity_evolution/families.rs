@@ -49,6 +49,7 @@ pub enum IdentityEvolutionOutcomeFamily {
     PluralIdentitySuccessorSet,
     AdvisoryIdentityCandidateSet,
     Ambiguity,
+    IdentityBreak,
     Denied,
 }
 
@@ -59,7 +60,65 @@ impl IdentityEvolutionOutcomeFamily {
             Self::PluralIdentitySuccessorSet => "plural_identity_successor_set",
             Self::AdvisoryIdentityCandidateSet => "advisory_identity_candidate_set",
             Self::Ambiguity => "ambiguity",
+            Self::IdentityBreak => "identity_break",
             Self::Denied => "denied",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum IdentityEvolutionAmbiguityReason {
+    MultipleAuthoritativeContinuities,
+    AmbiguousCorrespondenceCandidates,
+}
+
+impl IdentityEvolutionAmbiguityReason {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::MultipleAuthoritativeContinuities => "multiple_authoritative_continuities",
+            Self::AmbiguousCorrespondenceCandidates => "ambiguous_correspondence_candidates",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum IdentityEvolutionIdentityBreakReason {
+    ExplicitIdentityBreak,
+}
+
+impl IdentityEvolutionIdentityBreakReason {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::ExplicitIdentityBreak => "explicit_identity_break",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum IdentityEvolutionDenialReason {
+    RecursiveTraversalDeferred,
+    BroadLineageScanRequired,
+    ComplexityContractViolationDenied,
+    LineageToCorrespondenceFallbackForbidden,
+    BranchCrossingLineageWithoutAdmittedBasisPairing,
+    AuthoritativeContinuityRequiresAuthorityEvidence,
+}
+
+impl IdentityEvolutionDenialReason {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RecursiveTraversalDeferred => "recursive_traversal_deferred",
+            Self::BroadLineageScanRequired => "broad_lineage_scan_required",
+            Self::ComplexityContractViolationDenied => "complexity_contract_violation_denied",
+            Self::LineageToCorrespondenceFallbackForbidden => {
+                "lineage_to_correspondence_fallback_forbidden"
+            }
+            Self::BranchCrossingLineageWithoutAdmittedBasisPairing => {
+                "branch_crossing_lineage_without_admitted_basis_pairing"
+            }
+            Self::AuthoritativeContinuityRequiresAuthorityEvidence => {
+                "authoritative_continuity_requires_authority_evidence"
+            }
         }
     }
 }

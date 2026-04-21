@@ -20,14 +20,15 @@ pub use milestone_10::{
     Milestone10ComplexityPathStatus, Milestone10ComplexitySurface, Milestone10CounterContract,
 };
 pub use milestone_11::{
-    Milestone11ComplexityPathStatus, Milestone11ComplexitySurface,
-    Milestone11CounterContract, Milestone11LocalityScopeCount, Milestone11MaintenanceReport,
-    Milestone11ReservationFamilyCount, Milestone11SchedulerTopologyReport,
-    Milestone11WorkClassCount,
+    Milestone11CertificationBundle, Milestone11CertificationSummary,
+    Milestone11ComplexityPathStatus, Milestone11ComplexitySurface, Milestone11CounterContract,
+    Milestone11DebtEscalationReport, Milestone11InterferenceMatrixEntry,
+    Milestone11LocalityScopeCount, Milestone11MaintenanceReport, Milestone11ReservationFamilyCount,
+    Milestone11ResourceBudgetReport, Milestone11SchedulerTopologyReport, Milestone11WorkClassCount,
 };
 pub use milestone_13::{
-    Milestone13ComplexityPathStatus, Milestone13ComplexitySurface,
-    Milestone13CounterContract,
+    Milestone13ArtifactReport, Milestone13CertificationBundle, Milestone13CertificationSummary,
+    Milestone13ComplexityPathStatus, Milestone13ComplexitySurface, Milestone13CounterContract,
 };
 pub use milestone_2::{
     AbsentModeLaneEvidence, CheckpointAuthorityReport, Milestone2CertificationBundle,

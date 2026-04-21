@@ -381,10 +381,12 @@ Required admitted artifacts:
 - `IdentityEvolutionQueryContext`
 - `AdmittedIdentityEvolutionQuery`
 - `CorrespondenceIdentityComparison`
+- `IdentityEvolutionComparisonBasisFamily`
 - `IdentityEvolutionMetadata`
 - `IdentityEvolutionResultBundle`
 - `IdentityEvolutionPredictionReport`
 - `IdentityEvolutionComplexityReport`
+- `IdentityEvolutionSupportProfile`
 
 Required cardinality-bearing result artifacts:
 
@@ -392,7 +394,14 @@ Required cardinality-bearing result artifacts:
 - `PluralIdentitySuccessorSet`
 - `AdvisoryIdentityCandidateSet`
 - `IdentityEvolutionAmbiguityBundle`
+- `IdentityEvolutionIdentityBreakBundle`
 - `IdentityEvolutionDeniedBundle`
+
+Required inspector-consumable identity artifacts:
+
+- `InspectorIdentityArtifact`
+- `InspectorIdentityClassification`
+- `InspectorIdentityDigest`
 
 Required identity-evolution outcome classes:
 
@@ -403,6 +412,7 @@ Required identity-evolution outcome classes:
 - `AuthoritativeMergeSuccessor`
 - `AdvisoryCorrespondenceCandidate`
 - `AmbiguousCorrespondence`
+- `IdentityBreak`
 - `IdentityEvolutionDenied`
 
 Initial admitted traversal shapes:
@@ -601,6 +611,9 @@ Milestone 7 must then implement:
 - identity-evolution result bundles and denial bundles
 - explicit metadata attachment for lineage basis, comparison basis,
   branch-locality posture, and identity-evolution outcome family
+- support truth that reports admitted traversal families, admitted comparison
+  basis families, comparison complexity posture, and inspector-consumable
+  identity classifications explicitly rather than only lineage traversal scope
 - support-matrix and capability-admission updates for the new admitted
   lineage/correspondence families
 - unified-facade exposure for admitted identity-evolution capability surfaces
@@ -662,8 +675,9 @@ Phase exit criterion:
   materially equivalent types
 - compile-time-distinct `SingularIdentityContinuityResult`,
   `PluralIdentitySuccessorSet`, `AdvisoryIdentityCandidateSet`,
-  `IdentityEvolutionAmbiguityBundle`, and `IdentityEvolutionDeniedBundle`
-  families or materially equivalent proof-bearing types
+  `IdentityEvolutionAmbiguityBundle`, `IdentityEvolutionIdentityBreakBundle`,
+  and `IdentityEvolutionDeniedBundle` families or materially equivalent
+  proof-bearing types
 - explicit lineage traversal query expressions for admitted antecedent,
   successor, replacement, split, and merge-successor reads
 - correspondence-aware identity-comparison query expressions over two
@@ -677,6 +691,9 @@ Phase exit criterion:
   and correspondence-aware identity comparison
 - explicit complexity reports embedded in admitted result bundles and denial
   bundles, not only certification harness artifacts
+- one inspector-consumable identity wrapper surface that preserves identity
+  classification, branch-locality posture, and replay-stable digest without
+  exposing raw identity-evolution internals directly to Milestone 8 view code
 - unified-facade composition and support-truth updates for admitted
   identity-evolution capability families
 - milestone-native certification proving lineage parity, correspondence
@@ -871,6 +888,11 @@ Milestone 7 is complete only when `forge-query` can prove:
   evolution classes
 - correspondence-aware identity comparison stays explicit about ambiguity,
   branch-local divergence, and rejection
+- explicit identity break remains distinct from generic denial in public result
+  families, replay artifacts, and certification evidence
+- Milestone 8-facing inspector consumption can preserve identity
+  classification without flattening continuity, advisory, ambiguity, identity
+  break, or denial into one convenience surface
 - replay preserves lineage/correspondence meaning for the same lineage basis
 - unsupported lineage or correspondence classes fail typed and early
 
@@ -917,9 +939,13 @@ Minimum representative scenarios:
   admitted explicit correspondence family
 - `identity-break-explicit`
   - one lane produces an explicit identity break rather than silent absence
+- `identity-aware-inspector-consumption-parity`
+  - one admitted identity-evolution artifact lowers into the inspector-facing
+    wrapper surface without changing identity classification or
+    branch-locality class
 - `advisory-as-authoritative-forbidden`
   - one hostile lane tries to demand continuity from advisory-only evidence and
-    fails typed and early
+  fails typed and early
 - `broad-lineage-scan-forbidden`
   - one hostile lane attempts broad lineage discovery outside the admitted
     anchor-bound width and is denied before rich result shaping

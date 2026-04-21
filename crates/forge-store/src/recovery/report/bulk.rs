@@ -72,20 +72,48 @@ impl BulkRecoverySummary {
         summary
     }
 
-    pub fn total_chunks(&self) -> usize { self.total_chunks }
-    pub fn ingest_chunks(&self) -> usize { self.ingest_chunks }
-    pub fn transform_chunks(&self) -> usize { self.transform_chunks }
-    pub fn resume_ready(&self) -> usize { self.resume_ready }
-    pub fn already_published(&self) -> usize { self.already_published }
-    pub fn discardable_intent(&self) -> usize { self.discardable_intent }
-    pub fn needs_rebuild(&self) -> usize { self.needs_rebuild }
-    pub fn needs_quarantine(&self) -> usize { self.needs_quarantine }
-    pub fn published_authoritative_truth(&self) -> usize { self.published_authoritative_truth }
-    pub fn hosted_runtime_canonical_result(&self) -> usize { self.hosted_runtime_canonical_result }
-    pub fn intent_only(&self) -> usize { self.intent_only }
-    pub fn requires_rebuild(&self) -> usize { self.requires_rebuild }
-    pub fn requires_quarantine(&self) -> usize { self.requires_quarantine }
-    pub fn maintenance_residue(&self) -> usize { self.maintenance_residue }
+    pub fn total_chunks(&self) -> usize {
+        self.total_chunks
+    }
+    pub fn ingest_chunks(&self) -> usize {
+        self.ingest_chunks
+    }
+    pub fn transform_chunks(&self) -> usize {
+        self.transform_chunks
+    }
+    pub fn resume_ready(&self) -> usize {
+        self.resume_ready
+    }
+    pub fn already_published(&self) -> usize {
+        self.already_published
+    }
+    pub fn discardable_intent(&self) -> usize {
+        self.discardable_intent
+    }
+    pub fn needs_rebuild(&self) -> usize {
+        self.needs_rebuild
+    }
+    pub fn needs_quarantine(&self) -> usize {
+        self.needs_quarantine
+    }
+    pub fn published_authoritative_truth(&self) -> usize {
+        self.published_authoritative_truth
+    }
+    pub fn hosted_runtime_canonical_result(&self) -> usize {
+        self.hosted_runtime_canonical_result
+    }
+    pub fn intent_only(&self) -> usize {
+        self.intent_only
+    }
+    pub fn requires_rebuild(&self) -> usize {
+        self.requires_rebuild
+    }
+    pub fn requires_quarantine(&self) -> usize {
+        self.requires_quarantine
+    }
+    pub fn maintenance_residue(&self) -> usize {
+        self.maintenance_residue
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -151,16 +179,36 @@ impl RecoveredBulkChunk {
             .collect()
     }
 
-    pub fn durable_mutation_id(&self) -> crate::DurableMutationId { self.durable_mutation_id }
-    pub fn plan_kind(&self) -> BulkPlanKind { self.plan_kind }
-    pub fn program_id(&self) -> &str { &self.program_id }
-    pub fn plan_id(&self) -> &str { &self.plan_id }
-    pub fn chunk_ordinal(&self) -> u64 { self.chunk_ordinal }
-    pub fn disposition(&self) -> BulkRecoveryDisposition { self.disposition }
-    pub fn source_kind(&self) -> RecoverySourceKind { self.source_kind }
-    pub fn decision(&self) -> Option<RecoveryDecisionClass> { self.decision }
-    pub fn commit_id(&self) -> Option<CommitId> { self.commit_id }
-    pub fn reason(&self) -> &str { &self.reason }
+    pub fn durable_mutation_id(&self) -> crate::DurableMutationId {
+        self.durable_mutation_id
+    }
+    pub fn plan_kind(&self) -> BulkPlanKind {
+        self.plan_kind
+    }
+    pub fn program_id(&self) -> &str {
+        &self.program_id
+    }
+    pub fn plan_id(&self) -> &str {
+        &self.plan_id
+    }
+    pub fn chunk_ordinal(&self) -> u64 {
+        self.chunk_ordinal
+    }
+    pub fn disposition(&self) -> BulkRecoveryDisposition {
+        self.disposition
+    }
+    pub fn source_kind(&self) -> RecoverySourceKind {
+        self.source_kind
+    }
+    pub fn decision(&self) -> Option<RecoveryDecisionClass> {
+        self.decision
+    }
+    pub fn commit_id(&self) -> Option<CommitId> {
+        self.commit_id
+    }
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 
     pub fn admit_resume(&self) -> Result<ResumeEligibleRecoveredBulkChunk, crate::StoreError> {
         match self.disposition() {

@@ -1,5 +1,5 @@
 use crate::basis::ResolvedSnapshotBasis;
-use crate::identity::{BasisDigest, hash_parts};
+use crate::identity::{hash_parts, BasisDigest};
 use crate::view_shape::{GroupedViewPlanningArtifact, ViewShapePlanArtifact, ViewShapePlanDigest};
 use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 

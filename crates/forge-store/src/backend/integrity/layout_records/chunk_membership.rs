@@ -32,22 +32,46 @@ impl StoreState {
                 record.artifact_id
             )));
         }
-        if record.physical_chunk_id != *materialization.materialization.frozen_layout().witness().physical_chunk_id() {
+        if record.physical_chunk_id
+            != *materialization
+                .materialization
+                .frozen_layout()
+                .witness()
+                .physical_chunk_id()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 chunk membership `{expected_artifact_id}` drifted from frozen witness physical chunk id"
             )));
         }
-        if record.chunk_shape_version != materialization.materialization.frozen_layout().witness().chunk_shape_version() {
+        if record.chunk_shape_version
+            != materialization
+                .materialization
+                .frozen_layout()
+                .witness()
+                .chunk_shape_version()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 chunk membership `{expected_artifact_id}` drifted from frozen witness chunk shape version"
             )));
         }
-        if record.determinism_digest != materialization.materialization.frozen_layout().witness().determinism_digest() {
+        if record.determinism_digest
+            != materialization
+                .materialization
+                .frozen_layout()
+                .witness()
+                .determinism_digest()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 chunk membership `{expected_artifact_id}` drifted from frozen witness determinism digest"
             )));
         }
-        if record.slice_ids != materialization.materialization.frozen_layout().witness().ordered_slice_ids() {
+        if record.slice_ids
+            != materialization
+                .materialization
+                .frozen_layout()
+                .witness()
+                .ordered_slice_ids()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 chunk membership `{expected_artifact_id}` drifted from frozen witness slice ids"
             )));

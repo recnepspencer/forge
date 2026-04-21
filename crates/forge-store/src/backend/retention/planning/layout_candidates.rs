@@ -92,7 +92,8 @@ fn collect_materialization_candidates(
         return;
     }
     for record in state.milestone_6_layout_materialization_records.values() {
-        let Some((_, frontier, basis_label)) = materialization_basis.get(&record.artifact_id) else {
+        let Some((_, frontier, basis_label)) = materialization_basis.get(&record.artifact_id)
+        else {
             continue;
         };
         if !closure_commit_set.contains(frontier) {
@@ -269,12 +270,14 @@ fn collect_structural_block_candidates(
             counters.record_reclaim_rejected_live_basis();
             continue;
         }
-        let Some(materialization_artifact_id) =
-            record.supporting_layout_materialization_artifact_ids.first()
+        let Some(materialization_artifact_id) = record
+            .supporting_layout_materialization_artifact_ids
+            .first()
         else {
             continue;
         };
-        let Some((_, frontier, basis_label)) = materialization_basis.get(materialization_artifact_id)
+        let Some((_, frontier, basis_label)) =
+            materialization_basis.get(materialization_artifact_id)
         else {
             continue;
         };

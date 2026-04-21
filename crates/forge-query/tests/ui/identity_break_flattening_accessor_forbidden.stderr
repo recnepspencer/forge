@@ -1,0 +1,15 @@
+warning: unreachable statement
+ --> tests/ui/identity_break_flattening_accessor_forbidden.rs:5:5
+  |
+4 |     let result: IdentityEvolutionResultBundle = todo!();
+  |                                                 ------- any code following this expression is unreachable
+5 |     let _ = result.best_match();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `best_match` found for struct `IdentityEvolutionResultBundle` in the current scope
+ --> tests/ui/identity_break_flattening_accessor_forbidden.rs:5:20
+  |
+5 |     let _ = result.best_match();
+  |                    ^^^^^^^^^^ method not found in `IdentityEvolutionResultBundle`

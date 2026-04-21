@@ -21,14 +21,16 @@ impl StoreBackend {
         &self,
         request: BranchDeltaReadRequest,
     ) -> Result<SameBranchDescendantWitness, StoreError> {
-        dispatch_ref!(self, |backend| backend.admit_same_branch_descendant(request))
+        dispatch_ref!(self, |backend| backend
+            .admit_same_branch_descendant(request))
     }
 
     pub fn admit_milestone_7_independent_reference(
         &self,
         request: BranchDeltaReadRequest,
     ) -> Result<crate::Milestone7IndependentReference, StoreError> {
-        dispatch_ref!(self, |backend| backend.admit_milestone_7_independent_reference(request))
+        dispatch_ref!(self, |backend| backend
+            .admit_milestone_7_independent_reference(request))
     }
 
     pub fn read_branch_delta(
@@ -49,7 +51,8 @@ impl StoreBackend {
         &self,
         reference: crate::Milestone7IndependentReference,
     ) -> Result<BranchDeltaReadResult, StoreError> {
-        dispatch_ref!(self, |backend| backend.read_branch_delta_control_from_milestone_7_reference(reference))
+        dispatch_ref!(self, |backend| backend
+            .read_branch_delta_control_from_milestone_7_reference(reference))
     }
 
     pub fn plan_delta_rewrite(
@@ -84,7 +87,8 @@ impl StoreBackend {
         &mut self,
         branch_id: BranchId,
     ) -> Result<BranchDeltaRebuildReceipt, StoreError> {
-        dispatch_mut!(self, |backend| backend.rebuild_branch_delta_artifacts(branch_id))
+        dispatch_mut!(self, |backend| backend
+            .rebuild_branch_delta_artifacts(branch_id))
     }
 
     pub(crate) fn milestone_5_delta_storage_report(

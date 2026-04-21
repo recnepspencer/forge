@@ -4,8 +4,8 @@ mod contracts;
 mod reports;
 
 pub use certification::{
-    Milestone6CertificationBundle, Milestone6CertificationOrigin,
-    Milestone6CertificationSummary, Milestone6LayoutMaterializationReport,
+    Milestone6CertificationBundle, Milestone6CertificationOrigin, Milestone6CertificationSummary,
+    Milestone6LayoutMaterializationReport,
 };
 pub use complexity::{Milestone6ComplexityPathStatus, Milestone6ComplexitySurface};
 pub use contracts::{

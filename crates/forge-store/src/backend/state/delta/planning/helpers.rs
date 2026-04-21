@@ -1,7 +1,7 @@
 use crate::failure::{StoreError, StoreErrorKind};
 use forge_relational::facade::history::{BranchId, CommitId};
 
-use crate::backend::{records::{BranchDeltaLayerRecord, StoreState}};
+use crate::backend::records::{BranchDeltaLayerRecord, StoreState};
 
 impl StoreState {
     pub(crate) fn trace_linear_branch_segment(

@@ -20,14 +20,12 @@ use crate::identity_evolution::{
 pub struct MilestoneSevenIdentityEvolutionCertificationAdapter;
 
 impl MilestoneSevenIdentityEvolutionCertificationAdapter {
-    pub fn lineage_and_correspondence_query_parity_test(
-    ) -> IdentityEvolutionCertificationMatrix {
+    pub fn lineage_and_correspondence_query_parity_test() -> IdentityEvolutionCertificationMatrix {
         let replacement = replacement_lane();
         let split = split_lane();
         let branch_local = branch_local_lane();
         let ambiguous = ambiguous_comparison_lane();
         let identity_break = identity_break_lane();
-        let advisory_disagreement = advisory_disagreement_lane();
         let branch_to_branch = branch_to_branch_authoritative_lane();
         let current_to_historical = current_to_historical_advisory_lane();
         let preview_to_authoritative = preview_to_authoritative_lane();
@@ -44,7 +42,6 @@ impl MilestoneSevenIdentityEvolutionCertificationAdapter {
                         &branch_local,
                         &ambiguous,
                         &identity_break,
-                        &advisory_disagreement,
                         &branch_to_branch,
                         &current_to_historical,
                         &preview_to_authoritative,
@@ -108,25 +105,15 @@ fn identity_break_lane() -> IdentityEvolutionCertificationLane {
     )
 }
 
-fn advisory_disagreement_lane() -> IdentityEvolutionCertificationLane {
-    execute_comparison(
-        "lineage-versus-structural-disagreement-explicit",
-        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-        "basis:disagreement-left",
-        "basis:disagreement-right",
-        CorrespondenceIdentityComparison::advisory_between("entity:left", "entity:right"),
-        IdentityEvolutionSyntheticScenario::IdentityBreak,
+fn branch_to_branch_authoritative_lane() -> IdentityEvolutionCertificationLane {
+    IdentityEvolutionCertificationLane::from_execution_artifact(
+        &branch_to_branch_authoritative_artifact(),
     )
 }
 
-fn branch_to_branch_authoritative_lane() -> IdentityEvolutionCertificationLane {
-    execute_comparison(
-        "branch-to-branch-authoritative-comparison",
-        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-        "basis:branch-authoritative-left",
-        "basis:branch-authoritative-right",
-        CorrespondenceIdentityComparison::authoritative_between("entity:left", "entity:right"),
-        IdentityEvolutionSyntheticScenario::Standard,
+fn branch_to_branch_authoritative_bundle_inspector_lane() -> IdentityEvolutionCertificationLane {
+    IdentityEvolutionCertificationLane::from_execution_artifact_with_bundle_inspector(
+        &branch_to_branch_authoritative_artifact(),
     )
 }
 
@@ -136,10 +123,7 @@ fn current_to_historical_advisory_lane() -> IdentityEvolutionCertificationLane {
         IdentityEvolutionComparisonBasisFamily::CurrentToHistorical,
         "basis:current",
         "basis:historical",
-        CorrespondenceIdentityComparison::advisory_between(
-            "entity:current",
-            "entity:historical",
-        ),
+        CorrespondenceIdentityComparison::advisory_between("entity:current", "entity:historical"),
         IdentityEvolutionSyntheticScenario::Standard,
     )
 }
@@ -194,7 +178,6 @@ fn canonical_row(
     branch_local: &IdentityEvolutionCertificationLane,
     ambiguous: &IdentityEvolutionCertificationLane,
     identity_break: &IdentityEvolutionCertificationLane,
-    advisory_disagreement: &IdentityEvolutionCertificationLane,
     branch_to_branch: &IdentityEvolutionCertificationLane,
     current_to_historical: &IdentityEvolutionCertificationLane,
     preview_to_authoritative: &IdentityEvolutionCertificationLane,
@@ -214,9 +197,11 @@ fn canonical_row(
             replacement_lane(),
         ),
         "split-successor-explicitness" => (replacement.clone(), split.clone(), split_lane()),
-        "branch-local-divergence-explicitness" => {
-            (replacement.clone(), branch_local.clone(), branch_local_lane())
-        }
+        "branch-local-divergence-explicitness" => (
+            replacement.clone(),
+            branch_local.clone(),
+            branch_local_lane(),
+        ),
         "ambiguous-correspondence-explicitness" => (
             branch_to_branch.clone(),
             ambiguous.clone(),
@@ -227,17 +212,20 @@ fn canonical_row(
             identity_break.clone(),
             identity_break_lane(),
         ),
+        "identity-aware-inspector-consumption-parity" => (
+            branch_to_branch.clone(),
+            branch_to_branch_authoritative_bundle_inspector_lane(),
+            branch_to_branch_authoritative_bundle_inspector_lane(),
+        ),
         "lineage-versus-structural-disagreement-explicitness" => (
             identity_break.clone(),
-            advisory_disagreement.clone(),
-            identity_break_lane(),
+            current_to_historical.clone(),
+            current_to_historical_advisory_lane(),
         ),
         "lineage-replay-parity" => (replacement.clone(), replacement_lane(), replacement_lane()),
-        "lineage-replay-preserves-classification" => (
-            replacement.clone(),
-            replacement_lane(),
-            replacement_lane(),
-        ),
+        "lineage-replay-preserves-classification" => {
+            (replacement.clone(), replacement_lane(), replacement_lane())
+        }
         "preview-to-authoritative-identity-comparison" => (
             current_to_historical.clone(),
             preview_to_authoritative.clone(),
@@ -273,6 +261,17 @@ fn canonical_row(
         hostile_lane,
         parity_lane,
     }
+}
+
+fn branch_to_branch_authoritative_artifact() -> IdentityEvolutionExecutionArtifact {
+    execute_artifact_for_comparison(
+        "branch-to-branch-authoritative-comparison",
+        IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+        "basis:branch-authoritative-left",
+        "basis:branch-authoritative-right",
+        CorrespondenceIdentityComparison::authoritative_between("entity:left", "entity:right"),
+        IdentityEvolutionSyntheticScenario::Standard,
+    )
 }
 
 fn rejection_row(

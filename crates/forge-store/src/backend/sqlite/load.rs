@@ -14,7 +14,10 @@ mod meta;
 mod retention;
 #[path = "load/snapshot.rs"]
 mod snapshot;
+#[path = "load/tiering.rs"]
+mod tiering;
 
+use crate::backend::maintenance::summaries;
 use crate::failure::StoreError;
 use rusqlite::Connection;
 
@@ -30,6 +33,9 @@ pub(super) fn load_state(connection: &Connection) -> Result<StoreState, StoreErr
     layout::load_layout(connection, &mut state)?;
     bulk::load_bulk(connection, &mut state)?;
     snapshot::load_snapshot(connection, &mut state)?;
+    tiering::load_tiering(connection, &mut state)?;
     meta::finalize_sequences(connection, &mut state)?;
+    summaries::record_scheduler_boot_state(&mut state);
+    summaries::backfill_scheduler_summaries_if_missing(&mut state);
     Ok(state)
 }

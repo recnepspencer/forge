@@ -133,6 +133,28 @@ pub const ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST: SuiteRequirement = SuiteReq
     ],
 };
 
+pub const TIERING_AND_WORKING_SET_NON_AUTHORITY_TEST: SuiteRequirement = SuiteRequirement {
+    suite_name: "Tiering And Working-Set Non-Authority Test",
+    required_rows: &[
+        "truth_digest_parity",
+        "artifact_digest_parity",
+        "diagnostics_digest_divergence",
+        "counter_snapshot_exactness",
+        "recalled_lane_truth_parity",
+        "coalesced_duplicate_suppression_exactness",
+        "restart_manifest_bounded_reconstruction",
+        "movement_read_interleaving_truth_parity",
+        "foreground_read_move_interleaving_truth_parity",
+        "continuation_move_interleaving_truth_parity",
+        "interleaving_counter_exactness",
+    ],
+    required_assertion_classes: &[
+        AssertionClass::Equality,
+        AssertionClass::Inequality,
+        AssertionClass::ExactCounter,
+    ],
+};
+
 pub fn evaluate_completeness<T: serde::Serialize, E: serde::Serialize>(
     suite: &CertificationSuite<T, E>,
     requirement: &SuiteRequirement,

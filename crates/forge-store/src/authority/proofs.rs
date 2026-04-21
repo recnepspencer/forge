@@ -17,8 +17,7 @@ pub use cursor::{
     ResumeAdmittedCursor,
 };
 pub use embedded::{
-    CommitCoupledSupportAppendWitness, EmbeddedCheckpointFetchRequest,
-    PersistedEmbeddedCheckpoint,
+    CommitCoupledSupportAppendWitness, EmbeddedCheckpointFetchRequest, PersistedEmbeddedCheckpoint,
 };
 pub use history::{
     FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact,

@@ -1,9 +1,8 @@
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RootEntityKey,
 };
-use crate::composition::{
-    GuidedCompositionPath, QueryScopeDescriptor,
-};
+use crate::composition::{GuidedCompositionPath, QueryScopeDescriptor};
+use crate::identity_evolution::InspectorIdentityClassification;
 use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,
     SavedQueryFailureClass, SavedQueryFreezeContext, SavedQueryPersistenceClaim,
@@ -77,7 +76,9 @@ fn direct_collection() -> crate::canonicalization::CanonicalQueryBundle {
         crate::authoring::RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
             .project(AspectFieldSelector::new("identity", "id").unwrap())
             .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-            .order_by(crate::authoring::OrderingSelector::ascending("profile", "display_name").unwrap())
+            .order_by(
+                crate::authoring::OrderingSelector::ascending("profile", "display_name").unwrap(),
+            )
             .build()
             .unwrap(),
         crate::authoring::RawAuthoredResultShape::collection_builder()
@@ -200,7 +201,10 @@ fn saved_query_reuse_denies_support_profile_drift() {
     let SavedQueryReuseOutcome::Denied(denial) = outcome else {
         panic!("support profile drift should deny reuse");
     };
-    assert_eq!(denial.failure_class(), &SavedQueryFailureClass::IllegalSemanticDrift);
+    assert_eq!(
+        denial.failure_class(),
+        &SavedQueryFailureClass::IllegalSemanticDrift
+    );
 }
 
 #[test]
@@ -240,7 +244,10 @@ fn saved_query_reuse_denies_basis_family_change() {
     let SavedQueryReuseOutcome::Denied(denial) = outcome else {
         panic!("basis family change should deny reuse");
     };
-    assert_eq!(denial.failure_class(), &SavedQueryFailureClass::IllegalSemanticDrift);
+    assert_eq!(
+        denial.failure_class(),
+        &SavedQueryFailureClass::IllegalSemanticDrift
+    );
 }
 
 #[test]
@@ -280,7 +287,10 @@ fn saved_query_reuse_denies_template_slot_set_change() {
     let SavedQueryReuseOutcome::Denied(denial) = outcome else {
         panic!("template slot set change should deny reuse");
     };
-    assert_eq!(denial.failure_class(), &SavedQueryFailureClass::IllegalSemanticDrift);
+    assert_eq!(
+        denial.failure_class(),
+        &SavedQueryFailureClass::IllegalSemanticDrift
+    );
 }
 
 #[test]
@@ -300,8 +310,11 @@ fn saved_query_reuse_requires_fresh_freeze_for_view_change() {
         validate_canonical_bundle_for_admitted_view_shape(
             &direct,
             detail_schema_view(),
-            admit_view_shape(&direct, ViewShapeDescriptor::inspector_detail_focused("profile"))
-                .unwrap(),
+            admit_view_shape(
+                &direct,
+                ViewShapeDescriptor::inspector_detail_focused("profile"),
+            )
+            .unwrap(),
         )
         .unwrap(),
         basis_intent(),
@@ -360,15 +373,24 @@ fn durable_claims_are_explicitly_denied() {
     let durable_reload = saved
         .admit_persistence_claim(SavedQueryPersistenceClaim::DurableReload)
         .unwrap_err();
-    assert_eq!(durable_reload.failure_class(), &SavedQueryFailureClass::DurableClaimDenied);
+    assert_eq!(
+        durable_reload.failure_class(),
+        &SavedQueryFailureClass::DurableClaimDenied
+    );
     let import_export = saved
         .admit_persistence_claim(SavedQueryPersistenceClaim::ImportExport)
         .unwrap_err();
-    assert_eq!(import_export.failure_class(), &SavedQueryFailureClass::DurableClaimDenied);
+    assert_eq!(
+        import_export.failure_class(),
+        &SavedQueryFailureClass::DurableClaimDenied
+    );
     let restart = saved
         .admit_persistence_claim(SavedQueryPersistenceClaim::RestartStableContinuation)
         .unwrap_err();
-    assert_eq!(restart.failure_class(), &SavedQueryFailureClass::DurableClaimDenied);
+    assert_eq!(
+        restart.failure_class(),
+        &SavedQueryFailureClass::DurableClaimDenied
+    );
 }
 
 #[test]
@@ -395,5 +417,102 @@ fn saved_query_freeze_denies_mismatched_canonical_and_view_plan() {
     assert_eq!(
         error.failure_class(),
         &SavedQueryFailureClass::FreezeInvariantRejected
+    );
+}
+
+#[test]
+fn identity_aware_inspector_freeze_captures_identity_contract() {
+    let direct = direct_detail();
+    let view = plan_admitted_view_shape(
+        validate_canonical_bundle_for_admitted_view_shape(
+            &direct,
+            detail_schema_view(),
+            admit_view_shape(
+                &direct,
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AdvisoryCandidates,
+                ),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+        basis_intent(),
+    )
+    .unwrap();
+    let saved = freeze_direct_saved_query(
+        &direct,
+        &view,
+        SavedQueryFreezeContext::new("test-support", "query_direct"),
+    )
+    .unwrap();
+
+    assert_eq!(
+        saved.metadata().identity_consumption().classification(),
+        Some(InspectorIdentityClassification::AdvisoryCandidates)
+    );
+    assert_eq!(
+        saved.metadata().inspector_identity_classification(),
+        Some(InspectorIdentityClassification::AdvisoryCandidates)
+    );
+    assert!(!saved
+        .metadata()
+        .identity_consumption_digest()
+        .as_str()
+        .is_empty());
+}
+
+#[test]
+fn identity_aware_inspector_reuse_requires_fresh_freeze_on_contract_change() {
+    let direct = direct_detail();
+    let view = plan_admitted_view_shape(
+        validate_canonical_bundle_for_admitted_view_shape(
+            &direct,
+            detail_schema_view(),
+            admit_view_shape(
+                &direct,
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AdvisoryCandidates,
+                ),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+        basis_intent(),
+    )
+    .unwrap();
+    let saved = freeze_direct_saved_query(
+        &direct,
+        &view,
+        SavedQueryFreezeContext::new("test-support", "query_direct"),
+    )
+    .unwrap();
+    let descriptor = SavedQueryReuseDescriptor::new(
+        saved.metadata().schema_basis_digest().clone(),
+        saved.metadata().basis_family().cloned(),
+        saved.metadata().template_binding_digest().cloned(),
+        saved.metadata().template_slot_count(),
+        saved.metadata().view_shape_digest().clone(),
+        saved.metadata().view_shape_family(),
+        saved.metadata().result_shape_family().clone(),
+        saved.metadata().composition_digest().clone(),
+        saved.metadata().scope_lineage_digest().cloned(),
+        saved.metadata().support_profile_digest().to_string(),
+        saved.metadata().capability_family_identity().to_string(),
+    )
+    .with_identity_consumption(
+        crate::view_shape::ViewShapeIdentityConsumption::focused_inspector_identity_classification(
+            InspectorIdentityClassification::AuthoritativeContinuity,
+        ),
+    );
+
+    let outcome = evaluate_saved_query_reuse(&saved, &descriptor);
+    let SavedQueryReuseOutcome::Admitted(decision) = outcome else {
+        panic!("identity-aware inspector contract drift should require a fresh freeze");
+    };
+    assert_eq!(
+        decision.overall(),
+        crate::saved_query::SavedQueryRebindingLegality::LegalRequiresFreshFreeze
     );
 }

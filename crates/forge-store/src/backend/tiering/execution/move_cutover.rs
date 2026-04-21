@@ -23,7 +23,9 @@ pub(crate) fn cutover_tier_replica<P: StatePersistence>(
         backend.counters().record_tier_move_cutover_rejections(1);
         return Err(StoreError::new(
             StoreErrorKind::TierCutoverViolation,
-            format!("artifact `{artifact_key}` cannot cut over without a persisted verification label"),
+            format!(
+                "artifact `{artifact_key}` cannot cut over without a persisted verification label"
+            ),
         ));
     };
     if verification_label != verified.verification_label() {

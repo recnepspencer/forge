@@ -1,10 +1,12 @@
 use super::family::ViewShapeFamily;
+use super::identity::ViewShapeIdentityConsumption;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ViewShapeDescriptor {
     family: ViewShapeFamily,
     focused_aspect: Option<String>,
     grouping_aspect: Option<String>,
+    identity_consumption: ViewShapeIdentityConsumption,
 }
 
 impl ViewShapeDescriptor {
@@ -13,6 +15,7 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::Table,
             focused_aspect: None,
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 
@@ -21,6 +24,7 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::Detail,
             focused_aspect: None,
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 
@@ -29,6 +33,7 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::InspectorDetailObserved,
             focused_aspect: None,
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 
@@ -37,6 +42,31 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::InspectorDetailFocused,
             focused_aspect: Some(focused_aspect.into()),
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
+        }
+    }
+
+    pub fn identity_aware_inspector_detail_observed() -> Self {
+        Self {
+            family: ViewShapeFamily::InspectorDetailObserved,
+            focused_aspect: None,
+            grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::inspector_identity_summary(),
+        }
+    }
+
+    pub fn identity_aware_inspector_detail_focused(
+        focused_aspect: impl Into<String>,
+        classification: crate::identity_evolution::InspectorIdentityClassification,
+    ) -> Self {
+        Self {
+            family: ViewShapeFamily::InspectorDetailFocused,
+            focused_aspect: Some(focused_aspect.into()),
+            grouping_aspect: None,
+            identity_consumption:
+                ViewShapeIdentityConsumption::focused_inspector_identity_classification(
+                    classification,
+                ),
         }
     }
 
@@ -45,6 +75,7 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::KanbanGrouped,
             focused_aspect: None,
             grouping_aspect: Some(grouping_aspect.into()),
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 
@@ -60,12 +91,17 @@ impl ViewShapeDescriptor {
         self.grouping_aspect.as_deref()
     }
 
+    pub fn identity_consumption(&self) -> &ViewShapeIdentityConsumption {
+        &self.identity_consumption
+    }
+
     #[cfg(test)]
     pub(crate) fn inspector_detail_focused_missing_for_test() -> Self {
         Self {
             family: ViewShapeFamily::InspectorDetailFocused,
             focused_aspect: None,
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 
@@ -75,6 +111,7 @@ impl ViewShapeDescriptor {
             family: ViewShapeFamily::KanbanGrouped,
             focused_aspect: None,
             grouping_aspect: None,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
 }

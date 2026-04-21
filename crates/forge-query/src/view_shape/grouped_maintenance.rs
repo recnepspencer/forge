@@ -13,7 +13,9 @@ impl ViewShapeMaintenanceContract {
     pub fn grouped_delta_policy(&self) -> Option<&GroupedDeltaAdmissionPolicy> {
         match self {
             Self::Ungrouped => None,
-            Self::KanbanGrouped { grouped_planning } => Some(grouped_planning.grouped_delta_policy()),
+            Self::KanbanGrouped { grouped_planning } => {
+                Some(grouped_planning.grouped_delta_policy())
+            }
         }
     }
 

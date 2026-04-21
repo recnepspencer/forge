@@ -12,7 +12,8 @@ impl StoreBackend {
         scope_class: crate::PlacementObservationScopeClass,
         scope_key: &str,
     ) -> Result<crate::WorkingSetObservationWindow, StoreError> {
-        dispatch_ref!(self, |backend| backend.observe_working_set(scope_class, scope_key))
+        dispatch_ref!(self, |backend| backend
+            .observe_working_set(scope_class, scope_key))
     }
 
     pub fn summarize_placement_demand(
@@ -20,7 +21,8 @@ impl StoreBackend {
         scope_class: crate::PlacementObservationScopeClass,
         scope_key: &str,
     ) -> Result<crate::PlacementDemandSummary, StoreError> {
-        dispatch_ref!(self, |backend| backend.summarize_placement_demand(scope_class, scope_key))
+        dispatch_ref!(self, |backend| backend
+            .summarize_placement_demand(scope_class, scope_key))
     }
 
     pub fn plan_authoritative_tier_move(
@@ -58,10 +60,8 @@ impl StoreBackend {
         artifact_ref: crate::PlacementBoundArtifactRef,
         execution_origin: crate::PlacementExecutionOrigin,
     ) -> Result<ReadPlacementPlanningReport, StoreError> {
-        dispatch_ref!(self, |backend| backend.plan_resident_read_lease(
-            artifact_ref.clone(),
-            execution_origin
-        ))
+        dispatch_ref!(self, |backend| backend
+            .plan_resident_read_lease(artifact_ref.clone(), execution_origin))
     }
 
     pub fn plan_cold_recall_lease(
@@ -69,10 +69,8 @@ impl StoreBackend {
         artifact_ref: crate::PlacementBoundArtifactRef,
         execution_origin: crate::PlacementExecutionOrigin,
     ) -> Result<ReadPlacementPlanningReport, StoreError> {
-        dispatch_ref!(self, |backend| backend.plan_cold_recall_lease(
-            artifact_ref.clone(),
-            execution_origin
-        ))
+        dispatch_ref!(self, |backend| backend
+            .plan_cold_recall_lease(artifact_ref.clone(), execution_origin))
     }
 
     pub fn plan_broadened_recall(
@@ -96,43 +94,88 @@ impl StoreBackend {
         dispatch_ref!(self, |backend| backend.canonical_residency_manifest())
     }
 
-    pub fn recover_tiering_state(&self) -> crate::CanonicalResidencyManifest {
+    pub fn recover_tiering_state(&self) -> Result<crate::CanonicalResidencyManifest, StoreError> {
         dispatch_ref!(self, |backend| backend.recover_tiering_state())
+    }
+
+    pub fn resolve_resident_read_handle(
+        &self,
+        lease: &crate::ResidentReadLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        dispatch_ref!(self, |backend| backend.resolve_resident_read_handle(lease))
+    }
+
+    pub fn resolve_cold_recall_read_handle(
+        &self,
+        lease: &crate::ColdRecallLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        dispatch_ref!(self, |backend| backend
+            .resolve_cold_recall_read_handle(lease))
+    }
+
+    pub fn observe_placement_read_interleaving(
+        &self,
+        handle: &crate::PlacementResolvedReadHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        dispatch_ref!(self, |backend| backend
+            .observe_placement_read_interleaving(handle))
+    }
+
+    pub fn observe_stable_basis_interleaving(
+        &self,
+        basis: &crate::StableBasisHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        dispatch_ref!(self, |backend| backend
+            .observe_stable_basis_interleaving(basis))
+    }
+
+    pub fn observe_continuation_interleaving(
+        &self,
+        plan: &crate::CursorContinuationPlan,
+        result: Option<&crate::ContinuationBatchResult>,
+    ) -> Result<crate::InterleavedContinuationParityReport, StoreError> {
+        dispatch_ref!(self, |backend| backend
+            .observe_continuation_interleaving(plan, result))
     }
 
     pub fn prepare_authoritative_tier_move(
         &mut self,
         plan: crate::AuthoritativeTierMovePlan,
     ) -> Result<crate::TierTransferIntent, StoreError> {
-        dispatch_mut!(self, |backend| backend.prepare_authoritative_tier_move(plan.clone()))
+        dispatch_mut!(self, |backend| backend
+            .prepare_authoritative_tier_move(plan.clone()))
     }
 
     pub fn prepare_derived_tier_move(
         &mut self,
         plan: crate::DerivedTierMovePlan,
     ) -> Result<crate::TierTransferIntent, StoreError> {
-        dispatch_mut!(self, |backend| backend.prepare_derived_tier_move(plan.clone()))
+        dispatch_mut!(self, |backend| backend
+            .prepare_derived_tier_move(plan.clone()))
     }
 
     pub fn transfer_tier_replica(
         &mut self,
         intent: crate::TierTransferIntent,
     ) -> Result<crate::TransferredTierReplica, StoreError> {
-        dispatch_mut!(self, |backend| backend.transfer_tier_replica(intent.clone()))
+        dispatch_mut!(self, |backend| backend
+            .transfer_tier_replica(intent.clone()))
     }
 
     pub fn verify_tier_replica(
         &mut self,
         transferred: crate::TransferredTierReplica,
     ) -> Result<crate::VerifiedTierReplica, StoreError> {
-        dispatch_mut!(self, |backend| backend.verify_tier_replica(transferred.clone()))
+        dispatch_mut!(self, |backend| backend
+            .verify_tier_replica(transferred.clone()))
     }
 
     pub fn cutover_tier_replica(
         &mut self,
         verified: crate::VerifiedTierReplica,
     ) -> Result<crate::TierCutoverWitness, StoreError> {
-        dispatch_mut!(self, |backend| backend.cutover_tier_replica(verified.clone()))
+        dispatch_mut!(self, |backend| backend
+            .cutover_tier_replica(verified.clone()))
     }
 
     pub fn retire_tier_replica(
@@ -146,7 +189,18 @@ impl StoreBackend {
         &mut self,
         lease: crate::ColdRecallLease,
         witness: crate::RecallEligibilityWitness,
-    ) -> Result<crate::RecallCompletionWitness, StoreError> {
-        dispatch_mut!(self, |backend| backend.execute_cold_recall(lease.clone(), witness.clone()))
+    ) -> Result<crate::CoalescedRecallReport, StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .execute_cold_recall(lease.clone(), witness.clone()))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn admit_inflight_cold_recall(
+        &mut self,
+        artifact_ref: crate::PlacementBoundArtifactRef,
+        execution_origin: crate::PlacementExecutionOrigin,
+    ) -> Result<(), StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .admit_inflight_cold_recall(artifact_ref.clone(), execution_origin))
     }
 }

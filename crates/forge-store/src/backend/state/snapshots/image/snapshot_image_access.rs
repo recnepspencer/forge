@@ -2,10 +2,10 @@ use crate::{
     backend::records::StoreState,
     failure::{StoreError, StoreErrorKind},
     publication::{
-        PublicationClassification, admit_local_snapshot_basis_source,
-        admit_local_snapshot_image_source, classify_snapshot_publication,
+        admit_local_snapshot_basis_source, admit_local_snapshot_image_source,
+        classify_snapshot_publication, PublicationClassification,
     },
-    snapshot::{SnapshotId, SnapshotImageBundle, stable_snapshot_digest},
+    snapshot::{stable_snapshot_digest, SnapshotId, SnapshotImageBundle},
 };
 
 impl StoreState {

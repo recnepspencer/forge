@@ -74,7 +74,9 @@ impl StoreCounters {
     }
 
     pub fn record_lineage_lookup(&self, identity_lookups: u64, event_rows_read: u64) {
-        self.authority.lineage_lookup_count.fetch_add(1, Ordering::Relaxed);
+        self.authority
+            .lineage_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
         self.authority
             .lineage_identity_lookup_count
             .fetch_add(identity_lookups, Ordering::Relaxed);
@@ -129,8 +131,7 @@ pub(super) fn write_snapshot(counters: &AuthorityCounters, snapshot: &mut StoreC
     snapshot.schema_boundary_index_lookup_count = counters
         .schema_boundary_index_lookup_count
         .load(Ordering::Relaxed);
-    snapshot.schema_boundary_rows_read =
-        counters.schema_boundary_rows_read.load(Ordering::Relaxed);
+    snapshot.schema_boundary_rows_read = counters.schema_boundary_rows_read.load(Ordering::Relaxed);
     snapshot.schema_boundary_resolution_count = counters
         .schema_boundary_resolution_count
         .load(Ordering::Relaxed);
@@ -138,8 +139,7 @@ pub(super) fn write_snapshot(counters: &AuthorityCounters, snapshot: &mut StoreC
     snapshot.lineage_identity_lookup_count = counters
         .lineage_identity_lookup_count
         .load(Ordering::Relaxed);
-    snapshot.lineage_event_rows_read =
-        counters.lineage_event_rows_read.load(Ordering::Relaxed);
+    snapshot.lineage_event_rows_read = counters.lineage_event_rows_read.load(Ordering::Relaxed);
     snapshot.lineage_resolution_breadth =
         counters.lineage_resolution_breadth.load(Ordering::Relaxed);
     snapshot.authoritative_fetch_verification_count = counters

@@ -23,9 +23,13 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
     for declaration in batch.declarations().iter().cloned() {
         let descriptor = declaration.work_descriptor();
         let declaration_id = declaration.id().as_str().to_string();
-        let duplicate_id = next.maintenance_declaration_records.contains_key(&declaration_id);
+        let duplicate_id = next
+            .maintenance_declaration_records
+            .contains_key(&declaration_id);
         let duplicate_equivalence = next.maintenance_declaration_records.values().any(|record| {
             record.work_descriptor.equivalence_key() == descriptor.equivalence_key()
+                && (record.work_descriptor.work_class() != descriptor.work_class()
+                    || record.work_descriptor.locality_scope() != descriptor.locality_scope())
         });
         if duplicate_id || duplicate_equivalence {
             rejections.push(MaintenanceAdmissionRejection::new(
@@ -79,6 +83,7 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
                 family_version: 1,
                 declaration_id: declaration_id.clone(),
                 execution_status: MaintenanceExecutionStatus::Admitted,
+                lane_key: Some(descriptor.lane_key()),
                 plan_family: None,
                 last_completed_phase: Some("admitted".to_string()),
                 pending_reason: None,
@@ -93,13 +98,16 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
                     None
                 },
                 foreground_impact: crate::MaintenanceForegroundImpact::none(),
+                coalescing_decision: Some(crate::MaintenanceCoalescingDecision::NotCoalesced),
+                supersession_source: None,
+                resource_budget_grant: None,
+                starvation_status: None,
+                escalation_verdict: None,
+                explicit_global_scope_debt: false,
                 resume_count: 0,
             },
         );
-        admitted.push(AdmittedMaintenanceDeclaration::new(
-            declaration,
-            descriptor,
-        ));
+        admitted.push(AdmittedMaintenanceDeclaration::new(declaration, descriptor));
     }
 
     next.maintenance_batch_records.insert(
@@ -112,10 +120,14 @@ pub(crate) fn admit_maintenance_batch<P: StatePersistence>(
             declaration_count: admitted.len() as u64,
         },
     );
+    super::summaries::refresh_scheduler_summaries(&mut next);
     backend.commit_replacement_state(next)?;
     backend
         .counters()
         .record_maintenance_admissions(admitted.len() as u64);
+    backend
+        .counters()
+        .record_maintenance_locality_touches(admitted.len() as u64);
     backend
         .counters()
         .record_maintenance_rejections(rejections.len() as u64);

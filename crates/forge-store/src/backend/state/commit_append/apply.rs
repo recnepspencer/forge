@@ -132,13 +132,18 @@ impl StoreState {
         let support_summary = CommitSupportSummaryRecord {
             commit_id: support_append_witness.commit_id(),
             branch_id: support_append_witness.branch_id().clone(),
-            schema_support_artifact_id: schema_support_record.as_ref().map(|record| record.artifact_id.clone()),
-            lineage_support_artifact_id: lineage_support_record.as_ref().map(|record| record.artifact_id.clone()),
+            schema_support_artifact_id: schema_support_record
+                .as_ref()
+                .map(|record| record.artifact_id.clone()),
+            lineage_support_artifact_id: lineage_support_record
+                .as_ref()
+                .map(|record| record.artifact_id.clone()),
             milestone_6_published_layout_request_artifact_ids: Vec::new(),
             emitted_schema_artifact: support_append_witness.emits_schema_support(),
             emitted_lineage_artifact: support_append_witness.emits_lineage_support(),
         };
-        self.commit_support_summaries.insert(commit_id.0, support_summary.clone());
+        self.commit_support_summaries
+            .insert(commit_id.0, support_summary.clone());
         self.upsert_digest_record(
             AuthoritativeArtifactFamily::CommitSupportSummary,
             commit_support_summary_artifact_id(commit_id),
@@ -146,7 +151,8 @@ impl StoreState {
         );
 
         let inserted_schema_support = if let Some(record) = schema_support_record {
-            self.schema_support_records.insert(record.artifact_id.clone(), record.clone());
+            self.schema_support_records
+                .insert(record.artifact_id.clone(), record.clone());
             self.upsert_digest_record(
                 AuthoritativeArtifactFamily::SchemaSupportRecord,
                 record.artifact_id.clone(),
@@ -158,7 +164,8 @@ impl StoreState {
         };
 
         let inserted_lineage_support = if let Some(record) = lineage_support_record {
-            self.lineage_support_records.insert(record.artifact_id.clone(), record.clone());
+            self.lineage_support_records
+                .insert(record.artifact_id.clone(), record.clone());
             self.upsert_digest_record(
                 AuthoritativeArtifactFamily::LineageSupportRecord,
                 record.artifact_id.clone(),
@@ -169,7 +176,9 @@ impl StoreState {
             false
         };
 
-        for (parent_position, parent_commit_id) in envelope.commit.parents.iter().copied().enumerate() {
+        for (parent_position, parent_commit_id) in
+            envelope.commit.parents.iter().copied().enumerate()
+        {
             let parent_record = CommitParentRecord {
                 commit_id,
                 parent_position,
@@ -202,7 +211,9 @@ impl StoreState {
         );
         let inserted_branch_delta_layer_id = self.publish_branch_delta_layer_for_append(
             envelope.branch_context.clone(),
-            previous_branch_head_record.as_ref().and_then(|record| record.head_commit_id),
+            previous_branch_head_record
+                .as_ref()
+                .and_then(|record| record.head_commit_id),
             commit_id,
             vec![commit_id],
         );
@@ -222,5 +233,4 @@ impl StoreState {
             inserted_branch_delta_layer_id,
         })
     }
-
 }

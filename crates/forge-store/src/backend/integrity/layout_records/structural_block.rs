@@ -24,12 +24,17 @@ impl StoreState {
                 record.artifact_id
             )));
         }
-        if record.supporting_layout_materialization_artifact_ids.is_empty() {
+        if record
+            .supporting_layout_materialization_artifact_ids
+            .is_empty()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 structural block `{expected_artifact_id}` has no supporting layout materializations"
             )));
         }
-        for layout_materialization_artifact_id in &record.supporting_layout_materialization_artifact_ids {
+        for layout_materialization_artifact_id in
+            &record.supporting_layout_materialization_artifact_ids
+        {
             let materialization = self
                 .milestone_6_layout_materialization_records
                 .get(layout_materialization_artifact_id)
@@ -45,7 +50,10 @@ impl StoreState {
                 )));
             }
             if record.equivalence_contract_version
-                != materialization.materialization.block_reuse().equivalence_contract_version()
+                != materialization
+                    .materialization
+                    .block_reuse()
+                    .equivalence_contract_version()
             {
                 return Err(StoreError::backend_integrity(format!(
                     "milestone 6 structural block `{expected_artifact_id}` drifted from structural block reuse equivalence contract version"
@@ -56,7 +64,12 @@ impl StoreState {
                     "milestone 6 structural block `{expected_artifact_id}` drifted from structural block reuse slice ids"
                 )));
             }
-            if record.structural_block_id != *materialization.materialization.block_reuse().structural_block_id() {
+            if record.structural_block_id
+                != *materialization
+                    .materialization
+                    .block_reuse()
+                    .structural_block_id()
+            {
                 return Err(StoreError::backend_integrity(format!(
                     "milestone 6 structural block `{expected_artifact_id}` drifted from structural block reuse id"
                 )));

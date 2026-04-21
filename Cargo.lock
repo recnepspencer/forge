@@ -1552,16 +1552,8 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "egui",
- "egui-wgpu",
- "egui_extras",
- "forge-ui-adapters",
- "forge-ui-components",
- "forge-ui-state",
- "forge-ui-theme",
- "forge-ui-types",
- "glam",
- "image",
- "wgpu",
+ "forge-query",
+ "forge-runtime-bridge",
 ]
 
 [[package]]
@@ -1754,12 +1746,6 @@ dependencies = [
  "log",
  "xml-rs",
 ]
-
-[[package]]
-name = "glam"
-version = "0.29.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8babf46d4c1c9d92deac9f7be466f76dfc4482b6452fc5024b5e8daf6ffeb3ee"
 
 [[package]]
 name = "glob"

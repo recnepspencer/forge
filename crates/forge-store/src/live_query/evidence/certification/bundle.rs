@@ -1,11 +1,13 @@
 use crate::{
-    authority::AuthoritativeExportBundle,
-    evidence::StoreCounterSnapshot,
-    failure::StoreError,
+    authority::AuthoritativeExportBundle, evidence::StoreCounterSnapshot, failure::StoreError,
     live_query::continuation::ContinuationStrategy,
 };
 use serde::Serialize;
 
+use super::super::{
+    basis::LiveQueryBasisEvidence, continuation_session::LiveQueryContinuationSessionEvidence,
+    truth::Milestone8TruthSurface,
+};
 use super::{
     digest::{
         authoritative_commit_ids_for_truth_surface, projected_commit_envelopes_strict,
@@ -13,10 +15,6 @@ use super::{
     },
     model::Milestone8CertificationSummary,
     validation::validate_continuation_session_surface,
-};
-use super::super::{
-    basis::LiveQueryBasisEvidence, continuation_session::LiveQueryContinuationSessionEvidence,
-    truth::Milestone8TruthSurface,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -99,8 +97,11 @@ impl Milestone8CertificationBundle {
                     && counter_snapshot.continuation_control_lane_fallback_count == 0),
             no_gap_batches_observed: counter_snapshot.continuation_batch_gap_count == 0,
             no_duplicate_batches_observed: counter_snapshot.continuation_batch_duplicate_count == 0,
-            no_illegal_acknowledgments: counter_snapshot.continuation_illegal_acknowledgment_count == 0,
-            no_hidden_control_lane_fallback: counter_snapshot.continuation_control_lane_fallback_count == 0,
+            no_illegal_acknowledgments: counter_snapshot.continuation_illegal_acknowledgment_count
+                == 0,
+            no_hidden_control_lane_fallback: counter_snapshot
+                .continuation_control_lane_fallback_count
+                == 0,
             no_failure_markers: failure_markers.is_empty(),
         };
 

@@ -13,7 +13,7 @@ use super::harness::{
 
 #[path = "publication/durable_reports.rs"]
 mod durable_reports;
-#[path = "publication/snapshot_reports.rs"]
-mod snapshot_reports;
 #[path = "publication/maintenance_recovery.rs"]
 mod maintenance_recovery;
+#[path = "publication/snapshot_reports.rs"]
+mod snapshot_reports;

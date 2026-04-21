@@ -1,6 +1,6 @@
 use crate::{
     backend::records::StoreState,
-    bulk::{BULK_FAMILY_VERSION, compute_checkpoint_digest},
+    bulk::{compute_checkpoint_digest, BULK_FAMILY_VERSION},
     failure::{StoreError, StoreErrorKind},
 };
 
@@ -29,7 +29,10 @@ fn verify_checkpoint_records(state: &StoreState) -> Result<(), StoreError> {
         if record.family_version != BULK_FAMILY_VERSION {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk checkpoint `{}` used unsupported family version", record.artifact_id),
+                format!(
+                    "bulk checkpoint `{}` used unsupported family version",
+                    record.artifact_id
+                ),
             ));
         }
         let recomputed = compute_checkpoint_digest(
@@ -106,7 +109,9 @@ fn verify_checkpoint_families(state: &StoreState) -> Result<(), StoreError> {
                     expected_sequence
                 )));
             }
-            if checkpoint.checkpoint.completed_chunk_ordinal().value() < minimum_completed_chunk_ordinal {
+            if checkpoint.checkpoint.completed_chunk_ordinal().value()
+                < minimum_completed_chunk_ordinal
+            {
                 return Err(StoreError::backend_integrity(format!(
                     "bulk checkpoint family `{program_id}:{plan_id}` regressed completed chunk ordinal {} below required boundary {}",
                     checkpoint.checkpoint.completed_chunk_ordinal().value(),

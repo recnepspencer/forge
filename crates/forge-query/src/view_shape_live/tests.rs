@@ -3,10 +3,17 @@ use crate::authoring::{
     RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
 };
 use crate::basis::{
-    BasisAuthorityFamily, ExecutionBasisIntent, ResolvedSnapshotIdentity, SnapshotLineageClass,
-    resolve_snapshot_basis, BasisResolutionMode,
+    resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode, ExecutionBasisIntent,
+    ResolvedSnapshotIdentity, SnapshotLineageClass,
 };
-use crate::identity::SchemaBasisDigest;
+use crate::identity::{BasisDigest, CanonicalQueryDigest, SchemaBasisDigest};
+use crate::identity_evolution::{
+    admit_identity_evolution_query_for_scenario, execute_admitted_identity_evolution_query,
+    CorrespondenceIdentityComparison, IdentityEvolutionCertificationResultEvidence,
+    IdentityEvolutionComparisonBasisFamily, IdentityEvolutionQueryContext,
+    IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact, InspectorIdentityClassification,
+    LineageTraversalDescriptor,
+};
 use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
@@ -17,6 +24,7 @@ use forge_relational::facade::grouped_truth::{
     GroupedProjectionContract as RelationalGroupedProjectionContract,
 };
 use forge_runtime_bridge::facade::{
+    materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
     BridgeDeliveryReceipt, BridgeGroupedTruthViewArtifact, BridgeMappingId,
     BridgeMappingRegistration, BridgeRuntimePolicy, BridgeSignalInvalidationDelivery,
     BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
@@ -27,14 +35,13 @@ use forge_runtime_bridge::facade::{
     SnapshotReadRequest, SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity,
     TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
     TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
-    materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
 };
 
 use super::{
     admit_grouped_live_view, execute_grouped_live_view_shape_change,
     execute_live_view_shape_change, lower_view_shape_plan_to_live,
-    materialize_authoritative_grouped_baseline, materialize_grouped_execution_surface_from_truth_view,
-    ViewShapeLiveFailureClass,
+    materialize_authoritative_grouped_baseline,
+    materialize_grouped_execution_surface_from_truth_view, ViewShapeLiveFailureClass,
     ViewShapePatchFamily, ViewShapePatchPayload, ViewShapeRefreshDisposition,
 };
 
@@ -120,6 +127,54 @@ fn runtime_basis(schema_basis: SchemaBasisDigest) -> crate::basis::ResolvedSnaps
     .unwrap()
 }
 
+fn identity_query_digest(label: &str) -> CanonicalQueryDigest {
+    CanonicalQueryDigest::from_parts(&[format!("view-shape-live:{label}")])
+}
+
+fn identity_basis_digest(label: &str) -> BasisDigest {
+    BasisDigest::from_parts(&[format!("view-shape-live:{label}")])
+}
+
+fn inspector_identity_artifact(
+    classification: InspectorIdentityClassification,
+) -> InspectorIdentityArtifact {
+    let (context, scenario) = match classification {
+        InspectorIdentityClassification::AuthoritativeContinuity => (
+            IdentityEvolutionQueryContext::lineage_traversal(
+                identity_query_digest("authoritative"),
+                identity_basis_digest("authoritative-basis"),
+                LineageTraversalDescriptor::direct_replacement("anchor"),
+            ),
+            IdentityEvolutionSyntheticScenario::Standard,
+        ),
+        InspectorIdentityClassification::AdvisoryCandidates => (
+            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+                identity_query_digest("advisory"),
+                IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+                identity_basis_digest("left"),
+                identity_basis_digest("right"),
+                CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+            ),
+            IdentityEvolutionSyntheticScenario::Standard,
+        ),
+        InspectorIdentityClassification::IdentityBreak => (
+            IdentityEvolutionQueryContext::lineage_traversal(
+                identity_query_digest("identity-break"),
+                identity_basis_digest("identity-break-basis"),
+                LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
+            ),
+            IdentityEvolutionSyntheticScenario::IdentityBreak,
+        ),
+        other => panic!("test helper does not support inspector classification '{other:?}'"),
+    };
+    let admitted = admit_identity_evolution_query_for_scenario(context, scenario)
+        .expect("identity evolution request should admit");
+    let artifact = execute_admitted_identity_evolution_query(&admitted)
+        .expect("identity evolution request should execute");
+    let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(&artifact);
+    InspectorIdentityArtifact::from_result_evidence(&evidence)
+}
+
 fn planned_view(
     canonical: &crate::canonicalization::CanonicalQueryBundle,
     descriptor: ViewShapeDescriptor,
@@ -179,7 +234,12 @@ impl TruthSnapshotReader for StaticSnapshotReader {
             .rows
             .iter()
             .map(|(member_key, display_name, lane)| {
-                (format!("result:{member_key}"), member_key, display_name, lane)
+                (
+                    format!("result:{member_key}"),
+                    member_key,
+                    display_name,
+                    lane,
+                )
             })
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
@@ -191,13 +251,13 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                     let payload = rows
                         .iter()
                         .find_map(|(entity_identity, member_key, display_name, lane)| {
-                            (read.entity_identity() == entity_identity.as_str()).then(|| {
-                                match read.aspect_label() {
-                                    "identity.id" => member_key.as_bytes().to_vec(),
-                                    "profile.display_name" => display_name.as_bytes().to_vec(),
-                                    "status.lane" => lane.as_bytes().to_vec(),
-                                    _ => b"unknown".to_vec(),
-                                }
+                            (read.entity_identity() == entity_identity.as_str()).then(|| match read
+                                .aspect_label()
+                            {
+                                "identity.id" => member_key.as_bytes().to_vec(),
+                                "profile.display_name" => display_name.as_bytes().to_vec(),
+                                "status.lane" => lane.as_bytes().to_vec(),
+                                _ => b"unknown".to_vec(),
                             })
                         })
                         .unwrap_or_else(|| b"unknown".to_vec());
@@ -300,7 +360,10 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
     )
 }
 
-fn grouped_rows_result(rows: &[GroupedRowFixture], packet: &SnapshotReadPacket) -> SnapshotReadPacketResult {
+fn grouped_rows_result(
+    rows: &[GroupedRowFixture],
+    packet: &SnapshotReadPacket,
+) -> SnapshotReadPacketResult {
     SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("snapshot-a"),
         packet
@@ -394,7 +457,8 @@ fn grouped_truth_view_with_rows(
     let row_set = materialize_bridge_row_set(&observation).expect("row set");
     let relational_result = grouped_rows_result(rows, &packet);
     let relational_row_set =
-        materialize_relational_authoritative_row_set(&packet, &relational_result).expect("relational row set");
+        materialize_relational_authoritative_row_set(&packet, &relational_result)
+            .expect("relational row set");
     let grouping_field = match plan
         .grouped_planning_artifact()
         .expect("grouped plan should carry grouped planning")
@@ -427,17 +491,17 @@ fn table_live_lowering_emits_table_row_patch() {
         &planned,
         runtime_basis(planned.validated().query().schema_basis().clone()),
         None,
+        None,
     )
     .unwrap();
     let execution = execute_live_view_shape_change(
         &live,
-        &BridgeChangeSummary::default()
-            .with_field_delta(BridgeFieldDelta::new(
-                "profile",
-                "display_name",
-                Some("Ada"),
-                Some("Ada Lovelace"),
-            )),
+        &BridgeChangeSummary::default().with_field_delta(BridgeFieldDelta::new(
+            "profile",
+            "display_name",
+            Some("Ada"),
+            Some("Ada Lovelace"),
+        )),
     )
     .unwrap();
 
@@ -446,7 +510,10 @@ fn table_live_lowering_emits_table_row_patch() {
         Some(ViewShapePatchFamily::TableRowPatch)
     );
     assert_eq!(execution.counters().table_ordering_key_count(), 1);
-    assert_eq!(execution.counters().view_shape_executor_rediscovery_count(), 0);
+    assert_eq!(
+        execution.counters().view_shape_executor_rediscovery_count(),
+        0
+    );
 }
 
 #[test]
@@ -455,6 +522,7 @@ fn detail_live_lowering_emits_detail_field_patch() {
     let live = lower_view_shape_plan_to_live(
         &planned,
         runtime_basis(planned.validated().query().schema_basis().clone()),
+        None,
         None,
     )
     .unwrap();
@@ -488,6 +556,7 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
                 .clone(),
         ),
         None,
+        None,
     )
     .unwrap();
     let focused_plan = planned_view(
@@ -497,6 +566,7 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
     let focused_live = lower_view_shape_plan_to_live(
         &focused_plan,
         runtime_basis(focused_plan.validated().query().schema_basis().clone()),
+        None,
         None,
     )
     .unwrap();
@@ -524,6 +594,111 @@ fn observed_and_focused_inspector_emit_distinct_live_patches() {
 }
 
 #[test]
+fn identity_aware_focused_inspector_emits_explicit_identity_artifact() {
+    let canonical = detail_canonical();
+    let focused_plan = planned_view(
+        &canonical,
+        ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+            "profile",
+            InspectorIdentityClassification::IdentityBreak,
+        ),
+    );
+    let focused_live = lower_view_shape_plan_to_live(
+        &focused_plan,
+        runtime_basis(focused_plan.validated().query().schema_basis().clone()),
+        None,
+        Some(inspector_identity_artifact(
+            InspectorIdentityClassification::IdentityBreak,
+        )),
+    )
+    .unwrap();
+    let change = BridgeChangeSummary::default().with_field_delta(BridgeFieldDelta::new(
+        "profile",
+        "display_name",
+        Some("Ada"),
+        Some("Ada Lovelace"),
+    ));
+    let execution = execute_live_view_shape_change(&focused_live, &change).unwrap();
+    let crate::view_shape_live::ViewShapePatchPayload::FocusedInspectorAspectPatch(patch) =
+        execution.patch_envelope().payload()
+    else {
+        panic!("expected focused inspector aspect patch");
+    };
+    let inspector_identity = patch
+        .inspector_identity()
+        .expect("identity-aware focused inspector should attach identity artifact");
+
+    assert_eq!(
+        inspector_identity.classification(),
+        InspectorIdentityClassification::IdentityBreak
+    );
+    assert!(inspector_identity.identity_break());
+    assert_eq!(
+        focused_plan
+            .delivery_metadata()
+            .identity_consumption()
+            .classification(),
+        Some(InspectorIdentityClassification::IdentityBreak)
+    );
+}
+
+#[test]
+fn identity_aware_focused_inspector_requires_matching_identity_binding() {
+    let canonical = detail_canonical();
+    let focused_plan = planned_view(
+        &canonical,
+        ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+            "profile",
+            InspectorIdentityClassification::IdentityBreak,
+        ),
+    );
+    let missing_error = lower_view_shape_plan_to_live(
+        &focused_plan,
+        runtime_basis(focused_plan.validated().query().schema_basis().clone()),
+        None,
+        None,
+    )
+    .unwrap_err();
+    assert_eq!(
+        missing_error.failure_class(),
+        &ViewShapeLiveFailureClass::InspectorIdentityBindingRejected
+    );
+
+    let mismatch_error = lower_view_shape_plan_to_live(
+        &focused_plan,
+        runtime_basis(focused_plan.validated().query().schema_basis().clone()),
+        None,
+        Some(inspector_identity_artifact(
+            InspectorIdentityClassification::AuthoritativeContinuity,
+        )),
+    )
+    .unwrap_err();
+    assert_eq!(
+        mismatch_error.failure_class(),
+        &ViewShapeLiveFailureClass::InspectorIdentityBindingRejected
+    );
+}
+
+#[test]
+fn ordinary_detail_live_lowering_rejects_smuggled_identity_binding() {
+    let planned = planned_view(&detail_canonical(), ViewShapeDescriptor::detail());
+    let error = lower_view_shape_plan_to_live(
+        &planned,
+        runtime_basis(planned.validated().query().schema_basis().clone()),
+        None,
+        Some(inspector_identity_artifact(
+            InspectorIdentityClassification::AuthoritativeContinuity,
+        )),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error.failure_class(),
+        &ViewShapeLiveFailureClass::InspectorIdentityBindingRejected
+    );
+}
+
+#[test]
 fn focused_inspector_widening_is_denied_and_counted() {
     let planned = planned_view(
         &detail_canonical(),
@@ -532,6 +707,7 @@ fn focused_inspector_widening_is_denied_and_counted() {
     let live = lower_view_shape_plan_to_live(
         &planned,
         runtime_basis(planned.validated().query().schema_basis().clone()),
+        None,
         None,
     )
     .unwrap();
@@ -557,7 +733,10 @@ fn focused_inspector_widening_is_denied_and_counted() {
         error.failure_class(),
         &ViewShapeLiveFailureClass::FocusedInspectorWideningDenied
     );
-    assert_eq!(error.counters().focused_inspector_widening_denial_count(), 1);
+    assert_eq!(
+        error.counters().focused_inspector_widening_denial_count(),
+        1
+    );
 }
 
 #[test]
@@ -571,21 +750,13 @@ fn grouped_delta_is_explicit_and_deterministic() {
     let grouped_execution =
         materialize_grouped_execution_surface_from_truth_view(&planned, basis.clone(), &truth_view)
             .unwrap();
-    let baseline = materialize_authoritative_grouped_baseline(
-        &planned,
-        basis.clone(),
-        &grouped_execution,
-    )
-    .unwrap();
+    let baseline =
+        materialize_authoritative_grouped_baseline(&planned, basis.clone(), &grouped_execution)
+            .unwrap();
     let member_key = baseline.desired_state().result().member_states()[0]
         .member_key()
         .to_string();
-    let live = lower_view_shape_plan_to_live(
-        &planned,
-        basis,
-        Some(baseline),
-    )
-    .unwrap();
+    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline), None).unwrap();
     let change = BridgeChangeSummary::default()
         .with_field_delta(BridgeFieldDelta::new(
             "identity",
@@ -626,10 +797,14 @@ fn grouped_delta_is_explicit_and_deterministic() {
 
     match first.patch_envelope().payload() {
         ViewShapePatchPayload::KanbanGroupMembershipPatch(delta) => {
-            assert_eq!(delta.digest(), match second.patch_envelope().payload() {
-                ViewShapePatchPayload::KanbanGroupMembershipPatch(second_delta) => second_delta.digest(),
-                other => panic!("expected grouped delta payload, got {other:?}"),
-            });
+            assert_eq!(
+                delta.digest(),
+                match second.patch_envelope().payload() {
+                    ViewShapePatchPayload::KanbanGroupMembershipPatch(second_delta) =>
+                        second_delta.digest(),
+                    other => panic!("expected grouped delta payload, got {other:?}"),
+                }
+            );
             assert_eq!(delta.transitions().len(), 1);
             assert_eq!(delta.prior().result().lane_count(), 2);
             assert_eq!(delta.next().result().lane_count(), 1);
@@ -653,13 +828,19 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
     let baseline =
         materialize_authoritative_grouped_baseline(&planned, basis, &grouped_execution).unwrap();
 
-    assert_eq!(grouped_execution.grouped_planning().grouping_aspect(), "status");
+    assert_eq!(
+        grouped_execution.grouped_planning().grouping_aspect(),
+        "status"
+    );
     assert_eq!(grouped_execution.member_rows().len(), 2);
     assert_eq!(
         grouped_execution.member_rows()[0].lane().grouping_aspect(),
         "status"
     );
-    assert_eq!(grouped_execution.truth_view_digest(), truth_view.digest().as_str());
+    assert_eq!(
+        grouped_execution.truth_view_digest(),
+        truth_view.digest().as_str()
+    );
     assert_eq!(baseline.desired_state().result().row_count(), 2);
     assert_eq!(baseline.desired_state().result().lane_count(), 2);
     assert_eq!(
@@ -746,12 +927,9 @@ fn grouped_execution_rejects_truth_view_with_mismatched_snapshot_identity() {
     .unwrap();
     let truth_view = grouped_truth_view(&planned);
 
-    let error = materialize_grouped_execution_surface_from_truth_view(
-        &planned,
-        wrong_basis,
-        &truth_view,
-    )
-    .unwrap_err();
+    let error =
+        materialize_grouped_execution_surface_from_truth_view(&planned, wrong_basis, &truth_view)
+            .unwrap_err();
 
     assert_eq!(
         error.failure_class(),
@@ -771,21 +949,13 @@ fn grouped_churn_overrun_is_explicit_refresh_debt() {
     let grouped_execution =
         materialize_grouped_execution_surface_from_truth_view(&planned, basis.clone(), &truth_view)
             .unwrap();
-    let baseline = materialize_authoritative_grouped_baseline(
-        &planned,
-        basis.clone(),
-        &grouped_execution,
-    )
-    .unwrap();
+    let baseline =
+        materialize_authoritative_grouped_baseline(&planned, basis.clone(), &grouped_execution)
+            .unwrap();
     let member_key = baseline.desired_state().result().member_states()[0]
         .member_key()
         .to_string();
-    let live = lower_view_shape_plan_to_live(
-        &planned,
-        basis,
-        Some(baseline),
-    )
-    .unwrap();
+    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline), None).unwrap();
     let next_truth_view = grouped_truth_view_with_rows(
         &planned,
         &[
@@ -851,7 +1021,10 @@ fn grouped_churn_overrun_is_explicit_refresh_debt() {
         ViewShapePatchPayload::Refresh(ViewShapeRefreshDisposition::GroupedDeferredDebt { .. })
     ));
     assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
-    assert_eq!(execution.counters().view_family_refresh_admission_count(), 1);
+    assert_eq!(
+        execution.counters().view_family_refresh_admission_count(),
+        1
+    );
 }
 
 #[test]
@@ -865,13 +1038,10 @@ fn grouped_core_refresh_is_trapped_as_grouped_debt() {
     let grouped_execution =
         materialize_grouped_execution_surface_from_truth_view(&planned, basis.clone(), &truth_view)
             .unwrap();
-    let baseline = materialize_authoritative_grouped_baseline(
-        &planned,
-        basis.clone(),
-        &grouped_execution,
-    )
-    .unwrap();
-    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline)).unwrap();
+    let baseline =
+        materialize_authoritative_grouped_baseline(&planned, basis.clone(), &grouped_execution)
+            .unwrap();
+    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline), None).unwrap();
     let next_truth_view = grouped_truth_view(&planned);
     let next_grouped_execution = materialize_grouped_execution_surface_from_truth_view(
         &planned,
@@ -904,7 +1074,10 @@ fn grouped_core_refresh_is_trapped_as_grouped_debt() {
         })
     ));
     assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
-    assert_eq!(execution.counters().view_family_refresh_admission_count(), 1);
+    assert_eq!(
+        execution.counters().view_family_refresh_admission_count(),
+        1
+    );
 }
 
 #[test]
@@ -918,13 +1091,10 @@ fn grouped_delta_mixed_member_churn_is_explicit_refresh_debt() {
     let grouped_execution =
         materialize_grouped_execution_surface_from_truth_view(&planned, basis.clone(), &truth_view)
             .unwrap();
-    let baseline = materialize_authoritative_grouped_baseline(
-        &planned,
-        basis.clone(),
-        &grouped_execution,
-    )
-    .unwrap();
-    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline)).unwrap();
+    let baseline =
+        materialize_authoritative_grouped_baseline(&planned, basis.clone(), &grouped_execution)
+            .unwrap();
+    let live = lower_view_shape_plan_to_live(&planned, basis, Some(baseline), None).unwrap();
     let next_truth_view = grouped_truth_view_with_rows(
         &planned,
         &[
@@ -969,5 +1139,8 @@ fn grouped_delta_mixed_member_churn_is_explicit_refresh_debt() {
         })
     ));
     assert_eq!(execution.counters().grouped_full_regroup_denial_count(), 1);
-    assert_eq!(execution.counters().view_family_refresh_admission_count(), 1);
+    assert_eq!(
+        execution.counters().view_family_refresh_admission_count(),
+        1
+    );
 }

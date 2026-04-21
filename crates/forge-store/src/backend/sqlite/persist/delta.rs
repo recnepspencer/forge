@@ -69,7 +69,11 @@ fn persist_branch_delta_layer_records(
                     record.base_frontier_commit_id.map(as_i64),
                     as_i64(record.target_frontier_commit_id),
                     serde_json::to_string(
-                        &record.commit_ids.iter().map(|commit_id| commit_id.0).collect::<Vec<_>>()
+                        &record
+                            .commit_ids
+                            .iter()
+                            .map(|commit_id| commit_id.0)
+                            .collect::<Vec<_>>()
                     )?,
                     record.delta_family_version as i64,
                     record.authority_basis_digest,

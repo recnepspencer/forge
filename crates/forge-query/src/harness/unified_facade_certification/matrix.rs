@@ -79,7 +79,7 @@ fn identity_evolution_lane() -> UnifiedFacadeLane {
                 preflight.plan().query().validated_query_digest().as_str()
             )]),
             crate::identity::BasisDigest::from_parts(&[
-                "unified-facade-identity-evolution".to_string(),
+                "unified-facade-identity-evolution".to_string()
             ]),
             LineageTraversalDescriptor::direct_replacement("entity:replacement"),
         ))
@@ -522,19 +522,21 @@ fn identity_evolution_support_sync_lane() -> UnifiedFacadeLane {
         .expect("identity evolution support profile should be present");
     let admitted = identity
         .capability()
-        .admit_query(IdentityEvolutionQueryContext::correspondence_identity_comparison(
-            crate::identity::CanonicalQueryDigest::from_parts(&[format!(
-                "identity-evolution-support-sync:{}",
-                preflight.plan().query().validated_query_digest().as_str()
-            )]),
-            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-            crate::identity::BasisDigest::from_parts(&["identity-left".to_string()]),
-            crate::identity::BasisDigest::from_parts(&["identity-right".to_string()]),
-            crate::facade::CorrespondenceIdentityComparison::advisory_between(
-                "entity:left",
-                "entity:right",
+        .admit_query(
+            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+                crate::identity::CanonicalQueryDigest::from_parts(&[format!(
+                    "identity-evolution-support-sync:{}",
+                    preflight.plan().query().validated_query_digest().as_str()
+                )]),
+                IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+                crate::identity::BasisDigest::from_parts(&["identity-left".to_string()]),
+                crate::identity::BasisDigest::from_parts(&["identity-right".to_string()]),
+                crate::facade::CorrespondenceIdentityComparison::advisory_between(
+                    "entity:left",
+                    "entity:right",
+                ),
             ),
-        ))
+        )
         .expect("identity evolution comparison should admit");
     let execution = identity
         .capability()
@@ -565,6 +567,16 @@ fn identity_evolution_support_sync_lane() -> UnifiedFacadeLane {
             .admitted_traversal_families()
             .iter()
             .map(|family| family.as_str().to_string())
+            .collect(),
+        profile
+            .admitted_comparison_basis_families()
+            .iter()
+            .map(|family| family.as_str().to_string())
+            .collect(),
+        profile
+            .admitted_inspector_consumable_identity_classifications()
+            .iter()
+            .map(|classification| classification.as_str().to_string())
             .collect(),
         profile
             .deferred_scope_markers()

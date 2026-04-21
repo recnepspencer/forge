@@ -50,6 +50,8 @@ fn continuation_planning_rejects_batches_that_cannot_fit_materialized_byte_budge
         ))
         .expect_err("materialized byte budget smaller than a single commit must fail typed");
 
-    assert_eq!(error.kind(), &crate::StoreErrorKind::ContinuationBudgetExceeded);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::ContinuationBudgetExceeded
+    );
 }
-

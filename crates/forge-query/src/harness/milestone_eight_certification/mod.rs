@@ -14,8 +14,16 @@ use crate::composition::{
     TemplateParameterSlot,
 };
 use crate::harness::certification::{
-    digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation,
-    ParityAnchor, RejectionCertificationRow,
+    digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,
+    RejectionCertificationRow,
+};
+use crate::identity::{BasisDigest, CanonicalQueryDigest};
+use crate::identity_evolution::{
+    admit_identity_evolution_query_for_scenario, execute_admitted_identity_evolution_query,
+    CorrespondenceIdentityComparison, IdentityEvolutionCertificationResultEvidence,
+    IdentityEvolutionComparisonBasisFamily, IdentityEvolutionQueryContext,
+    IdentityEvolutionSyntheticScenario, InspectorIdentityArtifact, InspectorIdentityClassification,
+    LineageTraversalDescriptor,
 };
 use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,
@@ -29,13 +37,15 @@ use crate::view_shape::{
 use crate::view_shape_live::{
     admit_grouped_live_view, execute_grouped_live_view_shape_change,
     execute_live_view_shape_change, lower_view_shape_plan_to_live,
-    materialize_authoritative_grouped_baseline, materialize_grouped_execution_surface_from_truth_view,
+    materialize_authoritative_grouped_baseline,
+    materialize_grouped_execution_surface_from_truth_view,
 };
 use forge_relational::facade::grouped_truth::{
     materialize_relational_authoritative_row_set, project_relational_grouped_truth,
     GroupedProjectionContract as RelationalGroupedProjectionContract,
 };
 use forge_runtime_bridge::facade::{
+    materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
     BridgeDeliveryReceipt, BridgeGroupedTruthViewArtifact, BridgeMappingId,
     BridgeMappingRegistration, BridgeRuntimePolicy, BridgeSignalInvalidationDelivery,
     BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
@@ -46,7 +56,6 @@ use forge_runtime_bridge::facade::{
     SnapshotReadRequest, SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity,
     TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
     TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
-    materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
 };
 
 pub const MILESTONE_EIGHT_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
@@ -61,6 +70,8 @@ pub const MILESTONE_EIGHT_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "grouped-query-execution-surface-authority",
     "grouped-proof-chain-no-payload-rediscovery",
     "inspector-observed-focused-distinction",
+    "identity-aware-focused-inspector-parity",
+    "identity-break-inspector-explicitness",
     "support-profile-honesty",
 ];
 
@@ -87,6 +98,8 @@ pub enum MilestoneEightPerturbationClass {
     GroupedExecutionSurfaceAuthority,
     GroupedProofChainNoPayloadRediscovery,
     InspectorSemanticDistinction,
+    IdentityAwareInspectorParity,
+    IdentityBreakInspectorExplicitness,
     SupportProfileHonesty,
     UnsupportedScopeFamily,
     UnsupportedTemplateFamily,
@@ -115,6 +128,9 @@ pub struct MilestoneEightCertificationBundle {
     pub counter_snapshot_digest: String,
     pub artifact_binding_matrix_digest: String,
     pub support_profile_digest: String,
+    pub identity_consumption_digest: String,
+    pub inspector_identity_digest: String,
+    pub inspector_identity_classification: String,
 }
 
 impl MilestoneEightCertificationBundle {
@@ -134,10 +150,8 @@ pub struct MilestoneEightRejectionBundle {
     pub counter_snapshot_digest: String,
 }
 
-pub type MilestoneEightCertificationRow = CanonicalCertificationRow<
-    MilestoneEightPerturbationClass,
-    MilestoneEightCertificationBundle,
->;
+pub type MilestoneEightCertificationRow =
+    CanonicalCertificationRow<MilestoneEightPerturbationClass, MilestoneEightCertificationBundle>;
 pub type MilestoneEightRejectionRow = RejectionCertificationRow<
     MilestoneEightPerturbationClass,
     MilestoneEightCertificationBundle,
@@ -261,9 +275,7 @@ fn detail_query_with_name_filter(name: &str) -> crate::authoring::DetailAuthored
 fn detail_shape() -> crate::authoring::DetailAuthoredResultShape {
     crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .build()
         .unwrap()
 }
@@ -281,17 +293,13 @@ fn collection_query() -> crate::authoring::CollectionAuthoredQuery {
 fn collection_shape() -> crate::authoring::CollectionAuthoredResultShape {
     crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .field(AuthoredResultShapeField::new("status", "lane", "lane").unwrap())
         .build()
         .unwrap()
 }
 
-fn direct_detail_canonical(
-    name: &str,
-) -> crate::canonicalization::CanonicalQueryBundle {
+fn direct_detail_canonical(name: &str) -> crate::canonicalization::CanonicalQueryBundle {
     GuidedAuthoringPath::canonicalize_detail(detail_query_with_name_filter(name), detail_shape())
         .unwrap()
 }
@@ -352,7 +360,12 @@ impl TruthSnapshotReader for StaticSnapshotReader {
             .rows
             .iter()
             .map(|(member_key, display_name, lane)| {
-                (format!("result:{member_key}"), member_key, display_name, lane)
+                (
+                    format!("result:{member_key}"),
+                    member_key,
+                    display_name,
+                    lane,
+                )
             })
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
@@ -364,13 +377,13 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                     let payload = rows
                         .iter()
                         .find_map(|(entity_identity, member_key, display_name, lane)| {
-                            (read.entity_identity() == entity_identity.as_str()).then(|| {
-                                match read.aspect_label() {
-                                    "identity.id" => member_key.as_bytes().to_vec(),
-                                    "profile.display_name" => display_name.as_bytes().to_vec(),
-                                    "status.lane" => lane.as_bytes().to_vec(),
-                                    _ => b"unknown".to_vec(),
-                                }
+                            (read.entity_identity() == entity_identity.as_str()).then(|| match read
+                                .aspect_label()
+                            {
+                                "identity.id" => member_key.as_bytes().to_vec(),
+                                "profile.display_name" => display_name.as_bytes().to_vec(),
+                                "status.lane" => lane.as_bytes().to_vec(),
+                                _ => b"unknown".to_vec(),
                             })
                         })
                         .unwrap_or_else(|| b"unknown".to_vec());
@@ -473,7 +486,10 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
     )
 }
 
-fn grouped_rows_result(rows: &[GroupedRowFixture], packet: &SnapshotReadPacket) -> SnapshotReadPacketResult {
+fn grouped_rows_result(
+    rows: &[GroupedRowFixture],
+    packet: &SnapshotReadPacket,
+) -> SnapshotReadPacketResult {
     SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("snapshot-a"),
         packet
@@ -593,10 +609,15 @@ fn grouped_truth_view_for_plan_with_rows(
 fn detail_live_bundle(
     canonical: &crate::canonicalization::CanonicalQueryBundle,
 ) -> MilestoneEightCertificationBundle {
-    let plan = view_plan(canonical, detail_schema_view(), ViewShapeDescriptor::detail());
+    let plan = view_plan(
+        canonical,
+        detail_schema_view(),
+        ViewShapeDescriptor::detail(),
+    );
     let live = lower_view_shape_plan_to_live(
         &plan,
         runtime_basis(plan.validated().query().schema_basis().clone()),
+        None,
         None,
     )
     .unwrap();
@@ -618,11 +639,19 @@ fn detail_live_bundle(
         canonical.result_shape().digest().as_str().to_string(),
         execution.patch_envelope().delivery_digest().to_string(),
         vec![
-            format!("view_patch_width:{}", execution.counters().view_patch_width()),
-            format!("view_delivery_width:{}", execution.counters().view_delivery_width()),
+            format!(
+                "view_patch_width:{}",
+                execution.counters().view_patch_width()
+            ),
+            format!(
+                "view_delivery_width:{}",
+                execution.counters().view_delivery_width()
+            ),
             format!(
                 "focused_widening_denial:{}",
-                execution.counters().focused_inspector_widening_denial_count()
+                execution
+                    .counters()
+                    .focused_inspector_widening_denial_count()
             ),
         ],
         "artifact:none".to_string(),
@@ -692,10 +721,15 @@ fn scope_detail_bundle() -> MilestoneEightCertificationBundle {
 fn table_live_bundle(
     canonical: &crate::canonicalization::CanonicalQueryBundle,
 ) -> MilestoneEightCertificationBundle {
-    let plan = view_plan(canonical, collection_schema_view(), ViewShapeDescriptor::table());
+    let plan = view_plan(
+        canonical,
+        collection_schema_view(),
+        ViewShapeDescriptor::table(),
+    );
     let live = lower_view_shape_plan_to_live(
         &plan,
         runtime_basis(plan.validated().query().schema_basis().clone()),
+        None,
         None,
     )
     .unwrap();
@@ -717,8 +751,14 @@ fn table_live_bundle(
         canonical.result_shape().digest().as_str().to_string(),
         execution.patch_envelope().delivery_digest().to_string(),
         vec![
-            format!("view_patch_width:{}", execution.counters().view_patch_width()),
-            format!("table_ordering_keys:{}", execution.counters().table_ordering_key_count()),
+            format!(
+                "view_patch_width:{}",
+                execution.counters().view_patch_width()
+            ),
+            format!(
+                "table_ordering_keys:{}",
+                execution.counters().table_ordering_key_count()
+            ),
         ],
         "artifact:none".to_string(),
         "support:none".to_string(),
@@ -743,7 +783,7 @@ fn grouped_live_bundle(delta_bound: bool) -> MilestoneEightCertificationBundle {
     let member_key = baseline.desired_state().result().member_states()[0]
         .member_key()
         .to_string();
-    let live = lower_view_shape_plan_to_live(&plan, basis, Some(baseline)).unwrap();
+    let live = lower_view_shape_plan_to_live(&plan, basis, Some(baseline), None).unwrap();
     let change = if delta_bound {
         crate::live::BridgeChangeSummary::default()
             .with_field_delta(crate::live::BridgeFieldDelta::new(
@@ -786,8 +826,12 @@ fn grouped_live_bundle(delta_bound: bool) -> MilestoneEightCertificationBundle {
         )
         .unwrap()
     } else {
-        materialize_grouped_execution_surface_from_truth_view(&plan, live.basis().clone(), &truth_view)
-            .unwrap()
+        materialize_grouped_execution_surface_from_truth_view(
+            &plan,
+            live.basis().clone(),
+            &truth_view,
+        )
+        .unwrap()
     };
     let execution = execute_grouped_live_view_shape_change(
         admit_grouped_live_view(&live).unwrap(),
@@ -844,7 +888,9 @@ fn grouped_truth_view_bundle(rows: &[GroupedRowFixture]) -> MilestoneEightCertif
     )
 }
 
-fn grouped_execution_surface_bundle(rows: &[GroupedRowFixture]) -> MilestoneEightCertificationBundle {
+fn grouped_execution_surface_bundle(
+    rows: &[GroupedRowFixture],
+) -> MilestoneEightCertificationBundle {
     let canonical = direct_collection_canonical();
     let plan = view_plan(
         &canonical,
@@ -870,7 +916,9 @@ fn grouped_execution_surface_bundle(rows: &[GroupedRowFixture]) -> MilestoneEigh
     )
 }
 
-fn grouped_payload_rediscovery_free_bundle(rows: &[GroupedRowFixture]) -> MilestoneEightCertificationBundle {
+fn grouped_payload_rediscovery_free_bundle(
+    rows: &[GroupedRowFixture],
+) -> MilestoneEightCertificationBundle {
     let canonical = direct_collection_canonical();
     let plan = view_plan(
         &canonical,
@@ -901,9 +949,7 @@ fn grouped_payload_rediscovery_free_bundle(rows: &[GroupedRowFixture]) -> Milest
     )
 }
 
-fn inspector_bundle(
-    descriptor: ViewShapeDescriptor,
-) -> MilestoneEightCertificationBundle {
+fn inspector_bundle(descriptor: ViewShapeDescriptor) -> MilestoneEightCertificationBundle {
     let canonical = GuidedAuthoringPath::canonicalize_detail(
         crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
             .project(AspectFieldSelector::new("identity", "id").unwrap())
@@ -914,10 +960,24 @@ fn inspector_bundle(
     )
     .unwrap();
     let plan = view_plan(&canonical, detail_schema_view(), descriptor);
+    let bound_identity = match plan.delivery_metadata().identity_consumption() {
+        crate::view_shape::ViewShapeIdentityConsumption::None => None,
+        crate::view_shape::ViewShapeIdentityConsumption::InspectorIdentitySummary => {
+            Some(inspector_identity_artifact_for_classification(
+                InspectorIdentityClassification::IdentitySummary,
+            ))
+        }
+        crate::view_shape::ViewShapeIdentityConsumption::FocusedInspectorIdentityClassification(
+            classification,
+        ) => Some(inspector_identity_artifact_for_classification(
+            *classification,
+        )),
+    };
     let live = lower_view_shape_plan_to_live(
         &plan,
         runtime_basis(plan.validated().query().schema_basis().clone()),
         None,
+        bound_identity,
     )
     .unwrap();
     let execution = execute_live_view_shape_change(
@@ -932,8 +992,32 @@ fn inspector_bundle(
         ),
     )
     .unwrap();
+    let (inspector_identity_digest, inspector_identity_classification) = match execution
+        .patch_envelope()
+        .payload()
+    {
+        crate::view_shape_live::ViewShapePatchPayload::ObservedInspectorPatch(patch) => patch
+            .inspector_identity()
+            .map(|identity| {
+                (
+                    identity.digest().as_str().to_string(),
+                    identity.classification().as_str().to_string(),
+                )
+            })
+            .unwrap_or_else(|| ("none".to_string(), "none".to_string())),
+        crate::view_shape_live::ViewShapePatchPayload::FocusedInspectorAspectPatch(patch) => patch
+            .inspector_identity()
+            .map(|identity| {
+                (
+                    identity.digest().as_str().to_string(),
+                    identity.classification().as_str().to_string(),
+                )
+            })
+            .unwrap_or_else(|| ("none".to_string(), "none".to_string())),
+        _ => ("none".to_string(), "none".to_string()),
+    };
 
-    bundle_from_view_execution(
+    bundle_from_view_execution_with_identity(
         canonical.query().digest().as_str().to_string(),
         plan.view_plan_digest().as_str().to_string(),
         canonical.result_shape().digest().as_str().to_string(),
@@ -951,15 +1035,80 @@ fn inspector_bundle(
                 "focused_projection_width:{}",
                 execution.counters().focused_inspector_projection_width()
             ),
+            format!(
+                "identity_consumption:{}",
+                plan.delivery_metadata().identity_consumption().as_str()
+            ),
         ],
         "artifact:none".to_string(),
         "support:none".to_string(),
+        plan.delivery_metadata()
+            .identity_consumption()
+            .digest()
+            .as_str()
+            .to_string(),
+        inspector_identity_digest,
+        inspector_identity_classification,
     )
 }
 
-fn saved_query_bundle(
-    composed: bool,
-) -> MilestoneEightCertificationBundle {
+fn identity_query_digest(label: &str) -> CanonicalQueryDigest {
+    CanonicalQueryDigest::from_parts(&[format!("milestone-eight:{label}")])
+}
+
+fn identity_basis_digest(label: &str) -> BasisDigest {
+    BasisDigest::from_parts(&[format!("milestone-eight:{label}")])
+}
+
+fn inspector_identity_artifact_for_classification(
+    classification: InspectorIdentityClassification,
+) -> InspectorIdentityArtifact {
+    let (context, scenario) = match classification {
+        InspectorIdentityClassification::IdentitySummary => (
+            IdentityEvolutionQueryContext::lineage_traversal(
+                identity_query_digest("identity-summary"),
+                identity_basis_digest("identity-summary-basis"),
+                LineageTraversalDescriptor::direct_split_successors("anchor"),
+            ),
+            IdentityEvolutionSyntheticScenario::Standard,
+        ),
+        InspectorIdentityClassification::AuthoritativeContinuity => (
+            IdentityEvolutionQueryContext::lineage_traversal(
+                identity_query_digest("authoritative"),
+                identity_basis_digest("authoritative-basis"),
+                LineageTraversalDescriptor::direct_replacement("anchor"),
+            ),
+            IdentityEvolutionSyntheticScenario::Standard,
+        ),
+        InspectorIdentityClassification::AdvisoryCandidates => (
+            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+                identity_query_digest("advisory"),
+                IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+                identity_basis_digest("left"),
+                identity_basis_digest("right"),
+                CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+            ),
+            IdentityEvolutionSyntheticScenario::Standard,
+        ),
+        InspectorIdentityClassification::IdentityBreak => (
+            IdentityEvolutionQueryContext::lineage_traversal(
+                identity_query_digest("identity-break"),
+                identity_basis_digest("identity-break-basis"),
+                LineageTraversalDescriptor::branch_local_direct_evolution("anchor"),
+            ),
+            IdentityEvolutionSyntheticScenario::IdentityBreak,
+        ),
+        other => panic!("milestone eight helper does not support '{other:?}'"),
+    };
+    let admitted = admit_identity_evolution_query_for_scenario(context, scenario)
+        .expect("milestone eight identity artifact should admit");
+    let artifact = execute_admitted_identity_evolution_query(&admitted)
+        .expect("milestone eight identity artifact should execute");
+    let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(&artifact);
+    InspectorIdentityArtifact::from_result_evidence(&evidence)
+}
+
+fn saved_query_bundle(composed: bool) -> MilestoneEightCertificationBundle {
     let support_profile_digest =
         crate::composition::runtime_backed_query_composition_support_profile()
             .profile_digest()
@@ -985,9 +1134,17 @@ fn saved_query_bundle(
         )
         .unwrap();
         bundle_from_view_execution(
-            saved.metadata().canonical_query_digest().as_str().to_string(),
+            saved
+                .metadata()
+                .canonical_query_digest()
+                .as_str()
+                .to_string(),
             plan.view_plan_digest().as_str().to_string(),
-            saved.metadata().canonical_result_shape_digest().as_str().to_string(),
+            saved
+                .metadata()
+                .canonical_result_shape_digest()
+                .as_str()
+                .to_string(),
             saved.digest().as_str().to_string(),
             vec![
                 format!("template_slots:{}", saved.metadata().template_slot_count()),
@@ -1001,7 +1158,11 @@ fn saved_query_bundle(
         )
     } else {
         let canonical = direct_detail_canonical("Alice");
-        let plan = view_plan(&canonical, detail_schema_view(), ViewShapeDescriptor::detail());
+        let plan = view_plan(
+            &canonical,
+            detail_schema_view(),
+            ViewShapeDescriptor::detail(),
+        );
         let saved = freeze_direct_saved_query(
             &canonical,
             &plan,
@@ -1009,9 +1170,17 @@ fn saved_query_bundle(
         )
         .unwrap();
         bundle_from_view_execution(
-            saved.metadata().canonical_query_digest().as_str().to_string(),
+            saved
+                .metadata()
+                .canonical_query_digest()
+                .as_str()
+                .to_string(),
             plan.view_plan_digest().as_str().to_string(),
-            saved.metadata().canonical_result_shape_digest().as_str().to_string(),
+            saved
+                .metadata()
+                .canonical_result_shape_digest()
+                .as_str()
+                .to_string(),
             saved.digest().as_str().to_string(),
             vec![
                 format!("template_slots:{}", saved.metadata().template_slot_count()),
@@ -1044,30 +1213,49 @@ fn support_profile_bundle(enabled: bool) -> MilestoneEightCertificationBundle {
         .query_composition_support_profile()
         .map(|profile| profile.profile_digest().to_string())
         .unwrap_or_else(|| "none".to_string());
+    let identity_evolution_profile = report
+        .identity_evolution_support_profile()
+        .map(|profile| profile.profile_digest().to_string())
+        .unwrap_or_else(|| "none".to_string());
+    let query_context_profile = report
+        .query_context_support_profile()
+        .map(|profile| profile.profile_digest().to_string())
+        .unwrap_or_else(|| "none".to_string());
     bundle_from_view_execution(
         report.report_digest().to_string(),
         report.support_matrix().support_matrix_digest().to_string(),
         report.validated_config_digest().to_string(),
-        composition_profile.clone(),
+        report.report_digest().to_string(),
         vec![
             format!("admitted:{}", report.admitted_capability_count()),
             format!("deferred:{}", report.deferred_capability_count()),
             format!("unsupported:{}", report.unsupported_capability_count()),
+            format!("query_composition_profile:{composition_profile}"),
+            format!("query_context_profile:{query_context_profile}"),
+            format!("identity_evolution_profile:{identity_evolution_profile}"),
         ],
-        "artifact:none".to_string(),
-        composition_profile,
+        digest_parts(&[
+            report.support_matrix().support_matrix_digest().to_string(),
+            composition_profile,
+            query_context_profile,
+            identity_evolution_profile,
+        ]),
+        report.report_digest().to_string(),
     )
 }
 
 fn durable_saved_query_deferred_rejection_bundle() -> MilestoneEightRejectionBundle {
     let canonical = direct_detail_canonical("Alice");
-    let plan = view_plan(&canonical, detail_schema_view(), ViewShapeDescriptor::detail());
+    let plan = view_plan(
+        &canonical,
+        detail_schema_view(),
+        ViewShapeDescriptor::detail(),
+    );
     let saved = freeze_direct_saved_query(
         &canonical,
         &plan,
         SavedQueryFreezeContext::new(
-            crate::composition::runtime_backed_query_composition_support_profile()
-                .profile_digest(),
+            crate::composition::runtime_backed_query_composition_support_profile().profile_digest(),
             "query_direct",
         ),
     )
@@ -1082,9 +1270,10 @@ fn durable_saved_query_deferred_rejection_bundle() -> MilestoneEightRejectionBun
             format!("{:?}", error.failure_class()),
             error.message().to_string(),
         ]),
-        counter_snapshot_digest: digest_parts(&[
-            format!("durable_claim:{:?}", error.failure_class()),
-        ]),
+        counter_snapshot_digest: digest_parts(&[format!(
+            "durable_claim:{:?}",
+            error.failure_class()
+        )]),
     }
 }
 
@@ -1103,7 +1292,7 @@ fn grouped_hidden_refresh_forbidden_rejection_bundle() -> MilestoneEightRejectio
     let baseline =
         materialize_authoritative_grouped_baseline(&plan, basis.clone(), &grouped_execution)
             .unwrap();
-    let live = lower_view_shape_plan_to_live(&plan, basis, Some(baseline)).unwrap();
+    let live = lower_view_shape_plan_to_live(&plan, basis, Some(baseline), None).unwrap();
     let error = execute_live_view_shape_change(
         &live,
         &crate::live::BridgeChangeSummary::default().with_field_delta(
@@ -1123,9 +1312,10 @@ fn grouped_hidden_refresh_forbidden_rejection_bundle() -> MilestoneEightRejectio
             format!("{:?}", error.failure_class()),
             error.message().to_string(),
         ]),
-        counter_snapshot_digest: digest_parts(&[
-            format!("grouped_hidden_refresh:{:?}", error.failure_class()),
-        ]),
+        counter_snapshot_digest: digest_parts(&[format!(
+            "grouped_hidden_refresh:{:?}",
+            error.failure_class()
+        )]),
     }
 }
 
@@ -1152,6 +1342,32 @@ fn bundle_from_view_execution(
     artifact_binding_matrix_digest: String,
     support_profile_digest: String,
 ) -> MilestoneEightCertificationBundle {
+    bundle_from_view_execution_with_identity(
+        query_digest,
+        plan_digest,
+        result_shape_digest,
+        delivery_digest,
+        counters,
+        artifact_binding_matrix_digest,
+        support_profile_digest,
+        String::new(),
+        String::new(),
+        String::new(),
+    )
+}
+
+fn bundle_from_view_execution_with_identity(
+    query_digest: String,
+    plan_digest: String,
+    result_shape_digest: String,
+    delivery_digest: String,
+    counters: Vec<String>,
+    artifact_binding_matrix_digest: String,
+    support_profile_digest: String,
+    identity_consumption_digest: String,
+    inspector_identity_digest: String,
+    inspector_identity_classification: String,
+) -> MilestoneEightCertificationBundle {
     let counter_snapshot_digest = digest_parts(&counters);
     MilestoneEightCertificationBundle {
         query_digest,
@@ -1161,6 +1377,9 @@ fn bundle_from_view_execution(
         counter_snapshot_digest,
         artifact_binding_matrix_digest,
         support_profile_digest,
+        identity_consumption_digest,
+        inspector_identity_digest,
+        inspector_identity_classification,
     }
 }
 
@@ -1284,8 +1503,58 @@ fn canonical_rows() -> Vec<MilestoneEightCertificationRow> {
             hostile_expectation: HostileExpectation::DistinctFromControl,
             parity_anchor: ParityAnchor::Hostile,
             control_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_observed()),
-            hostile_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused("profile")),
+            hostile_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused(
+                "profile",
+            )),
             parity_lane: inspector_bundle(ViewShapeDescriptor::inspector_detail_focused("profile")),
+        },
+        MilestoneEightCertificationRow {
+            row_name: "identity-aware-focused-inspector-parity",
+            perturbation_class: MilestoneEightPerturbationClass::IdentityAwareInspectorParity,
+            hostile_expectation: HostileExpectation::DistinctFromControl,
+            parity_anchor: ParityAnchor::Control,
+            control_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AuthoritativeContinuity,
+                ),
+            ),
+            hostile_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AdvisoryCandidates,
+                ),
+            ),
+            parity_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AuthoritativeContinuity,
+                ),
+            ),
+        },
+        MilestoneEightCertificationRow {
+            row_name: "identity-break-inspector-explicitness",
+            perturbation_class: MilestoneEightPerturbationClass::IdentityBreakInspectorExplicitness,
+            hostile_expectation: HostileExpectation::DistinctFromControl,
+            parity_anchor: ParityAnchor::Hostile,
+            control_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::AuthoritativeContinuity,
+                ),
+            ),
+            hostile_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::IdentityBreak,
+                ),
+            ),
+            parity_lane: inspector_bundle(
+                ViewShapeDescriptor::identity_aware_inspector_detail_focused(
+                    "profile",
+                    InspectorIdentityClassification::IdentityBreak,
+                ),
+            ),
         },
         MilestoneEightCertificationRow {
             row_name: "support-profile-honesty",
@@ -1327,13 +1596,16 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
     .expect_err("unsupported template family should deny");
 
     let canonical = direct_detail_canonical("Alice");
-    let plan = view_plan(&canonical, detail_schema_view(), ViewShapeDescriptor::detail());
+    let plan = view_plan(
+        &canonical,
+        detail_schema_view(),
+        ViewShapeDescriptor::detail(),
+    );
     let saved = freeze_direct_saved_query(
         &canonical,
         &plan,
         SavedQueryFreezeContext::new(
-            crate::composition::runtime_backed_query_composition_support_profile()
-                .profile_digest(),
+            crate::composition::runtime_backed_query_composition_support_profile().profile_digest(),
             "query_direct",
         ),
     )
@@ -1367,12 +1639,10 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
                     format!("{:?}", unsupported_scope.failure_class()),
                     unsupported_scope.message().to_string(),
                 ]),
-                counter_snapshot_digest: digest_parts(&[
-                    format!(
-                        "scope_denial:{:?}",
-                        unsupported_scope.failure_class()
-                    ),
-                ]),
+                counter_snapshot_digest: digest_parts(&[format!(
+                    "scope_denial:{:?}",
+                    unsupported_scope.failure_class()
+                )]),
             },
             parity_lane: control_lane.clone(),
         },
@@ -1386,12 +1656,10 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
                     format!("{:?}", unsupported_template.failure_class()),
                     unsupported_template.message().to_string(),
                 ]),
-                counter_snapshot_digest: digest_parts(&[
-                    format!(
-                        "template_denial:{:?}",
-                        unsupported_template.failure_class()
-                    ),
-                ]),
+                counter_snapshot_digest: digest_parts(&[format!(
+                    "template_denial:{:?}",
+                    unsupported_template.failure_class()
+                )]),
             },
             parity_lane: control_lane,
         },
@@ -1410,9 +1678,7 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
                         .matrix()
                         .rows()
                         .iter()
-                        .map(|row| {
-                            format!("{:?}:{:?}", row.dimension(), row.legality())
-                        })
+                        .map(|row| format!("{:?}:{:?}", row.dimension(), row.legality()))
                         .collect::<Vec<_>>(),
                 ),
             },
@@ -1427,8 +1693,7 @@ fn rejection_rows() -> Vec<MilestoneEightRejectionRow> {
         },
         MilestoneEightRejectionRow {
             row_name: "post-admission-view-mutation-forbidden",
-            perturbation_class:
-                MilestoneEightPerturbationClass::PostAdmissionViewMutationForbidden,
+            perturbation_class: MilestoneEightPerturbationClass::PostAdmissionViewMutationForbidden,
             control_lane: detail_live_bundle(&direct_detail_canonical("Alice")),
             hostile_lane: post_admission_view_mutation_forbidden_rejection_bundle(),
             parity_lane: detail_live_bundle(&direct_detail_canonical("Alice")),
@@ -1448,28 +1713,37 @@ fn bundle_digest_parts(matrix: &MilestoneEightCertificationMatrix) -> Vec<String
     for row in &matrix.rows {
         parts.push(format!("row:{}", row.row_name));
         parts.push(format!(
-            "control:{}:{}:{}:{}:{}",
+            "control:{}:{}:{}:{}:{}:{}:{}:{}",
             row.control_lane.query_digest,
             row.control_lane.plan_digest,
             row.control_lane.result_shape_digest,
             row.control_lane.delivery_digest,
-            row.control_lane.counter_snapshot_digest
+            row.control_lane.counter_snapshot_digest,
+            row.control_lane.identity_consumption_digest,
+            row.control_lane.inspector_identity_digest,
+            row.control_lane.inspector_identity_classification,
         ));
         parts.push(format!(
-            "hostile:{}:{}:{}:{}:{}",
+            "hostile:{}:{}:{}:{}:{}:{}:{}:{}",
             row.hostile_lane.query_digest,
             row.hostile_lane.plan_digest,
             row.hostile_lane.result_shape_digest,
             row.hostile_lane.delivery_digest,
-            row.hostile_lane.counter_snapshot_digest
+            row.hostile_lane.counter_snapshot_digest,
+            row.hostile_lane.identity_consumption_digest,
+            row.hostile_lane.inspector_identity_digest,
+            row.hostile_lane.inspector_identity_classification,
         ));
         parts.push(format!(
-            "parity:{}:{}:{}:{}:{}",
+            "parity:{}:{}:{}:{}:{}:{}:{}:{}",
             row.parity_lane.query_digest,
             row.parity_lane.plan_digest,
             row.parity_lane.result_shape_digest,
             row.parity_lane.delivery_digest,
-            row.parity_lane.counter_snapshot_digest
+            row.parity_lane.counter_snapshot_digest,
+            row.parity_lane.identity_consumption_digest,
+            row.parity_lane.inspector_identity_digest,
+            row.parity_lane.inspector_identity_classification,
         ));
     }
     for row in &matrix.rejection_rows {
@@ -1478,7 +1752,8 @@ fn bundle_digest_parts(matrix: &MilestoneEightCertificationMatrix) -> Vec<String
             "hostile:{}:{}",
             match row.hostile_lane.failure_class {
                 MilestoneEightFailureClass::UnsupportedScopeFamily => "unsupported_scope_family",
-                MilestoneEightFailureClass::UnsupportedTemplateFamily => "unsupported_template_family",
+                MilestoneEightFailureClass::UnsupportedTemplateFamily =>
+                    "unsupported_template_family",
                 MilestoneEightFailureClass::SavedQuerySupportProfileDrift => {
                     "saved_query_support_profile_drift"
                 }
@@ -1500,7 +1775,12 @@ fn bundle_digest_parts(matrix: &MilestoneEightCertificationMatrix) -> Vec<String
 
 fn coverage_digest_parts(matrix: &MilestoneEightCertificationMatrix) -> Vec<String> {
     let mut parts = vec![format!("suite:{}", matrix.suite_name)];
-    parts.extend(matrix.rows.iter().map(|row| format!("row:{}", row.row_name)));
+    parts.extend(
+        matrix
+            .rows
+            .iter()
+            .map(|row| format!("row:{}", row.row_name)),
+    );
     parts.extend(
         matrix
             .rejection_rows

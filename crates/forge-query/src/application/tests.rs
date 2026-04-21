@@ -720,13 +720,15 @@ fn identity_evolution_capability_admits_and_executes_query_surface() {
 
     let admitted = identity_evolution
         .capability()
-        .admit_query(IdentityEvolutionQueryContext::correspondence_identity_comparison(
-            crate::identity::CanonicalQueryDigest::from_parts(&["app:identity".to_string()]),
-            IdentityEvolutionComparisonBasisFamily::BranchToBranch,
-            crate::identity::BasisDigest::from_parts(&["basis:left".to_string()]),
-            crate::identity::BasisDigest::from_parts(&["basis:right".to_string()]),
-            CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
-        ))
+        .admit_query(
+            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+                crate::identity::CanonicalQueryDigest::from_parts(&["app:identity".to_string()]),
+                IdentityEvolutionComparisonBasisFamily::BranchToBranch,
+                crate::identity::BasisDigest::from_parts(&["basis:left".to_string()]),
+                crate::identity::BasisDigest::from_parts(&["basis:right".to_string()]),
+                CorrespondenceIdentityComparison::advisory_between("left-id", "right-id"),
+            ),
+        )
         .expect("identity evolution comparison should admit");
     let execution = identity_evolution
         .capability()
@@ -737,10 +739,7 @@ fn identity_evolution_capability_admits_and_executes_query_surface() {
         admission.descriptor().family(),
         ForgeQueryCapabilityFamily::IdentityEvolution
     );
-    assert_eq!(
-        execution.family().as_str(),
-        "branch_to_branch_comparison"
-    );
+    assert_eq!(execution.family().as_str(), "branch_to_branch_comparison");
     assert!(execution
         .result_bundle()
         .as_advisory_identity_candidate_set()

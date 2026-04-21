@@ -46,6 +46,8 @@ pub struct UnifiedFacadeLane {
     pub query_context_deferred_scope_markers: Vec<String>,
     pub identity_evolution_support_profile_digest: String,
     pub identity_evolution_traversal_families: Vec<String>,
+    pub identity_evolution_comparison_basis_families: Vec<String>,
+    pub identity_evolution_inspector_consumable_classifications: Vec<String>,
     pub identity_evolution_deferred_scope_markers: Vec<String>,
     pub identity_evolution_result_digest: String,
     pub identity_evolution_branch_locality_digest: String,
@@ -101,6 +103,8 @@ impl UnifiedFacadeLane {
             query_context_deferred_scope_markers: Vec::new(),
             identity_evolution_support_profile_digest: String::new(),
             identity_evolution_traversal_families: Vec::new(),
+            identity_evolution_comparison_basis_families: Vec::new(),
+            identity_evolution_inspector_consumable_classifications: Vec::new(),
             identity_evolution_deferred_scope_markers: Vec::new(),
             identity_evolution_result_digest: String::new(),
             identity_evolution_branch_locality_digest: String::new(),
@@ -154,10 +158,15 @@ impl UnifiedFacadeLane {
         mut self,
         profile_digest: String,
         traversal_families: Vec<String>,
+        comparison_basis_families: Vec<String>,
+        inspector_consumable_classifications: Vec<String>,
         deferred_scope_markers: Vec<String>,
     ) -> Self {
         self.identity_evolution_support_profile_digest = profile_digest;
         self.identity_evolution_traversal_families = traversal_families;
+        self.identity_evolution_comparison_basis_families = comparison_basis_families;
+        self.identity_evolution_inspector_consumable_classifications =
+            inspector_consumable_classifications;
         self.identity_evolution_deferred_scope_markers = deferred_scope_markers;
         self
     }

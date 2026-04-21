@@ -1,13 +1,11 @@
 use crate::{
-    evidence::StoreCounterSnapshot,
-    publication::PublicationWriteOutcome,
-    DurableMediaReport,
+    evidence::StoreCounterSnapshot, publication::PublicationWriteOutcome, DurableMediaReport,
 };
 use serde::Serialize;
 
 use super::common::{
-    MediaBarrierMatrix, ObservedPublicationFailure, TailValidationReport,
-    WritePathCertificationSummary, WritePathDigestBasis, stable_digest,
+    stable_digest, MediaBarrierMatrix, ObservedPublicationFailure, TailValidationReport,
+    WritePathCertificationSummary, WritePathDigestBasis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -57,7 +55,12 @@ impl Milestone35CertificationBundle {
             barrier_complete_not_published_count: ack_boundary_report
                 .family_states()
                 .iter()
-                .filter(|state| matches!(state.state(), crate::PublicationState::BarrierCompleteButNotPublished))
+                .filter(|state| {
+                    matches!(
+                        state.state(),
+                        crate::PublicationState::BarrierCompleteButNotPublished
+                    )
+                })
                 .count(),
             sufficient_for_published_truth: ack_boundary_report.sufficient_for_published_truth(),
             acknowledgment_eligible: ack_boundary_report.acknowledgment_eligible(),

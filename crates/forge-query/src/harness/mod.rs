@@ -25,9 +25,9 @@ mod identity_evolution_certification;
 #[cfg(test)]
 mod live_certification;
 #[cfg(test)]
-mod milestone_eight_certification;
-#[cfg(test)]
 mod matrices;
+#[cfg(test)]
+mod milestone_eight_certification;
 #[cfg(test)]
 mod parity;
 #[cfg(test)]

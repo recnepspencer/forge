@@ -1,7 +1,10 @@
 use crate::identity::{FailureDigest, ResultDigest};
 
 use super::{
-    families::IdentityEvolutionOutcomeFamily,
+    families::{
+        IdentityEvolutionAmbiguityReason, IdentityEvolutionDenialReason,
+        IdentityEvolutionIdentityBreakReason, IdentityEvolutionOutcomeFamily,
+    },
     metadata::IdentityEvolutionMetadata,
 };
 
@@ -68,7 +71,10 @@ impl PluralIdentitySuccessorSet {
         metadata: IdentityEvolutionMetadata,
         successor_identities: Vec<String>,
     ) -> Self {
-        let mut parts = vec![format!("metadata_digest:{}", metadata.metadata_digest().as_str())];
+        let mut parts = vec![format!(
+            "metadata_digest:{}",
+            metadata.metadata_digest().as_str()
+        )];
         parts.extend(
             successor_identities
                 .iter()
@@ -108,7 +114,10 @@ impl AdvisoryIdentityCandidateSet {
         metadata: IdentityEvolutionMetadata,
         advisory_candidate_identities: Vec<String>,
     ) -> Self {
-        let mut parts = vec![format!("metadata_digest:{}", metadata.metadata_digest().as_str())];
+        let mut parts = vec![format!(
+            "metadata_digest:{}",
+            metadata.metadata_digest().as_str()
+        )];
         parts.extend(
             advisory_candidate_identities
                 .iter()
@@ -126,7 +135,7 @@ impl AdvisoryIdentityCandidateSet {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionAmbiguityBundle {
     metadata: IdentityEvolutionMetadata,
-    ambiguity_reason: &'static str,
+    ambiguity_reason: IdentityEvolutionAmbiguityReason,
     ambiguity_digest: FailureDigest,
 }
 
@@ -135,7 +144,7 @@ impl IdentityEvolutionAmbiguityBundle {
         &self.metadata
     }
 
-    pub fn ambiguity_reason(&self) -> &'static str {
+    pub fn ambiguity_reason(&self) -> IdentityEvolutionAmbiguityReason {
         self.ambiguity_reason
     }
 
@@ -146,11 +155,11 @@ impl IdentityEvolutionAmbiguityBundle {
     #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
-        ambiguity_reason: &'static str,
+        ambiguity_reason: IdentityEvolutionAmbiguityReason,
     ) -> Self {
         let ambiguity_digest = FailureDigest::from_parts(&[
             format!("metadata_digest:{}", metadata.metadata_digest().as_str()),
-            format!("ambiguity_reason:{}", ambiguity_reason),
+            format!("ambiguity_reason:{}", ambiguity_reason.as_str()),
         ]);
         Self {
             metadata,
@@ -161,9 +170,46 @@ impl IdentityEvolutionAmbiguityBundle {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IdentityEvolutionIdentityBreakBundle {
+    metadata: IdentityEvolutionMetadata,
+    identity_break_reason: IdentityEvolutionIdentityBreakReason,
+    identity_break_digest: ResultDigest,
+}
+
+impl IdentityEvolutionIdentityBreakBundle {
+    pub fn metadata(&self) -> &IdentityEvolutionMetadata {
+        &self.metadata
+    }
+
+    pub fn identity_break_reason(&self) -> IdentityEvolutionIdentityBreakReason {
+        self.identity_break_reason
+    }
+
+    pub fn identity_break_digest(&self) -> &ResultDigest {
+        &self.identity_break_digest
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn new(
+        metadata: IdentityEvolutionMetadata,
+        identity_break_reason: IdentityEvolutionIdentityBreakReason,
+    ) -> Self {
+        let identity_break_digest = ResultDigest::from_parts(&[
+            format!("metadata_digest:{}", metadata.metadata_digest().as_str()),
+            format!("identity_break_reason:{}", identity_break_reason.as_str()),
+        ]);
+        Self {
+            metadata,
+            identity_break_reason,
+            identity_break_digest,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionDeniedBundle {
     metadata: IdentityEvolutionMetadata,
-    denial_reason: &'static str,
+    denial_reason: IdentityEvolutionDenialReason,
     denial_digest: FailureDigest,
 }
 
@@ -172,7 +218,7 @@ impl IdentityEvolutionDeniedBundle {
         &self.metadata
     }
 
-    pub fn denial_reason(&self) -> &'static str {
+    pub fn denial_reason(&self) -> IdentityEvolutionDenialReason {
         self.denial_reason
     }
 
@@ -181,10 +227,13 @@ impl IdentityEvolutionDeniedBundle {
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn new(metadata: IdentityEvolutionMetadata, denial_reason: &'static str) -> Self {
+    pub(crate) fn new(
+        metadata: IdentityEvolutionMetadata,
+        denial_reason: IdentityEvolutionDenialReason,
+    ) -> Self {
         let denial_digest = FailureDigest::from_parts(&[
             format!("metadata_digest:{}", metadata.metadata_digest().as_str()),
-            format!("denial_reason:{}", denial_reason),
+            format!("denial_reason:{}", denial_reason.as_str()),
         ]);
         Self {
             metadata,
@@ -201,6 +250,7 @@ enum IdentityEvolutionResultEnvelope {
     PluralIdentitySuccessorSet(PluralIdentitySuccessorSet),
     AdvisoryIdentityCandidateSet(AdvisoryIdentityCandidateSet),
     Ambiguity(IdentityEvolutionAmbiguityBundle),
+    IdentityBreak(IdentityEvolutionIdentityBreakBundle),
     Denied(IdentityEvolutionDeniedBundle),
 }
 
@@ -221,17 +271,29 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_) => {
                 IdentityEvolutionOutcomeFamily::AdvisoryIdentityCandidateSet
             }
-            IdentityEvolutionResultEnvelope::Ambiguity(_) => IdentityEvolutionOutcomeFamily::Ambiguity,
+            IdentityEvolutionResultEnvelope::Ambiguity(_) => {
+                IdentityEvolutionOutcomeFamily::Ambiguity
+            }
+            IdentityEvolutionResultEnvelope::IdentityBreak(_) => {
+                IdentityEvolutionOutcomeFamily::IdentityBreak
+            }
             IdentityEvolutionResultEnvelope::Denied(_) => IdentityEvolutionOutcomeFamily::Denied,
         }
     }
 
     pub fn metadata(&self) -> &IdentityEvolutionMetadata {
         match &self.envelope {
-            IdentityEvolutionResultEnvelope::SingularIdentityContinuity(result) => result.metadata(),
-            IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(result) => result.metadata(),
-            IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(result) => result.metadata(),
+            IdentityEvolutionResultEnvelope::SingularIdentityContinuity(result) => {
+                result.metadata()
+            }
+            IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(result) => {
+                result.metadata()
+            }
+            IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(result) => {
+                result.metadata()
+            }
             IdentityEvolutionResultEnvelope::Ambiguity(result) => result.metadata(),
+            IdentityEvolutionResultEnvelope::IdentityBreak(result) => result.metadata(),
             IdentityEvolutionResultEnvelope::Denied(result) => result.metadata(),
         }
     }
@@ -242,6 +304,7 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
+            | IdentityEvolutionResultEnvelope::IdentityBreak(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -252,6 +315,7 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::SingularIdentityContinuity(_)
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
+            | IdentityEvolutionResultEnvelope::IdentityBreak(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -262,6 +326,7 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::SingularIdentityContinuity(_)
             | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_)
+            | IdentityEvolutionResultEnvelope::IdentityBreak(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -272,6 +337,18 @@ impl IdentityEvolutionResultBundle {
             IdentityEvolutionResultEnvelope::SingularIdentityContinuity(_)
             | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
+            | IdentityEvolutionResultEnvelope::IdentityBreak(_)
+            | IdentityEvolutionResultEnvelope::Denied(_) => None,
+        }
+    }
+
+    pub fn as_identity_break(&self) -> Option<&IdentityEvolutionIdentityBreakBundle> {
+        match &self.envelope {
+            IdentityEvolutionResultEnvelope::IdentityBreak(result) => Some(result),
+            IdentityEvolutionResultEnvelope::SingularIdentityContinuity(_)
+            | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
+            | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
+            | IdentityEvolutionResultEnvelope::Ambiguity(_)
             | IdentityEvolutionResultEnvelope::Denied(_) => None,
         }
     }
@@ -283,6 +360,7 @@ impl IdentityEvolutionResultBundle {
             | IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(_)
             | IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(_)
             | IdentityEvolutionResultEnvelope::Ambiguity(_) => None,
+            IdentityEvolutionResultEnvelope::IdentityBreak(_) => None,
         }
     }
 
@@ -311,6 +389,13 @@ impl IdentityEvolutionResultBundle {
     pub(crate) fn ambiguity(result: IdentityEvolutionAmbiguityBundle) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::Ambiguity(result),
+        }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn identity_break(result: IdentityEvolutionIdentityBreakBundle) -> Self {
+        Self {
+            envelope: IdentityEvolutionResultEnvelope::IdentityBreak(result),
         }
     }
 

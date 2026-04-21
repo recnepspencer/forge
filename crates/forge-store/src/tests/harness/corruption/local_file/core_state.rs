@@ -55,4 +55,3 @@ pub fn force_branch_head_gap(path: &std::path::Path) {
     )
     .expect("branch head gap state should write");
 }
-

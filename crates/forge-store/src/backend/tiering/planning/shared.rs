@@ -50,7 +50,9 @@ pub(super) fn branch_id_for_basis(
     }
     Err(StoreError::new(
         StoreErrorKind::PlacementWitnessConstructionViolation,
-        format!("retained basis `{basis_key}` is not available for authoritative placement planning"),
+        format!(
+            "retained basis `{basis_key}` is not available for authoritative placement planning"
+        ),
     ))
 }
 

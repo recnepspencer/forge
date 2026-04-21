@@ -5,7 +5,7 @@ use crate::{
     wal::{DurableMutationId, WalRecord, WalRecordPayload},
 };
 
-use super::{model::RecoverySourceSet, super::DurableMutationIdentity};
+use super::{super::DurableMutationIdentity, model::RecoverySourceSet};
 
 pub(crate) fn build_recovery_source_set(
     state: &StoreState,

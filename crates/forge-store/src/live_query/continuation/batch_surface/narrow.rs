@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use crate::live_query::acknowledgment::ContinuationAdvanceReceipt;
 use crate::live_query::basis::{StableBasisId, StableBasisReadScope};
+use crate::ForegroundIsolationOutcome;
 
 use super::ContinuationBatchId;
 
@@ -27,6 +28,7 @@ pub struct AdmittedNarrowBatchReceipt {
     narrowed_item_count: u64,
     support_rows_read: u64,
     scope_lookup_count: u64,
+    foreground_isolation: ForegroundIsolationOutcome,
 }
 
 impl AdmittedNarrowBatchReceipt {
@@ -72,30 +74,82 @@ impl AdmittedNarrowBatchReceipt {
             narrowed_item_count,
             support_rows_read,
             scope_lookup_count,
+            foreground_isolation: ForegroundIsolationOutcome::stayed_isolated(
+                crate::ForegroundReservationClass::Continuation,
+            ),
         }
     }
 
-    pub fn batch_id(&self) -> &ContinuationBatchId { &self.batch_id }
-    pub fn stable_basis_id(&self) -> &StableBasisId { &self.stable_basis_id }
-    pub fn cursor_id(&self) -> &str { &self.cursor_id }
-    pub fn subscriber_id(&self) -> &str { &self.subscriber_id }
-    pub fn branch_id(&self) -> &BranchId { &self.branch_id }
-    pub fn feed_shape_id(&self) -> &str { &self.feed_shape_id }
-    pub fn schema_interpretation_id(&self) -> &str { &self.schema_interpretation_id }
-    pub fn cursor_semantics_version(&self) -> u32 { self.cursor_semantics_version }
-    pub fn schema_boundary_artifact_id(&self) -> &str { &self.schema_boundary_artifact_id }
-    pub fn covered_commit_range(&self) -> (CommitId, CommitId) { self.covered_commit_range }
-    pub fn covered_commit_ids(&self) -> &[CommitId] { &self.covered_commit_ids }
-    pub fn from_frontier_commit_id(&self) -> CommitId { self.from_frontier_commit_id }
-    pub fn to_frontier_commit_id(&self) -> CommitId { self.to_frontier_commit_id }
-    pub fn resolved_scope(&self) -> &StableBasisReadScope { &self.resolved_scope }
-    pub fn batch_family_version(&self) -> u32 { self.batch_family_version }
-    pub fn covered_commit_count(&self) -> u64 { self.covered_commit_count }
-    pub fn narrowed_item_count(&self) -> u64 { self.narrowed_item_count }
-    pub fn support_rows_read(&self) -> u64 { self.support_rows_read }
-    pub fn scope_lookup_count(&self) -> u64 { self.scope_lookup_count }
+    pub fn batch_id(&self) -> &ContinuationBatchId {
+        &self.batch_id
+    }
+    pub fn stable_basis_id(&self) -> &StableBasisId {
+        &self.stable_basis_id
+    }
+    pub fn cursor_id(&self) -> &str {
+        &self.cursor_id
+    }
+    pub fn subscriber_id(&self) -> &str {
+        &self.subscriber_id
+    }
+    pub fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+    pub fn feed_shape_id(&self) -> &str {
+        &self.feed_shape_id
+    }
+    pub fn schema_interpretation_id(&self) -> &str {
+        &self.schema_interpretation_id
+    }
+    pub fn cursor_semantics_version(&self) -> u32 {
+        self.cursor_semantics_version
+    }
+    pub fn schema_boundary_artifact_id(&self) -> &str {
+        &self.schema_boundary_artifact_id
+    }
+    pub fn covered_commit_range(&self) -> (CommitId, CommitId) {
+        self.covered_commit_range
+    }
+    pub fn covered_commit_ids(&self) -> &[CommitId] {
+        &self.covered_commit_ids
+    }
+    pub fn from_frontier_commit_id(&self) -> CommitId {
+        self.from_frontier_commit_id
+    }
+    pub fn to_frontier_commit_id(&self) -> CommitId {
+        self.to_frontier_commit_id
+    }
+    pub fn resolved_scope(&self) -> &StableBasisReadScope {
+        &self.resolved_scope
+    }
+    pub fn batch_family_version(&self) -> u32 {
+        self.batch_family_version
+    }
+    pub fn covered_commit_count(&self) -> u64 {
+        self.covered_commit_count
+    }
+    pub fn narrowed_item_count(&self) -> u64 {
+        self.narrowed_item_count
+    }
+    pub fn support_rows_read(&self) -> u64 {
+        self.support_rows_read
+    }
+    pub fn scope_lookup_count(&self) -> u64 {
+        self.scope_lookup_count
+    }
+    pub fn foreground_isolation(&self) -> &ForegroundIsolationOutcome {
+        &self.foreground_isolation
+    }
 
     pub fn into_advance_receipt(self) -> ContinuationAdvanceReceipt {
         ContinuationAdvanceReceipt::new(self)
+    }
+
+    pub(crate) fn with_foreground_isolation(
+        mut self,
+        foreground_isolation: ForegroundIsolationOutcome,
+    ) -> Self {
+        self.foreground_isolation = foreground_isolation;
+        self
     }
 }

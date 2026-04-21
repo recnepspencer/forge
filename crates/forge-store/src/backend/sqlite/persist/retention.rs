@@ -53,6 +53,31 @@ pub(super) fn persist_retention(
         "maintenance_checkpoint_records",
         state.maintenance_checkpoint_records.values(),
     )?;
+    persist_json_records(
+        transaction,
+        "maintenance_queue_summary_records",
+        state.maintenance_queue_summary_records.values(),
+    )?;
+    persist_json_records(
+        transaction,
+        "maintenance_locality_summary_records",
+        state.maintenance_locality_summary_records.values(),
+    )?;
+    persist_json_records(
+        transaction,
+        "maintenance_reservation_summary_records",
+        state.maintenance_reservation_summary_records.values(),
+    )?;
+    persist_json_records(
+        transaction,
+        "maintenance_resource_budget_summary_records",
+        state.maintenance_resource_budget_summary_records.values(),
+    )?;
+    persist_json_records(
+        transaction,
+        "maintenance_debt_summary_records",
+        state.maintenance_debt_summary_records.values(),
+    )?;
     Ok(())
 }
 
@@ -95,4 +120,9 @@ impl_artifact_id!(
     crate::backend::records::MaintenanceExecutionRecord,
     crate::backend::records::MaintenanceBatchRecord,
     crate::backend::records::MaintenanceCheckpointRecord,
+    crate::backend::records::MaintenanceQueueSummaryRecord,
+    crate::backend::records::MaintenanceLocalitySummaryRecord,
+    crate::backend::records::MaintenanceReservationSummaryRecord,
+    crate::backend::records::MaintenanceResourceBudgetSummaryRecord,
+    crate::backend::records::MaintenanceDebtSummaryRecord,
 );

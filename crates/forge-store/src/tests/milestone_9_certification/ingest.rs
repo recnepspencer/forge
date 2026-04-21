@@ -78,7 +78,6 @@ pub(super) fn ingest_bundle() -> crate::Milestone9CertificationBundle {
     )
 }
 
-
 #[test]
 fn milestone_9_certification_bundle_proves_ingest_resume_control_and_restore_parity() {
     let bundle = ingest_bundle();
@@ -88,4 +87,3 @@ fn milestone_9_certification_bundle_proves_ingest_resume_control_and_restore_par
     assert_eq!(bundle.counter_snapshot.bulk_chunk_width_units, 2);
     assert_eq!(bundle.counter_snapshot.bulk_peak_in_flight_memory_units, 1);
 }
-

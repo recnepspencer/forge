@@ -78,5 +78,4 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.counters.record_wal_append();
         Ok(())
     }
-
 }

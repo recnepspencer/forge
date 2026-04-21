@@ -43,7 +43,11 @@ fn persist_commit_support_summaries(
                         &record.milestone_6_published_layout_request_artifact_ids
                     )?,
                     if record.emitted_schema_artifact { 1 } else { 0 },
-                    if record.emitted_lineage_artifact { 1 } else { 0 },
+                    if record.emitted_lineage_artifact {
+                        1
+                    } else {
+                        0
+                    },
                 ],
             )
             .map_err(sqlite_error)?;

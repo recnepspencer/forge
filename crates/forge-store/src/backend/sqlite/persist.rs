@@ -14,6 +14,8 @@ mod meta;
 mod retention;
 #[path = "persist/snapshot.rs"]
 mod snapshot;
+#[path = "persist/tiering.rs"]
+mod tiering;
 
 use crate::failure::StoreError;
 use rusqlite::{Connection, Transaction};
@@ -35,6 +37,7 @@ pub(super) fn persist_state(
     layout::persist_layout(&transaction, state)?;
     bulk::persist_bulk(&transaction, state)?;
     snapshot::persist_snapshot(&transaction, state)?;
+    tiering::persist_tiering(&transaction, state)?;
     transaction.commit().map_err(sqlite_error)?;
     Ok(())
 }
@@ -59,6 +62,11 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             DELETE FROM maintenance_batch_records;
             DELETE FROM maintenance_execution_records;
             DELETE FROM maintenance_declaration_records;
+            DELETE FROM maintenance_queue_summary_records;
+            DELETE FROM maintenance_locality_summary_records;
+            DELETE FROM maintenance_reservation_summary_records;
+            DELETE FROM maintenance_resource_budget_summary_records;
+            DELETE FROM maintenance_debt_summary_records;
             DELETE FROM branch_delta_layer_records;
             DELETE FROM branch_shared_base_records;
             DELETE FROM commit_parent_records;
@@ -80,6 +88,9 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             DELETE FROM program_chunk_witness_index_records;
             DELETE FROM snapshot_image_records;
             DELETE FROM snapshot_basis_records;
+            DELETE FROM tier_transfer_records;
+            DELETE FROM tier_residency_records;
+            DELETE FROM tier_recall_records;
             DELETE FROM wal_records;
             DELETE FROM store_meta;
             ",

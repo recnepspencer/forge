@@ -1,12 +1,16 @@
 use crate::{
     AuthoritativeReclaimMaintenanceDeclaration, CompactionMaintenanceDeclaration, FreshnessWindow,
-    LocalityScopeToken, MaintenanceBatchClass, MaintenanceDeclaration,
-    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceDebtFamily,
-    MaintenanceDescriptorDemand, MaintenanceEquivalenceKey, MaintenanceEscalationDecision,
+    LocalityScopeToken, MaintenanceBatchClass, MaintenanceCoalescingDecision,
+    MaintenanceDebtFamily, MaintenanceDebtSummary, MaintenanceDeclaration,
+    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceDescriptorDemand,
+    MaintenanceEquivalenceKey, MaintenanceEscalationDecision, MaintenanceEscalationVerdict,
     MaintenanceExecutionPosture, MaintenanceExecutionStatus, MaintenanceExecutionTransition,
-    MaintenanceForegroundImpact, MaintenanceLocalityScope, MaintenancePlanFamily,
-    MaintenanceReadmissionStatus, MaintenanceReservationFamily, MaintenanceReservationTransition,
-    MaintenanceWorkClass, MaintenanceWorkDescriptor, MaintenanceWorkIdentity, PlanGeneration,
+    MaintenanceForegroundImpact, MaintenanceLaneKey, MaintenanceLocalityScope,
+    MaintenanceLocalitySummary, MaintenancePlanFamily, MaintenanceQueueSummary,
+    MaintenanceReadmissionStatus, MaintenanceReservationFamily, MaintenanceReservationSummary,
+    MaintenanceReservationTransition, MaintenanceResourceBudgetGrant,
+    MaintenanceResourceBudgetSummary, MaintenanceStarvationStatus, MaintenanceWorkClass,
+    MaintenanceWorkDescriptor, MaintenanceWorkIdentity, PlanGeneration,
     RebuildMaintenanceDeclaration, ReclaimMaintenanceDeclaration, RetentionMaintenanceDeclaration,
     SupersessionEpoch, TierWorkContainerClass,
 };
@@ -352,6 +356,8 @@ pub struct MaintenanceExecutionRecord {
     pub declaration_id: String,
     pub execution_status: MaintenanceExecutionStatus,
     #[serde(default)]
+    pub lane_key: Option<MaintenanceLaneKey>,
+    #[serde(default)]
     pub plan_family: Option<MaintenancePlanFamily>,
     pub last_completed_phase: Option<String>,
     #[serde(default)]
@@ -368,6 +374,18 @@ pub struct MaintenanceExecutionRecord {
     pub restart_readmission_status: Option<MaintenanceReadmissionStatus>,
     #[serde(default = "MaintenanceForegroundImpact::none")]
     pub foreground_impact: MaintenanceForegroundImpact,
+    #[serde(default)]
+    pub coalescing_decision: Option<MaintenanceCoalescingDecision>,
+    #[serde(default)]
+    pub supersession_source: Option<String>,
+    #[serde(default)]
+    pub resource_budget_grant: Option<MaintenanceResourceBudgetGrant>,
+    #[serde(default)]
+    pub starvation_status: Option<MaintenanceStarvationStatus>,
+    #[serde(default)]
+    pub escalation_verdict: Option<MaintenanceEscalationVerdict>,
+    #[serde(default)]
+    pub explicit_global_scope_debt: bool,
     pub resume_count: u64,
 }
 
@@ -387,4 +405,40 @@ pub struct MaintenanceCheckpointRecord {
     pub declaration_id: String,
     pub completed_phase: String,
     pub checkpoint_order: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceQueueSummaryRecord {
+    pub artifact_id: String,
+    pub family_version: u32,
+    pub summary: MaintenanceQueueSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceLocalitySummaryRecord {
+    pub artifact_id: String,
+    pub family_version: u32,
+    pub summary: MaintenanceLocalitySummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceReservationSummaryRecord {
+    pub artifact_id: String,
+    pub family_version: u32,
+    pub summary: MaintenanceReservationSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceResourceBudgetSummaryRecord {
+    pub artifact_id: String,
+    pub family_version: u32,
+    pub summary: MaintenanceResourceBudgetSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceDebtSummaryRecord {
+    pub artifact_id: String,
+    pub family_version: u32,
+    pub lane_key: MaintenanceLaneKey,
+    pub summary: MaintenanceDebtSummary,
 }

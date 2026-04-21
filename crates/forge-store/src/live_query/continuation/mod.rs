@@ -8,8 +8,8 @@ pub use batch_surface::{
     ContinuationBatchId, ContinuationBatchResult, ControlLaneBatchReceipt,
 };
 pub use budget::{
-    ContinuationBatchBudget, FetchWidth, MaxBatchItems, MaxCoveredCommits,
-    MaxMaterializedBytes, MaxSupportRowsPerBatch,
+    ContinuationBatchBudget, FetchWidth, MaxBatchItems, MaxCoveredCommits, MaxMaterializedBytes,
+    MaxSupportRowsPerBatch,
 };
 pub use plan::{ContinuationStrategy, CursorContinuationPlan};
 

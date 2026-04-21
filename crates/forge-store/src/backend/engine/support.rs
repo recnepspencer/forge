@@ -3,9 +3,9 @@ use crate::authority::{
     HistoricalIdentityResolution,
 };
 use crate::failure::{StoreError, StoreErrorKind};
+use forge_relational::facade::history::CommitId;
 use forge_relational::facade::identity::LineageId;
 use forge_relational::facade::lineage::LineageEventRecord;
-use forge_relational::facade::history::CommitId;
 
 use super::{StateBackedStoreBackend, StatePersistence};
 use crate::backend::records::{LineageSupportRecord, SchemaSupportRecord};
@@ -66,7 +66,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         let mut resolved_lineage_ids = matching_events
             .iter()
             .flat_map(|event: &LineageEventRecord| {
-                event.sources().iter().chain(event.targets().iter()).copied()
+                event
+                    .sources()
+                    .iter()
+                    .chain(event.targets().iter())
+                    .copied()
             })
             .collect::<Vec<_>>();
         resolved_lineage_ids.sort_unstable();
@@ -98,7 +102,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 self.counters.record_commit_support_publication_gap();
                 StoreError::new(
                     StoreErrorKind::SchemaBoundaryArtifactMissing,
-                    format!("schema support artifact for commit {} not found", commit_id.0),
+                    format!(
+                        "schema support artifact for commit {} not found",
+                        commit_id.0
+                    ),
                 )
             })?;
         let verification = self.state.verify_schema_support_record(&record);
@@ -123,7 +130,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 self.counters.record_commit_support_publication_gap();
                 StoreError::new(
                     StoreErrorKind::LineageArtifactMissing,
-                    format!("lineage support artifact for commit {} not found", commit_id.0),
+                    format!(
+                        "lineage support artifact for commit {} not found",
+                        commit_id.0
+                    ),
                 )
             })?;
         let verification = self.state.verify_lineage_support_record(&record);

@@ -3,9 +3,7 @@ use std::collections::BTreeMap;
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
 use crate::composition::counters::CompositionCounters;
 use crate::composition::digests::TemplateBindingDigest;
-use crate::composition::errors::{
-    QueryCompositionAdmissionFailureClass, QueryCompositionError,
-};
+use crate::composition::errors::{QueryCompositionAdmissionFailureClass, QueryCompositionError};
 use crate::composition::TemplateFamily;
 
 use crate::composition::scopes::BasisScopeEvidence;
@@ -64,11 +62,21 @@ pub(crate) fn instantiate_template(
             QueryCompositionError::invalid_template(
                 family,
                 QueryCompositionAdmissionFailureClass::MissingTemplateBinding,
-                CompositionCounters::for_template_instantiation(slots.len(), bindings.bindings().len()),
+                CompositionCounters::for_template_instantiation(
+                    slots.len(),
+                    bindings.bindings().len(),
+                ),
                 format!("template slot '{}' is missing a binding", slot.name()),
             )
         })?;
-        query = apply_binding(query, family, slot, binding, slots.len(), bindings.bindings().len())?;
+        query = apply_binding(
+            query,
+            family,
+            slot,
+            binding,
+            slots.len(),
+            bindings.bindings().len(),
+        )?;
     }
 
     let binding_digest = TemplateBindingDigest::from_parts(
@@ -87,7 +95,8 @@ pub(crate) fn instantiate_template(
             })
             .collect::<Vec<_>>(),
     );
-    let counters = CompositionCounters::for_template_instantiation(slots.len(), bindings.bindings().len());
+    let counters =
+        CompositionCounters::for_template_instantiation(slots.len(), bindings.bindings().len());
 
     Ok(TemplateInstantiationResult {
         query,
@@ -111,12 +120,14 @@ fn deny_if_deferred_family(
         TemplateFamily::DetailTemplate | TemplateFamily::CollectionTemplate => Ok(()),
         TemplateFamily::ObservedInspectorDetailTemplate
         | TemplateFamily::FocusedInspectorDetailTemplate
-        | TemplateFamily::GroupedCollectionTemplate => Err(QueryCompositionError::unsupported_template(
-            family,
-            QueryCompositionAdmissionFailureClass::DeferredTemplateFamily,
-            counters,
-            "template family remains explicit deferred debt until later composition phases",
-        )),
+        | TemplateFamily::GroupedCollectionTemplate => {
+            Err(QueryCompositionError::unsupported_template(
+                family,
+                QueryCompositionAdmissionFailureClass::DeferredTemplateFamily,
+                counters,
+                "template family remains explicit deferred debt until later composition phases",
+            ))
+        }
         #[cfg(test)]
         TemplateFamily::UnsupportedTemplate => Err(QueryCompositionError::unsupported_template(
             family,
@@ -133,7 +144,10 @@ fn index_slots(
 ) -> Result<BTreeMap<String, TemplateParameterSlot>, QueryCompositionError> {
     let mut index = BTreeMap::new();
     for slot in slots {
-        if index.insert(slot.name().to_string(), slot.clone()).is_some() {
+        if index
+            .insert(slot.name().to_string(), slot.clone())
+            .is_some()
+        {
             return Err(QueryCompositionError::invalid_template(
                 family,
                 QueryCompositionAdmissionFailureClass::TemplateBindingMismatch,
@@ -156,7 +170,10 @@ fn index_bindings<'a>(
             return Err(QueryCompositionError::invalid_template(
                 family,
                 QueryCompositionAdmissionFailureClass::TemplateBindingMismatch,
-                CompositionCounters::for_template_instantiation(slot_index.len(), bindings.bindings().len()),
+                CompositionCounters::for_template_instantiation(
+                    slot_index.len(),
+                    bindings.bindings().len(),
+                ),
                 format!(
                     "binding supplied for undeclared template slot '{}'",
                     entry.slot.name()
@@ -167,7 +184,10 @@ fn index_bindings<'a>(
             return Err(QueryCompositionError::invalid_template(
                 family,
                 QueryCompositionAdmissionFailureClass::TemplateBindingMismatch,
-                CompositionCounters::for_template_instantiation(slot_index.len(), bindings.bindings().len()),
+                CompositionCounters::for_template_instantiation(
+                    slot_index.len(),
+                    bindings.bindings().len(),
+                ),
                 format!(
                     "binding kind mismatch for slot '{}': expected '{}' but received '{}'",
                     slot.name(),
@@ -176,12 +196,21 @@ fn index_bindings<'a>(
                 ),
             ));
         }
-        if bound.insert(slot.name().to_string(), &entry.value).is_some() {
+        if bound
+            .insert(slot.name().to_string(), &entry.value)
+            .is_some()
+        {
             return Err(QueryCompositionError::invalid_template(
                 family,
                 QueryCompositionAdmissionFailureClass::DuplicateTemplateBinding,
-                CompositionCounters::for_template_instantiation(slot_index.len(), bindings.bindings().len()),
-                format!("duplicate binding supplied for template slot '{}'", slot.name()),
+                CompositionCounters::for_template_instantiation(
+                    slot_index.len(),
+                    bindings.bindings().len(),
+                ),
+                format!(
+                    "duplicate binding supplied for template slot '{}'",
+                    slot.name()
+                ),
             ));
         }
     }

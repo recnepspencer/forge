@@ -165,7 +165,10 @@ impl IdentityEvolutionMetadata {
         complexity_report: IdentityEvolutionComplexityReport,
     ) -> Self {
         let branch_locality_digest = ResultDigest::from_parts(&[
-            format!("anchor_branch_basis_digest:{}", anchor_branch_basis_digest.as_str()),
+            format!(
+                "anchor_branch_basis_digest:{}",
+                anchor_branch_basis_digest.as_str()
+            ),
             format!(
                 "lineage_origin_branch_digest:{}",
                 lineage_origin_branch_digest.as_str()

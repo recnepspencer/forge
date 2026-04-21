@@ -1,5 +1,8 @@
 use crate::{
-    backend::{engine::{StateBackedStoreBackend, StatePersistence}, records::StoreState},
+    backend::{
+        engine::{StateBackedStoreBackend, StatePersistence},
+        records::StoreState,
+    },
     failure::{StoreError, StoreErrorKind},
     ColdDerivedFamilyPolicy, PlacementObservationScopeClass, WorkingSetObservationWindow,
 };
@@ -28,28 +31,42 @@ pub(crate) fn observed_artifact_keys(
         PlacementObservationScopeClass::RetainedBasis => {
             retained_basis_observed_artifacts(state, scope_key)
         }
-        PlacementObservationScopeClass::ArtifactFamily => artifact_family_observed_artifacts(state, scope_key),
+        PlacementObservationScopeClass::ArtifactFamily => {
+            artifact_family_observed_artifacts(state, scope_key)
+        }
     }
 }
 
-fn branch_observed_artifacts(state: &StoreState, branch_key: &str) -> Result<Vec<String>, StoreError> {
-    let branch_record = state
-        .branch_head_records
-        .get(branch_key)
-        .ok_or_else(|| StoreError::unknown_branch(&forge_relational::facade::history::BranchId(branch_key.to_string())))?;
+fn branch_observed_artifacts(
+    state: &StoreState,
+    branch_key: &str,
+) -> Result<Vec<String>, StoreError> {
+    let branch_record = state.branch_head_records.get(branch_key).ok_or_else(|| {
+        StoreError::unknown_branch(&forge_relational::facade::history::BranchId(
+            branch_key.to_string(),
+        ))
+    })?;
     let Some(head_commit_id) = branch_record.head_commit_id else {
         return Err(StoreError::new(
             StoreErrorKind::PlacementWitnessConstructionViolation,
             format!("branch `{branch_key}` has no authoritative head to observe"),
         ));
     };
-    let mut observed = vec![format!("authoritative_branch_head:{branch_key}@{}", head_commit_id.0)];
+    let mut observed = vec![format!(
+        "authoritative_branch_head:{branch_key}@{}",
+        head_commit_id.0
+    )];
     observed.extend(
         state
             .stable_basis_records
             .values()
             .filter(|record| record.request.branch_id().0 == branch_key)
-            .map(|record| format!("stable_basis:{}", record.requested_stable_basis_id().as_str())),
+            .map(|record| {
+                format!(
+                    "stable_basis:{}",
+                    record.requested_stable_basis_id().as_str()
+                )
+            }),
     );
     Ok(observed)
 }
@@ -110,7 +127,9 @@ fn artifact_family_observed_artifacts(
         _ => {
             return Err(StoreError::new(
                 StoreErrorKind::PlacementWitnessConstructionViolation,
-                format!("artifact family `{family_key}` is not admitted for milestone 13 observation"),
+                format!(
+                    "artifact family `{family_key}` is not admitted for milestone 13 observation"
+                ),
             ));
         }
     };

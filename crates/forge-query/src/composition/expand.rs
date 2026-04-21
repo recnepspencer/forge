@@ -1,10 +1,12 @@
 use crate::authoring::{
-    AuthoredBundleError, AuthoredResultShape, AuthoredQuery, AuthoredQueryBundleRequest,
+    AuthoredBundleError, AuthoredQuery, AuthoredQueryBundleRequest, AuthoredResultShape,
     CollectionAuthoredQuery, CollectionAuthoredResultShape, DetailAuthoredQuery,
     DetailAuthoredResultShape, QueryAuthoringFamily, ResultShapeAuthoringFamily,
 };
 use crate::binding::QueryBindingDescriptor;
-use crate::canonicalization::{canonicalize_request, CanonicalQueryBundle, QueryCanonicalizationError};
+use crate::canonicalization::{
+    canonicalize_request, CanonicalQueryBundle, QueryCanonicalizationError,
+};
 
 use super::digests::CompositionDigest;
 use super::errors::QueryCompositionError;
@@ -15,7 +17,8 @@ use super::scopes::{
     QueryScopeDescriptor,
 };
 use super::templates::{
-    instantiate_template, QueryTemplateDescriptor, TemplateBindingSet, TemplateInstantiationArtifact,
+    instantiate_template, QueryTemplateDescriptor, TemplateBindingSet,
+    TemplateInstantiationArtifact,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -63,7 +66,12 @@ impl GuidedCompositionPath {
         result_shape: DetailAuthoredResultShape,
         scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
     ) -> Result<(ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
-        expand_scoped(query, result_shape, QueryBindingDescriptor::default(), scopes)
+        expand_scoped(
+            query,
+            result_shape,
+            QueryBindingDescriptor::default(),
+            scopes,
+        )
     }
 
     pub fn expand_detail_scopes_with_bindings(
@@ -80,7 +88,12 @@ impl GuidedCompositionPath {
         result_shape: CollectionAuthoredResultShape,
         scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
     ) -> Result<(ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
-        expand_scoped(query, result_shape, QueryBindingDescriptor::default(), scopes)
+        expand_scoped(
+            query,
+            result_shape,
+            QueryBindingDescriptor::default(),
+            scopes,
+        )
     }
 
     pub fn expand_collection_scopes_with_bindings(
@@ -93,17 +106,25 @@ impl GuidedCompositionPath {
     }
 
     pub fn instantiate_detail_template(
-        template: QueryTemplateDescriptor<crate::authoring::DetailFamily, crate::authoring::DetailResultShapeFamily>,
+        template: QueryTemplateDescriptor<
+            crate::authoring::DetailFamily,
+            crate::authoring::DetailResultShapeFamily,
+        >,
         bindings: TemplateBindingSet,
-    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError>
+    {
         instantiate_typed_template(template, bindings, QueryBindingDescriptor::default())
     }
 
     pub fn instantiate_detail_template_with_query_bindings(
-        template: QueryTemplateDescriptor<crate::authoring::DetailFamily, crate::authoring::DetailResultShapeFamily>,
+        template: QueryTemplateDescriptor<
+            crate::authoring::DetailFamily,
+            crate::authoring::DetailResultShapeFamily,
+        >,
         bindings: TemplateBindingSet,
         query_bindings: QueryBindingDescriptor,
-    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError>
+    {
         instantiate_typed_template(template, bindings, query_bindings)
     }
 
@@ -113,7 +134,8 @@ impl GuidedCompositionPath {
             crate::authoring::CollectionResultShapeFamily,
         >,
         bindings: TemplateBindingSet,
-    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError>
+    {
         instantiate_typed_template(template, bindings, QueryBindingDescriptor::default())
     }
 
@@ -124,7 +146,8 @@ impl GuidedCompositionPath {
         >,
         bindings: TemplateBindingSet,
         query_bindings: QueryBindingDescriptor,
-    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<(TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError>
+    {
         instantiate_typed_template(template, bindings, query_bindings)
     }
 
@@ -153,8 +176,14 @@ where
     let scopes = scopes.into_iter().collect::<Vec<_>>();
     let result = expand_scopes(query.into_raw(), result_shape.into_raw(), bindings, &scopes)?;
     let mut digest_parts = vec![
-        format!("family:{}", QueryCompositionFamily::NamedScopeExpansion.as_str()),
-        format!("scope_lineage:{}", result.artifact.scope_lineage_digest().as_str()),
+        format!(
+            "family:{}",
+            QueryCompositionFamily::NamedScopeExpansion.as_str()
+        ),
+        format!(
+            "scope_lineage:{}",
+            result.artifact.scope_lineage_digest().as_str()
+        ),
     ];
     if let Some(evidence) = result.artifact.basis_evidence() {
         digest_parts.push(format!("basis:{}", evidence.basis_digest()));
@@ -186,13 +215,7 @@ where
         result.artifact.counters().clone(),
     )?;
     let artifact = result.artifact;
-    Ok((
-        artifact,
-        ExpandedComposedIntent {
-            request,
-            report,
-        },
-    ))
+    Ok((artifact, ExpandedComposedIntent { request, report }))
 }
 
 fn instantiate_typed_template<Q, S>(
@@ -214,8 +237,14 @@ where
         basis_evidence,
     )?;
     let mut digest_parts = vec![
-        format!("family:{}", QueryCompositionFamily::TemplateInstantiation.as_str()),
-        format!("binding:{}", instantiated.artifact.binding_digest().as_str()),
+        format!(
+            "family:{}",
+            QueryCompositionFamily::TemplateInstantiation.as_str()
+        ),
+        format!(
+            "binding:{}",
+            instantiated.artifact.binding_digest().as_str()
+        ),
     ];
     if let Some(evidence) = instantiated.artifact.basis_evidence() {
         digest_parts.push(format!("basis:{}", evidence.basis_digest()));
@@ -247,13 +276,7 @@ where
         instantiated.artifact.counters().clone(),
     )?;
     let artifact = instantiated.artifact;
-    Ok((
-        artifact,
-        ExpandedComposedIntent {
-            request,
-            report,
-        },
-    ))
+    Ok((artifact, ExpandedComposedIntent { request, report }))
 }
 
 fn lower_to_authored_request(

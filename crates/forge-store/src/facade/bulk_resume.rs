@@ -1,5 +1,8 @@
 use crate::{
-    bulk::{DeterministicChunkPlan, ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint, ResumeBoundaryCandidate, ResumeReadyBulkProgram},
+    bulk::{
+        DeterministicChunkPlan, ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint,
+        ResumeBoundaryCandidate, ResumeReadyBulkProgram,
+    },
     failure::StoreError,
 };
 

@@ -8,7 +8,5 @@ pub use chunking::{
     DeterministicChunkPlan, PlannedBulkChunk,
 };
 pub use core::{BulkIngestSourceRequest, BulkPlanKind, BulkSourceMember, BulkTransformRequest};
-pub use freeze::{
-    FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition,
-};
+pub use freeze::{FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition};
 pub use utils::BULK_FAMILY_VERSION;

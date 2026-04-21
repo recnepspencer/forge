@@ -6,7 +6,10 @@ use super::core::BulkSourceMember;
 
 pub const BULK_FAMILY_VERSION: u32 = 1;
 
-pub(super) fn ensure_program_identity(program_id: &str, source_identity: &str) -> Result<(), StoreError> {
+pub(super) fn ensure_program_identity(
+    program_id: &str,
+    source_identity: &str,
+) -> Result<(), StoreError> {
     if program_id.trim().is_empty() {
         return Err(StoreError::new(
             StoreErrorKind::BulkPlanDeterminismViolation,
@@ -69,7 +72,9 @@ pub(super) fn stable_digest(value: &str) -> String {
     format!("{:x}", digest.finalize())
 }
 
-pub(super) fn serialization_error(label: &'static str) -> impl FnOnce(serde_json::Error) -> StoreError {
+pub(super) fn serialization_error(
+    label: &'static str,
+) -> impl FnOnce(serde_json::Error) -> StoreError {
     move |error| {
         StoreError::new(
             StoreErrorKind::Serialization,

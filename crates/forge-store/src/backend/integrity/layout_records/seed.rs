@@ -39,7 +39,8 @@ impl StoreState {
         };
         let expected_layout_materialization_artifact_id =
             crate::layout::layout_materialization_artifact_id(&expected_plan);
-        if record.layout_materialization_artifact_id != expected_layout_materialization_artifact_id {
+        if record.layout_materialization_artifact_id != expected_layout_materialization_artifact_id
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 commit-coupled layout seed `{expected_artifact_id}` drifted from expected layout materialization `{expected_layout_materialization_artifact_id}`"
             )));

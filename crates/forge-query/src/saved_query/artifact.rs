@@ -1,11 +1,10 @@
 use crate::composition::{CompositionDigest, ScopeLineageDigest, TemplateBindingDigest};
-use crate::identity::{
-    CanonicalQueryDigest, CanonicalResultShapeDigest, SchemaBasisDigest,
-};
+use crate::identity::{CanonicalQueryDigest, CanonicalResultShapeDigest, SchemaBasisDigest};
+use crate::identity_evolution::{InspectorIdentityClassification, InspectorIdentityDigest};
 use crate::query_context::QueryContextFamily;
 use crate::saved_query::digest::SavedQueryArtifactDigest;
 use crate::saved_query::error::SavedQueryError;
-use crate::view_shape::{ViewShapeDigest, ViewShapeFamily};
+use crate::view_shape::{ViewShapeDigest, ViewShapeFamily, ViewShapeIdentityConsumption};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SavedQueryPersistenceFamily {
@@ -46,6 +45,9 @@ pub struct SavedQueryMetadata {
     template_binding_digest: Option<TemplateBindingDigest>,
     view_shape_digest: ViewShapeDigest,
     view_shape_family: ViewShapeFamily,
+    identity_consumption: ViewShapeIdentityConsumption,
+    identity_consumption_digest: InspectorIdentityDigest,
+    inspector_identity_classification_digest: InspectorIdentityDigest,
     schema_basis_digest: SchemaBasisDigest,
     basis_family: Option<QueryContextFamily>,
     result_shape_family: crate::authoring::ResultShapeFamily,
@@ -63,6 +65,9 @@ impl SavedQueryMetadata {
         template_binding_digest: Option<TemplateBindingDigest>,
         view_shape_digest: ViewShapeDigest,
         view_shape_family: ViewShapeFamily,
+        identity_consumption: ViewShapeIdentityConsumption,
+        identity_consumption_digest: InspectorIdentityDigest,
+        inspector_identity_classification_digest: InspectorIdentityDigest,
         schema_basis_digest: SchemaBasisDigest,
         basis_family: Option<QueryContextFamily>,
         result_shape_family: crate::authoring::ResultShapeFamily,
@@ -78,6 +83,9 @@ impl SavedQueryMetadata {
             template_binding_digest,
             view_shape_digest,
             view_shape_family,
+            identity_consumption,
+            identity_consumption_digest,
+            inspector_identity_classification_digest,
             schema_basis_digest,
             basis_family,
             result_shape_family,
@@ -117,6 +125,22 @@ impl SavedQueryMetadata {
 
     pub fn schema_basis_digest(&self) -> &SchemaBasisDigest {
         &self.schema_basis_digest
+    }
+
+    pub fn identity_consumption(&self) -> &ViewShapeIdentityConsumption {
+        &self.identity_consumption
+    }
+
+    pub fn identity_consumption_digest(&self) -> &InspectorIdentityDigest {
+        &self.identity_consumption_digest
+    }
+
+    pub fn inspector_identity_classification(&self) -> Option<InspectorIdentityClassification> {
+        self.identity_consumption.classification()
+    }
+
+    pub fn inspector_identity_classification_digest(&self) -> &InspectorIdentityDigest {
+        &self.inspector_identity_classification_digest
     }
 
     pub fn basis_family(&self) -> Option<&QueryContextFamily> {
@@ -177,8 +201,14 @@ impl SavedQueryArtifact {
         claim: SavedQueryPersistenceClaim,
     ) -> Result<(), SavedQueryError> {
         match (self.persistence_family, claim) {
-            (SavedQueryPersistenceFamily::EphemeralProcessOwned, SavedQueryPersistenceClaim::DurableReload)
-            | (SavedQueryPersistenceFamily::EphemeralProcessOwned, SavedQueryPersistenceClaim::ImportExport)
+            (
+                SavedQueryPersistenceFamily::EphemeralProcessOwned,
+                SavedQueryPersistenceClaim::DurableReload,
+            )
+            | (
+                SavedQueryPersistenceFamily::EphemeralProcessOwned,
+                SavedQueryPersistenceClaim::ImportExport,
+            )
             | (
                 SavedQueryPersistenceFamily::EphemeralProcessOwned,
                 SavedQueryPersistenceClaim::RestartStableContinuation,

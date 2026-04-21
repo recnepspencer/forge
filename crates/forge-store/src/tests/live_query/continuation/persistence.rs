@@ -113,4 +113,3 @@ fn continuation_reopens_through_sqlite_and_degrades_when_basis_support_is_not_re
         second.commit.commit_id
     );
 }
-

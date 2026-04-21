@@ -26,6 +26,10 @@ pub(super) struct TieringCounters {
     broadened_recall_plan_count: AtomicU64,
     recall_coalesced_request_count: AtomicU64,
     recall_duplicate_suppression_count: AtomicU64,
+    tier_interleaved_read_count: AtomicU64,
+    tier_interleaved_continuation_count: AtomicU64,
+    tier_interleaving_recall_count: AtomicU64,
+    tier_interleaving_parity_failure_count: AtomicU64,
     placement_debt_count: AtomicU64,
     working_set_debt_count: AtomicU64,
     tier_truth_parity_failure_count: AtomicU64,
@@ -154,6 +158,30 @@ impl StoreCounters {
             .fetch_add(count, Ordering::Relaxed);
     }
 
+    pub fn record_tier_interleaved_reads(&self, count: u64) {
+        self.tiering
+            .tier_interleaved_read_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
+
+    pub fn record_tier_interleaved_continuations(&self, count: u64) {
+        self.tiering
+            .tier_interleaved_continuation_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
+
+    pub fn record_tier_interleaving_recalls(&self, count: u64) {
+        self.tiering
+            .tier_interleaving_recall_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
+
+    pub fn record_tier_interleaving_parity_failures(&self, count: u64) {
+        self.tiering
+            .tier_interleaving_parity_failure_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
+
     pub fn record_placement_debt(&self, count: u64) {
         self.tiering
             .placement_debt_count
@@ -212,6 +240,10 @@ pub(super) fn write_snapshot(counters: &TieringCounters, snapshot: &mut StoreCou
     load!(broadened_recall_plan_count);
     load!(recall_coalesced_request_count);
     load!(recall_duplicate_suppression_count);
+    load!(tier_interleaved_read_count);
+    load!(tier_interleaved_continuation_count);
+    load!(tier_interleaving_recall_count);
+    load!(tier_interleaving_parity_failure_count);
     load!(placement_debt_count);
     load!(working_set_debt_count);
     load!(tier_truth_parity_failure_count);

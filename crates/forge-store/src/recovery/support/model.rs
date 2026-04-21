@@ -32,22 +32,58 @@ pub struct SupportArtifactRecoveryReport {
 }
 
 impl SupportArtifactRecoveryEntry {
-    pub fn family(&self) -> SupportArtifactFamily { self.family }
-    pub fn scope_identity(&self) -> &str { &self.scope_identity }
-    pub fn disposition(&self) -> SupportArtifactRecoveryDisposition { self.disposition }
-    pub fn related_commit_id(&self) -> Option<u64> { self.related_commit_id }
-    pub fn kind(&self) -> &StoreErrorKind { &self.kind }
-    pub fn reason(&self) -> &str { &self.reason }
+    pub fn family(&self) -> SupportArtifactFamily {
+        self.family
+    }
+    pub fn scope_identity(&self) -> &str {
+        &self.scope_identity
+    }
+    pub fn disposition(&self) -> SupportArtifactRecoveryDisposition {
+        self.disposition
+    }
+    pub fn related_commit_id(&self) -> Option<u64> {
+        self.related_commit_id
+    }
+    pub fn kind(&self) -> &StoreErrorKind {
+        &self.kind
+    }
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 }
 
 impl SupportArtifactRecoveryReport {
-    pub fn empty() -> Self { Self { entries: Vec::new() } }
-    pub fn entries(&self) -> &[SupportArtifactRecoveryEntry] { &self.entries }
-    pub fn is_clean(&self) -> bool { self.entries.is_empty() }
+    pub fn empty() -> Self {
+        Self {
+            entries: Vec::new(),
+        }
+    }
+    pub fn entries(&self) -> &[SupportArtifactRecoveryEntry] {
+        &self.entries
+    }
+    pub fn is_clean(&self) -> bool {
+        self.entries.is_empty()
+    }
     pub fn rebuilds(&self) -> Vec<&SupportArtifactRecoveryEntry> {
-        self.entries.iter().filter(|entry| matches!(entry.disposition, SupportArtifactRecoveryDisposition::RequireRebuild)).collect()
+        self.entries
+            .iter()
+            .filter(|entry| {
+                matches!(
+                    entry.disposition,
+                    SupportArtifactRecoveryDisposition::RequireRebuild
+                )
+            })
+            .collect()
     }
     pub fn quarantines(&self) -> Vec<&SupportArtifactRecoveryEntry> {
-        self.entries.iter().filter(|entry| matches!(entry.disposition, SupportArtifactRecoveryDisposition::RequireQuarantine)).collect()
+        self.entries
+            .iter()
+            .filter(|entry| {
+                matches!(
+                    entry.disposition,
+                    SupportArtifactRecoveryDisposition::RequireQuarantine
+                )
+            })
+            .collect()
     }
 }

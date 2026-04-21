@@ -67,7 +67,9 @@ pub(super) fn chunk_export_rebuild_parity() -> Vec<LaneResult<String>> {
     store
         .materialize_milestone_6_layout_support(request.clone())
         .unwrap();
-    let before = store.export_milestone_6_chunk_model(request.clone()).unwrap();
+    let before = store
+        .export_milestone_6_chunk_model(request.clone())
+        .unwrap();
     drop(store);
 
     force_clear_milestone_6_materializations_and_derived_access_structures(&path);

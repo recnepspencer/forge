@@ -80,14 +80,30 @@ impl LoweredCompactionDeclaration {
             rewritten_range_count,
         }
     }
-    pub fn retained_basis_label(&self) -> &str { &self.retained_basis_label }
-    pub fn retained_head_branch_ids(&self) -> &[BranchId] { &self.retained_head_branch_ids }
-    pub fn stable_basis_labels(&self) -> &[String] { &self.stable_basis_labels }
-    pub fn closure_commit_ids(&self) -> &[CommitId] { &self.closure_commit_ids }
-    pub fn frontier_commit_ids(&self) -> &[CommitId] { &self.frontier_commit_ids }
-    pub fn family_labels(&self) -> &[String] { &self.family_labels }
-    pub fn superseded_families(&self) -> &[(String, String, Option<CommitId>)] { &self.superseded_families }
-    pub fn rewritten_range_count(&self) -> u64 { self.rewritten_range_count }
+    pub fn retained_basis_label(&self) -> &str {
+        &self.retained_basis_label
+    }
+    pub fn retained_head_branch_ids(&self) -> &[BranchId] {
+        &self.retained_head_branch_ids
+    }
+    pub fn stable_basis_labels(&self) -> &[String] {
+        &self.stable_basis_labels
+    }
+    pub fn closure_commit_ids(&self) -> &[CommitId] {
+        &self.closure_commit_ids
+    }
+    pub fn frontier_commit_ids(&self) -> &[CommitId] {
+        &self.frontier_commit_ids
+    }
+    pub fn family_labels(&self) -> &[String] {
+        &self.family_labels
+    }
+    pub fn superseded_families(&self) -> &[(String, String, Option<CommitId>)] {
+        &self.superseded_families
+    }
+    pub fn rewritten_range_count(&self) -> u64 {
+        self.rewritten_range_count
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -126,8 +142,16 @@ impl LoweredRebuildDeclaration {
             debt_reason: debt_reason.into(),
         }
     }
-    pub fn retained_basis_label(&self) -> &str { &self.retained_basis_label }
-    pub fn family_label(&self) -> &str { &self.family_label }
-    pub fn rebuild_target_id(&self) -> &str { &self.rebuild_target_id }
-    pub fn debt_reason(&self) -> &str { &self.debt_reason }
+    pub fn retained_basis_label(&self) -> &str {
+        &self.retained_basis_label
+    }
+    pub fn family_label(&self) -> &str {
+        &self.family_label
+    }
+    pub fn rebuild_target_id(&self) -> &str {
+        &self.rebuild_target_id
+    }
+    pub fn debt_reason(&self) -> &str {
+        &self.debt_reason
+    }
 }

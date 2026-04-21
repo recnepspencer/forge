@@ -46,6 +46,7 @@ impl ViewShapePatchPosture {
 pub struct ViewShapeDeliveryMetadata {
     focus_aspect: Option<String>,
     grouping_aspect: Option<String>,
+    identity_consumption: ViewShapeIdentityConsumption,
     projection_legality_matches_detail: bool,
     delivery_width_narrowed: bool,
     grouped_delivery: bool,
@@ -55,6 +56,7 @@ impl ViewShapeDeliveryMetadata {
     pub(crate) fn new(
         focus_aspect: Option<String>,
         grouping_aspect: Option<String>,
+        identity_consumption: ViewShapeIdentityConsumption,
         projection_legality_matches_detail: bool,
         delivery_width_narrowed: bool,
         grouped_delivery: bool,
@@ -62,6 +64,7 @@ impl ViewShapeDeliveryMetadata {
         Self {
             focus_aspect,
             grouping_aspect,
+            identity_consumption,
             projection_legality_matches_detail,
             delivery_width_narrowed,
             grouped_delivery,
@@ -76,6 +79,10 @@ impl ViewShapeDeliveryMetadata {
         self.grouping_aspect.as_deref()
     }
 
+    pub fn identity_consumption(&self) -> &ViewShapeIdentityConsumption {
+        &self.identity_consumption
+    }
+
     pub fn projection_legality_matches_detail(&self) -> bool {
         self.projection_legality_matches_detail
     }
@@ -88,3 +95,4 @@ impl ViewShapeDeliveryMetadata {
         self.grouped_delivery
     }
 }
+use super::identity::ViewShapeIdentityConsumption;

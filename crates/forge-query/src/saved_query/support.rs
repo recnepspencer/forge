@@ -13,8 +13,10 @@ impl SavedQueryComplexityStatus {
     }
 }
 
-pub fn runtime_backed_saved_query_support_profile(
-) -> Vec<(super::artifact::SavedQueryPersistenceFamily, SavedQueryComplexityStatus)> {
+pub fn runtime_backed_saved_query_support_profile() -> Vec<(
+    super::artifact::SavedQueryPersistenceFamily,
+    SavedQueryComplexityStatus,
+)> {
     vec![(
         super::artifact::SavedQueryPersistenceFamily::EphemeralProcessOwned,
         SavedQueryComplexityStatus::Debt,

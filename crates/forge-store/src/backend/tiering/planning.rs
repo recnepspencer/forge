@@ -14,9 +14,7 @@ use crate::{
 
 pub(crate) use authoritative::plan_authoritative_tier_move;
 pub(crate) use derived::plan_derived_tier_move;
-pub(crate) use read::{
-    plan_broadened_recall, plan_cold_recall_lease, plan_resident_read_lease,
-};
+pub(crate) use read::{plan_broadened_recall, plan_cold_recall_lease, plan_resident_read_lease};
 
 pub(crate) fn summarize_placement_demand<P: StatePersistence>(
     backend: &StateBackedStoreBackend<P>,

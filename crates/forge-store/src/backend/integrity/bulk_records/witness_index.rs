@@ -42,7 +42,8 @@ impl StoreState {
                 .max_by_key(|witness| witness.witness.chunk_ordinal().value())
                 .expect("non-empty witnesses");
             if highest.witness.chunk_ordinal() != record.index.highest_committed_chunk_ordinal()
-                || highest.witness.canonical_commit_id() != record.index.highest_committed_commit_id()
+                || highest.witness.canonical_commit_id()
+                    != record.index.highest_committed_commit_id()
                 || witnesses.len() as u64 != record.index.witness_count()
             {
                 return Err(StoreError::backend_integrity(format!(
@@ -51,8 +52,11 @@ impl StoreState {
                 )));
             }
             if let Some(checkpoint_sequence) = record.index.latest_checkpoint_sequence() {
-                let checkpoint_artifact_id =
-                    bulk_checkpoint_artifact_id(&record.program_id, &record.plan_id, checkpoint_sequence);
+                let checkpoint_artifact_id = bulk_checkpoint_artifact_id(
+                    &record.program_id,
+                    &record.plan_id,
+                    checkpoint_sequence,
+                );
                 let checkpoint = self
                     .bulk_progress_checkpoint_records
                     .get(&checkpoint_artifact_id)
@@ -62,7 +66,9 @@ impl StoreState {
                             record.artifact_id
                         ))
                     })?;
-                if checkpoint.checkpoint.completed_chunk_ordinal().value() >= record.index.witness_count() {
+                if checkpoint.checkpoint.completed_chunk_ordinal().value()
+                    >= record.index.witness_count()
+                {
                     return Err(StoreError::backend_integrity(format!(
                         "bulk witness index `{}` referenced checkpoint `{}` beyond persisted witness count",
                         record.artifact_id, checkpoint.artifact_id

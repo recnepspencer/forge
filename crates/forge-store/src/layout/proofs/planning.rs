@@ -1,19 +1,23 @@
-use crate::{ComplexityStatus, failure::StoreError};
+use crate::{failure::StoreError, ComplexityStatus};
 use serde::{Deserialize, Serialize};
 
+use super::super::constants::{
+    FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ, FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
+    FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY,
+};
 use super::{
     core::{AspectLayoutSliceId, EquivalenceContractVersion, StructuralBlockId},
     digests::{canonical_slice_ids, structural_block_id_for_plan},
     scopes::{AspectLayoutReadRequest, AspectReadRegime, AspectScopeClass},
 };
-use super::super::constants::{
-    FIRST_SHIP_MAX_ADMITTED_ASPECT_SLICES_PER_READ, FIRST_SHIP_MAX_ADMITTED_BLOCK_DECODE_BREADTH,
-    FIRST_SHIP_MAX_ADMITTED_CONTROL_REPLAY_BREADTH_FOR_PARITY,
-};
 use forge_relational::facade::history::{BranchId, CommitId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AspectLayoutFallbackClass { None, UnsupportedScopeClass, BudgetExceeded }
+pub enum AspectLayoutFallbackClass {
+    None,
+    UnsupportedScopeClass,
+    BudgetExceeded,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectLayoutPerformanceEnvelope {
@@ -35,13 +39,31 @@ pub struct AdmittedAspectLayoutReadPlan {
     performance: AspectLayoutPerformanceEnvelope,
 }
 impl AdmittedAspectLayoutReadPlan {
-    pub(crate) fn new(request: AspectLayoutReadRequest, slice_ids: Vec<AspectLayoutSliceId>, structural_block_id: StructuralBlockId, performance: AspectLayoutPerformanceEnvelope) -> Self {
-        Self { request, slice_ids, structural_block_id, performance }
+    pub(crate) fn new(
+        request: AspectLayoutReadRequest,
+        slice_ids: Vec<AspectLayoutSliceId>,
+        structural_block_id: StructuralBlockId,
+        performance: AspectLayoutPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            request,
+            slice_ids,
+            structural_block_id,
+            performance,
+        }
     }
-    pub fn request(&self) -> &AspectLayoutReadRequest { &self.request }
-    pub fn slice_ids(&self) -> &[AspectLayoutSliceId] { &self.slice_ids }
-    pub fn structural_block_id(&self) -> &StructuralBlockId { &self.structural_block_id }
-    pub fn performance(&self) -> &AspectLayoutPerformanceEnvelope { &self.performance }
+    pub fn request(&self) -> &AspectLayoutReadRequest {
+        &self.request
+    }
+    pub fn slice_ids(&self) -> &[AspectLayoutSliceId] {
+        &self.slice_ids
+    }
+    pub fn structural_block_id(&self) -> &StructuralBlockId {
+        &self.structural_block_id
+    }
+    pub fn performance(&self) -> &AspectLayoutPerformanceEnvelope {
+        &self.performance
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -51,12 +73,26 @@ pub struct ExplicitBroadFallbackPlan {
     reason: String,
 }
 impl ExplicitBroadFallbackPlan {
-    pub(crate) fn new(request: AspectLayoutReadRequest, performance: AspectLayoutPerformanceEnvelope, reason: impl Into<String>) -> Self {
-        Self { request, performance, reason: reason.into() }
+    pub(crate) fn new(
+        request: AspectLayoutReadRequest,
+        performance: AspectLayoutPerformanceEnvelope,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            request,
+            performance,
+            reason: reason.into(),
+        }
     }
-    pub fn request(&self) -> &AspectLayoutReadRequest { &self.request }
-    pub fn performance(&self) -> &AspectLayoutPerformanceEnvelope { &self.performance }
-    pub fn reason(&self) -> &str { &self.reason }
+    pub fn request(&self) -> &AspectLayoutReadRequest {
+        &self.request
+    }
+    pub fn performance(&self) -> &AspectLayoutPerformanceEnvelope {
+        &self.performance
+    }
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -66,10 +102,17 @@ pub struct RejectedAspectLayoutReadPlan {
 }
 impl RejectedAspectLayoutReadPlan {
     pub(crate) fn new(request: AspectLayoutReadRequest, reason: impl Into<String>) -> Self {
-        Self { request, reason: reason.into() }
+        Self {
+            request,
+            reason: reason.into(),
+        }
     }
-    pub fn request(&self) -> &AspectLayoutReadRequest { &self.request }
-    pub fn reason(&self) -> &str { &self.reason }
+    pub fn request(&self) -> &AspectLayoutReadRequest {
+        &self.request
+    }
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -89,7 +132,10 @@ pub struct DedupAdmittedBlockReuse {
     slice_ids: Vec<AspectLayoutSliceId>,
 }
 impl DedupAdmittedBlockReuse {
-    pub(crate) fn new(plan: &AdmittedAspectLayoutReadPlan, equivalence_contract_version: EquivalenceContractVersion) -> Self {
+    pub(crate) fn new(
+        plan: &AdmittedAspectLayoutReadPlan,
+        equivalence_contract_version: EquivalenceContractVersion,
+    ) -> Self {
         Self {
             branch_id: plan.request.target().branch_id().clone(),
             frontier_commit_id: plan.request.target().frontier_commit_id(),
@@ -99,15 +145,41 @@ impl DedupAdmittedBlockReuse {
             slice_ids: plan.slice_ids.clone(),
         }
     }
-    pub(crate) fn from_parts(branch_id: BranchId, frontier_commit_id: CommitId, scope_class: String, structural_block_id: StructuralBlockId, equivalence_contract_version: EquivalenceContractVersion, slice_ids: Vec<AspectLayoutSliceId>) -> Self {
-        Self { branch_id, frontier_commit_id, scope_class, structural_block_id, equivalence_contract_version, slice_ids }
+    pub(crate) fn from_parts(
+        branch_id: BranchId,
+        frontier_commit_id: CommitId,
+        scope_class: String,
+        structural_block_id: StructuralBlockId,
+        equivalence_contract_version: EquivalenceContractVersion,
+        slice_ids: Vec<AspectLayoutSliceId>,
+    ) -> Self {
+        Self {
+            branch_id,
+            frontier_commit_id,
+            scope_class,
+            structural_block_id,
+            equivalence_contract_version,
+            slice_ids,
+        }
     }
-    pub fn structural_block_id(&self) -> &StructuralBlockId { &self.structural_block_id }
-    pub(crate) fn branch_id(&self) -> &BranchId { &self.branch_id }
-    pub(crate) fn frontier_commit_id(&self) -> CommitId { self.frontier_commit_id }
-    pub(crate) fn scope_class(&self) -> &str { &self.scope_class }
-    pub fn equivalence_contract_version(&self) -> EquivalenceContractVersion { self.equivalence_contract_version }
-    pub fn slice_ids(&self) -> &[AspectLayoutSliceId] { &self.slice_ids }
+    pub fn structural_block_id(&self) -> &StructuralBlockId {
+        &self.structural_block_id
+    }
+    pub(crate) fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+    pub(crate) fn frontier_commit_id(&self) -> CommitId {
+        self.frontier_commit_id
+    }
+    pub(crate) fn scope_class(&self) -> &str {
+        &self.scope_class
+    }
+    pub fn equivalence_contract_version(&self) -> EquivalenceContractVersion {
+        self.equivalence_contract_version
+    }
+    pub fn slice_ids(&self) -> &[AspectLayoutSliceId] {
+        &self.slice_ids
+    }
 }
 
 pub(crate) fn classify_layout_request(

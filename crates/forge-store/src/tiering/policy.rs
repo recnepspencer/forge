@@ -46,6 +46,25 @@ pub enum PlacementObservationScopeClass {
     ArtifactFamily,
 }
 
+impl PlacementObservationScopeClass {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Branch => "branch",
+            Self::RetainedBasis => "retained_basis",
+            Self::ArtifactFamily => "artifact_family",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "branch" => Some(Self::Branch),
+            "retained_basis" => Some(Self::RetainedBasis),
+            "artifact_family" => Some(Self::ArtifactFamily),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConservativePlacementPolicy {
     allow_active_branch_head_hot_or_warm: bool,

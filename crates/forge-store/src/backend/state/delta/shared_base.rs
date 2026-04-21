@@ -1,7 +1,7 @@
 use crate::{
     delta::{
-        SharedBaseBranchCreationReceipt, SharedBaseBranchCreationRequest,
-        SharedBaseBranchCreationWitness, stable_shared_base_authority_digest,
+        stable_shared_base_authority_digest, SharedBaseBranchCreationReceipt,
+        SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness,
         BRANCH_DELTA_FAMILY_VERSION,
     },
     failure::{StoreError, StoreErrorKind},

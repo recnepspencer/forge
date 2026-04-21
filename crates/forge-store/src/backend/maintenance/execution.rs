@@ -1,9 +1,8 @@
 use crate::{
     backend::engine::{StateBackedStoreBackend, StatePersistence},
     maintenance::{
-        AdmittedMaintenanceWork, CompletedMaintenance, ExecutingMaintenanceWork,
-        FailedMaintenance, MaintenanceDeclaration, MaintenanceDeclarationId,
-        MaintenanceExecutionStatus,
+        AdmittedMaintenanceWork, CompletedMaintenance, ExecutingMaintenanceWork, FailedMaintenance,
+        MaintenanceDeclaration, MaintenanceDeclarationId, MaintenanceExecutionStatus,
     },
 };
 
@@ -54,6 +53,10 @@ fn execute_declared_maintenance<P: StatePersistence>(
         .state()
         .maintenance_execution_records
         .get(declaration_id.as_str())
+        .cloned();
+    let current_execution = current_status.clone();
+    let current_status = current_execution
+        .as_ref()
         .map(|record| record.execution_status)
         .unwrap_or(MaintenanceExecutionStatus::Declared);
     if let Err(error) =
@@ -88,10 +91,31 @@ fn execute_declared_maintenance<P: StatePersistence>(
     }
 
     let admitted_work = AdmittedMaintenanceWork::new(declaration.clone(), descriptor.clone());
-    let lowered_plan = match super::planning::lower_maintenance_plan(
+    let context =
+        super::summaries::scheduler_admission_context(backend.state(), &descriptor.lane_key());
+    let resumed_execution = current_execution.as_ref().and_then(|record| {
+        if allow_resume && matches!(record.execution_status, MaintenanceExecutionStatus::Started) {
+            Some(super::planning::ResumedExecutionState {
+                plan_family: record.plan_family?,
+                resource_budget_grant: record.resource_budget_grant.clone()?,
+                starvation_status: record
+                    .starvation_status
+                    .unwrap_or(crate::MaintenanceStarvationStatus::NotStarved),
+                escalation_verdict: record
+                    .escalation_verdict
+                    .unwrap_or(crate::MaintenanceEscalationVerdict::NoEscalation),
+                explicit_global_scope_debt: record.explicit_global_scope_debt,
+            })
+        } else {
+            None
+        }
+    });
+    let planning_decision = match super::planning::lower_maintenance_plan(
         &admitted_work,
         allow_resume,
         current_status,
+        resumed_execution.as_ref(),
+        &context,
     ) {
         Ok(plan) => plan,
         Err(error) => {
@@ -105,62 +129,96 @@ fn execute_declared_maintenance<P: StatePersistence>(
         }
     };
 
-    match &lowered_plan {
-        super::planning::LoweredMaintenancePlan::Deferred(_) => {
-            let reason = lowered_plan
-                .reason()
-                .expect("deferred maintenance plans must carry a reason");
-            let _ = super::lifecycle::persist_deferred_state(backend, declaration_id, reason);
-            return Err(FailedMaintenance::new(
-                declaration,
-                Some(descriptor),
-                crate::MaintenanceFailureKind::Deferred,
-                "MaintenanceDeferred",
-                reason.to_string(),
-            ));
-        }
-        super::planning::LoweredMaintenancePlan::Cancelled { .. } => {
-            let reason = lowered_plan
-                .reason()
-                .expect("cancelled maintenance plans must carry a reason");
-            let _ = super::lifecycle::persist_cancelled_state(backend, declaration_id, reason);
-            return Err(FailedMaintenance::new(
-                declaration,
-                Some(descriptor),
-                crate::MaintenanceFailureKind::Cancelled,
-                "MaintenanceCancelled",
-                reason.to_string(),
-            ));
-        }
-        super::planning::LoweredMaintenancePlan::ForegroundReserved(_)
-        | super::planning::LoweredMaintenancePlan::BackgroundPaced(_)
-        | super::planning::LoweredMaintenancePlan::Escalated(_) => {
-            let quantum_units = lowered_plan
-                .quantum_units()
-                .expect("reserved maintenance plans must carry a quantum receipt");
-            if let Err(error) = super::lifecycle::persist_reserved_state(
-                backend,
-                declaration_id,
-                lowered_plan.family(),
-                quantum_units,
-            ) {
+    let resumed_from_started =
+        allow_resume && matches!(current_status, MaintenanceExecutionStatus::Started);
+    if !resumed_from_started {
+        match planning_decision.family() {
+            crate::MaintenancePlanFamily::Deferred => {
+                let reason = planning_decision
+                    .reason()
+                    .expect("deferred maintenance plans must carry a reason");
+                let _ = super::lifecycle::persist_deferred_state(
+                    backend,
+                    declaration_id,
+                    reason,
+                    planning_decision.lane_key().clone(),
+                    planning_decision.coalescing_decision(),
+                    planning_decision
+                        .supersession_source()
+                        .map(ToString::to_string),
+                    planning_decision.starvation_status(),
+                    planning_decision.escalation_verdict(),
+                    planning_decision.explicit_global_scope_debt(),
+                );
                 return Err(FailedMaintenance::new(
                     declaration,
                     Some(descriptor),
-                    crate::MaintenanceFailureKind::ReservationViolation,
-                    format!("{:?}", error.kind()),
-                    error.message().to_string(),
+                    crate::MaintenanceFailureKind::Deferred,
+                    "MaintenanceDeferred",
+                    reason.to_string(),
                 ));
+            }
+            crate::MaintenancePlanFamily::Cancelled => {
+                let reason = planning_decision
+                    .reason()
+                    .expect("cancelled maintenance plans must carry a reason");
+                let _ = super::lifecycle::persist_cancelled_state(
+                    backend,
+                    declaration_id,
+                    reason,
+                    planning_decision.lane_key().clone(),
+                    planning_decision.coalescing_decision(),
+                    planning_decision
+                        .supersession_source()
+                        .map(ToString::to_string),
+                    planning_decision.starvation_status(),
+                    planning_decision.escalation_verdict(),
+                    planning_decision.explicit_global_scope_debt(),
+                );
+                return Err(FailedMaintenance::new(
+                    declaration,
+                    Some(descriptor),
+                    crate::MaintenanceFailureKind::Cancelled,
+                    "MaintenanceCancelled",
+                    reason.to_string(),
+                ));
+            }
+            crate::MaintenancePlanFamily::ForegroundReserved
+            | crate::MaintenancePlanFamily::BackgroundPaced
+            | crate::MaintenancePlanFamily::Escalated => {
+                let quantum_units = planning_decision
+                    .quantum_units()
+                    .expect("reserved maintenance plans must carry a quantum receipt");
+                if let Err(error) = super::lifecycle::persist_reserved_state(
+                    backend,
+                    declaration_id,
+                    planning_decision.family(),
+                    quantum_units,
+                    planning_decision.lane_key().clone(),
+                    planning_decision.coalescing_decision(),
+                    planning_decision
+                        .supersession_source()
+                        .map(ToString::to_string),
+                    planning_decision.resource_budget_grant().cloned(),
+                    planning_decision.starvation_status(),
+                    planning_decision.escalation_verdict(),
+                    planning_decision.explicit_global_scope_debt(),
+                ) {
+                    return Err(FailedMaintenance::new(
+                        declaration,
+                        Some(descriptor),
+                        crate::MaintenanceFailureKind::ReservationViolation,
+                        format!("{:?}", error.kind()),
+                        error.message().to_string(),
+                    ));
+                }
             }
         }
     }
 
-    let reserved_work = lowered_plan
-        .clone()
+    let reserved_work = planning_decision
         .into_reserved_work(admitted_work)
         .expect("reserved maintenance plans must lower into reserved work");
-    let resumed_from_started =
-        allow_resume && matches!(current_status, MaintenanceExecutionStatus::Started);
     if let Err(error) =
         super::lifecycle::persist_started_state(backend, declaration_id, resumed_from_started)
     {
@@ -188,7 +246,11 @@ fn execute_declared_maintenance<P: StatePersistence>(
                     error.message().to_string(),
                 ));
             }
-            Ok(CompletedMaintenance::new(declaration, descriptor, completed_phase))
+            Ok(CompletedMaintenance::new(
+                declaration,
+                descriptor,
+                completed_phase,
+            ))
         }
         Err(error) => {
             let _ = super::lifecycle::persist_failed_state(backend, declaration_id, &error);

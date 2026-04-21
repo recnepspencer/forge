@@ -9,7 +9,10 @@ fn commit_materialized_bytes(state: &StoreState, commit_id: CommitId) -> Result<
     let record = state.commit_record(commit_id).ok_or_else(|| {
         StoreError::new(
             StoreErrorKind::CommitNotFound,
-            format!("continuation batch budget could not find commit {}", commit_id.0),
+            format!(
+                "continuation batch budget could not find commit {}",
+                commit_id.0
+            ),
         )
     })?;
     serde_json::to_vec(&record.envelope)

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-mod lowering;
 mod lowered_declarations;
+mod lowering;
 mod planning_report;
 
 pub use lowered_declarations::{

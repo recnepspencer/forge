@@ -78,11 +78,11 @@ fn entity_set_request(
 mod admission_and_lanes;
 #[path = "layout/corruption_and_migration.rs"]
 mod corruption_and_migration;
-#[path = "layout/scopes_and_reads.rs"]
-mod scopes_and_reads;
 #[path = "layout/execution.rs"]
 mod execution;
 #[path = "layout/export_and_truth.rs"]
 mod export_and_truth;
 #[path = "layout/parity.rs"]
 mod parity;
+#[path = "layout/scopes_and_reads.rs"]
+mod scopes_and_reads;

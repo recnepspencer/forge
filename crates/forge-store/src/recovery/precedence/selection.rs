@@ -4,7 +4,9 @@ use crate::{
     publication::PublicationClassification,
 };
 
-use super::model::{RecoverySourceKind, RecoverySourceReport, RecoverySourceSelection, RecoverySourceSet};
+use super::model::{
+    RecoverySourceKind, RecoverySourceReport, RecoverySourceSelection, RecoverySourceSet,
+};
 
 pub(crate) fn select_recovery_source(
     state: &StoreState,
@@ -83,7 +85,13 @@ pub(crate) fn select_recovery_source(
         ),
     };
 
-    verify_source_requirements(state, source_set, source_kind, commit_id, canonical_envelope.as_ref())?;
+    verify_source_requirements(
+        state,
+        source_set,
+        source_kind,
+        commit_id,
+        canonical_envelope.as_ref(),
+    )?;
 
     let report = RecoverySourceReport {
         durable_mutation_id: source_set.durable_mutation_id(),
@@ -138,7 +146,9 @@ fn verify_source_requirements(
             ));
         }
     }
-    if source_kind == RecoverySourceKind::HostedRuntimeCanonicalResult && canonical_envelope.is_none() {
+    if source_kind == RecoverySourceKind::HostedRuntimeCanonicalResult
+        && canonical_envelope.is_none()
+    {
         return Err(StoreError::new(
             StoreErrorKind::RecoverySourcePrecedenceViolation,
             format!(

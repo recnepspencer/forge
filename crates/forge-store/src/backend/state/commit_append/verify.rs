@@ -7,12 +7,15 @@ impl StoreState {
         &self,
         applied: &AppliedAuthoritativeAppend,
     ) -> Result<(), StoreError> {
-        let commit_record = self.commit_envelopes.get(&applied.commit_id.0).ok_or_else(|| {
-            StoreError::backend_integrity(format!(
-                "commit {} missing after in-place authoritative append",
-                applied.commit_id.0
-            ))
-        })?;
+        let commit_record = self
+            .commit_envelopes
+            .get(&applied.commit_id.0)
+            .ok_or_else(|| {
+                StoreError::backend_integrity(format!(
+                    "commit {} missing after in-place authoritative append",
+                    applied.commit_id.0
+                ))
+            })?;
         self.verify_commit_record(commit_record)?;
         if applied.created_branch {
             self.verify_branch_record(&applied.branch_identity)?;

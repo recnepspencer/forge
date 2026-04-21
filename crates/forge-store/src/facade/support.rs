@@ -1,10 +1,16 @@
 use crate::{
-    authority::{AuthoritativeExportBundle, AuthoritativeExportRestoreRequest, EmbeddedCheckpointFetchRequest, PersistedEmbeddedCheckpoint},
+    authority::{
+        AuthoritativeExportBundle, AuthoritativeExportRestoreRequest,
+        EmbeddedCheckpointFetchRequest, PersistedEmbeddedCheckpoint,
+    },
     evidence::{OperatingModeLane, PersistedModeLaneEvidence, StoreCounterSnapshot},
     failure::StoreError,
     media::DurableMediaReport,
     publication::PublicationWriteOutcome,
-    recovery::{BackupRestoreCompatibilityReport, MaintenanceRecoveryReport, SnapshotMaintenanceRecoveryReport},
+    recovery::{
+        BackupRestoreCompatibilityReport, MaintenanceRecoveryReport,
+        SnapshotMaintenanceRecoveryReport,
+    },
     snapshot::SnapshotId,
     wal::DurableMutationId,
 };

@@ -3,9 +3,10 @@
 use forge_relational::facade::history::BranchId;
 use serde::Serialize;
 
+use super::proofs::{RetainedReadPlacementPath, TierMissOutcome};
 use super::{
     AdaptivePlacementDebtMarker, PlacementArtifactFamily, PlacementBudgetClass,
-    PlacementExecutionOrigin, PlacementDemandSummary, PlacementObservationScopeClass,
+    PlacementDemandSummary, PlacementExecutionOrigin, PlacementObservationScopeClass,
     RecallAmplificationBudget, RecallCostClass, RecallEligibilityWitness, TierResidenceClass,
 };
 
@@ -102,6 +103,63 @@ pub struct RecallPreparationPlan {
     recall_cost_class: RecallCostClass,
     amplification_budget: RecallAmplificationBudget,
     execution_origin: PlacementExecutionOrigin,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ColdRecallPlan {
+    artifact_key: String,
+    recall_cost_class: RecallCostClass,
+    amplification_budget: RecallAmplificationBudget,
+    execution_origin: PlacementExecutionOrigin,
+}
+
+impl ColdRecallPlan {
+    pub(crate) fn new(
+        artifact_key: impl Into<String>,
+        recall_cost_class: RecallCostClass,
+        amplification_budget: RecallAmplificationBudget,
+        execution_origin: PlacementExecutionOrigin,
+    ) -> Self {
+        Self {
+            artifact_key: artifact_key.into(),
+            recall_cost_class,
+            amplification_budget,
+            execution_origin,
+        }
+    }
+
+    pub fn artifact_key(&self) -> &str {
+        &self.artifact_key
+    }
+
+    pub fn recall_cost_class(&self) -> RecallCostClass {
+        self.recall_cost_class
+    }
+
+    pub fn amplification_budget(&self) -> RecallAmplificationBudget {
+        self.amplification_budget
+    }
+
+    pub fn execution_origin(&self) -> PlacementExecutionOrigin {
+        self.execution_origin
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RecallDebtSummary {
+    reason: String,
+}
+
+impl RecallDebtSummary {
+    pub(crate) fn new(reason: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+        }
+    }
+
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
 }
 
 impl RecallPreparationPlan {
@@ -316,7 +374,11 @@ pub struct TierMoveBreadthSummary {
 }
 
 impl TierMoveBreadthSummary {
-    pub(crate) fn new(candidate_count: u64, admitted_count: u64, locality_group_count: u64) -> Self {
+    pub(crate) fn new(
+        candidate_count: u64,
+        admitted_count: u64,
+        locality_group_count: u64,
+    ) -> Self {
         Self {
             candidate_count,
             admitted_count,
@@ -367,10 +429,7 @@ pub struct WorkingSetDebtSummary {
 }
 
 impl WorkingSetDebtSummary {
-    pub(crate) fn new(
-        debt_marker: AdaptivePlacementDebtMarker,
-        reason: impl Into<String>,
-    ) -> Self {
+    pub(crate) fn new(debt_marker: AdaptivePlacementDebtMarker, reason: impl Into<String>) -> Self {
         Self {
             debt_marker,
             reason: reason.into(),
@@ -512,25 +571,37 @@ impl DerivedPlacementPlanningReport {
 pub struct ReadPlacementPlanningReport {
     resident_lease: Option<crate::ResidentReadLease>,
     cold_recall_lease: Option<crate::ColdRecallLease>,
+    cold_recall_plan: Option<ColdRecallPlan>,
     recall_witness: Option<RecallEligibilityWitness>,
+    retained_read_path: Option<RetainedReadPlacementPath>,
+    tier_miss_outcome: Option<TierMissOutcome>,
     breadth_summary: RecallBreadthSummary,
     rejection: Option<TierMoveRejection>,
+    recall_debt: Option<RecallDebtSummary>,
 }
 
 impl ReadPlacementPlanningReport {
     pub(crate) fn new(
         resident_lease: Option<crate::ResidentReadLease>,
         cold_recall_lease: Option<crate::ColdRecallLease>,
+        cold_recall_plan: Option<ColdRecallPlan>,
         recall_witness: Option<RecallEligibilityWitness>,
+        retained_read_path: Option<RetainedReadPlacementPath>,
+        tier_miss_outcome: Option<TierMissOutcome>,
         breadth_summary: RecallBreadthSummary,
         rejection: Option<TierMoveRejection>,
+        recall_debt: Option<RecallDebtSummary>,
     ) -> Self {
         Self {
             resident_lease,
             cold_recall_lease,
+            cold_recall_plan,
             recall_witness,
+            retained_read_path,
+            tier_miss_outcome,
             breadth_summary,
             rejection,
+            recall_debt,
         }
     }
 
@@ -542,8 +613,20 @@ impl ReadPlacementPlanningReport {
         self.cold_recall_lease.as_ref()
     }
 
+    pub fn cold_recall_plan(&self) -> Option<&ColdRecallPlan> {
+        self.cold_recall_plan.as_ref()
+    }
+
     pub fn recall_witness(&self) -> Option<&RecallEligibilityWitness> {
         self.recall_witness.as_ref()
+    }
+
+    pub fn retained_read_path(&self) -> Option<RetainedReadPlacementPath> {
+        self.retained_read_path
+    }
+
+    pub fn tier_miss_outcome(&self) -> Option<TierMissOutcome> {
+        self.tier_miss_outcome
     }
 
     pub fn breadth_summary(&self) -> &RecallBreadthSummary {
@@ -552,5 +635,9 @@ impl ReadPlacementPlanningReport {
 
     pub fn rejection(&self) -> Option<&TierMoveRejection> {
         self.rejection.as_ref()
+    }
+
+    pub fn recall_debt(&self) -> Option<&RecallDebtSummary> {
+        self.recall_debt.as_ref()
     }
 }

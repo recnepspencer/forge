@@ -1,6 +1,6 @@
 use crate::{
     backend::records::{BranchSharedBaseRecord, StoreState},
-    delta::{BRANCH_DELTA_FAMILY_VERSION, stable_shared_base_authority_digest},
+    delta::{stable_shared_base_authority_digest, BRANCH_DELTA_FAMILY_VERSION},
     failure::{StoreError, StoreErrorKind},
 };
 

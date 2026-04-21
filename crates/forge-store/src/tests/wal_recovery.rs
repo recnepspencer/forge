@@ -90,15 +90,15 @@ fn prepare_pending_bulk_ingest_mutation(
     (plan, envelope, runtime_session_id, durable_mutation_id)
 }
 
+#[path = "wal_recovery/bulk_finish_publication.rs"]
+mod bulk_finish_publication;
+#[path = "wal_recovery/bulk_restart_convergence.rs"]
+mod bulk_restart_convergence;
+#[path = "wal_recovery/bulk_retained_truth.rs"]
+mod bulk_retained_truth;
 #[path = "wal_recovery/durable_crash_paths.rs"]
 mod durable_crash_paths;
 #[path = "wal_recovery/durable_restart_convergence.rs"]
 mod durable_restart_convergence;
 #[path = "wal_recovery/recovery_source_integrity.rs"]
 mod recovery_source_integrity;
-#[path = "wal_recovery/bulk_finish_publication.rs"]
-mod bulk_finish_publication;
-#[path = "wal_recovery/bulk_retained_truth.rs"]
-mod bulk_retained_truth;
-#[path = "wal_recovery/bulk_restart_convergence.rs"]
-mod bulk_restart_convergence;

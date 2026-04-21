@@ -5,7 +5,9 @@ use crate::recovery::{
     DurableRecoveryOutcome, DurableRecoveryPlan, DurableRetryResolution, RecoveryAction,
     RecoverySourceKind,
 };
-use crate::wal::{DurableMutationId, DurablePublicationPhase, RecoveryDecisionClass, WalRecord, WalRecordPayload};
+use crate::wal::{
+    DurableMutationId, DurablePublicationPhase, RecoveryDecisionClass, WalRecord, WalRecordPayload,
+};
 
 use super::{StateBackedStoreBackend, StatePersistence};
 
@@ -45,9 +47,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         } else if wal_records.is_empty() {
             Ok(DurableRetryResolution::NotPreviouslyPublished)
         } else {
-            Ok(DurableRetryResolution::RetryRequiresOperatorOrHigherLevelPolicy {
-                durable_mutation_id,
-            })
+            Ok(
+                DurableRetryResolution::RetryRequiresOperatorOrHigherLevelPolicy {
+                    durable_mutation_id,
+                },
+            )
         }
     }
 
@@ -150,10 +154,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     }
                 }
                 RecoveryAction::FinishPublicationFromCanonicalResult { canonical_envelope } => {
-                    let persisted = self.append(self.verify_append(crate::authority::canonicalize(
-                        crate::authority::RawRuntimeCommitEnvelope::new(canonical_envelope),
-                        crate::authority::CURRENT_CANONICALIZATION_VERSION,
-                    )?)?)?;
+                    let persisted =
+                        self.append(self.verify_append(crate::authority::canonicalize(
+                            crate::authority::RawRuntimeCommitEnvelope::new(canonical_envelope),
+                            crate::authority::CURRENT_CANONICALIZATION_VERSION,
+                        )?)?)?;
                     let recovered_commit_id = persisted.envelope().commit.commit_id;
                     self.record_publication_phase(
                         runtime_session_id,
@@ -219,8 +224,11 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
 }
 
 fn bulk_checkpoint_sequence_intent_for_wal_records(wal_records: &[&WalRecord]) -> Option<u64> {
-    wal_records.iter().rev().find_map(|record| match &record.payload {
-        WalRecordPayload::BulkCheckpointPublicationIntent(intent) => intent.checkpoint_sequence,
-        _ => None,
-    })
+    wal_records
+        .iter()
+        .rev()
+        .find_map(|record| match &record.payload {
+            WalRecordPayload::BulkCheckpointPublicationIntent(intent) => intent.checkpoint_sequence,
+            _ => None,
+        })
 }

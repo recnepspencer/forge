@@ -54,19 +54,19 @@ fn admitted_branch_delta_read(
     store.read_branch_delta(witness).unwrap()
 }
 
-#[path = "delta/shared_base.rs"]
-mod shared_base;
-#[path = "delta/direct_read.rs"]
-mod direct_read;
-#[path = "delta/budget_and_rewrite.rs"]
-mod budget_and_rewrite;
 #[path = "delta/auto_compact.rs"]
 mod auto_compact;
-#[path = "delta/rewrite_execution.rs"]
-mod rewrite_execution;
-#[path = "delta/persistence.rs"]
-mod persistence;
+#[path = "delta/budget_and_rewrite.rs"]
+mod budget_and_rewrite;
+#[path = "delta/direct_read.rs"]
+mod direct_read;
 #[path = "delta/local_reopen.rs"]
 mod local_reopen;
+#[path = "delta/persistence.rs"]
+mod persistence;
+#[path = "delta/rewrite_execution.rs"]
+mod rewrite_execution;
+#[path = "delta/shared_base.rs"]
+mod shared_base;
 #[path = "delta/sqlite_reopen.rs"]
 mod sqlite_reopen;

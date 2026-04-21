@@ -4,13 +4,20 @@ use crate::{
     tiering::{AuthoritativeTierMovePlan, DerivedTierMovePlan, TierTransferIntent},
 };
 
-use super::shared::{current_residency_record, placement_family_for_artifact_key, record_background_move_counters};
+use super::shared::{
+    current_residency_record, placement_family_for_artifact_key, record_background_move_counters,
+};
 
 pub(crate) fn prepare_authoritative_tier_move<P: StatePersistence>(
     backend: &mut StateBackedStoreBackend<P>,
     plan: AuthoritativeTierMovePlan,
 ) -> Result<TierTransferIntent, StoreError> {
-    prepare_tier_move(backend, plan.artifact_key(), plan.target_residence(), plan.execution_origin())
+    prepare_tier_move(
+        backend,
+        plan.artifact_key(),
+        plan.target_residence(),
+        plan.execution_origin(),
+    )
 }
 
 pub(crate) fn prepare_derived_tier_move<P: StatePersistence>(
@@ -18,7 +25,9 @@ pub(crate) fn prepare_derived_tier_move<P: StatePersistence>(
     plan: DerivedTierMovePlan,
 ) -> Result<TierTransferIntent, StoreError> {
     let artifact_key = match plan.artifact_family() {
-        crate::PlacementArtifactFamily::SnapshotFamily => format!("snapshot:{}", plan.artifact_id()),
+        crate::PlacementArtifactFamily::SnapshotFamily => {
+            format!("snapshot:{}", plan.artifact_id())
+        }
         crate::PlacementArtifactFamily::BranchDeltaFamily => {
             format!("branch_delta:{}", plan.artifact_id())
         }
@@ -28,11 +37,19 @@ pub(crate) fn prepare_derived_tier_move<P: StatePersistence>(
         other => {
             return Err(StoreError::new(
                 StoreErrorKind::PlacementWitnessConstructionViolation,
-                format!("derived move plan cannot target non-derived placement family `{}`", other.label()),
+                format!(
+                    "derived move plan cannot target non-derived placement family `{}`",
+                    other.label()
+                ),
             ))
         }
     };
-    prepare_tier_move(backend, &artifact_key, plan.target_residence(), plan.execution_origin())
+    prepare_tier_move(
+        backend,
+        &artifact_key,
+        plan.target_residence(),
+        plan.execution_origin(),
+    )
 }
 
 fn prepare_tier_move<P: StatePersistence>(
@@ -42,7 +59,11 @@ fn prepare_tier_move<P: StatePersistence>(
     execution_origin: crate::PlacementExecutionOrigin,
 ) -> Result<TierTransferIntent, StoreError> {
     let current = current_residency_record(backend.state(), artifact_key)?;
-    if backend.state().tier_transfer_records.contains_key(artifact_key) {
+    if backend
+        .state()
+        .tier_transfer_records
+        .contains_key(artifact_key)
+    {
         return Err(StoreError::new(
             StoreErrorKind::TierResidencyManifestViolation,
             format!("artifact `{artifact_key}` already has an in-flight tier transfer"),

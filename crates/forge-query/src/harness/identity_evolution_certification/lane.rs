@@ -4,6 +4,7 @@ use crate::identity_evolution::{
     compare_identity_evolution_denial_replay, compare_identity_evolution_result_replay,
     IdentityEvolutionAdmissionError, IdentityEvolutionCertificationDenialEvidence,
     IdentityEvolutionCertificationResultEvidence, IdentityEvolutionExecutionArtifact,
+    InspectorIdentityArtifact,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -12,6 +13,7 @@ pub enum IdentityEvolutionCertificationPerturbationClass {
     CorrespondenceComparison,
     BranchLocality,
     IdentityBreak,
+    CrossFeatureConsumption,
     Disagreement,
     ReplayParity,
     Performance,
@@ -39,6 +41,9 @@ pub struct IdentityEvolutionCertificationLane {
     pub replay_digest: String,
     pub counter_snapshot_digest: String,
     pub outcome_family: String,
+    pub inspector_identity_digest: String,
+    pub inspector_identity_classification: String,
+    pub inspector_replay_stable_digest: String,
     pub branch_locality_class: String,
     pub complexity_status: String,
     pub prediction_drift_outcome: String,
@@ -47,19 +52,34 @@ pub struct IdentityEvolutionCertificationLane {
 
 impl IdentityEvolutionCertificationLane {
     pub fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
-        let evidence = IdentityEvolutionCertificationResultEvidence::from_execution_artifact(
-            artifact,
-        );
+        let evidence =
+            IdentityEvolutionCertificationResultEvidence::from_execution_artifact(artifact);
+        let inspector_identity = InspectorIdentityArtifact::from_result_evidence(&evidence);
+        Self::from_execution_artifact_and_inspector(artifact, &evidence, inspector_identity)
+    }
+
+    pub fn from_execution_artifact_with_bundle_inspector(
+        artifact: &IdentityEvolutionExecutionArtifact,
+    ) -> Self {
+        let evidence =
+            IdentityEvolutionCertificationResultEvidence::from_execution_artifact(artifact);
+        let inspector_identity =
+            InspectorIdentityArtifact::from_result_bundle(artifact.result_bundle());
+        Self::from_execution_artifact_and_inspector(artifact, &evidence, inspector_identity)
+    }
+
+    fn from_execution_artifact_and_inspector(
+        artifact: &IdentityEvolutionExecutionArtifact,
+        evidence: &IdentityEvolutionCertificationResultEvidence,
+        inspector_identity: InspectorIdentityArtifact,
+    ) -> Self {
         let replay = compare_identity_evolution_result_replay(&evidence, &evidence);
         Self {
             query_digest: evidence.query_digest().as_str().to_string(),
             basis_digest: evidence.basis_digest().as_str().to_string(),
             lineage_digest: evidence.lineage_digest().as_str().to_string(),
             branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
-            complexity_contract_digest: evidence
-                .complexity_contract_digest()
-                .as_str()
-                .to_string(),
+            complexity_contract_digest: evidence.complexity_contract_digest().as_str().to_string(),
             result_digest: evidence.result_digest().to_string(),
             failure_digest: evidence.failure_digest().as_str().to_string(),
             replay_digest: replay.replay_digest().as_str().to_string(),
@@ -69,12 +89,15 @@ impl IdentityEvolutionCertificationLane {
                 .as_str()
                 .to_string(),
             outcome_family: evidence.outcome_family().as_str().to_string(),
-            branch_locality_class: evidence.branch_locality_class().as_str().to_string(),
-            complexity_status: evidence.complexity_status().as_str().to_string(),
-            prediction_drift_outcome: artifact
-                .prediction_drift_outcome()
+            inspector_identity_digest: inspector_identity.digest().as_str().to_string(),
+            inspector_identity_classification: inspector_identity
+                .classification()
                 .as_str()
                 .to_string(),
+            inspector_replay_stable_digest: inspector_identity.replay_stable_digest().to_string(),
+            branch_locality_class: evidence.branch_locality_class().as_str().to_string(),
+            complexity_status: evidence.complexity_status().as_str().to_string(),
+            prediction_drift_outcome: artifact.prediction_drift_outcome().as_str().to_string(),
             exact_counter_values: evidence.counter_snapshot().exact_counter_values().to_vec(),
         }
     }
@@ -89,6 +112,8 @@ impl IdentityEvolutionCertificationLane {
             && !self.failure_digest.is_empty()
             && !self.replay_digest.is_empty()
             && !self.counter_snapshot_digest.is_empty()
+            && !self.inspector_identity_digest.is_empty()
+            && !self.inspector_replay_stable_digest.is_empty()
     }
 }
 
@@ -126,10 +151,7 @@ impl IdentityEvolutionCertificationRejection {
             basis_digest: evidence.basis_digest().as_str().to_string(),
             lineage_digest: evidence.lineage_digest().as_str().to_string(),
             branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
-            complexity_contract_digest: evidence
-                .complexity_contract_digest()
-                .as_str()
-                .to_string(),
+            complexity_contract_digest: evidence.complexity_contract_digest().as_str().to_string(),
             result_digest: evidence.result_digest().to_string(),
             failure_digest: evidence.failure_digest().as_str().to_string(),
             replay_digest: replay.replay_digest().as_str().to_string(),
@@ -144,9 +166,8 @@ impl IdentityEvolutionCertificationRejection {
     }
 
     pub fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
-        let evidence = IdentityEvolutionCertificationDenialEvidence::from_execution_artifact(
-            artifact,
-        );
+        let evidence =
+            IdentityEvolutionCertificationDenialEvidence::from_execution_artifact(artifact);
         let replay = compare_identity_evolution_denial_replay(&evidence, &evidence);
         Self {
             failure_class: IdentityEvolutionCertificationFailureClass::ExecutionDenied,
@@ -154,10 +175,7 @@ impl IdentityEvolutionCertificationRejection {
             basis_digest: evidence.basis_digest().as_str().to_string(),
             lineage_digest: evidence.lineage_digest().as_str().to_string(),
             branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
-            complexity_contract_digest: evidence
-                .complexity_contract_digest()
-                .as_str()
-                .to_string(),
+            complexity_contract_digest: evidence.complexity_contract_digest().as_str().to_string(),
             result_digest: evidence.result_digest().to_string(),
             failure_digest: evidence.failure_digest().as_str().to_string(),
             replay_digest: replay.replay_digest().as_str().to_string(),
@@ -189,10 +207,7 @@ impl IdentityEvolutionCertificationRejection {
             basis_digest: evidence.basis_digest().as_str().to_string(),
             lineage_digest: evidence.lineage_digest().as_str().to_string(),
             branch_locality_digest: evidence.branch_locality_digest().as_str().to_string(),
-            complexity_contract_digest: evidence
-                .complexity_contract_digest()
-                .as_str()
-                .to_string(),
+            complexity_contract_digest: evidence.complexity_contract_digest().as_str().to_string(),
             result_digest: evidence.result_digest().to_string(),
             failure_digest: evidence.failure_digest().as_str().to_string(),
             replay_digest: replay.replay_digest().as_str().to_string(),

@@ -134,7 +134,9 @@ pub(crate) fn build_grouped_delta(
         let kind = match (&prior_lane, &next_lane) {
             (None, Some(_)) => Some(GroupedMembershipTransitionKind::EnteredLane),
             (Some(_), None) => Some(GroupedMembershipTransitionKind::LeftLane),
-            (Some(from), Some(to)) if from != to => Some(GroupedMembershipTransitionKind::MovedLane),
+            (Some(from), Some(to)) if from != to => {
+                Some(GroupedMembershipTransitionKind::MovedLane)
+            }
             _ => None,
         };
         if let Some(kind) = kind {
@@ -171,7 +173,10 @@ pub(crate) fn build_grouped_delta(
             format!("prior:{}", prior_state.digest()),
             format!("next:{}", next_state.digest()),
             format!("transition_count:{}", transitions.len()),
-            format!("contract:{}", KanbanGroupedLiveContract::DeltaBound.as_str()),
+            format!(
+                "contract:{}",
+                KanbanGroupedLiveContract::DeltaBound.as_str()
+            ),
         ]),
         prior: prior_state.clone(),
         next: next_state.clone(),

@@ -10,13 +10,11 @@ pub use artifact::{
 };
 pub use digest::SavedQueryArtifactDigest;
 pub use error::{SavedQueryError, SavedQueryFailureClass};
-pub use freeze::{
-    freeze_composed_saved_query, freeze_direct_saved_query, SavedQueryFreezeContext,
-};
+pub use freeze::{freeze_composed_saved_query, freeze_direct_saved_query, SavedQueryFreezeContext};
 pub use reuse::{
     evaluate_saved_query_reuse, SavedQueryBindingMatrixArtifact, SavedQueryBindingMatrixRow,
-    SavedQueryReuseDecision, SavedQueryReuseDenial, SavedQueryReuseDescriptor,
-    SavedQueryReuseOutcome, SavedQueryRebindingDimension, SavedQueryRebindingLegality,
+    SavedQueryRebindingDimension, SavedQueryRebindingLegality, SavedQueryReuseDecision,
+    SavedQueryReuseDenial, SavedQueryReuseDescriptor, SavedQueryReuseOutcome,
     SchemaBasisEquivalenceEvidence,
 };
 pub use support::{runtime_backed_saved_query_support_profile, SavedQueryComplexityStatus};

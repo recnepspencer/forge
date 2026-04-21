@@ -1,12 +1,21 @@
 use crate::{
     authority::AuthoritativeExportBundle,
     delta::BranchDeltaReadRequest,
-    evidence::{Milestone1CertificationBundle, Milestone35CertificationBundle, Milestone4CertificationBundle, Milestone6CertificationBundle, Milestone7CertificationBundle, ObservedPublicationFailure},
+    evidence::{
+        Milestone1CertificationBundle, Milestone35CertificationBundle,
+        Milestone4CertificationBundle, Milestone6CertificationBundle,
+        Milestone7CertificationBundle, ObservedPublicationFailure,
+    },
     failure::StoreError,
-    layout::{AspectLayoutReadRequest, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy, Milestone6ResolvedLayoutSupportLane},
-    live_query::{acknowledgment::ContinuationAcknowledgmentEffect, compatibility::ContinuationPlanningEffect},
-    PublicationWriteOutcome,
+    layout::{
+        AspectLayoutReadRequest, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
+        Milestone6ResolvedLayoutSupportLane,
+    },
+    live_query::{
+        acknowledgment::ContinuationAcknowledgmentEffect, compatibility::ContinuationPlanningEffect,
+    },
     snapshot::SnapshotImageBundle,
+    PublicationWriteOutcome,
 };
 
 use super::ForgeStore;

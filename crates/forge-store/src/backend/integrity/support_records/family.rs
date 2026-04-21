@@ -18,8 +18,14 @@ impl StoreState {
         for commit_record in self.commit_envelopes.values() {
             let commit_id = commit_record.envelope.commit.commit_id;
             let expected_schema = commit_record.envelope.schema_transition.is_some()
-                || commit_record.envelope.schema_continuation_descriptor.is_some()
-                || commit_record.envelope.schema_reconciliation_descriptor.is_some();
+                || commit_record
+                    .envelope
+                    .schema_continuation_descriptor
+                    .is_some()
+                || commit_record
+                    .envelope
+                    .schema_reconciliation_descriptor
+                    .is_some();
             let expected_lineage = !commit_record.envelope.lineage_event_ids().is_empty()
                 || !commit_record.envelope.lineage_events().is_empty();
             let summary = self

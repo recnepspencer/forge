@@ -4,8 +4,8 @@ use super::resolution::{
 };
 use super::witnesses::{
     HistoricalEvaluationCapability, IdentityEvolutionCapability, LiveQueryCapability,
-    PreviewSessionCapability, QueryCompositionCapability, QueryContextCapability, QueryReadCapability,
-    WorkflowOrchestrationCapability,
+    PreviewSessionCapability, QueryCompositionCapability, QueryContextCapability,
+    QueryReadCapability, WorkflowOrchestrationCapability,
 };
 use crate::application::config::{
     ConfigurationAdmissionError, ForgeQueryConfig, ForgeQueryConfigSectionFamily,
@@ -92,10 +92,8 @@ impl ForgeQueryApplicationFacade {
 
     pub fn query_composition_capability(
         &self,
-    ) -> Result<
-        ForgeQueryCapabilityResolution<QueryCompositionCapability>,
-        CapabilityAdmissionError,
-    > {
+    ) -> Result<ForgeQueryCapabilityResolution<QueryCompositionCapability>, CapabilityAdmissionError>
+    {
         let admission = self.query_composition_admission_decision()?;
         Ok(ForgeQueryCapabilityResolution::new(
             QueryCompositionCapability::new(self.facade_digest.clone()),
@@ -199,10 +197,8 @@ impl ForgeQueryApplicationFacade {
 
     pub fn identity_evolution_capability(
         &self,
-    ) -> Result<
-        ForgeQueryCapabilityResolution<IdentityEvolutionCapability>,
-        CapabilityAdmissionError,
-    > {
+    ) -> Result<ForgeQueryCapabilityResolution<IdentityEvolutionCapability>, CapabilityAdmissionError>
+    {
         let admission = self.identity_evolution_admission_decision()?;
         Ok(ForgeQueryCapabilityResolution::new(
             IdentityEvolutionCapability::new(self.facade_digest.clone()),

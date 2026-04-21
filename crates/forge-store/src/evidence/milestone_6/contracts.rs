@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-use crate::media::DurableBackendFamily;
 use crate::evidence::StoreCounterSnapshot;
+use crate::media::DurableBackendFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Milestone6CounterContract {
@@ -39,23 +39,34 @@ impl Milestone6CounterContract {
             aspect_layout_rejected_count: counter_snapshot.aspect_layout_rejected_count,
             aspect_layout_slice_read_count: counter_snapshot.aspect_layout_slice_read_count,
             aspect_layout_block_decode_count: counter_snapshot.aspect_layout_block_decode_count,
-            aspect_layout_control_replay_breadth: counter_snapshot.aspect_layout_control_replay_breadth,
-            aspect_layout_whole_state_fallback_count: counter_snapshot.aspect_layout_whole_state_fallback_count,
+            aspect_layout_control_replay_breadth: counter_snapshot
+                .aspect_layout_control_replay_breadth,
+            aspect_layout_whole_state_fallback_count: counter_snapshot
+                .aspect_layout_whole_state_fallback_count,
             structural_block_lookup_count: counter_snapshot.structural_block_lookup_count,
-            structural_block_reuse_admission_count: counter_snapshot.structural_block_reuse_admission_count,
+            structural_block_reuse_admission_count: counter_snapshot
+                .structural_block_reuse_admission_count,
             structural_block_reuse_hit_count: counter_snapshot.structural_block_reuse_hit_count,
             structural_block_reuse_miss_count: counter_snapshot.structural_block_reuse_miss_count,
             chunk_model_freeze_count: counter_snapshot.chunk_model_freeze_count,
             physical_chunk_export_count: counter_snapshot.physical_chunk_export_count,
             physical_chunk_width_count: counter_snapshot.physical_chunk_width_count,
-            physical_chunk_determinism_violation_count: counter_snapshot.physical_chunk_determinism_violation_count,
-            milestone_6_proof_only_prepare_count: counter_snapshot.milestone_6_proof_only_prepare_count,
-            milestone_6_on_demand_materialize_count: counter_snapshot.milestone_6_on_demand_materialize_count,
-            milestone_6_policy_eager_resolution_count: counter_snapshot.milestone_6_policy_eager_resolution_count,
-            milestone_6_policy_eager_publish_count: counter_snapshot.milestone_6_policy_eager_publish_count,
-            milestone_6_policy_eager_reuse_existing_count: counter_snapshot.milestone_6_policy_eager_reuse_existing_count,
-            milestone_7_layout_reference_admission_count: counter_snapshot.milestone_7_layout_reference_admission_count,
-            milestone_9_physical_chunk_reference_admission_count: counter_snapshot.milestone_9_physical_chunk_reference_admission_count,
+            physical_chunk_determinism_violation_count: counter_snapshot
+                .physical_chunk_determinism_violation_count,
+            milestone_6_proof_only_prepare_count: counter_snapshot
+                .milestone_6_proof_only_prepare_count,
+            milestone_6_on_demand_materialize_count: counter_snapshot
+                .milestone_6_on_demand_materialize_count,
+            milestone_6_policy_eager_resolution_count: counter_snapshot
+                .milestone_6_policy_eager_resolution_count,
+            milestone_6_policy_eager_publish_count: counter_snapshot
+                .milestone_6_policy_eager_publish_count,
+            milestone_6_policy_eager_reuse_existing_count: counter_snapshot
+                .milestone_6_policy_eager_reuse_existing_count,
+            milestone_7_layout_reference_admission_count: counter_snapshot
+                .milestone_7_layout_reference_admission_count,
+            milestone_9_physical_chunk_reference_admission_count: counter_snapshot
+                .milestone_9_physical_chunk_reference_admission_count,
         }
     }
 }
@@ -95,10 +106,18 @@ pub struct Milestone6AccessStructureVerificationPath {
 
 impl Milestone6AccessStructureVerificationPath {
     pub(crate) fn verified(verification_basis: impl Into<String>) -> Self {
-        Self { verified_at_open: true, verification_basis: Some(verification_basis.into()), verification_gap: None }
+        Self {
+            verified_at_open: true,
+            verification_basis: Some(verification_basis.into()),
+            verification_gap: None,
+        }
     }
     pub(crate) fn debt(verification_gap: impl Into<String>) -> Self {
-        Self { verified_at_open: false, verification_basis: None, verification_gap: Some(verification_gap.into()) }
+        Self {
+            verified_at_open: false,
+            verification_basis: None,
+            verification_gap: Some(verification_gap.into()),
+        }
     }
 }
 

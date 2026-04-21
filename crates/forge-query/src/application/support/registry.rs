@@ -36,9 +36,7 @@ impl ForgeQueryCapabilityFamily {
             Self::QueryRead
             | Self::QueryComposition
             | Self::QueryContext
-            | Self::IdentityEvolution => {
-                ForgeQueryConfigSectionFamily::Query
-            }
+            | Self::IdentityEvolution => ForgeQueryConfigSectionFamily::Query,
             Self::LiveQuery => ForgeQueryConfigSectionFamily::Signal,
             Self::PreviewSession => ForgeQueryConfigSectionFamily::RuntimeBridge,
             Self::WorkflowOrchestration | Self::HistoricalEvaluation => {

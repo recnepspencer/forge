@@ -53,10 +53,18 @@ impl BulkIngestSourceRequest {
         }
     }
 
-    pub fn program_id(&self) -> &str { &self.program_id }
-    pub fn source_identity(&self) -> &str { &self.source_identity }
-    pub fn target_branch_scope(&self) -> &BranchId { &self.target_branch_scope }
-    pub fn source_members(&self) -> &[BulkSourceMember] { &self.source_members }
+    pub fn program_id(&self) -> &str {
+        &self.program_id
+    }
+    pub fn source_identity(&self) -> &str {
+        &self.source_identity
+    }
+    pub fn target_branch_scope(&self) -> &BranchId {
+        &self.target_branch_scope
+    }
+    pub fn source_members(&self) -> &[BulkSourceMember] {
+        &self.source_members
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,9 +93,19 @@ impl BulkTransformRequest {
         }
     }
 
-    pub fn program_id(&self) -> &str { &self.program_id }
-    pub fn transform_identity(&self) -> &str { &self.transform_identity }
-    pub fn target_branch_scope(&self) -> &BranchId { &self.target_branch_scope }
-    pub fn basis_commit_id(&self) -> CommitId { self.basis_commit_id }
-    pub fn target_members(&self) -> &[BulkSourceMember] { &self.target_members }
+    pub fn program_id(&self) -> &str {
+        &self.program_id
+    }
+    pub fn transform_identity(&self) -> &str {
+        &self.transform_identity
+    }
+    pub fn target_branch_scope(&self) -> &BranchId {
+        &self.target_branch_scope
+    }
+    pub fn basis_commit_id(&self) -> CommitId {
+        self.basis_commit_id
+    }
+    pub fn target_members(&self) -> &[BulkSourceMember] {
+        &self.target_members
+    }
 }

@@ -1,5 +1,7 @@
 use super::{MilestoneEightCertificationAdapter, MilestoneEightFailureClass};
-use crate::harness::certification::{contains_row, milestone_eight_requirements, unmet_required_rows};
+use crate::harness::certification::{
+    contains_row, milestone_eight_requirements, unmet_required_rows,
+};
 
 #[test]
 fn milestone_eight_certification_adapter_emits_named_matrix() {
@@ -63,12 +65,29 @@ fn milestone_eight_certification_covers_named_semantic_rows() {
     assert!(contains_row(&matrix, "direct-vs-scope-parity"));
     assert!(contains_row(&matrix, "direct-vs-template-parity"));
     assert!(contains_row(&matrix, "scope-template-direct-parity"));
-    assert!(contains_row(&matrix, "kanban-desired-state-to-delta-parity"));
+    assert!(contains_row(
+        &matrix,
+        "kanban-desired-state-to-delta-parity"
+    ));
     assert!(contains_row(&matrix, "kanban-delta-admission-boundary"));
     assert!(contains_row(&matrix, "grouped-refresh-honesty"));
     assert!(contains_row(&matrix, "grouped-bridge-truth-view-authority"));
-    assert!(contains_row(&matrix, "grouped-query-execution-surface-authority"));
-    assert!(contains_row(&matrix, "grouped-proof-chain-no-payload-rediscovery"));
+    assert!(contains_row(
+        &matrix,
+        "grouped-query-execution-surface-authority"
+    ));
+    assert!(contains_row(
+        &matrix,
+        "grouped-proof-chain-no-payload-rediscovery"
+    ));
+    assert!(contains_row(
+        &matrix,
+        "identity-aware-focused-inspector-parity"
+    ));
+    assert!(contains_row(
+        &matrix,
+        "identity-break-inspector-explicitness"
+    ));
     assert!(contains_row(&matrix, "support-profile-honesty"));
 }
 
@@ -192,7 +211,10 @@ fn milestone_eight_grouped_proof_chain_rows_are_present_and_stable() {
         rediscovery_row.control_lane.counter_snapshot_digest,
         rediscovery_row.hostile_lane.counter_snapshot_digest
     );
-    assert!(!rediscovery_row.control_lane.counter_snapshot_digest.is_empty());
+    assert!(!rediscovery_row
+        .control_lane
+        .counter_snapshot_digest
+        .is_empty());
 }
 
 #[test]
@@ -216,8 +238,14 @@ fn milestone_eight_parity_rows_are_actually_adversarial() {
         .find(|row| row.row_name == "kanban-delta-admission-boundary")
         .expect("kanban boundary row should exist");
 
-    assert_eq!(scope_row.control_lane.query_digest, scope_row.hostile_lane.query_digest);
-    assert_eq!(template_row.control_lane.query_digest, template_row.hostile_lane.query_digest);
+    assert_eq!(
+        scope_row.control_lane.query_digest,
+        scope_row.hostile_lane.query_digest
+    );
+    assert_eq!(
+        template_row.control_lane.query_digest,
+        template_row.hostile_lane.query_digest
+    );
     assert_ne!(
         boundary_row.control_lane.delivery_digest,
         boundary_row.hostile_lane.delivery_digest
@@ -225,5 +253,97 @@ fn milestone_eight_parity_rows_are_actually_adversarial() {
     assert_ne!(
         boundary_row.control_lane.counter_snapshot_digest,
         boundary_row.hostile_lane.counter_snapshot_digest
+    );
+}
+
+#[test]
+fn milestone_eight_identity_aware_inspector_rows_preserve_identity_classification() {
+    let matrix =
+        MilestoneEightCertificationAdapter::scope_template_view_shape_semantic_parity_test();
+
+    let parity = matrix
+        .rows
+        .iter()
+        .find(|row| row.row_name == "identity-aware-focused-inspector-parity")
+        .expect("identity-aware inspector parity row should exist");
+    assert!(!parity.control_lane.identity_consumption_digest.is_empty());
+    assert!(!parity.control_lane.inspector_identity_digest.is_empty());
+    assert_eq!(
+        parity.control_lane.inspector_identity_classification,
+        "authoritative_continuity"
+    );
+    assert_ne!(
+        parity.control_lane.identity_consumption_digest,
+        parity.control_lane.inspector_identity_digest
+    );
+    assert_eq!(
+        parity.hostile_lane.inspector_identity_classification,
+        "advisory_candidates"
+    );
+    assert_ne!(
+        parity.control_lane.inspector_identity_digest,
+        parity.hostile_lane.inspector_identity_digest
+    );
+    assert_eq!(
+        parity.control_lane.inspector_identity_digest,
+        parity.parity_lane.inspector_identity_digest
+    );
+    assert_eq!(
+        parity.control_lane.inspector_identity_classification,
+        parity.parity_lane.inspector_identity_classification
+    );
+
+    let identity_break = matrix
+        .rows
+        .iter()
+        .find(|row| row.row_name == "identity-break-inspector-explicitness")
+        .expect("identity-break inspector row should exist");
+    assert_eq!(
+        identity_break
+            .hostile_lane
+            .inspector_identity_classification,
+        "identity_break"
+    );
+    assert_ne!(
+        identity_break.hostile_lane.inspector_identity_digest,
+        "none"
+    );
+    assert_ne!(
+        identity_break.hostile_lane.identity_consumption_digest,
+        identity_break.hostile_lane.inspector_identity_digest
+    );
+    assert_eq!(
+        identity_break
+            .hostile_lane
+            .inspector_identity_classification,
+        identity_break.parity_lane.inspector_identity_classification
+    );
+}
+
+#[test]
+fn milestone_eight_support_profile_row_tracks_full_report_state() {
+    let matrix =
+        MilestoneEightCertificationAdapter::scope_template_view_shape_semantic_parity_test();
+    let row = matrix
+        .rows
+        .iter()
+        .find(|row| row.row_name == "support-profile-honesty")
+        .expect("support profile honesty row should exist");
+
+    assert_eq!(
+        row.control_lane.query_digest,
+        row.control_lane.support_profile_digest
+    );
+    assert_eq!(
+        row.parity_lane.query_digest,
+        row.parity_lane.support_profile_digest
+    );
+    assert_ne!(
+        row.control_lane.support_profile_digest,
+        row.hostile_lane.support_profile_digest
+    );
+    assert_ne!(
+        row.control_lane.artifact_binding_matrix_digest,
+        row.hostile_lane.artifact_binding_matrix_digest
     );
 }

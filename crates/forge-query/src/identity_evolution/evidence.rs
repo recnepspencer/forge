@@ -28,9 +28,7 @@ impl IdentityEvolutionCounterSnapshot {
         &self.counter_snapshot_digest
     }
 
-    pub(crate) fn from_execution_artifact(
-        artifact: &IdentityEvolutionExecutionArtifact,
-    ) -> Self {
+    pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let counters = artifact.counters();
         let exact_counter_values = vec![
             format!(
@@ -46,8 +44,14 @@ impl IdentityEvolutionCounterSnapshot {
                 counters.lineage_anchor_lookup_count()
             ),
             format!("lineage_step_count:{}", counters.lineage_step_count()),
-            format!("predicted_lineage_width:{}", counters.predicted_lineage_width()),
-            format!("realized_lineage_width:{}", counters.realized_lineage_width()),
+            format!(
+                "predicted_lineage_width:{}",
+                counters.predicted_lineage_width()
+            ),
+            format!(
+                "realized_lineage_width:{}",
+                counters.realized_lineage_width()
+            ),
             format!(
                 "lineage_width_drift_count:{}",
                 counters.lineage_width_drift_count()
@@ -211,17 +215,17 @@ impl IdentityEvolutionCertificationResultEvidence {
         &self.counter_snapshot
     }
 
-    pub(crate) fn from_execution_artifact(
-        artifact: &IdentityEvolutionExecutionArtifact,
-    ) -> Self {
+    pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let metadata = artifact.result_bundle().metadata();
         let failure_digest = if let Some(result) = artifact.result_bundle().as_ambiguity() {
             result.ambiguity_digest().clone()
-        } else {
+        } else if let Some(result) = artifact.result_bundle().as_identity_break() {
             FailureDigest::from_parts(&[format!(
-                "result_digest:{}",
-                artifact.result_digest()
+                "identity_break_digest:{}",
+                result.identity_break_digest().as_str()
             )])
+        } else {
+            FailureDigest::from_parts(&[format!("result_digest:{}", artifact.result_digest())])
         };
         Self::from_parts(
             metadata,
@@ -301,19 +305,14 @@ impl IdentityEvolutionCertificationDenialEvidence {
         &self.counter_snapshot
     }
 
-    pub(crate) fn from_execution_artifact(
-        artifact: &IdentityEvolutionExecutionArtifact,
-    ) -> Self {
+    pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let metadata = artifact.result_bundle().metadata();
         let failure_digest = if let Some(result) = artifact.result_bundle().as_denied() {
             result.denial_digest().clone()
         } else if let Some(result) = artifact.result_bundle().as_ambiguity() {
             result.ambiguity_digest().clone()
         } else {
-            FailureDigest::from_parts(&[format!(
-                "result_digest:{}",
-                artifact.result_digest()
-            )])
+            FailureDigest::from_parts(&[format!("result_digest:{}", artifact.result_digest())])
         };
         Self {
             query_digest: metadata.query_digest().clone(),
@@ -367,11 +366,9 @@ impl IdentityEvolutionCertificationDenialEvidence {
         query_digest: &CanonicalQueryDigest,
         basis_digest: &BasisDigest,
     ) -> Self {
-        let result_digest = ResultDigest::from_parts(&[format!(
-            "compile_fail_result:{row_name}"
-        )])
-        .as_str()
-        .to_string();
+        let result_digest = ResultDigest::from_parts(&[format!("compile_fail_result:{row_name}")])
+            .as_str()
+            .to_string();
         Self {
             query_digest: query_digest.clone(),
             basis_digest: basis_digest.clone(),

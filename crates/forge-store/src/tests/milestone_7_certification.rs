@@ -89,12 +89,11 @@ fn assert_complexity_debt(
     );
 }
 
-
-#[path = "milestone_7_certification/suite.rs"]
-mod suite;
-#[path = "milestone_7_certification/parity.rs"]
-mod parity;
-#[path = "milestone_7_certification/support_gap_recovery.rs"]
-mod support_gap_recovery;
 #[path = "milestone_7_certification/access_structure_debt.rs"]
 mod access_structure_debt;
+#[path = "milestone_7_certification/parity.rs"]
+mod parity;
+#[path = "milestone_7_certification/suite.rs"]
+mod suite;
+#[path = "milestone_7_certification/support_gap_recovery.rs"]
+mod support_gap_recovery;

@@ -2,10 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::history::CommitId;
 
-use crate::{
-    backend::records::StoreState,
-    retention::RetainedAuthoritativeRange,
-};
+use crate::{backend::records::StoreState, retention::RetainedAuthoritativeRange};
 
 pub(super) fn retained_ranges_for_policy(
     state: &StoreState,

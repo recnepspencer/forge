@@ -60,8 +60,14 @@ fn unified_facade_certification_matrix_contains_required_rows() {
         .iter()
         .find(|row| row.row_name == "unified-identity-evolution-capability")
         .expect("identity evolution row should exist");
-    assert_eq!(identity.control_lane.capability_family, "identity_evolution");
-    assert!(!identity.control_lane.identity_evolution_result_digest.is_empty());
+    assert_eq!(
+        identity.control_lane.capability_family,
+        "identity_evolution"
+    );
+    assert!(!identity
+        .control_lane
+        .identity_evolution_result_digest
+        .is_empty());
     assert!(!identity
         .control_lane
         .identity_evolution_branch_locality_digest
@@ -175,7 +181,9 @@ fn unified_facade_certification_matrix_contains_required_rows() {
         .identity_evolution_support_profile_digest
         .is_empty());
     assert_eq!(
-        identity_profile.control_lane.identity_evolution_traversal_families,
+        identity_profile
+            .control_lane
+            .identity_evolution_traversal_families,
         vec![
             "direct_predecessor",
             "direct_successor",
@@ -188,11 +196,36 @@ fn unified_facade_certification_matrix_contains_required_rows() {
     assert_eq!(
         identity_profile
             .control_lane
+            .identity_evolution_comparison_basis_families,
+        vec![
+            "branch_to_branch",
+            "current_to_historical",
+            "historical_to_historical",
+            "preview_to_authoritative",
+        ]
+    );
+    assert_eq!(
+        identity_profile
+            .control_lane
+            .identity_evolution_inspector_consumable_classifications,
+        vec![
+            "identity_summary",
+            "authoritative_continuity",
+            "advisory_candidates",
+            "ambiguity",
+            "identity_break",
+            "denied",
+        ]
+    );
+    assert_eq!(
+        identity_profile
+            .control_lane
             .identity_evolution_deferred_scope_markers,
         vec![
             "recursive_traversal",
             "broad_collection_discovery",
             "store_backed_parity",
+            "identity_aware_non_inspector_views",
         ]
     );
 }

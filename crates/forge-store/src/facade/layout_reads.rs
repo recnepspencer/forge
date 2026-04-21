@@ -1,6 +1,9 @@
 use crate::{
     failure::{StoreError, StoreErrorKind},
-    layout::{AspectLayoutReadRequest, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy, Milestone6ResolvedLayoutSupportLane},
+    layout::{
+        AspectLayoutReadRequest, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
+        Milestone6ResolvedLayoutSupportLane,
+    },
 };
 
 use super::ForgeStore;
@@ -47,6 +50,9 @@ impl ForgeStore {
                     "milestone 6 proof-only aspect layout execution",
                 )?;
                 let control = self.read_aspect_layout_control_truth(request)?;
+                let foreground_isolation = self
+                    .backend
+                    .assess_read_foreground_isolation(plan.request().target().branch_id(), false);
                 Ok(crate::AspectLayoutReadExecutionDecision::Admitted(
                     crate::AspectLayoutReadExecutionResult::new(
                         plan.clone(),
@@ -59,7 +65,8 @@ impl ForgeStore {
                         None,
                         control.authoritative_truth_digest().to_string(),
                         control.authoritative_commit_count(),
-                    ),
+                    )
+                    .with_foreground_isolation(foreground_isolation),
                 ))
             }
             Milestone6ResolvedLayoutSupportLane::OnDemandMaterialized
@@ -79,7 +86,8 @@ impl ForgeStore {
                             .map(ToOwned::to_owned),
                         read.semantic_truth_digest().to_string(),
                         read.authoritative_commit_count(),
-                    );
+                    )
+                    .with_foreground_isolation(read.foreground_isolation().clone());
                 }
                 Ok(decision)
             }
@@ -295,5 +303,4 @@ impl ForgeStore {
             Some(materialization_artifact_id.to_string()),
         ))
     }
-
 }

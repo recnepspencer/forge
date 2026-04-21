@@ -2,9 +2,10 @@
 
 use serde::Serialize;
 
+use super::proofs::{RetainedReadPlacementPath, TierMissOutcome};
 use super::{
-    ColdRecallTierPath, PlacementArtifactFamily, PlacementBudgetClass,
-    PlacementExecutionOrigin, RecallAmplificationBudget, RecallCostClass, TierResidenceClass,
+    ColdRecallTierPath, PlacementArtifactFamily, PlacementBudgetClass, PlacementExecutionOrigin,
+    RecallAmplificationBudget, RecallCostClass, TierResidenceClass,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -167,20 +168,22 @@ impl ColdRecallLease {
 pub struct PlacementResolvedReadHandle {
     artifact_ref: PlacementBoundArtifactRef,
     execution_origin: PlacementExecutionOrigin,
-    resolved_path: ColdRecallTierPath,
+    placement_path: RetainedReadPlacementPath,
+    tier_miss_outcome: TierMissOutcome,
 }
 
 impl PlacementResolvedReadHandle {
     pub(crate) fn from_resident_lease(lease: &ResidentReadLease) -> Self {
-        let resolved_path = match lease.residence_class() {
-            TierResidenceClass::Hot => ColdRecallTierPath::HotResident,
-            TierResidenceClass::Warm => ColdRecallTierPath::WarmResident,
-            TierResidenceClass::Cold => ColdRecallTierPath::ColdRecalled,
+        let placement_path = match lease.residence_class() {
+            TierResidenceClass::Hot => RetainedReadPlacementPath::HotResident,
+            TierResidenceClass::Warm => RetainedReadPlacementPath::WarmResident,
+            TierResidenceClass::Cold => RetainedReadPlacementPath::ColdRecalled,
         };
         Self {
             artifact_ref: lease.artifact_ref().clone(),
             execution_origin: lease.execution_origin(),
-            resolved_path,
+            tier_miss_outcome: placement_path.tier_miss_outcome(),
+            placement_path,
         }
     }
 
@@ -188,7 +191,8 @@ impl PlacementResolvedReadHandle {
         Self {
             artifact_ref: lease.artifact_ref().clone(),
             execution_origin: lease.execution_origin(),
-            resolved_path: ColdRecallTierPath::ColdRecalled,
+            placement_path: RetainedReadPlacementPath::ColdRecalled,
+            tier_miss_outcome: TierMissOutcome::ColdRecallHit,
         }
     }
 
@@ -200,7 +204,15 @@ impl PlacementResolvedReadHandle {
         self.execution_origin
     }
 
+    pub fn placement_path(&self) -> RetainedReadPlacementPath {
+        self.placement_path
+    }
+
+    pub fn tier_miss_outcome(&self) -> TierMissOutcome {
+        self.tier_miss_outcome
+    }
+
     pub fn resolved_path(&self) -> ColdRecallTierPath {
-        self.resolved_path
+        self.placement_path.into()
     }
 }

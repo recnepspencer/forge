@@ -5,8 +5,8 @@ use crate::{
 };
 
 use super::super::identity::{
-    bulk_program_artifact_id, frozen_bulk_manifest_artifact_id,
-    frozen_transform_basis_artifact_id, frozen_transform_partition_artifact_id,
+    bulk_program_artifact_id, frozen_bulk_manifest_artifact_id, frozen_transform_basis_artifact_id,
+    frozen_transform_partition_artifact_id,
 };
 
 impl StoreState {
@@ -20,19 +20,22 @@ impl StoreState {
 
 fn verify_manifests(state: &StoreState) -> Result<(), StoreError> {
     for (stored_key, record) in &state.frozen_bulk_manifest_records {
-        let expected = frozen_bulk_manifest_artifact_id(
-            &record.program_id,
-            record.manifest.manifest_digest(),
-        );
+        let expected =
+            frozen_bulk_manifest_artifact_id(&record.program_id, record.manifest.manifest_digest());
         if stored_key != &expected || record.artifact_id != expected {
             return Err(StoreError::backend_integrity(format!(
                 "bulk manifest key `{stored_key}` did not match expected artifact id `{expected}`"
             )));
         }
-        if record.family_version != BULK_FAMILY_VERSION || record.manifest.family_version() != BULK_FAMILY_VERSION {
+        if record.family_version != BULK_FAMILY_VERSION
+            || record.manifest.family_version() != BULK_FAMILY_VERSION
+        {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk manifest `{}` used unsupported family version", record.program_id),
+                format!(
+                    "bulk manifest `{}` used unsupported family version",
+                    record.program_id
+                ),
             ));
         }
         if record.program_id != record.manifest.program_id() {
@@ -75,10 +78,15 @@ fn verify_transform_bases(state: &StoreState) -> Result<(), StoreError> {
                 "bulk transform basis key `{stored_key}` did not match expected artifact id `{expected}`"
             )));
         }
-        if record.family_version != BULK_FAMILY_VERSION || record.basis.family_version() != BULK_FAMILY_VERSION {
+        if record.family_version != BULK_FAMILY_VERSION
+            || record.basis.family_version() != BULK_FAMILY_VERSION
+        {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk transform basis `{}` used unsupported family version", record.program_id),
+                format!(
+                    "bulk transform basis `{}` used unsupported family version",
+                    record.program_id
+                ),
             ));
         }
         if record.program_id != record.basis.program_id() {
@@ -108,10 +116,15 @@ fn verify_transform_partitions(state: &StoreState) -> Result<(), StoreError> {
                 "bulk transform partition key `{stored_key}` did not match expected artifact id `{expected}`"
             )));
         }
-        if record.family_version != BULK_FAMILY_VERSION || record.partition.family_version() != BULK_FAMILY_VERSION {
+        if record.family_version != BULK_FAMILY_VERSION
+            || record.partition.family_version() != BULK_FAMILY_VERSION
+        {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk transform partition `{}` used unsupported family version", record.program_id),
+                format!(
+                    "bulk transform partition `{}` used unsupported family version",
+                    record.program_id
+                ),
             ));
         }
         if !record.partition.has_valid_digest()? {

@@ -6,6 +6,7 @@ use crate::live_query::restart::StableBasisSurvival;
 use crate::live_query::retention_descriptor::{
     descriptor_for_stable_basis, ContinuationRetentionDescriptor, ContinuationRetentionStatus,
 };
+use crate::ForegroundIsolationOutcome;
 
 use super::{
     validation::StableBasisPublicationPlan, StableBasisId, StableBasisLayoutPosture,
@@ -52,6 +53,7 @@ pub struct StableBasisHandle {
     request: StableBasisReadRequest,
     stable_basis_id: StableBasisId,
     retention_descriptor: ContinuationRetentionDescriptor,
+    foreground_isolation: ForegroundIsolationOutcome,
 }
 
 impl StableBasisHandle {
@@ -64,6 +66,9 @@ impl StableBasisHandle {
             request,
             stable_basis_id,
             retention_descriptor,
+            foreground_isolation: ForegroundIsolationOutcome::stayed_isolated(
+                crate::ForegroundReservationClass::Read,
+            ),
         }
     }
 
@@ -125,5 +130,17 @@ impl StableBasisHandle {
 
     pub fn required_support_artifact_set(&self) -> &[String] {
         self.retention_descriptor.required_support_artifact_set()
+    }
+
+    pub fn foreground_isolation(&self) -> &ForegroundIsolationOutcome {
+        &self.foreground_isolation
+    }
+
+    pub(crate) fn with_foreground_isolation(
+        mut self,
+        foreground_isolation: ForegroundIsolationOutcome,
+    ) -> Self {
+        self.foreground_isolation = foreground_isolation;
+        self
     }
 }

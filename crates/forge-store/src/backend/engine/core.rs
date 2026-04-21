@@ -7,11 +7,36 @@ use crate::{
 };
 
 use super::{
+    super::integrity::{
+        verify_milestone_6_access_structures, verify_milestone_7_access_structures,
+    },
     StateBackedStoreBackend, StatePersistence,
-    super::integrity::{verify_milestone_6_access_structures, verify_milestone_7_access_structures},
 };
 
 impl<P: StatePersistence> StateBackedStoreBackend<P> {
+    fn record_maintenance_boot_counters(&self) {
+        self.counters.record_maintenance_cold_start_boot(1);
+        if self.state.maintenance_loaded_persisted_summaries_on_boot {
+            self.counters.record_maintenance_cold_start_summary_load(1);
+        }
+        if self.state.maintenance_used_legacy_summary_backfill_on_boot {
+            self.counters
+                .record_maintenance_cold_start_legacy_backfill(1);
+        }
+        if self.state.maintenance_recovered_backlog_on_boot > 0 {
+            self.counters
+                .record_maintenance_cold_start_recovery_backlog(
+                    self.state.maintenance_recovered_backlog_on_boot,
+                );
+        }
+        if self.state.maintenance_boot_integrity_reject_count > 0 {
+            self.counters
+                .record_maintenance_cold_start_integrity_reject(
+                    self.state.maintenance_boot_integrity_reject_count,
+                );
+        }
+    }
+
     fn refresh_access_structure_verifications(&mut self) {
         let media_report = self.persistence.durable_media_report();
         self.milestone_6_access_structure_verification =
@@ -64,7 +89,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         }
     }
 
-    pub(super) fn append_wal_record_committed(&mut self, record: WalRecord) -> Result<(), StoreError> {
+    pub(super) fn append_wal_record_committed(
+        &mut self,
+        record: WalRecord,
+    ) -> Result<(), StoreError> {
         let inserted_sequence = record.wal_sequence;
         self.state.append_wal_record(record)?;
 
@@ -95,14 +123,16 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             verify_milestone_6_access_structures(&state, persistence.durable_media_report());
         let milestone_7_access_structure_verification =
             verify_milestone_7_access_structures(&state, persistence.durable_media_report());
-        Ok(Self {
+        let backend = Self {
             persistence,
             state,
             milestone_6_access_structure_verification,
             milestone_7_access_structure_verification,
             milestone_6_scope_prepare_counts: std::collections::HashMap::new(),
             counters: crate::evidence::StoreCounters::default(),
-        })
+        };
+        backend.record_maintenance_boot_counters();
+        Ok(backend)
     }
 
     pub fn open_with_persistence_for_durable_recovery(
@@ -114,14 +144,16 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             verify_milestone_6_access_structures(&state, persistence.durable_media_report());
         let milestone_7_access_structure_verification =
             verify_milestone_7_access_structures(&state, persistence.durable_media_report());
-        Ok(Self {
+        let backend = Self {
             persistence,
             state,
             milestone_6_access_structure_verification,
             milestone_7_access_structure_verification,
             milestone_6_scope_prepare_counts: std::collections::HashMap::new(),
             counters: crate::evidence::StoreCounters::default(),
-        })
+        };
+        backend.record_maintenance_boot_counters();
+        Ok(backend)
     }
 
     pub fn from_export_bundle_with_persistence(

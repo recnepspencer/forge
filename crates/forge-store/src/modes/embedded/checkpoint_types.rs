@@ -1,6 +1,10 @@
 use super::{
-    checkpoint_envelopes::{ClassifiedEmbeddedCheckpointEnvelope, ExternalRuntimeCheckpointEnvelope, sealed},
-    checkpoint_kinds::{ContainsCanonicalCommits, EmbeddedCheckpointKindMarker, NoContainedCommits},
+    checkpoint_envelopes::{
+        sealed, ClassifiedEmbeddedCheckpointEnvelope, ExternalRuntimeCheckpointEnvelope,
+    },
+    checkpoint_kinds::{
+        ContainsCanonicalCommits, EmbeddedCheckpointKindMarker, NoContainedCommits,
+    },
 };
 use crate::failure::StoreError;
 use forge_relational::facade::{
@@ -149,7 +153,9 @@ pub trait IntoVerifiedEmbeddedCheckpoint<K, C>: sealed::Sealed {
     fn into_verified(self) -> Result<VerifiedEmbeddedCheckpoint<K, C>, StoreError>;
 }
 
-impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C> for BasisFreeCheckpoint<K, C> {
+impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
+    for BasisFreeCheckpoint<K, C>
+{
     fn into_verified(self) -> Result<VerifiedEmbeddedCheckpoint<K, C>, StoreError> {
         let classified =
             ClassifiedEmbeddedCheckpointEnvelope::classify(ExternalRuntimeCheckpointEnvelope {
@@ -171,7 +177,9 @@ impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C> fo
 
 impl<K, C> sealed::Sealed for BasisFreeCheckpoint<K, C> {}
 
-impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C> for BasisBoundCheckpoint<K, C> {
+impl<K: EmbeddedCheckpointKindMarker, C> IntoVerifiedEmbeddedCheckpoint<K, C>
+    for BasisBoundCheckpoint<K, C>
+{
     fn into_verified(self) -> Result<VerifiedEmbeddedCheckpoint<K, C>, StoreError> {
         let basis_witness =
             BasisBoundCheckpointWitness::new(self.basis_branch_id.clone(), self.basis_commit_id);

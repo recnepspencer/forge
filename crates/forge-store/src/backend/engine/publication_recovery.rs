@@ -8,8 +8,8 @@ use crate::publication::{
 use crate::recovery::{
     build_backup_restore_compatibility_report, build_maintenance_recovery_report,
     build_support_artifact_recovery_report, classify_snapshot_maintenance_recovery,
-    BackupRestoreCompatibilityReport, MaintenanceRecoveryReport,
-    SnapshotMaintenanceRecoveryReport, SupportArtifactRecoveryReport,
+    BackupRestoreCompatibilityReport, MaintenanceRecoveryReport, SnapshotMaintenanceRecoveryReport,
+    SupportArtifactRecoveryReport,
 };
 use crate::snapshot::SnapshotId;
 use crate::wal::DurableMutationId;
@@ -17,6 +17,20 @@ use crate::wal::DurableMutationId;
 use super::{core::verify_durable_barrier, StateBackedStoreBackend, StatePersistence};
 
 impl<P: StatePersistence> StateBackedStoreBackend<P> {
+    fn publication_write_interference(
+        &self,
+        commit_id: Option<forge_relational::facade::history::CommitId>,
+    ) -> Option<crate::ForegroundIsolationOutcome> {
+        let commit_id = commit_id?;
+        let branch_id = self
+            .state
+            .commit_record(commit_id)?
+            .envelope
+            .branch_context
+            .clone();
+        Some(self.assess_write_foreground_isolation(&branch_id))
+    }
+
     pub fn classify_durable_publication(
         &self,
         durable_mutation_id: DurableMutationId,
@@ -24,18 +38,29 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     ) -> Result<PublicationWriteOutcome, StoreError> {
         let facts =
             durable_publication_facts(&self.state, durable_mutation_id, expected_commit_id)?;
-        Ok(classify_durable_publication(
-            self.persistence.durable_media_report(),
-            facts,
-        ))
+        let outcome = classify_durable_publication(self.persistence.durable_media_report(), facts);
+        Ok(
+            match self.publication_write_interference(expected_commit_id) {
+                Some(interference) => outcome.with_foreground_write_isolation(interference),
+                None => outcome,
+            },
+        )
     }
 
     pub fn classify_snapshot_publication(
         &self,
         snapshot_id: SnapshotId,
     ) -> Result<PublicationWriteOutcome, StoreError> {
-        let basis = self.state.snapshot_basis_records.get(&snapshot_id.0).cloned();
-        let image = self.state.snapshot_image_records.get(&snapshot_id.0).cloned();
+        let basis = self
+            .state
+            .snapshot_basis_records
+            .get(&snapshot_id.0)
+            .cloned();
+        let image = self
+            .state
+            .snapshot_image_records
+            .get(&snapshot_id.0)
+            .cloned();
         classify_snapshot_publication(self.persistence.durable_media_report(), basis, image)
     }
 

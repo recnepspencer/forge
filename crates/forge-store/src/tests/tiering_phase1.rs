@@ -27,6 +27,10 @@ fn milestone_13_counter_fields_default_to_zero() {
     assert_eq!(snapshot.broadened_recall_plan_count, 0);
     assert_eq!(snapshot.recall_coalesced_request_count, 0);
     assert_eq!(snapshot.recall_duplicate_suppression_count, 0);
+    assert_eq!(snapshot.tier_interleaved_read_count, 0);
+    assert_eq!(snapshot.tier_interleaved_continuation_count, 0);
+    assert_eq!(snapshot.tier_interleaving_recall_count, 0);
+    assert_eq!(snapshot.tier_interleaving_parity_failure_count, 0);
     assert_eq!(snapshot.placement_debt_count, 0);
     assert_eq!(snapshot.working_set_debt_count, 0);
     assert_eq!(snapshot.tier_truth_parity_failure_count, 0);
@@ -69,11 +73,15 @@ fn milestone_13_counter_recorders_increment_exact_fields() {
     counters.record_broadened_recall_plans(18);
     counters.record_recall_coalesced_requests(19);
     counters.record_recall_duplicate_suppression(20);
-    counters.record_placement_debt(21);
-    counters.record_working_set_debt(22);
-    counters.record_tier_truth_parity_failures(23);
-    counters.record_tier_restore_parity_failures(24);
-    counters.record_tier_recall_failures(25);
+    counters.record_tier_interleaved_reads(21);
+    counters.record_tier_interleaved_continuations(22);
+    counters.record_tier_interleaving_recalls(23);
+    counters.record_tier_interleaving_parity_failures(24);
+    counters.record_placement_debt(25);
+    counters.record_working_set_debt(26);
+    counters.record_tier_truth_parity_failures(27);
+    counters.record_tier_restore_parity_failures(28);
+    counters.record_tier_recall_failures(29);
 
     let snapshot = counters.snapshot();
     assert_eq!(snapshot.placement_state_manifest_load_count, 1);
@@ -96,11 +104,15 @@ fn milestone_13_counter_recorders_increment_exact_fields() {
     assert_eq!(snapshot.broadened_recall_plan_count, 18);
     assert_eq!(snapshot.recall_coalesced_request_count, 19);
     assert_eq!(snapshot.recall_duplicate_suppression_count, 20);
-    assert_eq!(snapshot.placement_debt_count, 21);
-    assert_eq!(snapshot.working_set_debt_count, 22);
-    assert_eq!(snapshot.tier_truth_parity_failure_count, 23);
-    assert_eq!(snapshot.tier_restore_parity_failure_count, 24);
-    assert_eq!(snapshot.tier_recall_failure_count, 25);
+    assert_eq!(snapshot.tier_interleaved_read_count, 21);
+    assert_eq!(snapshot.tier_interleaved_continuation_count, 22);
+    assert_eq!(snapshot.tier_interleaving_recall_count, 23);
+    assert_eq!(snapshot.tier_interleaving_parity_failure_count, 24);
+    assert_eq!(snapshot.placement_debt_count, 25);
+    assert_eq!(snapshot.working_set_debt_count, 26);
+    assert_eq!(snapshot.tier_truth_parity_failure_count, 27);
+    assert_eq!(snapshot.tier_restore_parity_failure_count, 28);
+    assert_eq!(snapshot.tier_recall_failure_count, 29);
     assert_eq!(snapshot.retention_policy_evaluation_count, 0);
     assert_eq!(snapshot.maintenance_declaration_count, 0);
 }
@@ -148,8 +160,14 @@ fn forge_store_exposes_phase_1_milestone_13_support_surfaces() {
         ComplexityStatus::Verified
     );
     assert_eq!(complexity.tier_move_cutover.status, ComplexityStatus::Debt);
-    assert_eq!(complexity.tier_move_execution.status, ComplexityStatus::Debt);
-    assert_eq!(complexity.cold_recall_execution.status, ComplexityStatus::Debt);
+    assert_eq!(
+        complexity.tier_move_execution.status,
+        ComplexityStatus::Debt
+    );
+    assert_eq!(
+        complexity.cold_recall_execution.status,
+        ComplexityStatus::Debt
+    );
     assert_eq!(complexity.recall_coalescing.status, ComplexityStatus::Debt);
     assert_eq!(
         complexity
@@ -174,14 +192,21 @@ fn proof_bearing_constructors_normalize_lists_deterministically() {
     );
     let manifest = crate::CanonicalResidencyManifest::new(
         vec!["b".to_string(), "a".to_string(), "a".to_string()],
-        vec!["transfer:2".to_string(), "transfer:1".to_string(), "transfer:2".to_string()],
+        vec![
+            "transfer:2".to_string(),
+            "transfer:1".to_string(),
+            "transfer:2".to_string(),
+        ],
     );
 
     assert_eq!(
         window.observed_artifact_keys(),
         &["artifact:a".to_string(), "artifact:z".to_string()]
     );
-    assert_eq!(window.scope_class(), crate::PlacementObservationScopeClass::Branch);
+    assert_eq!(
+        window.scope_class(),
+        crate::PlacementObservationScopeClass::Branch
+    );
     assert_eq!(window.scope_key(), "branch:main");
     assert_eq!(
         manifest.resident_artifact_keys(),

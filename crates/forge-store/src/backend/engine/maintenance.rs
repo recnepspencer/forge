@@ -16,10 +16,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         policy_class: crate::RetentionPolicyClass,
     ) -> Result<crate::MaintenanceBatch, StoreError> {
         let planning = self.plan_retention_candidates(policy_class)?;
-        let batch =
-            super::super::maintenance::lowering::lower_retention_maintenance_batch(
-                planning.lower_to_maintenance_batch(),
-            );
+        let batch = super::super::maintenance::lowering::lower_retention_maintenance_batch(
+            planning.lower_to_maintenance_batch(),
+        );
         self.counters
             .record_maintenance_declarations(batch.declarations().len() as u64);
         Ok(batch)
@@ -122,8 +121,50 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         super::super::tiering::milestone_13_complexity_surface(self)
     }
 
+    pub fn milestone_13_artifact_report(
+        &self,
+    ) -> Result<crate::Milestone13ArtifactReport, StoreError> {
+        super::super::tiering::milestone_13_artifact_report(self)
+    }
+
     pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
         super::super::maintenance::evidence::milestone_11_maintenance_report(self)
+    }
+
+    pub(crate) fn assess_read_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+        allow_broadening: bool,
+    ) -> crate::ForegroundIsolationOutcome {
+        super::super::maintenance::foreground::assess_foreground_isolation(
+            self,
+            crate::ForegroundReservationClass::Read,
+            &super::super::maintenance::foreground::branch_locality_scope(branch_id),
+            allow_broadening,
+        )
+    }
+
+    pub(crate) fn assess_continuation_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+        allow_broadening: bool,
+    ) -> crate::ForegroundIsolationOutcome {
+        super::super::maintenance::foreground::assess_foreground_isolation(
+            self,
+            crate::ForegroundReservationClass::Continuation,
+            &super::super::maintenance::foreground::branch_locality_scope(branch_id),
+            allow_broadening,
+        )
+    }
+
+    pub(crate) fn assess_write_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+    ) -> crate::ForegroundIsolationOutcome {
+        super::super::maintenance::foreground::assess_write_foreground_isolation(
+            self,
+            &super::super::maintenance::foreground::branch_locality_scope(branch_id),
+        )
     }
 
     pub fn maintenance_evidence(&self) -> crate::Milestone11MaintenanceReport {
@@ -140,7 +181,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.counters.record_canonicalization(metrics);
     }
 
-    pub fn record_stable_basis_lookup(&self) { self.counters.record_stable_basis_lookup(); }
+    pub fn record_stable_basis_lookup(&self) {
+        self.counters.record_stable_basis_lookup();
+    }
     pub fn record_stable_basis_read(
         &self,
         support_rows_read: u64,
@@ -153,19 +196,45 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             used_fallback,
         );
     }
-    pub fn record_stable_basis_broadening(&self) { self.counters.record_stable_basis_broadening(); }
-    pub fn record_continuation_plan(&self) { self.counters.record_continuation_plan(); }
-    pub fn record_continuation_identity_lookup(&self) { self.counters.record_continuation_identity_lookup(); }
-    pub fn record_continuation_checkpoint_lookup(&self) { self.counters.record_continuation_checkpoint_lookup(); }
-    pub fn record_continuation_broadening(&self) { self.counters.record_continuation_broadening(); }
-    pub fn record_continuation_parity(&self) { self.counters.record_continuation_parity(); }
-    pub fn record_continuation_illegal_acknowledgment(&self) { self.counters.record_continuation_illegal_acknowledgment(); }
-    pub fn record_continuation_batch_gap(&self) { self.counters.record_continuation_batch_gap(); }
-    pub fn record_continuation_batch_duplicate(&self) { self.counters.record_continuation_batch_duplicate(); }
-    pub fn record_continuation_schema_mismatch(&self) { self.counters.record_continuation_schema_mismatch(); }
-    pub fn record_continuation_scope_mismatch(&self) { self.counters.record_continuation_scope_mismatch(); }
-    pub fn record_continuation_degraded_basis(&self) { self.counters.record_continuation_degraded_basis(); }
-    pub fn record_continuation_rejected_basis(&self) { self.counters.record_continuation_rejected_basis(); }
+    pub fn record_stable_basis_broadening(&self) {
+        self.counters.record_stable_basis_broadening();
+    }
+    pub fn record_continuation_plan(&self) {
+        self.counters.record_continuation_plan();
+    }
+    pub fn record_continuation_identity_lookup(&self) {
+        self.counters.record_continuation_identity_lookup();
+    }
+    pub fn record_continuation_checkpoint_lookup(&self) {
+        self.counters.record_continuation_checkpoint_lookup();
+    }
+    pub fn record_continuation_broadening(&self) {
+        self.counters.record_continuation_broadening();
+    }
+    pub fn record_continuation_parity(&self) {
+        self.counters.record_continuation_parity();
+    }
+    pub fn record_continuation_illegal_acknowledgment(&self) {
+        self.counters.record_continuation_illegal_acknowledgment();
+    }
+    pub fn record_continuation_batch_gap(&self) {
+        self.counters.record_continuation_batch_gap();
+    }
+    pub fn record_continuation_batch_duplicate(&self) {
+        self.counters.record_continuation_batch_duplicate();
+    }
+    pub fn record_continuation_schema_mismatch(&self) {
+        self.counters.record_continuation_schema_mismatch();
+    }
+    pub fn record_continuation_scope_mismatch(&self) {
+        self.counters.record_continuation_scope_mismatch();
+    }
+    pub fn record_continuation_degraded_basis(&self) {
+        self.counters.record_continuation_degraded_basis();
+    }
+    pub fn record_continuation_rejected_basis(&self) {
+        self.counters.record_continuation_rejected_basis();
+    }
 
     pub fn milestone_7_access_structure_verification(
         &self,

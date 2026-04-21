@@ -5,10 +5,7 @@ use rusqlite::Connection;
 use super::super::super::records::StoreState;
 use super::super::helpers::{deserialize_json, sqlite_error};
 
-pub(super) fn load_bulk(
-    connection: &Connection,
-    state: &mut StoreState,
-) -> Result<(), StoreError> {
+pub(super) fn load_bulk(connection: &Connection, state: &mut StoreState) -> Result<(), StoreError> {
     load_json_records(
         connection,
         "bulk_program_identity_records",

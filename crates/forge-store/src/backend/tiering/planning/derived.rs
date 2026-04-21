@@ -65,7 +65,8 @@ pub(crate) fn plan_derived_tier_move<P: StatePersistence>(
                     locality_footprint,
                     breadth_summary,
                     Some(TierMoveRejection::WitnessConstructionRequired {
-                        witness_type: "derived family is not admitted by the conservative placement policy",
+                        witness_type:
+                            "derived family is not admitted by the conservative placement policy",
                     }),
                     None,
                 ));

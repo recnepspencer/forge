@@ -12,10 +12,15 @@ error[E0423]: expected value, found struct `ChunkModelFrozenPhysicalLayout`
 error[E0624]: associated function `new` is private
  --> tests/ui/partial_chunk_metadata_rejected.rs:6:38
   |
-6 |     let _ = ChunkDeterminismWitness::new(
-  |                                      ^^^ private associated function
+6 |       let _ = ChunkDeterminismWitness::new(
+  |                                        ^^^ private associated function
   |
  ::: src/layout/proofs/physical.rs
   |
-  |     pub(crate) fn new(physical_chunk_id: PhysicalChunkId, chunk_shape_version: ChunkShapeVersion, determinism_digest: String, ordered_slice_ids: Vec<AspectLayoutSliceId>) -> Self {
-  |     ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ private associated function defined here
+  | /     pub(crate) fn new(
+  | |         physical_chunk_id: PhysicalChunkId,
+  | |         chunk_shape_version: ChunkShapeVersion,
+  | |         determinism_digest: String,
+  | |         ordered_slice_ids: Vec<AspectLayoutSliceId>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

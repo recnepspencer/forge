@@ -1,13 +1,15 @@
 use crate::failure::{StoreError, StoreErrorKind};
 use crate::media::{
-    BarrierClassifiedDurableRecord, DurabilityBarrierClass, DurableMediaFamily,
-    barriers::validate_barrier_satisfies_requirement, frame_payload,
-    framing::{TailValidationOutcome, scan_tail}, validate_raw_record,
+    barriers::validate_barrier_satisfies_requirement,
+    frame_payload,
+    framing::{scan_tail, TailValidationOutcome},
+    validate_raw_record, BarrierClassifiedDurableRecord, DurabilityBarrierClass,
+    DurableMediaFamily,
 };
 
 use super::{
-    digest::{WalRecordDigestBasis, stable_digest},
-    model::{CURRENT_WAL_VERSION, WalRecord},
+    digest::{stable_digest, WalRecordDigestBasis},
+    model::{WalRecord, CURRENT_WAL_VERSION},
 };
 
 impl WalRecord {

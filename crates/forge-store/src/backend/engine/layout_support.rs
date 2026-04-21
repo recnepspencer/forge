@@ -15,7 +15,12 @@ pub(super) fn milestone_6_scope_slice_membership_record(
         artifact_id: crate::layout::layout_scope_membership_artifact_id(
             materialization.admitted_plan().request(),
         )?,
-        branch_id: materialization.admitted_plan().request().target().branch_id().clone(),
+        branch_id: materialization
+            .admitted_plan()
+            .request()
+            .target()
+            .branch_id()
+            .clone(),
         frontier_commit_id: materialization
             .admitted_plan()
             .request()
@@ -88,14 +93,25 @@ pub(super) fn milestone_6_chunk_membership_record(
 ) -> Milestone6ChunkMembershipRecord {
     Milestone6ChunkMembershipRecord {
         artifact_id: crate::layout::chunk_membership_artifact_id(materialization.frozen_layout()),
-        physical_chunk_id: materialization.frozen_layout().witness().physical_chunk_id().clone(),
-        chunk_shape_version: materialization.frozen_layout().witness().chunk_shape_version(),
+        physical_chunk_id: materialization
+            .frozen_layout()
+            .witness()
+            .physical_chunk_id()
+            .clone(),
+        chunk_shape_version: materialization
+            .frozen_layout()
+            .witness()
+            .chunk_shape_version(),
         determinism_digest: materialization
             .frozen_layout()
             .witness()
             .determinism_digest()
             .to_string(),
-        slice_ids: materialization.frozen_layout().witness().ordered_slice_ids().to_vec(),
+        slice_ids: materialization
+            .frozen_layout()
+            .witness()
+            .ordered_slice_ids()
+            .to_vec(),
         layout_materialization_artifact_id: materialization.artifact_id().to_string(),
     }
 }
@@ -105,8 +121,9 @@ pub(super) fn attach_milestone_6_commit_coupled_layout_seed_to_commit_support_su
     commit_id: CommitId,
     materialization: &Milestone6LayoutMaterialization,
 ) -> Result<(), StoreError> {
-    let artifact_id =
-        crate::layout::published_layout_request_artifact_id(materialization.admitted_plan().request())?;
+    let artifact_id = crate::layout::published_layout_request_artifact_id(
+        materialization.admitted_plan().request(),
+    )?;
     let summary_digest = {
         let summary = state
             .commit_support_summaries
@@ -203,8 +220,12 @@ pub(super) fn merge_milestone_6_structural_block_record(
                     .push(artifact_id);
             }
         }
-        existing.supporting_layout_materialization_artifact_ids.sort();
-        existing.supporting_layout_materialization_artifact_ids.dedup();
+        existing
+            .supporting_layout_materialization_artifact_ids
+            .sort();
+        existing
+            .supporting_layout_materialization_artifact_ids
+            .dedup();
         return;
     }
     state

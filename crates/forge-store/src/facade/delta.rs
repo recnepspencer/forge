@@ -1,6 +1,12 @@
 use crate::{
-    authority::{FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact, HistoricalIdentityRequest, HistoricalIdentityResolution},
-    delta::{BranchDeltaAutoCompactOutcome, BranchDeltaRebuildReceipt, BranchDeltaRewritePlan, BranchDeltaRewriteReceipt, BranchDeltaRewriteRecommendation, BranchDeltaRewriteRequest},
+    authority::{
+        FetchedLineageSupportArtifact, FetchedSchemaBoundaryArtifact, FetchedSchemaSupportArtifact,
+        HistoricalIdentityRequest, HistoricalIdentityResolution,
+    },
+    delta::{
+        BranchDeltaAutoCompactOutcome, BranchDeltaRebuildReceipt, BranchDeltaRewritePlan,
+        BranchDeltaRewriteReceipt, BranchDeltaRewriteRecommendation, BranchDeltaRewriteRequest,
+    },
     failure::StoreError,
 };
 use forge_relational::facade::history::{BranchId, CommitId};

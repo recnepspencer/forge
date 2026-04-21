@@ -1,7 +1,12 @@
 use crate::identity::hash_parts;
 use crate::query_context::QueryContextFamily;
-use crate::saved_query::{runtime_backed_saved_query_support_profile, SavedQueryComplexityStatus, SavedQueryPersistenceFamily};
-use crate::view_shape::{runtime_backed_view_shape_support_profile, ViewShapeComplexityStatus, ViewShapeFamily};
+use crate::saved_query::{
+    runtime_backed_saved_query_support_profile, SavedQueryComplexityStatus,
+    SavedQueryPersistenceFamily,
+};
+use crate::view_shape::{
+    runtime_backed_view_shape_support_profile, ViewShapeComplexityStatus, ViewShapeFamily,
+};
 
 use super::counters::CompositionCounters;
 use super::digests::{CompositionDigest, ScopeLineageDigest, TemplateBindingDigest};
@@ -53,7 +58,9 @@ impl QueryCompositionSupportProfile {
         &self.deferred_scope_markers
     }
 
-    pub fn composition_statuses(&self) -> &[(QueryCompositionFamily, QueryCompositionComplexityStatus)] {
+    pub fn composition_statuses(
+        &self,
+    ) -> &[(QueryCompositionFamily, QueryCompositionComplexityStatus)] {
         &self.composition_statuses
     }
 
@@ -61,7 +68,9 @@ impl QueryCompositionSupportProfile {
         &self.admitted_saved_query_persistence_families
     }
 
-    pub fn saved_query_statuses(&self) -> &[(SavedQueryPersistenceFamily, SavedQueryComplexityStatus)] {
+    pub fn saved_query_statuses(
+        &self,
+    ) -> &[(SavedQueryPersistenceFamily, SavedQueryComplexityStatus)] {
         &self.saved_query_statuses
     }
 

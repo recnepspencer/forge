@@ -91,12 +91,11 @@ pub fn plan_admitted_view_shape(
 
     let (delivery_metadata, invalidation_posture, patch_posture, cost_class) =
         metadata_for_admitted_view(validated_view.admitted());
-    let maintenance_contract =
-        maintenance_contract_for_admitted_view(
-            validated_view.admitted(),
-            validated_view.validated(),
-            &execution_plan,
-        );
+    let maintenance_contract = maintenance_contract_for_admitted_view(
+        validated_view.admitted(),
+        validated_view.validated(),
+        &execution_plan,
+    );
     let complexity = ViewShapeComplexityReport::new(
         ViewShapeComplexityStatus::Debt,
         cost_class,
@@ -124,27 +123,52 @@ fn metadata_for_admitted_view(
 ) {
     match admitted.family() {
         ViewShapeFamily::Table => (
-            ViewShapeDeliveryMetadata::new(None, None, false, false, false),
+            ViewShapeDeliveryMetadata::new(
+                None,
+                None,
+                admitted.identity_binding().identity_consumption().clone(),
+                false,
+                false,
+                false,
+            ),
             ViewShapeInvalidationPosture::OrderedCollectionMembershipAndOrdering,
             ViewShapePatchPosture::TableRowPatch,
             ViewShapeCostClass::OrderedCollectionTable,
         ),
         ViewShapeFamily::Detail => (
-            ViewShapeDeliveryMetadata::new(None, None, true, false, false),
+            ViewShapeDeliveryMetadata::new(
+                None,
+                None,
+                admitted.identity_binding().identity_consumption().clone(),
+                true,
+                false,
+                false,
+            ),
             ViewShapeInvalidationPosture::DetailProjectionFields,
             ViewShapePatchPosture::DetailFieldPatch,
             ViewShapeCostClass::DetailProjection,
         ),
         ViewShapeFamily::InspectorDetailObserved => (
-            ViewShapeDeliveryMetadata::new(None, None, true, false, false),
+            ViewShapeDeliveryMetadata::new(
+                None,
+                None,
+                admitted.identity_binding().identity_consumption().clone(),
+                true,
+                false,
+                false,
+            ),
             ViewShapeInvalidationPosture::InspectorObservedNarrowDetail,
             ViewShapePatchPosture::ObservedInspectorPatch,
             ViewShapeCostClass::InspectorObservedNarrow,
         ),
         ViewShapeFamily::InspectorDetailFocused => (
             ViewShapeDeliveryMetadata::new(
-                admitted.descriptor().focused_aspect().map(ToString::to_string),
+                admitted
+                    .descriptor()
+                    .focused_aspect()
+                    .map(ToString::to_string),
                 None,
+                admitted.identity_binding().identity_consumption().clone(),
                 false,
                 true,
                 false,
@@ -156,7 +180,11 @@ fn metadata_for_admitted_view(
         ViewShapeFamily::KanbanGrouped => (
             ViewShapeDeliveryMetadata::new(
                 None,
-                admitted.descriptor().grouping_aspect().map(ToString::to_string),
+                admitted
+                    .descriptor()
+                    .grouping_aspect()
+                    .map(ToString::to_string),
+                admitted.identity_binding().identity_consumption().clone(),
                 false,
                 false,
                 true,
@@ -181,9 +209,7 @@ fn maintenance_contract_for_admitted_view(
                 admitted.descriptor().grouping_aspect().unwrap_or("none"),
             )
             .expect("grouped admission guarantees identity and grouping bindings");
-            ViewShapeMaintenanceContract::KanbanGrouped {
-                grouped_planning,
-            }
+            ViewShapeMaintenanceContract::KanbanGrouped { grouped_planning }
         }
         _ => ViewShapeMaintenanceContract::Ungrouped,
     }

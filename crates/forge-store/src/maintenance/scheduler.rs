@@ -89,6 +89,76 @@ pub enum MaintenancePlanFamily {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct MaintenanceLaneKey {
+    work_class: MaintenanceWorkClass,
+    locality_scope: MaintenanceLocalityScope,
+    reservation_family: MaintenanceReservationFamily,
+}
+
+impl MaintenanceLaneKey {
+    pub(crate) fn new(
+        work_class: MaintenanceWorkClass,
+        locality_scope: MaintenanceLocalityScope,
+        reservation_family: MaintenanceReservationFamily,
+    ) -> Self {
+        Self {
+            work_class,
+            locality_scope,
+            reservation_family,
+        }
+    }
+
+    pub fn work_class(&self) -> MaintenanceWorkClass {
+        self.work_class
+    }
+
+    pub fn locality_scope(&self) -> &MaintenanceLocalityScope {
+        &self.locality_scope
+    }
+
+    pub fn reservation_family(&self) -> MaintenanceReservationFamily {
+        self.reservation_family
+    }
+
+    pub fn artifact_id(&self) -> String {
+        format!(
+            "{:?}:{}:{:?}",
+            self.work_class,
+            locality_scope_token_string(&self.locality_scope),
+            self.reservation_family
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MaintenanceCoalescingDecision {
+    NotCoalesced,
+    CoalescedWithEquivalentLaneMember,
+    CancelledAsSuperseded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MaintenanceStarvationStatus {
+    NotStarved,
+    DeferredLanePressure,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MaintenanceDebtPressureClass {
+    None,
+    Active,
+    Elevated,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MaintenanceEscalationVerdict {
+    NoEscalation,
+    DeferredForBudgetPressure,
+    EscalatedForDebtPressure,
+    RejectedIllegalLocalityPromotion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MaintenanceLocalityScope {
     BranchLocalityScope { branch_label: String },
     ArtifactFamilyLocalityScope { family_label: String },
@@ -436,6 +506,14 @@ impl MaintenanceWorkDescriptor {
         self.recovered_from_restart
     }
 
+    pub fn lane_key(&self) -> MaintenanceLaneKey {
+        MaintenanceLaneKey::new(
+            self.work_class,
+            self.locality_scope.clone(),
+            self.reservation_family,
+        )
+    }
+
     pub(crate) fn with_escalation_decision(
         mut self,
         escalation_decision: MaintenanceEscalationDecision,
@@ -451,6 +529,28 @@ impl MaintenanceWorkDescriptor {
 
     pub(crate) fn with_recovered_from_restart(mut self, recovered_from_restart: bool) -> Self {
         self.recovered_from_restart = recovered_from_restart;
+        self
+    }
+
+    pub(crate) fn with_demand(mut self, demand: MaintenanceDescriptorDemand) -> Self {
+        self.demand = demand;
+        self
+    }
+
+    pub(crate) fn with_supersession_epoch(mut self, supersession_epoch: SupersessionEpoch) -> Self {
+        self.supersession_epoch = supersession_epoch;
+        self
+    }
+
+    pub(crate) fn with_plan_generation(mut self, plan_generation: PlanGeneration) -> Self {
+        self.plan_generation = plan_generation;
+        self
+    }
+
+    pub(crate) fn with_locality_scope(mut self, locality_scope: MaintenanceLocalityScope) -> Self {
+        self.locality_scope_token =
+            LocalityScopeToken::new(locality_scope_token_string(&locality_scope));
+        self.locality_scope = locality_scope;
         self
     }
 }
@@ -514,7 +614,10 @@ pub struct QuantumBudgetReceipt {
 }
 
 impl QuantumBudgetReceipt {
-    pub(crate) fn new(maintenance_quantum: MaintenanceQuantum, pacing_window: PacingWindow) -> Self {
+    pub(crate) fn new(
+        maintenance_quantum: MaintenanceQuantum,
+        pacing_window: PacingWindow,
+    ) -> Self {
         Self {
             maintenance_quantum,
             pacing_window,
@@ -527,6 +630,370 @@ impl QuantumBudgetReceipt {
 
     pub fn pacing_window(&self) -> PacingWindow {
         self.pacing_window
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceResourceBudgetGrant {
+    granted_io: IoBudgetUnits,
+    granted_cpu: CpuBudgetUnits,
+    granted_memory: MemoryBudgetUnits,
+    granted_publication: PublicationSlotBudget,
+    granted_foreground_latency_guard: ForegroundLatencyGuard,
+    maintenance_quantum: MaintenanceQuantum,
+    pacing_window: PacingWindow,
+}
+
+impl MaintenanceResourceBudgetGrant {
+    pub(crate) fn new(
+        granted_io: IoBudgetUnits,
+        granted_cpu: CpuBudgetUnits,
+        granted_memory: MemoryBudgetUnits,
+        granted_publication: PublicationSlotBudget,
+        granted_foreground_latency_guard: ForegroundLatencyGuard,
+        maintenance_quantum: MaintenanceQuantum,
+        pacing_window: PacingWindow,
+    ) -> Self {
+        Self {
+            granted_io,
+            granted_cpu,
+            granted_memory,
+            granted_publication,
+            granted_foreground_latency_guard,
+            maintenance_quantum,
+            pacing_window,
+        }
+    }
+
+    pub fn granted_io(&self) -> IoBudgetUnits {
+        self.granted_io
+    }
+
+    pub fn granted_cpu(&self) -> CpuBudgetUnits {
+        self.granted_cpu
+    }
+
+    pub fn granted_memory(&self) -> MemoryBudgetUnits {
+        self.granted_memory
+    }
+
+    pub fn granted_publication(&self) -> PublicationSlotBudget {
+        self.granted_publication
+    }
+
+    pub fn granted_foreground_latency_guard(&self) -> ForegroundLatencyGuard {
+        self.granted_foreground_latency_guard
+    }
+
+    pub fn maintenance_quantum(&self) -> MaintenanceQuantum {
+        self.maintenance_quantum
+    }
+
+    pub fn pacing_window(&self) -> PacingWindow {
+        self.pacing_window
+    }
+
+    pub fn into_quantum_budget_receipt(self) -> QuantumBudgetReceipt {
+        QuantumBudgetReceipt::new(self.maintenance_quantum, self.pacing_window)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceQueueSummary {
+    lane_key: MaintenanceLaneKey,
+    admitted_count: u64,
+    reserved_count: u64,
+    deferred_count: u64,
+    active_quantum_count: u64,
+    coalesced_count: u64,
+    cancelled_superseded_count: u64,
+    equivalence_member_counts: std::collections::BTreeMap<String, u64>,
+    equivalence_leader_identities: std::collections::BTreeMap<String, String>,
+    max_supersession_epoch_by_equivalence: std::collections::BTreeMap<String, u64>,
+}
+
+impl MaintenanceQueueSummary {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        lane_key: MaintenanceLaneKey,
+        admitted_count: u64,
+        reserved_count: u64,
+        deferred_count: u64,
+        active_quantum_count: u64,
+        coalesced_count: u64,
+        cancelled_superseded_count: u64,
+        equivalence_member_counts: std::collections::BTreeMap<String, u64>,
+        equivalence_leader_identities: std::collections::BTreeMap<String, String>,
+        max_supersession_epoch_by_equivalence: std::collections::BTreeMap<String, u64>,
+    ) -> Self {
+        Self {
+            lane_key,
+            admitted_count,
+            reserved_count,
+            deferred_count,
+            active_quantum_count,
+            coalesced_count,
+            cancelled_superseded_count,
+            equivalence_member_counts,
+            equivalence_leader_identities,
+            max_supersession_epoch_by_equivalence,
+        }
+    }
+
+    pub fn lane_key(&self) -> &MaintenanceLaneKey {
+        &self.lane_key
+    }
+
+    pub fn admitted_count(&self) -> u64 {
+        self.admitted_count
+    }
+
+    pub fn reserved_count(&self) -> u64 {
+        self.reserved_count
+    }
+
+    pub fn deferred_count(&self) -> u64 {
+        self.deferred_count
+    }
+
+    pub fn active_quantum_count(&self) -> u64 {
+        self.active_quantum_count
+    }
+
+    pub fn coalesced_count(&self) -> u64 {
+        self.coalesced_count
+    }
+
+    pub fn cancelled_superseded_count(&self) -> u64 {
+        self.cancelled_superseded_count
+    }
+
+    pub fn equivalence_member_count(&self, key: &MaintenanceEquivalenceKey) -> u64 {
+        self.equivalence_member_counts
+            .get(key.as_str())
+            .copied()
+            .unwrap_or(0)
+    }
+
+    pub fn leader_identity_for(&self, key: &MaintenanceEquivalenceKey) -> Option<&str> {
+        self.equivalence_leader_identities
+            .get(key.as_str())
+            .map(String::as_str)
+    }
+
+    pub fn max_supersession_epoch_for(&self, key: &MaintenanceEquivalenceKey) -> Option<u64> {
+        self.max_supersession_epoch_by_equivalence
+            .get(key.as_str())
+            .copied()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceLocalitySummary {
+    locality_scope: MaintenanceLocalityScope,
+    lane_count: u64,
+    admitted_count: u64,
+    deferred_count: u64,
+    active_count: u64,
+}
+
+impl MaintenanceLocalitySummary {
+    pub(crate) fn new(
+        locality_scope: MaintenanceLocalityScope,
+        lane_count: u64,
+        admitted_count: u64,
+        deferred_count: u64,
+        active_count: u64,
+    ) -> Self {
+        Self {
+            locality_scope,
+            lane_count,
+            admitted_count,
+            deferred_count,
+            active_count,
+        }
+    }
+
+    pub fn locality_scope(&self) -> &MaintenanceLocalityScope {
+        &self.locality_scope
+    }
+
+    pub fn lane_count(&self) -> u64 {
+        self.lane_count
+    }
+
+    pub fn admitted_count(&self) -> u64 {
+        self.admitted_count
+    }
+
+    pub fn deferred_count(&self) -> u64 {
+        self.deferred_count
+    }
+
+    pub fn active_count(&self) -> u64 {
+        self.active_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceReservationSummary {
+    reservation_family: MaintenanceReservationFamily,
+    lane_count: u64,
+    reserved_count: u64,
+    deferred_count: u64,
+}
+
+impl MaintenanceReservationSummary {
+    pub(crate) fn new(
+        reservation_family: MaintenanceReservationFamily,
+        lane_count: u64,
+        reserved_count: u64,
+        deferred_count: u64,
+    ) -> Self {
+        Self {
+            reservation_family,
+            lane_count,
+            reserved_count,
+            deferred_count,
+        }
+    }
+
+    pub fn reservation_family(&self) -> MaintenanceReservationFamily {
+        self.reservation_family
+    }
+
+    pub fn lane_count(&self) -> u64 {
+        self.lane_count
+    }
+
+    pub fn reserved_count(&self) -> u64 {
+        self.reserved_count
+    }
+
+    pub fn deferred_count(&self) -> u64 {
+        self.deferred_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceResourceBudgetSummary {
+    available_io: IoBudgetUnits,
+    reserved_io: IoBudgetUnits,
+    available_cpu: CpuBudgetUnits,
+    reserved_cpu: CpuBudgetUnits,
+    available_memory: MemoryBudgetUnits,
+    reserved_memory: MemoryBudgetUnits,
+    available_publication: PublicationSlotBudget,
+    reserved_publication: PublicationSlotBudget,
+    available_foreground_latency_guard: ForegroundLatencyGuard,
+    reserved_foreground_latency_guard: ForegroundLatencyGuard,
+}
+
+impl MaintenanceResourceBudgetSummary {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        available_io: IoBudgetUnits,
+        reserved_io: IoBudgetUnits,
+        available_cpu: CpuBudgetUnits,
+        reserved_cpu: CpuBudgetUnits,
+        available_memory: MemoryBudgetUnits,
+        reserved_memory: MemoryBudgetUnits,
+        available_publication: PublicationSlotBudget,
+        reserved_publication: PublicationSlotBudget,
+        available_foreground_latency_guard: ForegroundLatencyGuard,
+        reserved_foreground_latency_guard: ForegroundLatencyGuard,
+    ) -> Self {
+        Self {
+            available_io,
+            reserved_io,
+            available_cpu,
+            reserved_cpu,
+            available_memory,
+            reserved_memory,
+            available_publication,
+            reserved_publication,
+            available_foreground_latency_guard,
+            reserved_foreground_latency_guard,
+        }
+    }
+
+    pub fn available_io(&self) -> IoBudgetUnits {
+        self.available_io
+    }
+
+    pub fn reserved_io(&self) -> IoBudgetUnits {
+        self.reserved_io
+    }
+
+    pub fn available_cpu(&self) -> CpuBudgetUnits {
+        self.available_cpu
+    }
+
+    pub fn reserved_cpu(&self) -> CpuBudgetUnits {
+        self.reserved_cpu
+    }
+
+    pub fn available_memory(&self) -> MemoryBudgetUnits {
+        self.available_memory
+    }
+
+    pub fn reserved_memory(&self) -> MemoryBudgetUnits {
+        self.reserved_memory
+    }
+
+    pub fn available_publication(&self) -> PublicationSlotBudget {
+        self.available_publication
+    }
+
+    pub fn reserved_publication(&self) -> PublicationSlotBudget {
+        self.reserved_publication
+    }
+
+    pub fn available_foreground_latency_guard(&self) -> ForegroundLatencyGuard {
+        self.available_foreground_latency_guard
+    }
+
+    pub fn reserved_foreground_latency_guard(&self) -> ForegroundLatencyGuard {
+        self.reserved_foreground_latency_guard
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceDebtSummary {
+    debt_family: Option<MaintenanceDebtFamily>,
+    locality_scope: MaintenanceLocalityScope,
+    pressure_class: MaintenanceDebtPressureClass,
+    starvation_status: MaintenanceStarvationStatus,
+    explicit_global_scope_debt: bool,
+}
+
+impl MaintenanceDebtSummary {
+    pub(crate) fn new(
+        debt_family: Option<MaintenanceDebtFamily>,
+        locality_scope: MaintenanceLocalityScope,
+        pressure_class: MaintenanceDebtPressureClass,
+        starvation_status: MaintenanceStarvationStatus,
+        explicit_global_scope_debt: bool,
+    ) -> Self {
+        Self {
+            debt_family,
+            locality_scope,
+            pressure_class,
+            starvation_status,
+            explicit_global_scope_debt,
+        }
+    }
+
+    pub fn pressure_class(&self) -> MaintenanceDebtPressureClass {
+        self.pressure_class
+    }
+
+    pub fn starvation_status(&self) -> MaintenanceStarvationStatus {
+        self.starvation_status
+    }
+
+    pub fn explicit_global_scope_debt(&self) -> bool {
+        self.explicit_global_scope_debt
     }
 }
 
@@ -798,7 +1265,9 @@ pub struct RestartMaintenanceAdmission {
 
 impl RestartMaintenanceAdmission {
     pub(crate) fn new(recovered_descriptor: RecoveredMaintenanceDescriptor) -> Self {
-        Self { recovered_descriptor }
+        Self {
+            recovered_descriptor,
+        }
     }
 }
 
@@ -806,14 +1275,10 @@ impl MaintenanceDeclaration {
     pub fn work_descriptor(&self) -> MaintenanceWorkDescriptor {
         let work_class = self.work_class();
         let locality_scope = self.locality_scope();
-        let locality_scope_token = LocalityScopeToken::new(locality_scope_token_string(&locality_scope));
+        let locality_scope_token =
+            LocalityScopeToken::new(locality_scope_token_string(&locality_scope));
         let work_identity = MaintenanceWorkIdentity::new(self.id().as_str().to_string());
-        let equivalence_key = MaintenanceEquivalenceKey::new(format!(
-            "{:?}:{}:{}",
-            work_class,
-            locality_scope_token.as_str(),
-            self.id().as_str()
-        ));
+        let equivalence_key = MaintenanceEquivalenceKey::new(self.equivalence_key_string());
         MaintenanceWorkDescriptor::new(
             self.id().clone(),
             work_class,
@@ -851,7 +1316,9 @@ impl MaintenanceDeclaration {
             | MaintenanceWorkClass::DerivedArtifactReclaim
             | MaintenanceWorkClass::AuthoritativeReclaim
             | MaintenanceWorkClass::SnapshotRefresh
-            | MaintenanceWorkClass::MaintenanceAudit => MaintenanceExecutionPosture::ForegroundAware,
+            | MaintenanceWorkClass::MaintenanceAudit => {
+                MaintenanceExecutionPosture::ForegroundAware
+            }
             MaintenanceWorkClass::RetainedRangeRebuild
             | MaintenanceWorkClass::DerivedFamilyRebuild
             | MaintenanceWorkClass::ReplicationPreparation
@@ -873,15 +1340,21 @@ impl MaintenanceDeclaration {
                     .unwrap_or_else(|| declaration.retained_basis_label().to_string());
                 MaintenanceLocalityScope::ArtifactFamilyLocalityScope { family_label }
             }
-            Self::Reclaim { declaration, .. } => MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
-                family_label: declaration.artifact_family().to_string(),
-            },
-            Self::AuthoritativeReclaim { declaration, .. } => MaintenanceLocalityScope::BranchLocalityScope {
-                branch_label: declaration.branch_id().0.clone(),
-            },
-            Self::Rebuild { declaration, .. } => MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
-                family_label: declaration.family_label().to_string(),
-            },
+            Self::Reclaim { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.artifact_family().to_string(),
+                }
+            }
+            Self::AuthoritativeReclaim { declaration, .. } => {
+                MaintenanceLocalityScope::BranchLocalityScope {
+                    branch_label: declaration.branch_id().0.clone(),
+                }
+            }
+            Self::Rebuild { declaration, .. } => {
+                MaintenanceLocalityScope::ArtifactFamilyLocalityScope {
+                    family_label: declaration.family_label().to_string(),
+                }
+            }
         }
     }
 
@@ -934,6 +1407,41 @@ impl MaintenanceDeclaration {
 
     pub fn tier_work_container_class(&self) -> Option<TierWorkContainerClass> {
         None
+    }
+
+    fn equivalence_key_string(&self) -> String {
+        match self {
+            Self::Retention { declaration, .. } => format!(
+                "retention:{}:{}:{}",
+                declaration.batch_label(),
+                declaration.closure_commit_count(),
+                declaration.declaration_count(),
+            ),
+            Self::Compaction { declaration, .. } => format!(
+                "compaction:{}:{}:{}",
+                declaration.retained_basis_label(),
+                declaration.family_labels().join("|"),
+                declaration.rewritten_range_count(),
+            ),
+            Self::Reclaim { declaration, .. } => format!(
+                "reclaim:{}:{}:{}",
+                declaration.retained_basis_label(),
+                declaration.artifact_family(),
+                declaration.artifact_id(),
+            ),
+            Self::AuthoritativeReclaim { declaration, .. } => format!(
+                "authoritative-reclaim:{}:{:?}:{:?}",
+                declaration.branch_id().0,
+                declaration.oldest_retained_commit_id(),
+                declaration.expired_commit_ids(),
+            ),
+            Self::Rebuild { declaration, .. } => format!(
+                "rebuild:{}:{}:{}",
+                declaration.retained_basis_label(),
+                declaration.family_label(),
+                declaration.rebuild_target_id(),
+            ),
+        }
     }
 }
 

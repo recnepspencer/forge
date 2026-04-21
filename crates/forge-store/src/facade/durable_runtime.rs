@@ -1,5 +1,8 @@
 use crate::{
-    authority::{canonicalize, PersistedAuthoritativeCommit, RawRuntimeCommitEnvelope, CURRENT_CANONICALIZATION_VERSION},
+    authority::{
+        canonicalize, PersistedAuthoritativeCommit, RawRuntimeCommitEnvelope,
+        CURRENT_CANONICALIZATION_VERSION,
+    },
     backend::records::EmbeddedCheckpointRecord,
     failure::StoreError,
     publication::PublicationWriteOutcome,
@@ -15,11 +18,15 @@ impl ForgeStore {
         &mut self,
         envelope: forge_relational::facade::replay::CanonicalCommitEnvelope,
     ) -> Result<PersistedAuthoritativeCommit, StoreError> {
+        let branch_id = envelope.branch_context.clone();
         let raw = RawRuntimeCommitEnvelope::new(envelope);
         let canonical = canonicalize(raw, CURRENT_CANONICALIZATION_VERSION)?;
         self.backend.record_canonicalization(*canonical.metrics());
         let verified = self.backend.verify_append(canonical)?;
-        self.backend.append(verified)
+        Ok(self
+            .backend
+            .append(verified)?
+            .with_foreground_isolation(self.backend.assess_write_foreground_isolation(&branch_id)))
     }
 
     pub(crate) fn persist_embedded_checkpoint_record(
@@ -143,6 +150,5 @@ impl ForgeStore {
     ) -> Result<PublicationWriteOutcome, StoreError> {
         self.backend
             .classify_durable_publication(durable_mutation_id, expected_commit_id)
-
     }
 }

@@ -5,10 +5,10 @@ use crate::application::config::{
     ForgeQueryConfigSectionFamily, ForgeQueryConfigSectionResolution, ForgeQuerySubsystemOwner,
     ValidatedForgeQueryConfig,
 };
-use crate::identity::hash_parts;
 use crate::composition::{
     runtime_backed_query_composition_support_profile, QueryCompositionSupportProfile,
 };
+use crate::identity::hash_parts;
 use crate::identity_evolution::{
     runtime_backed_direct_identity_evolution_support_profile, IdentityEvolutionSupportProfile,
 };

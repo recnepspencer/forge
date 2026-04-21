@@ -192,4 +192,3 @@ fn bulk_plan_payload_drift_fails_local_file_reopen_closed() {
         );
     assert_eq!(error.kind(), &StoreErrorKind::BackendIntegrityViolation);
 }
-

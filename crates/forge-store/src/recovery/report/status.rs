@@ -1,15 +1,15 @@
 use serde::Serialize;
 
+use super::super::{
+    DegradedStateReport, DurableRecoveryOutcome, DurableRecoveryPlan, MaintenanceRecoveryReport,
+    RecoverySourceKind, SupportArtifactRecoveryReport,
+};
 use super::{
     actions::{
         build_recommended_actions, determine_operator_disposition, RecoveryOperatorAction,
         RecoveryOperatorDisposition,
     },
     bulk::{BulkRecoverySummary, RecoveredBulkChunk},
-};
-use super::super::{
-    DegradedStateReport, DurableRecoveryOutcome, DurableRecoveryPlan, MaintenanceRecoveryReport,
-    RecoverySourceKind, SupportArtifactRecoveryReport,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -59,12 +59,24 @@ impl DurableRecoverySourceSummary {
         summary
     }
 
-    pub fn published_authoritative_truth(&self) -> usize { self.published_authoritative_truth }
-    pub fn hosted_runtime_canonical_result(&self) -> usize { self.hosted_runtime_canonical_result }
-    pub fn intent_only(&self) -> usize { self.intent_only }
-    pub fn requires_rebuild(&self) -> usize { self.requires_rebuild }
-    pub fn requires_quarantine(&self) -> usize { self.requires_quarantine }
-    pub fn maintenance_residue(&self) -> usize { self.maintenance_residue }
+    pub fn published_authoritative_truth(&self) -> usize {
+        self.published_authoritative_truth
+    }
+    pub fn hosted_runtime_canonical_result(&self) -> usize {
+        self.hosted_runtime_canonical_result
+    }
+    pub fn intent_only(&self) -> usize {
+        self.intent_only
+    }
+    pub fn requires_rebuild(&self) -> usize {
+        self.requires_rebuild
+    }
+    pub fn requires_quarantine(&self) -> usize {
+        self.requires_quarantine
+    }
+    pub fn maintenance_residue(&self) -> usize {
+        self.maintenance_residue
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -113,15 +125,37 @@ impl RecoveryStatusReport {
         }
     }
 
-    pub fn planned_mutation_count(&self) -> usize { self.planned_mutation_count }
-    pub fn recovered_decision_count(&self) -> usize { self.recovered_decision_count }
-    pub fn quiescent_restart(&self) -> bool { self.quiescent_restart }
-    pub fn operator_disposition(&self) -> RecoveryOperatorDisposition { self.operator_disposition }
-    pub fn source_summary(&self) -> &DurableRecoverySourceSummary { &self.source_summary }
-    pub fn bulk_summary(&self) -> &BulkRecoverySummary { &self.bulk_summary }
-    pub fn bulk_chunks(&self) -> &[RecoveredBulkChunk] { &self.bulk_chunks }
-    pub fn degraded(&self) -> &DegradedStateReport { &self.degraded }
-    pub fn maintenance(&self) -> &MaintenanceRecoveryReport { &self.maintenance }
-    pub fn support_artifacts(&self) -> &SupportArtifactRecoveryReport { &self.support_artifacts }
-    pub fn recommended_actions(&self) -> &[RecoveryOperatorAction] { &self.recommended_actions }
+    pub fn planned_mutation_count(&self) -> usize {
+        self.planned_mutation_count
+    }
+    pub fn recovered_decision_count(&self) -> usize {
+        self.recovered_decision_count
+    }
+    pub fn quiescent_restart(&self) -> bool {
+        self.quiescent_restart
+    }
+    pub fn operator_disposition(&self) -> RecoveryOperatorDisposition {
+        self.operator_disposition
+    }
+    pub fn source_summary(&self) -> &DurableRecoverySourceSummary {
+        &self.source_summary
+    }
+    pub fn bulk_summary(&self) -> &BulkRecoverySummary {
+        &self.bulk_summary
+    }
+    pub fn bulk_chunks(&self) -> &[RecoveredBulkChunk] {
+        &self.bulk_chunks
+    }
+    pub fn degraded(&self) -> &DegradedStateReport {
+        &self.degraded
+    }
+    pub fn maintenance(&self) -> &MaintenanceRecoveryReport {
+        &self.maintenance
+    }
+    pub fn support_artifacts(&self) -> &SupportArtifactRecoveryReport {
+        &self.support_artifacts
+    }
+    pub fn recommended_actions(&self) -> &[RecoveryOperatorAction] {
+        &self.recommended_actions
+    }
 }

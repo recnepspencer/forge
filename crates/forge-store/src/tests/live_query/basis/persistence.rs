@@ -110,7 +110,9 @@ fn stable_basis_fetch_degrades_when_required_schema_support_is_missing() {
         &ContinuationRetentionStatus::Retained
     );
 
-    let fetched = store.fetch_stable_basis(published.stable_basis_id()).unwrap();
+    let fetched = store
+        .fetch_stable_basis(published.stable_basis_id())
+        .unwrap();
     assert_eq!(
         fetched.retention_status(),
         &ContinuationRetentionStatus::Degraded {

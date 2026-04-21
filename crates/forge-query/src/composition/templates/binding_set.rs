@@ -16,7 +16,11 @@ impl TemplateBindingSet {
         }
     }
 
-    pub fn bind_predicate(mut self, slot: &TemplateParameterSlot, value: PredicateSelector) -> Self {
+    pub fn bind_predicate(
+        mut self,
+        slot: &TemplateParameterSlot,
+        value: PredicateSelector,
+    ) -> Self {
         self.bindings.push(TemplateBindingEntry {
             slot: slot.clone(),
             value: TemplateBindingValue::Predicate(value),

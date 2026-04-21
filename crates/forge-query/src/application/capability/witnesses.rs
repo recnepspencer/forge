@@ -1,22 +1,22 @@
 use crate::basis::ExecutionPreflightBundle;
 use crate::composition::{
-    ExpandedComposedIntent, GuidedCompositionPath, QueryCompositionError,
-    QueryScopeDescriptor, QueryTemplateDescriptor, TemplateBindingSet,
+    ExpandedComposedIntent, GuidedCompositionPath, QueryCompositionError, QueryScopeDescriptor,
+    QueryTemplateDescriptor, TemplateBindingSet,
 };
 use crate::execution::{execute_preflight_bundle, ExecutionError, ExecutionResultEnvelope};
 use crate::historical::{
     admit_historical_evaluation_path, HistoricalCapabilityDescriptor,
     HistoricalEvaluationAdmission, HistoricalEvaluationError, HistoricalEvaluationRequest,
 };
-use crate::live::{promote_preflight_bundle_to_live, LivePromotionError, LiveQueryPlan};
-use crate::preview::{
-    bind_preflight_to_preview_session, PreviewBindingError, PreviewSessionPlanBinding,
-    PreviewSessionQueryContext,
-};
 use crate::identity_evolution::{
     admit_identity_evolution_query, execute_admitted_identity_evolution_query,
     AdmittedIdentityEvolutionQuery, IdentityEvolutionAdmissionError,
     IdentityEvolutionExecutionArtifact, IdentityEvolutionQueryContext,
+};
+use crate::live::{promote_preflight_bundle_to_live, LivePromotionError, LiveQueryPlan};
+use crate::preview::{
+    bind_preflight_to_preview_session, PreviewBindingError, PreviewSessionPlanBinding,
+    PreviewSessionQueryContext,
 };
 use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
@@ -53,7 +53,13 @@ impl QueryCompositionCapability {
         query: crate::authoring::DetailAuthoredQuery,
         result_shape: crate::authoring::DetailAuthoredResultShape,
         scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
-    ) -> Result<(crate::composition::ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<
+        (
+            crate::composition::ExpandedScopeArtifact,
+            ExpandedComposedIntent,
+        ),
+        QueryCompositionError,
+    > {
         let _ = &self.facade_digest;
         GuidedCompositionPath::expand_detail_scopes(query, result_shape, scopes)
     }
@@ -63,7 +69,13 @@ impl QueryCompositionCapability {
         query: crate::authoring::CollectionAuthoredQuery,
         result_shape: crate::authoring::CollectionAuthoredResultShape,
         scopes: impl IntoIterator<Item = QueryScopeDescriptor>,
-    ) -> Result<(crate::composition::ExpandedScopeArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<
+        (
+            crate::composition::ExpandedScopeArtifact,
+            ExpandedComposedIntent,
+        ),
+        QueryCompositionError,
+    > {
         let _ = &self.facade_digest;
         GuidedCompositionPath::expand_collection_scopes(query, result_shape, scopes)
     }
@@ -75,7 +87,13 @@ impl QueryCompositionCapability {
             crate::authoring::DetailResultShapeFamily,
         >,
         bindings: TemplateBindingSet,
-    ) -> Result<(crate::composition::TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<
+        (
+            crate::composition::TemplateInstantiationArtifact,
+            ExpandedComposedIntent,
+        ),
+        QueryCompositionError,
+    > {
         let _ = &self.facade_digest;
         GuidedCompositionPath::instantiate_detail_template(template, bindings)
     }
@@ -87,7 +105,13 @@ impl QueryCompositionCapability {
             crate::authoring::CollectionResultShapeFamily,
         >,
         bindings: TemplateBindingSet,
-    ) -> Result<(crate::composition::TemplateInstantiationArtifact, ExpandedComposedIntent), QueryCompositionError> {
+    ) -> Result<
+        (
+            crate::composition::TemplateInstantiationArtifact,
+            ExpandedComposedIntent,
+        ),
+        QueryCompositionError,
+    > {
         let _ = &self.facade_digest;
         GuidedCompositionPath::instantiate_collection_template(template, bindings)
     }

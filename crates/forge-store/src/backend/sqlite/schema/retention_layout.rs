@@ -52,6 +52,31 @@ pub(super) fn create_retention_layout_schema(connection: &Connection) -> Result<
                 payload_json TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS maintenance_queue_summary_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS maintenance_locality_summary_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS maintenance_reservation_summary_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS maintenance_resource_budget_summary_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS maintenance_debt_summary_records (
+                artifact_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS branch_shared_base_records (
                 branch_id TEXT PRIMARY KEY,
                 source_branch_id TEXT NOT NULL,

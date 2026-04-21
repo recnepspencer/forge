@@ -1,7 +1,8 @@
 use crate::basis::ResolvedSnapshotBasis;
 use crate::identity::hash_parts;
+use crate::identity_evolution::InspectorIdentityArtifact;
 use crate::live::{
-    LiveExecutionEnvelope, LiveQueryPlan, LiveReplayBundle, LiveQueryFamily, RefreshFallback,
+    LiveExecutionEnvelope, LiveQueryFamily, LiveQueryPlan, LiveReplayBundle, RefreshFallback,
     SuppressionReason,
 };
 use crate::view_shape::{
@@ -119,6 +120,7 @@ pub struct ObservedInspectorPatchArtifact {
     digest: String,
     field_delta_count: usize,
     delivery_width: usize,
+    inspector_identity: Option<InspectorIdentityArtifact>,
 }
 
 impl ObservedInspectorPatchArtifact {
@@ -134,15 +136,21 @@ impl ObservedInspectorPatchArtifact {
         self.delivery_width
     }
 
+    pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
+        self.inspector_identity.as_ref()
+    }
+
     pub(crate) fn new(
         digest: impl Into<String>,
         field_delta_count: usize,
         delivery_width: usize,
+        inspector_identity: Option<InspectorIdentityArtifact>,
     ) -> Self {
         Self {
             digest: digest.into(),
             field_delta_count,
             delivery_width,
+            inspector_identity,
         }
     }
 }
@@ -152,6 +160,7 @@ pub struct FocusedInspectorAspectPatchArtifact {
     digest: String,
     focus_aspect: String,
     field_delta_count: usize,
+    inspector_identity: Option<InspectorIdentityArtifact>,
 }
 
 impl FocusedInspectorAspectPatchArtifact {
@@ -167,15 +176,21 @@ impl FocusedInspectorAspectPatchArtifact {
         self.field_delta_count
     }
 
+    pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
+        self.inspector_identity.as_ref()
+    }
+
     pub(crate) fn new(
         digest: impl Into<String>,
         focus_aspect: impl Into<String>,
         field_delta_count: usize,
+        inspector_identity: Option<InspectorIdentityArtifact>,
     ) -> Self {
         Self {
             digest: digest.into(),
             focus_aspect: focus_aspect.into(),
             field_delta_count,
+            inspector_identity,
         }
     }
 }
@@ -351,6 +366,7 @@ pub struct LiveViewShapeArtifact {
     counters: ViewShapeLiveCounters,
     grouped_state: Option<GroupedDesiredStateArtifact>,
     grouped_policy: Option<GroupedDeltaAdmissionPolicy>,
+    inspector_identity: Option<InspectorIdentityArtifact>,
 }
 
 impl LiveViewShapeArtifact {
@@ -382,6 +398,10 @@ impl LiveViewShapeArtifact {
         self.grouped_policy.as_ref()
     }
 
+    pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
+        self.inspector_identity.as_ref()
+    }
+
     pub(crate) fn new(
         plan: ViewShapePlanArtifact,
         basis: ResolvedSnapshotBasis,
@@ -390,6 +410,7 @@ impl LiveViewShapeArtifact {
         counters: ViewShapeLiveCounters,
         grouped_state: Option<GroupedDesiredStateArtifact>,
         grouped_policy: Option<GroupedDeltaAdmissionPolicy>,
+        inspector_identity: Option<InspectorIdentityArtifact>,
     ) -> Self {
         Self {
             plan,
@@ -399,6 +420,7 @@ impl LiveViewShapeArtifact {
             counters,
             grouped_state,
             grouped_policy,
+            inspector_identity,
         }
     }
 }

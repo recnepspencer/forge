@@ -1,8 +1,6 @@
 use super::*;
 use crate::tests::milestone_6_certification::{
-    suite_rows_foundation::*,
-    suite_rows_overlap_and_corruption::*,
-    suite_rows_rebuild::*,
+    suite_rows_foundation::*, suite_rows_overlap_and_corruption::*, suite_rows_rebuild::*,
 };
 
 fn canonical_row_by_name<'a, T: Eq + serde::Serialize, E: Eq + serde::Serialize>(
@@ -123,10 +121,7 @@ fn milestone_6_certification_harness_scaffolds_layout_suite() {
         &suite,
         "dedup_control_overlap_branch_parity",
     ));
-    assert_all_equal(canonical_row_by_name(
-        &suite,
-        "chunk_export_rebuild_parity",
-    ));
+    assert_all_equal(canonical_row_by_name(&suite, "chunk_export_rebuild_parity"));
     assert_all_equal(canonical_row_by_name(
         &suite,
         "sqlite_legacy_seed_migration_parity",
@@ -152,8 +147,7 @@ fn milestone_6_certification_harness_scaffolds_layout_suite() {
         "chunk_export_boundary_mismatch_requires_typed_failure",
     ));
 
-    let completeness =
-        evaluate_completeness(&suite, &ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST);
+    let completeness = evaluate_completeness(&suite, &ASPECT_LAYOUT_PHYSICAL_CERTIFICATION_TEST);
     assert!(
         completeness.missing_rows().is_empty()
             && completeness.missing_assertion_classes().is_empty(),

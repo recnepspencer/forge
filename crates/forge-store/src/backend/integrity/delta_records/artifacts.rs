@@ -3,7 +3,9 @@ use std::collections::BTreeSet;
 use crate::{
     backend::{
         integrity::parent_artifact_id,
-        records::{BranchDeltaLayerArtifacts, BranchDeltaLayerRecord, CommitParentRecord, StoreState},
+        records::{
+            BranchDeltaLayerArtifacts, BranchDeltaLayerRecord, CommitParentRecord, StoreState,
+        },
     },
     failure::{StoreError, StoreErrorKind},
 };
@@ -61,8 +63,7 @@ fn verify_commit_envelopes(
                     StoreErrorKind::BranchDeltaPublicationGap,
                     format!(
                         "branch delta layer {} artifact commit {} is missing from authority",
-                        record.branch_delta_layer_id.0,
-                        commit_record.envelope.commit.commit_id.0
+                        record.branch_delta_layer_id.0, commit_record.envelope.commit.commit_id.0
                     ),
                 )
             })?;
@@ -264,7 +265,9 @@ fn verify_lineage_support(
                 ),
             ));
         }
-        if let Some(authoritative) = state.lineage_support_records.get(&lineage_record.artifact_id)
+        if let Some(authoritative) = state
+            .lineage_support_records
+            .get(&lineage_record.artifact_id)
         {
             if authoritative != lineage_record {
                 return Err(StoreError::new(

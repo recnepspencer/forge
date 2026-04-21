@@ -2,8 +2,9 @@ use forge_relational::facade::history::CommitId;
 use serde::Serialize;
 
 use crate::live_query::basis::StableBasisReadScope;
-use crate::live_query::evidence::LiveQueryComplexityStatus;
 use crate::live_query::continuation::ContinuationStrategy;
+use crate::live_query::evidence::LiveQueryComplexityStatus;
+use crate::ForegroundIsolationOutcome;
 
 use super::{
     AdmittedNarrowBatchReceipt, BroadenedBatchReceipt, CaughtUpContinuationBatch,
@@ -127,6 +128,15 @@ impl ContinuationBatchResult {
         match self {
             Self::AdmittedNarrow(_) | Self::CaughtUp(_) => LiveQueryComplexityStatus::Verified,
             Self::Broadened(_) | Self::ControlLane(_) => LiveQueryComplexityStatus::Debt,
+        }
+    }
+
+    pub fn foreground_isolation(&self) -> &ForegroundIsolationOutcome {
+        match self {
+            Self::AdmittedNarrow(receipt) => receipt.foreground_isolation(),
+            Self::Broadened(receipt) => receipt.foreground_isolation(),
+            Self::ControlLane(receipt) => receipt.foreground_isolation(),
+            Self::CaughtUp(batch) => batch.foreground_isolation(),
         }
     }
 }

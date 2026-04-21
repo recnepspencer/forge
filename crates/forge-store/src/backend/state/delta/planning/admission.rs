@@ -3,8 +3,8 @@ use crate::{
         stable_shared_base_authority_digest, BranchDeltaFallbackClass, BranchDeltaLocality,
         BranchDeltaPerformanceEnvelope, BranchDeltaReadPlan, BranchDeltaReadRegime,
         BranchDeltaReadRequest, BranchDeltaReadStrategy, ComplexityStatus,
-        Milestone7IndependentReference, SameBranchDescendantWitness,
-        BRANCH_DELTA_FAMILY_VERSION, MAX_DIRECT_LAYER_READ_DEPTH, MAX_DIRECT_LAYER_READ_RECORDS,
+        Milestone7IndependentReference, SameBranchDescendantWitness, BRANCH_DELTA_FAMILY_VERSION,
+        MAX_DIRECT_LAYER_READ_DEPTH, MAX_DIRECT_LAYER_READ_RECORDS,
     },
     failure::{StoreError, StoreErrorKind},
 };
@@ -48,12 +48,14 @@ impl StoreState {
                 Vec::new(),
             ));
         }
-        let target_record = self.commit_record(request.target_commit_id).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::BranchDeltaReadTargetIllegal,
-                format!("target commit {} not found", request.target_commit_id.0),
-            )
-        })?;
+        let target_record = self
+            .commit_record(request.target_commit_id)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::BranchDeltaReadTargetIllegal,
+                    format!("target commit {} not found", request.target_commit_id.0),
+                )
+            })?;
         if target_record.envelope.branch_context != request.branch_id {
             return Err(StoreError::new(
                 StoreErrorKind::BranchDeltaReadTargetIllegal,

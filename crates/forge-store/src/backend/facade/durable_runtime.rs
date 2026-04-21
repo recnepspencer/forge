@@ -11,7 +11,8 @@ impl StoreBackend {
         runtime_session_id: &str,
         operation_name: &str,
     ) -> Result<DurableMutationId, StoreError> {
-        dispatch_mut!(self, |backend| backend.admit_durable_mutation(runtime_session_id, operation_name))
+        dispatch_mut!(self, |backend| backend
+            .admit_durable_mutation(runtime_session_id, operation_name))
     }
     pub fn record_hosted_runtime_commit_result(
         &mut self,
@@ -32,7 +33,12 @@ impl StoreBackend {
         phase: DurablePublicationPhase,
         commit_id: Option<CommitId>,
     ) -> Result<(), StoreError> {
-        dispatch_mut!(self, |backend| backend.record_publication_phase(runtime_session_id, durable_mutation_id, phase, commit_id))
+        dispatch_mut!(self, |backend| backend.record_publication_phase(
+            runtime_session_id,
+            durable_mutation_id,
+            phase,
+            commit_id
+        ))
     }
     pub fn resolve_retry(
         &self,
@@ -44,7 +50,8 @@ impl StoreBackend {
         &mut self,
         runtime_session_id: &str,
     ) -> Result<DurableRecoveryOutcome, StoreError> {
-        dispatch_mut!(self, |backend| backend.recover_durable_runtime(runtime_session_id))
+        dispatch_mut!(self, |backend| backend
+            .recover_durable_runtime(runtime_session_id))
     }
     pub fn plan_durable_recovery(&self) -> DurableRecoveryPlan {
         dispatch_ref!(self, |backend| backend.plan_durable_recovery())

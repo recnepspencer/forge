@@ -93,8 +93,44 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         super::super::tiering::canonical_residency_manifest(self)
     }
 
-    pub fn recover_tiering_state(&self) -> crate::CanonicalResidencyManifest {
+    pub fn recover_tiering_state(&self) -> Result<crate::CanonicalResidencyManifest, StoreError> {
         super::super::tiering::recover_tiering_state(self)
+    }
+
+    pub fn resolve_resident_read_handle(
+        &self,
+        lease: &crate::ResidentReadLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        super::super::tiering::resolve_resident_read_handle(lease)
+    }
+
+    pub fn resolve_cold_recall_read_handle(
+        &self,
+        lease: &crate::ColdRecallLease,
+    ) -> crate::PlacementResolvedReadHandle {
+        super::super::tiering::resolve_cold_recall_read_handle(lease)
+    }
+
+    pub fn observe_placement_read_interleaving(
+        &self,
+        handle: &crate::PlacementResolvedReadHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        super::super::tiering::observe_placement_read_interleaving(self, handle)
+    }
+
+    pub fn observe_stable_basis_interleaving(
+        &self,
+        basis: &crate::StableBasisHandle,
+    ) -> Result<crate::InterleavedReadParityReport, StoreError> {
+        super::super::tiering::observe_stable_basis_interleaving(self, basis)
+    }
+
+    pub fn observe_continuation_interleaving(
+        &self,
+        plan: &crate::CursorContinuationPlan,
+        result: Option<&crate::ContinuationBatchResult>,
+    ) -> Result<crate::InterleavedContinuationParityReport, StoreError> {
+        super::super::tiering::observe_continuation_interleaving(self, plan, result)
     }
 
     pub fn prepare_authoritative_tier_move(
@@ -143,7 +179,16 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         lease: crate::ColdRecallLease,
         witness: crate::RecallEligibilityWitness,
-    ) -> Result<crate::RecallCompletionWitness, StoreError> {
+    ) -> Result<crate::CoalescedRecallReport, StoreError> {
         super::super::tiering::execute_cold_recall(self, lease, witness)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn admit_inflight_cold_recall(
+        &mut self,
+        artifact_ref: crate::PlacementBoundArtifactRef,
+        execution_origin: crate::PlacementExecutionOrigin,
+    ) -> Result<(), StoreError> {
+        super::super::tiering::admit_inflight_cold_recall(self, artifact_ref, execution_origin)
     }
 }

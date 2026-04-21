@@ -185,4 +185,3 @@ fn bulk_transform_artifacts_are_fetchable_and_chunk_admission_is_symmetric() {
     );
     assert_eq!(admitted.chunk().ordinal(), ChunkOrdinal::new(0));
 }
-

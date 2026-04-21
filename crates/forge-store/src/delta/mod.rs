@@ -4,10 +4,10 @@ mod read;
 mod rewrite;
 
 pub use core::{
-    BRANCH_DELTA_FAMILY_VERSION, BranchDeltaLayerId, ComplexityStatus,
-    SharedBaseBranchCreationReceipt, SharedBaseBranchCreationRequest,
-    SharedBaseBranchCreationWitness, MAX_DIRECT_LAYER_READ_DEPTH,
-    MAX_DIRECT_LAYER_READ_RECORDS, MAX_REWRITE_LAYER_WIDTH, RECOMMENDED_REWRITE_LAYER_WIDTH,
+    BranchDeltaLayerId, ComplexityStatus, SharedBaseBranchCreationReceipt,
+    SharedBaseBranchCreationRequest, SharedBaseBranchCreationWitness, BRANCH_DELTA_FAMILY_VERSION,
+    MAX_DIRECT_LAYER_READ_DEPTH, MAX_DIRECT_LAYER_READ_RECORDS, MAX_REWRITE_LAYER_WIDTH,
+    RECOMMENDED_REWRITE_LAYER_WIDTH,
 };
 pub use digest::{
     stable_branch_delta_digest, stable_branch_delta_layer_authority_digest,

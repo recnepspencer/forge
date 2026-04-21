@@ -56,15 +56,24 @@ impl LineageTraversalDescriptor {
     }
 
     pub fn direct_split_successors(anchor_identity: impl Into<String>) -> Self {
-        Self::from_family(LineageTraversalFamily::DirectSplitSuccessors, anchor_identity)
+        Self::from_family(
+            LineageTraversalFamily::DirectSplitSuccessors,
+            anchor_identity,
+        )
     }
 
     pub fn direct_merge_successor(anchor_identity: impl Into<String>) -> Self {
-        Self::from_family(LineageTraversalFamily::DirectMergeSuccessor, anchor_identity)
+        Self::from_family(
+            LineageTraversalFamily::DirectMergeSuccessor,
+            anchor_identity,
+        )
     }
 
     pub fn branch_local_direct_evolution(anchor_identity: impl Into<String>) -> Self {
-        Self::from_family(LineageTraversalFamily::BranchLocalDirectEvolution, anchor_identity)
+        Self::from_family(
+            LineageTraversalFamily::BranchLocalDirectEvolution,
+            anchor_identity,
+        )
     }
 
     pub fn family(&self) -> LineageTraversalFamily {

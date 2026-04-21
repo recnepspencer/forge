@@ -7,12 +7,11 @@ use crate::{
 };
 use forge_relational::facade::identity::EntityId;
 
-
+#[path = "continuation/execution.rs"]
+mod execution;
 #[path = "continuation/persistence.rs"]
 mod persistence;
 #[path = "continuation/planning.rs"]
 mod planning;
-#[path = "continuation/execution.rs"]
-mod execution;
 #[path = "continuation/rejections.rs"]
 mod rejections;

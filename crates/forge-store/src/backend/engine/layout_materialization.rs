@@ -2,13 +2,13 @@ use crate::failure::StoreError;
 use crate::layout::{AspectLayoutReadRequest, Milestone6LayoutMaterialization};
 use forge_relational::facade::history::BranchId;
 
-use super::{StateBackedStoreBackend, StatePersistence};
 use super::layout_support::{
     attach_milestone_6_commit_coupled_layout_seed_to_commit_support_summary,
     merge_milestone_6_structural_block_record, milestone_6_chunk_membership_record,
     milestone_6_commit_coupled_layout_seed_record, milestone_6_scope_slice_membership_record,
     milestone_6_structural_block_record,
 };
+use super::{StateBackedStoreBackend, StatePersistence};
 
 impl<P: StatePersistence> StateBackedStoreBackend<P> {
     pub(crate) fn note_milestone_6_scope_prepare(
@@ -105,8 +105,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                         .0
                 ))
             })?;
-        let commit_coupled_seed_record =
-            milestone_6_commit_coupled_layout_seed_record(&materialization, authority_basis_commit)?;
+        let commit_coupled_seed_record = milestone_6_commit_coupled_layout_seed_record(
+            &materialization,
+            authority_basis_commit,
+        )?;
         let scope_membership_record = milestone_6_scope_slice_membership_record(&materialization)?;
         let chunk_membership_record = milestone_6_chunk_membership_record(&materialization);
         let structural_block_record = milestone_6_structural_block_record(&materialization);

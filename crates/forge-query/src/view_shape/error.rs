@@ -4,6 +4,7 @@ pub enum ViewShapeFailureClass {
     IncompatibleCanonicalFamily,
     FocusAspectRequired,
     GroupingAspectRequired,
+    IdentityConsumptionUnsupportedForViewFamily,
     AdmissionInvariantRejected,
     ValidationRejected,
     PlanningInvariantRejected,

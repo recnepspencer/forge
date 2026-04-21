@@ -134,11 +134,13 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     rewrite_receipt: Some(rewrite_receipt),
                 })
             }
-            crate::BranchDeltaRewritePolicyDecision::NoAction => Ok(BranchDeltaAutoCompactOutcome {
-                disposition: BranchDeltaAutoCompactDisposition::NoAction,
-                recommendation,
-                rewrite_receipt: None,
-            }),
+            crate::BranchDeltaRewritePolicyDecision::NoAction => {
+                Ok(BranchDeltaAutoCompactOutcome {
+                    disposition: BranchDeltaAutoCompactDisposition::NoAction,
+                    recommendation,
+                    rewrite_receipt: None,
+                })
+            }
             crate::BranchDeltaRewritePolicyDecision::Defer => Ok(BranchDeltaAutoCompactOutcome {
                 disposition: BranchDeltaAutoCompactDisposition::Deferred,
                 recommendation,

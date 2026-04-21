@@ -201,4 +201,3 @@ fn milestone_8_certification_records_failure_markers_as_non_certified() {
     );
     assert!(bundle.certification_summary.truth_matches_control_lane);
 }
-

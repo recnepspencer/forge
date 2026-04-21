@@ -1,5 +1,11 @@
 use crate::{
-    bulk::{BudgetAdmittedChunkPlan, BulkChunkCommitWitness, BulkChunkExecutionOutcome, BulkIngestSourceRequest, BulkTransformRequest, ChunkMaterializationReceipt, ChunkOrdinal, ChunkWidthBudget, DeterministicChunkPlan, FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition, ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint, ResumeBoundaryCandidate, ResumeReadyBulkProgram},
+    bulk::{
+        BudgetAdmittedChunkPlan, BulkChunkCommitWitness, BulkChunkExecutionOutcome,
+        BulkIngestSourceRequest, BulkTransformRequest, ChunkMaterializationReceipt, ChunkOrdinal,
+        ChunkWidthBudget, DeterministicChunkPlan, FrozenBulkSourceManifest, FrozenTransformBasis,
+        FrozenTransformTargetPartition, ProgramChunkWitnessIndex, PublishedBulkProgressCheckpoint,
+        ResumeBoundaryCandidate, ResumeReadyBulkProgram,
+    },
     failure::StoreError,
     BulkCheckpointPolicy, RecoveredBulkChunkResume, ResumeEligibleRecoveredBulkChunk,
 };

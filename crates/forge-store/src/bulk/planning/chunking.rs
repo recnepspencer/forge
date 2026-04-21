@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     core::{BulkPlanKind, BulkSourceMember},
     freeze::{FrozenBulkSourceManifest, FrozenTransformBasis, FrozenTransformTargetPartition},
-    utils::{BULK_FAMILY_VERSION, serialization_error, stable_digest},
+    utils::{serialization_error, stable_digest, BULK_FAMILY_VERSION},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,16 +14,24 @@ pub struct ChunkWidthBudget {
 }
 
 impl ChunkWidthBudget {
-    pub fn new(max_width_units: u64) -> Self { Self { max_width_units } }
-    pub fn max_width_units(&self) -> u64 { self.max_width_units }
+    pub fn new(max_width_units: u64) -> Self {
+        Self { max_width_units }
+    }
+    pub fn max_width_units(&self) -> u64 {
+        self.max_width_units
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ChunkOrdinal(u64);
 
 impl ChunkOrdinal {
-    pub fn new(value: u64) -> Self { Self(value) }
-    pub fn value(&self) -> u64 { self.0 }
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+    pub fn value(&self) -> u64 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,9 +42,15 @@ pub struct PlannedBulkChunk {
 }
 
 impl PlannedBulkChunk {
-    pub fn ordinal(&self) -> ChunkOrdinal { self.ordinal }
-    pub fn member_ids(&self) -> &[String] { &self.member_ids }
-    pub fn width_units(&self) -> u64 { self.width_units }
+    pub fn ordinal(&self) -> ChunkOrdinal {
+        self.ordinal
+    }
+    pub fn member_ids(&self) -> &[String] {
+        &self.member_ids
+    }
+    pub fn width_units(&self) -> u64 {
+        self.width_units
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,7 +75,16 @@ impl DeterministicChunkPlan {
         chunk_width_budget: ChunkWidthBudget,
     ) -> Result<Self, StoreError> {
         let chunks = plan_chunks(manifest.ordered_members(), chunk_width_budget)?;
-        let plan_id = compute_plan_id(BulkPlanKind::Ingest, manifest.program_id(), manifest.source_identity(), manifest.target_branch_scope(), None, manifest.manifest_digest(), chunk_width_budget, &chunks)?;
+        let plan_id = compute_plan_id(
+            BulkPlanKind::Ingest,
+            manifest.program_id(),
+            manifest.source_identity(),
+            manifest.target_branch_scope(),
+            None,
+            manifest.manifest_digest(),
+            chunk_width_budget,
+            &chunks,
+        )?;
         Ok(Self {
             family_version: BULK_FAMILY_VERSION,
             kind: BulkPlanKind::Ingest,
@@ -93,7 +116,16 @@ impl DeterministicChunkPlan {
         }
 
         let chunks = plan_chunks(partition.ordered_members(), chunk_width_budget)?;
-        let plan_id = compute_plan_id(BulkPlanKind::Transform, basis.program_id(), basis.transform_identity(), basis.target_branch_scope(), Some(basis.basis_commit_id()), partition.partition_digest(), chunk_width_budget, &chunks)?;
+        let plan_id = compute_plan_id(
+            BulkPlanKind::Transform,
+            basis.program_id(),
+            basis.transform_identity(),
+            basis.target_branch_scope(),
+            Some(basis.basis_commit_id()),
+            partition.partition_digest(),
+            chunk_width_budget,
+            &chunks,
+        )?;
         Ok(Self {
             family_version: BULK_FAMILY_VERSION,
             kind: BulkPlanKind::Transform,
@@ -108,23 +140,54 @@ impl DeterministicChunkPlan {
         })
     }
 
-    pub fn family_version(&self) -> u32 { self.family_version }
-    pub fn kind(&self) -> BulkPlanKind { self.kind }
-    pub fn program_id(&self) -> &str { &self.program_id }
-    pub fn plan_id(&self) -> &str { &self.plan_id }
-    pub fn source_identity(&self) -> &str { &self.source_identity }
-    pub fn target_branch_scope(&self) -> &BranchId { &self.target_branch_scope }
-    pub fn basis_commit_id(&self) -> Option<CommitId> { self.basis_commit_id }
-    pub fn input_digest(&self) -> &str { &self.input_digest }
-    pub fn chunk_width_budget(&self) -> ChunkWidthBudget { self.chunk_width_budget }
-    pub fn chunks(&self) -> &[PlannedBulkChunk] { &self.chunks }
-    pub fn chunk_count(&self) -> usize { self.chunks.len() }
+    pub fn family_version(&self) -> u32 {
+        self.family_version
+    }
+    pub fn kind(&self) -> BulkPlanKind {
+        self.kind
+    }
+    pub fn program_id(&self) -> &str {
+        &self.program_id
+    }
+    pub fn plan_id(&self) -> &str {
+        &self.plan_id
+    }
+    pub fn source_identity(&self) -> &str {
+        &self.source_identity
+    }
+    pub fn target_branch_scope(&self) -> &BranchId {
+        &self.target_branch_scope
+    }
+    pub fn basis_commit_id(&self) -> Option<CommitId> {
+        self.basis_commit_id
+    }
+    pub fn input_digest(&self) -> &str {
+        &self.input_digest
+    }
+    pub fn chunk_width_budget(&self) -> ChunkWidthBudget {
+        self.chunk_width_budget
+    }
+    pub fn chunks(&self) -> &[PlannedBulkChunk] {
+        &self.chunks
+    }
+    pub fn chunk_count(&self) -> usize {
+        self.chunks.len()
+    }
     pub fn chunk_by_ordinal(&self, ordinal: ChunkOrdinal) -> Option<&PlannedBulkChunk> {
         self.chunks.iter().find(|chunk| chunk.ordinal() == ordinal)
     }
 
     pub(crate) fn has_valid_plan_id(&self) -> Result<bool, StoreError> {
-        let expected = compute_plan_id(self.kind, &self.program_id, &self.source_identity, &self.target_branch_scope, self.basis_commit_id, &self.input_digest, self.chunk_width_budget, &self.chunks)?;
+        let expected = compute_plan_id(
+            self.kind,
+            &self.program_id,
+            &self.source_identity,
+            &self.target_branch_scope,
+            self.basis_commit_id,
+            &self.input_digest,
+            self.chunk_width_budget,
+            &self.chunks,
+        )?;
         Ok(self.plan_id == expected)
     }
 }
@@ -152,7 +215,11 @@ impl BudgetAdmittedChunkPlan {
                 "bulk chunk admission requires positive memory units",
             ));
         }
-        let Some(chunk) = plan.chunks().iter().find(|chunk| chunk.ordinal() == ordinal) else {
+        let Some(chunk) = plan
+            .chunks()
+            .iter()
+            .find(|chunk| chunk.ordinal() == ordinal)
+        else {
             return Err(StoreError::new(
                 StoreErrorKind::BulkChunkContractUnsupported,
                 format!(
@@ -184,13 +251,27 @@ impl BudgetAdmittedChunkPlan {
             admitted_memory_units,
         })
     }
-    pub fn kind(&self) -> BulkPlanKind { self.kind }
-    pub fn program_id(&self) -> &str { &self.program_id }
-    pub fn plan_id(&self) -> &str { &self.plan_id }
-    pub fn target_branch_scope(&self) -> &BranchId { &self.target_branch_scope }
-    pub fn basis_commit_id(&self) -> Option<CommitId> { self.basis_commit_id }
-    pub fn chunk(&self) -> &PlannedBulkChunk { &self.chunk }
-    pub fn admitted_memory_units(&self) -> u64 { self.admitted_memory_units }
+    pub fn kind(&self) -> BulkPlanKind {
+        self.kind
+    }
+    pub fn program_id(&self) -> &str {
+        &self.program_id
+    }
+    pub fn plan_id(&self) -> &str {
+        &self.plan_id
+    }
+    pub fn target_branch_scope(&self) -> &BranchId {
+        &self.target_branch_scope
+    }
+    pub fn basis_commit_id(&self) -> Option<CommitId> {
+        self.basis_commit_id
+    }
+    pub fn chunk(&self) -> &PlannedBulkChunk {
+        &self.chunk
+    }
+    pub fn admitted_memory_units(&self) -> u64 {
+        self.admitted_memory_units
+    }
 }
 
 fn plan_chunks(

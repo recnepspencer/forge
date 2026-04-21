@@ -111,6 +111,12 @@ impl ForgeStore {
         self.backend.milestone_13_complexity_surface()
     }
 
+    pub fn milestone_13_artifact_report(
+        &self,
+    ) -> Result<crate::Milestone13ArtifactReport, StoreError> {
+        self.backend.milestone_13_artifact_report()
+    }
+
     pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
         self.backend.milestone_11_maintenance_report()
     }
@@ -144,6 +150,40 @@ impl ForgeStore {
             self.milestone_10_counter_contract(),
             self.counters(),
         ))
+    }
 
+    pub fn milestone_11_certification_bundle(
+        &self,
+        control_export: &AuthoritativeExportBundle,
+        failure_markers: &[String],
+    ) -> crate::Milestone11CertificationBundle {
+        let primary_export = self.export_authoritative_records();
+        crate::Milestone11CertificationBundle::new(
+            &primary_export,
+            control_export,
+            self.durable_media_report().backend_family(),
+            self.milestone_11_maintenance_report(),
+            self.milestone_11_complexity_surface(),
+            self.milestone_11_counter_contract(),
+            self.counters(),
+            failure_markers,
+        )
+    }
+
+    pub fn milestone_13_certification_bundle(
+        &self,
+        control_export: &AuthoritativeExportBundle,
+    ) -> Result<crate::Milestone13CertificationBundle, StoreError> {
+        let primary_export = self.export_authoritative_records();
+        let artifact_report = self.milestone_13_artifact_report()?;
+        Ok(crate::Milestone13CertificationBundle::new(
+            &primary_export,
+            control_export,
+            self.durable_media_report().backend_family(),
+            artifact_report,
+            self.milestone_13_complexity_surface(),
+            self.milestone_13_counter_contract(),
+            self.counters(),
+        ))
     }
 }

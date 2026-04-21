@@ -15,26 +15,29 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     ) -> Result<AspectLayoutReadPlanDecision, StoreError> {
         let decision = self.state.plan_aspect_layout_read(request)?;
         match &decision {
-            AspectLayoutReadPlanDecision::Admitted(plan) => self.counters.record_aspect_layout_plan(
-                true,
-                false,
-                false,
-                plan.performance().layout_slices_read,
-                plan.performance().blocks_decoded,
-                plan.performance().control_replay_breadth,
-            ),
-            AspectLayoutReadPlanDecision::Fallback(plan) => self.counters.record_aspect_layout_plan(
-                false,
-                true,
-                false,
-                plan.performance().layout_slices_read,
-                plan.performance().blocks_decoded,
-                plan.performance().control_replay_breadth,
-            ),
-            AspectLayoutReadPlanDecision::Rejected(_) => {
-                self.counters
-                    .record_aspect_layout_plan(false, false, true, 0, 0, 0)
+            AspectLayoutReadPlanDecision::Admitted(plan) => {
+                self.counters.record_aspect_layout_plan(
+                    true,
+                    false,
+                    false,
+                    plan.performance().layout_slices_read,
+                    plan.performance().blocks_decoded,
+                    plan.performance().control_replay_breadth,
+                )
             }
+            AspectLayoutReadPlanDecision::Fallback(plan) => {
+                self.counters.record_aspect_layout_plan(
+                    false,
+                    true,
+                    false,
+                    plan.performance().layout_slices_read,
+                    plan.performance().blocks_decoded,
+                    plan.performance().control_replay_breadth,
+                )
+            }
+            AspectLayoutReadPlanDecision::Rejected(_) => self
+                .counters
+                .record_aspect_layout_plan(false, false, true, 0, 0, 0),
         }
         Ok(decision)
     }
@@ -115,7 +118,14 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         request: AspectLayoutReadRequest,
     ) -> Result<AspectLayoutReadExecutionDecision, StoreError> {
-        self.state.execute_aspect_layout_read(request)
+        let branch_id = request.target().branch_id().clone();
+        let outcome = self.assess_read_foreground_isolation(&branch_id, false);
+        Ok(match self.state.execute_aspect_layout_read(request)? {
+            AspectLayoutReadExecutionDecision::Admitted(read) => {
+                AspectLayoutReadExecutionDecision::Admitted(read.with_foreground_isolation(outcome))
+            }
+            other => other,
+        })
     }
 
     pub fn execute_dedup_backed_read(

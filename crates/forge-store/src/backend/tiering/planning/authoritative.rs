@@ -7,10 +7,10 @@ use crate::{
     },
     failure::StoreError,
     tiering::{
-        AuthoritativePlacementPlanningReport, AuthoritativeTierMovePlan,
-        PlacementExecutionOrigin, PlacementObservationScopeClass, PlacementPolicyClass,
-        RetainedRangePlacementPlan, TierLocalityFootprint, TierMoveBreadthSummary,
-        TierMoveRejection, TierResidenceClass, WorkingSetDebtSummary,
+        AuthoritativePlacementPlanningReport, AuthoritativeTierMovePlan, PlacementExecutionOrigin,
+        PlacementObservationScopeClass, PlacementPolicyClass, RetainedRangePlacementPlan,
+        TierLocalityFootprint, TierMoveBreadthSummary, TierMoveRejection, TierResidenceClass,
+        WorkingSetDebtSummary,
     },
 };
 

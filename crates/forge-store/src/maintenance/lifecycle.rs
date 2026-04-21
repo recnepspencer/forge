@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    MaintenanceDeclaration, MaintenanceDeclarationClass, MaintenanceDeclarationId,
-    MaintenanceDebtFamily, MaintenanceEscalationDecision, MaintenanceExecutionPosture,
-    MaintenanceFailureKind, MaintenanceLocalityScope, MaintenancePlanFamily,
-    MaintenanceReservationFamily, MaintenanceWorkClass, MaintenanceWorkDescriptor,
-    PlanGeneration, SupersessionEpoch, FreshnessWindow,
+    FreshnessWindow, MaintenanceCoalescingDecision, MaintenanceDebtFamily, MaintenanceDeclaration,
+    MaintenanceDeclarationClass, MaintenanceDeclarationId, MaintenanceEscalationDecision,
+    MaintenanceEscalationVerdict, MaintenanceExecutionPosture, MaintenanceFailureKind,
+    MaintenanceLaneKey, MaintenanceLocalityScope, MaintenancePlanFamily,
+    MaintenanceReservationFamily, MaintenanceResourceBudgetGrant, MaintenanceStarvationStatus,
+    MaintenanceWorkClass, MaintenanceWorkDescriptor, PlanGeneration, SupersessionEpoch,
 };
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaintenanceExecutionStatus {
@@ -61,6 +62,290 @@ impl MaintenanceForegroundImpact {
 
     pub fn cutover_dependency_required(&self) -> bool {
         self.cutover_dependency_required
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ForegroundReservationClass {
+    Read,
+    Write,
+    Continuation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ForegroundInterferencePosture {
+    StayedIsolated,
+    ObservedMaintenanceNoWait,
+    WaitedOnMaintenance,
+    BroadenedByMaintenance,
+    ReservationViolation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ForegroundWaitDependency {
+    MaintenanceReservationRelease,
+    MaintenancePublication,
+    MaintenanceCutover,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ForegroundBroadeningCause {
+    MaintenanceBlockedIsolatedPath,
+    GlobalDebtPromotion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ForegroundIsolationViolation {
+    SharedReservationConflict,
+    IllegalForegroundBorrow,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ForegroundIsolationOutcome {
+    reservation_class: ForegroundReservationClass,
+    posture: ForegroundInterferencePosture,
+    wait_dependency: Option<ForegroundWaitDependency>,
+    broadening_cause: Option<ForegroundBroadeningCause>,
+    violation: Option<ForegroundIsolationViolation>,
+}
+
+impl ForegroundIsolationOutcome {
+    pub fn stayed_isolated(reservation_class: ForegroundReservationClass) -> Self {
+        Self {
+            reservation_class,
+            posture: ForegroundInterferencePosture::StayedIsolated,
+            wait_dependency: None,
+            broadening_cause: None,
+            violation: None,
+        }
+    }
+
+    pub fn observed_maintenance(reservation_class: ForegroundReservationClass) -> Self {
+        Self {
+            reservation_class,
+            posture: ForegroundInterferencePosture::ObservedMaintenanceNoWait,
+            wait_dependency: None,
+            broadening_cause: None,
+            violation: None,
+        }
+    }
+
+    pub fn waited(
+        reservation_class: ForegroundReservationClass,
+        wait_dependency: ForegroundWaitDependency,
+    ) -> Self {
+        Self {
+            reservation_class,
+            posture: ForegroundInterferencePosture::WaitedOnMaintenance,
+            wait_dependency: Some(wait_dependency),
+            broadening_cause: None,
+            violation: None,
+        }
+    }
+
+    pub fn broadened(
+        reservation_class: ForegroundReservationClass,
+        broadening_cause: ForegroundBroadeningCause,
+    ) -> Self {
+        Self {
+            reservation_class,
+            posture: ForegroundInterferencePosture::BroadenedByMaintenance,
+            wait_dependency: None,
+            broadening_cause: Some(broadening_cause),
+            violation: None,
+        }
+    }
+
+    pub fn violated(
+        reservation_class: ForegroundReservationClass,
+        violation: ForegroundIsolationViolation,
+    ) -> Self {
+        Self {
+            reservation_class,
+            posture: ForegroundInterferencePosture::ReservationViolation,
+            wait_dependency: None,
+            broadening_cause: None,
+            violation: Some(violation),
+        }
+    }
+
+    pub fn reservation_class(&self) -> ForegroundReservationClass {
+        self.reservation_class
+    }
+
+    pub fn posture(&self) -> ForegroundInterferencePosture {
+        self.posture
+    }
+
+    pub fn wait_dependency(&self) -> Option<ForegroundWaitDependency> {
+        self.wait_dependency
+    }
+
+    pub fn broadening_cause(&self) -> Option<ForegroundBroadeningCause> {
+        self.broadening_cause
+    }
+
+    pub fn violation(&self) -> Option<ForegroundIsolationViolation> {
+        self.violation
+    }
+
+    pub fn maintenance_interference(&self) -> bool {
+        !matches!(self.posture, ForegroundInterferencePosture::StayedIsolated)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RecoveredMaintenanceLaneIntake {
+    lane_key: MaintenanceLaneKey,
+    pending_recovered_count: u64,
+    readmitted_recovered_count: u64,
+    rejected_recovered_count: u64,
+    stale_recovered_count: u64,
+    coalesced_recovered_count: u64,
+    debt_bearing: bool,
+}
+
+impl RecoveredMaintenanceLaneIntake {
+    pub(crate) fn new(
+        lane_key: MaintenanceLaneKey,
+        pending_recovered_count: u64,
+        readmitted_recovered_count: u64,
+        rejected_recovered_count: u64,
+        stale_recovered_count: u64,
+        coalesced_recovered_count: u64,
+        debt_bearing: bool,
+    ) -> Self {
+        Self {
+            lane_key,
+            pending_recovered_count,
+            readmitted_recovered_count,
+            rejected_recovered_count,
+            stale_recovered_count,
+            coalesced_recovered_count,
+            debt_bearing,
+        }
+    }
+
+    pub fn lane_key(&self) -> &MaintenanceLaneKey {
+        &self.lane_key
+    }
+
+    pub fn pending_recovered_count(&self) -> u64 {
+        self.pending_recovered_count
+    }
+
+    pub fn readmitted_recovered_count(&self) -> u64 {
+        self.readmitted_recovered_count
+    }
+
+    pub fn rejected_recovered_count(&self) -> u64 {
+        self.rejected_recovered_count
+    }
+
+    pub fn stale_recovered_count(&self) -> u64 {
+        self.stale_recovered_count
+    }
+
+    pub fn coalesced_recovered_count(&self) -> u64 {
+        self.coalesced_recovered_count
+    }
+
+    pub fn debt_bearing(&self) -> bool {
+        self.debt_bearing
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RecoveredMaintenanceIntakeReport {
+    pending_recovered_count: u64,
+    readmitted_recovered_count: u64,
+    rejected_recovered_count: u64,
+    stale_recovered_count: u64,
+    coalesced_recovered_count: u64,
+    lane_intake: Vec<RecoveredMaintenanceLaneIntake>,
+}
+
+impl RecoveredMaintenanceIntakeReport {
+    pub(crate) fn new(
+        pending_recovered_count: u64,
+        readmitted_recovered_count: u64,
+        rejected_recovered_count: u64,
+        stale_recovered_count: u64,
+        coalesced_recovered_count: u64,
+        lane_intake: Vec<RecoveredMaintenanceLaneIntake>,
+    ) -> Self {
+        Self {
+            pending_recovered_count,
+            readmitted_recovered_count,
+            rejected_recovered_count,
+            stale_recovered_count,
+            coalesced_recovered_count,
+            lane_intake,
+        }
+    }
+
+    pub fn pending_recovered_count(&self) -> u64 {
+        self.pending_recovered_count
+    }
+
+    pub fn readmitted_recovered_count(&self) -> u64 {
+        self.readmitted_recovered_count
+    }
+
+    pub fn rejected_recovered_count(&self) -> u64 {
+        self.rejected_recovered_count
+    }
+
+    pub fn stale_recovered_count(&self) -> u64 {
+        self.stale_recovered_count
+    }
+
+    pub fn coalesced_recovered_count(&self) -> u64 {
+        self.coalesced_recovered_count
+    }
+
+    pub fn lane_intake(&self) -> &[RecoveredMaintenanceLaneIntake] {
+        &self.lane_intake
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaintenanceColdStartBootReport {
+    loaded_persisted_summaries: bool,
+    used_legacy_summary_backfill: bool,
+    recovered_backlog_count: u64,
+    integrity_reject_count: u64,
+}
+
+impl MaintenanceColdStartBootReport {
+    pub(crate) fn new(
+        loaded_persisted_summaries: bool,
+        used_legacy_summary_backfill: bool,
+        recovered_backlog_count: u64,
+        integrity_reject_count: u64,
+    ) -> Self {
+        Self {
+            loaded_persisted_summaries,
+            used_legacy_summary_backfill,
+            recovered_backlog_count,
+            integrity_reject_count,
+        }
+    }
+
+    pub fn loaded_persisted_summaries(&self) -> bool {
+        self.loaded_persisted_summaries
+    }
+
+    pub fn used_legacy_summary_backfill(&self) -> bool {
+        self.used_legacy_summary_backfill
+    }
+
+    pub fn recovered_backlog_count(&self) -> u64 {
+        self.recovered_backlog_count
+    }
+
+    pub fn integrity_reject_count(&self) -> u64 {
+        self.integrity_reject_count
     }
 }
 
@@ -197,6 +482,7 @@ pub struct MaintenanceStatusReport {
     work_class: MaintenanceWorkClass,
     execution_posture: MaintenanceExecutionPosture,
     locality_scope: MaintenanceLocalityScope,
+    lane_key: MaintenanceLaneKey,
     reservation_family: MaintenanceReservationFamily,
     plan_generation: PlanGeneration,
     supersession_epoch: SupersessionEpoch,
@@ -208,6 +494,12 @@ pub struct MaintenanceStatusReport {
     reservation_transition: Option<MaintenanceReservationTransition>,
     execution_transition: Option<MaintenanceExecutionTransition>,
     foreground_impact: MaintenanceForegroundImpact,
+    coalescing_decision: Option<MaintenanceCoalescingDecision>,
+    supersession_source: Option<String>,
+    resource_budget_grant: Option<MaintenanceResourceBudgetGrant>,
+    starvation_status: Option<MaintenanceStarvationStatus>,
+    escalation_verdict: Option<MaintenanceEscalationVerdict>,
+    explicit_global_scope_debt: bool,
     plan_family: Option<MaintenancePlanFamily>,
     pending_reason: Option<String>,
     execution_status: MaintenanceExecutionStatus,
@@ -223,6 +515,7 @@ impl MaintenanceStatusReport {
         work_class: MaintenanceWorkClass,
         execution_posture: MaintenanceExecutionPosture,
         locality_scope: MaintenanceLocalityScope,
+        lane_key: MaintenanceLaneKey,
         reservation_family: MaintenanceReservationFamily,
         plan_generation: PlanGeneration,
         supersession_epoch: SupersessionEpoch,
@@ -234,6 +527,12 @@ impl MaintenanceStatusReport {
         reservation_transition: Option<MaintenanceReservationTransition>,
         execution_transition: Option<MaintenanceExecutionTransition>,
         foreground_impact: MaintenanceForegroundImpact,
+        coalescing_decision: Option<MaintenanceCoalescingDecision>,
+        supersession_source: Option<String>,
+        resource_budget_grant: Option<MaintenanceResourceBudgetGrant>,
+        starvation_status: Option<MaintenanceStarvationStatus>,
+        escalation_verdict: Option<MaintenanceEscalationVerdict>,
+        explicit_global_scope_debt: bool,
         plan_family: Option<MaintenancePlanFamily>,
         pending_reason: Option<String>,
         execution_status: MaintenanceExecutionStatus,
@@ -247,6 +546,7 @@ impl MaintenanceStatusReport {
             work_class,
             execution_posture,
             locality_scope,
+            lane_key,
             reservation_family,
             plan_generation,
             supersession_epoch,
@@ -258,6 +558,12 @@ impl MaintenanceStatusReport {
             reservation_transition,
             execution_transition,
             foreground_impact,
+            coalescing_decision,
+            supersession_source,
+            resource_budget_grant,
+            starvation_status,
+            escalation_verdict,
+            explicit_global_scope_debt,
             plan_family,
             pending_reason,
             execution_status,
@@ -285,6 +591,10 @@ impl MaintenanceStatusReport {
 
     pub fn locality_scope(&self) -> &MaintenanceLocalityScope {
         &self.locality_scope
+    }
+
+    pub fn lane_key(&self) -> &MaintenanceLaneKey {
+        &self.lane_key
     }
 
     pub fn reservation_family(&self) -> MaintenanceReservationFamily {
@@ -329,6 +639,30 @@ impl MaintenanceStatusReport {
 
     pub fn foreground_impact(&self) -> &MaintenanceForegroundImpact {
         &self.foreground_impact
+    }
+
+    pub fn coalescing_decision(&self) -> Option<MaintenanceCoalescingDecision> {
+        self.coalescing_decision
+    }
+
+    pub fn supersession_source(&self) -> Option<&str> {
+        self.supersession_source.as_deref()
+    }
+
+    pub fn resource_budget_grant(&self) -> Option<&MaintenanceResourceBudgetGrant> {
+        self.resource_budget_grant.as_ref()
+    }
+
+    pub fn starvation_status(&self) -> Option<MaintenanceStarvationStatus> {
+        self.starvation_status
+    }
+
+    pub fn escalation_verdict(&self) -> Option<MaintenanceEscalationVerdict> {
+        self.escalation_verdict
+    }
+
+    pub fn explicit_global_scope_debt(&self) -> bool {
+        self.explicit_global_scope_debt
     }
 
     pub fn plan_family(&self) -> Option<MaintenancePlanFamily> {

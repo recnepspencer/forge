@@ -130,4 +130,3 @@ pub fn delete_first_sqlite_lineage_support_record(path: &std::path::Path) {
         )
         .expect("sqlite lineage support row should be deleted");
 }
-

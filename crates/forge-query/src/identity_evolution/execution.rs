@@ -2,7 +2,11 @@ use crate::identity::ResultDigest;
 
 use super::{
     admission::{AdmittedIdentityEvolutionQuery, IdentityEvolutionAdmissionError},
-    families::{IdentityEvolutionOutcomeFamily, LineageTraversalFamily},
+    families::{
+        IdentityEvolutionAmbiguityReason, IdentityEvolutionDenialReason,
+        IdentityEvolutionIdentityBreakReason, IdentityEvolutionOutcomeFamily,
+        LineageTraversalFamily,
+    },
     metadata::{
         BranchLocalityClass, IdentityEvolutionComplexityReport, IdentityEvolutionMetadata,
         PromotionOrMergeAuthorityState,
@@ -11,7 +15,8 @@ use super::{
     request::{IdentityComparisonIntent, IdentityEvolutionComparisonBasisFamily},
     results::{
         AdvisoryIdentityCandidateSet, IdentityEvolutionAmbiguityBundle,
-        IdentityEvolutionDeniedBundle, IdentityEvolutionResultBundle, PluralIdentitySuccessorSet,
+        IdentityEvolutionDeniedBundle, IdentityEvolutionIdentityBreakBundle,
+        IdentityEvolutionResultBundle, PluralIdentitySuccessorSet,
         SingularIdentityContinuityResult,
     },
     synthetic::IdentityEvolutionSyntheticScenario,
@@ -78,31 +83,81 @@ pub struct IdentityEvolutionExecutionCounters {
 }
 
 impl IdentityEvolutionExecutionCounters {
-    pub fn declared_lineage_complexity_contract_count(&self) -> usize { self.declared_lineage_complexity_contract_count }
-    pub fn declared_correspondence_complexity_contract_count(&self) -> usize { self.declared_correspondence_complexity_contract_count }
-    pub fn lineage_anchor_lookup_count(&self) -> usize { self.lineage_anchor_lookup_count }
-    pub fn lineage_step_count(&self) -> usize { self.lineage_step_count }
-    pub fn predicted_lineage_width(&self) -> usize { self.predicted_lineage_width }
-    pub fn realized_lineage_width(&self) -> usize { self.realized_lineage_width }
-    pub fn lineage_width_drift_count(&self) -> usize { self.lineage_width_drift_count }
-    pub fn split_successor_fanout_width(&self) -> usize { self.split_successor_fanout_width }
-    pub fn branch_local_boundary_check_count(&self) -> usize { self.branch_local_boundary_check_count }
-    pub fn branch_local_divergence_count(&self) -> usize { self.branch_local_divergence_count }
-    pub fn promotion_or_merge_authority_proof_check_count(&self) -> usize { self.promotion_or_merge_authority_proof_check_count }
-    pub fn identity_break_count(&self) -> usize { self.identity_break_count }
-    pub fn unsupported_lineage_denial_count(&self) -> usize { self.unsupported_lineage_denial_count }
-    pub fn broad_lineage_scan_denial_count(&self) -> usize { self.broad_lineage_scan_denial_count }
-    pub fn correspondence_candidate_count(&self) -> usize { self.correspondence_candidate_count }
-    pub fn ambiguous_correspondence_count(&self) -> usize { self.ambiguous_correspondence_count }
-    pub fn advisory_as_authoritative_denial_count(&self) -> usize { self.advisory_as_authoritative_denial_count }
-    pub fn branch_crossing_denial_count(&self) -> usize { self.branch_crossing_denial_count }
-    pub fn lineage_to_correspondence_fallback_count(&self) -> usize { self.lineage_to_correspondence_fallback_count }
-    pub fn identity_evolution_metadata_attachment_count(&self) -> usize { self.identity_evolution_metadata_attachment_count }
-    pub fn identity_evolution_replay_parity_count(&self) -> usize { self.identity_evolution_replay_parity_count }
-    pub fn executor_rediscovery_count(&self) -> usize { self.executor_rediscovery_count }
-    pub fn identity_evolution_basis_rediscovery_count(&self) -> usize { self.identity_evolution_basis_rediscovery_count }
-    pub fn complexity_contract_violation_denial_count(&self) -> usize { self.complexity_contract_violation_denial_count }
-    pub fn complexity_status_debt_count(&self) -> usize { self.complexity_status_debt_count }
+    pub fn declared_lineage_complexity_contract_count(&self) -> usize {
+        self.declared_lineage_complexity_contract_count
+    }
+    pub fn declared_correspondence_complexity_contract_count(&self) -> usize {
+        self.declared_correspondence_complexity_contract_count
+    }
+    pub fn lineage_anchor_lookup_count(&self) -> usize {
+        self.lineage_anchor_lookup_count
+    }
+    pub fn lineage_step_count(&self) -> usize {
+        self.lineage_step_count
+    }
+    pub fn predicted_lineage_width(&self) -> usize {
+        self.predicted_lineage_width
+    }
+    pub fn realized_lineage_width(&self) -> usize {
+        self.realized_lineage_width
+    }
+    pub fn lineage_width_drift_count(&self) -> usize {
+        self.lineage_width_drift_count
+    }
+    pub fn split_successor_fanout_width(&self) -> usize {
+        self.split_successor_fanout_width
+    }
+    pub fn branch_local_boundary_check_count(&self) -> usize {
+        self.branch_local_boundary_check_count
+    }
+    pub fn branch_local_divergence_count(&self) -> usize {
+        self.branch_local_divergence_count
+    }
+    pub fn promotion_or_merge_authority_proof_check_count(&self) -> usize {
+        self.promotion_or_merge_authority_proof_check_count
+    }
+    pub fn identity_break_count(&self) -> usize {
+        self.identity_break_count
+    }
+    pub fn unsupported_lineage_denial_count(&self) -> usize {
+        self.unsupported_lineage_denial_count
+    }
+    pub fn broad_lineage_scan_denial_count(&self) -> usize {
+        self.broad_lineage_scan_denial_count
+    }
+    pub fn correspondence_candidate_count(&self) -> usize {
+        self.correspondence_candidate_count
+    }
+    pub fn ambiguous_correspondence_count(&self) -> usize {
+        self.ambiguous_correspondence_count
+    }
+    pub fn advisory_as_authoritative_denial_count(&self) -> usize {
+        self.advisory_as_authoritative_denial_count
+    }
+    pub fn branch_crossing_denial_count(&self) -> usize {
+        self.branch_crossing_denial_count
+    }
+    pub fn lineage_to_correspondence_fallback_count(&self) -> usize {
+        self.lineage_to_correspondence_fallback_count
+    }
+    pub fn identity_evolution_metadata_attachment_count(&self) -> usize {
+        self.identity_evolution_metadata_attachment_count
+    }
+    pub fn identity_evolution_replay_parity_count(&self) -> usize {
+        self.identity_evolution_replay_parity_count
+    }
+    pub fn executor_rediscovery_count(&self) -> usize {
+        self.executor_rediscovery_count
+    }
+    pub fn identity_evolution_basis_rediscovery_count(&self) -> usize {
+        self.identity_evolution_basis_rediscovery_count
+    }
+    pub fn complexity_contract_violation_denial_count(&self) -> usize {
+        self.complexity_contract_violation_denial_count
+    }
+    pub fn complexity_status_debt_count(&self) -> usize {
+        self.complexity_status_debt_count
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -118,14 +173,30 @@ pub struct IdentityEvolutionExecutionArtifact {
 }
 
 impl IdentityEvolutionExecutionArtifact {
-    pub fn query_digest(&self) -> &str { &self.query_digest }
-    pub fn basis_digest(&self) -> &str { &self.basis_digest }
-    pub fn lineage_digest(&self) -> &str { &self.lineage_digest }
-    pub fn result_digest(&self) -> &str { &self.result_digest }
-    pub fn family(&self) -> &IdentityEvolutionExecutionFamily { &self.family }
-    pub fn prediction_drift_outcome(&self) -> IdentityEvolutionPredictionDriftOutcome { self.prediction_drift_outcome }
-    pub fn result_bundle(&self) -> &IdentityEvolutionResultBundle { &self.result_bundle }
-    pub fn counters(&self) -> &IdentityEvolutionExecutionCounters { &self.counters }
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+    pub fn basis_digest(&self) -> &str {
+        &self.basis_digest
+    }
+    pub fn lineage_digest(&self) -> &str {
+        &self.lineage_digest
+    }
+    pub fn result_digest(&self) -> &str {
+        &self.result_digest
+    }
+    pub fn family(&self) -> &IdentityEvolutionExecutionFamily {
+        &self.family
+    }
+    pub fn prediction_drift_outcome(&self) -> IdentityEvolutionPredictionDriftOutcome {
+        self.prediction_drift_outcome
+    }
+    pub fn result_bundle(&self) -> &IdentityEvolutionResultBundle {
+        &self.result_bundle
+    }
+    pub fn counters(&self) -> &IdentityEvolutionExecutionCounters {
+        &self.counters
+    }
 
     pub(crate) fn new(
         query_digest: String,
@@ -137,7 +208,16 @@ impl IdentityEvolutionExecutionArtifact {
         result_bundle: IdentityEvolutionResultBundle,
         counters: IdentityEvolutionExecutionCounters,
     ) -> Self {
-        Self { query_digest, basis_digest, lineage_digest, result_digest, family, prediction_drift_outcome, result_bundle, counters }
+        Self {
+            query_digest,
+            basis_digest,
+            lineage_digest,
+            result_digest,
+            family,
+            prediction_drift_outcome,
+            result_bundle,
+            counters,
+        }
     }
 }
 
@@ -150,7 +230,13 @@ pub fn execute_admitted_identity_evolution_query(
     if let Some((basis_family, left_basis_digest, right_basis_digest, comparison)) =
         admitted_query.correspondence_identity_comparison()
     {
-        return execute_comparison(admitted_query, basis_family, left_basis_digest, right_basis_digest, comparison);
+        return execute_comparison(
+            admitted_query,
+            basis_family,
+            left_basis_digest,
+            right_basis_digest,
+            comparison,
+        );
     }
     unreachable!("admitted identity evolution query must have one closed shape")
 }
@@ -161,8 +247,9 @@ fn execute_lineage(
 ) -> Result<IdentityEvolutionExecutionArtifact, IdentityEvolutionAdmissionError> {
     let family = execution_family_for_lineage(descriptor.family());
     let lineage_digest = descriptor.family().digest();
-    let complexity_report =
-        IdentityEvolutionComplexityReport::from_contract(admitted_query.complexity_contract().clone());
+    let complexity_report = IdentityEvolutionComplexityReport::from_contract(
+        admitted_query.complexity_contract().clone(),
+    );
     let metadata = IdentityEvolutionMetadata::from_parts(
         admitted_query.query_context().query_digest().clone(),
         admitted_query.query_context().basis_digest().clone(),
@@ -185,7 +272,9 @@ fn execute_lineage(
         identity_evolution_basis_rediscovery_count: 0,
         executor_rediscovery_count: 0,
         complexity_status_debt_count: usize::from(
-            admitted_query.complexity_contract().verified_or_debt_status()
+            admitted_query
+                .complexity_contract()
+                .verified_or_debt_status()
                 != super::contracts::IdentityEvolutionComplexityStatus::Verified,
         ),
         ..IdentityEvolutionExecutionCounters::default()
@@ -193,38 +282,47 @@ fn execute_lineage(
 
     let scenario = admitted_query.synthetic_scenario();
     let (result_bundle, prediction_drift_outcome) = match (descriptor.family(), scenario) {
-        (LineageTraversalFamily::DirectPredecessor, IdentityEvolutionSyntheticScenario::BroadLineageScanDenied) => {
+        (
+            LineageTraversalFamily::DirectPredecessor,
+            IdentityEvolutionSyntheticScenario::BroadLineageScanDenied,
+        ) => {
             counters.lineage_anchor_lookup_count = 1;
             counters.broad_lineage_scan_denial_count = 1;
             counters.realized_lineage_width = 0;
             (
                 IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                     metadata,
-                    "broad_lineage_scan_required",
+                    IdentityEvolutionDenialReason::BroadLineageScanRequired,
                 )),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
-        (LineageTraversalFamily::DirectPredecessor, IdentityEvolutionSyntheticScenario::ComplexityContractViolationDenied) => {
+        (
+            LineageTraversalFamily::DirectPredecessor,
+            IdentityEvolutionSyntheticScenario::ComplexityContractViolationDenied,
+        ) => {
             counters.lineage_anchor_lookup_count = 1;
             counters.realized_lineage_width = 0;
             counters.complexity_contract_violation_denial_count = 1;
             (
                 IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                     metadata,
-                    "complexity_contract_violation_denied",
+                    IdentityEvolutionDenialReason::ComplexityContractViolationDenied,
                 )),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
-        (LineageTraversalFamily::DirectPredecessor, IdentityEvolutionSyntheticScenario::LineageToCorrespondenceFallbackDenied) => {
+        (
+            LineageTraversalFamily::DirectPredecessor,
+            IdentityEvolutionSyntheticScenario::LineageToCorrespondenceFallbackDenied,
+        ) => {
             counters.lineage_anchor_lookup_count = 1;
             counters.realized_lineage_width = 0;
             counters.unsupported_lineage_denial_count = 1;
             (
                 IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                     metadata,
-                    "lineage_to_correspondence_fallback_forbidden",
+                    IdentityEvolutionDenialReason::LineageToCorrespondenceFallbackForbidden,
                 )),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
@@ -233,9 +331,12 @@ fn execute_lineage(
             counters.lineage_anchor_lookup_count = 1;
             counters.lineage_step_count = 1;
             (
-            IdentityEvolutionResultBundle::singular_identity_continuity(
-                SingularIdentityContinuityResult::new(metadata, format!("predecessor:{}", descriptor.anchor_identity())),
-            ),
+                IdentityEvolutionResultBundle::singular_identity_continuity(
+                    SingularIdentityContinuityResult::new(
+                        metadata,
+                        format!("predecessor:{}", descriptor.anchor_identity()),
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
@@ -243,9 +344,12 @@ fn execute_lineage(
             counters.lineage_anchor_lookup_count = 1;
             counters.lineage_step_count = 1;
             (
-            IdentityEvolutionResultBundle::singular_identity_continuity(
-                SingularIdentityContinuityResult::new(metadata, format!("successor:{}", descriptor.anchor_identity())),
-            ),
+                IdentityEvolutionResultBundle::singular_identity_continuity(
+                    SingularIdentityContinuityResult::new(
+                        metadata,
+                        format!("successor:{}", descriptor.anchor_identity()),
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
@@ -253,9 +357,12 @@ fn execute_lineage(
             counters.lineage_anchor_lookup_count = 1;
             counters.lineage_step_count = 1;
             (
-            IdentityEvolutionResultBundle::singular_identity_continuity(
-                SingularIdentityContinuityResult::new(metadata, format!("replacement:{}", descriptor.anchor_identity())),
-            ),
+                IdentityEvolutionResultBundle::singular_identity_continuity(
+                    SingularIdentityContinuityResult::new(
+                        metadata,
+                        format!("replacement:{}", descriptor.anchor_identity()),
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
@@ -267,9 +374,15 @@ fn execute_lineage(
             counters.lineage_width_drift_count = 1;
             counters.split_successor_fanout_width = 2;
             (
-            IdentityEvolutionResultBundle::plural_identity_successor_set(
-                PluralIdentitySuccessorSet::new(metadata, vec![format!("split-a:{}", descriptor.anchor_identity()), format!("split-b:{}", descriptor.anchor_identity())]),
-            ),
+                IdentityEvolutionResultBundle::plural_identity_successor_set(
+                    PluralIdentitySuccessorSet::new(
+                        metadata,
+                        vec![
+                            format!("split-a:{}", descriptor.anchor_identity()),
+                            format!("split-b:{}", descriptor.anchor_identity()),
+                        ],
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WidthDriftDetected,
             )
         }
@@ -278,33 +391,44 @@ fn execute_lineage(
             counters.lineage_step_count = 1;
             counters.promotion_or_merge_authority_proof_check_count = 1;
             (
-            IdentityEvolutionResultBundle::singular_identity_continuity(
-                SingularIdentityContinuityResult::new(metadata, format!("merge-successor:{}", descriptor.anchor_identity())),
-            ),
+                IdentityEvolutionResultBundle::singular_identity_continuity(
+                    SingularIdentityContinuityResult::new(
+                        metadata,
+                        format!("merge-successor:{}", descriptor.anchor_identity()),
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
-        (LineageTraversalFamily::BranchLocalDirectEvolution, IdentityEvolutionSyntheticScenario::BranchCrossingLineageDenied) => {
+        (
+            LineageTraversalFamily::BranchLocalDirectEvolution,
+            IdentityEvolutionSyntheticScenario::BranchCrossingLineageDenied,
+        ) => {
             counters.lineage_anchor_lookup_count = 1;
             counters.branch_local_boundary_check_count = 1;
             (
                 IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                     metadata,
-                    "branch_crossing_lineage_without_admitted_basis_pairing",
+                    IdentityEvolutionDenialReason::BranchCrossingLineageWithoutAdmittedBasisPairing,
                 )),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
-        (LineageTraversalFamily::BranchLocalDirectEvolution, IdentityEvolutionSyntheticScenario::IdentityBreak) => {
+        (
+            LineageTraversalFamily::BranchLocalDirectEvolution,
+            IdentityEvolutionSyntheticScenario::IdentityBreak,
+        ) => {
             counters.lineage_anchor_lookup_count = 1;
             counters.branch_local_boundary_check_count = 1;
             counters.identity_break_count = 1;
             counters.realized_lineage_width = 0;
             (
-                IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
-                    metadata,
-                    "explicit_identity_break",
-                )),
+                IdentityEvolutionResultBundle::identity_break(
+                    IdentityEvolutionIdentityBreakBundle::new(
+                        metadata,
+                        IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak,
+                    ),
+                ),
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
@@ -312,9 +436,8 @@ fn execute_lineage(
             counters.lineage_anchor_lookup_count = 1;
             counters.branch_local_boundary_check_count = 1;
             counters.lineage_step_count = 1;
-            counters.branch_local_divergence_count = usize::from(
-                scenario == IdentityEvolutionSyntheticScenario::BranchLocalDivergence,
-            );
+            counters.branch_local_divergence_count =
+                usize::from(scenario == IdentityEvolutionSyntheticScenario::BranchLocalDivergence);
             (
                 IdentityEvolutionResultBundle::singular_identity_continuity(
                     SingularIdentityContinuityResult::new(
@@ -338,10 +461,23 @@ fn execute_lineage(
         counters.realized_lineage_width = 0;
     }
 
-    let result_digest = execution_result_digest(admitted_query, family.as_str(), result_bundle.metadata().metadata_digest().as_str(), result_bundle.outcome_family().as_str());
+    let result_digest = execution_result_digest(
+        admitted_query,
+        family.as_str(),
+        result_bundle.metadata().metadata_digest().as_str(),
+        result_bundle.outcome_family().as_str(),
+    );
     Ok(IdentityEvolutionExecutionArtifact::new(
-        admitted_query.query_context().query_digest().as_str().to_string(),
-        admitted_query.query_context().basis_digest().as_str().to_string(),
+        admitted_query
+            .query_context()
+            .query_digest()
+            .as_str()
+            .to_string(),
+        admitted_query
+            .query_context()
+            .basis_digest()
+            .as_str()
+            .to_string(),
         lineage_digest.as_str().to_string(),
         result_digest.as_str().to_string(),
         family,
@@ -374,14 +510,16 @@ fn execute_comparison(
     };
     let comparison_outcome_family =
         comparison_outcome_family(comparison, branch_locality_class, scenario);
-    let complexity_report =
-        IdentityEvolutionComplexityReport::from_contract(admitted_query.complexity_contract().clone());
+    let complexity_report = IdentityEvolutionComplexityReport::from_contract(
+        admitted_query.complexity_contract().clone(),
+    );
     let metadata = IdentityEvolutionMetadata::from_parts(
         admitted_query.query_context().query_digest().clone(),
         admitted_query.query_context().basis_digest().clone(),
-        crate::identity::LineageDigest::from_parts(&[
-            format!("comparison_lineage_digest:{}", lineage_digest.as_str()),
-        ]),
+        crate::identity::LineageDigest::from_parts(&[format!(
+            "comparison_lineage_digest:{}",
+            lineage_digest.as_str()
+        )]),
         comparison_outcome_family,
         left_basis_digest.clone(),
         left_basis_digest.clone(),
@@ -400,7 +538,9 @@ fn execute_comparison(
         identity_evolution_basis_rediscovery_count: 0,
         executor_rediscovery_count: 0,
         complexity_status_debt_count: usize::from(
-            admitted_query.complexity_contract().verified_or_debt_status()
+            admitted_query
+                .complexity_contract()
+                .verified_or_debt_status()
                 != super::contracts::IdentityEvolutionComplexityStatus::Verified,
         ),
         ..IdentityEvolutionExecutionCounters::default()
@@ -414,7 +554,7 @@ fn execute_comparison(
         (
             IdentityEvolutionResultBundle::ambiguity(IdentityEvolutionAmbiguityBundle::new(
                 metadata,
-                "ambiguous_correspondence_candidates",
+                IdentityEvolutionAmbiguityReason::AmbiguousCorrespondenceCandidates,
             )),
             IdentityEvolutionPredictionDriftOutcome::WidthDriftDetected,
         )
@@ -436,10 +576,12 @@ fn execute_comparison(
         counters.identity_break_count = 1;
         counters.realized_lineage_width = 0;
         (
-            IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
-                metadata,
-                "explicit_identity_break",
-            )),
+            IdentityEvolutionResultBundle::identity_break(
+                IdentityEvolutionIdentityBreakBundle::new(
+                    metadata,
+                    IdentityEvolutionIdentityBreakReason::ExplicitIdentityBreak,
+                ),
+            ),
             IdentityEvolutionPredictionDriftOutcome::WithinBudget,
         )
     } else if scenario == IdentityEvolutionSyntheticScenario::ComplexityContractViolationDenied {
@@ -448,7 +590,7 @@ fn execute_comparison(
         (
             IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                 metadata,
-                "complexity_contract_violation_denied",
+                IdentityEvolutionDenialReason::ComplexityContractViolationDenied,
             )),
             IdentityEvolutionPredictionDriftOutcome::WithinBudget,
         )
@@ -457,14 +599,13 @@ fn execute_comparison(
             || scenario == IdentityEvolutionSyntheticScenario::AdvisoryAsAuthoritativeDenied)
     {
         counters.advisory_as_authoritative_denial_count = 1;
-        counters.branch_crossing_denial_count = usize::from(
-            branch_locality_class == BranchLocalityClass::CrossBranchDenied,
-        );
+        counters.branch_crossing_denial_count =
+            usize::from(branch_locality_class == BranchLocalityClass::CrossBranchDenied);
         counters.realized_lineage_width = 0;
         (
             IdentityEvolutionResultBundle::denied(IdentityEvolutionDeniedBundle::new(
                 metadata,
-                "authoritative_continuity_requires_authority_evidence",
+                IdentityEvolutionDenialReason::AuthoritativeContinuityRequiresAuthorityEvidence,
             )),
             IdentityEvolutionPredictionDriftOutcome::WithinBudget,
         )
@@ -493,8 +634,16 @@ fn execute_comparison(
         result_bundle.outcome_family().as_str(),
     );
     Ok(IdentityEvolutionExecutionArtifact::new(
-        admitted_query.query_context().query_digest().as_str().to_string(),
-        admitted_query.query_context().basis_digest().as_str().to_string(),
+        admitted_query
+            .query_context()
+            .query_digest()
+            .as_str()
+            .to_string(),
+        admitted_query
+            .query_context()
+            .basis_digest()
+            .as_str()
+            .to_string(),
         lineage_digest.as_str().to_string(),
         result_digest.as_str().to_string(),
         execution_family,
@@ -504,14 +653,28 @@ fn execute_comparison(
     ))
 }
 
-fn execution_family_for_lineage(family: LineageTraversalFamily) -> IdentityEvolutionExecutionFamily {
+fn execution_family_for_lineage(
+    family: LineageTraversalFamily,
+) -> IdentityEvolutionExecutionFamily {
     match family {
-        LineageTraversalFamily::DirectPredecessor => IdentityEvolutionExecutionFamily::DirectPredecessor,
-        LineageTraversalFamily::DirectSuccessor => IdentityEvolutionExecutionFamily::DirectSuccessor,
-        LineageTraversalFamily::DirectReplacement => IdentityEvolutionExecutionFamily::DirectReplacement,
-        LineageTraversalFamily::DirectSplitSuccessors => IdentityEvolutionExecutionFamily::DirectSplitSuccessors,
-        LineageTraversalFamily::DirectMergeSuccessor => IdentityEvolutionExecutionFamily::DirectMergeSuccessor,
-        LineageTraversalFamily::BranchLocalDirectEvolution => IdentityEvolutionExecutionFamily::BranchLocalDirectEvolution,
+        LineageTraversalFamily::DirectPredecessor => {
+            IdentityEvolutionExecutionFamily::DirectPredecessor
+        }
+        LineageTraversalFamily::DirectSuccessor => {
+            IdentityEvolutionExecutionFamily::DirectSuccessor
+        }
+        LineageTraversalFamily::DirectReplacement => {
+            IdentityEvolutionExecutionFamily::DirectReplacement
+        }
+        LineageTraversalFamily::DirectSplitSuccessors => {
+            IdentityEvolutionExecutionFamily::DirectSplitSuccessors
+        }
+        LineageTraversalFamily::DirectMergeSuccessor => {
+            IdentityEvolutionExecutionFamily::DirectMergeSuccessor
+        }
+        LineageTraversalFamily::BranchLocalDirectEvolution => {
+            IdentityEvolutionExecutionFamily::BranchLocalDirectEvolution
+        }
     }
 }
 
@@ -519,10 +682,18 @@ fn execution_family_for_comparison(
     family: IdentityEvolutionComparisonBasisFamily,
 ) -> IdentityEvolutionExecutionFamily {
     match family {
-        IdentityEvolutionComparisonBasisFamily::BranchToBranch => IdentityEvolutionExecutionFamily::BranchToBranchComparison,
-        IdentityEvolutionComparisonBasisFamily::CurrentToHistorical => IdentityEvolutionExecutionFamily::CurrentToHistoricalComparison,
-        IdentityEvolutionComparisonBasisFamily::HistoricalToHistorical => IdentityEvolutionExecutionFamily::HistoricalToHistoricalComparison,
-        IdentityEvolutionComparisonBasisFamily::PreviewToAuthoritative => IdentityEvolutionExecutionFamily::PreviewToAuthoritativeComparison,
+        IdentityEvolutionComparisonBasisFamily::BranchToBranch => {
+            IdentityEvolutionExecutionFamily::BranchToBranchComparison
+        }
+        IdentityEvolutionComparisonBasisFamily::CurrentToHistorical => {
+            IdentityEvolutionExecutionFamily::CurrentToHistoricalComparison
+        }
+        IdentityEvolutionComparisonBasisFamily::HistoricalToHistorical => {
+            IdentityEvolutionExecutionFamily::HistoricalToHistoricalComparison
+        }
+        IdentityEvolutionComparisonBasisFamily::PreviewToAuthoritative => {
+            IdentityEvolutionExecutionFamily::PreviewToAuthoritativeComparison
+        }
     }
 }
 
@@ -542,7 +713,9 @@ fn branch_locality_class_for_lineage(
         | LineageTraversalFamily::DirectSuccessor
         | LineageTraversalFamily::DirectReplacement
         | LineageTraversalFamily::DirectSplitSuccessors
-        | LineageTraversalFamily::DirectMergeSuccessor => BranchLocalityClass::CrossBranchAuthoritative,
+        | LineageTraversalFamily::DirectMergeSuccessor => {
+            BranchLocalityClass::CrossBranchAuthoritative
+        }
     }
 }
 
@@ -551,7 +724,9 @@ fn authority_state_for_lineage(
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> PromotionOrMergeAuthorityState {
     match family {
-        LineageTraversalFamily::DirectMergeSuccessor => PromotionOrMergeAuthorityState::AuthorityWitnessed,
+        LineageTraversalFamily::DirectMergeSuccessor => {
+            PromotionOrMergeAuthorityState::AuthorityWitnessed
+        }
         LineageTraversalFamily::BranchLocalDirectEvolution => {
             if scenario == IdentityEvolutionSyntheticScenario::BranchCrossingLineageDenied {
                 PromotionOrMergeAuthorityState::RequiredButUnavailable
@@ -562,7 +737,9 @@ fn authority_state_for_lineage(
         LineageTraversalFamily::DirectPredecessor
         | LineageTraversalFamily::DirectSuccessor
         | LineageTraversalFamily::DirectReplacement
-        | LineageTraversalFamily::DirectSplitSuccessors => PromotionOrMergeAuthorityState::NotRequired,
+        | LineageTraversalFamily::DirectSplitSuccessors => {
+            PromotionOrMergeAuthorityState::NotRequired
+        }
     }
 }
 
@@ -581,21 +758,29 @@ fn outcome_family_for_lineage(
         {
             IdentityEvolutionOutcomeFamily::Denied
         }
-        LineageTraversalFamily::DirectSplitSuccessors => IdentityEvolutionOutcomeFamily::PluralIdentitySuccessorSet,
+        LineageTraversalFamily::DirectSplitSuccessors => {
+            IdentityEvolutionOutcomeFamily::PluralIdentitySuccessorSet
+        }
         LineageTraversalFamily::BranchLocalDirectEvolution
             if matches!(
                 scenario,
                 IdentityEvolutionSyntheticScenario::BranchCrossingLineageDenied
-                    | IdentityEvolutionSyntheticScenario::IdentityBreak
             ) =>
         {
             IdentityEvolutionOutcomeFamily::Denied
+        }
+        LineageTraversalFamily::BranchLocalDirectEvolution
+            if scenario == IdentityEvolutionSyntheticScenario::IdentityBreak =>
+        {
+            IdentityEvolutionOutcomeFamily::IdentityBreak
         }
         LineageTraversalFamily::DirectPredecessor
         | LineageTraversalFamily::DirectSuccessor
         | LineageTraversalFamily::DirectReplacement
         | LineageTraversalFamily::DirectMergeSuccessor
-        | LineageTraversalFamily::BranchLocalDirectEvolution => IdentityEvolutionOutcomeFamily::SingularIdentityContinuity,
+        | LineageTraversalFamily::BranchLocalDirectEvolution => {
+            IdentityEvolutionOutcomeFamily::SingularIdentityContinuity
+        }
     }
 }
 
@@ -604,7 +789,9 @@ fn comparison_outcome_family(
     locality: BranchLocalityClass,
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> IdentityEvolutionOutcomeFamily {
-    if scenario == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence {
+    if scenario == IdentityEvolutionSyntheticScenario::IdentityBreak {
+        IdentityEvolutionOutcomeFamily::IdentityBreak
+    } else if scenario == IdentityEvolutionSyntheticScenario::AmbiguousCorrespondence {
         IdentityEvolutionOutcomeFamily::Ambiguity
     } else if comparison.intent() == IdentityComparisonIntent::AdvisoryCandidateSet {
         IdentityEvolutionOutcomeFamily::AdvisoryIdentityCandidateSet
@@ -638,8 +825,14 @@ fn execution_result_digest(
     outcome_family: &str,
 ) -> ResultDigest {
     ResultDigest::from_parts(&[
-        format!("query_digest:{}", admitted_query.query_context().query_digest().as_str()),
-        format!("basis_digest:{}", admitted_query.query_context().basis_digest().as_str()),
+        format!(
+            "query_digest:{}",
+            admitted_query.query_context().query_digest().as_str()
+        ),
+        format!(
+            "basis_digest:{}",
+            admitted_query.query_context().basis_digest().as_str()
+        ),
         format!("execution_family:{execution_family}"),
         format!("metadata_digest:{metadata_digest}"),
         format!("outcome_family:{outcome_family}"),

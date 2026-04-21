@@ -32,6 +32,9 @@ pub struct MaintenanceRecoveryEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MaintenanceRecoveryReport {
     entries: Vec<MaintenanceRecoveryEntry>,
+    active_declaration_count: u64,
+    escalated_declaration_count: u64,
+    recovered_backlog_count: u64,
 }
 
 impl MaintenanceRecoveryEntry {
@@ -55,6 +58,18 @@ impl MaintenanceRecoveryEntry {
 impl MaintenanceRecoveryReport {
     pub fn entries(&self) -> &[MaintenanceRecoveryEntry] {
         &self.entries
+    }
+
+    pub fn active_declaration_count(&self) -> u64 {
+        self.active_declaration_count
+    }
+
+    pub fn escalated_declaration_count(&self) -> u64 {
+        self.escalated_declaration_count
+    }
+
+    pub fn recovered_backlog_count(&self) -> u64 {
+        self.recovered_backlog_count
     }
 }
 
@@ -112,5 +127,34 @@ pub(crate) fn build_maintenance_recovery_report(
                 .to_string(),
         },
     ]);
-    Ok(MaintenanceRecoveryReport { entries })
+    Ok(MaintenanceRecoveryReport {
+        entries,
+        active_declaration_count: state
+            .maintenance_execution_records
+            .values()
+            .filter(|record| {
+                matches!(
+                    record.execution_status,
+                    crate::MaintenanceExecutionStatus::Admitted
+                        | crate::MaintenanceExecutionStatus::Reserved
+                        | crate::MaintenanceExecutionStatus::Started
+                )
+            })
+            .count() as u64,
+        escalated_declaration_count: state
+            .maintenance_execution_records
+            .values()
+            .filter(|record| {
+                matches!(
+                    record.plan_family,
+                    Some(crate::MaintenancePlanFamily::Escalated)
+                )
+            })
+            .count() as u64,
+        recovered_backlog_count: state
+            .maintenance_declaration_records
+            .values()
+            .filter(|record| record.work_descriptor.recovered_from_restart())
+            .count() as u64,
+    })
 }

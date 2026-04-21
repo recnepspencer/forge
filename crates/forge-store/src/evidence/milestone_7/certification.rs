@@ -73,16 +73,37 @@ impl Milestone7CertificationBundle {
                     commit_support_summaries: &control_canonical.commit_support_summaries,
                     schema_support_records: &control_canonical.schema_support_records,
                     lineage_support_records: &control_canonical.lineage_support_records,
-                    durable_cursor_identity_records: &control_canonical.durable_cursor_identity_records,
+                    durable_cursor_identity_records: &control_canonical
+                        .durable_cursor_identity_records,
                     subscriber_checkpoint_records: &control_canonical.subscriber_checkpoint_records,
                 }),
             support_rebuild_required_count: support_artifact_recovery_report.rebuilds().len(),
             support_quarantine_required_count: support_artifact_recovery_report.quarantines().len(),
-            schema_support_entry_count: support_artifact_recovery_report.entries().iter().filter(|entry| matches!(entry.family(), SupportArtifactFamily::SchemaSupport)).count(),
-            lineage_support_entry_count: support_artifact_recovery_report.entries().iter().filter(|entry| matches!(entry.family(), SupportArtifactFamily::LineageSupport)).count(),
-            cursor_support_entry_count: support_artifact_recovery_report.entries().iter().filter(|entry| matches!(entry.family(), SupportArtifactFamily::CursorSupport)).count(),
-            embedded_checkpoint_entry_count: support_artifact_recovery_report.entries().iter().filter(|entry| matches!(entry.family(), SupportArtifactFamily::EmbeddedCheckpoint)).count(),
-            related_commit_entry_count: support_artifact_recovery_report.entries().iter().filter(|entry| entry.related_commit_id().is_some()).count(),
+            schema_support_entry_count: support_artifact_recovery_report
+                .entries()
+                .iter()
+                .filter(|entry| matches!(entry.family(), SupportArtifactFamily::SchemaSupport))
+                .count(),
+            lineage_support_entry_count: support_artifact_recovery_report
+                .entries()
+                .iter()
+                .filter(|entry| matches!(entry.family(), SupportArtifactFamily::LineageSupport))
+                .count(),
+            cursor_support_entry_count: support_artifact_recovery_report
+                .entries()
+                .iter()
+                .filter(|entry| matches!(entry.family(), SupportArtifactFamily::CursorSupport))
+                .count(),
+            embedded_checkpoint_entry_count: support_artifact_recovery_report
+                .entries()
+                .iter()
+                .filter(|entry| matches!(entry.family(), SupportArtifactFamily::EmbeddedCheckpoint))
+                .count(),
+            related_commit_entry_count: support_artifact_recovery_report
+                .entries()
+                .iter()
+                .filter(|entry| entry.related_commit_id().is_some())
+                .count(),
         };
         let counter_contract = Milestone7CounterContract::from_snapshot(&counter_snapshot);
         let access_structure_contract =

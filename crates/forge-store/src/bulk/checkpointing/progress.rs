@@ -21,7 +21,9 @@ impl BulkProgressCheckpointRecordInput {
         latest_checkpoint_sequence: Option<u64>,
         witness: &BulkChunkCommitWitness,
     ) -> Result<Self, StoreError> {
-        let checkpoint_sequence = latest_checkpoint_sequence.map(|sequence| sequence + 1).unwrap_or(1);
+        let checkpoint_sequence = latest_checkpoint_sequence
+            .map(|sequence| sequence + 1)
+            .unwrap_or(1);
         if checkpoint_sequence == 0 {
             return Err(StoreError::new(
                 StoreErrorKind::BulkCheckpointPublicationGap,

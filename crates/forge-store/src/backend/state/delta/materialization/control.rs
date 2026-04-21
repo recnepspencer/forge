@@ -3,7 +3,7 @@ use crate::{
     delta::{
         stable_shared_base_authority_digest, BranchDeltaFallbackClass, BranchDeltaLocality,
         BranchDeltaPerformanceEnvelope, BranchDeltaReadPlan, BranchDeltaReadStrategy,
-        SameBranchDescendantWitness, ComplexityStatus, BRANCH_DELTA_FAMILY_VERSION,
+        ComplexityStatus, SameBranchDescendantWitness, BRANCH_DELTA_FAMILY_VERSION,
     },
     failure::{StoreError, StoreErrorKind},
 };

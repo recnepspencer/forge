@@ -32,31 +32,38 @@ fn load_commit_support_summaries(
             ",
         )
         .map_err(sqlite_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok(records::CommitSupportSummaryRecord {
-                commit_id: forge_relational::facade::history::CommitId(row.get::<_, i64>(0)? as u64),
-                branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(1)?),
-                schema_support_artifact_id: row.get(2)?,
-                lineage_support_artifact_id: row.get(3)?,
-                milestone_6_published_layout_request_artifact_ids: serde_json::from_str(
-                    &row.get::<_, String>(4)?,
-                )
-                .map_err(|error| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        4,
-                        rusqlite::types::Type::Text,
-                        Box::new(error),
+    let rows =
+        statement
+            .query_map([], |row| {
+                Ok(records::CommitSupportSummaryRecord {
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(0)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(1)?,
+                    ),
+                    schema_support_artifact_id: row.get(2)?,
+                    lineage_support_artifact_id: row.get(3)?,
+                    milestone_6_published_layout_request_artifact_ids: serde_json::from_str(
+                        &row.get::<_, String>(4)?,
                     )
-                })?,
-                emitted_schema_artifact: row.get::<_, i64>(5)? != 0,
-                emitted_lineage_artifact: row.get::<_, i64>(6)? != 0,
+                    .map_err(|error| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            4,
+                            rusqlite::types::Type::Text,
+                            Box::new(error),
+                        )
+                    })?,
+                    emitted_schema_artifact: row.get::<_, i64>(5)? != 0,
+                    emitted_lineage_artifact: row.get::<_, i64>(6)? != 0,
+                })
             })
-        })
-        .map_err(sqlite_error)?;
+            .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
-        state.commit_support_summaries.insert(record.commit_id.0, record);
+        state
+            .commit_support_summaries
+            .insert(record.commit_id.0, record);
     }
     Ok(())
 }
@@ -76,34 +83,39 @@ fn load_schema_support_records(
             ",
         )
         .map_err(sqlite_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            let schema_transition = deserialize_optional_json::<
-                forge_relational::facade::schema::SchemaTransitionArtifact,
-            >(row.get(5)?)?;
-            let schema_continuation_descriptor = deserialize_optional_json::<
-                forge_relational::facade::schema::SchemaContinuationDescriptor,
-            >(row.get(6)?)?;
-            let schema_reconciliation_descriptor = deserialize_optional_json::<
-                forge_relational::facade::schema::SchemaReconciliationDescriptor,
-            >(row.get(7)?)?;
-            Ok(records::SchemaSupportRecord {
-                artifact_id: row.get(0)?,
-                commit_id: forge_relational::facade::history::CommitId(row.get::<_, i64>(1)? as u64),
-                branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(2)?),
-                schema_version_id: forge_relational::facade::schema::SchemaVersionId(
-                    row.get::<_, i64>(3)? as u32,
-                ),
-                descriptor_semantics_version:
-                    forge_relational::facade::schema::DescriptorSemanticsVersion(
-                        row.get::<_, i64>(4)? as u32,
+    let rows =
+        statement
+            .query_map([], |row| {
+                let schema_transition = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaTransitionArtifact,
+                >(row.get(5)?)?;
+                let schema_continuation_descriptor = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaContinuationDescriptor,
+                >(row.get(6)?)?;
+                let schema_reconciliation_descriptor = deserialize_optional_json::<
+                    forge_relational::facade::schema::SchemaReconciliationDescriptor,
+                >(row.get(7)?)?;
+                Ok(records::SchemaSupportRecord {
+                    artifact_id: row.get(0)?,
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(1)? as u64
                     ),
-                schema_transition,
-                schema_continuation_descriptor,
-                schema_reconciliation_descriptor,
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(2)?,
+                    ),
+                    schema_version_id: forge_relational::facade::schema::SchemaVersionId(
+                        row.get::<_, i64>(3)? as u32,
+                    ),
+                    descriptor_semantics_version:
+                        forge_relational::facade::schema::DescriptorSemanticsVersion(
+                            row.get::<_, i64>(4)? as u32,
+                        ),
+                    schema_transition,
+                    schema_continuation_descriptor,
+                    schema_reconciliation_descriptor,
+                })
             })
-        })
-        .map_err(sqlite_error)?;
+            .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
         state
@@ -128,21 +140,26 @@ fn load_lineage_support_records(
             ",
         )
         .map_err(sqlite_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok(records::LineageSupportRecord {
-                artifact_id: row.get(0)?,
-                commit_id: forge_relational::facade::history::CommitId(row.get::<_, i64>(1)? as u64),
-                branch_id: forge_relational::facade::history::BranchId(row.get::<_, String>(2)?),
-                lineage_event_ids: deserialize_json(row.get(3)?)?,
-                lineage_events: deserialize_json(row.get(4)?)?,
-                lineage_digest_basis: deserialize_json(row.get(5)?)?,
-                event_batch_digest_basis: deserialize_json(row.get(6)?)?,
-                decision_log_digest_basis: deserialize_json(row.get(7)?)?,
-                lineage_artifact_counters: deserialize_json(row.get(8)?)?,
+    let rows =
+        statement
+            .query_map([], |row| {
+                Ok(records::LineageSupportRecord {
+                    artifact_id: row.get(0)?,
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(1)? as u64
+                    ),
+                    branch_id: forge_relational::facade::history::BranchId(
+                        row.get::<_, String>(2)?,
+                    ),
+                    lineage_event_ids: deserialize_json(row.get(3)?)?,
+                    lineage_events: deserialize_json(row.get(4)?)?,
+                    lineage_digest_basis: deserialize_json(row.get(5)?)?,
+                    event_batch_digest_basis: deserialize_json(row.get(6)?)?,
+                    decision_log_digest_basis: deserialize_json(row.get(7)?)?,
+                    lineage_artifact_counters: deserialize_json(row.get(8)?)?,
+                })
             })
-        })
-        .map_err(sqlite_error)?;
+            .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
         state
@@ -222,7 +239,7 @@ fn load_subscriber_checkpoint_records(
                 cursor_semantics_version: row.get::<_, i64>(6)? as u32,
                 checkpoint_sequence: row.get::<_, i64>(7)? as u64,
                 basis_commit_id: forge_relational::facade::history::CommitId(
-                    row.get::<_, i64>(8)? as u64,
+                    row.get::<_, i64>(8)? as u64
                 ),
                 schema_support_artifact_id: row.get(9)?,
             })

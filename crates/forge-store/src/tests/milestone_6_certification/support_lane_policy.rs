@@ -217,7 +217,7 @@ fn milestone_6_policy_eager_certification_resolving_to_materialized_is_verified(
 
     assert_eq!(
         bundle.resolved_layout_support_lane,
-        Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedPublished
+        Milestone6ResolvedLayoutSupportLane::PolicyEagerMaterializedReuseExisting
     );
     assert_eq!(bundle.certification_summary.debt_path_count, 0);
     assert_eq!(bundle.certification_summary.verified_path_count, 5);

@@ -3,12 +3,12 @@ use forge_relational::facade::history::CommitId;
 use forge_relational::facade::replay::CanonicalCommitEnvelope;
 
 use super::{
-    digest::{WalRecordDigestBasis, stable_digest},
+    digest::{stable_digest, WalRecordDigestBasis},
     model::{
-        BulkCheckpointPublicationIntentRecord, CURRENT_WAL_VERSION, DurableMutationId,
-        DurableMutationIntentRecord, DurablePublicationPhase, DurablePublicationProgressRecord,
-        HostedRuntimeCommitResultRecord, RecoveryDecisionClass, RecoveryDecisionRecord, WalRecord,
-        WalRecordFamily, WalRecordPayload,
+        BulkCheckpointPublicationIntentRecord, DurableMutationId, DurableMutationIntentRecord,
+        DurablePublicationPhase, DurablePublicationProgressRecord, HostedRuntimeCommitResultRecord,
+        RecoveryDecisionClass, RecoveryDecisionRecord, WalRecord, WalRecordFamily,
+        WalRecordPayload, CURRENT_WAL_VERSION,
     },
 };
 
@@ -42,12 +42,13 @@ impl WalRecord {
         canonical_envelope: CanonicalCommitEnvelope,
     ) -> Result<Self, StoreError> {
         let runtime_session_id = runtime_session_id.into();
-        let payload = WalRecordPayload::HostedRuntimeCommitResult(HostedRuntimeCommitResultRecord {
-            durable_mutation_id,
-            runtime_session_id: runtime_session_id.clone(),
-            canonical_envelope,
-            wal_version: CURRENT_WAL_VERSION,
-        });
+        let payload =
+            WalRecordPayload::HostedRuntimeCommitResult(HostedRuntimeCommitResultRecord {
+                durable_mutation_id,
+                runtime_session_id: runtime_session_id.clone(),
+                canonical_envelope,
+                wal_version: CURRENT_WAL_VERSION,
+            });
         Self::from_payload(
             wal_sequence,
             WalRecordFamily::HostedRuntimeCommitResult,
@@ -89,13 +90,14 @@ impl WalRecord {
         commit_id: Option<CommitId>,
     ) -> Result<Self, StoreError> {
         let runtime_session_id = runtime_session_id.into();
-        let payload = WalRecordPayload::DurablePublicationProgress(DurablePublicationProgressRecord {
-            durable_mutation_id,
-            runtime_session_id: runtime_session_id.clone(),
-            phase,
-            commit_id,
-            wal_version: CURRENT_WAL_VERSION,
-        });
+        let payload =
+            WalRecordPayload::DurablePublicationProgress(DurablePublicationProgressRecord {
+                durable_mutation_id,
+                runtime_session_id: runtime_session_id.clone(),
+                phase,
+                commit_id,
+                wal_version: CURRENT_WAL_VERSION,
+            });
         Self::from_payload(
             wal_sequence,
             WalRecordFamily::DurablePublicationProgress,

@@ -53,6 +53,12 @@ pub(super) fn create_indexes(connection: &Connection) -> Result<(), StoreError> 
             ON bulk_chunk_witness_records(program_id, plan_id, chunk_ordinal);
             CREATE INDEX IF NOT EXISTS idx_snapshot_basis_branch_frontier
             ON snapshot_basis_records(snapshot_branch_id, snapshot_frontier_commit_id);
+            CREATE INDEX IF NOT EXISTS idx_tier_residency_records_family
+            ON tier_residency_records(artifact_family);
+            CREATE INDEX IF NOT EXISTS idx_tier_transfer_records_family_origin
+            ON tier_transfer_records(artifact_family, execution_origin);
+            CREATE INDEX IF NOT EXISTS idx_tier_recall_records_family_scope
+            ON tier_recall_records(artifact_family, scope_class, execution_origin);
             CREATE INDEX IF NOT EXISTS idx_wal_records_mutation_sequence
             ON wal_records(durable_mutation_id, wal_sequence);
             ",

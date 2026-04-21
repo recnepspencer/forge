@@ -108,6 +108,8 @@ fn milestone_8_certification_rejects_duplicate_commit_surface() {
         ))
         .expect_err("duplicate continuation evidence must be rejected before certification");
 
-    assert_eq!(error.kind(), &crate::StoreErrorKind::ContinuationBatchDuplicate);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::ContinuationBatchDuplicate
+    );
 }
-

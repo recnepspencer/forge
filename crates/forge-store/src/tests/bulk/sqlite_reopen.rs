@@ -198,4 +198,3 @@ fn bulk_checkpoint_completed_chunk_regression_fails_sqlite_reopen_closed() {
     );
     assert_eq!(error.kind(), &StoreErrorKind::BackendIntegrityViolation);
 }
-

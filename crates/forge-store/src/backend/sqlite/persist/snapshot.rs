@@ -20,7 +20,11 @@ fn persist_snapshot_basis_records(
 ) -> Result<(), StoreError> {
     for record in state.snapshot_basis_records.values() {
         let history_range_payload = serde_json::to_string(
-            &record.snapshot_history_range.iter().map(|commit_id| commit_id.0).collect::<Vec<_>>(),
+            &record
+                .snapshot_history_range
+                .iter()
+                .map(|commit_id| commit_id.0)
+                .collect::<Vec<_>>(),
         )?;
         transaction
             .execute(

@@ -17,7 +17,8 @@ impl StoreBackend {
         new_branch: BranchId,
         from_branch: Option<&BranchId>,
     ) -> Result<AuthoritativeBranchHeadRecord, StoreError> {
-        dispatch_mut!(self, |backend| backend.create_branch(new_branch, from_branch))
+        dispatch_mut!(self, |backend| backend
+            .create_branch(new_branch, from_branch))
     }
 
     pub fn create_shared_base_branch(
@@ -31,7 +32,8 @@ impl StoreBackend {
         &self,
         request: SharedBaseBranchCreationRequest,
     ) -> Result<SharedBaseBranchCreationWitness, StoreError> {
-        dispatch_ref!(self, |backend| backend.admit_shared_base_branch_creation(request))
+        dispatch_ref!(self, |backend| backend
+            .admit_shared_base_branch_creation(request))
     }
 
     pub fn verify_append(

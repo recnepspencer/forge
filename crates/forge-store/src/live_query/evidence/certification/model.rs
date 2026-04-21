@@ -1,6 +1,4 @@
-use crate::{
-    authority::AuthoritativeExportBundle, live_query::continuation::ContinuationStrategy,
-};
+use crate::{authority::AuthoritativeExportBundle, live_query::continuation::ContinuationStrategy};
 use forge_relational::facade::history::CommitId;
 use serde::Serialize;
 
@@ -56,13 +54,31 @@ impl<'a> Milestone8CertificationRequest<'a> {
         }
     }
 
-    pub fn control_export(&self) -> &'a AuthoritativeExportBundle { self.control_export }
-    pub fn basis(&self) -> &'a crate::StableBasisHandle { self.basis }
-    pub fn continuation_strategy(&self) -> ContinuationStrategy { self.continuation_strategy }
-    pub fn continuation_results(&self) -> &'a [crate::ContinuationBatchResult] { self.continuation_results }
-    pub fn final_frontier_commit_id(&self) -> CommitId { self.final_frontier_commit_id }
-    pub fn control_strategy(&self) -> ContinuationStrategy { self.control_strategy }
-    pub fn control_continuation_results(&self) -> &'a [crate::ContinuationBatchResult] { self.control_continuation_results }
-    pub fn control_final_frontier_commit_id(&self) -> CommitId { self.control_final_frontier_commit_id }
-    pub fn failure_markers(&self) -> &'a [String] { self.failure_markers }
+    pub fn control_export(&self) -> &'a AuthoritativeExportBundle {
+        self.control_export
+    }
+    pub fn basis(&self) -> &'a crate::StableBasisHandle {
+        self.basis
+    }
+    pub fn continuation_strategy(&self) -> ContinuationStrategy {
+        self.continuation_strategy
+    }
+    pub fn continuation_results(&self) -> &'a [crate::ContinuationBatchResult] {
+        self.continuation_results
+    }
+    pub fn final_frontier_commit_id(&self) -> CommitId {
+        self.final_frontier_commit_id
+    }
+    pub fn control_strategy(&self) -> ContinuationStrategy {
+        self.control_strategy
+    }
+    pub fn control_continuation_results(&self) -> &'a [crate::ContinuationBatchResult] {
+        self.control_continuation_results
+    }
+    pub fn control_final_frontier_commit_id(&self) -> CommitId {
+        self.control_final_frontier_commit_id
+    }
+    pub fn failure_markers(&self) -> &'a [String] {
+        self.failure_markers
+    }
 }

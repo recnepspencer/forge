@@ -5,12 +5,14 @@ use super::descriptor::ViewShapeDescriptor;
 use super::digest::ViewShapeDigest;
 use super::error::{ViewShapeError, ViewShapeFailureClass};
 use super::family::ViewShapeFamily;
+use super::identity::ViewShapeIdentityBinding;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedViewShape {
     descriptor: ViewShapeDescriptor,
     digest: ViewShapeDigest,
     compatibility: ViewShapeCompatibilityMatrixArtifact,
+    identity_binding: ViewShapeIdentityBinding,
 }
 
 impl AdmittedViewShape {
@@ -28,6 +30,10 @@ impl AdmittedViewShape {
 
     pub fn descriptor(&self) -> &ViewShapeDescriptor {
         &self.descriptor
+    }
+
+    pub fn identity_binding(&self) -> &ViewShapeIdentityBinding {
+        &self.identity_binding
     }
 }
 
@@ -59,10 +65,23 @@ pub fn admit_view_shape(
         ));
     }
 
+    if descriptor.identity_consumption() != &super::identity::ViewShapeIdentityConsumption::None
+        && !matches!(
+            descriptor.family(),
+            ViewShapeFamily::InspectorDetailObserved | ViewShapeFamily::InspectorDetailFocused
+        )
+    {
+        return Err(ViewShapeError::new(
+            ViewShapeFailureClass::IdentityConsumptionUnsupportedForViewFamily,
+            "identity-aware view semantics are admitted only for inspector families in this batch",
+        ));
+    }
+
     let compatible = match descriptor.family() {
         ViewShapeFamily::Table | ViewShapeFamily::KanbanGrouped => {
             canonical.query().family() == &crate::authoring::QueryFamily::Collection
-                && canonical.result_shape().family() == &crate::authoring::ResultShapeFamily::Collection
+                && canonical.result_shape().family()
+                    == &crate::authoring::ResultShapeFamily::Collection
         }
         ViewShapeFamily::Detail
         | ViewShapeFamily::InspectorDetailObserved
@@ -87,14 +106,26 @@ pub fn admit_view_shape(
     let digest = ViewShapeDigest::from_parts(&[
         format!("family:{}", descriptor.family().as_str()),
         format!("query_family:{:?}", canonical.query().family()),
-        format!("result_shape_family:{:?}", canonical.result_shape().family()),
+        format!(
+            "result_shape_family:{:?}",
+            canonical.result_shape().family()
+        ),
         format!("focus:{}", descriptor.focused_aspect().unwrap_or("none")),
-        format!("grouping:{}", descriptor.grouping_aspect().unwrap_or("none")),
+        format!(
+            "grouping:{}",
+            descriptor.grouping_aspect().unwrap_or("none")
+        ),
+        format!(
+            "identity_consumption:{}",
+            descriptor.identity_consumption().digest().as_str()
+        ),
     ]);
+    let identity_binding = ViewShapeIdentityBinding::new(descriptor.identity_consumption().clone());
 
     Ok(AdmittedViewShape {
         descriptor,
         digest,
         compatibility: compatibility.mark_admitted(),
+        identity_binding,
     })
 }

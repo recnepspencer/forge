@@ -1,8 +1,7 @@
 use crate::{
     delta::{
         stable_branch_delta_layer_authority_digest, BranchDeltaLayerId, BranchDeltaRebuildReceipt,
-        BranchDeltaRewritePlan, BranchDeltaRewriteReceipt,
-        BRANCH_DELTA_FAMILY_VERSION,
+        BranchDeltaRewritePlan, BranchDeltaRewriteReceipt, BRANCH_DELTA_FAMILY_VERSION,
     },
     failure::{StoreError, StoreErrorKind},
 };

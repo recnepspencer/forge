@@ -100,7 +100,6 @@ pub(super) fn wal_recovered_ingest_bundle() -> crate::Milestone9CertificationBun
     )
 }
 
-
 #[test]
 fn milestone_9_certification_bundle_proves_wal_recovered_ingest_control_and_restore_parity() {
     let bundle = wal_recovered_ingest_bundle();
@@ -109,4 +108,3 @@ fn milestone_9_certification_bundle_proves_wal_recovered_ingest_control_and_rest
     assert_eq!(bundle.counter_snapshot.bulk_checkpoint_write_count, 1);
     assert_eq!(bundle.counter_snapshot.bulk_chunk_witness_write_count, 1);
 }
-

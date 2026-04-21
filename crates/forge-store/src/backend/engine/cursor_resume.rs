@@ -35,9 +35,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         let identity = self
             .state
             .durable_cursor_identity_records
-            .get(&super::super::integrity::durable_cursor_identity_artifact_id(
-                request.cursor_id(),
-            ))
+            .get(&super::super::integrity::durable_cursor_identity_artifact_id(request.cursor_id()))
             .cloned()
             .ok_or_else(|| {
                 StoreError::new(
@@ -78,8 +76,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     ),
                 )
             })?;
-        self.state.verify_durable_cursor_identity_record(&identity)?;
-        self.state.verify_subscriber_checkpoint_record(&latest_checkpoint)?;
+        self.state
+            .verify_durable_cursor_identity_record(&identity)?;
+        self.state
+            .verify_subscriber_checkpoint_record(&latest_checkpoint)?;
         self.counters.record_cursor_resume(2, 1);
         Ok(DurableCursorResumePlan::new(identity, latest_checkpoint))
     }

@@ -98,7 +98,9 @@ fn continuation_planning_degrades_after_restart_visible_support_loss() {
             ContinuationRetentionStatus::Retained,
         ))
         .unwrap();
-    let fetched = store.fetch_stable_basis(published.stable_basis_id()).unwrap();
+    let fetched = store
+        .fetch_stable_basis(published.stable_basis_id())
+        .unwrap();
 
     let plan = store
         .plan_cursor_continuation(CursorContinuationRequest::new(
@@ -125,7 +127,9 @@ fn retained_uniform_scope_continuation_fails_at_planning_typed_and_counts_mismat
     let basis_envelope = latest_envelope(&runtime);
 
     let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
-    store.append_canonical_commit(basis_envelope.clone()).unwrap();
+    store
+        .append_canonical_commit(basis_envelope.clone())
+        .unwrap();
     store
         .acknowledge_cursor(crate::DurableCursorAcknowledgeRequest::new(
             "cursor-main",
@@ -139,7 +143,9 @@ fn retained_uniform_scope_continuation_fails_at_planning_typed_and_counts_mismat
         .unwrap();
     update_entity_on_branch(&mut runtime, entity_id, "beta", None);
     let latest_envelope = latest_envelope(&runtime);
-    store.append_canonical_commit(latest_envelope.clone()).unwrap();
+    store
+        .append_canonical_commit(latest_envelope.clone())
+        .unwrap();
     let basis = store
         .read_stable_basis(uniform_scope_basis_request(
             &store,
@@ -251,8 +257,6 @@ fn phase_one_live_query_facade_surfaces_do_not_mutate_authoritative_records() {
     assert_eq!(counters.continuation_batch_count, 0);
     assert_eq!(counters.continuation_parity_count, 1);
 }
-
-
 
 #[path = "planning/budget.rs"]
 mod budget;

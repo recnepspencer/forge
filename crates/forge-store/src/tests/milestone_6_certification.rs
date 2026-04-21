@@ -92,22 +92,21 @@ fn entity_set_bundle_for_lane(lane: StoreLane) -> crate::Milestone6Certification
     store.milestone_6_certification_bundle(request).unwrap()
 }
 
-
-#[path = "milestone_6_certification/suite_helpers.rs"]
-mod suite_helpers;
-#[path = "milestone_6_certification/suite_rows_foundation.rs"]
-mod suite_rows_foundation;
-#[path = "milestone_6_certification/suite_rows_rebuild.rs"]
-mod suite_rows_rebuild;
-#[path = "milestone_6_certification/suite_rows_overlap_and_corruption.rs"]
-mod suite_rows_overlap_and_corruption;
-#[path = "milestone_6_certification/suite.rs"]
-mod suite;
 #[path = "milestone_6_certification/bundle_basics.rs"]
 mod bundle_basics;
 #[path = "milestone_6_certification/persisted_materialization.rs"]
 mod persisted_materialization;
-#[path = "milestone_6_certification/support_lane_policy.rs"]
-mod support_lane_policy;
 #[path = "milestone_6_certification/rebuild_recovery.rs"]
 mod rebuild_recovery;
+#[path = "milestone_6_certification/suite.rs"]
+mod suite;
+#[path = "milestone_6_certification/suite_helpers.rs"]
+mod suite_helpers;
+#[path = "milestone_6_certification/suite_rows_foundation.rs"]
+mod suite_rows_foundation;
+#[path = "milestone_6_certification/suite_rows_overlap_and_corruption.rs"]
+mod suite_rows_overlap_and_corruption;
+#[path = "milestone_6_certification/suite_rows_rebuild.rs"]
+mod suite_rows_rebuild;
+#[path = "milestone_6_certification/support_lane_policy.rs"]
+mod support_lane_policy;

@@ -13,8 +13,8 @@ use crate::{
         integrity::{branch_key, lineage_support_artifact_id, schema_support_artifact_id},
         records::{
             BranchHeadRecord, CommitParentRecord, CommitSupportSummaryRecord,
-            DurableCursorIdentityRecord, LineageSupportRecord, SchemaSupportRecord,
-            StoreState, SubscriberCheckpointRecord,
+            DurableCursorIdentityRecord, LineageSupportRecord, SchemaSupportRecord, StoreState,
+            SubscriberCheckpointRecord,
         },
     },
     failure::{StoreError, StoreErrorKind},

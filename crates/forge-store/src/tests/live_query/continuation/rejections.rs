@@ -55,7 +55,10 @@ fn duplicate_continuation_acknowledgment_fails_typed() {
         .acknowledge_cursor_continuation(duplicate)
         .expect_err("duplicate acknowledgment must fail typed");
 
-    assert_eq!(error.kind(), &crate::StoreErrorKind::ContinuationBatchDuplicate);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::ContinuationBatchDuplicate
+    );
     let counters = store.counters();
     assert_eq!(counters.continuation_batch_duplicate_count, 1);
     assert_eq!(counters.continuation_illegal_acknowledgment_count, 1);

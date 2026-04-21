@@ -38,7 +38,10 @@ fn stable_basis_rejects_branch_frontier_mismatch() {
         ))
         .expect_err("cross-branch frontier basis must fail typed");
 
-    assert_eq!(error.kind(), &crate::StoreErrorKind::StableBasisShapeViolation);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::StableBasisShapeViolation
+    );
 }
 
 #[test]
@@ -71,7 +74,10 @@ fn stable_basis_rejects_authority_digest_drift() {
         ))
         .expect_err("authority digest drift must fail typed");
 
-    assert_eq!(error.kind(), &crate::StoreErrorKind::StableBasisShapeViolation);
+    assert_eq!(
+        error.kind(),
+        &crate::StoreErrorKind::StableBasisShapeViolation
+    );
 }
 
 #[test]

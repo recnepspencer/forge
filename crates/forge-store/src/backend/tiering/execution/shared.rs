@@ -1,13 +1,15 @@
 use crate::{
     backend::{
         engine::{StateBackedStoreBackend, StatePersistence},
-        records::{StoreState, TierResidencyRecord, TierTransferRecord},
+        records::{StoreState, TierRecallRecord, TierResidencyRecord, TierTransferRecord},
     },
     failure::{StoreError, StoreErrorKind},
-    tiering::{PlacementArtifactFamily, TierResidenceClass},
+    tiering::{PlacementArtifactFamily, RecallCoalescingKey, TierResidenceClass},
 };
 
-pub(super) fn placement_family_for_artifact_key(artifact_key: &str) -> Result<PlacementArtifactFamily, StoreError> {
+pub(crate) fn placement_family_for_artifact_key(
+    artifact_key: &str,
+) -> Result<PlacementArtifactFamily, StoreError> {
     if artifact_key.starts_with("authoritative_branch_head:") {
         Ok(PlacementArtifactFamily::AuthoritativeBranchHead)
     } else if artifact_key.starts_with("retained_authority:") {
@@ -62,7 +64,27 @@ pub(super) fn artifact_key_for_family(
     }
 }
 
-pub(super) fn expected_verification_label(
+pub(crate) fn recall_coalescing_key_for_artifact(
+    artifact_family: PlacementArtifactFamily,
+    artifact_id: &str,
+) -> RecallCoalescingKey {
+    RecallCoalescingKey::new(
+        artifact_family,
+        crate::PlacementObservationScopeClass::ArtifactFamily,
+        artifact_id,
+    )
+}
+
+pub(crate) fn recall_record_key(key: &RecallCoalescingKey) -> String {
+    format!(
+        "{}|{}|{}",
+        key.artifact_family().label(),
+        key.scope_class().label(),
+        key.scope_key()
+    )
+}
+
+pub(crate) fn expected_verification_label(
     state: &StoreState,
     artifact_key: &str,
 ) -> Result<String, StoreError> {
@@ -77,7 +99,9 @@ pub(super) fn expected_verification_label(
         return record.head_commit_digest.clone().ok_or_else(|| {
             StoreError::new(
                 StoreErrorKind::TierTransferVerificationFailed,
-                format!("branch head `{branch_id}` is missing a canonical digest for tier verification"),
+                format!(
+                    "branch head `{branch_id}` is missing a canonical digest for tier verification"
+                ),
             )
         });
     }
@@ -88,12 +112,15 @@ pub(super) fn expected_verification_label(
                 format!("retained authority `{artifact_key}` does not name a valid snapshot id"),
             )
         })?;
-        let record = state.snapshot_basis_records.get(&snapshot_id).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::TierTransferVerificationFailed,
-                format!("snapshot basis `{snapshot_id}` is missing for tier verification"),
-            )
-        })?;
+        let record = state
+            .snapshot_basis_records
+            .get(&snapshot_id)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::TierTransferVerificationFailed,
+                    format!("snapshot basis `{snapshot_id}` is missing for tier verification"),
+                )
+            })?;
         return Ok(record.snapshot_authority_digest.clone());
     }
     if let Some(snapshot_suffix) = artifact_key.strip_prefix("snapshot:") {
@@ -103,12 +130,15 @@ pub(super) fn expected_verification_label(
                 format!("snapshot artifact `{artifact_key}` does not name a valid snapshot id"),
             )
         })?;
-        let record = state.snapshot_basis_records.get(&snapshot_id).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::TierTransferVerificationFailed,
-                format!("snapshot basis `{snapshot_id}` is missing for tier verification"),
-            )
-        })?;
+        let record = state
+            .snapshot_basis_records
+            .get(&snapshot_id)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::TierTransferVerificationFailed,
+                    format!("snapshot basis `{snapshot_id}` is missing for tier verification"),
+                )
+            })?;
         return Ok(record.snapshot_image_digest.clone());
     }
     if let Some(layer_suffix) = artifact_key.strip_prefix("branch_delta:") {
@@ -118,12 +148,15 @@ pub(super) fn expected_verification_label(
                 format!("branch delta artifact `{artifact_key}` does not name a valid layer id"),
             )
         })?;
-        let record = state.branch_delta_layer_records.get(&layer_id).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::TierTransferVerificationFailed,
-                format!("branch delta layer `{layer_id}` is missing for tier verification"),
-            )
-        })?;
+        let record = state
+            .branch_delta_layer_records
+            .get(&layer_id)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::TierTransferVerificationFailed,
+                    format!("branch delta layer `{layer_id}` is missing for tier verification"),
+                )
+            })?;
         return Ok(record.authority_basis_digest.clone());
     }
     if let Some(artifact_id) = artifact_key.strip_prefix("milestone6_layout:") {
@@ -139,12 +172,15 @@ pub(super) fn expected_verification_label(
         return Ok(record.materialization.semantic_truth_digest().to_string());
     }
     if let Some(stable_basis_id) = artifact_key.strip_prefix("stable_basis:") {
-        let record = state.stable_basis_records.get(stable_basis_id).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::TierTransferVerificationFailed,
-                format!("stable basis `{stable_basis_id}` is missing for tier verification"),
-            )
-        })?;
+        let record = state
+            .stable_basis_records
+            .get(stable_basis_id)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::TierTransferVerificationFailed,
+                    format!("stable basis `{stable_basis_id}` is missing for tier verification"),
+                )
+            })?;
         return Ok(record.artifact_id.clone());
     }
     Err(StoreError::new(
@@ -176,31 +212,52 @@ pub(super) fn transfer_record<'a>(
     state: &'a StoreState,
     artifact_key: &str,
 ) -> Result<&'a TierTransferRecord, StoreError> {
-    state.tier_transfer_records.get(artifact_key).ok_or_else(|| {
-        StoreError::new(
-            StoreErrorKind::TierResidencyManifestViolation,
-            format!("artifact `{artifact_key}` has no persisted in-flight tier transfer"),
-        )
-    })
+    state
+        .tier_transfer_records
+        .get(artifact_key)
+        .ok_or_else(|| {
+            StoreError::new(
+                StoreErrorKind::TierResidencyManifestViolation,
+                format!("artifact `{artifact_key}` has no persisted in-flight tier transfer"),
+            )
+        })
 }
 
 pub(super) fn transfer_record_mut<'a>(
     state: &'a mut StoreState,
     artifact_key: &str,
 ) -> Result<&'a mut TierTransferRecord, StoreError> {
-    state.tier_transfer_records.get_mut(artifact_key).ok_or_else(|| {
-        StoreError::new(
-            StoreErrorKind::TierResidencyManifestViolation,
-            format!("artifact `{artifact_key}` has no persisted in-flight tier transfer"),
-        )
-    })
+    state
+        .tier_transfer_records
+        .get_mut(artifact_key)
+        .ok_or_else(|| {
+            StoreError::new(
+                StoreErrorKind::TierResidencyManifestViolation,
+                format!("artifact `{artifact_key}` has no persisted in-flight tier transfer"),
+            )
+        })
 }
 
-pub(super) fn manifest_from_state(state: &StoreState) -> crate::CanonicalResidencyManifest {
+pub(crate) fn manifest_from_state(state: &StoreState) -> crate::CanonicalResidencyManifest {
     crate::CanonicalResidencyManifest::new(
         state.tier_residency_records.keys().cloned().collect(),
         state.tier_transfer_records.keys().cloned().collect(),
     )
+}
+
+pub(crate) fn recall_record<'a>(
+    state: &'a StoreState,
+    coalescing_key: &str,
+) -> Result<&'a TierRecallRecord, StoreError> {
+    state
+        .tier_recall_records
+        .get(coalescing_key)
+        .ok_or_else(|| {
+            StoreError::new(
+                StoreErrorKind::TierRecallExecutionViolation,
+                format!("coalesced recall `{coalescing_key}` has no persisted recall record"),
+            )
+        })
 }
 
 pub(super) fn record_background_move_counters<P: StatePersistence>(

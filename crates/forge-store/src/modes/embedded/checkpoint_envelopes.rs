@@ -49,7 +49,9 @@ pub(crate) struct ClassifiedEmbeddedCheckpointEnvelope {
 }
 
 impl ClassifiedEmbeddedCheckpointEnvelope {
-    pub(crate) fn classify(checkpoint: ExternalRuntimeCheckpointEnvelope) -> Result<Self, StoreError> {
+    pub(crate) fn classify(
+        checkpoint: ExternalRuntimeCheckpointEnvelope,
+    ) -> Result<Self, StoreError> {
         if checkpoint.checkpoint_id.trim().is_empty() {
             return Err(StoreError::external_runtime_checkpoint_rejection(
                 "embedded checkpoints must declare a non-empty checkpoint identity",
@@ -76,7 +78,10 @@ impl ClassifiedEmbeddedCheckpointEnvelope {
         &self.contained_commits
     }
 
-    pub(crate) fn into_record(self, contained_commit_ids: Vec<CommitId>) -> EmbeddedCheckpointRecord {
+    pub(crate) fn into_record(
+        self,
+        contained_commit_ids: Vec<CommitId>,
+    ) -> EmbeddedCheckpointRecord {
         EmbeddedCheckpointRecord {
             checkpoint_id: self.checkpoint_id,
             source_runtime_id: self.source_runtime_id,

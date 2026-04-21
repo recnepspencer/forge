@@ -6,14 +6,15 @@ mod bulk_snapshot;
 mod indexes;
 #[path = "schema/retention_layout.rs"]
 mod retention_layout;
+#[path = "schema/tiering.rs"]
+mod tiering;
 
 use crate::failure::StoreError;
 use rusqlite::Connection;
 
 use super::helpers::{
     ensure_branch_delta_layer_artifacts_column,
-    migrate_milestone_6_commit_coupled_layout_seed_storage,
-    sqlite_error,
+    migrate_milestone_6_commit_coupled_layout_seed_storage, sqlite_error,
 };
 
 pub(super) fn configure_connection(connection: &Connection) -> Result<(), StoreError> {
@@ -33,6 +34,7 @@ pub(super) fn create_schema(connection: &Connection) -> Result<(), StoreError> {
     authority::create_authority_schema(connection)?;
     retention_layout::create_retention_layout_schema(connection)?;
     bulk_snapshot::create_bulk_snapshot_schema(connection)?;
+    tiering::create_tiering_schema(connection)?;
     indexes::create_indexes(connection)?;
     migrate_milestone_6_commit_coupled_layout_seed_storage(connection)?;
     ensure_branch_delta_layer_artifacts_column(connection)?;

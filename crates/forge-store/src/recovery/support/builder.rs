@@ -11,7 +11,9 @@ pub(crate) fn build_support_artifact_recovery_report(
     let mut entries = Vec::new();
 
     for summary in state.commit_support_summaries.values() {
-        entries.extend(build_commit_support_summary_recovery_entries(state, summary));
+        entries.extend(build_commit_support_summary_recovery_entries(
+            state, summary,
+        ));
     }
     for record in state.schema_support_records.values() {
         if let Err(error) = state.verify_schema_support_record(record) {
@@ -113,15 +115,24 @@ fn build_commit_support_summary_recovery_entries(
                 related_commit_id: Some(summary.commit_id.0),
                 disposition: disposition_for_support_error(&error),
                 kind: error.clone(),
-                reason: format!("support summary references missing commit {}", summary.commit_id.0),
+                reason: format!(
+                    "support summary references missing commit {}",
+                    summary.commit_id.0
+                ),
             });
         }
         return entries;
     };
 
     let expected_schema = commit_record.envelope.schema_transition.is_some()
-        || commit_record.envelope.schema_continuation_descriptor.is_some()
-        || commit_record.envelope.schema_reconciliation_descriptor.is_some();
+        || commit_record
+            .envelope
+            .schema_continuation_descriptor
+            .is_some()
+        || commit_record
+            .envelope
+            .schema_reconciliation_descriptor
+            .is_some();
     let expected_lineage = !commit_record.envelope.lineage_event_ids().is_empty()
         || !commit_record.envelope.lineage_events().is_empty();
 
@@ -135,7 +146,9 @@ fn build_commit_support_summary_recovery_entries(
                     family_scope = family_scope_name(family)
                 ),
                 related_commit_id: Some(summary.commit_id.0),
-                disposition: disposition_for_support_error(&StoreErrorKind::CommitSupportPublicationGap),
+                disposition: disposition_for_support_error(
+                    &StoreErrorKind::CommitSupportPublicationGap,
+                ),
                 kind: StoreErrorKind::CommitSupportPublicationGap,
                 reason: format!(
                     "support summary for commit {} drifted from commit branch context",
@@ -148,9 +161,14 @@ fn build_commit_support_summary_recovery_entries(
     if summary.emitted_schema_artifact != expected_schema {
         entries.push(SupportArtifactRecoveryEntry {
             family: SupportArtifactFamily::SchemaSupport,
-            scope_identity: format!("commit-support-summary:schema:commit:{}", summary.commit_id.0),
+            scope_identity: format!(
+                "commit-support-summary:schema:commit:{}",
+                summary.commit_id.0
+            ),
             related_commit_id: Some(summary.commit_id.0),
-            disposition: disposition_for_support_error(&StoreErrorKind::CommitSupportPublicationGap),
+            disposition: disposition_for_support_error(
+                &StoreErrorKind::CommitSupportPublicationGap,
+            ),
             kind: StoreErrorKind::CommitSupportPublicationGap,
             reason: format!(
                 "schema support summary for commit {} did not match canonical envelope content",
@@ -161,9 +179,14 @@ fn build_commit_support_summary_recovery_entries(
     if summary.emitted_lineage_artifact != expected_lineage {
         entries.push(SupportArtifactRecoveryEntry {
             family: SupportArtifactFamily::LineageSupport,
-            scope_identity: format!("commit-support-summary:lineage:commit:{}", summary.commit_id.0),
+            scope_identity: format!(
+                "commit-support-summary:lineage:commit:{}",
+                summary.commit_id.0
+            ),
             related_commit_id: Some(summary.commit_id.0),
-            disposition: disposition_for_support_error(&StoreErrorKind::CommitSupportPublicationGap),
+            disposition: disposition_for_support_error(
+                &StoreErrorKind::CommitSupportPublicationGap,
+            ),
             kind: StoreErrorKind::CommitSupportPublicationGap,
             reason: format!(
                 "lineage support summary for commit {} did not match canonical envelope content",
@@ -189,9 +212,14 @@ fn build_commit_support_summary_recovery_entries(
         } else if !state.schema_support_records.contains_key(&expected_id) {
             entries.push(SupportArtifactRecoveryEntry {
                 family: SupportArtifactFamily::SchemaSupport,
-                scope_identity: format!("commit-support-summary:schema:commit:{}", summary.commit_id.0),
+                scope_identity: format!(
+                    "commit-support-summary:schema:commit:{}",
+                    summary.commit_id.0
+                ),
                 related_commit_id: Some(summary.commit_id.0),
-                disposition: disposition_for_support_error(&StoreErrorKind::CommitSupportPublicationGap),
+                disposition: disposition_for_support_error(
+                    &StoreErrorKind::CommitSupportPublicationGap,
+                ),
                 kind: StoreErrorKind::CommitSupportPublicationGap,
                 reason: format!(
                     "schema support artifact for commit {} missing while summary claimed it exists",

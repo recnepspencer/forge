@@ -254,6 +254,14 @@ then Milestone 8 has failed.
   projection legality
 - `InspectorDetailFocused` is distinct only if it additionally constrains
   projection legality, delivery width, and aspect-focus admission
+- identity-aware inspector semantics are admitted in this milestone only as an
+  explicit view-shape contract carried by inspector families; identity-aware
+  inspector is not ambient metadata and not a generic bool flag over all view
+  families
+- identity-aware focused inspector must preserve Milestone 7 identity
+  classification explicitly, including advisory candidates, ambiguity, explicit
+  identity break, and denial, rather than collapsing them into one winner or
+  one empty patch interpretation
 - grouped or temporal view admission must stay explicit; no generic
   "collection but grouped somehow" bag is allowed
 - ephemeral saved-query artifacts may ship now, but durable reload,
@@ -1093,6 +1101,8 @@ Phase exit criterion:
 - planner-visible view-shape lowering for table, detail, observed inspector
   detail, focused inspector detail, and kanban grouped view
 - live-visible view-shape patch semantics for shipped view families
+- identity-aware inspector delivery metadata and saved-query binding for the
+  admitted inspector families
 - dedicated performance/counter subdomains for composition and view-shape
   semantics rather than generic telemetry-only logging
 - typed diagnostics, replay bundles, and exact counters for composition
@@ -1121,6 +1131,8 @@ Phase exit criterion:
   shapes execute against branch or historical contexts
 - identity-evolution ownership from Milestone 7 remains authoritative where
   inspector or grouped views consume lineage/correspondence results
+- identity-aware inspector contract changes are semantic changes for
+  saved-query freeze and reuse, not cosmetic view metadata drift
 - `forge-relational`, `forge-signal`, and the runtime bridge remain the
   authorities beneath query-owned composition and view contracts
 - saved-query artifacts remain semantic freezes of canonical query meaning, not
@@ -1299,6 +1311,9 @@ Milestone 8 is complete only when `forge-query` can prove:
 - shipped view shapes affect planning, invalidation, delivery, and patch
   semantics
 - grouped or inspector semantics do not exist only as cosmetic typing
+- identity-aware inspector semantics are planner-visible, delivery-visible,
+  saved-query-visible, and support-report-visible for the admitted inspector
+  families
 - unsupported composition families, unsupported view families, and durable
   overclaims fail typed and early
 
@@ -1385,6 +1400,10 @@ Minimum representative scenarios:
 - `identity-aware-focused-inspector-parity`
   - one focused inspector detail lane consumes Milestone 7 identity-evolution
     output without flattening identity classification
+- `identity-break-inspector-explicitness`
+  - one identity-aware focused inspector lane preserves explicit identity break
+    as explicit identity classification instead of degrading it into generic
+    denial, empty patch, or missing-data semantics
 - `post-admission-view-mutation-forbidden`
   - one hostile lane attempts to mutate admitted view family after planning and
     fails compile-time or typed admission

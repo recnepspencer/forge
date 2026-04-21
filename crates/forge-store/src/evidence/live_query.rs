@@ -45,7 +45,9 @@ pub(super) struct LiveQueryCounters {
 
 impl StoreCounters {
     pub fn record_cursor_resume(&self, support_rows_read: u64, step_count: u64) {
-        self.live_query.cursor_resume_count.fetch_add(1, Ordering::Relaxed);
+        self.live_query
+            .cursor_resume_count
+            .fetch_add(1, Ordering::Relaxed);
         self.live_query
             .cursor_resume_support_rows_read
             .fetch_add(support_rows_read, Ordering::Relaxed);
@@ -61,7 +63,9 @@ impl StoreCounters {
     }
 
     pub fn record_cursor_ack(&self) {
-        self.live_query.cursor_ack_count.fetch_add(1, Ordering::Relaxed);
+        self.live_query
+            .cursor_ack_count
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn record_cursor_equivalence_reject(&self) {
@@ -155,17 +159,61 @@ impl StoreCounters {
             .fetch_add(step_count, Ordering::Relaxed);
     }
 
-    pub fn record_continuation_schema_mismatch(&self) { self.live_query.continuation_schema_mismatch_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_scope_mismatch(&self) { self.live_query.continuation_scope_mismatch_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_degraded_basis(&self) { self.live_query.continuation_degraded_basis_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_rejected_basis(&self) { self.live_query.continuation_rejected_basis_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_control_lane_fallback(&self) { self.live_query.continuation_control_lane_fallback_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_batch_gap(&self) { self.live_query.continuation_batch_gap_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_batch_duplicate(&self) { self.live_query.continuation_batch_duplicate_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_broadening(&self) { self.live_query.continuation_broadening_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_parity(&self) { self.live_query.continuation_parity_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_continuation_illegal_acknowledgment(&self) { self.live_query.continuation_illegal_acknowledgment_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_subscriber_checkpoint_write(&self) { self.live_query.subscriber_checkpoint_write_count.fetch_add(1, Ordering::Relaxed); }
+    pub fn record_continuation_schema_mismatch(&self) {
+        self.live_query
+            .continuation_schema_mismatch_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_scope_mismatch(&self) {
+        self.live_query
+            .continuation_scope_mismatch_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_degraded_basis(&self) {
+        self.live_query
+            .continuation_degraded_basis_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_rejected_basis(&self) {
+        self.live_query
+            .continuation_rejected_basis_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_control_lane_fallback(&self) {
+        self.live_query
+            .continuation_control_lane_fallback_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_batch_gap(&self) {
+        self.live_query
+            .continuation_batch_gap_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_batch_duplicate(&self) {
+        self.live_query
+            .continuation_batch_duplicate_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_broadening(&self) {
+        self.live_query
+            .continuation_broadening_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_parity(&self) {
+        self.live_query
+            .continuation_parity_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_continuation_illegal_acknowledgment(&self) {
+        self.live_query
+            .continuation_illegal_acknowledgment_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_subscriber_checkpoint_write(&self) {
+        self.live_query
+            .subscriber_checkpoint_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
 
     pub fn record_embedded_checkpoint_fetch(&self, basis_reads: u64) {
         self.live_query
@@ -179,8 +227,16 @@ impl StoreCounters {
             .fetch_add(basis_reads, Ordering::Relaxed);
     }
 
-    pub fn record_checkpoint_shape_reject(&self) { self.live_query.checkpoint_shape_reject_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_support_artifact_recovery_gap(&self, count: u64) { self.live_query.support_artifact_recovery_gap_count.fetch_add(count, Ordering::Relaxed); }
+    pub fn record_checkpoint_shape_reject(&self) {
+        self.live_query
+            .checkpoint_shape_reject_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_support_artifact_recovery_gap(&self, count: u64) {
+        self.live_query
+            .support_artifact_recovery_gap_count
+            .fetch_add(count, Ordering::Relaxed);
+    }
 }
 
 pub(super) fn write_snapshot(counters: &LiveQueryCounters, snapshot: &mut StoreCounterSnapshot) {

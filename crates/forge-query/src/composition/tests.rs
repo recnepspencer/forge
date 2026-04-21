@@ -25,9 +25,7 @@ fn direct_detail_query() -> crate::authoring::DetailAuthoredQuery {
 fn direct_detail_shape() -> crate::authoring::DetailAuthoredResultShape {
     crate::authoring::RawAuthoredResultShape::detail_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .build()
         .unwrap()
 }
@@ -44,28 +42,27 @@ fn direct_collection_query() -> crate::authoring::CollectionAuthoredQuery {
 fn direct_collection_shape() -> crate::authoring::CollectionAuthoredResultShape {
     crate::authoring::RawAuthoredResultShape::collection_builder()
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
-        .field(
-            AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap(),
-        )
+        .field(AuthoredResultShapeField::new("profile", "display_name", "display_name").unwrap())
         .build()
         .unwrap()
 }
 
 #[test]
 fn detail_template_instantiation_preserves_canonical_parity() {
-    let direct_query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-        .where_equal(
-            EqualityPredicate::new(
-                "profile",
-                "display_name",
-                ScalarPredicateValue::String("Alice".to_string()),
+    let direct_query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .project(AspectFieldSelector::new("profile", "display_name").unwrap())
+            .where_equal(
+                EqualityPredicate::new(
+                    "profile",
+                    "display_name",
+                    ScalarPredicateValue::String("Alice".to_string()),
+                )
+                .unwrap(),
             )
-            .unwrap(),
-        )
-        .build()
-        .unwrap();
+            .build()
+            .unwrap();
     let direct_shape = direct_detail_shape();
     let direct = GuidedAuthoringPath::canonicalize_detail(direct_query, direct_shape).unwrap();
 
@@ -96,19 +93,29 @@ fn detail_template_instantiation_preserves_canonical_parity() {
         composed.canonical().result_shape().digest()
     );
     assert_eq!(composed.composition().counters().template_slot_count(), 1);
-    assert_eq!(composed.composition().counters().template_binding_width(), 1);
-    assert_eq!(composed.composition().counters().template_rediscovery_count(), 0);
+    assert_eq!(
+        composed.composition().counters().template_binding_width(),
+        1
+    );
+    assert_eq!(
+        composed
+            .composition()
+            .counters()
+            .template_rediscovery_count(),
+        0
+    );
 }
 
 #[test]
 fn collection_template_instantiation_preserves_canonical_parity() {
-    let direct_query = crate::authoring::RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-        .order_by(OrderingSelector::ascending("profile", "display_name").unwrap())
-        .traverse(TraversalSelector::bounded("manager", 1).unwrap())
-        .build()
-        .unwrap();
+    let direct_query =
+        crate::authoring::RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .project(AspectFieldSelector::new("profile", "display_name").unwrap())
+            .order_by(OrderingSelector::ascending("profile", "display_name").unwrap())
+            .traverse(TraversalSelector::bounded("manager", 1).unwrap())
+            .build()
+            .unwrap();
     let direct_shape = direct_collection_shape();
     let direct = GuidedAuthoringPath::canonicalize_collection(direct_query, direct_shape).unwrap();
 
@@ -116,8 +123,10 @@ fn collection_template_instantiation_preserves_canonical_parity() {
     let template =
         QueryTemplateDescriptor::collection(direct_collection_query(), direct_collection_shape())
             .with_slot(traversal_slot.clone());
-    let bindings = TemplateBindingSet::new()
-        .bind_traversal(&traversal_slot, TraversalSelector::bounded("manager", 1).unwrap());
+    let bindings = TemplateBindingSet::new().bind_traversal(
+        &traversal_slot,
+        TraversalSelector::bounded("manager", 1).unwrap(),
+    );
     let (_artifact, expanded) =
         GuidedCompositionPath::instantiate_collection_template(template, bindings).unwrap();
     let composed = GuidedCompositionPath::canonicalize_expanded(expanded).unwrap();
@@ -134,12 +143,15 @@ fn collection_template_instantiation_preserves_canonical_parity() {
 
 #[test]
 fn scope_expansion_preserves_parity_and_emits_lineage() {
-    let direct_query = crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
-        .project(AspectFieldSelector::new("identity", "id").unwrap())
-        .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-        .where_greater_than(IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap())
-        .build()
-        .unwrap();
+    let direct_query =
+        crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
+            .project(AspectFieldSelector::new("identity", "id").unwrap())
+            .project(AspectFieldSelector::new("profile", "display_name").unwrap())
+            .where_greater_than(
+                IntegerComparisonPredicate::greater_than("profile", "age", 21).unwrap(),
+            )
+            .build()
+            .unwrap();
     let direct_shape = direct_detail_shape();
     let direct = GuidedAuthoringPath::canonicalize_detail(direct_query, direct_shape).unwrap();
 
@@ -169,7 +181,10 @@ fn scope_expansion_preserves_parity_and_emits_lineage() {
         ""
     );
     assert_eq!(composed.composition().counters().scope_expansion_count(), 1);
-    assert_eq!(composed.composition().counters().scope_rediscovery_count(), 0);
+    assert_eq!(
+        composed.composition().counters().scope_rediscovery_count(),
+        0
+    );
 }
 
 #[test]
@@ -181,13 +196,20 @@ fn basis_aware_scope_preserves_query_meaning_and_emits_basis_metadata() {
     )
     .unwrap();
     let admitted = admit_query_basis_context(binding).unwrap();
-    let direct = GuidedAuthoringPath::canonicalize_detail(direct_detail_query(), direct_detail_shape()).unwrap();
-    let evidence =
-        BasisScopeEvidence::from_admitted_context_for_canonical_query(&admitted, direct.query().digest());
-    let scope = QueryScopeDescriptor::basis_aware("current_basis", evidence.clone());
-    let (artifact, expanded) =
-        GuidedCompositionPath::expand_detail_scopes(direct_detail_query(), direct_detail_shape(), [scope])
+    let direct =
+        GuidedAuthoringPath::canonicalize_detail(direct_detail_query(), direct_detail_shape())
             .unwrap();
+    let evidence = BasisScopeEvidence::from_admitted_context_for_canonical_query(
+        &admitted,
+        direct.query().digest(),
+    );
+    let scope = QueryScopeDescriptor::basis_aware("current_basis", evidence.clone());
+    let (artifact, expanded) = GuidedCompositionPath::expand_detail_scopes(
+        direct_detail_query(),
+        direct_detail_shape(),
+        [scope],
+    )
+    .unwrap();
     let composed = GuidedCompositionPath::canonicalize_expanded(expanded).unwrap();
 
     assert_eq!(

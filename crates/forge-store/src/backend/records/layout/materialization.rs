@@ -3,8 +3,8 @@ mod validation;
 
 use crate::layout::{
     AdmittedAspectLayoutReadPlan, ChunkDeterminismWitness, ChunkModelFrozenPhysicalLayout,
-    DedupAdmittedBlockReuse, Milestone6LayoutMaterialization,
-    Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+    DedupAdmittedBlockReuse, Milestone6LayoutMaterialization, Milestone7IndependentLayoutReference,
+    Milestone9PhysicalChunkReference,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
@@ -101,11 +101,15 @@ struct PersistedMilestone9PhysicalChunkReference {
     chunk_member_count: usize,
 }
 
-impl From<&Milestone6LayoutMaterializationRecord> for PersistedMilestone6LayoutMaterializationRecord {
+impl From<&Milestone6LayoutMaterializationRecord>
+    for PersistedMilestone6LayoutMaterializationRecord
+{
     fn from(record: &Milestone6LayoutMaterializationRecord) -> Self {
         Self {
             artifact_id: record.artifact_id.clone(),
-            materialization: PersistedMilestone6LayoutMaterialization::from(&record.materialization),
+            materialization: PersistedMilestone6LayoutMaterialization::from(
+                &record.materialization,
+            ),
         }
     }
 }
@@ -114,11 +118,19 @@ impl From<&Milestone6LayoutMaterialization> for PersistedMilestone6LayoutMateria
     fn from(materialization: &Milestone6LayoutMaterialization) -> Self {
         Self {
             artifact_id: materialization.artifact_id().to_string(),
-            admitted_plan: PersistedAdmittedAspectLayoutReadPlan::from(materialization.admitted_plan()),
+            admitted_plan: PersistedAdmittedAspectLayoutReadPlan::from(
+                materialization.admitted_plan(),
+            ),
             block_reuse: PersistedDedupAdmittedBlockReuse::from(materialization.block_reuse()),
-            frozen_layout: PersistedChunkModelFrozenPhysicalLayout::from(materialization.frozen_layout()),
-            milestone_7_reference: PersistedMilestone7IndependentLayoutReference::from(materialization.milestone_7_reference()),
-            milestone_9_reference: PersistedMilestone9PhysicalChunkReference::from(materialization.milestone_9_reference()),
+            frozen_layout: PersistedChunkModelFrozenPhysicalLayout::from(
+                materialization.frozen_layout(),
+            ),
+            milestone_7_reference: PersistedMilestone7IndependentLayoutReference::from(
+                materialization.milestone_7_reference(),
+            ),
+            milestone_9_reference: PersistedMilestone9PhysicalChunkReference::from(
+                materialization.milestone_9_reference(),
+            ),
             semantic_truth_digest: materialization.semantic_truth_digest().to_string(),
             authoritative_commit_count: materialization.authoritative_commit_count(),
         }
@@ -192,10 +204,14 @@ impl From<&Milestone9PhysicalChunkReference> for PersistedMilestone9PhysicalChun
     }
 }
 
-impl TryFrom<PersistedMilestone6LayoutMaterializationRecord> for Milestone6LayoutMaterializationRecord {
+impl TryFrom<PersistedMilestone6LayoutMaterializationRecord>
+    for Milestone6LayoutMaterializationRecord
+{
     type Error = String;
 
-    fn try_from(record: PersistedMilestone6LayoutMaterializationRecord) -> Result<Self, Self::Error> {
+    fn try_from(
+        record: PersistedMilestone6LayoutMaterializationRecord,
+    ) -> Result<Self, Self::Error> {
         validation::validate_persisted_milestone_6_layout_materialization_record(&record)?;
         Ok(Self {
             artifact_id: record.artifact_id,
@@ -207,7 +223,9 @@ impl TryFrom<PersistedMilestone6LayoutMaterializationRecord> for Milestone6Layou
 impl TryFrom<PersistedMilestone6LayoutMaterialization> for Milestone6LayoutMaterialization {
     type Error = String;
 
-    fn try_from(materialization: PersistedMilestone6LayoutMaterialization) -> Result<Self, Self::Error> {
+    fn try_from(
+        materialization: PersistedMilestone6LayoutMaterialization,
+    ) -> Result<Self, Self::Error> {
         validation::validate_persisted_milestone_6_layout_materialization(&materialization)?;
         let admitted_plan = AdmittedAspectLayoutReadPlan::new(
             materialization.admitted_plan.request,

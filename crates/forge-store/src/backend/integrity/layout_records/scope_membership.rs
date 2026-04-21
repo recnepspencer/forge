@@ -19,8 +19,9 @@ impl StoreState {
                     record.artifact_id, record.layout_materialization_artifact_id
                 ))
             })?;
-        let expected_artifact_id =
-            layout_scope_membership_artifact_id(materialization.materialization.admitted_plan().request())?;
+        let expected_artifact_id = layout_scope_membership_artifact_id(
+            materialization.materialization.admitted_plan().request(),
+        )?;
         if stored_key != expected_artifact_id {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership map key `{stored_key}` did not match expected artifact id `{expected_artifact_id}`"
@@ -32,26 +33,48 @@ impl StoreState {
                 record.artifact_id
             )));
         }
-        if record.branch_id != *materialization.materialization.admitted_plan().request().target().branch_id() {
+        if record.branch_id
+            != *materialization
+                .materialization
+                .admitted_plan()
+                .request()
+                .target()
+                .branch_id()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership `{expected_artifact_id}` drifted from admitted plan branch"
             )));
         }
         if record.frontier_commit_id
-            != materialization.materialization.admitted_plan().request().target().frontier_commit_id()
+            != materialization
+                .materialization
+                .admitted_plan()
+                .request()
+                .target()
+                .frontier_commit_id()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership `{expected_artifact_id}` drifted from admitted plan frontier"
             )));
         }
         if record.scope_class
-            != materialization.materialization.admitted_plan().request().scope_class().label()
+            != materialization
+                .materialization
+                .admitted_plan()
+                .request()
+                .scope_class()
+                .label()
         {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership `{expected_artifact_id}` drifted from admitted plan scope class"
             )));
         }
-        if record.projection_digest != materialization.materialization.milestone_7_reference().projection_digest() {
+        if record.projection_digest
+            != materialization
+                .materialization
+                .milestone_7_reference()
+                .projection_digest()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "milestone 6 scope membership `{expected_artifact_id}` drifted from milestone 7 projection digest"
             )));

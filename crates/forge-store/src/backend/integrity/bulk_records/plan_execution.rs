@@ -4,7 +4,9 @@ use crate::{
     failure::{StoreError, StoreErrorKind},
 };
 
-use super::super::identity::{bulk_plan_artifact_id, bulk_program_artifact_id, bulk_witness_artifact_id};
+use super::super::identity::{
+    bulk_plan_artifact_id, bulk_program_artifact_id, bulk_witness_artifact_id,
+};
 
 impl StoreState {
     pub(super) fn verify_bulk_plan_and_witness_records(&self) -> Result<(), StoreError> {
@@ -22,10 +24,15 @@ fn verify_deterministic_plans(state: &StoreState) -> Result<(), StoreError> {
                 "bulk plan key `{stored_key}` did not match expected artifact id `{expected}`"
             )));
         }
-        if record.family_version != BULK_FAMILY_VERSION || record.plan.family_version() != BULK_FAMILY_VERSION {
+        if record.family_version != BULK_FAMILY_VERSION
+            || record.plan.family_version() != BULK_FAMILY_VERSION
+        {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk plan `{}` used unsupported family version", record.artifact_id),
+                format!(
+                    "bulk plan `{}` used unsupported family version",
+                    record.artifact_id
+                ),
             ));
         }
         if record.program_id != record.plan.program_id() {
@@ -68,7 +75,10 @@ fn verify_chunk_witnesses(state: &StoreState) -> Result<(), StoreError> {
         if record.family_version != BULK_FAMILY_VERSION {
             return Err(StoreError::new(
                 StoreErrorKind::BulkProgramVersionUnsupported,
-                format!("bulk witness `{}` used unsupported family version", record.artifact_id),
+                format!(
+                    "bulk witness `{}` used unsupported family version",
+                    record.artifact_id
+                ),
             ));
         }
         let plan = state
@@ -80,7 +90,9 @@ fn verify_chunk_witnesses(state: &StoreState) -> Result<(), StoreError> {
                     record.artifact_id
                 ))
             })?;
-        if plan.plan.plan_id() != record.witness.plan_id() || plan.plan.program_id() != record.witness.program_id() {
+        if plan.plan.plan_id() != record.witness.plan_id()
+            || plan.plan.program_id() != record.witness.program_id()
+        {
             return Err(StoreError::backend_integrity(format!(
                 "bulk witness `{}` drifted from its plan linkage",
                 record.artifact_id

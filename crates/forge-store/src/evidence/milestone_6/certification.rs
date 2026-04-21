@@ -101,10 +101,18 @@ impl Milestone6CertificationBundle {
         layout_support_publication_disposition: Milestone6LayoutSupportPublicationDisposition,
     ) -> Self {
         Self::build(
-            plan, reuse, frozen, milestone_7, milestone_9, access_structure_verification,
-            counter_snapshot, requested_layout_support_lane, resolved_layout_support_lane,
+            plan,
+            reuse,
+            frozen,
+            milestone_7,
+            milestone_9,
+            access_structure_verification,
+            counter_snapshot,
+            requested_layout_support_lane,
+            resolved_layout_support_lane,
             layout_support_publication_disposition,
-            Milestone6CertificationOrigin::ReconstructedWitness, None,
+            Milestone6CertificationOrigin::ReconstructedWitness,
+            None,
         )
     }
 
@@ -168,8 +176,12 @@ impl Milestone6CertificationBundle {
         layout_materialization_report: Option<Milestone6LayoutMaterializationReport>,
     ) -> Self {
         let layout_read_report = Milestone6LayoutReadReport::from(plan);
-        let physical_layout_report =
-            Milestone6PhysicalLayoutReport::from_references(reuse, frozen, milestone_7, milestone_9);
+        let physical_layout_report = Milestone6PhysicalLayoutReport::from_references(
+            reuse,
+            frozen,
+            milestone_7,
+            milestone_9,
+        );
         let truth_digest = stable_layout_digest(&Milestone6TruthDigestBasis {
             layout_read_report: &layout_read_report,
             physical_layout_report: &physical_layout_report,
@@ -188,8 +200,9 @@ impl Milestone6CertificationBundle {
             chunk_membership_artifact_id: &chunk_membership_artifact_id,
         });
         let counter_contract = Milestone6CounterContract::from_snapshot(&counter_snapshot);
-        let access_structure_contract =
-            Milestone6AccessStructureContract::for_backend_family(access_structure_verification.backend_family);
+        let access_structure_contract = Milestone6AccessStructureContract::for_backend_family(
+            access_structure_verification.backend_family,
+        );
         let complexity_status = Milestone6ComplexitySurface::derive(
             resolved_layout_support_lane,
             &layout_read_report,
@@ -199,8 +212,11 @@ impl Milestone6CertificationBundle {
             &counter_contract,
             layout_materialization_report.as_ref(),
         );
-        let certification_summary =
-            Milestone6CertificationSummary::from_surface(&layout_read_report, &physical_layout_report, &complexity_status);
+        let certification_summary = Milestone6CertificationSummary::from_surface(
+            &layout_read_report,
+            &physical_layout_report,
+            &complexity_status,
+        );
         let diagnostics_digest = stable_layout_digest(&Milestone6DiagnosticsDigestBasis {
             requested_layout_support_lane: &requested_layout_support_lane,
             resolved_layout_support_lane: &resolved_layout_support_lane,
@@ -255,12 +271,15 @@ impl Milestone6CertificationSummary {
         Self {
             verified_path_count,
             debt_path_count,
-            fallback_free_admission: layout_read_report.fallback_class == crate::AspectLayoutFallbackClass::None,
+            fallback_free_admission: layout_read_report.fallback_class
+                == crate::AspectLayoutFallbackClass::None,
             deterministic_chunk_freeze: physical_layout_report.chunk_width > 0
                 && !physical_layout_report.determinism_digest.is_empty(),
             milestone_7_boundary_isolated: complexity_status.milestone_7_layout_reference.status
                 == crate::ComplexityStatus::Verified,
-            milestone_9_boundary_isolated: complexity_status.milestone_9_physical_chunk_reference.status
+            milestone_9_boundary_isolated: complexity_status
+                .milestone_9_physical_chunk_reference
+                .status
                 == crate::ComplexityStatus::Verified,
         }
     }

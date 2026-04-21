@@ -12,17 +12,9 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-forge-ui-types      = { workspace = true }
-forge-ui-theme      = { workspace = true }
-forge-ui-components = { workspace = true }
-forge-ui-adapters   = { workspace = true }
-forge-ui-state      = { workspace = true }
+forge-query          = { workspace = true }
+forge-runtime-bridge = { workspace = true }
 
 # UI framework
-eframe        = { workspace = true }
-egui          = { workspace = true }
-egui-wgpu     = { workspace = true }
-egui_extras   = { version = "0.31", features = ["svg", "image"] }
-wgpu          = { workspace = true }
-glam          = { workspace = true }
-image         = { version = "0.25", default-features = false, features = ["png"] }
+eframe = { workspace = true }
+egui   = { workspace = true }

@@ -1,9 +1,10 @@
 use crate::authoring::ResultShapeFamily;
 use crate::composition::{CompositionDigest, ScopeLineageDigest, TemplateBindingDigest};
 use crate::identity::SchemaBasisDigest;
+use crate::identity_evolution::InspectorIdentityDigest;
 use crate::query_context::QueryContextFamily;
 use crate::saved_query::{SavedQueryArtifact, SavedQueryFailureClass};
-use crate::view_shape::{ViewShapeDigest, ViewShapeFamily};
+use crate::view_shape::{ViewShapeDigest, ViewShapeFamily, ViewShapeIdentityConsumption};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SavedQueryRebindingDimension {
@@ -12,6 +13,7 @@ pub enum SavedQueryRebindingDimension {
     TemplateSlotValue,
     TemplateSlotSet,
     ViewFamily,
+    IdentityConsumption,
     ResultShapeFamily,
     CompositionLineage,
     SupportProfile,
@@ -25,6 +27,7 @@ impl SavedQueryRebindingDimension {
             Self::TemplateSlotValue => "template_slot_value",
             Self::TemplateSlotSet => "template_slot_set",
             Self::ViewFamily => "view_family",
+            Self::IdentityConsumption => "identity_consumption",
             Self::ResultShapeFamily => "result_shape_family",
             Self::CompositionLineage => "composition_lineage",
             Self::SupportProfile => "support_profile",
@@ -81,6 +84,9 @@ pub struct SavedQueryReuseDescriptor {
     template_slot_count: usize,
     view_shape_digest: ViewShapeDigest,
     view_shape_family: ViewShapeFamily,
+    identity_consumption: ViewShapeIdentityConsumption,
+    identity_consumption_digest: InspectorIdentityDigest,
+    inspector_identity_classification_digest: InspectorIdentityDigest,
     result_shape_family: ResultShapeFamily,
     composition_digest: CompositionDigest,
     scope_lineage_digest: Option<ScopeLineageDigest>,
@@ -110,12 +116,36 @@ impl SavedQueryReuseDescriptor {
             template_slot_count,
             view_shape_digest,
             view_shape_family,
+            identity_consumption: ViewShapeIdentityConsumption::none(),
+            identity_consumption_digest: InspectorIdentityDigest::from_parts(&[
+                "identity_consumption:none".to_string(),
+            ]),
+            inspector_identity_classification_digest: InspectorIdentityDigest::from_parts(&[
+                "identity_classification:none".to_string(),
+            ]),
             result_shape_family,
             composition_digest,
             scope_lineage_digest,
             support_profile_digest: support_profile_digest.into(),
             capability_family_identity: capability_family_identity.into(),
         }
+    }
+
+    pub fn with_identity_consumption(
+        mut self,
+        identity_consumption: ViewShapeIdentityConsumption,
+    ) -> Self {
+        self.identity_consumption_digest = identity_consumption.digest();
+        self.inspector_identity_classification_digest =
+            InspectorIdentityDigest::from_parts(&[format!(
+                "classification:{}",
+                identity_consumption
+                    .classification()
+                    .map(|classification| classification.as_str())
+                    .unwrap_or("none")
+            )]);
+        self.identity_consumption = identity_consumption;
+        self
     }
 
     pub fn with_schema_basis_equivalence(
@@ -222,6 +252,7 @@ pub fn evaluate_saved_query_reuse(
         evaluate_template_slot_value(artifact, descriptor),
         evaluate_template_slot_set(artifact, descriptor),
         evaluate_view_family(artifact, descriptor),
+        evaluate_identity_consumption(artifact, descriptor),
         evaluate_result_shape_family(artifact, descriptor),
         evaluate_composition_lineage(artifact, descriptor),
         evaluate_support_profile(artifact, descriptor),
@@ -319,7 +350,8 @@ fn evaluate_template_slot_value(
     artifact: &SavedQueryArtifact,
     descriptor: &SavedQueryReuseDescriptor,
 ) -> SavedQueryBindingMatrixRow {
-    if artifact.metadata().template_binding_digest() == descriptor.template_binding_digest.as_ref() {
+    if artifact.metadata().template_binding_digest() == descriptor.template_binding_digest.as_ref()
+    {
         return row(
             SavedQueryRebindingDimension::TemplateSlotValue,
             SavedQueryRebindingLegality::LegalNoSemanticChange,
@@ -368,6 +400,31 @@ fn evaluate_view_family(
         SavedQueryRebindingDimension::ViewFamily,
         SavedQueryRebindingLegality::LegalRequiresFreshFreeze,
         "view-shape changes require a fresh freeze artifact",
+    )
+}
+
+fn evaluate_identity_consumption(
+    artifact: &SavedQueryArtifact,
+    descriptor: &SavedQueryReuseDescriptor,
+) -> SavedQueryBindingMatrixRow {
+    if artifact.metadata().identity_consumption() == &descriptor.identity_consumption
+        && artifact.metadata().identity_consumption_digest()
+            == &descriptor.identity_consumption_digest
+        && artifact
+            .metadata()
+            .inspector_identity_classification_digest()
+            == &descriptor.inspector_identity_classification_digest
+    {
+        return row(
+            SavedQueryRebindingDimension::IdentityConsumption,
+            SavedQueryRebindingLegality::LegalNoSemanticChange,
+            "identity-aware inspector contract is unchanged",
+        );
+    }
+    row(
+        SavedQueryRebindingDimension::IdentityConsumption,
+        SavedQueryRebindingLegality::LegalRequiresFreshFreeze,
+        "identity-aware inspector contract changes require a fresh freeze artifact",
     )
 }
 

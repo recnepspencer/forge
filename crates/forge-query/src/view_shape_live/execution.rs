@@ -1,23 +1,20 @@
 use crate::identity::hash_parts;
 use crate::live::{
     execute_live_change, BridgeChangeSummary, DetailPatch, LiveCollectionPatchError,
-    LiveExecutionError, LivePatchPayload, OrderedCollectionPatch,
-    ProjectionFieldDelta,
+    LiveExecutionError, LivePatchPayload, OrderedCollectionPatch, ProjectionFieldDelta,
 };
 use crate::view_shape::KanbanGroupedLiveContract;
 
 use super::artifact::{
     DetailFieldPatchArtifact, FocusedInspectorAspectPatchArtifact, GroupedLiveViewShapeArtifact,
-    LiveViewShapeArtifact,
-    LiveViewShapeExecutionEnvelope, ObservedInspectorPatchArtifact, TableRowPatchArtifact,
-    ViewShapeLiveReport, ViewShapePatchEnvelope, ViewShapePatchFamily, ViewShapePatchPayload,
-    ViewShapeRefreshDisposition, ViewShapeReplayBundle, ViewShapeSuppressionDisposition,
+    LiveViewShapeArtifact, LiveViewShapeExecutionEnvelope, ObservedInspectorPatchArtifact,
+    TableRowPatchArtifact, ViewShapeLiveReport, ViewShapePatchEnvelope, ViewShapePatchFamily,
+    ViewShapePatchPayload, ViewShapeRefreshDisposition, ViewShapeReplayBundle,
+    ViewShapeSuppressionDisposition,
 };
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
 use super::family::LiveViewShapeFamily;
-use super::grouped_delta::{
-    build_grouped_delta, GroupedDeltaComputation, GroupedRefreshReason,
-};
+use super::grouped_delta::{build_grouped_delta, GroupedDeltaComputation, GroupedRefreshReason};
 use super::grouped_execution::GroupedExecutionSurfaceArtifact;
 use super::grouped_state::desired_state_from_members;
 
@@ -89,8 +86,7 @@ fn grouped_core_execution_rejection_envelope(
         format!("basis:{:?}", live_view.basis().proof().digest()),
         format!("rejection:{rejection:?}"),
     ]);
-    let patch_envelope =
-        grouped_refresh_payload(family, reason, None, rejection_digest.as_str());
+    let patch_envelope = grouped_refresh_payload(family, reason, None, rejection_digest.as_str());
     let report = ViewShapeLiveReport::new(
         family,
         patch_envelope.delivery_digest(),
@@ -170,9 +166,11 @@ fn execute_live_view_shape_change_inner(
     let family = live_view.lowering().family();
     let core_execution = match execute_live_change(live_view.core_live_plan(), change) {
         Ok(execution) => execution,
-        Err(error @ LiveExecutionError::OrderedCollection(
-            LiveCollectionPatchError::CoalescingRequired { .. },
-        )) if family == LiveViewShapeFamily::KanbanGrouped => {
+        Err(
+            error @ LiveExecutionError::OrderedCollection(
+                LiveCollectionPatchError::CoalescingRequired { .. },
+            ),
+        ) if family == LiveViewShapeFamily::KanbanGrouped => {
             return Ok(grouped_core_execution_rejection_envelope(
                 live_view,
                 GroupedRefreshReason::CoreRefreshRequested,
@@ -182,7 +180,10 @@ fn execute_live_view_shape_change_inner(
         }
         Err(error) => return Err(error.into()),
     };
-    let mut counters = live_view.counters().clone().with_core(core_execution.counters().clone());
+    let mut counters = live_view
+        .counters()
+        .clone()
+        .with_core(core_execution.counters().clone());
 
     let patch_envelope = match (family, core_execution.patch_envelope().payload()) {
         (LiveViewShapeFamily::Table, LivePatchPayload::OrderedCollection(patch)) => {
@@ -195,7 +196,10 @@ fn execute_live_view_shape_change_inner(
                 core_execution.patch_envelope().delivery_digest(),
                 hash_parts(&[
                     format!("family:{}", family.as_str()),
-                    format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                    format!(
+                        "core_replay:{}",
+                        core_execution.patch_envelope().replay_digest()
+                    ),
                 ]),
                 ViewShapePatchPayload::TableRowPatch(TableRowPatchArtifact::new(
                     patch.digest().as_str(),
@@ -213,7 +217,10 @@ fn execute_live_view_shape_change_inner(
                 core_execution.patch_envelope().delivery_digest(),
                 hash_parts(&[
                     format!("family:{}", family.as_str()),
-                    format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                    format!(
+                        "core_replay:{}",
+                        core_execution.patch_envelope().replay_digest()
+                    ),
                 ]),
                 ViewShapePatchPayload::DetailFieldPatch(DetailFieldPatchArtifact::new(
                     patch.digest().as_str(),
@@ -226,18 +233,32 @@ fn execute_live_view_shape_change_inner(
             counters.set_view_patch_width(width);
             counters.set_view_delivery_width(width);
             counters.set_observed_inspector_delivery_width(width);
+            let inspector_identity = live_view.inspector_identity().cloned();
             ViewShapePatchEnvelope::new(
                 family,
                 Some(ViewShapePatchFamily::ObservedInspectorPatch),
                 core_execution.patch_envelope().delivery_digest(),
                 hash_parts(&[
                     format!("family:{}", family.as_str()),
-                    format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                    format!(
+                        "core_replay:{}",
+                        core_execution.patch_envelope().replay_digest()
+                    ),
+                    format!(
+                        "identity:{}",
+                        inspector_identity
+                            .as_ref()
+                            .map(|artifact| artifact.digest().as_str())
+                            .unwrap_or("none")
+                    ),
                     "observed:narrow".to_string(),
                 ]),
-                ViewShapePatchPayload::ObservedInspectorPatch(
-                    ObservedInspectorPatchArtifact::new(patch.digest().as_str(), width, width),
-                ),
+                ViewShapePatchPayload::ObservedInspectorPatch(ObservedInspectorPatchArtifact::new(
+                    patch.digest().as_str(),
+                    width,
+                    width,
+                    inspector_identity,
+                )),
             )
         }
         (LiveViewShapeFamily::InspectorDetailFocused, LivePatchPayload::Detail(patch)) => {
@@ -264,20 +285,32 @@ fn execute_live_view_shape_change_inner(
             counters.set_focused_inspector_aspect_focus_width(focused.len());
             counters.set_view_patch_width(focused.len());
             counters.set_view_delivery_width(focused.len());
+            let inspector_identity = live_view.inspector_identity().cloned();
             ViewShapePatchEnvelope::new(
                 family,
                 Some(ViewShapePatchFamily::FocusedInspectorAspectPatch),
                 core_execution.patch_envelope().delivery_digest(),
                 hash_parts(&[
                     format!("family:{}", family.as_str()),
-                    format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                    format!(
+                        "core_replay:{}",
+                        core_execution.patch_envelope().replay_digest()
+                    ),
                     format!("focus:{focus_aspect}"),
+                    format!(
+                        "identity:{}",
+                        inspector_identity
+                            .as_ref()
+                            .map(|artifact| artifact.digest().as_str())
+                            .unwrap_or("none")
+                    ),
                 ]),
                 ViewShapePatchPayload::FocusedInspectorAspectPatch(
                     FocusedInspectorAspectPatchArtifact::new(
                         patch.digest().as_str(),
                         focus_aspect,
                         focused.len(),
+                        inspector_identity,
                     ),
                 ),
             )
@@ -350,9 +383,7 @@ fn execute_live_view_shape_change_inner(
                     );
                     counters.set_grouped_delta_row_count(delta.transitions().len());
                     counters.set_grouped_membership_transition_count(delta.transitions().len());
-                    counters.set_grouped_lane_count(
-                        delta.next().result().lane_count(),
-                    );
+                    counters.set_grouped_lane_count(delta.next().result().lane_count());
                     counters.set_view_patch_width(delta.transitions().len());
                     counters.set_view_delivery_width(delta.transitions().len());
                     ViewShapePatchEnvelope::new(
@@ -407,7 +438,10 @@ fn execute_live_view_shape_change_inner(
                 core_execution.patch_envelope().delivery_digest(),
                 hash_parts(&[
                     format!("family:{}", family.as_str()),
-                    format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                    format!(
+                        "core_replay:{}",
+                        core_execution.patch_envelope().replay_digest()
+                    ),
                     format!("refresh:{:?}", fallback.admission_class()),
                 ]),
                 ViewShapePatchPayload::Refresh(ViewShapeRefreshDisposition::Admitted {
@@ -422,7 +456,10 @@ fn execute_live_view_shape_change_inner(
             core_execution.patch_envelope().delivery_digest(),
             hash_parts(&[
                 format!("family:{}", family.as_str()),
-                format!("core_replay:{}", core_execution.patch_envelope().replay_digest()),
+                format!(
+                    "core_replay:{}",
+                    core_execution.patch_envelope().replay_digest()
+                ),
                 format!("suppression:{reason:?}"),
             ]),
             ViewShapePatchPayload::Suppressed(ViewShapeSuppressionDisposition::SuppressedByCore(
@@ -455,6 +492,7 @@ fn execute_live_view_shape_change_inner(
             counters.clone(),
             Some(delta.next().clone()),
             live_view.grouped_policy().cloned(),
+            live_view.inspector_identity().cloned(),
         ),
         _ => live_view.clone(),
     };

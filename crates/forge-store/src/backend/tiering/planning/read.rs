@@ -6,7 +6,8 @@ use crate::{
         PlacementBoundArtifactRef, PlacementBudgetClass, PlacementExecutionOrigin,
         PlacementObservationScopeClass, ReadPlacementPlanningReport, RecallAmplificationBudget,
         RecallBreadthSummary, RecallCoalescingKey, RecallCostClass, RecallEligibilityWitness,
-        ResidentReadLease, TierMoveRejection, TierResidenceClass,
+        ResidentReadLease, RetainedReadPlacementPath, TierMissOutcome, TierMoveRejection,
+        TierResidenceClass,
     },
 };
 
@@ -34,7 +35,11 @@ pub(crate) fn plan_resident_read_lease<P: StatePersistence>(
                 Some(lease),
                 None,
                 None,
+                None,
+                Some(RetainedReadPlacementPath::HotResident),
+                Some(TierMissOutcome::ResidentHit),
                 RecallBreadthSummary::new(0, 0),
+                None,
                 None,
             )
         }
@@ -51,7 +56,11 @@ pub(crate) fn plan_resident_read_lease<P: StatePersistence>(
                 Some(lease),
                 None,
                 None,
+                None,
+                Some(RetainedReadPlacementPath::WarmResident),
+                Some(TierMissOutcome::WarmHit),
                 RecallBreadthSummary::new(0, 0),
+                None,
                 None,
             )
         }
@@ -59,10 +68,14 @@ pub(crate) fn plan_resident_read_lease<P: StatePersistence>(
             None,
             None,
             None,
+            None,
+            None,
+            None,
             RecallBreadthSummary::new(0, 0),
             Some(TierMoveRejection::RawLocatorBoundaryViolation {
                 locator: other.label().to_string(),
             }),
+            None,
         ),
     };
 
@@ -93,11 +106,21 @@ pub(crate) fn plan_cold_recall_lease<P: StatePersistence>(
         RecallAmplificationBudget::SingleFamilyLocalUnit,
         execution_origin,
     );
+    let cold_recall_plan = crate::ColdRecallPlan::new(
+        artifact_key_for_family(family, lease.artifact_ref().artifact_id()),
+        recall_cost_class,
+        RecallAmplificationBudget::SingleFamilyLocalUnit,
+        execution_origin,
+    );
     Ok(ReadPlacementPlanningReport::new(
         None,
         Some(lease),
+        Some(cold_recall_plan),
         Some(recall_witness),
+        Some(RetainedReadPlacementPath::ColdRecalled),
+        Some(TierMissOutcome::ColdRecallHit),
         RecallBreadthSummary::new(1, 0),
+        None,
         None,
     ))
 }

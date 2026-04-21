@@ -9,13 +9,15 @@ use super::{
     CommitSupportSummaryRecord, CompactionProductRecord, DurableCursorIdentityRecord,
     EmbeddedCheckpointRecord, FrozenBulkManifestRecord, FrozenTransformBasisRecord,
     FrozenTransformPartitionRecord, LineageSupportRecord, MaintenanceBatchRecord,
-    MaintenanceCheckpointRecord, MaintenanceDeclarationRecord, MaintenanceExecutionRecord,
+    MaintenanceCheckpointRecord, MaintenanceDebtSummaryRecord, MaintenanceDeclarationRecord,
+    MaintenanceExecutionRecord, MaintenanceLocalitySummaryRecord, MaintenanceQueueSummaryRecord,
+    MaintenanceReservationSummaryRecord, MaintenanceResourceBudgetSummaryRecord,
     Milestone6ChunkMembershipRecord, Milestone6CommitCoupledLayoutSeedRecord,
     Milestone6LayoutMaterializationRecord, Milestone6ScopeSliceMembershipRecord,
     Milestone6StructuralBlockRecord, ProgramChunkWitnessIndexRecord, RebuildDebtRecord,
     RetentionBasisRecord, RetentionClosureRecord, SchemaSupportRecord, SnapshotBasisRecord,
     SnapshotImageRecord, StableBasisRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
-    TierResidencyRecord, TierTransferRecord,
+    TierRecallRecord, TierResidencyRecord, TierTransferRecord,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +62,26 @@ pub(crate) struct StoreState {
     pub maintenance_batch_records: BTreeMap<String, MaintenanceBatchRecord>,
     #[serde(default)]
     pub maintenance_checkpoint_records: BTreeMap<String, MaintenanceCheckpointRecord>,
+    #[serde(default)]
+    pub maintenance_queue_summary_records: BTreeMap<String, MaintenanceQueueSummaryRecord>,
+    #[serde(default)]
+    pub maintenance_locality_summary_records: BTreeMap<String, MaintenanceLocalitySummaryRecord>,
+    #[serde(default)]
+    pub maintenance_reservation_summary_records:
+        BTreeMap<String, MaintenanceReservationSummaryRecord>,
+    #[serde(default)]
+    pub maintenance_resource_budget_summary_records:
+        BTreeMap<String, MaintenanceResourceBudgetSummaryRecord>,
+    #[serde(default)]
+    pub maintenance_debt_summary_records: BTreeMap<String, MaintenanceDebtSummaryRecord>,
+    #[serde(default)]
+    pub maintenance_loaded_persisted_summaries_on_boot: bool,
+    #[serde(default)]
+    pub maintenance_used_legacy_summary_backfill_on_boot: bool,
+    #[serde(default)]
+    pub maintenance_recovered_backlog_on_boot: u64,
+    #[serde(default)]
+    pub maintenance_boot_integrity_reject_count: u64,
     #[serde(default)]
     pub branch_shared_base_records: BTreeMap<String, BranchSharedBaseRecord>,
     #[serde(default)]
@@ -107,6 +129,8 @@ pub(crate) struct StoreState {
     pub tier_residency_records: BTreeMap<String, TierResidencyRecord>,
     #[serde(default)]
     pub tier_transfer_records: BTreeMap<String, TierTransferRecord>,
+    #[serde(default)]
+    pub tier_recall_records: BTreeMap<String, TierRecallRecord>,
     #[serde(default)]
     pub next_durable_mutation_id: u64,
     #[serde(default)]

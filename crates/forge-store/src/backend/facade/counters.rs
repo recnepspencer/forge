@@ -8,7 +8,8 @@ impl StoreBackend {
         dispatch_ref!(self, |backend| backend.counters().snapshot())
     }
     pub(crate) fn record_physical_chunk_export(&self, chunk_width: u64) {
-        dispatch_ref!(self, |backend| backend.record_physical_chunk_export(chunk_width))
+        dispatch_ref!(self, |backend| backend
+            .record_physical_chunk_export(chunk_width))
     }
     pub fn export_bundle(&self) -> crate::authority::AuthoritativeExportBundle {
         dispatch_ref!(self, |backend| backend.export_bundle())
@@ -19,43 +20,65 @@ impl StoreBackend {
     pub fn milestone_7_access_structure_verification(
         &self,
     ) -> Milestone7AccessStructureVerification {
-        dispatch_ref!(self, |backend| backend.milestone_7_access_structure_verification())
+        dispatch_ref!(self, |backend| backend
+            .milestone_7_access_structure_verification())
     }
     pub fn milestone_6_access_structure_verification(
         &self,
     ) -> crate::evidence::Milestone6AccessStructureVerification {
-        dispatch_ref!(self, |backend| backend.milestone_6_access_structure_verification())
+        dispatch_ref!(self, |backend| backend
+            .milestone_6_access_structure_verification())
     }
     pub fn record_durable_mode_selection(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_durable_mode_selection())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_durable_mode_selection())
     }
     pub fn record_embedded_mode_selection(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_embedded_mode_selection())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_embedded_mode_selection())
     }
     pub fn record_hosted_runtime_start(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_hosted_runtime_start())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_hosted_runtime_start())
     }
     pub fn record_hosted_runtime_stop(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_hosted_runtime_stop())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_hosted_runtime_stop())
     }
     pub fn record_external_commit_intake(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_external_commit_intake())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_external_commit_intake())
     }
     pub fn record_external_checkpoint_intake(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_external_checkpoint_intake())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_external_checkpoint_intake())
     }
     #[cfg(test)]
     pub fn record_embedded_checkpoint_authority_rejection(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_embedded_checkpoint_authority_rejection())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_embedded_checkpoint_authority_rejection())
     }
     #[cfg(test)]
     pub fn record_mode_misuse_rejection(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_mode_misuse_rejection())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_mode_misuse_rejection())
     }
     pub fn record_durable_commit_acknowledged(&self) {
-        dispatch_ref!(self, |backend| backend.counters().record_durable_commit_acknowledged())
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_durable_commit_acknowledged())
     }
     pub fn record_support_artifact_recovery_gap(&self, count: u64) {
-        dispatch_ref!(self, |backend| backend.counters().record_support_artifact_recovery_gap(count))
+        dispatch_ref!(self, |backend| backend
+            .counters()
+            .record_support_artifact_recovery_gap(count))
     }
 }

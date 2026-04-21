@@ -114,8 +114,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             1
         };
 
-        let checkpoint_artifact_id =
-            super::super::integrity::subscriber_checkpoint_artifact_id(&cursor_id, next_checkpoint_sequence);
+        let checkpoint_artifact_id = super::super::integrity::subscriber_checkpoint_artifact_id(
+            &cursor_id,
+            next_checkpoint_sequence,
+        );
         let checkpoint_record = SubscriberCheckpointRecord {
             artifact_id: checkpoint_artifact_id.clone(),
             cursor_id: cursor_id.clone(),
@@ -194,7 +196,6 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.counters.record_subscriber_checkpoint_write();
         Ok(PersistedSubscriberCheckpoint::new(checkpoint_record))
     }
-
 }
 
 fn restore_cursor_state(
@@ -204,14 +205,16 @@ fn restore_cursor_state(
     previous_identity: Option<DurableCursorIdentityRecord>,
     previous_digest: Option<String>,
 ) -> Result<(), StoreError> {
-    state.subscriber_checkpoint_records.remove(checkpoint_artifact_id);
-    state.authoritative_artifact_digests.remove(
-        &super::super::integrity::digest_artifact_key(
+    state
+        .subscriber_checkpoint_records
+        .remove(checkpoint_artifact_id);
+    state
+        .authoritative_artifact_digests
+        .remove(&super::super::integrity::digest_artifact_key(
             &super::super::records::AuthoritativeArtifactFamily::SubscriberCheckpointRecord,
             checkpoint_artifact_id,
             state.canonicalization_version,
-        ),
-    );
+        ));
     match (previous_identity, previous_digest) {
         (Some(previous), Some(digest)) => {
             state
@@ -224,14 +227,16 @@ fn restore_cursor_state(
             );
         }
         _ => {
-            state.durable_cursor_identity_records.remove(cursor_artifact_id);
-            state.authoritative_artifact_digests.remove(
-                &super::super::integrity::digest_artifact_key(
-                    &super::super::records::AuthoritativeArtifactFamily::DurableCursorIdentityRecord,
-                    cursor_artifact_id,
-                    state.canonicalization_version,
-                ),
-            );
+            state
+                .durable_cursor_identity_records
+                .remove(cursor_artifact_id);
+            state
+                .authoritative_artifact_digests
+                .remove(&super::super::integrity::digest_artifact_key(
+                &super::super::records::AuthoritativeArtifactFamily::DurableCursorIdentityRecord,
+                cursor_artifact_id,
+                state.canonicalization_version,
+            ));
         }
     }
     Ok(())

@@ -83,4 +83,3 @@ fn milestone_7_support_gap_bundle_captures_typed_rebuild_classification() {
         1
     );
 }
-

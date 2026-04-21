@@ -3,7 +3,9 @@ use crate::failure::{StoreError, StoreErrorKind};
 use crate::live_query::{
     acknowledgment::{plan_continuation_acknowledgment, ContinuationAcknowledgmentEffect},
     basis::stable_basis_handle_from_record_with_survival,
-    continuation::{execute_cursor_continuation as execute_live_query_continuation, ContinuationExecutionEffect},
+    continuation::{
+        execute_cursor_continuation as execute_live_query_continuation, ContinuationExecutionEffect,
+    },
     AcknowledgedContinuationAdvance, ContinuationAdvanceReceipt, ContinuationBatchResult,
     CursorContinuationPlan, StableBasisHandle, StableBasisReadRequest,
 };
@@ -28,7 +30,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                     crate::live_query::restart::StableBasisSurvival::Retained
                 ),
             );
-            return Ok(stable_basis_handle_from_record_with_survival(existing, survival));
+            return Ok(stable_basis_handle_from_record_with_survival(
+                existing, survival,
+            ));
         }
 
         let mut next = self.state.clone();
@@ -87,7 +91,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 crate::live_query::restart::StableBasisSurvival::Retained
             ),
         );
-        Ok(stable_basis_handle_from_record_with_survival(record, survival))
+        Ok(stable_basis_handle_from_record_with_survival(
+            record, survival,
+        ))
     }
 
     pub fn execute_cursor_continuation(

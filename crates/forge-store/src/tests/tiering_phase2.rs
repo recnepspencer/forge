@@ -51,7 +51,13 @@ fn tiering_phase2_fixture() -> (ForgeStore, BranchId, CommitId, u64, String) {
         .materialize_milestone_6_layout_support(layout_request(branch_id.clone(), commit_id))
         .unwrap();
 
-    (store, branch_id, commit_id, snapshot.snapshot_id.0, materialization.artifact_id().to_string())
+    (
+        store,
+        branch_id,
+        commit_id,
+        snapshot.snapshot_id.0,
+        materialization.artifact_id().to_string(),
+    )
 }
 
 #[test]
@@ -68,9 +74,15 @@ fn branch_observation_and_summary_are_scope_typed() {
     let summary = store
         .summarize_placement_demand(PlacementObservationScopeClass::Branch, &branch_id.0)
         .unwrap();
-    assert_eq!(summary.scope_class(), PlacementObservationScopeClass::Branch);
+    assert_eq!(
+        summary.scope_class(),
+        PlacementObservationScopeClass::Branch
+    );
     assert_eq!(summary.scope_key(), branch_id.0.as_str());
-    assert_eq!(summary.classification_verdict(), crate::HotnessClassificationVerdict::Hot);
+    assert_eq!(
+        summary.classification_verdict(),
+        crate::HotnessClassificationVerdict::Hot
+    );
 
     let counters = store.milestone_13_counter_contract();
     assert_eq!(counters.working_set_observation_window_count, 2);
@@ -174,6 +186,14 @@ fn resident_and_cold_lease_planning_stay_distinct() {
         .unwrap();
     assert!(resident.resident_lease().is_some());
     assert!(resident.cold_recall_lease().is_none());
+    assert_eq!(
+        resident.retained_read_path(),
+        Some(crate::RetainedReadPlacementPath::HotResident)
+    );
+    assert_eq!(
+        resident.tier_miss_outcome(),
+        Some(crate::TierMissOutcome::ResidentHit)
+    );
 
     let cold = store
         .plan_cold_recall_lease(
@@ -183,7 +203,16 @@ fn resident_and_cold_lease_planning_stay_distinct() {
         .unwrap();
     assert!(cold.resident_lease().is_none());
     assert!(cold.cold_recall_lease().is_some());
+    assert!(cold.cold_recall_plan().is_some());
     assert!(cold.recall_witness().is_some());
+    assert_eq!(
+        cold.retained_read_path(),
+        Some(crate::RetainedReadPlacementPath::ColdRecalled)
+    );
+    assert_eq!(
+        cold.tier_miss_outcome(),
+        Some(crate::TierMissOutcome::ColdRecallHit)
+    );
 
     let counters = store.milestone_13_counter_contract();
     assert_eq!(counters.hot_tier_resident_read_count, 1);
@@ -207,9 +236,15 @@ fn broadened_recall_plan_is_explicit_and_counted() {
         )
         .unwrap();
 
-    assert_eq!(plan.scope_class(), PlacementObservationScopeClass::ArtifactFamily);
+    assert_eq!(
+        plan.scope_class(),
+        PlacementObservationScopeClass::ArtifactFamily
+    );
     assert_eq!(plan.widened_artifact_keys(), &[layout_artifact_id]);
-    assert_eq!(plan.execution_origin(), PlacementExecutionOrigin::Background);
+    assert_eq!(
+        plan.execution_origin(),
+        PlacementExecutionOrigin::Background
+    );
 
     let counters = store.milestone_13_counter_contract();
     assert_eq!(counters.broadened_recall_plan_count, 1);
@@ -285,7 +320,10 @@ fn phase_2_complexity_surface_verifies_conservative_paths() {
         surface.working_set_classification.status,
         ComplexityStatus::Verified
     );
-    assert_eq!(surface.tier_move_planning.status, ComplexityStatus::Verified);
+    assert_eq!(
+        surface.tier_move_planning.status,
+        ComplexityStatus::Verified
+    );
     assert_eq!(surface.tier_move_cutover.status, ComplexityStatus::Debt);
     assert_eq!(surface.tier_move_execution.status, ComplexityStatus::Debt);
     assert_eq!(surface.cold_recall_execution.status, ComplexityStatus::Debt);

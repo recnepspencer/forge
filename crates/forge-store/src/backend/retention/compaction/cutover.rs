@@ -1,9 +1,10 @@
 use crate::{
-    backend::{
-        engine::{StateBackedStoreBackend, StatePersistence},
-    },
+    backend::engine::{StateBackedStoreBackend, StatePersistence},
     failure::{StoreError, StoreErrorKind},
-    retention::{CompactionCutoverReport, PublishedCompactionProduct, RetainedReadCostSurface, RetainedReadPath, RetentionClosureSummary},
+    retention::{
+        CompactionCutoverReport, PublishedCompactionProduct, RetainedReadCostSurface,
+        RetainedReadPath, RetentionClosureSummary,
+    },
 };
 
 use super::helpers::rebuild_superseded_families;
@@ -21,15 +22,18 @@ pub(crate) fn cutover_compaction_product<P: StatePersistence>(
         rewritten_range_count,
         superseded_families,
     ) = {
-        let record = next.compaction_product_records.get_mut(product.product_id()).ok_or_else(|| {
-            StoreError::new(
-                StoreErrorKind::CompactionCutoverViolation,
-                format!(
-                    "compaction product `{}` was not published before cutover",
-                    product.product_id()
-                ),
-            )
-        })?;
+        let record = next
+            .compaction_product_records
+            .get_mut(product.product_id())
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::CompactionCutoverViolation,
+                    format!(
+                        "compaction product `{}` was not published before cutover",
+                        product.product_id()
+                    ),
+                )
+            })?;
         if !record.parity_verified {
             backend.counters().record_compaction_cutover_rejection();
             return Err(StoreError::new(
@@ -50,12 +54,16 @@ pub(crate) fn cutover_compaction_product<P: StatePersistence>(
             rebuild_superseded_families(record),
         )
     };
-    let closure_record = next.retention_closure_records.get(&closure_record_artifact_id).cloned().ok_or_else(|| {
-        StoreError::new(
-            StoreErrorKind::CompactionPlanBasisAmbiguous,
-            "compaction closure record disappeared during cutover",
-        )
-    })?;
+    let closure_record = next
+        .retention_closure_records
+        .get(&closure_record_artifact_id)
+        .cloned()
+        .ok_or_else(|| {
+            StoreError::new(
+                StoreErrorKind::CompactionPlanBasisAmbiguous,
+                "compaction closure record disappeared during cutover",
+            )
+        })?;
     backend.commit_replacement_state(next)?;
     backend.counters().record_compaction_cutover();
     Ok(CompactionCutoverReport::new(

@@ -1,9 +1,9 @@
-use crate::backend::records::{
-    AuthoritativeArtifactFamily, CommitSupportSummaryRecord, StoreState,
-};
 use crate::backend::integrity::{
     commit_support_summary_artifact_id, lineage_support_artifact_id, schema_support_artifact_id,
     stable_structural_digest,
+};
+use crate::backend::records::{
+    AuthoritativeArtifactFamily, CommitSupportSummaryRecord, StoreState,
 };
 use crate::failure::{StoreError, StoreErrorKind};
 
@@ -32,8 +32,14 @@ impl StoreState {
         }
 
         let expected_schema = commit_record.envelope.schema_transition.is_some()
-            || commit_record.envelope.schema_continuation_descriptor.is_some()
-            || commit_record.envelope.schema_reconciliation_descriptor.is_some();
+            || commit_record
+                .envelope
+                .schema_continuation_descriptor
+                .is_some()
+            || commit_record
+                .envelope
+                .schema_reconciliation_descriptor
+                .is_some();
         let expected_lineage = !commit_record.envelope.lineage_event_ids().is_empty()
             || !commit_record.envelope.lineage_events().is_empty();
 

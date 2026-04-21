@@ -1,6 +1,12 @@
 use crate::{
     failure::{StoreError, StoreErrorKind},
-    layout::{AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest, ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy, Milestone6LayoutSupportPublicationDisposition, Milestone6PreparedLayoutSupport, Milestone6ResolvedLayoutSupportLane, Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference},
+    layout::{
+        AdmittedAspectLayoutReadPlan, AspectLayoutReadPlanDecision, AspectLayoutReadRequest,
+        ChunkModelFrozenPhysicalLayout, DedupAdmittedBlockReuse, Milestone6LayoutSupportLane,
+        Milestone6LayoutSupportPolicy, Milestone6LayoutSupportPublicationDisposition,
+        Milestone6PreparedLayoutSupport, Milestone6ResolvedLayoutSupportLane,
+        Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+    },
 };
 
 use super::ForgeStore;

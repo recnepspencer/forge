@@ -40,11 +40,15 @@ fn load_wal_records(connection: &Connection, state: &mut StoreState) -> Result<(
             })?;
             let family = match row.get::<_, String>(1)?.as_str() {
                 "DurableMutationIntent" => crate::wal::WalRecordFamily::DurableMutationIntent,
-                "HostedRuntimeCommitResult" => crate::wal::WalRecordFamily::HostedRuntimeCommitResult,
+                "HostedRuntimeCommitResult" => {
+                    crate::wal::WalRecordFamily::HostedRuntimeCommitResult
+                }
                 "BulkCheckpointPublicationIntent" => {
                     crate::wal::WalRecordFamily::BulkCheckpointPublicationIntent
                 }
-                "DurablePublicationProgress" => crate::wal::WalRecordFamily::DurablePublicationProgress,
+                "DurablePublicationProgress" => {
+                    crate::wal::WalRecordFamily::DurablePublicationProgress
+                }
                 "RecoveryDecision" => crate::wal::WalRecordFamily::RecoveryDecision,
                 other => {
                     return Err(rusqlite::Error::FromSqlConversionFailure(
@@ -100,7 +104,9 @@ fn load_branch_records(connection: &Connection, state: &mut StoreState) -> Resul
         .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
-        state.branch_records.insert(record.branch_id.0.clone(), record);
+        state
+            .branch_records
+            .insert(record.branch_id.0.clone(), record);
     }
     Ok(())
 }
@@ -132,7 +138,9 @@ fn load_branch_head_records(
         .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
-        state.branch_head_records.insert(record.branch_id.0.clone(), record);
+        state
+            .branch_head_records
+            .insert(record.branch_id.0.clone(), record);
     }
     Ok(())
 }
@@ -189,17 +197,20 @@ fn load_commit_parent_records(
             ",
         )
         .map_err(sqlite_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok(records::CommitParentRecord {
-                commit_id: forge_relational::facade::history::CommitId(row.get::<_, i64>(0)? as u64),
-                parent_position: row.get::<_, i64>(1)? as usize,
-                parent_commit_id: forge_relational::facade::history::CommitId(
-                    row.get::<_, i64>(2)? as u64,
-                ),
+    let rows =
+        statement
+            .query_map([], |row| {
+                Ok(records::CommitParentRecord {
+                    commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(0)? as u64
+                    ),
+                    parent_position: row.get::<_, i64>(1)? as usize,
+                    parent_commit_id: forge_relational::facade::history::CommitId(
+                        row.get::<_, i64>(2)? as u64,
+                    ),
+                })
             })
-        })
-        .map_err(sqlite_error)?;
+            .map_err(sqlite_error)?;
     for row in rows {
         let record = row.map_err(sqlite_error)?;
         let artifact_id = integrity::parent_artifact_id(record.commit_id, record.parent_position);
@@ -225,9 +236,13 @@ fn load_digest_records(connection: &Connection, state: &mut StoreState) -> Resul
                 "BranchHeadRecord" => records::AuthoritativeArtifactFamily::BranchHeadRecord,
                 "CommitEnvelope" => records::AuthoritativeArtifactFamily::CommitEnvelope,
                 "CommitParentRecord" => records::AuthoritativeArtifactFamily::CommitParentRecord,
-                "CommitSupportSummary" => records::AuthoritativeArtifactFamily::CommitSupportSummary,
+                "CommitSupportSummary" => {
+                    records::AuthoritativeArtifactFamily::CommitSupportSummary
+                }
                 "SchemaSupportRecord" => records::AuthoritativeArtifactFamily::SchemaSupportRecord,
-                "LineageSupportRecord" => records::AuthoritativeArtifactFamily::LineageSupportRecord,
+                "LineageSupportRecord" => {
+                    records::AuthoritativeArtifactFamily::LineageSupportRecord
+                }
                 "DurableCursorIdentityRecord" => {
                     records::AuthoritativeArtifactFamily::DurableCursorIdentityRecord
                 }

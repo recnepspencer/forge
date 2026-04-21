@@ -23,17 +23,51 @@ pub(super) struct BulkCounters {
 
 impl StoreCounters {
     pub fn record_bulk_source_manifest(&self, member_count: u64, stream_pass_count: u64) {
-        self.bulk.bulk_program_plan_count.fetch_add(1, Ordering::Relaxed);
-        self.bulk.bulk_source_manifest_member_count.fetch_add(member_count, Ordering::Relaxed);
-        self.bulk.bulk_source_manifest_stream_pass_count.fetch_add(stream_pass_count, Ordering::Relaxed);
+        self.bulk
+            .bulk_program_plan_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.bulk
+            .bulk_source_manifest_member_count
+            .fetch_add(member_count, Ordering::Relaxed);
+        self.bulk
+            .bulk_source_manifest_stream_pass_count
+            .fetch_add(stream_pass_count, Ordering::Relaxed);
     }
-    pub fn record_bulk_chunk_plan(&self, chunk_count: u64) { self.bulk.bulk_chunk_plan_count.fetch_add(chunk_count, Ordering::Relaxed); }
-    pub fn record_bulk_transform_partition(&self, partition_count: u64) { self.bulk.bulk_transform_partition_count.fetch_add(partition_count, Ordering::Relaxed); }
-    pub fn record_bulk_checkpoint_write(&self) { self.bulk.bulk_checkpoint_write_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_bulk_chunk_witness_write(&self) { self.bulk.bulk_chunk_witness_write_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_bulk_resume_index_lookup(&self) { self.bulk.bulk_resume_index_lookup_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_bulk_chunk_resume(&self) { self.bulk.bulk_chunk_resume_count.fetch_add(1, Ordering::Relaxed); }
-    pub fn record_bulk_chunk_commit(&self) { self.bulk.bulk_chunk_commit_count.fetch_add(1, Ordering::Relaxed); }
+    pub fn record_bulk_chunk_plan(&self, chunk_count: u64) {
+        self.bulk
+            .bulk_chunk_plan_count
+            .fetch_add(chunk_count, Ordering::Relaxed);
+    }
+    pub fn record_bulk_transform_partition(&self, partition_count: u64) {
+        self.bulk
+            .bulk_transform_partition_count
+            .fetch_add(partition_count, Ordering::Relaxed);
+    }
+    pub fn record_bulk_checkpoint_write(&self) {
+        self.bulk
+            .bulk_checkpoint_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_bulk_chunk_witness_write(&self) {
+        self.bulk
+            .bulk_chunk_witness_write_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_bulk_resume_index_lookup(&self) {
+        self.bulk
+            .bulk_resume_index_lookup_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_bulk_chunk_resume(&self) {
+        self.bulk
+            .bulk_chunk_resume_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    pub fn record_bulk_chunk_commit(&self) {
+        self.bulk
+            .bulk_chunk_commit_count
+            .fetch_add(1, Ordering::Relaxed);
+    }
 
     pub fn record_bulk_chunk_execute(
         &self,
@@ -42,9 +76,16 @@ impl StoreCounters {
         fallback_breadth_units: u64,
         used_fallback_path: bool,
     ) {
-        self.bulk.bulk_chunk_execute_count.fetch_add(1, Ordering::Relaxed);
-        self.bulk.bulk_chunk_width_units.fetch_add(width_units, Ordering::Relaxed);
-        let mut current_peak = self.bulk.bulk_peak_in_flight_memory_units.load(Ordering::Relaxed);
+        self.bulk
+            .bulk_chunk_execute_count
+            .fetch_add(1, Ordering::Relaxed);
+        self.bulk
+            .bulk_chunk_width_units
+            .fetch_add(width_units, Ordering::Relaxed);
+        let mut current_peak = self
+            .bulk
+            .bulk_peak_in_flight_memory_units
+            .load(Ordering::Relaxed);
         while memory_units > current_peak {
             match self.bulk.bulk_peak_in_flight_memory_units.compare_exchange(
                 current_peak,
@@ -57,7 +98,9 @@ impl StoreCounters {
             }
         }
         if used_fallback_path {
-            self.bulk.bulk_fallback_path_count.fetch_add(1, Ordering::Relaxed);
+            self.bulk
+                .bulk_fallback_path_count
+                .fetch_add(1, Ordering::Relaxed);
             self.bulk
                 .bulk_fallback_breadth_units
                 .fetch_add(fallback_breadth_units, Ordering::Relaxed);
@@ -66,7 +109,11 @@ impl StoreCounters {
 }
 
 pub(super) fn write_snapshot(counters: &BulkCounters, snapshot: &mut StoreCounterSnapshot) {
-    macro_rules! load { ($field:ident) => { snapshot.$field = counters.$field.load(Ordering::Relaxed); }; }
+    macro_rules! load {
+        ($field:ident) => {
+            snapshot.$field = counters.$field.load(Ordering::Relaxed);
+        };
+    }
     load!(bulk_program_plan_count);
     load!(bulk_source_manifest_member_count);
     load!(bulk_source_manifest_stream_pass_count);

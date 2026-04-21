@@ -38,7 +38,10 @@ impl StoreState {
             shared_base_source_branch_id: basis.source_branch_id.clone(),
             shared_base_source_frontier_commit_id: basis.source_frontier_commit_id,
             live_layer_count: live_layers.len(),
-            live_layer_commit_count: live_layers.iter().map(|record| record.commit_ids.len()).sum(),
+            live_layer_commit_count: live_layers
+                .iter()
+                .map(|record| record.commit_ids.len())
+                .sum(),
             replacement_layer_count: live_layers
                 .iter()
                 .filter(|record| !record.replacement_of_layer_ids.is_empty())

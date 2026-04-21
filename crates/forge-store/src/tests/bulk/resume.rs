@@ -200,4 +200,3 @@ fn bulk_resume_ready_program_reports_completion_without_admitting_more_chunks() 
         .expect("completion check should succeed")
         .is_none());
 }
-

@@ -8,13 +8,15 @@ impl StoreBackend {
         &self,
         policy_class: crate::RetentionPolicyClass,
     ) -> Result<crate::RetentionPlanningReport, StoreError> {
-        dispatch_ref!(self, |backend| backend.plan_retention_candidates(policy_class))
+        dispatch_ref!(self, |backend| backend
+            .plan_retention_candidates(policy_class))
     }
     pub fn plan_retention_maintenance_batch(
         &self,
         policy_class: crate::RetentionPolicyClass,
     ) -> Result<crate::MaintenanceBatch, StoreError> {
-        dispatch_ref!(self, |backend| backend.plan_retention_maintenance_batch(policy_class))
+        dispatch_ref!(self, |backend| backend
+            .plan_retention_maintenance_batch(policy_class))
     }
     pub fn admit_maintenance_batch(
         &mut self,
@@ -56,19 +58,22 @@ impl StoreBackend {
         &mut self,
         rebuild_unit: crate::RetainedRangeRebuildUnit,
     ) -> Result<crate::RetainedRangeRebuildReport, StoreError> {
-        dispatch_mut!(self, |backend| backend.rebuild_reclaimed_derived_family(rebuild_unit))
+        dispatch_mut!(self, |backend| backend
+            .rebuild_reclaimed_derived_family(rebuild_unit))
     }
     pub fn start_maintenance_declaration(
         &mut self,
         declaration: &crate::AdmittedMaintenanceDeclaration,
     ) -> Result<crate::CompletedMaintenance, crate::FailedMaintenance> {
-        dispatch_mut!(self, |backend| backend.start_maintenance_declaration(declaration))
+        dispatch_mut!(self, |backend| backend
+            .start_maintenance_declaration(declaration))
     }
     pub fn resume_maintenance_declaration(
         &mut self,
         declaration_id: &crate::MaintenanceDeclarationId,
     ) -> Result<crate::CompletedMaintenance, crate::FailedMaintenance> {
-        dispatch_mut!(self, |backend| backend.resume_maintenance_declaration(declaration_id))
+        dispatch_mut!(self, |backend| backend
+            .resume_maintenance_declaration(declaration_id))
     }
     pub fn maintenance_status(
         &self,
@@ -94,8 +99,36 @@ impl StoreBackend {
     pub fn milestone_13_complexity_surface(&self) -> crate::Milestone13ComplexitySurface {
         dispatch_ref!(self, |backend| backend.milestone_13_complexity_surface())
     }
+    pub fn milestone_13_artifact_report(
+        &self,
+    ) -> Result<crate::Milestone13ArtifactReport, StoreError> {
+        dispatch_ref!(self, |backend| backend.milestone_13_artifact_report())
+    }
     pub fn milestone_11_maintenance_report(&self) -> crate::Milestone11MaintenanceReport {
         dispatch_ref!(self, |backend| backend.milestone_11_maintenance_report())
+    }
+    pub(crate) fn assess_read_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+        allow_broadening: bool,
+    ) -> crate::ForegroundIsolationOutcome {
+        dispatch_ref!(self, |backend| backend
+            .assess_read_foreground_isolation(branch_id, allow_broadening))
+    }
+    pub(crate) fn assess_continuation_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+        allow_broadening: bool,
+    ) -> crate::ForegroundIsolationOutcome {
+        dispatch_ref!(self, |backend| backend
+            .assess_continuation_foreground_isolation(branch_id, allow_broadening))
+    }
+    pub(crate) fn assess_write_foreground_isolation(
+        &self,
+        branch_id: &forge_relational::facade::history::BranchId,
+    ) -> crate::ForegroundIsolationOutcome {
+        dispatch_ref!(self, |backend| backend
+            .assess_write_foreground_isolation(branch_id))
     }
     pub fn maintenance_evidence(&self) -> crate::Milestone11MaintenanceReport {
         dispatch_ref!(self, |backend| backend.maintenance_evidence())

@@ -50,11 +50,7 @@ pub(crate) fn execute_started_declaration<P: StatePersistence>(
     backend: &mut StateBackedStoreBackend<P>,
     executing_work: &ExecutingMaintenanceWork,
 ) -> Result<String, StoreError> {
-    match executing_work
-        .reserved_work()
-        .admitted_work()
-        .declaration()
-    {
+    match executing_work.reserved_work().admitted_work().declaration() {
         MaintenanceDeclaration::Retention { .. } => Ok("retention_root_observed".to_string()),
         MaintenanceDeclaration::Compaction { declaration, .. } => {
             let closure_witness = crate::RetentionClosureWitness::new(

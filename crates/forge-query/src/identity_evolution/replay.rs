@@ -94,7 +94,10 @@ impl IdentityEvolutionReplayArtifact {
             format!("result_digest:{}", evidence.result_digest()),
             format!(
                 "counter_snapshot_digest:{}",
-                evidence.counter_snapshot().counter_snapshot_digest().as_str()
+                evidence
+                    .counter_snapshot()
+                    .counter_snapshot_digest()
+                    .as_str()
             ),
         ]);
         Self {
@@ -132,7 +135,10 @@ impl IdentityEvolutionReplayArtifact {
             format!("failure_digest:{}", evidence.failure_digest().as_str()),
             format!(
                 "counter_snapshot_digest:{}",
-                evidence.counter_snapshot().counter_snapshot_digest().as_str()
+                evidence
+                    .counter_snapshot()
+                    .counter_snapshot_digest()
+                    .as_str()
             ),
         ]);
         Self {

@@ -40,6 +40,8 @@ pub use request::{
     AuthoredBundleError, AuthoredBundleFailureClass, AuthoredQueryBundleRequest,
     GuidedAuthoringPath,
 };
-pub use result_shape_family::{AuthoredResultShape, ResultShapeAuthoringFamily, ResultShapeBuilder};
+pub use result_shape_family::{
+    AuthoredResultShape, ResultShapeAuthoringFamily, ResultShapeBuilder,
+};
 pub use result_shape_field::AuthoredResultShapeField;
 pub use traversal::TraversalSelector;

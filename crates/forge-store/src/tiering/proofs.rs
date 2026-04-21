@@ -12,6 +12,25 @@ pub enum TierResidenceClass {
     Cold,
 }
 
+impl TierResidenceClass {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Hot => "hot",
+            Self::Warm => "warm",
+            Self::Cold => "cold",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "hot" => Some(Self::Hot),
+            "warm" => Some(Self::Warm),
+            "cold" => Some(Self::Cold),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PlacementBudgetClass {
     ForegroundResidentOnly,
@@ -26,6 +45,25 @@ pub enum RecallCostClass {
     Deferred,
 }
 
+impl RecallCostClass {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Inline => "inline",
+            Self::Bounded => "bounded",
+            Self::Deferred => "deferred",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "inline" => Some(Self::Inline),
+            "bounded" => Some(Self::Bounded),
+            "deferred" => Some(Self::Deferred),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PlacementExecutionOrigin {
     Foreground,
@@ -33,10 +71,46 @@ pub enum PlacementExecutionOrigin {
     RestartRecovery,
 }
 
+impl PlacementExecutionOrigin {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Foreground => "foreground",
+            Self::Background => "background",
+            Self::RestartRecovery => "restart_recovery",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "foreground" => Some(Self::Foreground),
+            "background" => Some(Self::Background),
+            "restart_recovery" => Some(Self::RestartRecovery),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecallAmplificationBudget {
     SingleFamilyLocalUnit,
     BroadenedPlanRequired,
+}
+
+impl RecallAmplificationBudget {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::SingleFamilyLocalUnit => "single_family_local_unit",
+            Self::BroadenedPlanRequired => "broadened_plan_required",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "single_family_local_unit" => Some(Self::SingleFamilyLocalUnit),
+            "broadened_plan_required" => Some(Self::BroadenedPlanRequired),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -65,6 +139,18 @@ impl PlacementArtifactFamily {
             Self::SnapshotFamily => "snapshot_family",
             Self::BranchDeltaFamily => "branch_delta_family",
             Self::Milestone6LayoutFamily => "milestone6_layout_family",
+        }
+    }
+
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "authoritative_branch_head" => Some(Self::AuthoritativeBranchHead),
+            "retained_authority" => Some(Self::RetainedAuthority),
+            "stable_basis" => Some(Self::StableBasis),
+            "snapshot_family" => Some(Self::SnapshotFamily),
+            "branch_delta_family" => Some(Self::BranchDeltaFamily),
+            "milestone6_layout_family" => Some(Self::Milestone6LayoutFamily),
+            _ => None,
         }
     }
 }
@@ -479,19 +565,21 @@ impl RetiredTierReplica {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RecallCompletionWitness {
     artifact_key: String,
-    resolved_path: ColdRecallTierPath,
+    placement_path: RetainedReadPlacementPath,
+    tier_miss_outcome: TierMissOutcome,
     verification_label: String,
 }
 
 impl RecallCompletionWitness {
     pub(crate) fn new(
         artifact_key: impl Into<String>,
-        resolved_path: ColdRecallTierPath,
+        placement_path: RetainedReadPlacementPath,
         verification_label: impl Into<String>,
     ) -> Self {
         Self {
             artifact_key: artifact_key.into(),
-            resolved_path,
+            tier_miss_outcome: placement_path.tier_miss_outcome(),
+            placement_path,
             verification_label: verification_label.into(),
         }
     }
@@ -500,8 +588,16 @@ impl RecallCompletionWitness {
         &self.artifact_key
     }
 
+    pub fn placement_path(&self) -> RetainedReadPlacementPath {
+        self.placement_path
+    }
+
+    pub fn tier_miss_outcome(&self) -> TierMissOutcome {
+        self.tier_miss_outcome
+    }
+
     pub fn resolved_path(&self) -> ColdRecallTierPath {
-        self.resolved_path
+        self.placement_path.into()
     }
 
     pub fn verification_label(&self) -> &str {
@@ -545,6 +641,55 @@ pub enum ColdRecallTierPath {
     WarmResident,
     ColdRecalled,
     RebuildAssistedDerived,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum RetainedReadPlacementPath {
+    HotResident,
+    WarmResident,
+    ColdRecalled,
+    RebuildAssistedDerived,
+}
+
+impl RetainedReadPlacementPath {
+    pub fn tier_miss_outcome(self) -> TierMissOutcome {
+        match self {
+            Self::HotResident => TierMissOutcome::ResidentHit,
+            Self::WarmResident => TierMissOutcome::WarmHit,
+            Self::ColdRecalled => TierMissOutcome::ColdRecallHit,
+            Self::RebuildAssistedDerived => TierMissOutcome::RebuildAssistedDerivedHit,
+        }
+    }
+}
+
+impl From<ColdRecallTierPath> for RetainedReadPlacementPath {
+    fn from(value: ColdRecallTierPath) -> Self {
+        match value {
+            ColdRecallTierPath::HotResident => Self::HotResident,
+            ColdRecallTierPath::WarmResident => Self::WarmResident,
+            ColdRecallTierPath::ColdRecalled => Self::ColdRecalled,
+            ColdRecallTierPath::RebuildAssistedDerived => Self::RebuildAssistedDerived,
+        }
+    }
+}
+
+impl From<RetainedReadPlacementPath> for ColdRecallTierPath {
+    fn from(value: RetainedReadPlacementPath) -> Self {
+        match value {
+            RetainedReadPlacementPath::HotResident => Self::HotResident,
+            RetainedReadPlacementPath::WarmResident => Self::WarmResident,
+            RetainedReadPlacementPath::ColdRecalled => Self::ColdRecalled,
+            RetainedReadPlacementPath::RebuildAssistedDerived => Self::RebuildAssistedDerived,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum TierMissOutcome {
+    ResidentHit,
+    WarmHit,
+    ColdRecallHit,
+    RebuildAssistedDerivedHit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -611,7 +756,10 @@ mod tests {
             vec!["x".to_string(), "x".to_string()],
         );
 
-        assert_eq!(manifest.resident_artifact_keys(), &["a".to_string(), "b".to_string()]);
+        assert_eq!(
+            manifest.resident_artifact_keys(),
+            &["a".to_string(), "b".to_string()]
+        );
         assert_eq!(manifest.in_flight_transfer_keys(), &["x".to_string()]);
     }
 
@@ -638,8 +786,14 @@ mod tests {
             "family:snapshot",
         );
 
-        assert_eq!(key.artifact_family(), PlacementArtifactFamily::SnapshotFamily);
-        assert_eq!(key.scope_class(), PlacementObservationScopeClass::ArtifactFamily);
+        assert_eq!(
+            key.artifact_family(),
+            PlacementArtifactFamily::SnapshotFamily
+        );
+        assert_eq!(
+            key.scope_class(),
+            PlacementObservationScopeClass::ArtifactFamily
+        );
         assert_eq!(key.scope_key(), "family:snapshot");
     }
 }

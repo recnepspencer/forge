@@ -203,4 +203,3 @@ fn milestone_7_certification_harness_scaffolds_support_durability_suite() {
     assert!(completeness.missing_rows().is_empty());
     assert!(completeness.missing_assertion_classes().is_empty());
 }
-

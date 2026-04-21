@@ -38,10 +38,18 @@ pub struct Milestone7AccessStructureVerificationPath {
 
 impl Milestone7AccessStructureVerificationPath {
     pub fn verified(verification_basis: impl Into<String>) -> Self {
-        Self { verified_at_open: true, verification_basis: Some(verification_basis.into()), verification_gap: None }
+        Self {
+            verified_at_open: true,
+            verification_basis: Some(verification_basis.into()),
+            verification_gap: None,
+        }
     }
     pub fn debt(verification_gap: impl Into<String>) -> Self {
-        Self { verified_at_open: false, verification_basis: None, verification_gap: Some(verification_gap.into()) }
+        Self {
+            verified_at_open: false,
+            verification_basis: None,
+            verification_gap: Some(verification_gap.into()),
+        }
     }
 }
 
@@ -76,7 +84,8 @@ impl Milestone7CounterContract {
     pub(crate) fn from_snapshot(counter_snapshot: &StoreCounterSnapshot) -> Self {
         Self {
             commit_support_publication_count: counter_snapshot.commit_support_publication_count,
-            commit_support_publication_gap_count: counter_snapshot.commit_support_publication_gap_count,
+            commit_support_publication_gap_count: counter_snapshot
+                .commit_support_publication_gap_count,
             commit_support_summary_build_count: counter_snapshot.commit_support_summary_build_count,
             schema_boundary_fetch_count: counter_snapshot.schema_boundary_fetch_count,
             schema_boundary_index_lookup_count: counter_snapshot.schema_boundary_index_lookup_count,
@@ -91,9 +100,11 @@ impl Milestone7CounterContract {
             cursor_resume_support_rows_read: counter_snapshot.cursor_resume_support_rows_read,
             cursor_ack_count: counter_snapshot.cursor_ack_count,
             subscriber_checkpoint_write_count: counter_snapshot.subscriber_checkpoint_write_count,
-            embedded_checkpoint_basis_read_count: counter_snapshot.embedded_checkpoint_basis_read_count,
+            embedded_checkpoint_basis_read_count: counter_snapshot
+                .embedded_checkpoint_basis_read_count,
             checkpoint_shape_reject_count: counter_snapshot.checkpoint_shape_reject_count,
-            support_artifact_recovery_gap_count: counter_snapshot.support_artifact_recovery_gap_count,
+            support_artifact_recovery_gap_count: counter_snapshot
+                .support_artifact_recovery_gap_count,
             state_delta_apply_count: counter_snapshot.state_delta_apply_count,
             state_delta_touched_family_count: counter_snapshot.state_delta_touched_family_count,
             state_delta_touched_record_count: counter_snapshot.state_delta_touched_record_count,

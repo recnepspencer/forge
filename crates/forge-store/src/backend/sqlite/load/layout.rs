@@ -68,14 +68,16 @@ fn load_embedded_checkpoint_records(
                 }
             };
             let contained_commit_ids_payload: String = row.get(5)?;
-            let contained_commit_ids = serde_json::from_str::<Vec<u64>>(&contained_commit_ids_payload)
-                .map_err(|error| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        5,
-                        rusqlite::types::Type::Text,
-                        Box::new(error),
-                    )
-                })?;
+            let contained_commit_ids = serde_json::from_str::<Vec<u64>>(
+                &contained_commit_ids_payload,
+            )
+            .map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    5,
+                    rusqlite::types::Type::Text,
+                    Box::new(error),
+                )
+            })?;
             let metadata_payload: String = row.get(6)?;
             let metadata = serde_json::from_str(&metadata_payload).map_err(|error| {
                 rusqlite::Error::FromSqlConversionFailure(

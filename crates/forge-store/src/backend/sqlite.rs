@@ -1,11 +1,11 @@
 #[path = "sqlite/helpers.rs"]
 mod helpers;
-#[path = "sqlite/schema.rs"]
-mod schema;
 #[path = "sqlite/load.rs"]
 mod load;
 #[path = "sqlite/persist.rs"]
 mod persist;
+#[path = "sqlite/schema.rs"]
+mod schema;
 
 use crate::{
     failure::StoreError,

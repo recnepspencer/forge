@@ -97,7 +97,8 @@ fn extend_export_for_commit(
             artifact_digest: commit.envelope_digest,
         });
 
-    for (parent_position, parent_commit_id) in commit.envelope.commit.parents.iter().copied().enumerate()
+    for (parent_position, parent_commit_id) in
+        commit.envelope.commit.parents.iter().copied().enumerate()
     {
         let parent = CommitParentRecord {
             commit_id,
@@ -184,7 +185,9 @@ fn extend_cursor_records(
     for record in state
         .durable_cursor_identity_records
         .values()
-        .filter(|record| record.branch_id == *branch_id && record.latest_basis_commit_id == commit_id)
+        .filter(|record| {
+            record.branch_id == *branch_id && record.latest_basis_commit_id == commit_id
+        })
         .cloned()
         .collect::<Vec<_>>()
     {

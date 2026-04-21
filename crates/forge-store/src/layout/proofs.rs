@@ -25,21 +25,22 @@ pub(crate) use physical::{
 pub(crate) use planning::classify_layout_request;
 
 pub use core::{
-    AspectLayoutSliceId, ChunkShapeVersion, EquivalenceContractVersion, MaxAdmittedAspectSlicesPerRead,
-    MaxAdmittedBlockDecodeBreadth, MaxAdmittedControlReplayBreadthForParity,
-    MaxDeterministicChunkWidth, Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
+    AspectLayoutSliceId, ChunkShapeVersion, EquivalenceContractVersion,
+    MaxAdmittedAspectSlicesPerRead, MaxAdmittedBlockDecodeBreadth,
+    MaxAdmittedControlReplayBreadthForParity, MaxDeterministicChunkWidth,
+    Milestone6LayoutSupportLane, Milestone6LayoutSupportPolicy,
     Milestone6LayoutSupportPublicationDisposition, Milestone6PreparedLayoutSupport,
     Milestone6ResolvedLayoutSupportLane, PhysicalChunkId, StructuralBlockId,
 };
 pub use execution::{
-    AspectLayoutControlTruth, AspectLayoutReadExecutionDecision,
-    AspectLayoutReadExecutionResult, DedupBackedReadResult, Milestone6ChunkModelExport,
-    Milestone6DerivedArtifactRebuildReport, Milestone6LayoutMaterialization,
+    AspectLayoutControlTruth, AspectLayoutReadExecutionDecision, AspectLayoutReadExecutionResult,
+    DedupBackedReadResult, Milestone6ChunkModelExport, Milestone6DerivedArtifactRebuildReport,
+    Milestone6LayoutMaterialization,
 };
 pub use lookup::{StructuralBlockLookup, StructuralBlockLookupResult};
 pub use physical::{
-    ChunkDeterminismWitness, ChunkModelFrozenPhysicalLayout,
-    Milestone7IndependentLayoutReference, Milestone9PhysicalChunkReference,
+    ChunkDeterminismWitness, ChunkModelFrozenPhysicalLayout, Milestone7IndependentLayoutReference,
+    Milestone9PhysicalChunkReference,
 };
 pub use planning::{
     AdmittedAspectLayoutReadPlan, AspectLayoutFallbackClass, AspectLayoutPerformanceEnvelope,
@@ -48,6 +49,5 @@ pub use planning::{
 };
 pub use scopes::{
     AspectLayoutReadRequest, AspectLayoutTarget, AspectProjectionSet, AspectReadRegime,
-    AspectScopeClass, CdcTouchedAspectScope,
-    EntitySetUniformAspectScope, SingleEntityAspectScope,
+    AspectScopeClass, CdcTouchedAspectScope, EntitySetUniformAspectScope, SingleEntityAspectScope,
 };

@@ -270,10 +270,9 @@ fn rewritten_bundle_sqlite() -> crate::Milestone5CertificationBundle {
         .unwrap()
 }
 
-
-#[path = "milestone_5_certification/suite.rs"]
-mod suite;
 #[path = "milestone_5_certification/cases.rs"]
 mod cases;
+#[path = "milestone_5_certification/suite.rs"]
+mod suite;
 
 use suite::*;

@@ -9,8 +9,8 @@ use crate::{
 use serde::Serialize;
 
 use super::common::{
-    CompatibilityDigestBasis, ObservedRecoveryFailure356, QuiescenceReport,
-    RecoveryCertificationSummary, stable_digest,
+    stable_digest, CompatibilityDigestBasis, ObservedRecoveryFailure356, QuiescenceReport,
+    RecoveryCertificationSummary,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -50,35 +50,58 @@ impl Milestone36CertificationBundle {
                 .into_canonicalized()
                 .authoritative_artifact_digests,
         );
-        let compatibility_digest =
-            stable_digest(&CompatibilityDigestBasis { backup_restore_compatibility_report: &backup_restore_compatibility_report });
+        let compatibility_digest = stable_digest(&CompatibilityDigestBasis {
+            backup_restore_compatibility_report: &backup_restore_compatibility_report,
+        });
         let quiescence_report = QuiescenceReport {
             planned_mutation_count: recovery_status_report.planned_mutation_count(),
             recovered_decision_count: recovery_status_report.recovered_decision_count(),
             quiescent_restart: recovery_status_report.quiescent_restart(),
             recovery_quiescent_restart_count: counter_snapshot.recovery_quiescent_restart_count,
-            recovery_non_quiescent_restart_count: counter_snapshot.recovery_non_quiescent_restart_count,
+            recovery_non_quiescent_restart_count: counter_snapshot
+                .recovery_non_quiescent_restart_count,
         };
         let certification_summary = RecoveryCertificationSummary {
             source_report_count: recovery_source_report.len(),
             fallback_source_count: recovery_source_report
                 .iter()
-                .filter(|report| !matches!(report.source_kind(), crate::RecoverySourceKind::PublishedAuthoritativeTruth))
+                .filter(|report| {
+                    !matches!(
+                        report.source_kind(),
+                        crate::RecoverySourceKind::PublishedAuthoritativeTruth
+                    )
+                })
                 .count(),
             quarantine_source_count: recovery_source_report
                 .iter()
-                .filter(|report| matches!(report.source_kind(), crate::RecoverySourceKind::RequiresQuarantine))
+                .filter(|report| {
+                    matches!(
+                        report.source_kind(),
+                        crate::RecoverySourceKind::RequiresQuarantine
+                    )
+                })
                 .count(),
             degraded_quarantine_count: degraded_state_report.quarantines().len(),
-            degraded_retained_without_ack_count: degraded_state_report.retained_without_acknowledgment().len(),
+            degraded_retained_without_ack_count: degraded_state_report
+                .retained_without_acknowledgment()
+                .len(),
             degraded_rebuild_required_count: degraded_state_report.rebuilds().len(),
             maintenance_rebuild_required_count: maintenance_recovery_report
                 .entries()
                 .iter()
-                .filter(|entry| matches!(entry.disposition(), crate::MaintenanceRecoveryDisposition::RequireRebuild))
+                .filter(|entry| {
+                    matches!(
+                        entry.disposition(),
+                        crate::MaintenanceRecoveryDisposition::RequireRebuild
+                    )
+                })
                 .count(),
-            support_artifact_rebuild_required_count: support_artifact_recovery_report.rebuilds().len(),
-            support_artifact_quarantine_required_count: support_artifact_recovery_report.quarantines().len(),
+            support_artifact_rebuild_required_count: support_artifact_recovery_report
+                .rebuilds()
+                .len(),
+            support_artifact_quarantine_required_count: support_artifact_recovery_report
+                .quarantines()
+                .len(),
             recommended_action_count: recovery_status_report.recommended_actions().len(),
         };
 

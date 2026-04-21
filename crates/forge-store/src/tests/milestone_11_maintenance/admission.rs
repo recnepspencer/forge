@@ -25,10 +25,15 @@ fn retention_maintenance_batch_lowers_and_admits_durably() {
             .descriptor()
             .declaration_id()
             .as_str(),
-        receipt.admitted_declarations()[0].declaration().id().as_str()
+        receipt.admitted_declarations()[0]
+            .declaration()
+            .id()
+            .as_str()
     );
     assert!(matches!(
-        receipt.admitted_declarations()[0].descriptor().reservation_family(),
+        receipt.admitted_declarations()[0]
+            .descriptor()
+            .reservation_family(),
         crate::MaintenanceReservationFamily::Background(_)
     ));
     let report = store.milestone_11_maintenance_report();
@@ -56,16 +61,29 @@ fn retention_maintenance_batch_lowers_and_admits_durably() {
         .work_class_counts
         .iter()
         .any(|entry| entry.work_class == crate::MaintenanceWorkClass::CompactionMaintenance));
-    assert!(report
-        .locality_scope_counts
-        .iter()
-        .any(|entry| matches!(
-            entry.locality_scope,
-            crate::MaintenanceLocalityScope::ArtifactFamilyLocalityScope { .. }
-        )));
+    assert!(report.locality_scope_counts.iter().any(|entry| matches!(
+        entry.locality_scope,
+        crate::MaintenanceLocalityScope::ArtifactFamilyLocalityScope { .. }
+    )));
     let counters = store.milestone_11_counter_contract();
     assert_eq!(
+        counters.maintenance_work_descriptor_count,
+        receipt.admitted_declarations().len() as u64
+    );
+    assert_eq!(
         counters.maintenance_admission_count,
+        receipt.admitted_declarations().len() as u64
+    );
+    assert_eq!(
+        counters.maintenance_queue_depth,
+        receipt.admitted_declarations().len() as u64
+    );
+    assert_eq!(
+        counters.maintenance_queue_locality_scope_count,
+        report.locality_scope_counts.len() as u64
+    );
+    assert_eq!(
+        counters.maintenance_locality_touch_count,
         receipt.admitted_declarations().len() as u64
     );
     assert_eq!(counters.explicit_foreground_reservation_count, 0);
@@ -118,7 +136,24 @@ fn admitted_maintenance_declarations_execute_and_persist_status() {
     assert_eq!(counters.maintenance_restart_rejection_count, 0);
     assert_eq!(counters.maintenance_completion_count, 1);
     assert_eq!(counters.maintenance_checkpoint_count, 2);
+    assert_eq!(counters.maintenance_admitted_plan_count, 1);
+    assert_eq!(counters.maintenance_deferred_plan_count, 0);
+    assert_eq!(counters.maintenance_escalated_plan_count, 0);
+    assert_eq!(counters.maintenance_rejected_plan_count, 0);
+    assert_eq!(counters.maintenance_restart_recovered_count, 0);
     assert_eq!(counters.maintenance_foreground_borrow_count, 0);
+    assert_eq!(counters.maintenance_quantum_grant_count, 1);
+    assert_eq!(counters.maintenance_background_unit_execute_count, 1);
+    assert_eq!(counters.maintenance_tier_work_execute_count, 0);
+    assert_eq!(counters.maintenance_quantum_exhaustion_count, 0);
+    assert_eq!(counters.maintenance_cross_locality_escalation_count, 0);
+    assert_eq!(counters.maintenance_global_scope_fallback_count, 0);
+    assert_eq!(
+        counters.maintenance_plan_execute_without_descriptor_count,
+        0
+    );
+    assert_eq!(counters.maintenance_illegal_escalation_count, 0);
+    assert_eq!(counters.maintenance_truth_visibility_violation_count, 0);
 }
 
 #[test]
@@ -160,4 +195,3 @@ fn maintenance_status_exposes_persisted_scheduler_descriptor_metadata() {
     ));
     assert!(!status.recovered_from_restart());
 }
-

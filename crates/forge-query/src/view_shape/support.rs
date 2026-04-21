@@ -1,7 +1,10 @@
 use super::{ViewShapeComplexityStatus, ViewShapeFamily};
 
-pub fn runtime_backed_view_shape_support_profile(
-) -> (Vec<ViewShapeFamily>, Vec<ViewShapeFamily>, Vec<(ViewShapeFamily, ViewShapeComplexityStatus)>) {
+pub fn runtime_backed_view_shape_support_profile() -> (
+    Vec<ViewShapeFamily>,
+    Vec<ViewShapeFamily>,
+    Vec<(ViewShapeFamily, ViewShapeComplexityStatus)>,
+) {
     (
         vec![
             ViewShapeFamily::Table,
@@ -22,7 +25,10 @@ pub fn runtime_backed_view_shape_support_profile(
                 ViewShapeFamily::InspectorDetailFocused,
                 ViewShapeComplexityStatus::Debt,
             ),
-            (ViewShapeFamily::KanbanGrouped, ViewShapeComplexityStatus::Debt),
+            (
+                ViewShapeFamily::KanbanGrouped,
+                ViewShapeComplexityStatus::Debt,
+            ),
         ],
     )
 }

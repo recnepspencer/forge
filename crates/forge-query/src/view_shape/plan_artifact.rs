@@ -90,15 +90,18 @@ impl ViewShapePlanArtifact {
         maintenance_contract: ViewShapeMaintenanceContract,
     ) -> Result<Self, ViewShapeError> {
         match (validated.admitted().family(), &maintenance_contract) {
-            (ViewShapeFamily::KanbanGrouped, ViewShapeMaintenanceContract::KanbanGrouped { .. })
-                if delivery_metadata.grouped_delivery() => {}
+            (
+                ViewShapeFamily::KanbanGrouped,
+                ViewShapeMaintenanceContract::KanbanGrouped { .. },
+            ) if delivery_metadata.grouped_delivery() => {}
             (ViewShapeFamily::KanbanGrouped, _) => {
                 return Err(ViewShapeError::new(
                     ViewShapeFailureClass::PlanningInvariantRejected,
                     "kanban grouped plans must carry a grouped maintenance contract",
                 ));
             }
-            (_, ViewShapeMaintenanceContract::Ungrouped) if !delivery_metadata.grouped_delivery() => {}
+            (_, ViewShapeMaintenanceContract::Ungrouped)
+                if !delivery_metadata.grouped_delivery() => {}
             (_, _) => {
                 return Err(ViewShapeError::new(
                     ViewShapeFailureClass::PlanningInvariantRejected,
@@ -109,17 +112,26 @@ impl ViewShapePlanArtifact {
 
         let view_plan_digest = ViewShapePlanDigest::from_parts(&[
             format!("view_shape:{}", validated.admitted().digest().as_str()),
-            format!("canonical_query:{}", validated.canonical_query_digest().as_str()),
+            format!(
+                "canonical_query:{}",
+                validated.canonical_query_digest().as_str()
+            ),
             format!(
                 "canonical_result_shape:{}",
                 validated.canonical_result_shape_digest().as_str()
             ),
-            format!("validated_query:{}", validated.validated().query().digest().as_str()),
+            format!(
+                "validated_query:{}",
+                validated.validated().query().digest().as_str()
+            ),
             format!(
                 "validated_result_shape:{}",
                 validated.validated().result_shape().digest().as_str()
             ),
-            format!("execution_plan:{}", execution_plan.query().plan_digest().as_str()),
+            format!(
+                "execution_plan:{}",
+                execution_plan.query().plan_digest().as_str()
+            ),
             format!("invalidation:{}", invalidation_posture.as_str()),
             format!("patch:{}", patch_posture.as_str()),
             format!(
@@ -131,10 +143,17 @@ impl ViewShapePlanArtifact {
                 delivery_metadata.grouping_aspect().unwrap_or("none")
             ),
             format!(
+                "identity_consumption:{}",
+                delivery_metadata.identity_consumption().digest().as_str()
+            ),
+            format!(
                 "projection_matches_detail:{}",
                 delivery_metadata.projection_legality_matches_detail()
             ),
-            format!("delivery_narrowed:{}", delivery_metadata.delivery_width_narrowed()),
+            format!(
+                "delivery_narrowed:{}",
+                delivery_metadata.delivery_width_narrowed()
+            ),
             format!("grouped_delivery:{}", delivery_metadata.grouped_delivery()),
             format!(
                 "grouped_contract:{}",
@@ -238,7 +257,9 @@ impl ViewShapePlanArtifact {
                 "grouped_replay_commits_contract:{}",
                 maintenance_contract
                     .grouped_planning()
-                    .map(|planning| planning.replay_delivery_posture().replay_commits_grouping_contract())
+                    .map(|planning| planning
+                        .replay_delivery_posture()
+                        .replay_commits_grouping_contract())
                     .unwrap_or(false)
             ),
             format!("cost:{}", complexity.cost_class().as_str()),
@@ -310,7 +331,9 @@ impl ViewShapePlanArtifact {
         &self.maintenance_contract
     }
 
-    pub fn grouped_delta_policy(&self) -> Option<&super::grouped_policy::GroupedDeltaAdmissionPolicy> {
+    pub fn grouped_delta_policy(
+        &self,
+    ) -> Option<&super::grouped_policy::GroupedDeltaAdmissionPolicy> {
         self.maintenance_contract.grouped_delta_policy()
     }
 

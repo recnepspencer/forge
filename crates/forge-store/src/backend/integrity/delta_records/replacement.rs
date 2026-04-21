@@ -1,6 +1,8 @@
 use crate::{
     backend::records::{BranchDeltaLayerRecord, BranchDeltaReplacementProofEntry, StoreState},
-    delta::{BRANCH_DELTA_FAMILY_VERSION, BranchDeltaLayerId, stable_branch_delta_layer_authority_digest},
+    delta::{
+        stable_branch_delta_layer_authority_digest, BranchDeltaLayerId, BRANCH_DELTA_FAMILY_VERSION,
+    },
     failure::{StoreError, StoreErrorKind},
 };
 use forge_relational::facade::history::BranchId;
@@ -135,7 +137,10 @@ impl StoreState {
                 &record.branch_id,
                 proof_entry,
             )?;
-            if self.branch_delta_layer_records.contains_key(&replaced_layer_id.0) {
+            if self
+                .branch_delta_layer_records
+                .contains_key(&replaced_layer_id.0)
+            {
                 return Err(StoreError::new(
                     StoreErrorKind::BranchDeltaShadowAuthorityViolation,
                     format!(

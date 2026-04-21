@@ -19,7 +19,9 @@ pub(super) fn fallback_surface(
     })
 }
 
-pub(super) fn rebuild_identity_surface(bundle: &crate::Milestone6CertificationBundle) -> serde_json::Value {
+pub(super) fn rebuild_identity_surface(
+    bundle: &crate::Milestone6CertificationBundle,
+) -> serde_json::Value {
     serde_json::json!({
         "truth_digest": bundle.truth_digest,
         "artifact_digest": bundle.artifact_digest,
@@ -29,7 +31,9 @@ pub(super) fn rebuild_identity_surface(bundle: &crate::Milestone6CertificationBu
     })
 }
 
-pub(super) fn chunk_export_surface(export: &crate::Milestone6ChunkModelExport) -> serde_json::Value {
+pub(super) fn chunk_export_surface(
+    export: &crate::Milestone6ChunkModelExport,
+) -> serde_json::Value {
     serde_json::json!({
         "physical_chunk_id": export.physical_chunk_id().as_str(),
         "chunk_membership_artifact_id": export.chunk_membership_artifact_id(),

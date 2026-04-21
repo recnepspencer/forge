@@ -19,7 +19,11 @@ fn persist_embedded_checkpoint_records(
 ) -> Result<(), StoreError> {
     for record in state.embedded_checkpoint_records.values() {
         let contained_commit_ids_payload = serde_json::to_string(
-            &record.contained_commit_ids.iter().map(|commit_id| commit_id.0).collect::<Vec<_>>(),
+            &record
+                .contained_commit_ids
+                .iter()
+                .map(|commit_id| commit_id.0)
+                .collect::<Vec<_>>(),
         )?;
         let metadata_payload = serde_json::to_string(&record.metadata)?;
         transaction
@@ -63,10 +67,15 @@ fn persist_milestone_6_layout_records(
     persist_json_records(
         transaction,
         "milestone_6_commit_coupled_layout_seed_records",
-        state.milestone_6_commit_coupled_layout_seed_records.values(),
+        state
+            .milestone_6_commit_coupled_layout_seed_records
+            .values(),
         |record| {
             vec![
-                ("branch_id".to_string(), record.request.target().branch_id().0.clone()),
+                (
+                    "branch_id".to_string(),
+                    record.request.target().branch_id().0.clone(),
+                ),
                 (
                     "frontier_commit_id".to_string(),
                     record.request.target().frontier_commit_id().0.to_string(),
@@ -90,7 +99,10 @@ fn persist_milestone_6_layout_records(
                     record.frontier_commit_id.0.to_string(),
                 ),
                 ("scope_class".to_string(), record.scope_class.clone()),
-                ("projection_digest".to_string(), record.projection_digest.clone()),
+                (
+                    "projection_digest".to_string(),
+                    record.projection_digest.clone(),
+                ),
             ]
         },
     )?;
@@ -132,7 +144,10 @@ fn persist_milestone_6_layout_records(
                 ),
                 (
                     "supporting_layout_materialization_count".to_string(),
-                    record.supporting_layout_materialization_artifact_ids.len().to_string(),
+                    record
+                        .supporting_layout_materialization_artifact_ids
+                        .len()
+                        .to_string(),
                 ),
             ]
         },

@@ -30,7 +30,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             return Err(error);
         }
         self.counters.record_state_delta_apply(2, 2);
-        self.counters.record_snapshot_capture(record_count, byte_count);
+        self.counters
+            .record_snapshot_capture(record_count, byte_count);
         Ok(handle)
     }
 

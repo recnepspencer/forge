@@ -19,7 +19,8 @@ impl StoreBackend {
         &self,
         checkpoint_id: &str,
     ) -> Result<EmbeddedCheckpointRecord, StoreError> {
-        dispatch_ref!(self, |backend| backend.fetch_embedded_checkpoint(checkpoint_id))
+        dispatch_ref!(self, |backend| backend
+            .fetch_embedded_checkpoint(checkpoint_id))
     }
     pub fn capture_snapshot(
         &mut self,
@@ -56,14 +57,16 @@ impl StoreBackend {
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Result<(), StoreError> {
-        dispatch_mut!(self, |backend| backend.remove_snapshot_image_for_test(snapshot_id))
+        dispatch_mut!(self, |backend| backend
+            .remove_snapshot_image_for_test(snapshot_id))
     }
     #[cfg(test)]
     pub fn remove_snapshot_basis_for_test(
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Result<(), StoreError> {
-        dispatch_mut!(self, |backend| backend.remove_snapshot_basis_for_test(snapshot_id))
+        dispatch_mut!(self, |backend| backend
+            .remove_snapshot_basis_for_test(snapshot_id))
     }
     #[cfg(test)]
     pub fn clear_branch_heads_for_test(&mut self) -> Result<(), StoreError> {
@@ -74,6 +77,7 @@ impl StoreBackend {
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Result<(), StoreError> {
-        dispatch_mut!(self, |backend| backend.corrupt_snapshot_basis_digest_for_test(snapshot_id))
+        dispatch_mut!(self, |backend| backend
+            .corrupt_snapshot_basis_digest_for_test(snapshot_id))
     }
 }

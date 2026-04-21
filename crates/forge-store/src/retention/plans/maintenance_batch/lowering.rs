@@ -10,8 +10,14 @@ use crate::retention::plans::{CompactionPlan, RebuildDebtSummary};
 pub(super) fn lower_compaction_declaration(plan: &CompactionPlan) -> LoweredCompactionDeclaration {
     LoweredCompactionDeclaration::new(
         plan.retained_basis_label().to_string(),
-        plan.closure_witness().retained_heads().branch_ids().to_vec(),
-        plan.closure_witness().stable_bases().basis_labels().to_vec(),
+        plan.closure_witness()
+            .retained_heads()
+            .branch_ids()
+            .to_vec(),
+        plan.closure_witness()
+            .stable_bases()
+            .basis_labels()
+            .to_vec(),
         plan.closure_witness().closure_commit_ids().to_vec(),
         plan.closure_witness().frontier_commit_ids().to_vec(),
         plan.family_labels().to_vec(),

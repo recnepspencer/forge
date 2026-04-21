@@ -97,7 +97,9 @@ fn milestone_3_6_suite() -> CertificationSuite<String, String> {
             .unwrap();
         store.append_canonical_commit(envelope).unwrap();
         drop(store);
-        crate::tests::harness::corruption::sqlite::delete_first_sqlite_lineage_support_record(&path);
+        crate::tests::harness::corruption::sqlite::delete_first_sqlite_lineage_support_record(
+            &path,
+        );
         let recovered = ForgeStoreBuilder::new()
             .sqlite_file(path)
             .durable_mode(runtime_with_demo_schema())

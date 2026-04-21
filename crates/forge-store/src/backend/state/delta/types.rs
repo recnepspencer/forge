@@ -1,6 +1,5 @@
 use crate::backend::{
-    records::BranchDeltaLayerRecord,
-    state::branch_lifecycle::AppliedBranchCreation,
+    records::BranchDeltaLayerRecord, state::branch_lifecycle::AppliedBranchCreation,
 };
 use forge_relational::facade::history::BranchId;
 

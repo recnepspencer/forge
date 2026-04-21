@@ -20,6 +20,7 @@ mod composition;
 mod correspondence;
 mod correspondence_history;
 mod correspondence_history_parity;
+mod declarative_live;
 mod diagnostics;
 mod execution;
 pub mod facade;
