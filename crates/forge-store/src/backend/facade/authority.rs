@@ -50,6 +50,15 @@ impl StoreBackend {
         dispatch_mut!(self, |backend| backend.append(verified))
     }
 
+    pub fn execute_rolling_commit_publication(
+        &mut self,
+        request: crate::CompatibilityRollingPublicationRequest,
+        verified: VerifiedAuthoritativeAppend,
+    ) -> Result<crate::CompatibilityRollingPublicationOutcome, StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .execute_rolling_commit_publication(request, verified))
+    }
+
     pub fn fetch_commit(
         &self,
         commit_id: CommitId,

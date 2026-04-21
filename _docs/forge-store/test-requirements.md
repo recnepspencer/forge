@@ -11,7 +11,8 @@ already closed elsewhere.
 
 It governs milestone closeout for:
 
-- Milestone 1 through Milestone 22, including Milestone 3.5 and Milestone 3.6
+- Milestone 1 through Milestone 22, including Milestone 3.5, Milestone 3.6,
+  and Milestones 13.1 through 13.3
 - the generic certification program in Milestone 23
 - the domain certification program in Milestone 24
 
@@ -32,6 +33,8 @@ The store is making much stronger claims:
 - embedded mode persists artifacts without stealing semantic authority
 - snapshots, deltas, and structural blocks remain rebuildable
 - live-query continuation converges to the same truth as fresh reads
+- first-class subscription-support artifacts remain exact, degraded, or
+  non-resumable in explicit typed ways rather than through cursor folklore
 - retention, compaction, and tiering never become shadow authority
 - replication and import/export preserve canonical truth
 - derived artifacts remain honest about accuracy and rebuildability
@@ -46,8 +49,9 @@ The store certification suite must prove the following:
 
 > Under crash-restart loops, backend variation, branch pressure, retention
 > pressure, schema evolution, lineage-bearing truth, cursor resume, live-query
-> continuation, bulk-ingest interruption, replication/import-export, tier
-> movement, derived-artifact rebuild, blob pressure, and budget exhaustion,
+> continuation, first-class subscription-support survival, bulk-ingest
+> interruption, replication/import-export, tier movement, derived-artifact
+> rebuild, blob pressure, and budget exhaustion,
 > the store must preserve canonical truth meaning, replay-safe artifacts,
 > explicit authority boundaries, typed failures, and machine-checkable
 > diagnostics without allowing physical layout, caching, heuristics, or
@@ -119,6 +123,7 @@ the fields appropriate to the suite's scope, including from this common pool:
 - `history_digest`
 - `branch_heads_digest`
 - `artifact_digest`
+- `subscription_support_digest`
 - `replay_digest`
 - `restore_digest`
 - `diagnostics_digest`
@@ -165,6 +170,9 @@ The following do not count as certification:
 | M11 | Background maintenance isolation and scheduling test |
 | M12 | Artifact format evolution and rolling compatibility test |
 | M13 | Tiering and working-set non-authority test |
+| M13.1 | Durable subscription-support artifact and resume-contract test |
+| M13.2 | Subscription-support retention/replication/compatibility/maintenance test |
+| M13.3 | Subscription-support accuracy and certification test |
 | M14 | Replication capsule equivalence and integrity test |
 | M15 | Extensible durable artifact family containment test |
 | M16 | Time-travel diff and merge-assistance parity test |
@@ -1082,12 +1090,122 @@ Pass condition
 
 Tiering and working-set logic affect cost only.
 
+### 13.1. Durable Subscription-Support Artifact And Resume-Contract Test
+
+Purpose
+
+Prove that first-class subscription-support artifacts survive restart and
+rebuild with explicit resumability meaning instead of degrading into raw cursor
+folklore or host-local delivery memory.
+
+Scenario
+
+- persist admitted subscription-support artifacts linked to basis and cursor
+  support truth
+- restart and rebuild the store
+- attempt exact, degraded, rebuild-required, and non-resumable resume lanes
+
+Must verify
+
+- subscription-support identity survives restart and rebuild
+- resumability classification is explicit and typed
+- cursor truth alone is insufficient to masquerade as exact subscription resume
+- basis drift and subscription-support drift are distinguished mechanically
+
+Required verification output
+
+- `truth_digest`
+- `artifact_digest`
+- `subscription_support_digest`
+- `replay_digest`
+- `diagnostics_digest`
+
+Pass condition
+
+First-class subscription-support artifacts remain durable, basis-linked, and
+honest about resumability.
+
+### 13.2. Subscription-Support Retention, Replication, Compatibility, And Maintenance Test
+
+Purpose
+
+Prove that retention, replication, compatibility drift, and maintenance work
+preserve or explicitly degrade subscription-support truth rather than silently
+destroying exact resumability.
+
+Scenario
+
+- retain some subscription-support families and reclaim or compact others
+- replicate or capsule-export admitted subscription-support scopes
+- run compatibility-skew lanes and maintenance-triggered rebuild lanes
+- compare exact-resume, degraded-resume, rebuild-required, and rejected lanes
+
+Must verify
+
+- retention and reclaim publish typed subscription resumability conclusions
+- replicated subscription-support artifacts preserve declared identity where
+  admitted
+- version-skew and maintenance drift trigger typed degradation or rejection
+- no lane silently reports exact resumability after support loss
+
+Required verification output
+
+- `truth_digest`
+- `artifact_digest`
+- `subscription_support_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Store programs that act on artifacts preserve or explicitly classify
+subscription-support resumability rather than leaving it ambient.
+
+### 13.3. Subscription-Support Accuracy And Certification Test
+
+Purpose
+
+Prove that subscription-support artifact families carry an enforced trust
+posture for their declared support role and cannot be consumed as stronger
+resume truth than their basis and rebuild posture allow.
+
+Scenario
+
+- build exact, degraded, rebuilt, replicated, and stale subscription-support
+  variants
+- certify admitted families against their declared support-role posture
+- compare generic and domain-facing certification bundles
+
+Must verify
+
+- every admitted subscription-support family is classified explicitly
+- stale or rebuilt variants do not present as exact resumability proof unless
+  their declared rules allow it
+- certification bundles are sufficient to audit subscription-support trust
+  posture offline
+- generic and domain certification coverage include first-class
+  subscription-support lanes
+
+Required verification output
+
+- `artifact_digest`
+- `subscription_support_digest`
+- `diagnostics_digest`
+- `counter_snapshot`
+- `certification_summary`
+
+Pass condition
+
+Subscription-support durability is classified and certified mechanically rather
+than by convention.
+
 ### 14. Replication Capsule Equivalence And Integrity Test
 
 Purpose
 
 Prove that replication and import/export capsules reconstruct the same
-canonical truth and artifact identities as the source store.
+canonical truth, artifact identities, and admitted subscription-support
+artifacts as the source store.
 
 Scenario
 
@@ -1101,6 +1219,8 @@ Must verify
 - imported and replicated scopes match source truth for the declared scope
 - omitted scopes remain explicit
 - integrity digests are sufficient for offline verification
+- admitted subscription-support artifacts preserve their declared resumability
+  posture or fail explicitly during transfer
 
 Required verification output
 
@@ -1119,7 +1239,8 @@ Purpose
 
 Prove that extension-defined durable artifact families and storage strategies
 cannot become shadow authority, bypass rebuild rules, or evade retention,
-compatibility, replication, and certification boundaries.
+compatibility, replication, subscription-support, and certification
+boundaries.
 
 Scenario
 
@@ -1136,6 +1257,8 @@ Must verify
 - extension families that violate declared contracts fail explicitly and typed
 - rebuild, retention, and export participation follow the declared family
   contract rather than extension-local heuristics
+- extension-defined subscription-support families cannot invent stronger resume
+  semantics than the declared platform contract admits
 - stale or incompatible extension families trigger typed rejection or explicit
   fallback, never silent acceptance
 
@@ -1186,7 +1309,8 @@ Assistance artifacts improve cost only.
 Purpose
 
 Prove that every derived artifact family carries the correct enforced accuracy
-class and cannot be consumed as stronger truth than its basis allows.
+class and cannot be consumed as stronger truth than its basis allows,
+including subscription-support families in their declared support role.
 
 Scenario
 
@@ -1198,6 +1322,8 @@ Must verify
 - every artifact is tagged with the correct class
 - stale or partial artifacts do not present as `Exact`
 - rebuild and drift detection remain explicit
+- subscription-support families do not present exact resumability when their
+  declared support basis no longer justifies it
 
 Required verification output
 

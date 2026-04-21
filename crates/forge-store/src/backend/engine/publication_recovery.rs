@@ -1,5 +1,9 @@
 use crate::authority::AuthoritativeExportBundle;
 use crate::backend::records::EmbeddedCheckpointRecord;
+use crate::compatibility::{
+    CompatibilityFamilyKind, CompatibilityManifestSummary, CompatibilityRecoveredManifestIndex,
+    ManifestRecoverySummary,
+};
 use crate::failure::{StoreError, StoreErrorKind};
 use crate::publication::{
     classify_durable_publication, classify_snapshot_publication, durable_publication_facts,
@@ -96,10 +100,26 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         self.state.authoritative_export_bundle()
     }
 
+    pub fn compatibility_manifest_recovery_summary(&self) -> ManifestRecoverySummary {
+        self.state.compatibility_manifest_recovery_summary()
+    }
+
+    pub fn recover_compatibility_manifest_index(&self) -> CompatibilityRecoveredManifestIndex {
+        self.state.recovered_compatibility_manifest_index()
+    }
+
+    pub fn compatibility_manifest_summaries(&self) -> Vec<CompatibilityManifestSummary> {
+        self.state.compatibility_manifest_summaries()
+    }
+
     pub fn persist_embedded_checkpoint(
         &mut self,
         record: EmbeddedCheckpointRecord,
     ) -> Result<EmbeddedCheckpointRecord, StoreError> {
+        self.admit_runtime_write_compatibility(
+            CompatibilityFamilyKind::EmbeddedCheckpointAuthority,
+            "persist_embedded_checkpoint",
+        )?;
         if self
             .state
             .embedded_checkpoint_records
@@ -145,6 +165,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         checkpoint_id: &str,
     ) -> Result<EmbeddedCheckpointRecord, StoreError> {
+        self.admit_runtime_read_compatibility(
+            CompatibilityFamilyKind::EmbeddedCheckpointAuthority,
+            "fetch_embedded_checkpoint",
+        )?;
         let record = self
             .state
             .embedded_checkpoint_records

@@ -29,10 +29,16 @@ pub const MILESTONE_12_COUNTER_NAMES: &[&str] = &[
     "compatibility.index.row_scan_count",
     "compatibility.decode.malformed_frame_count",
     "compatibility.adapter.cost_class_count",
+    "compatibility.adapter.inline_count",
+    "compatibility.adapter.batch_count",
+    "compatibility.adapter.maintenance_scheduled_count",
     "compatibility.adapter.parity_failure_count",
     "compatibility.adapter.hot_path_rejection_count",
     "compatibility.adapter.maintenance_required_rejection_count",
     "compatibility.adapter.out_of_scope_rejection_count",
+    "compatibility.adapter.input_record_count",
+    "compatibility.adapter.output_record_count",
+    "compatibility.adapter.allocation_scope_count",
     "compatibility.admission.native_count",
     "compatibility.admission.forward_backward_count",
     "compatibility.admission.adapter_count",
@@ -87,9 +93,17 @@ pub const MILESTONE_12_ADMISSION_REPORT_COUNTER_FIELD_NAMES: &[&str] = &[
     "compatibility.receipt.basis_mismatch_count",
     "compatibility.index.row_scan_count",
     "compatibility.decode.malformed_frame_count",
+    "compatibility.adapter.cost_class_count",
+    "compatibility.adapter.inline_count",
+    "compatibility.adapter.batch_count",
+    "compatibility.adapter.maintenance_scheduled_count",
+    "compatibility.adapter.parity_failure_count",
     "compatibility.adapter.hot_path_rejection_count",
     "compatibility.adapter.maintenance_required_rejection_count",
     "compatibility.adapter.out_of_scope_rejection_count",
+    "compatibility.adapter.input_record_count",
+    "compatibility.adapter.output_record_count",
+    "compatibility.adapter.allocation_scope_count",
     "compatibility.admission.native_count",
     "compatibility.admission.forward_backward_count",
     "compatibility.admission.adapter_count",
@@ -205,9 +219,17 @@ pub struct Milestone12AdmissionReport {
     pub receipt_basis_mismatch_count: u64,
     pub artifact_row_scan_count: u64,
     pub malformed_frame_count: u64,
+    pub adapter_cost_class_count: u64,
+    pub adapter_inline_count: u64,
+    pub adapter_batch_count: u64,
+    pub adapter_maintenance_scheduled_count: u64,
+    pub adapter_parity_failure_count: u64,
     pub adapter_hot_path_rejection_count: u64,
     pub adapter_maintenance_required_rejection_count: u64,
     pub adapter_out_of_scope_rejection_count: u64,
+    pub adapter_input_record_count: u64,
+    pub adapter_output_record_count: u64,
+    pub adapter_allocation_scope_count: u64,
     pub admitted_native_count: u64,
     pub admitted_forward_backward_count: u64,
     pub admitted_adapter_count: u64,
@@ -264,10 +286,18 @@ impl Milestone12AdmissionReport {
             receipt_basis_mismatch_count: counters.receipt_basis_mismatch_count(),
             artifact_row_scan_count: counters.artifact_row_scan_count(),
             malformed_frame_count: counters.malformed_frame_count(),
+            adapter_cost_class_count: counters.adapter_cost_class_count(),
+            adapter_inline_count: counters.adapter_inline_count(),
+            adapter_batch_count: counters.adapter_batch_count(),
+            adapter_maintenance_scheduled_count: counters.adapter_maintenance_scheduled_count(),
+            adapter_parity_failure_count: counters.adapter_parity_failure_count(),
             adapter_hot_path_rejection_count: counters.adapter_hot_path_rejection_count(),
             adapter_maintenance_required_rejection_count: counters
                 .adapter_maintenance_required_rejection_count(),
             adapter_out_of_scope_rejection_count: counters.adapter_out_of_scope_rejection_count(),
+            adapter_input_record_count: counters.adapter_input_record_count(),
+            adapter_output_record_count: counters.adapter_output_record_count(),
+            adapter_allocation_scope_count: counters.adapter_allocation_scope_count(),
             admitted_native_count: counters.admitted_native_count(),
             admitted_forward_backward_count: counters.admitted_forward_backward_count(),
             admitted_adapter_count: counters.admitted_adapter_count(),
@@ -334,11 +364,20 @@ impl Milestone12AdmissionReport {
             aggregate.receipt_basis_mismatch_count += report.receipt_basis_mismatch_count;
             aggregate.artifact_row_scan_count += report.artifact_row_scan_count;
             aggregate.malformed_frame_count += report.malformed_frame_count;
+            aggregate.adapter_cost_class_count += report.adapter_cost_class_count;
+            aggregate.adapter_inline_count += report.adapter_inline_count;
+            aggregate.adapter_batch_count += report.adapter_batch_count;
+            aggregate.adapter_maintenance_scheduled_count +=
+                report.adapter_maintenance_scheduled_count;
+            aggregate.adapter_parity_failure_count += report.adapter_parity_failure_count;
             aggregate.adapter_hot_path_rejection_count += report.adapter_hot_path_rejection_count;
             aggregate.adapter_maintenance_required_rejection_count +=
                 report.adapter_maintenance_required_rejection_count;
             aggregate.adapter_out_of_scope_rejection_count +=
                 report.adapter_out_of_scope_rejection_count;
+            aggregate.adapter_input_record_count += report.adapter_input_record_count;
+            aggregate.adapter_output_record_count += report.adapter_output_record_count;
+            aggregate.adapter_allocation_scope_count += report.adapter_allocation_scope_count;
             aggregate.admitted_native_count += report.admitted_native_count;
             aggregate.admitted_forward_backward_count += report.admitted_forward_backward_count;
             aggregate.admitted_adapter_count += report.admitted_adapter_count;
@@ -410,9 +449,17 @@ impl Milestone12AdmissionReport {
             || self.receipt_basis_mismatch_count != 0
             || self.artifact_row_scan_count != 0
             || self.malformed_frame_count != 0
+            || self.adapter_cost_class_count != 0
+            || self.adapter_inline_count != 0
+            || self.adapter_batch_count != 0
+            || self.adapter_maintenance_scheduled_count != 0
+            || self.adapter_parity_failure_count != 0
             || self.adapter_hot_path_rejection_count != 0
             || self.adapter_maintenance_required_rejection_count != 0
             || self.adapter_out_of_scope_rejection_count != 0
+            || self.adapter_input_record_count != 0
+            || self.adapter_output_record_count != 0
+            || self.adapter_allocation_scope_count != 0
             || self.admitted_native_count != 0
             || self.admitted_forward_backward_count != 0
             || self.admitted_adapter_count != 0
@@ -468,9 +515,17 @@ impl Milestone12AdmissionReport {
             receipt_basis_mismatch_count: 0,
             artifact_row_scan_count: 0,
             malformed_frame_count: 0,
+            adapter_cost_class_count: 0,
+            adapter_inline_count: 0,
+            adapter_batch_count: 0,
+            adapter_maintenance_scheduled_count: 0,
+            adapter_parity_failure_count: 0,
             adapter_hot_path_rejection_count: 0,
             adapter_maintenance_required_rejection_count: 0,
             adapter_out_of_scope_rejection_count: 0,
+            adapter_input_record_count: 0,
+            adapter_output_record_count: 0,
+            adapter_allocation_scope_count: 0,
             admitted_native_count: 0,
             admitted_forward_backward_count: 0,
             admitted_adapter_count: 0,
@@ -774,6 +829,7 @@ fn derived_evidence(
     for outcome in outcomes {
         match outcome.lane_kind() {
             Milestone12CertificationLaneKind::DerivedSnapshotReuseAccepted
+            | Milestone12CertificationLaneKind::MaintenanceSummaryRebuildAdmitted
             | Milestone12CertificationLaneKind::TierManifestNonAuthorityPreserved => {
                 admitted_lane_count += 1;
             }

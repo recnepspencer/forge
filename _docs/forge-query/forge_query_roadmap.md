@@ -175,6 +175,17 @@ cross-feature proof gates before final certification:
 - `Milestone 9` must prove tenant schema variation + validation + delivery-
   shape parity, and policy masking + historical reads + saved/scope-composed
   queries where those surfaces already exist
+- `Milestone 9.1` must prove query-owned subscription declaration families and
+  lowering preserve the same canonical query meaning across policy, tenant,
+  basis, and view-shape variations without inventing a second live-query
+  semantics path or a fake one-size-fits-all subscription kind
+- `Milestone 9.2` must prove subscription-family-backed live delivery,
+  sharing, continuation, and preview isolation preserve query-shaped parity
+  for the same canonical query and admitted live family
+- `Milestone 9.3` must prove Query's automatic subscription-family selection
+  path remains bridge-honest, diagnostically sufficient, and
+  certification-ready rather than smuggling capabilities above the bridge or
+  host runtime
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -192,8 +203,9 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 4` ->
   `Milestone 5` -> `Milestone 5.1` -> `Milestone 5.2` -> `Milestone 5.3` ->
   `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
-  `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 10` ->
-  `Milestone 11` -> `Milestone 12` -> `Milestone 13`
+  `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
+  `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 10` -> `Milestone 11` ->
+  `Milestone 12` -> `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -220,6 +232,17 @@ Store-gated completion tracks:
 - `Milestone 9` can ship policy-aware narrowing and delivery-shape semantics
   first, but durable cursor resume and persisted delivery metadata are
   postponed to `Milestone 11`
+- `Milestone 9.1` can ship runtime-backed subscription declaration, lowering,
+  and admission first, but durable subscription artifact persistence and
+  restart-stable reload are postponed to `Milestone 11`
+- `Milestone 9.2` can ship runtime-backed subscription lifecycle, sharing,
+  continuation, and preview isolation first, but durable continuation,
+  checkpoint survival, and restart-stable subscription metadata are postponed
+  to `Milestone 11`
+- `Milestone 9.3` can ship runtime-backed subscription diagnostics, bridge
+  parity, and certification first, but any claims about durable subscription
+  replay or store-backed restart parity must remain explicit debt until
+  `Milestone 10` and `Milestone 11` close
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -1696,6 +1719,359 @@ This milestone is complete only when `forge-query` can prove:
 - the same policy basis produces the same query narrowing for one-shot, live,
   and historical execution
 
+## Milestone 9.1: Query-Owned Subscription Declaration Families, Lowering, And Admission
+
+### Goal
+
+Make subscriptions first-class query artifacts by lowering admitted live query
+meaning into explicit subscription declaration families and bridge-facing
+subscription plans rather than treating long-lived observation as host-side
+glue around live queries.
+
+### Adversarial Constraint
+
+The same canonical query, live family, policy basis, tenant basis, and
+view-shape intent must lower into the same subscription declaration family and
+bridge subscription plan regardless of whether the caller authored it
+directly, through a scope/template/saved artifact, or through a runtime facade
+helper, with no path allowed to infer subscription meaning from ambient host
+observer state or a fake default subscription kind.
+
+### Why This Milestone Exists
+
+Milestone 9 froze policy-aware narrowing, tenant/schema basis resolution,
+relationship-proof admission, and caller-visible delivery shape. Those
+artifacts now define what a live query is allowed to mean.
+
+What still does not exist is one query-owned answer to:
+
+- what subscription identity corresponds to this canonical live query
+- what basis does that subscription bind to
+- what bridge subscription contract should it lower into
+- what makes two live requests the same subscription versus different
+  subscriptions
+- why was a subscription admitted or denied
+
+Without this milestone, Forge Query can continue to speak about "live" while
+still relying on hidden runtime conventions for the actual subscription
+mechanism.
+
+### Must Ship
+
+- canonical query-owned subscription declaration-family artifacts derived from
+  admitted live query meaning
+- subscription family selection, identity, and equivalence surfaces distinct
+  from raw query identity, delivery shape, and bridge stream identity
+- lowering from live query plans into bridge-native subscription declarations
+  and admission requests
+- basis-bound subscription declaration for current, branch-local, historical,
+  and admitted preview contexts where the live family supports them
+- policy-aware, tenant-aware, and relationship-proof-aware subscription
+  admission
+- view-shape-aware subscription shaping for admitted detail, collection,
+  grouped, and inspector-style live families
+- explicit lowering from query declaration families into admitted bridge
+  declaration families and admitted `forge-signal` observation and delivery
+  strategies
+- diagnostics that explain subscription declaration, lowering, basis binding,
+  and denial
+
+### Must Preserve
+
+- `forge-query` remains the owner of query semantics and result shaping, not
+  the owner of bridge subscription protocol semantics
+- subscription lowering must consume the same canonical policy/tenant/basis
+  artifacts as one-shot and historical execution
+- unsupported subscription combinations fail typed and early instead of
+  widening into raw CDC or host observer callbacks
+- equivalent live requests normalize to one subscription-family meaning before
+  bridge activation
+- `forge-query` does not invent its own observer semantics; it chooses among
+  admitted family lowerings that already map into bridge and `forge-signal`
+  strategy space
+
+### Complexity / Proof Obligations
+
+- name subscription declaration, lowering, basis binding, and admission
+  contracts
+- expose exact counters for admitted subscription declarations, denied
+  declarations, grouped/detail lowering variants, basis-bound declarations, and
+  bridge-lowering fallback count
+- prove that equivalent live query inputs lower to equivalent
+  subscription-family artifacts and bridge declarations
+
+### Allowed Debt
+
+- durable subscription artifact persistence and reload may remain `Debt` until
+  `forge-store` supports them
+- host-local subscription assembly, ambient observer inference, or CDC-shaped
+  fallback may not ship as debt
+
+### Sequencing Notes
+
+This belongs immediately after Milestone 9 because policy narrowing, tenant
+basis, and caller-visible delivery shape must be frozen before Query can lower
+subscriptions honestly.
+
+### Parallelization Notes
+
+Bridge-facing lowering and query-owned declaration identity can progress in
+parallel, but final closure should wait until both agree on canonical
+subscription equivalence and denial semantics.
+
+### Store Dependency
+
+- Core runtime-backed subscription declaration and lowering are not blocked on
+  `forge-store`.
+- Store-backed restart parity remains Milestone 10 scope.
+- Durable subscription artifacts and reload semantics remain Milestone 11
+  scope.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Query Subscription Declaration And Lowering Parity Test` in
+  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+  passes with canonical machine-checkable artifacts
+
+- equivalent live query inputs lower to the same canonical
+  subscription-family declaration and bridge-facing subscription plan
+- policy, tenant, basis, and view-shape differences that change live meaning
+  also change subscription meaning explicitly
+- unsupported or ambiguous subscription bindings fail before activation
+- no admitted path interprets raw CDC or one fixed baked-in subscription kind
+  as a substitute for query-shaped subscription intent
+
+## Milestone 9.2: Subscription-Family-Backed Live Delivery, Sharing, And Lifecycle Parity
+
+### Goal
+
+Make active query subscriptions first-class runtime objects with explicit
+lifecycle, sharing, continuation, and preview isolation so live maintenance is
+honestly lowered through admitted subscription families rather than merely
+"live-promoted" in name.
+
+### Adversarial Constraint
+
+One-shot reads, live-promoted queries, shared-equivalent subscriptions,
+continuation after identity evolution, and preview-scoped subscriptions must
+all preserve the same canonical query meaning and caller-visible query-shaped
+delivery for the admitted live family, without consumer pacing, fanout shape,
+or preview churn redefining what the query means.
+
+### Why This Milestone Exists
+
+Milestone 9.1 can declare and lower subscriptions, but declaration alone is
+not enough for the product surface we actually want.
+
+Forge Query still needs to own:
+
+- active subscription handles and lifecycle
+- sharing and deduplication for equivalent query subscriptions
+- query-shaped delivery over active subscriptions
+- continuation and remap semantics when identity evolves
+- preview-scoped subscription behavior and discard/promotion boundaries
+
+Without this milestone, Query would have subscription declarations on paper but
+still no honest runtime story for active long-lived subscriptions.
+
+### Must Ship
+
+- query subscription handles and active lifecycle surfaces
+- query-shaped delivery contracts for subscription-backed maintenance
+- equivalent-subscription sharing and multi-consumer fanout semantics
+- continuation and remap handling for admitted identity-evolution scenarios
+- explicit preview-scoped query subscription behavior, discard semantics, and
+  promotion-boundary interaction
+- grouped-baseline, derived-view, and admitted view-shape integration for
+  subscription-backed live maintenance
+- active family-aware delivery behavior that preserves which admitted
+  subscription family and `forge-signal` strategy were selected
+- diagnostics and counters for fanout, continuation, preview discard, and
+  subscription delivery behavior
+
+### Must Preserve
+
+- one-shot and subscription-backed lanes preserve the same canonical query
+  meaning apart from the explicitly declared live lifecycle
+- sharing does not redefine query meaning or delivery semantics
+- preview subscriptions remain isolated from authoritative subscriptions unless
+  promoted through an explicit authority boundary
+- continuation remains explicit under lineage, correspondence, and branch
+  divergence rather than being inferred from host cache coincidence
+- active lifecycle semantics remain family-aware rather than collapsing all
+  admitted live families into one generic runtime lane
+
+### Complexity / Proof Obligations
+
+- name subscription lifecycle, sharing, continuation, preview isolation, and
+  delivery contracts
+- expose exact counters for active subscriptions, shared fanout width,
+  continuation remaps, preview discard residue checks, and delivery batches or
+  patch groups
+- prove parity across one-shot, subscription-backed live, shared-consumer, and
+  preview/discard lanes for admitted families
+- prove at least two admitted subscription families remain parity-safe under
+  sharing, continuation, and query-shaped delivery
+
+### Allowed Debt
+
+- durable continuation checkpoints and restart-stable subscription metadata may
+  remain `Debt` until `forge-store` supports them
+- consumer-local caches, hidden fanout heuristics, or preview residue after
+  discard may not ship as debt
+
+### Sequencing Notes
+
+This belongs after Milestone 9.1 because Query needs canonical subscription
+declarations before it can honestly own active subscription lifecycle and
+sharing.
+
+### Parallelization Notes
+
+Lifecycle and sharing work can progress in parallel with preview isolation and
+continuation work, but final closure should wait until grouped/derived
+delivery, preview discard, and continuation all prove parity for the same
+admitted subscription families.
+
+### Store Dependency
+
+- Core runtime-backed subscription lifecycle, sharing, continuation, and
+  preview isolation are not blocked on `forge-store`.
+- Store-backed restart and snapshot-plus-tail continuation remain Milestone 10
+  scope.
+- Durable subscription checkpoints, reload, and restart-stable metadata remain
+  Milestone 11 scope.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Subscription Lifecycle Sharing And Preview Parity Test` in
+  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+  passes with canonical machine-checkable artifacts
+
+- active subscription delivery remains query-shaped and parity-safe with
+  one-shot meaning for the same admitted live family
+- equivalent subscriptions can share one active maintenance path without
+  changing meaning
+- continuation across admitted identity-evolution scenarios remains explicit
+  and typed
+- discarded preview subscriptions leave no authoritative query residue
+
+## Milestone 9.3: Subscription Family Diagnostics, Bridge Parity, And Runtime Certification
+
+### Goal
+
+Make Query's automatic subscription-family selection path bridge-honest,
+diagnosable, and certified so first-class subscriptions are not just
+implemented, but explainable as an authority-preserving lowering into the
+bridge and signal layers.
+
+### Adversarial Constraint
+
+For every admitted query subscription family, Query's automatic subscription
+path must be explainable as the same semantic request a careful manual host
+could assemble through canonical query artifacts plus bridge subscription
+contracts plus admitted `forge-signal` observation and delivery strategies,
+with diagnostics and certification sufficient to prove that Query is not
+inventing hidden semantics above the bridge.
+
+### Why This Milestone Exists
+
+Milestones 9.1 and 9.2 can make subscriptions real, but they still leave one
+dangerous gap:
+
+- Query could automate subscriptions in a way that is impossible to explain in
+  bridge terms
+- diagnostics could stop at "live handle exists" instead of exposing lowered
+  subscription meaning
+- runtime support claims could outrun actual certified subscription families
+
+This milestone exists to close that honesty gap before store-backed and durable
+milestones build on top of it.
+
+### Must Ship
+
+- query-owned subscription inspector and diagnostics artifacts
+- explicit bridge-parity explanation surfaces showing how query subscription
+  declarations lower into bridge subscription declarations and admitted
+  lifecycle behavior
+- support and admission reporting for subscription-capable query families
+- runtime certification rows for declaration, lifecycle, sharing, continuation,
+  preview isolation, and bridge parity
+- canonical subscription bundle artifacts sufficient for offline diagnosis of
+  admitted runtime-backed subscription paths
+- diagnostics that report which admitted query family, bridge family, and
+  `forge-signal` strategy lowering were selected
+
+### Must Preserve
+
+- bridge remains the authority for bridge subscription protocol semantics
+- signal remains the authority for observation execution and scheduling
+- diagnostics richness may change retained detail but not subscription meaning
+- unsupported subscription families remain explicit non-admitted surfaces
+  rather than "experimental magic"
+- certification must prove family selection and lowering honesty, not merely
+  one generic subscription lifecycle
+
+### Complexity / Proof Obligations
+
+- name bridge-parity explanation, subscription diagnostics, support reporting,
+  and runtime certification contracts
+- expose exact counters for bridge-parity comparisons, unsupported family
+  denials, diagnostics bundle emissions, and certified subscription family
+  coverage
+- prove that every admitted automatic subscription family has a bridge-facing
+  explanation and at least one hostile certification path
+- prove that admitted family variation is visible and mechanically distinct in
+  diagnostics and certification artifacts
+
+### Allowed Debt
+
+- durable subscription artifact replay and store-backed restart certification
+  may remain `Debt` until Milestones 10 and 11 close
+- undocumented hidden lowering paths or uncertified supported subscription
+  families may not ship as debt
+
+### Sequencing Notes
+
+This belongs after Milestone 9.2 because Query needs actual subscription
+lifecycle behavior before it can certify bridge parity and diagnostic
+sufficiency honestly.
+
+### Parallelization Notes
+
+Inspector work, support reporting, and certification bundle work can progress
+in parallel, but final closure should wait until the same admitted
+subscription-family matrix is covered by diagnostics, capability reporting, and
+hostile certification.
+
+### Store Dependency
+
+- Runtime-backed subscription diagnostics, bridge parity, and certification are
+  not blocked on `forge-store`.
+- Store-backed subscription execution parity remains Milestone 10 scope.
+- Durable subscription continuation and replay remain Milestone 11 scope.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Query Subscription Bridge Parity And Diagnostic Sufficiency Test` in
+  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+  passes with canonical machine-checkable artifacts
+
+- every admitted automatic subscription family can be explained through
+  canonical query-owned subscription artifacts and bridge-facing lowering
+- diagnostics can localize declaration, basis, lifecycle, continuation,
+  preview, and bridge-parity failures mechanically
+- support metadata and admitted runtime behavior stay in sync for
+  subscription-capable query families
+- diagnostics can distinguish declaration-family changes from ordinary
+  lifecycle-instance changes
+
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
 ### Goal
@@ -1711,7 +2087,7 @@ runtime-backed path for the same admitted capability.
 
 ### Why This Milestone Exists
 
-Milestones 4 through 9 can build the semantic query surface against runtime
+Milestones 4 through 9.3 can build the semantic query surface against runtime
 truth first. This milestone exists to close the backend-parity boundary later,
 once `forge-store` can participate honestly in execution and basis restore.
 

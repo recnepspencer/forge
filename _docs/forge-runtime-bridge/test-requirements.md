@@ -13,6 +13,9 @@ This document defines the certification-grade bridge test requirements for:
 - Milestone 12
 - Milestone 12b
 - Milestone 13
+- Milestone 14
+- Milestone 15
+- Milestone 16
 
 Milestones 1 through 5 already have their own acceptance and closeout proof
 surfaces. This document starts at Milestone 6 because the bridge is now moving
@@ -169,6 +172,13 @@ At minimum, certification bundles should emit digests or structured reports for:
 - `routing_digest`
 - `truth_view_digest`
 - `consumer_contract_digest`
+- `subscription_digest`
+- `subscription_registry_digest`
+- `subscription_basis_digest`
+- `subscription_lifecycle_digest`
+- `subscription_continuation_digest`
+- `subscription_delivery_digest`
+- `subscription_share_digest`
 - `policy_digest`
 - `replay_digest`
 - `diagnostics_digest`
@@ -1190,6 +1200,394 @@ Pass condition
 
 The bridge can be diagnosed and certified from its canonical artifacts alone.
 
+## Milestone 14 Named Certification Suites
+
+### 28. Subscription Declaration Equivalence Test
+
+Purpose
+
+Prove that semantically equivalent bridge subscription declarations lower into
+the same canonical subscription identity and admission artifacts without
+depending on host-local declaration order or builder trivia.
+
+Scenario
+
+- declare equivalent subscriptions through more than one host-shaped
+  construction path
+- vary declaration order, diagnostics richness, and incidental builder detail
+- admit the resulting declarations through the bridge
+- compare against intentionally non-equivalent declarations
+
+Must verify
+
+- equivalent declarations yield identical `subscription_digest`
+- equivalent declarations yield identical `subscription_registry_digest`
+- equivalent declarations yield identical admission, slice-lowering, and basis
+  records
+- intentionally different declarations compare unequal on canonical
+  subscription identity
+- diagnostics tiers change retained detail only
+- declaration identity remains replay-safe
+- representative declaration lanes keep family-registry lookup breadth,
+  normalization-sort count, allocation count, and clone count within the
+  declared Milestone 14 contract
+- representative declaration lanes prove unrelated family scans remain zero on
+  the hot path after registry freeze
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_registry_digest`
+- `subscription_basis_digest`
+- `routing_digest`
+- `diagnostics_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Equivalent subscription declarations converge to identical canonical
+subscription identity and non-equivalent declarations do not.
+
+### 29. Subscription Basis Binding And Rejection Boundary Test
+
+Purpose
+
+Prove that subscription basis binding to explicit snapshot identities and
+branch-head truth views is explicit, replay-safe, and fail-closed when
+unsupported.
+
+Scenario
+
+- bind otherwise equivalent subscriptions to explicit snapshot identities and
+  branch-head bases
+- inject unsupported basis classes and hostile basis-resolution failures
+- replay admitted and rejected basis-binding paths
+
+Must verify
+
+- basis selection is explicit and reflected in canonical basis digests
+- unsupported basis requests fail explicitly before activation
+- replay preserves both admitted and rejected basis meaning
+- no lane silently falls back to latest reachable truth
+- representative basis-admission lanes keep basis lookup count, strategy
+  candidate count, lowered-slice count, allocation count, and clone count
+  within the declared Milestone 14 contract
+- unsupported basis lanes fail before broad lowering or family-wide rescans
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_registry_digest`
+- `subscription_basis_digest`
+- `truth_view_digest`
+- `failure_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Basis binding remains explicit, canonical, and fail-closed under admitted and
+rejected variations.
+
+### 30. Subscription Lifecycle Replay Parity Test
+
+Purpose
+
+Prove that subscription lifecycle transitions across admitted artifacts,
+activation-ready handles, deactivated handles, and rejection explanation
+surfaces remain replay-safe and do not depend on ambient host state.
+
+Scenario
+
+- admit subscriptions and prepare activation-ready handles
+- deactivate some subscriptions and reject others before activation
+- replay retained lifecycle bundles after restart and diagnostics-tier variation
+
+Must verify
+
+- lifecycle transitions produce canonical typestate records
+- replay preserves lifecycle meaning exactly
+- rejected lanes fail at the declared lifecycle boundary
+- diagnostics tiers change retained richness only
+- representative lifecycle and replay lanes prove declaration-family meaning is
+  not rediscovered through repeated family scans or strategy reselection
+- replay reconstruction keeps reconstruction count, allocation count, and clone
+  count within the declared Milestone 14 contract
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_registry_digest`
+- `subscription_lifecycle_digest`
+- `diagnostics_digest`
+- `failure_digest`
+- `replay_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Subscription lifecycle meaning is canonical, replay-safe, and mechanically
+inspectable.
+
+## Milestone 15 Named Certification Suites
+
+### 31. Shared Subscription Fanout Parity Test
+
+Purpose
+
+Prove that equivalent consumers can share one bridge-native subscription
+without changing canonical subscription meaning or delivery truth.
+
+Scenario
+
+- attach at least two equivalent consumer contracts to one shared subscription
+- compare against separately activated but equivalent subscriptions
+- vary pacing, coalescing where admitted, and diagnostics richness
+
+Must verify
+
+- shared and separate-but-equivalent lanes agree on canonical subscription
+  meaning
+- fanout does not distort routing, delivery, or checkpoint truth
+- admitted coalescing changes pacing only
+- rejected sharing attempts fail explicitly and typed
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_share_digest`
+- `subscription_delivery_digest`
+- `consumer_contract_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Subscription sharing is parity-safe, explicit, and diagnosable.
+
+### 32. Subscription Continuation Across Identity Evolution Test
+
+Purpose
+
+Prove that active subscriptions continue, split, merge, or reject continuity
+deterministically when truth identity evolves.
+
+Scenario
+
+- activate subscriptions over truth surfaces that later undergo replace,
+  split, merge-like, and branch-divergent evolution
+- vary continuity outcomes across admitted and rejected classes
+- replay continuation paths after restart
+
+Must verify
+
+- continuation outcomes are explicit and typed
+- continuation digests remain stable for semantically equivalent runs
+- ambiguous or unsupported continuity cases fail explicitly
+- branch-local identity evolution does not leak across unrelated subscriptions
+- replay preserves continuation meaning
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_continuation_digest`
+- `routing_digest`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Subscription continuation across identity evolution is deterministic,
+replay-safe, and fail-closed where required.
+
+### 33. Subscription Resume, Replay, And Checkpoint Exactness Test
+
+Purpose
+
+Prove that active subscriptions resume and replay from canonical checkpoint
+basis without changing delivered subscription meaning.
+
+Scenario
+
+- run long-lived active subscriptions over bursty change windows
+- checkpoint after several admitted delivery boundaries
+- inject restart after partial progress
+- resume from canonical subscription checkpoint basis
+- replay from canonical subscription artifacts
+
+Must verify
+
+- resumed subscriptions preserve delivery semantics exactly
+- subscription checkpoint meaning remains explicit and distinct from raw stream
+  offsets
+- replay reconstructs canonical delivery truth
+- stale, truncated, or incompatible continuation basis fails explicitly and
+  typed
+- equivalent resumed and control lanes compare equal on canonical subscription
+  delivery digests
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_delivery_digest`
+- `checkpoint_digest`
+- `replay_digest`
+- `failure_digest`
+
+Pass condition
+
+Subscription resume, replay, and checkpoint semantics are canonical, exact, and
+diagnosable.
+
+### 34. Preview Subscription Zero-Residue Test
+
+Purpose
+
+Prove that preview-scoped subscriptions remain isolated from authoritative
+subscription state and leave zero authoritative residue after discard.
+
+Scenario
+
+- activate preview-scoped subscriptions under admitted preview bases
+- drive routing, delivery, diagnostics, and continuation work through them
+- discard some preview subscriptions and promote others through an explicit
+  promotion boundary
+- compare against authoritative-only control lanes
+
+Must verify
+
+- discarded preview subscriptions leave zero authoritative residue
+- promotion records remain explicit and basis-bound
+- preview and authoritative subscription identities remain distinct until
+  explicit promotion
+- preview subscription replay does not depend on ambient current state
+- illegal preview reuse or cross-session sharing fails explicitly
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_basis_digest`
+- `subscription_lifecycle_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Preview subscriptions are isolated, fail-closed, and zero-residue on discard.
+
+## Milestone 16 Named Certification Suites
+
+### 35. End-To-End Subscription Bundle Equivalence Test
+
+Purpose
+
+Prove that long-lived subscription meaning survives from declaration through
+activation, delivery, continuation, and replay without semantic drift.
+
+Scenario
+
+- run an end-to-end subscription workload spanning authoritative, branch-local,
+  historical, and preview-scoped subscriptions
+- include shared-consumer fanout and restart-safe replay lanes
+- compare original execution bundles against replay bundles
+
+Must verify
+
+- canonical subscription meaning survives original execution and replay
+- equivalent end-to-end subscription lanes compare equal on canonical bundle
+  digests
+- intentionally different subscription lanes compare unequal where they should
+- diagnostics tiers change retained detail only
+- the reference workload preserves the same branch-local and authoritative
+  subscription truths across replay
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_lifecycle_digest`
+- `subscription_delivery_digest`
+- `replay_digest`
+- `reference_workload_bundle_digest`
+
+Pass condition
+
+End-to-end subscription behavior is canonical, replay-safe, and mechanically
+comparable.
+
+### 36. Subscription Failure Taxonomy Localization Test
+
+Purpose
+
+Prove that the bridge can localize subscription-specific failures into
+bridge-native classes without collapsing into host strings or generic stream
+errors.
+
+Scenario
+
+- inject failures across declaration, basis binding, activation, sharing,
+  continuation, preview discard, promotion, and replay paths
+- compare failure capture across original execution and replay
+
+Must verify
+
+- subscription failures map into explicit bridge-native classes
+- localization identifies the exact failed subscription boundary
+- replay preserves failure meaning
+- equivalent failure lanes compare equal on canonical failure artifacts
+- retained artifacts are sufficient to distinguish declaration, basis,
+  lifecycle, continuation, delivery, and residue failures mechanically
+
+Required verification output
+
+- `subscription_digest`
+- `failure_digest`
+- `failure_localization_matrix`
+- `diagnostics_digest`
+- `replay_failure_digest`
+
+Pass condition
+
+Subscription failures are typed, localizable, and replay-stable.
+
+### 37. Subscription Reference Workload Sufficiency Test
+
+Purpose
+
+Prove that the bridge emits enough canonical subscription artifacts for an
+auditor to certify a realistic end-to-end subscription workload offline.
+
+Scenario
+
+- run a mixed subscription workload with authoritative, historical,
+  branch-local, preview, shared-consumer, restart, and discard or promotion
+  lanes
+- produce canonical subscription bundles only
+- attempt offline diagnosis and equivalence comparison from those bundles
+
+Must verify
+
+- bundle completeness does not depend on ambient runtime state
+- the workload can diagnose active subscription meaning, branch isolation,
+  continuation outcomes, preview discard residue, and promotion boundaries from
+  canonical artifacts alone
+- the bridge diagnostics entrypoint exposes one coherent subscription artifact
+  story
+- the workload remains boundary-honest rather than Query-specific or host-
+  specific
+
+Required verification output
+
+- `certification_bundle_digest`
+- `subscription_digest`
+- `subscription_basis_digest`
+- `reference_workload_bundle_digest`
+- `reference_workload_bundle_comparison`
+
+Pass condition
+
+The bridge can certify end-to-end subscription workloads from canonical
+artifacts alone.
+
 ## What These Tests Collectively Prove
 
 Together, these tests prove that the bridge from Milestone 6 onward is:
@@ -1198,6 +1596,8 @@ Together, these tests prove that the bridge from Milestone 6 onward is:
 - replay-safe under restart, backpressure, and multi-consumer pressure
 - host-agnostic at its public source and stream boundaries
 - explicit about structural identity, merge semantics, speculative flows, and policy provenance
+- explicit about first-class subscription declaration, lifecycle, continuation,
+  sharing, preview isolation, and replay
 - lossless about authority provenance when lowering parent-runtime truth into
   bridge-consumption vocabularies
 - unable to bypass truth authority during writeback

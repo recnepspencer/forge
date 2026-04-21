@@ -4,6 +4,8 @@ mod authority_primary;
 mod authority_support;
 #[path = "load/bulk.rs"]
 mod bulk;
+#[path = "load/compatibility.rs"]
+mod compatibility;
 #[path = "load/delta.rs"]
 mod delta;
 #[path = "load/layout.rs"]
@@ -27,6 +29,7 @@ pub(super) fn load_state(connection: &Connection) -> Result<StoreState, StoreErr
     let mut state = StoreState::default();
     meta::load_canonicalization_version(connection, &mut state)?;
     authority_primary::load_authority_primary(connection, &mut state)?;
+    compatibility::load_compatibility(connection, &mut state)?;
     authority_support::load_authority_support(connection, &mut state)?;
     retention::load_retention(connection, &mut state)?;
     delta::load_delta(connection, &mut state)?;

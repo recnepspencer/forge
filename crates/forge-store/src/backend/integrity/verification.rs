@@ -6,6 +6,7 @@ impl StoreState {
         self.verify_wal_record_family()?;
         self.verify_commit_record_family()?;
         self.verify_branch_record_family()?;
+        self.verify_compatibility_record_family()?;
         self.verify_support_record_family()?;
         self.verify_cursor_record_family()?;
         self.verify_live_query_record_family()?;
@@ -23,6 +24,7 @@ impl StoreState {
         self.verify_wal_record_family()?;
         self.verify_commit_record_family()?;
         self.verify_branch_record_family()?;
+        self.verify_compatibility_record_family()?;
         self.verify_live_query_record_family()?;
         self.verify_retention_record_family()?;
         self.verify_maintenance_record_family()?;

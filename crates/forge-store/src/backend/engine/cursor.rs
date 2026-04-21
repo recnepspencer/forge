@@ -1,5 +1,6 @@
 use crate::authority::{DurableCursorAcknowledgeRequest, PersistedSubscriberCheckpoint};
 use crate::backend::records::{DurableCursorIdentityRecord, SubscriberCheckpointRecord};
+use crate::compatibility::CompatibilityFamilyKind;
 use crate::failure::{StoreError, StoreErrorKind};
 
 use super::{core::verify_durable_barrier, StateBackedStoreBackend, StatePersistence};
@@ -9,6 +10,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         request: DurableCursorAcknowledgeRequest,
     ) -> Result<PersistedSubscriberCheckpoint, StoreError> {
+        self.admit_runtime_write_compatibility(
+            CompatibilityFamilyKind::SchemaLineageCursorCheckpointSupport,
+            "acknowledge_cursor",
+        )?;
         let cursor_id = request.cursor_id().to_string();
         let cursor_artifact_id =
             super::super::integrity::durable_cursor_identity_artifact_id(&cursor_id);

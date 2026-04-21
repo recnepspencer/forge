@@ -251,6 +251,28 @@ pub use crate::structural::{
     StructuralSchemaIdentity, StructuralTruthViewBasis, StructuralTruthViewBasisIdentity,
     StructuralTruthViewBasisKind, ValidatedStructuralIdentityDeclaration,
 };
+pub use crate::subscription::{
+    AdmittedBridgeSubscription, BridgeAdmittedSubscriptionIdentity,
+    BridgeRetainedSubscriptionBundle, BridgeSignalStrategyDescriptor,
+    BridgeSignalStrategyIdentity, BridgeSignalStrategyKind,
+    BridgeSubscriptionActivationReady, BridgeSubscriptionDeactivated,
+    BridgeSubscriptionExplanation,
+    BridgeSubscriptionLifecycleIdentity, BridgeSubscriptionLifecycleRecord,
+    BridgeSubscriptionLifecycleStateKind,
+    BridgeSubscriptionReplayIdentity, BridgeSubscriptionReplayMismatch,
+    BridgeSubscriptionReplayMismatchKind, BridgeSubscriptionReplaySummary,
+    BridgeSubscriptionAdmissionRejection, BridgeSubscriptionAdmissionRejectionKind,
+    BridgeSubscriptionBasisIdentity, BridgeSubscriptionBasisKind,
+    BridgeSubscriptionBasisRequest, BridgeSubscriptionBasisResolutionFailure,
+    BridgeSubscriptionBasisResolutionFailureKind, BridgeSubscriptionCounters,
+    BridgeSubscriptionDeclaration, BridgeSubscriptionDeclarationFamilyKind,
+    BridgeSubscriptionDeclarationIdentity, BridgeSubscriptionDeclarationRejection,
+    BridgeSubscriptionDeclarationRejectionKind, BridgeSubscriptionDeliveryIntentClass,
+    BridgeSubscriptionFamilyRegistryIdentity, NormalizedSubscriptionSliceIntent,
+    NormalizedSubscriptionSliceIntentError, NormalizedSubscriptionSliceIntentErrorKind,
+    ValidatedSubscriptionBasisBinding,
+};
+use crate::subscription::FrozenSubscriptionFamilyRegistry;
 pub use crate::writeback::{
     AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
     BridgeMappedWritebackFamilyInput, BridgeMappedWritebackFamilyInputIdentity,

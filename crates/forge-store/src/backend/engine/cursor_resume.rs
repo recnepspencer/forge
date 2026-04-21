@@ -1,6 +1,7 @@
 use crate::authority::{
     DurableCursorResumePlan, DurableCursorResumeRequest, FetchedDurableCursorIdentity,
 };
+use crate::compatibility::CompatibilityFamilyKind;
 use crate::failure::{StoreError, StoreErrorKind};
 
 use super::{StateBackedStoreBackend, StatePersistence};
@@ -10,6 +11,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         cursor_id: &str,
     ) -> Result<FetchedDurableCursorIdentity, StoreError> {
+        self.admit_runtime_read_compatibility(
+            CompatibilityFamilyKind::SchemaLineageCursorCheckpointSupport,
+            "fetch_durable_cursor_identity",
+        )?;
         self.counters.record_cursor_identity_lookup();
         let artifact_id = super::super::integrity::durable_cursor_identity_artifact_id(cursor_id);
         let record = self
@@ -31,6 +36,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         request: DurableCursorResumeRequest,
     ) -> Result<DurableCursorResumePlan, StoreError> {
+        self.admit_runtime_read_compatibility(
+            CompatibilityFamilyKind::SchemaLineageCursorCheckpointSupport,
+            "plan_cursor_resume",
+        )?;
         self.counters.record_cursor_identity_lookup();
         let identity = self
             .state

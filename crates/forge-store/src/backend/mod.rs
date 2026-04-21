@@ -1,5 +1,5 @@
 mod embedded;
-mod engine;
+pub(crate) mod engine;
 mod engine_bulk;
 mod export;
 mod facade;

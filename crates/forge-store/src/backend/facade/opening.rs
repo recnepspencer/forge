@@ -34,9 +34,25 @@ impl StoreBackend {
         }
     }
 
+    pub fn from_export_bundle_with_compatibility(
+        bundle: AuthoritativeExportBundle,
+    ) -> Result<(Self, crate::CompatibilityRestoreExecutionOutcome), StoreError> {
+        let execution =
+            crate::backend::engine::compatibility_runtime::execute_authoritative_export_restore(
+                &bundle,
+            )?;
+        let outcome = crate::CompatibilityRestoreExecutionOutcome::new(
+            execution.receipts().len(),
+            execution.receipts().len(),
+            crate::Milestone12AdmissionReport::from_admission_counters(execution.counters()),
+        );
+        Ok((
+            Self::Embedded(EmbeddedStoreBackend::from_export_bundle(bundle)?),
+            outcome,
+        ))
+    }
+
     pub fn from_export_bundle(bundle: AuthoritativeExportBundle) -> Result<Self, StoreError> {
-        Ok(Self::Embedded(EmbeddedStoreBackend::from_export_bundle(
-            bundle,
-        )?))
+        Ok(Self::from_export_bundle_with_compatibility(bundle)?.0)
     }
 }

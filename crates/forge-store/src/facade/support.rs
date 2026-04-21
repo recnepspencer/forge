@@ -3,6 +3,9 @@ use crate::{
         AuthoritativeExportBundle, AuthoritativeExportRestoreRequest,
         EmbeddedCheckpointFetchRequest, PersistedEmbeddedCheckpoint,
     },
+    compatibility::{
+        CompatibilityManifestSummary, CompatibilityRecoveredManifestIndex, ManifestRecoverySummary,
+    },
     evidence::{OperatingModeLane, PersistedModeLaneEvidence, StoreCounterSnapshot},
     failure::StoreError,
     media::DurableMediaReport,
@@ -19,6 +22,14 @@ use forge_relational::facade::history::CommitId;
 use super::ForgeStore;
 
 impl ForgeStore {
+    pub fn execute_compatibility_authoritative_adapter(
+        &self,
+        request: crate::CompatibilityAuthoritativeAdapterRequest,
+    ) -> Result<crate::CompatibilityAuthoritativeAdapterOutcome, StoreError> {
+        self.backend
+            .execute_compatibility_authoritative_adapter(request)
+    }
+
     pub fn fetch_embedded_checkpoint(
         &self,
         request: EmbeddedCheckpointFetchRequest,
@@ -95,6 +106,18 @@ impl ForgeStore {
         self.backend.backup_restore_compatibility_report()
     }
 
+    pub fn compatibility_manifest_recovery_summary(&self) -> ManifestRecoverySummary {
+        self.backend.compatibility_manifest_recovery_summary()
+    }
+
+    pub fn recover_compatibility_manifest_index(&self) -> CompatibilityRecoveredManifestIndex {
+        self.backend.recover_compatibility_manifest_index()
+    }
+
+    pub fn compatibility_manifest_summaries(&self) -> Vec<CompatibilityManifestSummary> {
+        self.backend.compatibility_manifest_summaries()
+    }
+
     pub(crate) fn milestone_2_lane_evidence(
         &self,
         lane: OperatingModeLane,
@@ -109,5 +132,43 @@ impl ForgeStore {
         Ok(Self {
             backend: crate::backend::StoreBackend::from_export_bundle(request.into_bundle())?,
         })
+    }
+
+    pub fn restore_from_authoritative_export_with_compatibility(
+        request: AuthoritativeExportRestoreRequest,
+    ) -> Result<(Self, crate::CompatibilityRestoreExecutionOutcome), StoreError> {
+        let (backend, outcome) =
+            crate::backend::StoreBackend::from_export_bundle_with_compatibility(
+                request.into_bundle(),
+            )?;
+        Ok((Self { backend }, outcome))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn remove_compatibility_manifest_record_for_test(
+        &mut self,
+        family_kind: crate::CompatibilityFamilyKind,
+    ) {
+        self.backend
+            .remove_compatibility_manifest_record_for_test(family_kind);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn execute_restore_from_authoritative_export_with_conflicts_for_test(
+        request: AuthoritativeExportRestoreRequest,
+        conflicts: std::collections::BTreeMap<
+            crate::CompatibilityFamilyKind,
+            crate::RestorePublicationConflictSet,
+        >,
+    ) -> Result<(usize, u64, u64), StoreError> {
+        let execution = crate::backend::engine::compatibility_runtime::execute_authoritative_export_restore_with_conflicts(
+            &request.into_bundle(),
+            &conflicts,
+        )?;
+        Ok((
+            execution.receipts().len(),
+            execution.counters().restore_accept_count(),
+            execution.counters().restore_rejection_count(),
+        ))
     }
 }

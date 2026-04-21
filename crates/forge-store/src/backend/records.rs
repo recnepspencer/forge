@@ -2,6 +2,8 @@
 mod authority;
 #[path = "records/bulk.rs"]
 mod bulk;
+#[path = "records/compatibility.rs"]
+mod compatibility;
 #[path = "records/delta.rs"]
 mod delta;
 #[path = "records/layout.rs"]
@@ -19,6 +21,7 @@ mod tiering;
 
 pub(crate) use authority::*;
 pub(crate) use bulk::*;
+pub(crate) use compatibility::*;
 pub(crate) use delta::*;
 pub(crate) use layout::*;
 pub(crate) use maintenance::*;

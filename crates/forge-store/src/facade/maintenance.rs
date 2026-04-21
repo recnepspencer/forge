@@ -3,6 +3,13 @@ use crate::{authority::AuthoritativeExportBundle, failure::StoreError};
 use super::ForgeStore;
 
 impl ForgeStore {
+    pub fn execute_compatibility_derived_rebuild(
+        &mut self,
+        request: crate::CompatibilityDerivedRebuildRequest,
+    ) -> Result<crate::CompatibilityDerivedRebuildOutcome, StoreError> {
+        self.backend.execute_compatibility_derived_rebuild(request)
+    }
+
     pub fn plan_retention_candidates(
         &self,
         policy_class: crate::RetentionPolicyClass,

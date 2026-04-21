@@ -471,4 +471,5 @@ mod standard_path;
 mod stream;
 mod stream_protocol;
 mod structural;
+mod subscription;
 mod writeback;

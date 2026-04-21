@@ -4,6 +4,8 @@ mod authority_primary;
 mod authority_support;
 #[path = "persist/bulk.rs"]
 mod bulk;
+#[path = "persist/compatibility.rs"]
+mod compatibility;
 #[path = "persist/delta.rs"]
 mod delta;
 #[path = "persist/layout.rs"]
@@ -32,6 +34,7 @@ pub(super) fn persist_state(
     meta::persist_meta(&transaction, state)?;
     authority_primary::persist_authority_primary(&transaction, state)?;
     authority_support::persist_authority_support(&transaction, state)?;
+    compatibility::persist_compatibility(&transaction, state)?;
     retention::persist_retention(&transaction, state)?;
     delta::persist_delta(&transaction, state)?;
     layout::persist_layout(&transaction, state)?;
@@ -47,6 +50,7 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
         .execute_batch(
             "
             DELETE FROM authoritative_artifact_digests;
+            DELETE FROM compatibility_manifest_records;
             DELETE FROM branch_head_records;
             DELETE FROM commit_support_summaries;
             DELETE FROM schema_support_records;

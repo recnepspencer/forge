@@ -5,6 +5,9 @@ use crate::{
         FetchedDurableCursorIdentity, PersistedAuthoritativeCommit, PersistedSubscriberCheckpoint,
         ResumeAdmittedCursor,
     },
+    compatibility::{
+        CompatibilityRollingPublicationOutcome, CompatibilityRollingPublicationRequest,
+    },
     delta::{
         BranchDeltaReadPlan, BranchDeltaReadRequest, BranchDeltaReadResult,
         SameBranchDescendantWitness, SharedBaseBranchCreationReceipt,
@@ -51,6 +54,29 @@ impl ForgeStore {
         envelope: CanonicalCommitEnvelope,
     ) -> Result<PersistedAuthoritativeCommit, StoreError> {
         self.append_runtime_envelope(envelope)
+    }
+
+    pub fn append_canonical_commit_with_rolling_compatibility(
+        &mut self,
+        request: CompatibilityRollingPublicationRequest,
+        envelope: CanonicalCommitEnvelope,
+    ) -> Result<CompatibilityRollingPublicationOutcome, StoreError> {
+        let branch_id = envelope.branch_context.clone();
+        let raw = crate::RawRuntimeCommitEnvelope::new(envelope);
+        let canonical = crate::authority::canonicalize(
+            raw,
+            crate::authority::CURRENT_CANONICALIZATION_VERSION,
+        )?;
+        self.backend.record_canonicalization(*canonical.metrics());
+        let verified = self.backend.verify_append(canonical)?;
+        let outcome = self
+            .backend
+            .execute_rolling_commit_publication(request, verified)?;
+        let persisted_commit = outcome
+            .persisted_commit()
+            .clone()
+            .with_foreground_isolation(self.backend.assess_write_foreground_isolation(&branch_id));
+        Ok(outcome.with_persisted_commit(persisted_commit))
     }
 
     pub fn fetch_canonical_commit(

@@ -1,8 +1,9 @@
 use super::admission::{
     CompatibilityAdmissionCounters, CompatibilityEdgeRegistry, CompatibilityRejection,
-    CompatibilityRejectionKind, CompatibilityRelation, ReaderCapabilitySet,
-    UpgradeAdmissionWitness, WriterCapabilitySet,
+    CompatibilityRejectionKind, CompatibilityRelation, DeclaredCompatibilityEdge,
+    ReaderCapabilitySet, UpgradeAdmissionWitness, WriterCapabilitySet,
 };
+use super::catalog::CompatibilityFamilyKind;
 use super::manifests::{ArtifactCompatibilityWindow, ArtifactFamilyId, ArtifactSemanticVersion};
 use serde::Serialize;
 
@@ -78,6 +79,10 @@ impl ReplicaCompatibilityPosture {
             family_id,
             posture: MixedVersionPostureKind::AdmittedTwoCapabilityWindow,
         }
+    }
+
+    pub fn posture(&self) -> &MixedVersionPostureKind {
+        &self.posture
     }
 }
 
@@ -168,6 +173,10 @@ impl RollingUpgradeAdmissionPlan {
         &self.store_posture
     }
 
+    pub fn replica_posture(&self) -> &ReplicaCompatibilityPosture {
+        &self.replica_posture
+    }
+
     pub fn relation(&self) -> CompatibilityRelation {
         self.relation
     }
@@ -175,6 +184,24 @@ impl RollingUpgradeAdmissionPlan {
     pub(crate) fn witness(&self) -> &UpgradeAdmissionWitness {
         &self.witness
     }
+}
+
+pub(crate) fn first_ship_commit_rolling_edge_registry() -> CompatibilityEdgeRegistry {
+    let commit_family_id = CompatibilityFamilyKind::CommitEnvelope.family_id();
+    CompatibilityEdgeRegistry::new(vec![
+        DeclaredCompatibilityEdge::new(
+            commit_family_id.clone(),
+            ArtifactSemanticVersion::new(1),
+            ArtifactSemanticVersion::new(1),
+            CompatibilityRelation::Native,
+        ),
+        DeclaredCompatibilityEdge::new(
+            commit_family_id,
+            ArtifactSemanticVersion::new(1),
+            ArtifactSemanticVersion::new(2),
+            CompatibilityRelation::ForwardRead,
+        ),
+    ])
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

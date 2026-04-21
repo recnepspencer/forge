@@ -9,6 +9,7 @@ mod source;
 mod speculation;
 mod stream;
 mod structural;
+mod subscription;
 mod writeback;
 
 #[derive(Clone)]
@@ -29,6 +30,7 @@ pub struct RuntimeBridge {
     pub(crate) merge_registry: AdmittedMergeRegistry,
     pub(crate) mapping_registry: FrozenMappingRegistry,
     pub(crate) aspect_registry: FrozenAspectMappingRegistry,
+    pub(crate) subscription_family_registry: FrozenSubscriptionFamilyRegistry,
 }
 
 impl std::fmt::Debug for RuntimeBridge {
@@ -63,6 +65,10 @@ impl std::fmt::Debug for RuntimeBridge {
             .field(
                 "merge_contract_count",
                 &self.merge_registry.contracts().len(),
+            )
+            .field(
+                "subscription_family_count",
+                &self.subscription_family_registry.registrations().len(),
             )
             .finish()
     }

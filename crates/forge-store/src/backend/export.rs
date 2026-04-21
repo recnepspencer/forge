@@ -220,6 +220,7 @@ impl StoreState {
             .max()
             .map(|sequence| sequence + 1)
             .unwrap_or(1);
+        state.initialize_restored_compatibility_manifests_if_missing();
         state.verify_integrity()?;
         Ok(state)
     }

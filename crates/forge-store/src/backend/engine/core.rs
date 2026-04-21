@@ -117,7 +117,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     }
 
     pub fn open_with_persistence(mut persistence: P) -> Result<Self, StoreError> {
-        let state = persistence.load_state()?;
+        let mut state = persistence.load_state()?;
+        state.initialize_pristine_compatibility_manifests_if_missing();
         state.verify_integrity()?;
         let milestone_6_access_structure_verification =
             verify_milestone_6_access_structures(&state, persistence.durable_media_report());
@@ -138,7 +139,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
     pub fn open_with_persistence_for_durable_recovery(
         mut persistence: P,
     ) -> Result<Self, StoreError> {
-        let state = persistence.load_state()?;
+        let mut state = persistence.load_state()?;
+        state.initialize_pristine_compatibility_manifests_if_missing();
         state.verify_integrity_for_durable_recovery()?;
         let milestone_6_access_structure_verification =
             verify_milestone_6_access_structures(&state, persistence.durable_media_report());
@@ -160,7 +162,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         mut persistence: P,
         bundle: AuthoritativeExportBundle,
     ) -> Result<Self, StoreError> {
-        let state = super::super::records::StoreState::from_authoritative_export_bundle(bundle)?;
+        let mut state =
+            super::super::records::StoreState::from_authoritative_export_bundle(bundle)?;
+        state.initialize_restored_compatibility_manifests_if_missing();
         let _ = persistence.persist_state(&state)?;
         let milestone_6_access_structure_verification =
             verify_milestone_6_access_structures(&state, persistence.durable_media_report());

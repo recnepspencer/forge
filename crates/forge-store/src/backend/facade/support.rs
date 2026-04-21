@@ -8,6 +8,14 @@ use forge_relational::facade::history::CommitId;
 use super::{dispatch_ref, StoreBackend};
 
 impl StoreBackend {
+    pub fn execute_compatibility_authoritative_adapter(
+        &self,
+        request: crate::CompatibilityAuthoritativeAdapterRequest,
+    ) -> Result<crate::CompatibilityAuthoritativeAdapterOutcome, StoreError> {
+        dispatch_ref!(self, |backend| backend
+            .execute_compatibility_authoritative_adapter(request))
+    }
+
     pub fn fetch_schema_support(
         &self,
         commit_id: CommitId,

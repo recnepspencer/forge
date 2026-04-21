@@ -1,12 +1,19 @@
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use super::adapters::{
+    execute_declared_adapter_parity, first_ship_authoritative_adapter_edge_registry,
+};
 use super::admission::{
-    plan_read_compatibility, CompatibilityAdapterCostClass, CompatibilityAdapterDigest,
-    CompatibilityAdapterId, CompatibilityAdmissionBatch, CompatibilityAdmissionCounters,
+    check_artifact_with_read_receipt, plan_read_compatibility, plan_read_compatibility_for_path,
+    CompatibilityAdapterCostClass, CompatibilityAdapterDigest, CompatibilityAdapterId,
+    CompatibilityAdmissionBatch, CompatibilityAdmissionCounters, CompatibilityAdmissionPath,
     CompatibilityEdgeRegistry, CompatibilityReadAdmissionOutcome, CompatibilityReadIntent,
     CompatibilityRejectionKind, CompatibilityRelation, DeclaredCompatibilityAdapter,
     DeclaredCompatibilityEdge, ReaderCapabilitySet, WriterCapabilitySet,
+};
+use super::authoritative::{
+    admit_authoritative_meaning_with_parity_witness, declare_authoritative_meaning,
 };
 use super::catalog::{
     CompatibilityFamilyKind, CompatibilityRegistry, CompatibilityRegistrySnapshot,
@@ -27,16 +34,17 @@ use super::manifests::{
     CompatibilityManifestDigest, CompatibilityManifestPublicationLedger,
 };
 use super::restore::{
-    plan_disaster_recovery_compatibility, plan_restore_compatibility, BackupCompatibilityManifest,
-    DisasterRecoveryCompatibilityClass, DisasterRecoveryCompatibilityWindow, RestoreBackupScope,
-    RestoreCompatibilityTarget, RestorePublicationConflictKind, RestorePublicationConflictSet,
-    RestorePublicationConflictUnit,
+    execute_restore_publication, plan_disaster_recovery_compatibility, plan_restore_compatibility,
+    BackupCompatibilityManifest, DisasterRecoveryCompatibilityClass,
+    DisasterRecoveryCompatibilityWindow, RestoreBackupScope, RestoreCompatibilityTarget,
+    RestorePublicationConflictKind, RestorePublicationConflictSet, RestorePublicationConflictUnit,
 };
 use super::rolling::{plan_first_ship_rolling_upgrade, RollingUpgradeWindow};
 use crate::evidence::{
     Milestone12AdmissionReport, Milestone12CertificationEvidenceBundle,
     Milestone12ComplexityPathStatus, Milestone12ComplexitySurface, Milestone12VersionSkewReport,
 };
+use crate::{CompatibilityDerivedRebuildRequest, ForgeStoreBuilder};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Milestone12ArtifactFormatEvolutionCertification {
@@ -225,6 +233,7 @@ impl Milestone12CertificationRunner {
         outcomes.extend(authoritative_lanes(&manifest_index)?);
         outcomes.extend(derived_lanes(snapshot, &manifest_index)?);
         outcomes.extend(rolling_lanes());
+        outcomes.extend(adapter_lanes(&manifest_index));
         outcomes.extend(restore_lanes());
         outcomes.extend(disaster_recovery_lanes());
         Ok(outcomes)
@@ -368,6 +377,7 @@ fn derived_lanes(
         Some(CompatibilityRelation::Native),
         None,
     )?);
+    outcomes.push(derived_rebuild_execution_lane()?);
     outcomes.push(derived_lane(
         snapshot,
         &lanes,
@@ -405,6 +415,31 @@ fn derived_lanes(
         None,
     )?);
     Ok(outcomes)
+}
+
+fn derived_rebuild_execution_lane(
+) -> Result<Milestone12CertificationLaneOutcome, Milestone12CertificationLaneRejection> {
+    let mut store = ForgeStoreBuilder::new()
+        .in_memory()
+        .build()
+        .expect("first-ship certification rebuild store should build");
+    let outcome = store
+        .execute_compatibility_derived_rebuild(CompatibilityDerivedRebuildRequest::new(
+            CompatibilityFamilyKind::Milestone11MaintenanceRecord,
+        ))
+        .expect("first-ship certification rebuild lane should execute");
+    Ok(Milestone12CertificationLaneOutcome::accepted_from_report(
+        Milestone12CertificationLaneKind::MaintenanceSummaryRebuildAdmitted,
+        lane_input(
+            CompatibilityFamilyKind::Milestone11MaintenanceRecord.family_id(),
+            1,
+            2,
+            Some(CompatibilityRelation::Native),
+            None,
+        ),
+        CompatibilityRelation::Native,
+        outcome.admission_report().clone(),
+    ))
 }
 
 fn derived_lane(
@@ -559,6 +594,146 @@ fn rolling_lanes() -> Vec<Milestone12CertificationLaneOutcome> {
     ]
 }
 
+fn adapter_lanes(
+    manifest_index: &super::admission::CompatibilityManifestIndex,
+) -> Vec<Milestone12CertificationLaneOutcome> {
+    let family_kind = CompatibilityFamilyKind::CommitEnvelope;
+    let edge_registry = first_ship_authoritative_adapter_edge_registry();
+    let payload = b"first-ship-certification-adapter-control".to_vec();
+    vec![
+        adapter_lane(
+            Milestone12CertificationLaneKind::AdapterParityAdmitted,
+            manifest_index,
+            &edge_registry,
+            family_kind,
+            CompatibilityAdapterDigest::new("first_ship_commit_envelope_adapter_digest_v1"),
+            payload.clone(),
+            payload.clone(),
+            Some(CompatibilityRelation::AdapterRequired),
+            None,
+        ),
+        adapter_lane(
+            Milestone12CertificationLaneKind::AdapterParityDigestRejected,
+            manifest_index,
+            &edge_registry,
+            family_kind,
+            CompatibilityAdapterDigest::new("drifted-adapter-digest"),
+            payload,
+            b"first-ship-certification-adapter-adapted".to_vec(),
+            None,
+            Some(CompatibilityRejectionKind::AdapterParityFailure),
+        ),
+    ]
+}
+
+fn adapter_lane(
+    lane_kind: Milestone12CertificationLaneKind,
+    manifest_index: &super::admission::CompatibilityManifestIndex,
+    edge_registry: &CompatibilityEdgeRegistry,
+    family_kind: CompatibilityFamilyKind,
+    requested_digest: CompatibilityAdapterDigest,
+    control_lane_bytes: Vec<u8>,
+    adapted_lane_bytes: Vec<u8>,
+    expected_relation: Option<CompatibilityRelation>,
+    expected_rejection: Option<CompatibilityRejectionKind>,
+) -> Milestone12CertificationLaneOutcome {
+    let artifact = artifact_for_family(family_kind, 1);
+    let family_id = family_id_for_lane(family_kind);
+    let mut batch = CompatibilityAdmissionBatch::new();
+    let input = lane_input(
+        family_id.clone(),
+        1,
+        2,
+        expected_relation,
+        expected_rejection,
+    );
+    let reader = ReaderCapabilitySet::new(family_id.clone(), vec![ArtifactSemanticVersion::new(2)]);
+    let intent = CompatibilityReadIntent::new(family_id.clone(), ArtifactSemanticVersion::new(2));
+    let read_receipt = match plan_read_compatibility_for_path(
+        &mut batch,
+        manifest_index,
+        edge_registry,
+        &reader,
+        &intent,
+        &artifact,
+        CompatibilityAdmissionPath::BatchRead,
+    ) {
+        Ok(receipt) => receipt,
+        Err(rejection) => {
+            return Milestone12CertificationLaneOutcome::from_compatibility_rejection(
+                lane_kind,
+                input,
+                &rejection,
+                batch.counters(),
+            )
+        }
+    };
+    let checked_artifact = match check_artifact_with_read_receipt(artifact, &read_receipt) {
+        Ok(artifact) => artifact,
+        Err(rejection) => {
+            return Milestone12CertificationLaneOutcome::from_compatibility_rejection(
+                lane_kind,
+                input,
+                &rejection,
+                batch.counters(),
+            )
+        }
+    };
+    let parity = match execute_declared_adapter_parity(
+        batch.counters_mut(),
+        edge_registry,
+        &family_id,
+        ArtifactSemanticVersion::new(1),
+        ArtifactSemanticVersion::new(2),
+        &CompatibilityAdapterId::new("first_ship_commit_envelope_adapter"),
+        &requested_digest,
+        &control_lane_bytes,
+        &adapted_lane_bytes,
+        1,
+        1,
+        1,
+    ) {
+        Ok(parity) => parity,
+        Err(rejection) => {
+            return Milestone12CertificationLaneOutcome::from_compatibility_rejection(
+                lane_kind,
+                input,
+                &rejection,
+                batch.counters(),
+            )
+        }
+    };
+    let meaning = declare_authoritative_meaning(
+        family_id,
+        ArtifactSemanticVersion::new(2),
+        "first-ship-certification-adapter-meaning",
+    );
+    if let Err(rejection) = admit_authoritative_meaning_with_parity_witness(
+        batch.counters_mut(),
+        &checked_artifact,
+        &read_receipt,
+        Some(&meaning),
+        Some(&parity),
+    ) {
+        return Milestone12CertificationLaneOutcome::from_compatibility_rejection(
+            lane_kind,
+            input,
+            &rejection,
+            batch.counters(),
+        );
+    }
+    Milestone12CertificationLaneOutcome::accepted(
+        lane_kind,
+        input,
+        read_receipt.receipt().relation(),
+        batch.counters(),
+    )
+}
+
+fn family_id_for_lane(family_kind: CompatibilityFamilyKind) -> ArtifactFamilyId {
+    family_kind.family_id()
+}
+
 fn rolling_lane(
     lane_kind: Milestone12CertificationLaneKind,
     window: &RollingUpgradeWindow,
@@ -668,7 +843,10 @@ fn restore_lane(
         &target,
         &conflicts,
     ) {
-        Ok(plan) => Milestone12CertificationLaneOutcome::from_restore_plan(input, &plan, &counters),
+        Ok(plan) => {
+            let receipt = execute_restore_publication(plan);
+            Milestone12CertificationLaneOutcome::from_restore_receipt(input, &receipt, &counters)
+        }
         Err(rejection) => Milestone12CertificationLaneOutcome::from_compatibility_rejection(
             lane_kind, input, &rejection, &counters,
         ),
@@ -812,14 +990,7 @@ fn complexity_surface() -> Milestone12ComplexitySurface {
 }
 
 fn runtime_gap_labels() -> Vec<&'static str> {
-    vec![
-        "durable_manifest_persistence_deferred",
-        "facade_read_write_restore_integration_deferred",
-        "restore_publication_execution_deferred",
-        "rolling_writer_publication_deferred",
-        "adapter_execution_deferred",
-        "derived_rebuild_execution_deferred",
-    ]
+    Vec::new()
 }
 
 fn digest_set(
@@ -882,14 +1053,14 @@ mod tests {
                 .evidence_bundle()
                 .run_summary()
                 .accepted_lane_count(),
-            7
+            9
         );
         assert_eq!(
             certification
                 .evidence_bundle()
                 .run_summary()
                 .rejected_lane_count(),
-            10
+            11
         );
         assert_eq!(
             certification.diagnostics().lane_count(),
@@ -948,6 +1119,23 @@ mod tests {
         assert_eq!(
             lane(
                 &certification,
+                Milestone12CertificationLaneKind::MaintenanceSummaryRebuildAdmitted
+            )
+            .status(),
+            Milestone12CertificationLaneStatus::Accepted
+        );
+        assert_eq!(
+            lane(
+                &certification,
+                Milestone12CertificationLaneKind::MaintenanceSummaryRebuildAdmitted
+            )
+            .counters()
+            .maintenance_compatibility_rebuild_admission_count,
+            1
+        );
+        assert_eq!(
+            lane(
+                &certification,
                 Milestone12CertificationLaneKind::DerivedLayoutBasisRejected
             )
             .rejection_kind(),
@@ -987,6 +1175,22 @@ mod tests {
         assert_eq!(
             lane(
                 &certification,
+                Milestone12CertificationLaneKind::AdapterParityAdmitted
+            )
+            .relation(),
+            Some(CompatibilityRelation::AdapterRequired)
+        );
+        assert_eq!(
+            lane(
+                &certification,
+                Milestone12CertificationLaneKind::AdapterParityDigestRejected
+            )
+            .rejection_kind(),
+            Some(CompatibilityRejectionKind::AdapterParityFailure)
+        );
+        assert_eq!(
+            lane(
+                &certification,
                 Milestone12CertificationLaneKind::RestoreScopedBackupAdmitted
             )
             .relation(),
@@ -1022,10 +1226,22 @@ mod tests {
             certification.digest_set().counter_snapshot_digest().len(),
             64
         );
-        assert!(certification
+        assert!(!certification
+            .diagnostics()
+            .runtime_gap_labels()
+            .contains(&"facade_read_write_restore_integration_deferred"));
+        assert!(!certification
             .diagnostics()
             .runtime_gap_labels()
             .contains(&"adapter_execution_deferred"));
+        assert!(!certification
+            .diagnostics()
+            .runtime_gap_labels()
+            .contains(&"derived_rebuild_execution_deferred"));
+        assert!(!certification
+            .diagnostics()
+            .runtime_gap_labels()
+            .contains(&"rolling_writer_publication_deferred"));
         assert_eq!(
             lane(
                 &certification,

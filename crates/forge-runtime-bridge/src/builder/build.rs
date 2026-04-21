@@ -63,6 +63,8 @@ impl
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let subscription_family_registry =
+            crate::subscription::freeze_subscription_family_registry()?;
         let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
@@ -86,6 +88,7 @@ impl
             self.diagnostic_sink,
             mapping_registry,
             aspect_registry,
+            subscription_family_registry,
         ))
     }
 }
@@ -102,6 +105,8 @@ impl
     pub fn build(self) -> Result<RuntimeBridge, BridgeBuildError> {
         let mapping_registry = FrozenMappingRegistry::freeze(self.mapping_registrations.0)?;
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
+        let subscription_family_registry =
+            crate::subscription::freeze_subscription_family_registry()?;
         let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
@@ -125,6 +130,7 @@ impl
             self.diagnostic_sink,
             mapping_registry,
             aspect_registry,
+            subscription_family_registry,
         ))
     }
 }

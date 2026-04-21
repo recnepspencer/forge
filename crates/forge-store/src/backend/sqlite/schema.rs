@@ -2,6 +2,8 @@
 mod authority;
 #[path = "schema/bulk_snapshot.rs"]
 mod bulk_snapshot;
+#[path = "schema/compatibility.rs"]
+mod compatibility;
 #[path = "schema/indexes.rs"]
 mod indexes;
 #[path = "schema/retention_layout.rs"]
@@ -32,6 +34,7 @@ pub(super) fn configure_connection(connection: &Connection) -> Result<(), StoreE
 
 pub(super) fn create_schema(connection: &Connection) -> Result<(), StoreError> {
     authority::create_authority_schema(connection)?;
+    compatibility::create_compatibility_schema(connection)?;
     retention_layout::create_retention_layout_schema(connection)?;
     bulk_snapshot::create_bulk_snapshot_schema(connection)?;
     tiering::create_tiering_schema(connection)?;

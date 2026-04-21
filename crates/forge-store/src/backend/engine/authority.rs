@@ -3,6 +3,7 @@ use crate::{
         AuthoritativeBranchHeadRecord, CanonicalizedCommitEnvelope, PersistedAuthoritativeCommit,
         VerifiedAuthoritativeAppend,
     },
+    compatibility::CompatibilityFamilyKind,
     delta::{
         SharedBaseBranchCreationReceipt, SharedBaseBranchCreationRequest,
         SharedBaseBranchCreationWitness,
@@ -21,6 +22,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         new_branch: BranchId,
         from_branch: Option<&BranchId>,
     ) -> Result<AuthoritativeBranchHeadRecord, StoreError> {
+        self.admit_runtime_write_compatibility(
+            CompatibilityFamilyKind::BranchVersionDagRecord,
+            "create_branch",
+        )?;
         let created_branch_id = new_branch.clone();
         let applied = self
             .state
@@ -49,6 +54,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         request: SharedBaseBranchCreationRequest,
     ) -> Result<SharedBaseBranchCreationReceipt, StoreError> {
+        self.admit_runtime_write_compatibility(
+            CompatibilityFamilyKind::BranchVersionDagRecord,
+            "create_shared_base_branch",
+        )?;
         let (applied, receipt) = self
             .state
             .apply_shared_base_branch_creation_in_place(request)?;
@@ -94,6 +103,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         verified: VerifiedAuthoritativeAppend,
     ) -> Result<PersistedAuthoritativeCommit, StoreError> {
+        self.admit_runtime_write_compatibility(CompatibilityFamilyKind::CommitEnvelope, "append")?;
         let commit_id = verified.envelope().commit.commit_id;
         if let Some(existing) = self.state.commit_record(commit_id) {
             return Ok(existing.clone().into_persisted());
@@ -165,6 +175,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         commit_id: CommitId,
     ) -> Result<FetchedAuthoritativeCommit, StoreError> {
+        self.admit_runtime_read_compatibility(
+            CompatibilityFamilyKind::CommitEnvelope,
+            "fetch_commit",
+        )?;
         let stored = self.state.commit_record(commit_id).ok_or_else(|| {
             StoreError::new(
                 StoreErrorKind::CommitNotFound,
@@ -182,6 +196,10 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &self,
         branch_id: &BranchId,
     ) -> Result<AuthoritativeBranchHeadRecord, StoreError> {
+        self.admit_runtime_read_compatibility(
+            CompatibilityFamilyKind::BranchVersionDagRecord,
+            "fetch_branch_head",
+        )?;
         let record = self
             .state
             .branch_head_records
@@ -189,17 +207,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             .ok_or_else(|| StoreError::unknown_branch(branch_id))?;
         let head = match record.head_commit_id {
             Some(head_commit_id) => {
-                let stored = self
-                    .state
-                    .commit_envelopes
-                    .get(&head_commit_id.0)
-                    .ok_or_else(|| {
-                        StoreError::backend_integrity(format!(
-                            "branch `{}` points at missing head commit {}",
-                            branch_id.0, head_commit_id.0
-                        ))
-                    })?;
-                Some(stored.envelope.commit.clone())
+                Some(self.fetch_commit(head_commit_id)?.envelope().commit.clone())
             }
             None => None,
         };

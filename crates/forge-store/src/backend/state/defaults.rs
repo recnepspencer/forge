@@ -13,6 +13,7 @@ impl Default for StoreState {
             commit_envelopes: std::collections::BTreeMap::new(),
             commit_parent_records: std::collections::BTreeMap::new(),
             authoritative_artifact_digests: std::collections::BTreeMap::new(),
+            compatibility_manifest_records: std::collections::BTreeMap::new(),
             commit_support_summaries: std::collections::BTreeMap::new(),
             schema_support_records: std::collections::BTreeMap::new(),
             lineage_support_records: std::collections::BTreeMap::new(),

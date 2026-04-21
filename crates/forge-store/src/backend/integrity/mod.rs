@@ -2,6 +2,7 @@ mod access_structure_verification;
 mod branch_records;
 mod bulk_records;
 mod commit_records;
+mod compatibility_records;
 mod cursor_records;
 mod delta_records;
 mod digest_records;

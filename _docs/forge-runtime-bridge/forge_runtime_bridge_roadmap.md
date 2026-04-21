@@ -600,6 +600,178 @@ This milestone is complete only when the bridge harness can prove:
   canonical certification bundles
 - the Milestone 13 certification suites in `test-requirements.md` pass with canonical machine-checkable bundles
 
+## Milestone 14: Bridge-Native Subscription Declaration Families, Admission, and Lifecycle
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 28-30: Subscription Declaration Equivalence, Subscription Basis Binding And Rejection Boundary, Subscription Lifecycle Replay Parity
+
+### Goal
+
+Make subscriptions a first-class bridge protocol surface with explicit
+declaration families, admission, basis binding, lifecycle, and diagnostics
+instead of leaving long-lived truth-backed observation as a host-local
+assembly of slices, streams, and observer handles.
+
+### Must Ship
+
+- one bridge-owned subscription declaration framework with extensible admitted
+  declaration families
+- bridge-native subscription family identity and instance identity distinct
+  from slice identity, stream identity, and consumer identity
+- explicit basis binding for explicit snapshot-bound and branch-head truth
+  views
+- subscription admission artifacts and typed rejection artifacts
+- lifecycle typestates carried by declaration artifacts, admitted artifacts,
+  activation-ready handles, deactivated handles, and typed rejection artifacts
+- explicit rules for subscription equivalence and non-equivalence
+- explicit lowering from admitted bridge declaration families into admitted
+  `forge-signal` observation policies and delivery/coalescing strategies
+- diagnostics explaining what truth surfaces, basis, and lowered slice set a
+  subscription owns and why admission succeeded or failed
+- explicit denial paths for unsupported basis and unsupported capability
+  combinations
+
+### Must Preserve
+
+- bridge does not become the owner of query semantics
+- truth runtime remains the authority for branch, history, retention, and truth
+  materialization
+- signal runtime remains the authority for execution scheduling and observation
+  internals
+- slice identity remains subordinate to subscription family and subscription
+  identity rather than replacing it
+- no ambient host context chooses snapshot or branch-head basis implicitly
+- the bridge does not redefine `forge-signal` observation semantics; it lowers
+  admitted bridge families into the existing `forge-signal` strategy substrate
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- semantically equivalent declarations within one admitted family yield
+  identical subscription admission artifacts
+- non-equivalent declarations differ on canonical subscription digests
+- different admitted declaration families differ mechanically in both bridge
+  lowering and selected `forge-signal` strategy
+- unsupported or ambiguous basis combinations fail explicitly and typed
+- lifecycle transitions are replay-safe and diagnosable
+- declaration identity remains stable under replay and diagnostics-tier
+  variation
+- the Milestone 14 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
+## Milestone 15: Subscription Delivery Families, Continuation, and Shared Consumer Contracts
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 31-34: Shared Subscription Fanout Parity, Subscription Continuation Across Identity Evolution, Subscription Resume Replay And Checkpoint Exactness, Preview Subscription Zero-Residue
+
+### Goal
+
+Make active subscriptions durable as bridge protocol entities over delivery,
+restart, continuity, fanout, replay, and preview boundaries so a manual host
+can explicitly do the same class of work that higher-level systems such as
+Forge Query will eventually automate.
+
+### Must Ship
+
+- subscription activation contracts tied to admitted consumer contracts
+- delivery contract vocabulary for family-aware canonical member delivery,
+  admitted coalesced delivery, replay or audit-oriented delivery, route-focused
+  delivery, and other admitted bridge families lowered into `forge-signal`
+  strategy space
+- subscription checkpoint and continuation identity distinct from raw stream
+  checkpoint identity where needed
+- explicit resume and replay rules for active subscriptions
+- shared-subscription and multi-consumer fanout contracts
+- explicit continuation rules across replace, split, merge-like history where
+  admitted, and branch divergence
+- subscription-aware preview behavior covering preview-scoped subscriptions,
+  discard semantics, promotion-boundary interaction, and zero-authoritative-
+  residue guarantees
+- counters and diagnostics for subscriber fanout, coalescing, continuation
+  remap, replay and resume outcomes, and rejected reuse or sharing attempts
+- diagnostics that explain which admitted bridge family lowered into which
+  `forge-signal` observation and delivery strategy for an active subscription
+
+### Must Preserve
+
+- consumer pacing does not redefine subscription meaning
+- stream coalescing does not redefine subscription identity
+- branch identity remains explicit through continuation and replay
+- preview subscriptions never become authoritative except through an explicit
+  promotion boundary
+- manual hosts do not need hidden host-local caches to reconstruct subscription
+  meaning
+- delivery families remain extensible, but only through admitted bridge
+  declaration families and admitted `forge-signal` strategy lowerings
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- equivalent shared-consumer subscriptions within one admitted family preserve
+  canonical subscription meaning
+- resumed subscriptions match original delivery semantics
+- continuation after lineage evolution is deterministic, explicit, and typed
+- preview subscription discard leaves zero authoritative residue
+- shared subscriptions and separate-but-equivalent subscriptions remain
+  parity-checkable
+- at least two admitted subscription families remain parity-safe through
+  activation, sharing, continuation, and replay
+- the Milestone 15 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
+## Milestone 16: Subscription Family Certification and End-to-End Subscription Workload
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 35-37: End-To-End Subscription Bundle Equivalence, Subscription Failure Taxonomy Localization, Subscription Reference Workload Sufficiency
+
+### Goal
+
+Make bridge-native subscriptions certifiable through canonical bundles, hostile
+lifecycle scenarios, and one reference workload extension that proves long-
+lived ongoing observation across authoritative, historical, branch-local, and
+preview flows.
+
+### Must Ship
+
+- one canonical subscription certification bundle shape
+- bridge-native subscription failure taxonomy additions
+- subscription-specific extensions to the public bridge diagnostics entrypoint
+- one reference workload extension proving long-lived active subscriptions,
+  shared equivalent subscriptions, branch-local subscription isolation,
+  historical-basis subscription replay, preview subscription discard and
+  promotion behavior, and multi-consumer continuation after restart
+- offline-certifiable subscription bundle comparison rules
+- certification coverage for multiple admitted bridge declaration families and
+  their distinct `forge-signal` strategy lowerings
+
+### Must Preserve
+
+- no host logs as primary proof
+- no ambient process state is required for audit
+- subscription certification remains bridge-native rather than Query-only
+- subscription workloads remain certification fixtures rather than bridge-owned
+  domain semantics
+- certification must prove family-aware lowering, not just one generic
+  subscription lifecycle
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- original execution, replay, restart, and hostile adapter variation preserve
+  canonical subscription meaning where they should
+- intentionally different subscription declarations differ mechanically
+- illegal continuation, reuse, or basis drift fails explicitly and typed
+- diagnostics richness changes retained detail only
+- the subscription reference workload proves subscription behavior under
+  branch, preview, replay, and fanout pressure
+- the certification bundle distinguishes declaration-family variation from
+  instance-level lifecycle variation
+- the Milestone 16 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
 ## Completion Standard
 
 The bridge roadmap is complete only when:
@@ -607,6 +779,11 @@ The bridge roadmap is complete only when:
 - all geometry-kernel-critical bridge milestones are shipped
 - all broader dual-runtime bridge milestones are shipped
 - bridge harness scenarios cover patch routing, aspect mapping, fine-grained subscriptions, lineage continuity, historical evaluation, branch coordination, planned bulk routing, reactive source contracts, merge-bearing history, preview flows, bridge-mediated commit strategies, and causality transfer
+- bridge harness scenarios also cover first-class subscription declaration,
+  admission, lifecycle, continuation, replay, fanout, preview-scoped
+  subscriptions, and subscription-specific certification bundles
+- those subscription scenarios prove multiple admitted subscription families
+  lowered into `forge-signal`'s extensible observation and delivery substrate
 - bridge diagnostics and artifacts are canonical, machine-checkable, and replay-safe
 - bridge configuration and policy surfaces are explicit, composable, and clean enough to serve as library-grade public contracts rather than host-local conventions
 - no shipped bridge surface defines logic that belongs structurally to truth authority or compute authority

@@ -4,6 +4,14 @@ use crate::failure::StoreError;
 use super::{dispatch_mut, dispatch_ref, StoreBackend};
 
 impl StoreBackend {
+    pub fn execute_compatibility_derived_rebuild(
+        &mut self,
+        request: crate::CompatibilityDerivedRebuildRequest,
+    ) -> Result<crate::CompatibilityDerivedRebuildOutcome, StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .execute_compatibility_derived_rebuild(request))
+    }
+
     pub fn plan_retention_candidates(
         &self,
         policy_class: crate::RetentionPolicyClass,

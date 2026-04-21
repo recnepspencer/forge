@@ -1,6 +1,7 @@
 use super::admission::{
-    CompatibilityAdmissionCounters, CompatibilityDecision, CompatibilityRejection,
-    CompatibilityRejectionKind, CompatibilityRelation, ReadCompatibilityReceipt,
+    CompatibilityAdapterParityWitness, CompatibilityAdmissionCounters, CompatibilityDecision,
+    CompatibilityRejection, CompatibilityRejectionKind, CompatibilityRelation,
+    ReadCompatibilityReceipt,
 };
 use super::decoding::CompatibilityCheckedArtifact;
 use super::manifests::{ArtifactFamilyId, ArtifactSemanticVersion};
@@ -157,6 +158,28 @@ pub(crate) fn admit_authoritative_meaning(
     ),
     CompatibilityRejection,
 > {
+    admit_authoritative_meaning_with_parity_witness(
+        counters,
+        checked_artifact,
+        read_receipt,
+        meaning,
+        None,
+    )
+}
+
+pub(crate) fn admit_authoritative_meaning_with_parity_witness(
+    counters: &mut CompatibilityAdmissionCounters,
+    checked_artifact: &CompatibilityCheckedArtifact,
+    read_receipt: &ReadCompatibilityReceipt,
+    meaning: Option<&AuthoritativeMeaningDeclaration>,
+    parity_witness: Option<&CompatibilityAdapterParityWitness>,
+) -> Result<
+    (
+        AuthoritativeCompatibilityWitness,
+        AuthoritativeAdmissionReport,
+    ),
+    CompatibilityRejection,
+> {
     let relation = read_receipt.receipt().relation();
     let family_id = checked_artifact.family_id().clone();
     let reject = |counters: &mut CompatibilityAdmissionCounters,
@@ -199,11 +222,20 @@ pub(crate) fn admit_authoritative_meaning(
             AuthoritativeCompatibilityWitness::new(family_id),
             AuthoritativeAdmissionReport::admitted(meaning, relation),
         )),
-        CompatibilityDecision::Admit(CompatibilityRelation::AdapterRequired) => reject(
-            counters,
-            CompatibilityRejectionKind::AuthoritativePartialTruthRejected,
-            "adapter-required authoritative meaning needs an adapter parity witness",
-        ),
+        CompatibilityDecision::Admit(CompatibilityRelation::AdapterRequired) => {
+            if parity_witness.is_some() {
+                Ok((
+                    AuthoritativeCompatibilityWitness::new(family_id),
+                    AuthoritativeAdmissionReport::admitted(meaning, relation),
+                ))
+            } else {
+                reject(
+                    counters,
+                    CompatibilityRejectionKind::AuthoritativePartialTruthRejected,
+                    "adapter-required authoritative meaning needs an adapter parity witness",
+                )
+            }
+        }
         CompatibilityDecision::Admit(CompatibilityRelation::DerivedRebuildRequired)
         | CompatibilityDecision::Admit(CompatibilityRelation::Incompatible)
         | CompatibilityDecision::Reject(_) => reject(

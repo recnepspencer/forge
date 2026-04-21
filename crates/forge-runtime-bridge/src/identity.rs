@@ -98,6 +98,14 @@ pub enum HistoricalEvaluationDeclarationIdentityTag {}
 pub enum RouteIdentityTag {}
 pub enum InvalidationIdentityTag {}
 pub enum SubscriptionSliceIdentityTag {}
+pub enum SubscriptionDeclarationFamilyIdentityTag {}
+pub enum SubscriptionDeclarationIdentityTag {}
+pub enum SubscriptionFamilyRegistryIdentityTag {}
+pub enum SubscriptionBasisIdentityTag {}
+pub enum SubscriptionSignalStrategyIdentityTag {}
+pub enum AdmittedSubscriptionIdentityTag {}
+pub enum SubscriptionLifecycleIdentityTag {}
+pub enum SubscriptionReplayIdentityTag {}
 pub enum ContinuityIdentityTag {}
 pub enum HistoricalEvaluationRecordIdentityTag {}
 pub enum HistoricalEvaluationDecisionLogIdentityTag {}

@@ -1,6 +1,8 @@
 # Milestone 12 Engineering Spec: Artifact Format Evolution And Rolling Compatibility
 
-> **Status:** Draft
+> **Status:** Closed via [milestone-12-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-12-closeout.md)
+>
+> **Closeout:** [milestone-12-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-12-closeout.md)
 >
 > **Roadmap parent:** [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)
 >

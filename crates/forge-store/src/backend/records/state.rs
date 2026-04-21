@@ -6,18 +6,19 @@ use super::{
     AuthoritativeArtifactDigestRecord, BranchDeltaLayerRecord, BranchHeadRecord, BranchRecord,
     BranchSharedBaseRecord, BulkChunkWitnessRecord, BulkDeterministicPlanRecord,
     BulkProgramIdentityRecord, BulkProgressCheckpointRecord, CommitParentRecord,
-    CommitSupportSummaryRecord, CompactionProductRecord, DurableCursorIdentityRecord,
-    EmbeddedCheckpointRecord, FrozenBulkManifestRecord, FrozenTransformBasisRecord,
-    FrozenTransformPartitionRecord, LineageSupportRecord, MaintenanceBatchRecord,
-    MaintenanceCheckpointRecord, MaintenanceDebtSummaryRecord, MaintenanceDeclarationRecord,
-    MaintenanceExecutionRecord, MaintenanceLocalitySummaryRecord, MaintenanceQueueSummaryRecord,
-    MaintenanceReservationSummaryRecord, MaintenanceResourceBudgetSummaryRecord,
-    Milestone6ChunkMembershipRecord, Milestone6CommitCoupledLayoutSeedRecord,
-    Milestone6LayoutMaterializationRecord, Milestone6ScopeSliceMembershipRecord,
-    Milestone6StructuralBlockRecord, ProgramChunkWitnessIndexRecord, RebuildDebtRecord,
-    RetentionBasisRecord, RetentionClosureRecord, SchemaSupportRecord, SnapshotBasisRecord,
-    SnapshotImageRecord, StableBasisRecord, StoredCommitEnvelope, SubscriberCheckpointRecord,
-    TierRecallRecord, TierResidencyRecord, TierTransferRecord,
+    CommitSupportSummaryRecord, CompactionProductRecord, CompatibilityManifestRecord,
+    DurableCursorIdentityRecord, EmbeddedCheckpointRecord, FrozenBulkManifestRecord,
+    FrozenTransformBasisRecord, FrozenTransformPartitionRecord, LineageSupportRecord,
+    MaintenanceBatchRecord, MaintenanceCheckpointRecord, MaintenanceDebtSummaryRecord,
+    MaintenanceDeclarationRecord, MaintenanceExecutionRecord, MaintenanceLocalitySummaryRecord,
+    MaintenanceQueueSummaryRecord, MaintenanceReservationSummaryRecord,
+    MaintenanceResourceBudgetSummaryRecord, Milestone6ChunkMembershipRecord,
+    Milestone6CommitCoupledLayoutSeedRecord, Milestone6LayoutMaterializationRecord,
+    Milestone6ScopeSliceMembershipRecord, Milestone6StructuralBlockRecord,
+    ProgramChunkWitnessIndexRecord, RebuildDebtRecord, RetentionBasisRecord,
+    RetentionClosureRecord, SchemaSupportRecord, SnapshotBasisRecord, SnapshotImageRecord,
+    StableBasisRecord, StoredCommitEnvelope, SubscriberCheckpointRecord, TierRecallRecord,
+    TierResidencyRecord, TierTransferRecord,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +31,8 @@ pub(crate) struct StoreState {
     pub commit_envelopes: BTreeMap<u64, StoredCommitEnvelope>,
     pub commit_parent_records: BTreeMap<String, CommitParentRecord>,
     pub authoritative_artifact_digests: BTreeMap<String, AuthoritativeArtifactDigestRecord>,
+    #[serde(default)]
+    pub compatibility_manifest_records: BTreeMap<String, CompatibilityManifestRecord>,
     #[serde(default)]
     pub commit_support_summaries: BTreeMap<u64, CommitSupportSummaryRecord>,
     #[serde(default)]

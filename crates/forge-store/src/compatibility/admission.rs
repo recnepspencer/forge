@@ -111,6 +111,10 @@ impl CompatibilityAdapterId {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -119,6 +123,10 @@ pub struct CompatibilityAdapterDigest(String);
 impl CompatibilityAdapterDigest {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
 
@@ -144,6 +152,14 @@ impl DeclaredCompatibilityAdapter {
 
     pub fn cost_class(&self) -> CompatibilityAdapterCostClass {
         self.cost_class
+    }
+
+    pub fn adapter_id(&self) -> &CompatibilityAdapterId {
+        &self.adapter_id
+    }
+
+    pub fn adapter_digest(&self) -> &CompatibilityAdapterDigest {
+        &self.adapter_digest
     }
 }
 
@@ -218,6 +234,14 @@ pub struct CompatibilityAdmissionCounters {
     receipt_basis_mismatch_count: u64,
     artifact_row_scan_count: u64,
     malformed_frame_count: u64,
+    adapter_cost_class_count: u64,
+    adapter_parity_failure_count: u64,
+    adapter_inline_count: u64,
+    adapter_batch_count: u64,
+    adapter_maintenance_scheduled_count: u64,
+    adapter_input_record_count: u64,
+    adapter_output_record_count: u64,
+    adapter_allocation_scope_count: u64,
     adapter_hot_path_rejection_count: u64,
     adapter_maintenance_required_rejection_count: u64,
     adapter_out_of_scope_rejection_count: u64,
@@ -328,6 +352,38 @@ impl CompatibilityAdmissionCounters {
 
     pub fn malformed_frame_count(&self) -> u64 {
         self.malformed_frame_count
+    }
+
+    pub fn adapter_cost_class_count(&self) -> u64 {
+        self.adapter_cost_class_count
+    }
+
+    pub fn adapter_parity_failure_count(&self) -> u64 {
+        self.adapter_parity_failure_count
+    }
+
+    pub fn adapter_inline_count(&self) -> u64 {
+        self.adapter_inline_count
+    }
+
+    pub fn adapter_batch_count(&self) -> u64 {
+        self.adapter_batch_count
+    }
+
+    pub fn adapter_maintenance_scheduled_count(&self) -> u64 {
+        self.adapter_maintenance_scheduled_count
+    }
+
+    pub fn adapter_input_record_count(&self) -> u64 {
+        self.adapter_input_record_count
+    }
+
+    pub fn adapter_output_record_count(&self) -> u64 {
+        self.adapter_output_record_count
+    }
+
+    pub fn adapter_allocation_scope_count(&self) -> u64 {
+        self.adapter_allocation_scope_count
     }
 
     pub fn adapter_hot_path_rejection_count(&self) -> u64 {
@@ -621,6 +677,39 @@ impl CompatibilityAdmissionCounters {
 
     pub(crate) fn record_authoritative_partial_truth_rejection(&mut self) {
         self.authoritative_partial_truth_rejection_count += 1;
+        self.rejected_count += 1;
+    }
+
+    pub(crate) fn record_adapter_cost_class(&mut self, cost_class: CompatibilityAdapterCostClass) {
+        self.adapter_cost_class_count += 1;
+        match cost_class {
+            CompatibilityAdapterCostClass::ZeroCopy
+            | CompatibilityAdapterCostClass::BoundedRecordLocal => {
+                self.adapter_inline_count += 1;
+            }
+            CompatibilityAdapterCostClass::BoundedBatchLocal => {
+                self.adapter_batch_count += 1;
+            }
+            CompatibilityAdapterCostClass::MaintenanceOnly => {
+                self.adapter_maintenance_scheduled_count += 1;
+            }
+            CompatibilityAdapterCostClass::OutOfScope => {}
+        }
+    }
+
+    pub(crate) fn record_adapter_execution(
+        &mut self,
+        input_record_count: u64,
+        output_record_count: u64,
+        allocation_scope_count: u64,
+    ) {
+        self.adapter_input_record_count += input_record_count;
+        self.adapter_output_record_count += output_record_count;
+        self.adapter_allocation_scope_count += allocation_scope_count;
+    }
+
+    pub(crate) fn record_adapter_parity_failure(&mut self) {
+        self.adapter_parity_failure_count += 1;
         self.rejected_count += 1;
     }
 }
@@ -958,6 +1047,7 @@ pub enum CompatibilityRejectionKind {
     AdapterHotPathRejected,
     AdapterMaintenanceRequired,
     AdapterOutOfScope,
+    AdapterParityFailure,
     ReaderCapabilityUnsupported,
     WriterCapabilityUnsupported,
     ReceiptArtifactMismatch,
@@ -1008,6 +1098,7 @@ impl CompatibilityRejectionKind {
                 StoreErrorKind::CompatibilityAuthoritativePartialTruthRejected
             }
             Self::AdapterOutOfScope => StoreErrorKind::CompatibilityAdapterParityFailure,
+            Self::AdapterParityFailure => StoreErrorKind::CompatibilityAdapterParityFailure,
             Self::ReaderCapabilityUnsupported => {
                 StoreErrorKind::CompatibilityArtifactSemanticVersionUnsupported
             }
@@ -1188,6 +1279,18 @@ impl CompatibilityAdapterParityWitness {
             adapter_digest,
             cost_class,
         }
+    }
+
+    pub fn adapter_id(&self) -> &CompatibilityAdapterId {
+        &self.adapter_id
+    }
+
+    pub fn adapter_digest(&self) -> &CompatibilityAdapterDigest {
+        &self.adapter_digest
+    }
+
+    pub fn cost_class(&self) -> CompatibilityAdapterCostClass {
+        self.cost_class
     }
 }
 
@@ -1636,6 +1739,7 @@ fn admit_adapter_cost(
     let Some(adapter) = edge.adapter() else {
         return Ok(());
     };
+    counters.record_adapter_cost_class(adapter.cost_class());
     match (path, adapter.cost_class()) {
         (_, CompatibilityAdapterCostClass::ZeroCopy)
         | (_, CompatibilityAdapterCostClass::BoundedRecordLocal) => Ok(()),

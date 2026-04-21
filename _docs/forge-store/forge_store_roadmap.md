@@ -6,7 +6,8 @@ This document defines the future work for `forge-store`.
 
 It is a future-only roadmap. It exists to sequence the work required to make
 the Forge runtime durable without weakening authority boundaries, replay,
-branch semantics, lineage semantics, live-query semantics, or recovery honesty.
+branch semantics, lineage semantics, live-query semantics,
+subscription-support semantics, or recovery honesty.
 
 The operating rule is:
 
@@ -18,7 +19,8 @@ The operating rule is:
 
 > A long-lived system with deep branch history, active mutation, crash-restart
 > loops, retention pressure, schema evolution, lineage-bearing truth,
-> resumable subscribers, live-query consumers, bulk ingest pressure, and
+> resumable subscribers, live-query consumers, first-class subscription
+> support artifacts, bulk ingest pressure, and
 > multiple physical backends must recover the same canonical truth, replay the
 > same observable history, and explain the same durable conclusions regardless
 > of whether it restored from WAL, snapshots, delta-layer materializations, or
@@ -30,7 +32,8 @@ If any supported path:
 - makes snapshots, materializations, live-query bases, or derived artifacts
   unrebuildable from canonical truth
 - makes branch storage scale with copied full state by default
-- loses schema, lineage, cursor, or basis meaning across restart
+- loses schema, lineage, cursor, subscription-support, or basis meaning across
+  restart
 - allows backend variation to change recovery or replay conclusions
 - lets compaction, tiering, or reclamation silently destroy truth retention the
   policy said must survive
@@ -91,7 +94,8 @@ Critical path:
 - `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 3.5` ->
   `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
   `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 11` ->
-  `Milestone 12` -> `Milestone 14` -> `Milestone 15` -> `Milestone 20` ->
+  `Milestone 12` -> `Milestone 13` -> `Milestone 13.1` -> `Milestone 13.2` ->
+  `Milestone 13.3` -> `Milestone 14` -> `Milestone 15` -> `Milestone 20` ->
   `Milestone 22` -> certification
 
 Parallel tracks:
@@ -831,6 +835,18 @@ recall posture, and scheduler handoff boundaries are explicit.
 
 Engineering spec: [milestone-12.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-12.md)
 
+Closeout: [milestone-12-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-12-closeout.md)
+
+Current state:
+
+- implemented and closed through the named Milestone 12 certification lane
+- compatibility manifests persist durably and reconstruct restart-visible
+  compatibility posture through local-file and SQLite reopen
+- public facade paths now exist for compatibility-gated rolling publication,
+  restore execution, derived rebuild, and bounded authoritative adapter parity
+- the certification runner reports no remaining in-scope Milestone 12 runtime
+  gaps
+
 ### Goal
 
 Make authoritative and derived artifact families evolvable across rolling
@@ -937,6 +953,204 @@ placement semantics, tier classes, and recall meaning, while Milestone 11 owns
 pacing, foreground isolation, and debt-escalation policy for those placement
 work units.
 
+## Milestone 13.1: Durable Subscription Support Artifacts And Resume Contracts
+
+### Goal
+
+Make first-class subscription-support artifacts durable and basis-exact so the
+store can preserve what an admitted subscription family needs to resume
+honestly, without turning subscription semantics or delivery policy into
+store-owned authority.
+
+### Adversarial Constraint
+
+After restart, rebuild, or handoff between runtime instances, the store must be
+able to preserve and report the same exact subscription-support identity,
+basis-linkage, compatibility class, and resumability conclusion for an admitted
+subscription-support lane, without collapsing that lane into "some cursor near
+the right place" or into host-local delivery memory.
+
+### Must Ship
+
+- durable subscription-support artifact families distinct from raw cursor,
+  checkpoint, and session-local delivery artifacts
+- explicit linkage from subscription-support artifacts to basis identity,
+  cursor/checkpoint support truth, and declared compatibility class
+- explicit family or kind tagging so support artifacts remain keyed to the
+  admitted subscription family they support rather than implying one universal
+  resume model
+- resumability classification surfaces at minimum for:
+  - `ExactResume`
+  - `DegradedButRecoverable`
+  - `RebuildRequired`
+  - `NotResumable`
+- diagnostics that distinguish subscription-support drift from cursor drift,
+  basis drift, and delivery-session loss
+- rebuild and restart rules proving subscription-support artifacts remain
+  subordinate to runtime-owned subscription semantics
+
+### Must Preserve
+
+- `forge-query` and the bridge remain the owners of subscription meaning,
+  lowering, and lifecycle semantics
+- store persists support truth for subscriptions; it does not become a
+  subscription manager or delivery runtime
+- session-local fanout, delivery pacing, and network-class semantics remain
+  outside store authority
+- store persists family-aware support truth for subscriptions lowered through
+  bridge and `forge-signal` strategy space rather than flattening them into
+  one durable lane
+
+### Complexity / Proof Obligations
+
+- name subscription-support fetch, compatibility-check, and
+  resume-classification contracts
+- expose exact counters for subscription-support artifact reads,
+  compatibility matches, degraded classifications, rebuild-required
+  classifications, and typed resume denials
+
+### Allowed Debt
+
+- conservative first-ship subscription family coverage may remain `Debt`
+- cursor-only "best effort" resume for a first-class subscription may not ship
+  as debt
+
+### Sequencing Notes
+
+This is cleanup after Milestone 13, not a rewrite of Milestones 7 and 8. Those
+milestones already froze durable basis and cursor truth; Milestone 13.1 adds
+the missing first-class subscription-support vocabulary on top of that
+foundation.
+
+### Parallelization Notes
+
+Can begin immediately after Milestone 13 because it mostly reclassifies and
+stabilizes support artifacts that later milestones must treat explicitly.
+
+## Milestone 13.2: Subscription Support Through Retention, Compatibility, Replication, And Maintenance
+
+### Goal
+
+Thread first-class subscription-support artifacts through the already-closed
+store programs for retention, compatibility, replication, and maintenance so
+later store behavior can state whether an admitted subscription family remains
+exactly resumable, degraded, rebuildable, or no longer resumable.
+
+### Adversarial Constraint
+
+Retention, compaction, tier movement, replication, rolling compatibility, and
+background maintenance must not silently destroy or mutate the durable support
+truth a first-class subscription claims to rely on; the store must publish one
+typed resumability conclusion instead of forcing higher layers to rediscover it
+from missing files, stale cursors, or operator folklore.
+
+### Must Ship
+
+- retention-facing survival rules for subscription-support artifacts
+- compatibility/version-skew rules for subscription-support artifact families
+- capsule and replication participation rules for admitted subscription-support
+  families
+- maintenance work classes and debt reporting for subscription-support rebuild,
+  refresh, and degradation recovery
+- operator-visible resumability conclusions after reclaim, replication,
+  compatibility drift, or maintenance delay
+- family-aware portability and restart guarantees so different admitted
+  subscription families can carry different exact, degraded, or rebuild
+  postures
+
+### Must Preserve
+
+- retention, compatibility, replication, and maintenance remain the authorities
+  for their own domains; this milestone only seals the subscription-support
+  participation rules they should consult
+- no maintenance product, compacted artifact, or replicated capsule becomes
+  shadow subscription authority
+- unsupported subscription-support portability or restart guarantees fail typed
+  rather than degrading silently
+
+### Complexity / Proof Obligations
+
+- name subscription-support survival, portability, compatibility, and
+  maintenance-rebuild contracts
+- expose exact counters for retained subscription-support families, reclaimed
+  subscription-support families, replicated subscription-support bundles,
+  version-skew rejections, and maintenance-triggered rebuild debt
+
+### Allowed Debt
+
+- aggressive resumability-preserving optimizations may remain `Debt`
+- silent loss of exact resumability classification may not
+
+### Sequencing Notes
+
+This belongs before later extensibility and accuracy milestones so future
+artifact families inherit explicit subscription-support participation rules.
+
+### Parallelization Notes
+
+Can overlap with documentation updates for Milestones 14, 15, 17, 20, 21, and
+22, but should close before those milestones are considered final.
+
+## Milestone 13.3: Subscription Support Accuracy Taxonomy And Certification
+
+### Goal
+
+Classify and certify first-class subscription-support artifacts so they carry
+an explicit family-aware trust posture for their declared support role and can
+be audited as part of the finished store platform.
+
+### Adversarial Constraint
+
+A stale, partial, rebuilt, replicated, or compatibility-shifted
+subscription-support artifact must never be consumed as though it still proved
+exact resumability if its declared basis, compatibility, or rebuild posture no
+longer supports that claim.
+
+### Must Ship
+
+- explicit classification for subscription-support families within the durable
+  artifact taxonomy
+- enforced accuracy or trust posture for subscription-support artifacts in
+  their declared support role
+- subscription-support certification bundles and named suite requirements
+- generic and domain certification updates that include first-class
+  subscription durability and resumability honesty
+- certification visibility for admitted family or kind differences in support
+  semantics and resumability posture
+
+### Must Preserve
+
+- subscription-support artifacts remain non-authoritative with respect to truth
+  and subscription meaning even when they are exact for their declared support
+  role
+- rebuilt or degraded subscription-support artifacts never masquerade as exact
+  resumability proof
+- family-aware support artifacts remain explicit about which admitted
+  subscription family they can and cannot resume
+
+### Complexity / Proof Obligations
+
+- name subscription-support classification, drift-detection, and certification
+  contracts
+- expose exact counters for exact-vs-degraded subscription-support artifacts,
+  stale detections, rebuild completions, and certification-coverage rows
+
+### Allowed Debt
+
+- additional subscription-support family variants may remain absent
+- shipped subscription-support families may not remain unclassified or
+  uncertified
+
+### Sequencing Notes
+
+This closes the cleanup arc by making subscription-support durability not only
+implemented but certifiably honest.
+
+### Parallelization Notes
+
+Can progress alongside late Milestone 14 and Milestone 15 wording cleanup, but
+should close before final generic/domain certification.
+
 ## Milestone 14: Replication, Capsules, And Integrity Verification
 
 ### Goal
@@ -955,6 +1169,7 @@ and artifact identities as the original store, even for partial scopes.
 - deterministic import/export capsules
 - snapshot-plus-tail replication
 - partial branch and bounded artifact-range replication
+- admitted subscription-support artifact replication and capsule inclusion
 - cross-artifact digest graph or equivalent integrity surface
 - integrity-audit rebuild mode
 
@@ -1006,6 +1221,8 @@ skip retention policy, or evade compatibility and certification boundaries.
   - replication/export participation
   - compatibility/versioning
   - diagnostics and certification outputs
+- explicit containment rules for extension-defined subscription-support
+  families so extensions cannot invent shadow subscription durability semantics
 - storage-strategy containment rules
 - extension authenticity and trust-boundary rules for shipped artifacts
 - machine-checkable extension-family certification and rejection surfaces
@@ -1103,6 +1320,8 @@ exact truth-grade guarantees.
   - `Heuristic`
   - `Advisory`
 - diagnostics and counters for rebuild debt, basis drift, and accuracy class
+- explicit classification of subscription-support artifact families for their
+  declared support role
 
 ### Must Preserve
 
@@ -1232,6 +1451,8 @@ references without creating a second retention or replication system.
 - content-addressed blob/object storage
 - tiered blob placement: inline, external, cold
 - typed blob references from entities, commits, and branches
+- typed blob references from admitted subscription-support artifacts where the
+  platform allows blob-backed resumability support
 - blob retention and reclaim integrated with the store retention model
 - blob replication and capsule export/import integration
 - authoritative-versus-derived blob classification
@@ -1280,6 +1501,7 @@ before they become silent correctness or performance failures.
   - retained history depth
   - snapshot/materialization density
   - derived durable artifact footprint
+  - subscription-support artifact footprint and rebuild debt
   - compaction debt
   - rebuild debt
   - WAL growth
@@ -1333,6 +1555,8 @@ admissible without reading ambiguous logs or improvising on production data.
 - repair-plan generation and typed repair-action contracts
 - quarantine and salvage modes
 - explicit trusted-truth / degraded-derived reporting
+- explicit subscription resumability / degradation reporting and repairability
+  inspection
 - machine-checkable forensic bundles for operator and certification use
 - tenant-scoped blast-radius and quota diagnostics for repair and recovery work
 - authenticity-aware audit surfaces in addition to raw integrity reporting
@@ -1384,6 +1608,7 @@ mode, and admitted fast path the store claims to support.
 - backend parity
 - replication/import/export parity
 - cursor resume and live-query basis parity
+- first-class subscription-support resume, rebuild, and replication parity
 - schema/lineage durability parity
 - authoritative-versus-derived artifact rebuild distinction
 - bulk ingest/transform parity
@@ -1403,7 +1628,8 @@ meant to serve.
 
 - geometry/CAD session durability, branch persistence, region materialization,
   and analysis-basis reuse
-- web/data crash recovery, CDC resume, and live-query continuation
+- web/data crash recovery, CDC resume, live-query continuation, and
+  first-class subscription resumability
 - AI branch/workspace persistence, basis-pinned analysis reuse, and historical
   diff support
 - chip/history durability with snapshot-safe analysis restore and locality-aware
@@ -1419,6 +1645,8 @@ meant to serve.
 - snapshots, materializations, deltas, aspect-aware layouts, structural blocks,
   compaction, schema, lineage, cursors, replication, and budget controls are
   all honest about what is authoritative versus derived
+- durable subscription-support artifacts are explicit, basis-linked, rebuildable,
+  and honest about exact versus degraded resumability
 - live-query substrate, diff acceleration, merge assistance, analysis lanes,
   locality clustering, and native blob storage remain rebuildable from their
   declared authority basis

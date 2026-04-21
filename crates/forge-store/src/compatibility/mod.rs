@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+mod adapters;
 mod admission;
 mod authoritative;
 mod catalog;
@@ -9,9 +10,19 @@ mod decoding;
 mod derived;
 mod evidence;
 mod manifests;
+mod production;
 mod restore;
 mod rolling;
 
+pub(crate) use adapters::{
+    execute_declared_adapter_parity, first_ship_authoritative_adapter_edge_registry,
+    first_ship_commit_envelope_adapted_lane, first_ship_commit_envelope_control_lane,
+    AdapterParityLane,
+};
+pub(crate) use admission::check_artifact_with_read_receipt;
+pub(crate) use admission::{
+    plan_read_compatibility, plan_read_compatibility_for_path, plan_write_compatibility,
+};
 pub use admission::{
     BackwardReadCompatibilityWitness, CompatibilityAdapterCostClass, CompatibilityAdapterDigest,
     CompatibilityAdapterId, CompatibilityAdapterParityWitness, CompatibilityAdmissionBatch,
@@ -26,6 +37,9 @@ pub use admission::{
     RollingWindowCompatibilityReceipt, SemanticMeaningPreservationWitness, UpgradeAdmissionWitness,
     WriteCompatibilityReceipt, WriterCapabilitySet,
 };
+pub(crate) use authoritative::{
+    admit_authoritative_meaning_with_parity_witness, declare_authoritative_meaning,
+};
 #[allow(unused_imports)]
 pub use authoritative::{
     AuthoritativeAdmissionReport, AuthoritativeCompatibilityWitness,
@@ -35,8 +49,9 @@ pub use authoritative::{
 };
 pub use catalog::{
     AuthoritativeFamilyDeclaration, CompatibilityAuthorityClassification,
-    CompatibilityFamilyDeclaration, CompatibilityFamilyKind, CompatibilityRegistry,
-    CompatibilityRegistrySnapshot, DerivedFamilyDeclaration, FIRST_SHIP_COMPATIBILITY_FAMILY_COUNT,
+    CompatibilityFamilyDeclaration, CompatibilityFamilyKind, CompatibilityManifestDeclaration,
+    CompatibilityRegistry, CompatibilityRegistrySnapshot, DerivedFamilyDeclaration,
+    FIRST_SHIP_COMPATIBILITY_FAMILIES, FIRST_SHIP_COMPATIBILITY_FAMILY_COUNT,
 };
 #[allow(unused_imports)]
 pub use certification::{
@@ -54,6 +69,11 @@ pub use certification_runner::{
 pub use decoding::{
     CompatibilityArtifactFrameHeader, CompatibilityCheckedArtifact, FramedArtifactRecord,
     QuarantinedDecodedArtifact, RawArtifactBytes, SemanticArtifactView,
+};
+pub(crate) use derived::{
+    admit_derived_rebuild_maintenance, plan_derived_lane_compatibility,
+    prove_compatibility_maintenance_lane_admission, prove_retained_authority_for_derived_rebuild,
+    require_matching_maintenance_lane,
 };
 pub use derived::{
     BulkResumeCompatibilityPlan, BulkResumeCompatibilityRejection, BulkResumeInterpretation,
@@ -89,6 +109,14 @@ pub use manifests::{
     DerivedCompatibilityManifest, ManifestDigestMismatch, ManifestPublicationGap,
     ManifestPublicationWitness, ManifestRecoverySummary,
 };
+pub use production::{
+    CompatibilityAuthoritativeAdapterOutcome, CompatibilityAuthoritativeAdapterRequest,
+    CompatibilityDerivedRebuildOutcome, CompatibilityDerivedRebuildRequest,
+    CompatibilityRestoreExecutionOutcome, CompatibilityRollingPublicationOutcome,
+    CompatibilityRollingPublicationRequest,
+};
+pub(crate) use restore::execute_restore_publication;
+pub(crate) use restore::plan_restore_compatibility;
 #[allow(unused_imports)]
 pub use restore::{
     BackupCompatibilityManifest, DisasterRecoveryCompatibilityClass,
@@ -96,6 +124,9 @@ pub use restore::{
     RestoreCompatibilityPlan, RestoreCompatibilityTarget, RestorePublicationConflictKind,
     RestorePublicationConflictSet, RestorePublicationConflictUnit, RestorePublicationWitness,
     RestoreVersionRejection,
+};
+pub(crate) use rolling::{
+    first_ship_commit_rolling_edge_registry, plan_first_ship_rolling_upgrade,
 };
 pub use rolling::{
     MaintenanceCompatibilityPosture, MixedVersionPostureKind, MixedVersionStorePosture,
@@ -240,8 +271,16 @@ mod tests {
             "compatibility.index.row_scan_count",
             "compatibility.decode.malformed_frame_count",
             "compatibility.adapter.cost_class_count",
+            "compatibility.adapter.inline_count",
+            "compatibility.adapter.batch_count",
+            "compatibility.adapter.maintenance_scheduled_count",
+            "compatibility.adapter.parity_failure_count",
+            "compatibility.adapter.input_record_count",
+            "compatibility.adapter.output_record_count",
+            "compatibility.adapter.allocation_scope_count",
             "compatibility.adapter.hot_path_rejection_count",
             "compatibility.adapter.maintenance_required_rejection_count",
+            "compatibility.adapter.out_of_scope_rejection_count",
             "compatibility.admission.native_count",
             "compatibility.admission.forward_backward_count",
             "compatibility.authoritative.partial_truth_rejection_count",
@@ -765,6 +804,8 @@ mod tests {
             CompatibilityRelation::AdapterRequired
         );
         assert_eq!(batch.counters().admitted_adapter_count(), 1);
+        assert_eq!(batch.counters().adapter_cost_class_count(), 1);
+        assert_eq!(batch.counters().adapter_batch_count(), 1);
     }
 
     #[test]
@@ -1034,6 +1075,36 @@ mod tests {
                 .authoritative_partial_truth_rejection_count(),
             1
         );
+    }
+
+    #[test]
+    fn compatibility_declared_adapter_parity_rejects_semantic_drift() {
+        let edge_registry = adapters::first_ship_authoritative_adapter_edge_registry();
+        let family_id = CompatibilityFamilyKind::CommitEnvelope.family_id();
+        let mut counters = CompatibilityAdmissionCounters::default();
+        let rejection = adapters::execute_declared_adapter_parity(
+            &mut counters,
+            &edge_registry,
+            &family_id,
+            ArtifactSemanticVersion::new(1),
+            ArtifactSemanticVersion::new(2),
+            &CompatibilityAdapterId::new("first_ship_commit_envelope_adapter"),
+            &CompatibilityAdapterDigest::new("first_ship_commit_envelope_adapter_digest_v1"),
+            br#"{"lane":"control","rows":[1,2]}"#,
+            br#"{"lane":"adapted","rows":[1,3]}"#,
+            2,
+            1,
+            1,
+        )
+        .expect_err("semantic drift between control and adapted lanes must reject parity");
+        assert_eq!(
+            rejection.kind(),
+            CompatibilityRejectionKind::AdapterParityFailure
+        );
+        assert_eq!(counters.adapter_parity_failure_count(), 1);
+        assert_eq!(counters.adapter_input_record_count(), 2);
+        assert_eq!(counters.adapter_output_record_count(), 1);
+        assert_eq!(counters.adapter_allocation_scope_count(), 1);
     }
 
     #[test]
@@ -1964,7 +2035,7 @@ mod tests {
     #[test]
     fn compatibility_certification_lane_ids_are_stable_unique_and_mandatory() {
         let mandatory = Milestone12CertificationLaneKind::mandatory_phase_5a();
-        assert_eq!(mandatory.len(), 20);
+        assert_eq!(mandatory.len(), 23);
         let mut seen = std::collections::BTreeSet::new();
         for kind in mandatory {
             assert_eq!(kind.lane_id().as_str(), kind.label());
@@ -2069,8 +2140,8 @@ mod tests {
             bundle.lane_outcomes().len(),
             Milestone12CertificationLaneKind::mandatory_phase_5a().len()
         );
-        assert_eq!(bundle.run_summary().accepted_lane_count(), 7);
-        assert_eq!(bundle.run_summary().rejected_lane_count(), 10);
+        assert_eq!(bundle.run_summary().accepted_lane_count(), 9);
+        assert_eq!(bundle.run_summary().rejected_lane_count(), 11);
         assert_eq!(bundle.rolling_evidence().admitted_lane_count(), 1);
         assert_eq!(bundle.rolling_evidence().rejected_lane_count(), 3);
         assert_eq!(bundle.restore_evidence().admitted_lane_count(), 1);
@@ -2434,8 +2505,10 @@ mod tests {
                     | Milestone12CertificationLaneKind::AuthoritativeForwardRead
                     | Milestone12CertificationLaneKind::AuthoritativeBackwardRead
                     | Milestone12CertificationLaneKind::DerivedSnapshotReuseAccepted
+                    | Milestone12CertificationLaneKind::MaintenanceSummaryRebuildAdmitted
                     | Milestone12CertificationLaneKind::TierManifestNonAuthorityPreserved
                     | Milestone12CertificationLaneKind::RollingTwoCapabilityAdmitted
+                    | Milestone12CertificationLaneKind::AdapterParityAdmitted
                     | Milestone12CertificationLaneKind::RestoreScopedBackupAdmitted => {
                         Milestone12CertificationLaneOutcome::accepted(
                             kind,
@@ -2487,6 +2560,14 @@ mod tests {
                             kind,
                             milestone_12_certification_input(),
                             CompatibilityRejectionKind::UnsupportedSemanticVersion,
+                            &counters,
+                        )
+                    }
+                    Milestone12CertificationLaneKind::AdapterParityDigestRejected => {
+                        Milestone12CertificationLaneOutcome::rejected(
+                            kind,
+                            milestone_12_certification_input(),
+                            CompatibilityRejectionKind::AdapterParityFailure,
                             &counters,
                         )
                     }

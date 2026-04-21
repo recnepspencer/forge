@@ -2,9 +2,9 @@ use super::manifests::{
     ArtifactCompatibilityWindow, ArtifactFamilyId, AuthoritativeCompatibilityManifest,
     DerivedCompatibilityManifest,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum CompatibilityAuthorityClassification {
     Authoritative,
     Derived,
@@ -19,7 +19,7 @@ impl CompatibilityAuthorityClassification {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum CompatibilityFamilyKind {
     CommitEnvelope,
     BranchVersionDagRecord,
@@ -135,7 +135,7 @@ pub const FIRST_SHIP_COMPATIBILITY_FAMILIES: [CompatibilityFamilyKind; 13] = [
 
 pub const FIRST_SHIP_COMPATIBILITY_FAMILY_COUNT: usize = FIRST_SHIP_COMPATIBILITY_FAMILIES.len();
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompatibilityManifestDeclaration {
     Authoritative(AuthoritativeCompatibilityManifest),
     Derived(DerivedCompatibilityManifest),
@@ -164,7 +164,7 @@ impl CompatibilityManifestDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityFamilyDeclaration {
     kind: CompatibilityFamilyKind,
     family_id: ArtifactFamilyId,
@@ -230,7 +230,7 @@ impl CompatibilityFamilyDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthoritativeFamilyDeclaration {
     declaration: CompatibilityFamilyDeclaration,
 }
@@ -249,7 +249,7 @@ impl AuthoritativeFamilyDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DerivedFamilyDeclaration {
     declaration: CompatibilityFamilyDeclaration,
 }
@@ -268,7 +268,7 @@ impl DerivedFamilyDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityRegistrySnapshot {
     declarations: Vec<CompatibilityFamilyDeclaration>,
 }

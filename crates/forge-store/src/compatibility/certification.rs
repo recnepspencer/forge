@@ -5,6 +5,7 @@ use serde::Serialize;
 use super::admission::{
     CompatibilityAdmissionCounters, CompatibilityReadAdmissionOutcome, CompatibilityRejection,
     CompatibilityRejectionKind, CompatibilityRelation, CompatibilityWriteAdmissionOutcome,
+    RestoreCompatibilityReceipt,
 };
 use super::derived::{DerivedLaneCompatibilityPlan, DerivedLaneCompatibilityPosture};
 use super::manifests::{ArtifactFamilyId, ArtifactSemanticVersion};
@@ -21,6 +22,7 @@ pub enum Milestone12CertificationLaneKind {
     AuthoritativeMissingEdgeRejected,
     AuthoritativeIncompatibleEdgeRejected,
     DerivedSnapshotReuseAccepted,
+    MaintenanceSummaryRebuildAdmitted,
     DerivedLayoutBasisRejected,
     DerivedBulkResumeRejected,
     TierManifestNonAuthorityPreserved,
@@ -28,6 +30,8 @@ pub enum Milestone12CertificationLaneKind {
     RollingMultiWriterRejected,
     RollingMissingEdgeRejected,
     RollingAdapterEdgeRejected,
+    AdapterParityAdmitted,
+    AdapterParityDigestRejected,
     RestoreScopedBackupAdmitted,
     RestoreOutOfScopeRejected,
     RestorePublicationConflictRejected,
@@ -48,6 +52,7 @@ impl Milestone12CertificationLaneKind {
                 "authoritative_incompatible_edge_rejected"
             }
             Self::DerivedSnapshotReuseAccepted => "derived_snapshot_reuse_accepted",
+            Self::MaintenanceSummaryRebuildAdmitted => "maintenance_summary_rebuild_admitted",
             Self::DerivedLayoutBasisRejected => "derived_layout_basis_rejected",
             Self::DerivedBulkResumeRejected => "derived_bulk_resume_rejected",
             Self::TierManifestNonAuthorityPreserved => "tier_manifest_non_authority_preserved",
@@ -55,6 +60,8 @@ impl Milestone12CertificationLaneKind {
             Self::RollingMultiWriterRejected => "rolling_multi_writer_rejected",
             Self::RollingMissingEdgeRejected => "rolling_missing_edge_rejected",
             Self::RollingAdapterEdgeRejected => "rolling_adapter_edge_rejected",
+            Self::AdapterParityAdmitted => "adapter_parity_admitted",
+            Self::AdapterParityDigestRejected => "adapter_parity_digest_rejected",
             Self::RestoreScopedBackupAdmitted => "restore_scoped_backup_admitted",
             Self::RestoreOutOfScopeRejected => "restore_out_of_scope_rejected",
             Self::RestorePublicationConflictRejected => "restore_publication_conflict_rejected",
@@ -77,6 +84,7 @@ impl Milestone12CertificationLaneKind {
             Self::AuthoritativeMissingEdgeRejected,
             Self::AuthoritativeIncompatibleEdgeRejected,
             Self::DerivedSnapshotReuseAccepted,
+            Self::MaintenanceSummaryRebuildAdmitted,
             Self::DerivedLayoutBasisRejected,
             Self::DerivedBulkResumeRejected,
             Self::TierManifestNonAuthorityPreserved,
@@ -84,6 +92,8 @@ impl Milestone12CertificationLaneKind {
             Self::RollingMultiWriterRejected,
             Self::RollingMissingEdgeRejected,
             Self::RollingAdapterEdgeRejected,
+            Self::AdapterParityAdmitted,
+            Self::AdapterParityDigestRejected,
             Self::RestoreScopedBackupAdmitted,
             Self::RestoreOutOfScopeRejected,
             Self::RestorePublicationConflictRejected,
@@ -219,6 +229,23 @@ impl Milestone12CertificationLaneOutcome {
         }
     }
 
+    pub(crate) fn accepted_from_report(
+        lane_kind: Milestone12CertificationLaneKind,
+        input: Milestone12CertificationLaneInput,
+        relation: CompatibilityRelation,
+        counters: Milestone12AdmissionReport,
+    ) -> Self {
+        Self {
+            lane_id: lane_kind.lane_id(),
+            lane_kind,
+            input,
+            status: Milestone12CertificationLaneStatus::Accepted,
+            relation: Some(relation),
+            rejection_kind: None,
+            counters,
+        }
+    }
+
     pub fn from_read_outcome(
         lane_kind: Milestone12CertificationLaneKind,
         input: Milestone12CertificationLaneInput,
@@ -306,6 +333,19 @@ impl Milestone12CertificationLaneOutcome {
             Milestone12CertificationLaneKind::RestoreScopedBackupAdmitted,
             input,
             plan.relation(),
+            counters,
+        )
+    }
+
+    pub fn from_restore_receipt(
+        input: Milestone12CertificationLaneInput,
+        receipt: &RestoreCompatibilityReceipt,
+        counters: &CompatibilityAdmissionCounters,
+    ) -> Self {
+        Self::accepted(
+            Milestone12CertificationLaneKind::RestoreScopedBackupAdmitted,
+            input,
+            receipt.receipt().relation(),
             counters,
         )
     }

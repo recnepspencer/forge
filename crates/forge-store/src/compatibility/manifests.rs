@@ -1,10 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 use super::catalog::{CompatibilityAuthorityClassification, CompatibilityFamilyDeclaration};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ArtifactFamilyId(String);
 
 impl ArtifactFamilyId {
@@ -17,7 +17,7 @@ impl ArtifactFamilyId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ArtifactFormatVersion(u32);
 
 impl ArtifactFormatVersion {
@@ -30,7 +30,7 @@ impl ArtifactFormatVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ArtifactSemanticVersion(u32);
 
 impl ArtifactSemanticVersion {
@@ -43,7 +43,7 @@ impl ArtifactSemanticVersion {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArtifactCompatibilityWindow {
     minimum_format: ArtifactFormatVersion,
     maximum_format: ArtifactFormatVersion,
@@ -102,7 +102,7 @@ impl ArtifactCompatibilityWindow {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CompatibilityManifestDigest(String);
 
 impl CompatibilityManifestDigest {
@@ -126,7 +126,7 @@ impl CompatibilityManifestDigest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthoritativeCompatibilityManifest {
     family_id: ArtifactFamilyId,
     window: ArtifactCompatibilityWindow,
@@ -156,7 +156,7 @@ impl AuthoritativeCompatibilityManifest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DerivedCompatibilityManifest {
     family_id: ArtifactFamilyId,
     window: ArtifactCompatibilityWindow,
@@ -186,7 +186,7 @@ impl DerivedCompatibilityManifest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestPublicationUnit {
     family_id: ArtifactFamilyId,
     manifest_digest: CompatibilityManifestDigest,
@@ -212,7 +212,7 @@ impl CompatibilityManifestPublicationUnit {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestPublicationRecord {
     family_id: ArtifactFamilyId,
     window: ArtifactCompatibilityWindow,
@@ -257,7 +257,7 @@ impl CompatibilityManifestPublicationRecord {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestFrontier {
     publication_count: u64,
     frontier_identity: String,
@@ -286,7 +286,7 @@ impl CompatibilityManifestFrontier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestPublicationReceipt {
     record: CompatibilityManifestPublicationRecord,
     frontier: CompatibilityManifestFrontier,
@@ -309,7 +309,7 @@ impl CompatibilityManifestPublicationReceipt {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestPublicationLedger {
     records: Vec<CompatibilityManifestPublicationRecord>,
 }
@@ -341,9 +341,13 @@ impl CompatibilityManifestPublicationLedger {
     pub fn recover(&self) -> CompatibilityRecoveredManifestIndex {
         CompatibilityRecoveredManifestIndex::new(self.records.clone(), self.frontier())
     }
+
+    pub(crate) fn from_records(records: Vec<CompatibilityManifestPublicationRecord>) -> Self {
+        Self { records }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityManifestRecoveryPlan {
     expected_family_count: u64,
     recovered_record_count: u64,
@@ -376,7 +380,7 @@ impl CompatibilityManifestRecoveryPlan {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityRecoveredManifestIndex {
     records_by_family: BTreeMap<ArtifactFamilyId, CompatibilityManifestPublicationRecord>,
     recovery_plan: CompatibilityManifestRecoveryPlan,
@@ -422,7 +426,7 @@ impl CompatibilityRecoveredManifestIndex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestPublicationWitness {
     publication_unit: CompatibilityManifestPublicationUnit,
 }
@@ -437,7 +441,7 @@ impl ManifestPublicationWitness {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestRecoverySummary {
     manifest_count: u64,
     recovered_summary_count: u64,
@@ -470,7 +474,7 @@ impl ManifestRecoverySummary {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestPublicationGap {
     family_id: ArtifactFamilyId,
 }
@@ -485,7 +489,7 @@ impl ManifestPublicationGap {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManifestDigestMismatch {
     family_id: ArtifactFamilyId,
     expected: CompatibilityManifestDigest,

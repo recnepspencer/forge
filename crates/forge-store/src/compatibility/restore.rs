@@ -1,6 +1,7 @@
 use super::admission::{
-    CompatibilityAdmissionCounters, CompatibilityEdgeRegistry, CompatibilityRejection,
-    CompatibilityRejectionKind, CompatibilityRelation,
+    CompatibilityAdmissionCounters, CompatibilityAdmissionPath, CompatibilityAdmissionReceipt,
+    CompatibilityEdgeRegistry, CompatibilityRejection, CompatibilityRejectionKind,
+    CompatibilityRelation, RestoreCompatibilityReceipt,
 };
 use super::manifests::{
     ArtifactCompatibilityWindow, ArtifactFamilyId, ArtifactSemanticVersion,
@@ -179,6 +180,14 @@ impl RestoreCompatibilityPlan {
         self.relation
     }
 
+    pub(crate) fn admitted_manifest_digest(&self) -> &CompatibilityManifestDigest {
+        &self.admitted_manifest_digest
+    }
+
+    pub(crate) fn target_semantic_version(&self) -> ArtifactSemanticVersion {
+        self.target_semantic_version
+    }
+
     pub fn publication_conflict_count(&self) -> usize {
         self.publication_conflict_count
     }
@@ -332,6 +341,21 @@ pub(crate) fn plan_restore_compatibility(
         relation,
         publication_conflicts.len(),
         RestorePublicationWitness::new(target.family_id().clone()),
+    ))
+}
+
+pub(crate) fn execute_restore_publication(
+    plan: RestoreCompatibilityPlan,
+) -> RestoreCompatibilityReceipt {
+    RestoreCompatibilityReceipt::new(CompatibilityAdmissionReceipt::new(
+        plan.family_id().clone(),
+        plan.admitted_manifest_digest().clone(),
+        "restore-publication-registry",
+        "restore-publication-frontier",
+        plan.target_semantic_version(),
+        plan.target_semantic_version(),
+        CompatibilityAdmissionPath::MaintenanceScheduled,
+        plan.relation(),
     ))
 }
 

@@ -1,0 +1,19 @@
+error: cannot construct `BridgeSubscriptionDeclaration` with struct literal syntax due to private fields
+  --> tests/ui/subscription_declaration_literal_private.rs:10:13
+   |
+10 |     let _ = BridgeSubscriptionDeclaration {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 |         declaration_identity: BridgeSubscriptionDeclarationIdentity::new("subscription:literal"),
+   |         ---------------------------------------------------------------------------------------- private field
+12 |         requested_family_kind: BridgeSubscriptionDeclarationFamilyKind::DetailExact,
+   |         --------------------------------------------------------------------------- private field
+13 |         delivery_intent_class: BridgeSubscriptionDeliveryIntentClass::None,
+   |         ------------------------------------------------------------------ private field
+14 |         normalized_slice_intents: Arc::<[NormalizedSubscriptionSliceIntent]>::from([]),
+   |         ------------------------------------------------------------------------------ private field
+15 |         canonical_basis: Arc::from("basis"),
+   |         ----------------------------------- private field
+16 |         digest: Arc::from("digest"),
+   |         --------------------------- private field
+   |
+   = note: ...and other private field `counters` that was not provided

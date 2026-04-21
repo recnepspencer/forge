@@ -5,8 +5,13 @@ use crate::recovery::{
 };
 use crate::snapshot::SnapshotId;
 use crate::wal::DurableMutationId;
+use crate::{
+    CompatibilityManifestSummary, CompatibilityRecoveredManifestIndex, ManifestRecoverySummary,
+};
 use forge_relational::facade::history::CommitId;
 
+#[cfg(test)]
+use super::dispatch_mut;
 use super::{dispatch_ref, StoreBackend};
 
 impl StoreBackend {
@@ -43,5 +48,28 @@ impl StoreBackend {
     ) -> Result<BackupRestoreCompatibilityReport, StoreError> {
         dispatch_ref!(self, |backend| backend
             .backup_restore_compatibility_report())
+    }
+
+    pub fn compatibility_manifest_recovery_summary(&self) -> ManifestRecoverySummary {
+        dispatch_ref!(self, |backend| backend
+            .compatibility_manifest_recovery_summary())
+    }
+
+    pub fn recover_compatibility_manifest_index(&self) -> CompatibilityRecoveredManifestIndex {
+        dispatch_ref!(self, |backend| backend
+            .recover_compatibility_manifest_index())
+    }
+
+    pub fn compatibility_manifest_summaries(&self) -> Vec<CompatibilityManifestSummary> {
+        dispatch_ref!(self, |backend| backend.compatibility_manifest_summaries())
+    }
+
+    #[cfg(test)]
+    pub fn remove_compatibility_manifest_record_for_test(
+        &mut self,
+        family_kind: crate::CompatibilityFamilyKind,
+    ) {
+        dispatch_mut!(self, |backend| backend
+            .remove_compatibility_manifest_record_for_test(family_kind))
     }
 }

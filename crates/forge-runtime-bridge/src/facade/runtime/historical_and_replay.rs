@@ -180,6 +180,7 @@ impl RuntimeBridge {
         diagnostic_sink: Option<Arc<dyn DiagnosticSink>>,
         mapping_registry: FrozenMappingRegistry,
         aspect_registry: FrozenAspectMappingRegistry,
+        subscription_family_registry: FrozenSubscriptionFamilyRegistry,
     ) -> Self {
         let diagnostics = BridgeDiagnosticsFacade::new(policy);
         let diagnostic_sink = diagnostic_sink.unwrap_or_else(|| Arc::new(diagnostics.clone()));
@@ -200,6 +201,7 @@ impl RuntimeBridge {
             merge_registry,
             mapping_registry,
             aspect_registry,
+            subscription_family_registry,
         }
     }
 }
