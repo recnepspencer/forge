@@ -829,6 +829,8 @@ recall posture, and scheduler handoff boundaries are explicit.
 
 ## Milestone 12: Artifact Format Evolution And Rolling Compatibility
 
+Engineering spec: [milestone-12.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-12.md)
+
 ### Goal
 
 Make authoritative and derived artifact families evolvable across rolling

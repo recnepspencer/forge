@@ -29,6 +29,8 @@ mod matrices;
 #[cfg(test)]
 mod milestone_eight_certification;
 #[cfg(test)]
+pub(crate) mod milestone_nine_certification;
+#[cfg(test)]
 mod parity;
 #[cfg(test)]
 mod phase_layers;

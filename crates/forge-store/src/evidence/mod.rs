@@ -2,6 +2,7 @@ mod counters;
 mod milestone_1;
 mod milestone_10;
 mod milestone_11;
+mod milestone_12;
 mod milestone_13;
 mod milestone_2;
 mod milestone_3;
@@ -25,6 +26,16 @@ pub use milestone_11::{
     Milestone11DebtEscalationReport, Milestone11InterferenceMatrixEntry,
     Milestone11LocalityScopeCount, Milestone11MaintenanceReport, Milestone11ReservationFamilyCount,
     Milestone11ResourceBudgetReport, Milestone11SchedulerTopologyReport, Milestone11WorkClassCount,
+};
+pub use milestone_12::{
+    Milestone12AdmissionReport, Milestone12ArtifactFormatEvolutionEvidence,
+    Milestone12CertificationBundle, Milestone12CertificationEvidenceBundle,
+    Milestone12CertificationSummary, Milestone12CompatibilityMatrixRow,
+    Milestone12ComplexityPathStatus, Milestone12ComplexitySurface, Milestone12CounterContract,
+    Milestone12CounterContractViolation, Milestone12DerivedCompatibilityEvidence,
+    Milestone12RestoreCompatibilityEvidence, Milestone12RollingCompatibilityEvidence,
+    Milestone12VersionSkewReport, MILESTONE_12_ADMISSION_REPORT_COUNTER_FIELD_NAMES,
+    MILESTONE_12_COUNTER_NAMES,
 };
 pub use milestone_13::{
     Milestone13ArtifactReport, Milestone13CertificationBundle, Milestone13CertificationSummary,

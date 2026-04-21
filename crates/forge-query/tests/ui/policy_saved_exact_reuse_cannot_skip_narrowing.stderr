@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/policy_saved_exact_reuse_cannot_skip_narrowing.rs:4:60
+  |
+4 |       let _descriptor = SavedPolicyNarrowingReuseDescriptor::new(
+  |                                                              ^^^ private associated function
+  |
+ ::: src/policy_narrowing/artifact.rs
+  |
+  | /     pub(crate) fn new(
+  | |         saved_query_digest: impl Into<String>,
+  | |         prior_narrowed_artifact_digest: impl Into<String>,
+  | |         prior_policy_digest: impl Into<String>,
+... |
+  | |         new_relationship_proof_digest: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

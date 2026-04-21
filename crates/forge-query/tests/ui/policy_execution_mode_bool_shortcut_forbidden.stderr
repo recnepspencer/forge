@@ -1,0 +1,7 @@
+error[E0308]: mismatched types
+ --> tests/ui/policy_execution_mode_bool_shortcut_forbidden.rs:4:27
+  |
+4 |     let _admitted: bool = PolicyExecutionModeRequest::CurrentRead;
+  |                    ----   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `bool`, found `PolicyExecutionModeRequest`
+  |                    |
+  |                    expected due to this

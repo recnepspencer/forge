@@ -1,7 +1,8 @@
 use forge_query::facade::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, DeclarativeProjectionField,
-    ForgeQueryAspect, ForgeQueryCollection, ForgeQueryMemoryApp, ForgeQueryMutationReceipt,
-    ForgeQueryWorkspaceError, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
+    ForgeQueryAspect, ForgeQueryCollection, ForgeQueryLiveView, ForgeQueryRuntime,
+    ForgeQueryRuntimeError, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
 };
 use serde_json::{json, Value};
 
@@ -15,7 +16,10 @@ const COLUMN_LIST_VIEW: &str = "todo.columns.list";
 const USER_LIST_VIEW: &str = "todo.users.list";
 
 pub struct TodoWorkspace {
-    app: ForgeQueryMemoryApp,
+    query: ForgeQueryRuntime,
+    task_view: ForgeQueryLiveView<Value>,
+    column_view: ForgeQueryLiveView<Value>,
+    user_view: ForgeQueryLiveView<Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -51,71 +55,84 @@ impl TodoWorkspace {
         workspace
     }
 
-    fn new() -> Result<Self, ForgeQueryWorkspaceError> {
-        let mut app = ForgeQueryMemoryApp::new([
-            ForgeQueryCollection::new(
-                TASKS,
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("title.value", "title.value"),
-                    ForgeQueryAspect::new("column.id", "column.id"),
-                    ForgeQueryAspect::new("assignee.id", "assignee.id"),
-                    ForgeQueryAspect::new("priority.level", "priority.level"),
-                    ForgeQueryAspect::new("due.date", "due.date"),
-                    ForgeQueryAspect::new("tag.name", "tag.name"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                COLUMNS,
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("name.value", "name.value"),
-                    ForgeQueryAspect::new("order.index", "order.index"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                USERS,
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("name.value", "name.value"),
-                ],
-            ),
-        ])?;
-        app.declare_live_view(TASK_BOARD_VIEW, task_live_request(), task_schema())?;
-        app.declare_live_view(COLUMN_LIST_VIEW, column_live_request(), column_schema())?;
-        app.declare_live_view(USER_LIST_VIEW, user_live_request(), user_schema())?;
-        Ok(Self { app })
+    fn new() -> Result<Self, ForgeQueryRuntimeError> {
+        let mut query = ForgeQueryRuntime::builder()
+            .in_memory_collections([
+                ForgeQueryCollection::new(
+                    TASKS,
+                    [
+                        ForgeQueryAspect::new("identity.id", "identity.id"),
+                        ForgeQueryAspect::new("title.value", "title.value"),
+                        ForgeQueryAspect::new("column.id", "column.id"),
+                        ForgeQueryAspect::new("assignee.id", "assignee.id"),
+                        ForgeQueryAspect::new("priority.level", "priority.level"),
+                        ForgeQueryAspect::new("due.date", "due.date"),
+                        ForgeQueryAspect::new("tag.name", "tag.name"),
+                    ],
+                ),
+                ForgeQueryCollection::new(
+                    COLUMNS,
+                    [
+                        ForgeQueryAspect::new("identity.id", "identity.id"),
+                        ForgeQueryAspect::new("name.value", "name.value"),
+                        ForgeQueryAspect::new("order.index", "order.index"),
+                    ],
+                ),
+                ForgeQueryCollection::new(
+                    USERS,
+                    [
+                        ForgeQueryAspect::new("identity.id", "identity.id"),
+                        ForgeQueryAspect::new("name.value", "name.value"),
+                    ],
+                ),
+            ])
+            .build()?;
+        let task_view =
+            query.declare_live_view(TASK_BOARD_VIEW, task_live_request(), task_schema())?;
+        let column_view =
+            query.declare_live_view(COLUMN_LIST_VIEW, column_live_request(), column_schema())?;
+        let user_view =
+            query.declare_live_view(USER_LIST_VIEW, user_live_request(), user_schema())?;
+        Ok(Self {
+            query,
+            task_view,
+            column_view,
+            user_view,
+        })
     }
 
     pub fn submit(
         &mut self,
         command: TodoCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         match command {
             TodoCommand::CreateTask(task) => {
-                let receipt = self.app.insert(TASKS, task_payload(&task))?;
+                let receipt = self.query.write(ForgeQueryWriteCommand::Insert {
+                    collection: TASKS.to_string(),
+                    payload: task_payload(&task),
+                })?;
                 self.backfill_inserted_identity(&receipt)
             }
             TodoCommand::AddColumn(name) => {
                 let order = self.live_columns().len() + 1;
-                let receipt = self.app.insert(
-                    COLUMNS,
-                    json!({
+                let receipt = self.query.write(ForgeQueryWriteCommand::Insert {
+                    collection: COLUMNS.to_string(),
+                    payload: json!({
                         "identity": { "id": "" },
                         "name": { "value": name },
                         "order": { "index": order },
                     }),
-                )?;
+                })?;
                 self.backfill_inserted_identity(&receipt)
             }
             TodoCommand::AddUser(name) => {
-                let receipt = self.app.insert(
-                    USERS,
-                    json!({
+                let receipt = self.query.write(ForgeQueryWriteCommand::Insert {
+                    collection: USERS.to_string(),
+                    payload: json!({
                         "identity": { "id": "" },
                         "name": { "value": name },
                     }),
-                )?;
+                })?;
                 self.backfill_inserted_identity(&receipt)
             }
             TodoCommand::UpdateTaskField {
@@ -123,10 +140,14 @@ impl TodoWorkspace {
                 aspect,
                 field,
                 value,
-            } => self
-                .app
-                .update_aspect(&task_id, &format!("{aspect}.{field}"), value),
-            TodoCommand::DeleteTask(task_id) => self.app.delete(&task_id),
+            } => self.query.write(ForgeQueryWriteCommand::UpdateAspect {
+                entity_identity: task_id,
+                aspect_path: format!("{aspect}.{field}"),
+                value,
+            }),
+            TodoCommand::DeleteTask(task_id) => self.query.write(ForgeQueryWriteCommand::Delete {
+                entity_identity: task_id,
+            }),
         }
     }
 
@@ -140,13 +161,13 @@ impl TodoWorkspace {
     }
 
     pub fn snapshot_token(&self) -> String {
-        self.app.snapshot_token()
+        self.query.snapshot_token()
     }
 
     pub fn live_tasks(&self) -> Vec<Task> {
         let mut tasks = self
-            .app
-            .live_entities(TASK_BOARD_VIEW)
+            .query
+            .read_live(&self.task_view)
             .into_iter()
             .filter_map(task_from_entity)
             .collect::<Vec<_>>();
@@ -156,8 +177,8 @@ impl TodoWorkspace {
 
     pub fn live_columns(&self) -> Vec<BoardColumn> {
         let mut columns = self
-            .app
-            .live_entities(COLUMN_LIST_VIEW)
+            .query
+            .read_live(&self.column_view)
             .into_iter()
             .filter_map(column_from_entity)
             .collect::<Vec<_>>();
@@ -167,8 +188,8 @@ impl TodoWorkspace {
 
     pub fn live_users(&self) -> Vec<BoardUser> {
         let mut users = self
-            .app
-            .live_entities(USER_LIST_VIEW)
+            .query
+            .read_live(&self.user_view)
             .into_iter()
             .filter_map(user_from_entity)
             .collect::<Vec<_>>();
@@ -181,22 +202,25 @@ impl TodoWorkspace {
     }
 
     pub fn drain_board_patches(&mut self) {
-        let _ = self.app.drain_live_patches(TASK_BOARD_VIEW);
-        let _ = self.app.drain_live_patches(COLUMN_LIST_VIEW);
-        let _ = self.app.drain_live_patches(USER_LIST_VIEW);
+        let _ = self.query.drain_patches(&self.task_view);
+        let _ = self.query.drain_patches(&self.column_view);
+        let _ = self.query.drain_patches(&self.user_view);
     }
 
     fn backfill_inserted_identity(
         &mut self,
-        receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let Some(id) = receipt.deltas.first().map(|delta| &delta.entity_identity) else {
-            return Err(ForgeQueryWorkspaceError::new(
-                "insert did not return identity",
+        receipt: &ForgeQueryWriteReceipt,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let Some(id) = receipt.deltas().first().map(|delta| &delta.entity_identity) else {
+            return Err(ForgeQueryRuntimeError::Workspace(
+                ForgeQueryWorkspaceError::new("insert did not return identity"),
             ));
         };
-        self.app
-            .update_aspect(id, "identity.id", Value::String(id.clone()))?;
+        self.query.write(ForgeQueryWriteCommand::UpdateAspect {
+            entity_identity: id.clone(),
+            aspect_path: "identity.id".to_string(),
+            value: Value::String(id.clone()),
+        })?;
         Ok(receipt.clone())
     }
 }

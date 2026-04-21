@@ -18,7 +18,10 @@ use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor, ViewShapePlanArtifact,
 };
-use crate::view_shape_live::{lower_view_shape_plan_to_live, LiveViewShapeArtifact};
+use crate::view_shape_live::{
+    lower_view_shape_plan_to_live, materialize_authoritative_grouped_baseline_from_members,
+    AuthoritativeGroupedBaselineArtifact, LiveViewShapeArtifact,
+};
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_query_writeback_declaration,
     QueryWritebackDeclaration, WorkflowAuthorityTargetFamily, WorkflowBindingSource,
@@ -679,6 +682,20 @@ pub fn declare_runtime_live_query_session(
     schema_view: QuerySchemaView,
     snapshot_token: impl Into<String>,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
+    declare_runtime_live_query_session_with_grouped_baseline(
+        request,
+        schema_view,
+        snapshot_token,
+        None::<Vec<(String, String)>>,
+    )
+}
+
+pub fn declare_runtime_live_query_session_with_grouped_baseline(
+    request: DeclarativeLiveQueryRequest,
+    schema_view: QuerySchemaView,
+    snapshot_token: impl Into<String>,
+    grouped_baseline_members: Option<impl IntoIterator<Item = (String, String)>>,
+) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     let basis_intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
         SnapshotLineageClass::CurrentHead,
@@ -697,7 +714,18 @@ pub fn declare_runtime_live_query_session(
     let basis = resolve_snapshot_basis(basis_intent, identity, BasisResolutionMode::RuntimeDirect)
         .map_err(|error| DeclarativeLiveQueryError::BasisResolution(format!("{error:?}")))?;
 
-    finish_declarative_live_query_session(request, canonical, view_plan, basis)
+    let grouped_baseline = grouped_baseline_members
+        .map(|members| {
+            materialize_authoritative_grouped_baseline_from_members(
+                &view_plan,
+                basis.clone(),
+                members,
+            )
+            .map_err(|error| DeclarativeLiveQueryError::LiveLowering(format!("{error:?}")))
+        })
+        .transpose()?;
+
+    finish_declarative_live_query_session(request, canonical, view_plan, basis, grouped_baseline)
 }
 
 pub fn declare_live_query_session(
@@ -708,7 +736,7 @@ pub fn declare_live_query_session(
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     let canonical = canonicalize_declarative_request(&request)?;
     let view_plan = plan_declarative_request(&request, &canonical, schema_view, basis_intent)?;
-    finish_declarative_live_query_session(request, canonical, view_plan, basis)
+    finish_declarative_live_query_session(request, canonical, view_plan, basis, None)
 }
 
 pub fn declare_writeback_from_live_session(
@@ -933,6 +961,7 @@ fn finish_declarative_live_query_session(
     canonical: CanonicalQueryBundle,
     view_plan: ViewShapePlanArtifact,
     basis: ResolvedSnapshotBasis,
+    grouped_baseline: Option<AuthoritativeGroupedBaselineArtifact>,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
     let preflight = preflight_execution_basis(view_plan.execution_plan().clone(), basis)
         .map_err(|error| DeclarativeLiveQueryError::BasisPreflight(format!("{error:?}")))?;
@@ -948,7 +977,7 @@ fn finish_declarative_live_query_session(
     let live_view = lower_view_shape_plan_to_live(
         &view_plan,
         preflight.basis().clone(),
-        None,
+        grouped_baseline,
         request.inspector_identity.clone(),
     )
     .map_err(|error| DeclarativeLiveQueryError::LiveLowering(format!("{error:?}")))?;

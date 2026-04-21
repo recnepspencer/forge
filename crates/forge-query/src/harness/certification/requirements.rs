@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum RequiredAssertionClass {
     Equality,
     Inequality,
@@ -316,6 +316,24 @@ pub fn milestone_eight_requirements() -> SuiteRequirements {
             RequiredAssertionClass::Equality,
             RequiredAssertionClass::Inequality,
             RequiredAssertionClass::TypedFailure,
+        ],
+        missing_rows_block_full_spec: true,
+        missing_rows_block_offline_ready: true,
+    }
+}
+
+pub fn milestone_nine_requirements() -> SuiteRequirements {
+    SuiteRequirements {
+        suite_name: "Policy And Tenant Context Admission Test",
+        required_canonical_rows:
+            crate::harness::milestone_nine_certification::MILESTONE_NINE_REQUIRED_CANONICAL_ROW_NAMES,
+        required_rejection_rows:
+            crate::harness::milestone_nine_certification::MILESTONE_NINE_REQUIRED_REJECTION_ROW_NAMES,
+        required_assertion_classes: &[
+            RequiredAssertionClass::Equality,
+            RequiredAssertionClass::Inequality,
+            RequiredAssertionClass::TypedFailure,
+            RequiredAssertionClass::ZeroResidue,
         ],
         missing_rows_block_full_spec: true,
         missing_rows_block_offline_ready: true,

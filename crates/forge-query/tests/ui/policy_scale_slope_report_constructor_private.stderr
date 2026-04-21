@@ -1,0 +1,31 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/policy_scale_slope_report_constructor_private.rs:5:37
+  |
+5 |           PolicyScaleCounterSnapshot::new(PolicyScaleFixtureSize::Small, 1, 1, 1, 1, 1, 1, 1, 0);
+  |                                       ^^^ private associated function
+  |
+ ::: src/policy_certification/scale.rs
+  |
+  | /     pub(crate) fn new(
+  | |         fixture_size: PolicyScaleFixtureSize,
+  | |         authorized_projection_width: usize,
+  | |         relationship_proof_descriptor_count: usize,
+... |
+  | |         executor_semantic_rediscovery_count: usize,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/policy_scale_slope_report_constructor_private.rs:6:37
+  |
+6 |       let _ = PolicyScaleSlopeReport::new(snapshot.clone(), snapshot.clone(), snapshot);
+  |                                       ^^^ private associated function
+  |
+ ::: src/policy_certification/scale.rs
+  |
+  | /     pub(crate) fn new(
+  | |         small: PolicyScaleCounterSnapshot,
+  | |         medium: PolicyScaleCounterSnapshot,
+  | |         larger: PolicyScaleCounterSnapshot,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

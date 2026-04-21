@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use crate::declarative_live::{
-    declare_runtime_live_query_session, declare_writeback_from_live_session,
-    DeclarativeLiveQueryRequest, DeclarativeLiveQuerySession, DeclarativeWritebackChange,
-    DeclarativeWritebackIntent, DeclarativeWritebackValue,
+    declare_runtime_live_query_session_with_grouped_baseline, declare_writeback_from_live_session,
+    DeclarativeLiveQueryRequest, DeclarativeLiveQuerySession, DeclarativeLiveViewShape,
+    DeclarativeWritebackChange, DeclarativeWritebackIntent, DeclarativeWritebackValue,
 };
 use crate::identity::hash_parts;
 use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
@@ -93,6 +93,10 @@ pub struct ForgeQueryLiveViewHandle {
 }
 
 impl ForgeQueryLiveViewHandle {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -282,9 +286,14 @@ impl ForgeQueryMemoryApp {
         schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
         let name = name.into();
-        let session =
-            declare_runtime_live_query_session(request, schema_view, self.snapshot_token())
-                .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
+        let grouped_baseline_members = self.grouped_baseline_members_for_request(&request);
+        let session = declare_runtime_live_query_session_with_grouped_baseline(
+            request,
+            schema_view,
+            self.snapshot_token(),
+            grouped_baseline_members,
+        )
+        .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
         self.live_views.insert(
             name.clone(),
             ForgeQueryLiveViewRuntime {
@@ -429,6 +438,56 @@ impl ForgeQueryMemoryApp {
             .lock()
             .map(|state| snapshot_token_from_runtime(&state.runtime))
             .unwrap_or_else(|_| "relational-snapshot:poisoned:version:0".to_string())
+    }
+
+    pub fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+        let mut affected = receipt
+            .deltas
+            .iter()
+            .flat_map(|delta| {
+                self.live_views
+                    .iter()
+                    .filter(move |(_, view)| view.session.request().target() == delta.collection)
+                    .map(|(name, _)| name.clone())
+            })
+            .collect::<Vec<_>>();
+        affected.sort();
+        affected.dedup();
+        affected
+    }
+
+    fn grouped_baseline_members_for_request(
+        &self,
+        request: &DeclarativeLiveQueryRequest,
+    ) -> Option<Vec<(String, String)>> {
+        let DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } = request.view_shape()
+        else {
+            return None;
+        };
+        let identity_path = request
+            .projection()
+            .iter()
+            .find(|field| field.aspect() == "identity")
+            .map(|field| format!("{}.{}", field.aspect(), field.field()))
+            .unwrap_or_else(|| "identity.id".to_string());
+        let grouping_path = request
+            .projection()
+            .iter()
+            .find(|field| field.aspect() == grouping_aspect)
+            .map(|field| format!("{}.{}", field.aspect(), field.field()))
+            .unwrap_or_else(|| format!("{grouping_aspect}.value"));
+        let members = self
+            .entities(request.target())
+            .into_iter()
+            .filter_map(|entity| {
+                let member = get_json_path(&entity.payload, &identity_path)
+                    .and_then(json_scalar_text)
+                    .unwrap_or(entity.identity);
+                let lane = get_json_path(&entity.payload, &grouping_path).and_then(json_scalar_text)?;
+                Some((member, lane))
+            })
+            .collect::<Vec<_>>();
+        Some(members)
     }
 
     fn collection_mut(
@@ -610,6 +669,53 @@ impl ForgeQueryMemoryApp {
                 });
             }
         }
+    }
+}
+
+impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
+    fn declare_live_view(
+        &mut self,
+        name: String,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+    ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        Self::declare_live_view(self, name, request, schema_view)
+    }
+
+    fn write(
+        &mut self,
+        command: crate::runtime::ForgeQueryWriteCommand,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        match command {
+            crate::runtime::ForgeQueryWriteCommand::Insert {
+                collection,
+                payload,
+            } => self.insert(&collection, payload),
+            crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
+                entity_identity,
+                aspect_path,
+                value,
+            } => self.update_aspect(&entity_identity, &aspect_path, value),
+            crate::runtime::ForgeQueryWriteCommand::Delete { entity_identity } => {
+                self.delete(&entity_identity)
+            }
+        }
+    }
+
+    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
+        Self::live_entities(self, view_name)
+    }
+
+    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch> {
+        Self::drain_live_patches(self, view_name)
+    }
+
+    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+        Self::affected_live_view_ids(self, receipt)
+    }
+
+    fn snapshot_token(&self) -> String {
+        Self::snapshot_token(self)
     }
 }
 
@@ -1115,6 +1221,23 @@ fn set_json_path(
     Err(ForgeQueryWorkspaceError::new("empty aspect path"))
 }
 
+fn get_json_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
+    let mut current = value;
+    for part in path.split('.') {
+        current = current.as_object()?.get(part)?;
+    }
+    Some(current)
+}
+
+fn json_scalar_text(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => Some(text.clone()),
+        Value::Number(number) => Some(number.to_string()),
+        Value::Bool(value) => Some(value.to_string()),
+        Value::Null | Value::Array(_) | Value::Object(_) => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1184,5 +1307,68 @@ mod tests {
             update_patches[0].envelope.patch_family(),
             Some(ViewShapePatchFamily::TableRowPatch)
         );
+    }
+
+    #[test]
+    fn memory_app_declares_grouped_live_view_with_internal_baseline() {
+        let mut app = ForgeQueryMemoryApp::new([ForgeQueryCollection::new(
+            "Task",
+            [
+                ForgeQueryAspect::new("identity.id", "identity.id"),
+                ForgeQueryAspect::new("status.lane", "status.lane"),
+            ],
+        )])
+        .expect("memory app should build");
+        app.declare_live_view(
+            "tasks.table",
+            DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
+                .project(
+                    DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"),
+                )
+                .project(DeclarativeProjectionField::new("status", "lane").delivered_as("status")),
+            grouped_task_schema(),
+        )
+        .expect("table live view should declare");
+        app.insert(
+            "Task",
+            json!({
+                "identity": { "id": "task-1" },
+                "status": { "lane": "todo" },
+            }),
+        )
+        .expect("first insert should write through bridge");
+        app.insert(
+            "Task",
+            json!({
+                "identity": { "id": "task-2" },
+                "status": { "lane": "doing" },
+            }),
+        )
+        .expect("second insert should write through bridge");
+
+        app.declare_live_view(
+            "tasks.grouped",
+            DeclarativeLiveQueryRequest::new(
+                "Task",
+                DeclarativeLiveViewShape::kanban_grouped("status"),
+            )
+            .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
+            .project(DeclarativeProjectionField::new("status", "lane").delivered_as("status")),
+            grouped_task_schema(),
+        )
+        .expect("grouped live view should auto-materialize baseline");
+
+        assert_eq!(app.live_entities("tasks.grouped").len(), 2);
+    }
+
+    fn grouped_task_schema() -> QuerySchemaView {
+        QuerySchemaView::new(
+            "memory-grouped-task",
+            [
+                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
+                SchemaFieldView::new("status", "lane", SchemaFieldKind::String),
+            ],
+            [],
+        )
     }
 }

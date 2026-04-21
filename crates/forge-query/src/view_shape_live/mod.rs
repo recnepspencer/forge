@@ -23,7 +23,8 @@ pub use execution::{
 };
 pub use family::LiveViewShapeFamily;
 pub use grouped_baseline::{
-    materialize_authoritative_grouped_baseline, AuthoritativeGroupedBaselineArtifact,
+    materialize_authoritative_grouped_baseline,
+    materialize_authoritative_grouped_baseline_from_members, AuthoritativeGroupedBaselineArtifact,
 };
 pub use grouped_delta::{
     GroupedDeltaArtifact, GroupedDeltaComputation, GroupedMembershipTransition,

@@ -1,0 +1,10 @@
+error[E0624]: associated function `host_callback_for_test` is private
+ --> tests/ui/relationship_proof_host_callback_forbidden.rs:4:52
+  |
+4 |     let _descriptor = RelationshipProofDescriptor::host_callback_for_test("authz");
+  |                                                    ^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/relationship_proof/descriptors.rs
+  |
+  |     pub(crate) fn host_callback_for_test(callback_label: impl Into<String>) -> Self {
+  |     ------------------------------------------------------------------------------- private associated function defined here

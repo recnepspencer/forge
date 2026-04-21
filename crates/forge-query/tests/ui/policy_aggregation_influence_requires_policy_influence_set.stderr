@@ -1,0 +1,18 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/policy_aggregation_influence_requires_policy_influence_set.rs:4:40
+  |
+4 |     let _entry = PolicyInfluenceEntry::new(PolicyInfluencePurpose::Aggregation, todo!());
+  |                                        ^^^ private associated function
+  |
+ ::: src/authorized_projection/influence.rs
+  |
+  |     pub(crate) fn new(purpose: PolicyInfluencePurpose, field: AspectFieldKey) -> Self {
+  |     --------------------------------------------------------------------------------- private associated function defined here
+
+warning: unreachable call
+ --> tests/ui/policy_aggregation_influence_requires_policy_influence_set.rs:4:18
+  |
+4 |     let _entry = PolicyInfluenceEntry::new(PolicyInfluencePurpose::Aggregation, todo!());
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call                     ------- any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

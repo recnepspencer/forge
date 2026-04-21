@@ -130,3 +130,54 @@ pub fn materialize_authoritative_grouped_baseline(
         ),
     })
 }
+
+pub fn materialize_authoritative_grouped_baseline_from_members(
+    plan: &ViewShapePlanArtifact,
+    basis: ResolvedSnapshotBasis,
+    members: impl IntoIterator<Item = (String, String)>,
+) -> Result<AuthoritativeGroupedBaselineArtifact, ViewShapeLiveError> {
+    if plan.family() != crate::view_shape::ViewShapeFamily::KanbanGrouped {
+        return Err(ViewShapeLiveError::new(
+            ViewShapeLiveFailureClass::GroupedBaselineMismatch,
+            "authoritative grouped baseline may only be materialized for kanban grouped plans",
+            ViewShapeLiveCounters::default(),
+        ));
+    }
+    if basis.identity().schema_basis() != plan.validated().query().schema_basis()
+        || basis.identity().schema_basis() != plan.validated().result_shape().schema_basis()
+    {
+        return Err(ViewShapeLiveError::new(
+            ViewShapeLiveFailureClass::BasisInvariantRejected,
+            format!(
+                "grouped baseline basis schema '{}' does not match validated query/result-shape schema '{}'",
+                basis.identity().schema_basis().as_str(),
+                plan.validated().query().schema_basis().as_str()
+            ),
+            ViewShapeLiveCounters::default(),
+        ));
+    }
+    let grouped_planning = plan.grouped_planning_artifact().ok_or_else(|| {
+        ViewShapeLiveError::new(
+            ViewShapeLiveFailureClass::GroupedBaselineMismatch,
+            "grouped baseline requires planner-issued grouped planning artifact",
+            ViewShapeLiveCounters::default(),
+        )
+    })?;
+    let members = members.into_iter().collect::<Vec<_>>();
+    if members.is_empty() {
+        return Err(ViewShapeLiveError::new(
+            ViewShapeLiveFailureClass::GroupedBaselineMismatch,
+            "grouped baseline requires at least one authoritative member row",
+            ViewShapeLiveCounters::default(),
+        ));
+    }
+
+    Ok(AuthoritativeGroupedBaselineArtifact {
+        plan_digest: plan.view_plan_digest().clone(),
+        basis_digest: basis.proof().digest().clone(),
+        desired_state: desired_state_from_members(
+            grouped_planning.grouping_aspect().to_string(),
+            members,
+        ),
+    })
+}

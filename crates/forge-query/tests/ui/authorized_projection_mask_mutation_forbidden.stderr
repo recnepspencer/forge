@@ -1,0 +1,5 @@
+error[E0616]: field `entries` of struct `PolicyAspectMask` is private
+ --> tests/ui/authorized_projection_mask_mutation_forbidden.rs:5:10
+  |
+5 |     mask.entries.clear();
+  |          ^^^^^^^ private field

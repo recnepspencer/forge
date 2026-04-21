@@ -12,6 +12,7 @@
 
 mod application;
 mod authoring;
+mod authorized_projection;
 mod basis;
 mod binding;
 mod canonicalization;
@@ -33,13 +34,24 @@ mod live;
 mod live_performance;
 mod memory_workspace;
 mod planning;
+mod policy_basis;
+mod policy_certification;
+mod policy_delivery;
+mod policy_execution_seam;
+mod policy_live;
+mod policy_narrowing;
+mod policy_plan;
 mod preview;
+mod program;
 mod query_context;
 mod result_shape;
+mod runtime;
 mod saved_query;
 #[macro_use]
 mod schema_macro;
+mod relationship_proof;
 mod schema_view;
+mod tenant_basis;
 mod typed;
 mod validation;
 mod view_shape;

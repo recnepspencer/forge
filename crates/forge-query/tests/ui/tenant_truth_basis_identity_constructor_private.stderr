@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/tenant_truth_basis_identity_constructor_private.rs:4:39
+  |
+4 |     let _ = TenantTruthBasisIdentity::new("tenant-truth".to_string());
+  |                                       ^^^ private associated function
+  |
+ ::: src/tenant_basis/artifacts.rs
+  |
+  |     pub(crate) fn new(value: String) -> Self {
+  |     ---------------------------------------- private associated function defined here

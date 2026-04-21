@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/masked_projection_cannot_be_used_as_authorized_projection.rs:7:36
+  |
+7 |     requires_authorized_projection(masked_projection.as_ref().unwrap());
+  |     ------------------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&AuthorizedProjectionArtifact`, found `&MaskedProjectionArtifact`
+  |     |
+  |     arguments to this function are incorrect
+  |
+  = note: expected reference `&forge_query::facade::AuthorizedProjectionArtifact`
+             found reference `&MaskedProjectionArtifact`
+note: function defined here
+ --> tests/ui/masked_projection_cannot_be_used_as_authorized_projection.rs:3:4
+  |
+3 | fn requires_authorized_projection(_artifact: &AuthorizedProjectionArtifact) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------------------------------------

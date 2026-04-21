@@ -1555,6 +1555,16 @@ This milestone is complete only when `forge-query` can prove:
 
 ## Milestone 9: Policy-Aware Narrowing, Tenant Scope, And Delivery Contracts
 
+Status:
+Closed on 2026-04-21 for runtime-backed policy-aware narrowing, tenant
+truth/schema basis admission, relationship-proof admission/denial, policy-aware
+execution seam lowering, live admission, delivery contracts, and certification.
+Store-backed execution parity, durable policy cursors, durable artifact reload,
+durable delivery metadata reload, restart-stable subscription metadata, and
+durable tenant/query artifact portability remain intentionally deferred to
+Forge Store and later milestones. See
+[milestone-9-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-9-closeout.md).
+
 ### Goal
 
 Make policy, masking, and multi-tenant narrowing structural query concerns
@@ -1663,9 +1673,11 @@ workflow/facade surfaces are stable enough to prove parity across them.
 ### Store Dependency
 
 - Core policy-aware narrowing is not blocked on `forge-store`.
+- Store-backed policy execution parity is blocked on `forge-store` and remains
+  Milestone 10 scope.
 - Durable delivery cursors, restart-stable subscription metadata, and
-  persisted tenant/query artifacts are blocked on `forge-store` and should be
-  treated as incomplete until store support exists.
+  persisted tenant/query artifacts are blocked on `forge-store` and remain
+  Milestone 11 scope.
 
 ### Acceptance Evidence
 
