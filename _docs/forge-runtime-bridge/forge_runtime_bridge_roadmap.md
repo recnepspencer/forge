@@ -663,6 +663,7 @@ This milestone is complete only when bridge harness scenarios can prove:
 ## Milestone 15: Subscription Delivery Families, Continuation, and Shared Consumer Contracts
 
 Engineering spec: [milestone-15.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-15.md)
+Shipped closeout: [milestone-15-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-15-closeout.md)
 
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 31-34: Shared Subscription Fanout Parity, Subscription Continuation Across Identity Evolution, Subscription Resume Replay And Checkpoint Exactness, Preview Subscription Zero-Residue
@@ -724,6 +725,8 @@ This milestone is complete only when bridge harness scenarios can prove:
   canonical machine-checkable bundles
 
 ## Milestone 16: Subscription Family Certification and End-to-End Subscription Workload
+
+Engineering spec: [milestone-16.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-16.md)
 
 Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 Suites 35-37: End-To-End Subscription Bundle Equivalence, Subscription Failure Taxonomy Localization, Subscription Reference Workload Sufficiency

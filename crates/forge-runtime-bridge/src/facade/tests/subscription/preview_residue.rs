@@ -1,1 +1,249 @@
 use super::support::*;
+
+#[test]
+fn preview_discard_emits_zero_residue_proof_for_all_categories() {
+    let (runtime, preview_active) = preview_active_detail_subscription("discard-zero");
+    let preview_active_identity = preview_active
+        .preview_active_subscription_identity()
+        .clone();
+    let residue_scope_identity = preview_active.preview_residue_scope_identity().clone();
+    let residue_index = runtime.build_subscription_preview_residue_scope_index(
+        &preview_active,
+        zero_preview_residue_inputs("discard-zero"),
+    );
+    let residue_index_identity = residue_index.preview_residue_scope_index_identity().clone();
+
+    let proof = runtime
+        .discard_preview_subscription(preview_active, residue_index)
+        .expect("zero residue should prove preview discard");
+
+    assert_eq!(
+        proof.preview_active_subscription_identity(),
+        &preview_active_identity
+    );
+    assert_eq!(
+        proof.preview_residue_scope_index_identity(),
+        &residue_index_identity
+    );
+    assert_eq!(
+        proof.preview_residue_scope_identity(),
+        &residue_scope_identity
+    );
+    assert_eq!(proof.artifact_records().len(), 7);
+    assert_eq!(proof.total_residue_count(), 0);
+    let expected_categories = [
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::BridgeSubscriptionRegistry,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::ActiveDelivery,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::FanoutConsumerContract,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::Continuation,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::CheckpointReplay,
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible,
+    ];
+    assert_eq!(
+        proof
+            .artifact_records()
+            .iter()
+            .map(|record| record.category())
+            .collect::<Vec<_>>(),
+        expected_categories
+    );
+    for record in proof.artifact_records() {
+        assert_eq!(
+            record.preview_residue_scope_identity(),
+            &residue_scope_identity
+        );
+        assert_eq!(record.residue_count(), 0);
+        assert!(
+            record
+                .evidence_digest()
+                .contains(record.category().as_str()),
+            "evidence digest must bind the residue category"
+        );
+    }
+    assert_eq!(proof.counters().subscription_preview_discard_count(), 1);
+    assert_eq!(
+        proof.counters().subscription_preview_residue_check_count(),
+        7
+    );
+    assert_eq!(
+        proof
+            .counters()
+            .subscription_preview_non_scope_registry_scan_count(),
+        0
+    );
+}
+
+#[test]
+fn preview_discard_rejects_nonzero_authoritative_residue() {
+    let (runtime, preview_active) = preview_active_detail_subscription("discard-nonzero");
+    let residue_index = runtime.build_subscription_preview_residue_scope_index(
+        &preview_active,
+        preview_residue_inputs_with_count(
+            "discard-nonzero",
+            crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription,
+            1,
+        ),
+    );
+
+    let rejection = runtime
+        .discard_preview_subscription(preview_active, residue_index)
+        .expect_err("nonzero authoritative residue must reject discard");
+
+    assert_eq!(
+        rejection.rejection_kind(),
+        crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::NonzeroResidue
+    );
+    assert!(rejection
+        .rejection_context()
+        .contains("authoritative_truth_subscription=1"));
+    assert_eq!(
+        rejection
+            .counters()
+            .subscription_preview_residue_check_count(),
+        7
+    );
+    assert_eq!(
+        rejection
+            .counters()
+            .subscription_preview_residue_nonzero_count(),
+        1
+    );
+}
+
+#[test]
+fn preview_discard_rejects_missing_residue_category() {
+    let (runtime, preview_active) = preview_active_detail_subscription("discard-missing-category");
+    let residue_inputs = zero_preview_residue_inputs("discard-missing-category")
+        .into_iter()
+        .filter(|input| {
+            input.category()
+                != crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible
+        })
+        .collect();
+    let residue_index =
+        runtime.build_subscription_preview_residue_scope_index(&preview_active, residue_inputs);
+
+    let rejection = runtime
+        .discard_preview_subscription(preview_active, residue_index)
+        .expect_err("missing residue categories must reject discard");
+
+    assert_eq!(
+        rejection.rejection_kind(),
+        crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::MissingResidueCategory
+    );
+    assert!(rejection
+        .rejection_context()
+        .contains("missing-category=signal_visible"));
+    assert_eq!(
+        rejection
+            .counters()
+            .subscription_preview_residue_check_count(),
+        6
+    );
+}
+
+#[test]
+fn preview_discard_rejects_duplicate_residue_category() {
+    let (runtime, preview_active) =
+        preview_active_detail_subscription("discard-duplicate-category");
+    let mut residue_inputs = zero_preview_residue_inputs("discard-duplicate-category");
+    residue_inputs.push(
+        crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::zero(
+            crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible,
+            "preview-residue-evidence:discard-duplicate-category:signal_visible:duplicate",
+        ),
+    );
+    let residue_index =
+        runtime.build_subscription_preview_residue_scope_index(&preview_active, residue_inputs);
+
+    let rejection = runtime
+        .discard_preview_subscription(preview_active, residue_index)
+        .expect_err("duplicate residue categories must reject discard");
+
+    assert_eq!(
+        rejection.rejection_kind(),
+        crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::DuplicateResidueCategory
+    );
+    assert!(rejection
+        .rejection_context()
+        .contains("duplicate-category=signal_visible"));
+    assert_eq!(
+        rejection
+            .counters()
+            .subscription_preview_residue_check_count(),
+        8
+    );
+}
+
+#[test]
+fn preview_discard_rejects_scope_index_drift_before_residue_proof() {
+    let (runtime, preview_active) = preview_active_detail_subscription("discard-scope-a");
+    let (other_runtime, other_preview_active) =
+        preview_active_detail_subscription("discard-scope-b");
+    let other_residue_index = other_runtime.build_subscription_preview_residue_scope_index(
+        &other_preview_active,
+        zero_preview_residue_inputs("discard-scope-b"),
+    );
+
+    let rejection = runtime
+        .discard_preview_subscription(preview_active, other_residue_index)
+        .expect_err("residue index from another preview active must reject");
+
+    assert_eq!(
+        rejection.rejection_kind(),
+        crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::PreviewActiveMismatch
+    );
+    assert_eq!(
+        rejection
+            .counters()
+            .subscription_preview_residue_check_count(),
+        0
+    );
+}
+
+#[test]
+fn detail_and_collection_preview_subscriptions_share_residue_proof_path() {
+    let (detail_runtime, detail_preview_active) =
+        preview_active_detail_subscription("discard-detail");
+    let detail_active_identity = detail_preview_active
+        .preview_active_subscription_identity()
+        .clone();
+    let detail_index = detail_runtime.build_subscription_preview_residue_scope_index(
+        &detail_preview_active,
+        zero_preview_residue_inputs("discard-detail"),
+    );
+    let detail_proof = detail_runtime
+        .discard_preview_subscription(detail_preview_active, detail_index)
+        .expect("detail preview discard should prove zero residue");
+
+    let (collection_runtime, collection_preview_active) =
+        preview_active_collection_subscription("discard-collection");
+    let collection_active_identity = collection_preview_active
+        .preview_active_subscription_identity()
+        .clone();
+    let collection_index = collection_runtime.build_subscription_preview_residue_scope_index(
+        &collection_preview_active,
+        zero_preview_residue_inputs("discard-collection"),
+    );
+    let collection_proof = collection_runtime
+        .discard_preview_subscription(collection_preview_active, collection_index)
+        .expect("collection preview discard should prove zero residue");
+
+    assert_eq!(detail_proof.total_residue_count(), 0);
+    assert_eq!(collection_proof.total_residue_count(), 0);
+    assert_eq!(detail_proof.artifact_records().len(), 7);
+    assert_eq!(collection_proof.artifact_records().len(), 7);
+    assert_ne!(
+        detail_proof.preview_active_subscription_identity(),
+        collection_proof.preview_active_subscription_identity()
+    );
+    assert_eq!(
+        detail_proof.preview_active_subscription_identity(),
+        &detail_active_identity
+    );
+    assert_eq!(
+        collection_proof.preview_active_subscription_identity(),
+        &collection_active_identity
+    );
+}

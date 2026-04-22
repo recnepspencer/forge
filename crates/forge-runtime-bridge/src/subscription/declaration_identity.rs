@@ -18,10 +18,12 @@ use crate::identity::{
     SubscriptionLifecycleIdentityTag, SubscriptionPreviewActiveIdentityTag,
     SubscriptionPreviewBasisIdentityTag, SubscriptionPreviewDiscardResidueProofIdentityTag,
     SubscriptionPreviewLifecycleIdentityTag, SubscriptionPreviewParentBasisIdentityTag,
-    SubscriptionPreviewResidueArtifactIdentityTag, SubscriptionPreviewResidueScopeIdentityTag,
-    SubscriptionPreviewResidueScopeIndexIdentityTag, SubscriptionPreviewScopeIdentityTag,
-    SubscriptionReplayIdentityTag, SubscriptionResumeAdmissionIdentityTag,
-    SubscriptionResumePlanIdentityTag, SubscriptionRetainedDeliveryReplaySeedIdentityTag,
+    SubscriptionPreviewPromotionRecordIdentityTag, SubscriptionPreviewResidueArtifactIdentityTag,
+    SubscriptionPreviewResidueScopeIdentityTag, SubscriptionPreviewResidueScopeIndexIdentityTag,
+    SubscriptionPreviewScopeIdentityTag, SubscriptionPreviewWorkRecordIdentityTag,
+    SubscriptionPreviewWorkTraceIdentityTag, SubscriptionReplayIdentityTag,
+    SubscriptionResumeAdmissionIdentityTag, SubscriptionResumePlanIdentityTag,
+    SubscriptionRetainedDeliveryReplaySeedIdentityTag,
     SubscriptionRetainedDeliveryWindowSeedIdentityTag, SubscriptionSharingEligibilityIdentityTag,
     SubscriptionSignalStrategyIdentityTag,
 };
@@ -110,3 +112,9 @@ pub type BridgeSubscriptionPreviewResidueArtifactIdentity =
     BridgeIdentity<SubscriptionPreviewResidueArtifactIdentityTag>;
 pub type BridgeSubscriptionPreviewDiscardResidueProofIdentity =
     BridgeIdentity<SubscriptionPreviewDiscardResidueProofIdentityTag>;
+pub type BridgeSubscriptionPreviewPromotionRecordIdentity =
+    BridgeIdentity<SubscriptionPreviewPromotionRecordIdentityTag>;
+pub type BridgeSubscriptionPreviewWorkTraceIdentity =
+    BridgeIdentity<SubscriptionPreviewWorkTraceIdentityTag>;
+pub type BridgeSubscriptionPreviewWorkRecordIdentity =
+    BridgeIdentity<SubscriptionPreviewWorkRecordIdentityTag>;

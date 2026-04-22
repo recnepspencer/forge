@@ -1,0 +1,17 @@
+error: cannot construct `BridgeSubscriptionOfflineAuditPlan` with struct literal syntax due to private fields
+ --> tests/ui/subscription_offline_audit_plan_constructor_private.rs:4:17
+  |
+4 |     let _plan = BridgeSubscriptionOfflineAuditPlan {
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         bundle_index_digest: "forged-index".into(),
+  |         ------------------------------------------ private field
+6 |         comparison_report_digests: Vec::new(),
+  |         ------------------------------------- private field
+7 |         counters: Default::default(),
+  |         ---------------------------- private field
+8 |         canonical_basis: "forged-basis".into(),
+  |         -------------------------------------- private field
+9 |         digest: "forged-digest".into(),
+  |         ------------------------------ private field
+  |
+  = note: ...and other private field `outcome_summary` that was not provided

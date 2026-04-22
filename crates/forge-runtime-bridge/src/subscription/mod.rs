@@ -1,6 +1,7 @@
 mod active_delivery;
 mod admission;
 mod basis;
+mod certification;
 mod checkpoint;
 mod consumer_contract;
 mod continuation;
@@ -17,6 +18,8 @@ mod family_registry;
 mod fanout;
 mod lifecycle;
 mod preview;
+mod preview_work;
+mod promotion;
 mod rejection;
 mod replay;
 mod residue;
@@ -37,6 +40,57 @@ pub use basis::{
     BridgeSubscriptionBasisKind, BridgeSubscriptionBasisRequest,
     BridgeSubscriptionBasisResolutionFailure, BridgeSubscriptionBasisResolutionFailureKind,
     ValidatedSubscriptionBasisBinding,
+};
+pub use certification::{
+    BridgeSubscriptionBundleField, BridgeSubscriptionBundleFieldState,
+    BridgeSubscriptionCertificationAssemblyPlan, BridgeSubscriptionCertificationAssemblyRejection,
+    BridgeSubscriptionCertificationAssemblyRejectionKind,
+    BridgeSubscriptionCertificationBundleDraft,
+    BridgeSubscriptionCertificationBundleInsufficiencyReport,
+    BridgeSubscriptionCertificationBundleSealed, BridgeSubscriptionCertificationComparisonOutcome,
+    BridgeSubscriptionCertificationComparisonPlan,
+    BridgeSubscriptionCertificationComparisonPlanRejection,
+    BridgeSubscriptionCertificationComparisonPlanRejectionKind,
+    BridgeSubscriptionCertificationComparisonRelationship,
+    BridgeSubscriptionCertificationComparisonReport,
+    BridgeSubscriptionCertificationCompletenessReport,
+    BridgeSubscriptionCertificationCostPostureReport, BridgeSubscriptionCertificationCostProfile,
+    BridgeSubscriptionCertificationCostProfileRejection,
+    BridgeSubscriptionCertificationCostProfileRejectionKind,
+    BridgeSubscriptionCertificationCounterSnapshot,
+    BridgeSubscriptionCertificationDeniedContinuationReport,
+    BridgeSubscriptionCertificationDensityPosture, BridgeSubscriptionCertificationDivergenceAxis,
+    BridgeSubscriptionCertificationFailureBoundary,
+    BridgeSubscriptionCertificationFailurePrecedenceStage,
+    BridgeSubscriptionCertificationFanoutReport,
+    BridgeSubscriptionCertificationHistoricalBasisReport,
+    BridgeSubscriptionCertificationInspection,
+    BridgeSubscriptionCertificationMultiFailurePrecedenceReport,
+    BridgeSubscriptionCertificationOrderingHostilityReport,
+    BridgeSubscriptionCertificationSchemaCompatibilityReport,
+    BridgeSubscriptionCertificationScratch, BridgeSubscriptionCertificationSemanticDigests,
+    BridgeSubscriptionCertificationSemanticSourceDigest,
+    BridgeSubscriptionCertificationSemanticSourceDigestSet,
+    BridgeSubscriptionCertificationSemanticSourceKind,
+    BridgeSubscriptionCertificationStaleCheckpointReport,
+    BridgeSubscriptionCertificationStrategyLoweringReport,
+    BridgeSubscriptionOfflineAuditBundleIndex, BridgeSubscriptionOfflineAuditOutcome,
+    BridgeSubscriptionOfflineAuditOutcomeSummary, BridgeSubscriptionOfflineAuditPlan,
+    BridgeSubscriptionOfflineAuditPlanRejection, BridgeSubscriptionOfflineAuditPlanRejectionKind,
+    BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadCoverageReport,
+    BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadInspection,
+    BridgeSubscriptionReferenceWorkloadLaneCoverageRole,
+    BridgeSubscriptionReferenceWorkloadLaneCoverageRow,
+    BridgeSubscriptionReferenceWorkloadLaneKind, BridgeSubscriptionReferenceWorkloadLaneReport,
+    BridgeSubscriptionReferenceWorkloadLaneRequest,
+    BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadManifestRejection,
+    BridgeSubscriptionReferenceWorkloadManifestRejectionKind,
+    BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadRejection, BridgeSubscriptionReferenceWorkloadRejectionKind,
+    BridgeSubscriptionReferenceWorkloadReport, BridgeSubscriptionSourceArtifactIndex,
+    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionSourceArtifactRecord,
 };
 pub use checkpoint::{
     BridgeSubscriptionAcknowledgementFrontier, BridgeSubscriptionAcknowledgementFrontierRejection,
@@ -90,9 +144,11 @@ pub use declaration_identity::{
     BridgeSubscriptionLifecycleIdentity, BridgeSubscriptionPreviewBasisIdentity,
     BridgeSubscriptionPreviewDiscardResidueProofIdentity,
     BridgeSubscriptionPreviewLifecycleIdentity, BridgeSubscriptionPreviewParentBasisIdentity,
+    BridgeSubscriptionPreviewPromotionRecordIdentity,
     BridgeSubscriptionPreviewResidueArtifactIdentity,
     BridgeSubscriptionPreviewResidueScopeIdentity,
     BridgeSubscriptionPreviewResidueScopeIndexIdentity, BridgeSubscriptionPreviewScopeIdentity,
+    BridgeSubscriptionPreviewWorkRecordIdentity, BridgeSubscriptionPreviewWorkTraceIdentity,
     BridgeSubscriptionReplayIdentity, BridgeSubscriptionResumeAdmissionIdentity,
     BridgeSubscriptionResumePlanIdentity, BridgeSubscriptionRetainedDeliveryReplaySeedIdentity,
     BridgeSubscriptionRetainedDeliveryWindowSeedIdentity,
@@ -109,7 +165,9 @@ pub use delivery_record::{
     BridgeSubscriptionDeliveryMemberInput, BridgeSubscriptionDeliveryMemberRecord,
     BridgeSubscriptionPayloadOmissionReason,
 };
-pub use diagnostics::BridgeSubscriptionExplanation;
+pub use diagnostics::{
+    BridgeSubscriptionExplanation, BridgeSubscriptionPreviewPromotionExplanation,
+};
 #[cfg(test)]
 pub(crate) use family_registry::phase_one_subscription_families;
 pub(crate) use family_registry::{
@@ -133,6 +191,15 @@ pub use lifecycle::{
 pub use preview::{
     BridgePreviewActiveSubscription, BridgeSubscriptionPreviewBasisBinding,
     BridgeSubscriptionPreviewBasisRejection, BridgeSubscriptionPreviewBasisRejectionKind,
+};
+pub use preview_work::{
+    BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkKind,
+    BridgeSubscriptionPreviewWorkRecord, BridgeSubscriptionPreviewWorkTrace,
+    BridgeSubscriptionPreviewWorkTraceRejection, BridgeSubscriptionPreviewWorkTraceRejectionKind,
+};
+pub use promotion::{
+    BridgeSubscriptionPreviewPromotionOutcomeClass, BridgeSubscriptionPreviewPromotionRecord,
+    BridgeSubscriptionPreviewPromotionRejection, BridgeSubscriptionPreviewPromotionRejectionKind,
 };
 pub use rejection::{
     BridgeSubscriptionDeclarationRejection, BridgeSubscriptionDeclarationRejectionKind,

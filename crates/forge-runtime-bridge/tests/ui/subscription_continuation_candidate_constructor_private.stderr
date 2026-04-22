@@ -4,9 +4,9 @@ error[E0624]: associated function `new` is private
 4 |       let _constructor = BridgeSubscriptionContinuationCandidate::new;
   |                                                                   ^^^ private associated function
   |
- ::: src/subscription/continuation.rs
+ ::: src/subscription/continuation/candidate.rs
   |
-  | /     fn new(
+  | /     pub(super) fn new(
   | |         continuation_index_identity: &BridgeSubscriptionContinuationIndexIdentity,
   | |         candidate_slot: usize,
   | |         input: BridgeSubscriptionContinuationCandidateInput,

@@ -145,6 +145,9 @@ pub enum SubscriptionPreviewResidueScopeIdentityTag {}
 pub enum SubscriptionPreviewResidueScopeIndexIdentityTag {}
 pub enum SubscriptionPreviewResidueArtifactIdentityTag {}
 pub enum SubscriptionPreviewDiscardResidueProofIdentityTag {}
+pub enum SubscriptionPreviewPromotionRecordIdentityTag {}
+pub enum SubscriptionPreviewWorkTraceIdentityTag {}
+pub enum SubscriptionPreviewWorkRecordIdentityTag {}
 pub enum ContinuityIdentityTag {}
 pub enum HistoricalEvaluationRecordIdentityTag {}
 pub enum HistoricalEvaluationDecisionLogIdentityTag {}

@@ -1,6 +1,6 @@
 # Milestone 15 Engineering Spec: Subscription Delivery Families, Continuation, and Shared Consumer Contracts
 
-> **Status:** Planned
+> **Status:** Complete
 >
 > **Roadmap parent:** [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 >
@@ -9,6 +9,8 @@
 > **Prior milestone:** [milestone-14.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-14.md)
 >
 > **Prior closeout:** [milestone-14-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-14-closeout.md)
+>
+> **Shipped closeout:** [milestone-15-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/milestone-15-closeout.md)
 >
 > **Bridge certification companion:** [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 >

@@ -1,0 +1,23 @@
+error[E0451]: fields `manifest_digest`, `lane_reports`, `comparison_reports`, `offline_audit_report`, `outcome_summary`, `coverage_report`, `counters`, `canonical_basis` and `digest` of struct `BridgeSubscriptionReferenceWorkloadReport` are private
+  --> tests/ui/subscription_reference_workload_report_constructor_private.rs:10:9
+   |
+ 9 |     let _report = BridgeSubscriptionReferenceWorkloadReport {
+   |                   ----------------------------------------- in this type
+10 |         manifest_digest: Arc::from("manifest"),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         lane_reports: Vec::new(),
+   |         ^^^^^^^^^^^^ private field
+12 |         comparison_reports: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         offline_audit_report: make_audit_report(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+14 |         outcome_summary: make_summary(),
+   |         ^^^^^^^^^^^^^^^ private field
+15 |         coverage_report: make_coverage_report(),
+   |         ^^^^^^^^^^^^^^^ private field
+16 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
+   |         ^^^^^^^^ private field
+17 |         canonical_basis: Arc::from("basis"),
+   |         ^^^^^^^^^^^^^^^ private field
+18 |         digest: Arc::from("digest"),
+   |         ^^^^^^ private field

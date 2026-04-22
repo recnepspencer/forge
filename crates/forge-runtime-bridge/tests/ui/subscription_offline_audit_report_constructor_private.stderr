@@ -1,0 +1,31 @@
+error: cannot construct `BridgeSubscriptionOfflineAuditReport` with struct literal syntax due to private fields
+  --> tests/ui/subscription_offline_audit_report_constructor_private.rs:6:19
+   |
+ 6 |     let _report = BridgeSubscriptionOfflineAuditReport {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |         outcome: BridgeSubscriptionOfflineAuditOutcome::DiagnosedOffline,
+   |         ---------------------------------------------------------------- private field
+ 8 |         bundle_index_digest: "forged-index".into(),
+   |         ------------------------------------------ private field
+ 9 |         comparison_report_count: 0,
+   |         -------------------------- private field
+10 |         counters: Default::default(),
+   |         ---------------------------- private field
+11 |         canonical_basis: "forged-basis".into(),
+   |         -------------------------------------- private field
+12 |         digest: "forged-digest".into(),
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `outcome_summary` that was not provided
+help: you might have meant to use the `audit` associated function
+   |
+ 6 -     let _report = BridgeSubscriptionOfflineAuditReport {
+ 7 -         outcome: BridgeSubscriptionOfflineAuditOutcome::DiagnosedOffline,
+ 8 -         bundle_index_digest: "forged-index".into(),
+ 9 -         comparison_report_count: 0,
+10 -         counters: Default::default(),
+11 -         canonical_basis: "forged-basis".into(),
+12 -         digest: "forged-digest".into(),
+13 -     };
+ 6 +     let _report = BridgeSubscriptionOfflineAuditReport::audit(_);
+   |
