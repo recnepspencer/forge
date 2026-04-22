@@ -53,8 +53,12 @@ pub type BridgeSubscriptionBasisResolutionFailure =
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeSubscriptionBasisRequest {
-    Snapshot { snapshot_identity: TruthSnapshotIdentity },
-    BranchHead { branch_identity: TruthBranchIdentity },
+    Snapshot {
+        snapshot_identity: TruthSnapshotIdentity,
+    },
+    BranchHead {
+        branch_identity: TruthBranchIdentity,
+    },
 }
 
 impl BridgeSubscriptionBasisRequest {
@@ -166,7 +170,9 @@ impl ValidatedSubscriptionBasisBinding {
             snapshot_identity,
             counters: BridgeSubscriptionCounters::from_basis_binding(),
             canonical_basis,
-            digest: Arc::from(format!("bridge-subscription-basis-binding:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-subscription-basis-binding:sha256:{digest:x}"
+            )),
         })
     }
 

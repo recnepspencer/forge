@@ -39,7 +39,9 @@ impl BridgeRetainedSubscriptionBundle {
             lifecycle_record,
             counters: BridgeSubscriptionCounters::from_lifecycle_record(),
             canonical_basis,
-            digest: Arc::from(format!("bridge-retained-subscription-bundle:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-retained-subscription-bundle:sha256:{digest:x}"
+            )),
         }
     }
 
@@ -112,7 +114,9 @@ impl BridgeSubscriptionReplayMismatch {
             mismatch_kind,
             counters: BridgeSubscriptionCounters::from_replay_mismatch(),
             canonical_basis,
-            digest: Arc::from(format!("bridge-subscription-replay-mismatch:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-subscription-replay-mismatch:sha256:{digest:x}"
+            )),
         }
     }
 
@@ -183,7 +187,9 @@ impl BridgeSubscriptionReplaySummary {
             retained_bundle: bundle.clone(),
             counters: BridgeSubscriptionCounters::from_replay_reconstruction(),
             canonical_basis,
-            digest: Arc::from(format!("bridge-subscription-replay-summary:sha256:{digest:x}")),
+            digest: Arc::from(format!(
+                "bridge-subscription-replay-summary:sha256:{digest:x}"
+            )),
         })
     }
 
@@ -241,8 +247,10 @@ mod tests {
         fn read_packet(
             &self,
             request: &SnapshotReadPacket,
-        ) -> Result<crate::snapshot::SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError>
-        {
+        ) -> Result<
+            crate::snapshot::SnapshotReadPacketResult,
+            crate::snapshot::BridgeSnapshotReadError,
+        > {
             Ok(crate::snapshot::SnapshotReadPacketResult::new(
                 TruthSnapshotIdentity::new("snapshot-a"),
                 request
@@ -263,7 +271,8 @@ mod tests {
         fn load_committed_patch(
             &self,
             request: crate::adapter::RelationalCommittedPatchRequest,
-        ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
+        ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError>
+        {
             Ok(RawCommittedPatchEnvelope::new(
                 TruthCommitIdentity::new(request.commit_identity()),
                 TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
@@ -278,7 +287,8 @@ mod tests {
         fn open_snapshot(
             &self,
             identity: &TruthSnapshotIdentity,
-        ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError> {
+        ) -> Result<Box<dyn TruthSnapshotReader>, crate::adapter::RelationalBridgeSourceError>
+        {
             if identity.as_str() == "snapshot-a" {
                 Ok(Box::new(StaticSnapshotReader))
             } else {
@@ -294,7 +304,8 @@ mod tests {
         fn load_branch_head_patch(
             &self,
             branch_identity: &TruthBranchIdentity,
-        ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
+        ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError>
+        {
             Ok(RawCommittedPatchEnvelope::new(
                 TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
                 TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),

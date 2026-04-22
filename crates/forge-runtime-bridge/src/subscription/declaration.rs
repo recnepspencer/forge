@@ -144,12 +144,10 @@ impl BridgeSubscriptionDeclaration {
             normalized_slice_intents,
             family_registration,
         )?;
-        let declaration_deduplicated_slice_intent_count = declaration_input_slice_intent_count
-            .saturating_sub(normalized_slice_intents.len());
-        let delivery_intent_class = canonical_delivery_intent_class(
-            delivery_intent_class,
-            family_registration,
-        );
+        let declaration_deduplicated_slice_intent_count =
+            declaration_input_slice_intent_count.saturating_sub(normalized_slice_intents.len());
+        let delivery_intent_class =
+            canonical_delivery_intent_class(delivery_intent_class, family_registration);
         let declaration_identity = declaration_identity_for_semantics(
             requested_family_kind,
             delivery_intent_class,
@@ -369,8 +367,8 @@ mod tests {
         NormalizedSubscriptionSliceIntent, NormalizedSubscriptionSliceIntentErrorKind,
     };
     use crate::subscription::{
-        BridgeSubscriptionDeclarationFamilyKind, FrozenSubscriptionFamilyRegistry,
-        phase_one_subscription_families,
+        phase_one_subscription_families, BridgeSubscriptionDeclarationFamilyKind,
+        FrozenSubscriptionFamilyRegistry,
     };
 
     #[test]
@@ -417,8 +415,8 @@ mod tests {
             phase_one_subscription_families().expect("phase 1 families should build"),
         )
         .expect("phase 1 families should freeze");
-        let family = registry
-            .family_for_kind(BridgeSubscriptionDeclarationFamilyKind::CollectionMembership);
+        let family =
+            registry.family_for_kind(BridgeSubscriptionDeclarationFamilyKind::CollectionMembership);
         let left = BridgeSubscriptionDeclaration::new(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
             BridgeSubscriptionDeliveryIntentClass::None,
@@ -499,7 +497,12 @@ mod tests {
         .expect("declaration should normalize");
 
         assert_eq!(declaration.normalized_slice_intent_count(), 1);
-        assert_eq!(declaration.counters().declaration_deduplicated_slice_intent_count(), 1);
+        assert_eq!(
+            declaration
+                .counters()
+                .declaration_deduplicated_slice_intent_count(),
+            1
+        );
     }
 
     #[test]
@@ -536,8 +539,8 @@ mod tests {
             phase_one_subscription_families().expect("phase 1 families should build"),
         )
         .expect("phase 1 families should freeze");
-        let family = registry
-            .family_for_kind(BridgeSubscriptionDeclarationFamilyKind::CollectionMembership);
+        let family =
+            registry.family_for_kind(BridgeSubscriptionDeclarationFamilyKind::CollectionMembership);
         let declaration = BridgeSubscriptionDeclaration::new(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
             BridgeSubscriptionDeliveryIntentClass::CanonicalMeaningfulChange,

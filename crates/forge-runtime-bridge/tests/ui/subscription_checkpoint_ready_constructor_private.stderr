@@ -1,0 +1,10 @@
+error[E0624]: associated function `prepare` is private
+ --> tests/ui/subscription_checkpoint_ready_constructor_private.rs:4:59
+  |
+4 |     let _constructor = BridgeSubscriptionCheckpointReady::prepare;
+  |                                                           ^^^^^^^ private associated function
+  |
+ ::: src/subscription/checkpoint.rs
+  |
+  |     pub(crate) fn prepare(frontier: BridgeSubscriptionAcknowledgementFrontier) -> Self {
+  |     ---------------------------------------------------------------------------------- private associated function defined here

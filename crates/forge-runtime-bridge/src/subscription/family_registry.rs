@@ -123,9 +123,7 @@ impl FrozenSubscriptionFamilyRegistry {
                     SubscriptionSliceKind::SignalRegion => "signal_region",
                     SubscriptionSliceKind::SignalPartition => "signal_partition",
                     SubscriptionSliceKind::SignalFacet => "signal_facet",
-                    SubscriptionSliceKind::RegisteredCoarseFallback => {
-                        "registered_coarse_fallback"
-                    }
+                    SubscriptionSliceKind::RegisteredCoarseFallback => "registered_coarse_fallback",
                 });
             }
         }
@@ -186,7 +184,9 @@ pub(crate) fn phase_one_subscription_families(
 ) -> Result<Vec<BridgeSubscriptionDeclarationFamily>, BridgeBuildError> {
     Ok(vec![
         BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:collection-membership"),
+            BridgeSubscriptionDeclarationFamilyIdentity::new(
+                "subscription-family:collection-membership",
+            ),
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
             "collection_membership",
             vec![
@@ -294,11 +294,12 @@ mod tests {
         let left = FrozenSubscriptionFamilyRegistry::freeze(
             phase_one_subscription_families().expect("phase 1 families should build"),
         )
-            .expect("phase 1 families should freeze");
-        let mut reversed = phase_one_subscription_families().expect("phase 1 families should build");
+        .expect("phase 1 families should freeze");
+        let mut reversed =
+            phase_one_subscription_families().expect("phase 1 families should build");
         reversed.reverse();
-        let right =
-            FrozenSubscriptionFamilyRegistry::freeze(reversed).expect("reversed families should freeze");
+        let right = FrozenSubscriptionFamilyRegistry::freeze(reversed)
+            .expect("reversed families should freeze");
 
         assert_eq!(left, right);
         assert_eq!(left.registry_identity(), right.registry_identity());
@@ -307,7 +308,9 @@ mod tests {
     #[test]
     fn duplicate_family_metadata_is_rejected() {
         let duplicate = BridgeSubscriptionDeclarationFamily::new(
-            BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-duplicate"),
+            BridgeSubscriptionDeclarationFamilyIdentity::new(
+                "subscription-family:detail-duplicate",
+            ),
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
             "detail_duplicate",
             vec![SubscriptionSliceKind::SignalField],
@@ -317,13 +320,12 @@ mod tests {
         let existing_detail = phase_one_subscription_families()
             .expect("phase 1 families should build")
             .into_iter()
-            .find(|family| family.family_kind() == BridgeSubscriptionDeclarationFamilyKind::DetailExact)
+            .find(|family| {
+                family.family_kind() == BridgeSubscriptionDeclarationFamilyKind::DetailExact
+            })
             .expect("detail family should exist");
-        let error = FrozenSubscriptionFamilyRegistry::freeze(vec![
-            existing_detail,
-            duplicate,
-        ])
-        .expect_err("duplicate family kind should be rejected");
+        let error = FrozenSubscriptionFamilyRegistry::freeze(vec![existing_detail, duplicate])
+            .expect_err("duplicate family kind should be rejected");
 
         assert_eq!(
             error.kind(),
@@ -336,7 +338,7 @@ mod tests {
         let baseline = FrozenSubscriptionFamilyRegistry::freeze(
             phase_one_subscription_families().expect("phase 1 families should build"),
         )
-            .expect("phase 1 families should freeze");
+        .expect("phase 1 families should freeze");
         let modified = FrozenSubscriptionFamilyRegistry::freeze(vec![
             BridgeSubscriptionDeclarationFamily::new(
                 BridgeSubscriptionDeclarationFamilyIdentity::new(
@@ -352,7 +354,9 @@ mod tests {
             )
             .expect("collection family should build"),
             BridgeSubscriptionDeclarationFamily::new(
-                BridgeSubscriptionDeclarationFamilyIdentity::new("subscription-family:detail-exact"),
+                BridgeSubscriptionDeclarationFamilyIdentity::new(
+                    "subscription-family:detail-exact",
+                ),
                 BridgeSubscriptionDeclarationFamilyKind::DetailExact,
                 "detail_exact",
                 vec![

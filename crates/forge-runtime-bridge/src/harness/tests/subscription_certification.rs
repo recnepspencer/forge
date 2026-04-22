@@ -1,3 +1,4 @@
+use crate::builder::RuntimeBridgeBuilder;
 use crate::facade::{
     BridgeRuntimePolicy, BridgeSignalStrategyKind, BridgeSubscriptionAdmissionRejectionKind,
     BridgeSubscriptionBasisKind, BridgeSubscriptionBasisRequest,
@@ -5,10 +6,9 @@ use crate::facade::{
     BridgeSubscriptionDeliveryIntentClass, BridgeSubscriptionReplayMismatchKind,
     NormalizedSubscriptionSliceIntent, RuntimeBridge,
 };
-use crate::builder::RuntimeBridgeBuilder;
 use crate::input::envelope::{
-    BridgeCommittedPatchItem, RawCommittedPatchEnvelope, TruthBranchIdentity,
-    TruthCommitIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchItem, RawCommittedPatchEnvelope, TruthBranchIdentity, TruthCommitIdentity,
+    TruthPatchIdentity,
 };
 use crate::mapping::{
     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,
@@ -271,7 +271,8 @@ fn detail_subscription(runtime: &RuntimeBridge) -> crate::facade::BridgeSubscrip
 }
 
 #[test]
-fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and_policy_invariant() {
+fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and_policy_invariant()
+{
     let development = runtime(BridgeRuntimePolicy::development());
     let forensic = runtime(BridgeRuntimePolicy::forensic());
 
@@ -405,7 +406,12 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     assert_eq!(snapshot_admitted.counters().basis_request_count(), 1);
     assert_eq!(snapshot_admitted.counters().basis_binding_count(), 1);
     assert_eq!(snapshot_admitted.counters().basis_rejection_count(), 0);
-    assert_eq!(snapshot_admitted.counters().signal_strategy_selection_count(), 1);
+    assert_eq!(
+        snapshot_admitted
+            .counters()
+            .signal_strategy_selection_count(),
+        1
+    );
 
     let missing_snapshot = baseline
         .admit_subscription(
@@ -424,7 +430,8 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
         Some(BridgeSubscriptionBasisResolutionFailureKind::SnapshotAcquisitionFailure)
     );
 
-    let misbound_runtime = runtime_with_sources(BridgeRuntimePolicy::development(), MisbindingSource);
+    let misbound_runtime =
+        runtime_with_sources(BridgeRuntimePolicy::development(), MisbindingSource);
     let misbound_declaration = detail_subscription(&misbound_runtime);
     let snapshot_mismatch = misbound_runtime
         .admit_subscription(
@@ -453,7 +460,10 @@ fn bridge_harness_subscription_suite_29_basis_binding_is_explicit_and_fail_close
     assert_eq!(branch_mismatch.counters().basis_request_count(), 1);
     assert_eq!(branch_mismatch.counters().basis_binding_count(), 0);
     assert_eq!(branch_mismatch.counters().basis_rejection_count(), 1);
-    assert_eq!(branch_mismatch.counters().signal_strategy_selection_count(), 0);
+    assert_eq!(
+        branch_mismatch.counters().signal_strategy_selection_count(),
+        0
+    );
 }
 
 #[test]
@@ -497,9 +507,17 @@ fn bridge_harness_subscription_suite_30_lifecycle_replay_parity_is_canonical() {
         .expect("forensic replay should succeed");
 
     assert_eq!(development_replay.digest(), forensic_replay.digest());
-    assert_eq!(development_replay.counters().replay_reconstruction_count(), 1);
+    assert_eq!(
+        development_replay.counters().replay_reconstruction_count(),
+        1
+    );
     assert_eq!(development_replay.counters().basis_request_count(), 0);
-    assert_eq!(development_replay.counters().signal_strategy_selection_count(), 0);
+    assert_eq!(
+        development_replay
+            .counters()
+            .signal_strategy_selection_count(),
+        0
+    );
 
     let deactivated = development.deactivate_subscription(development_ready);
     assert_ne!(

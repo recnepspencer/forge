@@ -59,7 +59,9 @@ impl BridgeGroupedTruthViewDigest {
     fn new(parts: &[String]) -> Self {
         let canonical = parts.join("|");
         let digest = Sha256::digest(canonical.as_bytes());
-        Self(Arc::from(format!("bridge-grouped-truth-view:sha256:{digest:x}")))
+        Self(Arc::from(format!(
+            "bridge-grouped-truth-view:sha256:{digest:x}"
+        )))
     }
 }
 
@@ -158,9 +160,9 @@ pub fn materialize_bridge_grouped_truth_view_from_projection(
         };
         let identity_value = value_for(row.fields().get(contract.identity_binding().field_key()))
             .ok_or_else(|| BridgeGroupedTruthViewError::MissingIdentityField {
-                row_identity: member.row_identity().to_string(),
-                field_key: contract.identity_binding().field_key().to_string(),
-            })?;
+            row_identity: member.row_identity().to_string(),
+            field_key: contract.identity_binding().field_key().to_string(),
+        })?;
         if &identity_value != member.identity_value() {
             return Err(BridgeGroupedTruthViewError::IdentityParityMismatch {
                 row_identity: member.row_identity().to_string(),
@@ -169,9 +171,9 @@ pub fn materialize_bridge_grouped_truth_view_from_projection(
         }
         let grouping_value = value_for(row.fields().get(contract.grouping_binding().field_key()))
             .ok_or_else(|| BridgeGroupedTruthViewError::MissingGroupingField {
-                row_identity: member.row_identity().to_string(),
-                field_key: contract.grouping_binding().field_key().to_string(),
-            })?;
+            row_identity: member.row_identity().to_string(),
+            field_key: contract.grouping_binding().field_key().to_string(),
+        })?;
         if &grouping_value != member.grouping_value() {
             return Err(BridgeGroupedTruthViewError::GroupingParityMismatch {
                 row_identity: member.row_identity().to_string(),
@@ -193,8 +195,14 @@ pub fn materialize_bridge_grouped_truth_view_from_projection(
         format!("truth_view:{}", row_set.truth_view_digest()),
         format!("snapshot:{}", row_set.basis_snapshot_identity().as_str()),
         format!("grouping:{}", contract.grouping_aspect()),
-        format!("identity_binding:{}", contract.identity_binding().field_key()),
-        format!("grouping_binding:{}", contract.grouping_binding().field_key()),
+        format!(
+            "identity_binding:{}",
+            contract.identity_binding().field_key()
+        ),
+        format!(
+            "grouping_binding:{}",
+            contract.grouping_binding().field_key()
+        ),
     ];
     for member in &members {
         digest_parts.push(format!(
@@ -240,9 +248,7 @@ mod tests {
 
     use super::materialize_bridge_grouped_truth_view_from_projection;
     use crate::source::materialize_bridge_row_set;
-    use crate::source::{
-        GroupedProjectionMemberSource, GroupedProjectionSource,
-    };
+    use crate::source::{GroupedProjectionMemberSource, GroupedProjectionSource};
 
     #[derive(Debug)]
     struct FixtureReader;

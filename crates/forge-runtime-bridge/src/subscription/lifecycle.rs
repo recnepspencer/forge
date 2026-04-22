@@ -3,8 +3,8 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use super::{
-    AdmittedBridgeSubscription, BridgeRetainedSubscriptionBundle,
-    BridgeSubscriptionCounters, BridgeSubscriptionLifecycleIdentity,
+    AdmittedBridgeSubscription, BridgeRetainedSubscriptionBundle, BridgeSubscriptionCounters,
+    BridgeSubscriptionLifecycleIdentity,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -99,8 +99,11 @@ impl BridgeSubscriptionActivationReady {
             admitted,
             BridgeSubscriptionLifecycleStateKind::ActivationReady,
         );
-        let retained_bundle =
-            BridgeRetainedSubscriptionBundle::new(registry_identity.clone(), admitted, lifecycle_record.clone());
+        let retained_bundle = BridgeRetainedSubscriptionBundle::new(
+            registry_identity.clone(),
+            admitted,
+            lifecycle_record.clone(),
+        );
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-subscription-activation-ready|admitted={}|lifecycle={}|bundle={}",
             admitted.admitted_subscription_identity().as_str(),

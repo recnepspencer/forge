@@ -112,7 +112,10 @@ pub fn materialize_bridge_row_set(
         let value = decode_record_value(record.request_key(), record.payload())?;
         rows.entry(Arc::from(read.entity_identity()))
             .or_default()
-            .insert(Arc::from(read.aspect_label()), BridgeMaterializedFieldValue::new(value));
+            .insert(
+                Arc::from(read.aspect_label()),
+                BridgeMaterializedFieldValue::new(value),
+            );
     }
 
     let rows = rows
