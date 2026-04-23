@@ -29,17 +29,21 @@ jobs:
           node-version: 24
           registry-url: https://npm.pkg.github.com
 
+      - name: Install wasm package dev dependencies
+        working-directory: crates/forge-signal-wasm
+        run: npm ci
+
       - name: Build wasm package
         run: wasm-pack build crates/forge-signal-wasm --target bundler --release --out-dir pkg
 
       - name: Prepare npm metadata
         env:
-          FORGE_SIGNAL_WASM_SCOPE: ${{ github.repository_owner }}
-          FORGE_SIGNAL_WASM_REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}.git
+          FORGE_SIGNAL_WASM_SCOPE: aust-group
+          FORGE_SIGNAL_WASM_REPOSITORY_URL: https://github.com/AuST-Group/forge.git
         run: node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 
       - name: Publish to GitHub Packages
         working-directory: crates/forge-signal-wasm/pkg
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.AUST_GROUP_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
         run: npm publish
