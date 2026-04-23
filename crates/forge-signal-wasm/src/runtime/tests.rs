@@ -23,24 +23,28 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(16.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.22),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearInnerRadius".to_owned(),
             initial: SignalValue::Number(0.28),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "lightIntensity".to_owned(),
             initial: SignalValue::Number(1.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -75,6 +79,7 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
             },
             when: None,
             identity: Some(IdentitySpec::Exact),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -102,6 +107,7 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
             },
             when: None,
             identity: Some(IdentitySpec::Exact),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -115,10 +121,14 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
             TransactionOp::Set {
                 id: "gearTeeth".to_owned(),
                 value: SignalValue::Number(22.0),
+                aspect: None,
+                aspects: None,
             },
             TransactionOp::Set {
                 id: "lightIntensity".to_owned(),
                 value: SignalValue::Number(1.78),
+                aspect: None,
+                aspects: None,
             },
         ])
         .unwrap();
@@ -129,10 +139,14 @@ fn build_adversarial_merge_runtime(policy: RuntimePolicySpec) -> (RuntimeCore, u
             TransactionOp::Set {
                 id: "gearThickness".to_owned(),
                 value: SignalValue::Number(0.42),
+                aspect: None,
+                aspects: None,
             },
             TransactionOp::Set {
                 id: "gearInnerRadius".to_owned(),
                 value: SignalValue::Number(0.36),
+                aspect: None,
+                aspects: None,
             },
         ])
         .unwrap();
@@ -156,6 +170,7 @@ fn collection_and_object_operators_work_on_runtime_values() {
                 SignalValue::String("beta".to_owned()),
                 SignalValue::String("gamma".to_owned()),
             ]),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -166,6 +181,7 @@ fn collection_and_object_operators_work_on_runtime_values() {
                 ("role".to_owned(), SignalValue::String("signal".to_owned())),
                 ("tier".to_owned(), SignalValue::String("runtime".to_owned())),
             ]),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -239,6 +255,7 @@ fn collection_and_object_operators_work_on_runtime_values() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -289,12 +306,14 @@ fn transaction_updates_recipe_values_and_versions() {
         .define_source(SourceSpec {
             id: "price".to_owned(),
             initial: SignalValue::Number(100.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "tax".to_owned(),
             initial: SignalValue::Number(20.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -309,6 +328,7 @@ fn transaction_updates_recipe_values_and_versions() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -319,6 +339,8 @@ fn transaction_updates_recipe_values_and_versions() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "price".to_owned(),
             value: SignalValue::Number(110.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     assert!(summary.nodes_evaluated >= 1);
@@ -337,12 +359,14 @@ fn snapshot_envelope_round_trip_restores_runtime_state() {
         .define_source(SourceSpec {
             id: "left".to_owned(),
             initial: SignalValue::Number(2.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "right".to_owned(),
             initial: SignalValue::Number(3.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -357,6 +381,7 @@ fn snapshot_envelope_round_trip_restores_runtime_state() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -367,6 +392,8 @@ fn snapshot_envelope_round_trip_restores_runtime_state() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "left".to_owned(),
             value: SignalValue::Number(10.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     assert_eq!(
@@ -388,6 +415,7 @@ fn exported_envelope_can_seed_a_fresh_runtime() {
         .define_source(SourceSpec {
             id: "base".to_owned(),
             initial: SignalValue::Number(7.0),
+            produces_aspects: None,
         })
         .unwrap();
     original
@@ -399,6 +427,7 @@ fn exported_envelope_can_seed_a_fresh_runtime() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
     let _ = original.read_value("plusOne").unwrap();
@@ -427,12 +456,14 @@ fn keyed_families_expand_and_recompute() {
         .define_source_family(KeyedSourceFamilySpec {
             family_id: "price".to_owned(),
             initial: SignalValue::Number(0.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source_family(KeyedSourceFamilySpec {
             family_id: "tax".to_owned(),
             initial: SignalValue::Number(0.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -442,10 +473,12 @@ fn keyed_families_expand_and_recompute() {
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "price".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "tax".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
             ],
             expr: Expr::Sum {
@@ -453,6 +486,7 @@ fn keyed_families_expand_and_recompute() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -474,12 +508,14 @@ fn keyed_families_can_mix_shared_and_keyed_reads() {
         .define_source(SourceSpec {
             id: "exposure".to_owned(),
             initial: SignalValue::Number(3.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source_family(KeyedSourceFamilySpec {
             family_id: "pixelBase".to_owned(),
             initial: SignalValue::Number(0.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -489,10 +525,12 @@ fn keyed_families_can_mix_shared_and_keyed_reads() {
                 RecipeFamilyReadSpec::Signal {
                     id: "exposure".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "pixelBase".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
             ],
             expr: Expr::Sum {
@@ -500,6 +538,7 @@ fn keyed_families_can_mix_shared_and_keyed_reads() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -518,6 +557,7 @@ fn branches_can_be_created_and_switched() {
         .define_source(SourceSpec {
             id: "counter".to_owned(),
             initial: SignalValue::Number(1.0),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -540,6 +580,7 @@ fn merge_plan_and_result_are_available_through_history_surface() {
         .define_source(SourceSpec {
             id: "counter".to_owned(),
             initial: SignalValue::Number(1.0),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -551,6 +592,8 @@ fn merge_plan_and_result_are_available_through_history_surface() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "counter".to_owned(),
             value: SignalValue::Number(2.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -574,12 +617,14 @@ fn merge_preserves_non_overlapping_source_edits_from_both_branches() {
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(16.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.22),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -591,6 +636,8 @@ fn merge_preserves_non_overlapping_source_edits_from_both_branches() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(20.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -599,6 +646,8 @@ fn merge_preserves_non_overlapping_source_edits_from_both_branches() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearThickness".to_owned(),
             value: SignalValue::Number(0.31),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -626,12 +675,14 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(8.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.42),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -659,6 +710,7 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
             },
             when: None,
             identity: Some(IdentitySpec::Exact),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -671,6 +723,8 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(32.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     assert_eq!(
@@ -686,6 +740,8 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearThickness".to_owned(),
             value: SignalValue::Number(0.1),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     assert_eq!(
@@ -741,12 +797,14 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(8.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.42),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -774,6 +832,7 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
             },
             when: None,
             identity: Some(IdentitySpec::Exact),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -785,6 +844,8 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(32.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -793,6 +854,8 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearThickness".to_owned(),
             value: SignalValue::Number(0.1),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -824,12 +887,14 @@ fn restoring_inactive_branch_snapshot_then_editing_other_field_keeps_branch_loca
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(16.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.42),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -840,6 +905,8 @@ fn restoring_inactive_branch_snapshot_then_editing_other_field_keeps_branch_loca
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(8.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     let main_snapshot = runtime.branch_snapshot_id(main_branch.id.0).unwrap();
@@ -849,6 +916,8 @@ fn restoring_inactive_branch_snapshot_then_editing_other_field_keeps_branch_loca
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(32.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     let feature_snapshot = runtime.branch_snapshot_id(feature_branch.id.0).unwrap();
@@ -861,6 +930,8 @@ fn restoring_inactive_branch_snapshot_then_editing_other_field_keeps_branch_loca
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearThickness".to_owned(),
             value: SignalValue::Number(0.1),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -897,6 +968,7 @@ fn packed_dense_grid_updates_are_readable_through_keyed_family_surface() {
                 ("b".to_owned(), SignalValue::Number(0.0)),
                 ("a".to_owned(), SignalValue::Number(255.0)),
             ]),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -939,12 +1011,14 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(8.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source_family(KeyedSourceFamilySpec {
             family_id: "gearToothIndex".to_owned(),
             initial: SignalValue::Number(0.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
@@ -954,10 +1028,12 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
                 RecipeFamilyReadSpec::Signal {
                     id: "gearTeeth".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
                 RecipeFamilyReadSpec::Keyed {
                     family_id: "gearToothIndex".to_owned(),
                     scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec::default(),
                 },
             ],
             expr: Expr::Object {
@@ -978,6 +1054,7 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
             },
             when: None,
             identity: Some(IdentitySpec::Exact),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -988,6 +1065,8 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
                 .map(|index| KeyedSetValue {
                     key: format!("tooth-{index}"),
                     value: SignalValue::Number(index as f64),
+                    aspect: None,
+                    aspects: None,
                 })
                 .collect(),
         )
@@ -1000,6 +1079,8 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(32.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     runtime
@@ -1009,6 +1090,8 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
                 .map(|index| KeyedSetValue {
                     key: format!("tooth-{index}"),
                     value: SignalValue::Number(index as f64),
+                    aspect: None,
+                    aspects: None,
                 })
                 .collect(),
         )
@@ -1029,6 +1112,8 @@ fn keyed_recipe_family_handles_survive_branch_switches_with_divergent_materializ
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(8.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
     let main_tooth = runtime
@@ -1055,12 +1140,14 @@ fn branch_state_proof_is_versioned_and_stable_for_unchanged_branch_state() {
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(16.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.42),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -1083,12 +1170,14 @@ fn replay_parity_proof_distinguishes_equivalent_and_divergent_branch_states() {
         .define_source(SourceSpec {
             id: "gearTeeth".to_owned(),
             initial: SignalValue::Number(16.0),
+            produces_aspects: None,
         })
         .unwrap();
     runtime
         .define_source(SourceSpec {
             id: "gearThickness".to_owned(),
             initial: SignalValue::Number(0.42),
+            produces_aspects: None,
         })
         .unwrap();
 
@@ -1108,6 +1197,8 @@ fn replay_parity_proof_distinguishes_equivalent_and_divergent_branch_states() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(32.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 
@@ -1274,6 +1365,128 @@ fn diagnostics_tier_changes_richness_only_not_merge_truth() {
 }
 
 #[test]
+fn aspect_filtered_reads_ignore_irrelevant_aspect_updates() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "sensor".to_owned(),
+            initial: SignalValue::Number(10.0),
+            produces_aspects: Some(vec![1, 2]),
+        })
+        .unwrap();
+    runtime
+        .define_recipe(RecipeSpec {
+            id: "display".to_owned(),
+            reads: vec![RecipeReadSpec::Signal(
+                crate::recipe::model::RecipeReadSignalSpec {
+                    id: "sensor".to_owned(),
+                    scope: None,
+                    aspects: crate::recipe::model::AspectSelectionSpec {
+                        aspect: Some(1),
+                        aspects: None,
+                    },
+                },
+            )],
+            expr: read("sensor"),
+            when: None,
+            identity: None,
+            produces_aspects: None,
+        })
+        .unwrap();
+
+    assert_eq!(
+        runtime.read_value("display").unwrap(),
+        SignalValue::Number(10.0)
+    );
+    assert_eq!(
+        runtime.read_versions(vec!["display".to_owned()]).unwrap()[0].version,
+        1
+    );
+
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "sensor".to_owned(),
+            value: SignalValue::Number(99.0),
+            aspect: None,
+            aspects: Some(vec![2]),
+        }])
+        .unwrap();
+
+    assert_eq!(
+        runtime.read_value("display").unwrap(),
+        SignalValue::Number(10.0),
+        "display should not recompute when only an unread aspect changes"
+    );
+    assert_eq!(
+        runtime.read_versions(vec!["display".to_owned()]).unwrap()[0].version,
+        1,
+        "unread aspect churn must not advance the derived node version"
+    );
+
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "sensor".to_owned(),
+            value: SignalValue::Number(42.0),
+            aspect: None,
+            aspects: Some(vec![1]),
+        }])
+        .unwrap();
+
+    assert_eq!(
+        runtime.read_value("display").unwrap(),
+        SignalValue::Number(42.0)
+    );
+    assert_eq!(
+        runtime.read_versions(vec!["display".to_owned()]).unwrap()[0].version,
+        2
+    );
+}
+
+#[test]
+fn multi_aspect_versions_survive_snapshot_round_trip() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "sensor".to_owned(),
+            initial: SignalValue::Number(10.0),
+            produces_aspects: Some(vec![1, 2]),
+        })
+        .unwrap();
+
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "sensor".to_owned(),
+            value: SignalValue::Number(15.0),
+            aspect: None,
+            aspects: Some(vec![2]),
+        }])
+        .unwrap();
+
+    let before = runtime.read_versions(vec!["sensor".to_owned()]).unwrap();
+    assert_eq!(before[0].aspect_versions.len(), 2);
+    assert_eq!(before[0].aspect_versions[0].aspect, 1);
+    assert_eq!(before[0].aspect_versions[0].version, 1);
+    assert_eq!(before[0].aspect_versions[1].aspect, 2);
+    assert_eq!(before[0].aspect_versions[1].version, 2);
+
+    let snapshot = runtime.snapshot().unwrap();
+
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "sensor".to_owned(),
+            value: SignalValue::Number(25.0),
+            aspect: None,
+            aspects: Some(vec![1]),
+        }])
+        .unwrap();
+
+    runtime.restore_snapshot(snapshot).unwrap();
+
+    let restored = runtime.read_versions(vec!["sensor".to_owned()]).unwrap();
+    assert_eq!(restored[0].aspect_versions, before[0].aspect_versions);
+}
+
+#[test]
 fn replay_artifact_proof_reports_typed_mismatch_classes() {
     let (mut runtime, main_branch_id, feature_branch_id, _) =
         build_adversarial_merge_runtime(RuntimePolicySpec::default());
@@ -1294,6 +1507,8 @@ fn replay_artifact_proof_reports_typed_mismatch_classes() {
         .apply_transaction(vec![TransactionOp::Set {
             id: "gearTeeth".to_owned(),
             value: SignalValue::Number(7.0),
+            aspect: None,
+            aspects: None,
         }])
         .unwrap();
 

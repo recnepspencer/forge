@@ -6,11 +6,45 @@ export type SignalValue =
   | SignalValue[]
   | { [key: string]: SignalValue };
 
+export type AspectId = number;
+
+export interface AspectSelectionSpec {
+  aspect?: AspectId;
+  aspects?: ReadonlyArray<AspectId>;
+}
+
+export interface InputOptions {
+  producesAspects?: ReadonlyArray<AspectId>;
+}
+
 export type RecipeReadSpec =
   | string
   | {
       id: string;
       scope?: unknown;
+      aspect?: AspectId;
+      aspects?: ReadonlyArray<AspectId>;
+    };
+
+export interface RecipeFamilyReadScopeSpec {
+  partition?: string;
+  partitionFrom?: string;
+  detail?: string;
+  matchMode?: unknown;
+}
+
+export type RecipeFamilyReadSpec =
+  | {
+      kind: "signal";
+      id: string;
+      scope?: RecipeFamilyReadScopeSpec;
+      aspects?: AspectSelectionSpec;
+    }
+  | {
+      kind: "keyed";
+      familyId: string;
+      scope?: RecipeFamilyReadScopeSpec;
+      aspects?: AspectSelectionSpec;
     };
 
 export type Expr =
@@ -74,6 +108,7 @@ export interface ComputedSpec {
   expr: Expr;
   when?: ConditionSpec;
   identity?: IdentitySpec;
+  producesAspects?: ReadonlyArray<AspectId>;
 }
 
 export interface OutputSpec {
@@ -81,6 +116,37 @@ export interface OutputSpec {
   expr: Expr;
   when?: ConditionSpec;
   identity?: IdentitySpec;
+  producesAspects?: ReadonlyArray<AspectId>;
+}
+
+export interface SourceSpec {
+  id: string;
+  initial?: SignalValue;
+  producesAspects?: ReadonlyArray<AspectId>;
+}
+
+export interface KeyedSourceFamilySpec {
+  familyId: string;
+  initial?: SignalValue;
+  producesAspects?: ReadonlyArray<AspectId>;
+}
+
+export interface RecipeSpec {
+  id: string;
+  reads?: ReadonlyArray<RecipeReadSpec>;
+  expr: Expr;
+  when?: ConditionSpec;
+  identity?: IdentitySpec;
+  producesAspects?: ReadonlyArray<AspectId>;
+}
+
+export interface KeyedRecipeFamilySpec {
+  familyId: string;
+  reads?: ReadonlyArray<RecipeFamilyReadSpec>;
+  expr: Expr;
+  when?: ConditionSpec;
+  identity?: IdentitySpec;
+  producesAspects?: ReadonlyArray<AspectId>;
 }
 
 export interface RunSummary {
@@ -160,6 +226,57 @@ export interface WebPerformanceSummary {
   compatibilityReadBreadth: number;
 }
 
+export interface AspectVersionSummary {
+  aspect: AspectId;
+  version: number;
+}
+
+export interface VersionSummary {
+  id: string;
+  version: number;
+  aspectVersions: ReadonlyArray<AspectVersionSummary>;
+}
+
+export interface SetValueWithRegions {
+  id: string;
+  value: SignalValue;
+  changedRegions: unknown;
+  aspect?: AspectId;
+  aspects?: ReadonlyArray<AspectId>;
+}
+
+export interface KeyedSetValue {
+  key: string;
+  value: SignalValue;
+  aspect?: AspectId;
+  aspects?: ReadonlyArray<AspectId>;
+}
+
+export type TransactionOp =
+  | {
+      kind?: undefined;
+      id: string;
+      value: SignalValue;
+      aspect?: AspectId;
+      aspects?: ReadonlyArray<AspectId>;
+    }
+  | {
+      kind: "setManyWithRegions";
+      values: ReadonlyArray<SetValueWithRegions>;
+    }
+  | {
+      kind: "setManyKeyed";
+      familyId: string;
+      values: ReadonlyArray<KeyedSetValue>;
+    }
+  | {
+      kind: "setPackedGridRgba";
+      familyId: string;
+      width: number;
+      height: number;
+      rgba: Uint8Array;
+    };
+
 export type SignalTarget = string | InputSignal | ComputedSignal | OutputSignal;
 
 export class InputSignal {
@@ -197,14 +314,25 @@ export class SignalsTransaction {
   free(): void;
   [Symbol.dispose](): void;
   set(input: InputSignal, value: SignalValue): void;
+  setWithAspects(
+    input: InputSignal,
+    value: SignalValue,
+    aspects: ReadonlyArray<AspectId>,
+  ): void;
   setWithRegions(input: InputSignal, value: SignalValue, changedRegions: unknown): void;
+  setWithRegionsAndAspects(
+    input: InputSignal,
+    value: SignalValue,
+    changedRegions: unknown,
+    aspects: ReadonlyArray<AspectId>,
+  ): void;
 }
 
 export class Signals {
   private constructor();
   free(): void;
   [Symbol.dispose](): void;
-  input(id: string, initial: SignalValue): InputSignal;
+  input(id: string, initial: SignalValue, options?: InputOptions): InputSignal;
   computed(id: string, spec: ComputedSpec): ComputedSignal;
   output(id: string, spec: OutputSpec): OutputSignal;
   transaction(callback: (tx: SignalsTransaction) => void): RunSummary;
@@ -278,7 +406,7 @@ export class SignalSpecialist {
   [Symbol.dispose](): void;
   evaluate_dirty(): unknown;
   graph_summary(): unknown;
-  read_versions(ids: ReadonlyArray<string>): unknown;
+  read_versions(ids: ReadonlyArray<string>): ReadonlyArray<VersionSummary>;
 }
 
 export class SignalAdapters {
@@ -295,11 +423,11 @@ export class SignalApp {
   constructor();
   free(): void;
   [Symbol.dispose](): void;
-  source(spec: unknown): void;
-  recipe(spec: unknown): void;
-  source_family(spec: unknown): void;
-  recipe_family(spec: unknown): void;
-  batch(ops: unknown): RunSummary;
+  source(spec: SourceSpec): void;
+  recipe(spec: RecipeSpec): void;
+  source_family(spec: KeyedSourceFamilySpec): void;
+  recipe_family(spec: KeyedRecipeFamilySpec): void;
+  batch(ops: ReadonlyArray<TransactionOp>): RunSummary;
   transaction_with_packed_grid_rgba(
     prefixOps: unknown,
     familyId: string,
@@ -312,6 +440,12 @@ export class SignalApp {
   read_many(ids: ReadonlyArray<string>): ReadonlyArray<SignalValue>;
   read_keyed(familyId: string, key: string): SignalValue;
   set_keyed(familyId: string, key: string, value: SignalValue): RunSummary;
+  setKeyedWithAspects(
+    familyId: string,
+    key: string,
+    value: SignalValue,
+    aspects: ReadonlyArray<AspectId>,
+  ): RunSummary;
   read_keyed_many(familyId: string, keys: ReadonlyArray<string>): ReadonlyArray<SignalValue>;
   read_keyed_many_packed_fields(
     familyId: string,
@@ -337,12 +471,23 @@ export class SignalApp {
   prewarm_keyed_grid(familyId: string, columns: number, rows: number): void;
   seed_keyed_grid_coords(familyId: string, columns: number, rows: number): void;
   take_debug_events(): ReadonlyArray<string>;
-  set_keyed_many(familyId: string, values: unknown): RunSummary;
+  set_keyed_many(familyId: string, values: ReadonlyArray<KeyedSetValue>): RunSummary;
   mark_changed_with_regions(id: string, changedRegions: unknown): RunSummary;
+  markChanged(id: string, aspects: ReadonlyArray<AspectId>): RunSummary;
+  markChangedWithRegionsAndAspects(
+    id: string,
+    changedRegions: unknown,
+    aspects: ReadonlyArray<AspectId>,
+  ): RunSummary;
   mark_keyed_changed_with_regions(
     familyId: string,
     key: string,
     changedRegions: unknown,
+  ): RunSummary;
+  markKeyedChanged(
+    familyId: string,
+    key: string,
+    aspects: ReadonlyArray<AspectId>,
   ): RunSummary;
   diagnostics(): SignalDiagnostics;
   history(): SignalHistory;
@@ -354,10 +499,10 @@ export class SignalRuntime {
   constructor();
   free(): void;
   [Symbol.dispose](): void;
-  define_source(spec: unknown): void;
-  define_recipe(spec: unknown): void;
-  define_source_family(spec: unknown): void;
-  define_recipe_family(spec: unknown): void;
+  define_source(spec: SourceSpec): void;
+  define_recipe(spec: RecipeSpec): void;
+  define_source_family(spec: KeyedSourceFamilySpec): void;
+  define_recipe_family(spec: KeyedRecipeFamilySpec): void;
   read(id: string): SignalValue;
   read_many(ids: ReadonlyArray<string>): ReadonlyArray<SignalValue>;
   read_keyed(familyId: string, key: string): SignalValue;
@@ -386,16 +531,33 @@ export class SignalRuntime {
   prewarm_keyed_grid(familyId: string, columns: number, rows: number): void;
   seed_keyed_grid_coords(familyId: string, columns: number, rows: number): void;
   set_keyed(familyId: string, key: string, value: SignalValue): RunSummary;
-  set_keyed_many(familyId: string, values: unknown): RunSummary;
+  setKeyedWithAspects(
+    familyId: string,
+    key: string,
+    value: SignalValue,
+    aspects: ReadonlyArray<AspectId>,
+  ): RunSummary;
+  set_keyed_many(familyId: string, values: ReadonlyArray<KeyedSetValue>): RunSummary;
   clear_keyed_family_cache(familyId: string): void;
   mark_changed_with_regions(id: string, changedRegions: unknown): RunSummary;
+  markChanged(id: string, aspects: ReadonlyArray<AspectId>): RunSummary;
+  markChangedWithRegionsAndAspects(
+    id: string,
+    changedRegions: unknown,
+    aspects: ReadonlyArray<AspectId>,
+  ): RunSummary;
   mark_keyed_changed_with_regions(
     familyId: string,
     key: string,
     changedRegions: unknown,
   ): RunSummary;
+  markKeyedChanged(
+    familyId: string,
+    key: string,
+    aspects: ReadonlyArray<AspectId>,
+  ): RunSummary;
   set_runtime_policy(policy: unknown): void;
-  transaction(ops: unknown): RunSummary;
+  transaction(ops: ReadonlyArray<TransactionOp>): RunSummary;
   transaction_with_packed_grid_rgba(
     prefixOps: unknown,
     familyId: string,

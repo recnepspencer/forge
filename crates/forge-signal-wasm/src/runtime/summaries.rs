@@ -8,6 +8,13 @@ use forge_signal::facade::history::{
 
 use crate::expression::model::SignalValue;
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AspectVersionSummary {
+    pub aspect: u8,
+    pub version: u64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunSummary {
@@ -119,6 +126,10 @@ pub struct StoredSourceSnapshot {
     pub id: String,
     pub value: SignalValue,
     pub version: u64,
+    #[serde(default)]
+    pub produces_aspects: Option<Vec<u8>>,
+    #[serde(default)]
+    pub aspect_versions: Vec<AspectVersionSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +138,10 @@ pub struct StoredRecipeSnapshot {
     pub id: String,
     pub value: SignalValue,
     pub version: u64,
+    #[serde(default)]
+    pub produces_aspects: Option<Vec<u8>>,
+    #[serde(default)]
+    pub aspect_versions: Vec<AspectVersionSummary>,
     pub initialized: bool,
     pub output_identity: Option<String>,
 }

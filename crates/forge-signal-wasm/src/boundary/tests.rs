@@ -9,7 +9,7 @@ use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::web_callbacks::WebObservationNotice;
 
 use super::signals_model::{ComputedSpec, OutputSpec};
-use super::types::{DisposableHandle, Signals, SignalsTransaction};
+use super::types::{DisposableHandle, InputSignal, Signals, SignalsTransaction};
 
 fn build_signals() -> Signals {
     Signals {
@@ -38,6 +38,7 @@ fn build_phase3_graph(signals: &Signals) {
                 },
                 when: None,
                 identity: None,
+                produces_aspects: None,
             },
         )
         .unwrap();
@@ -67,6 +68,7 @@ fn build_phase3_graph(signals: &Signals) {
                 },
                 when: None,
                 identity: None,
+                produces_aspects: None,
             },
         )
         .unwrap();
@@ -83,6 +85,8 @@ fn set_signal_value(signals: &Signals, id: &str, value: f64) {
         .push(crate::recipe::model::TransactionOp::Set {
             id: id.to_owned(),
             value: SignalValue::Number(value),
+            aspect: None,
+            aspects: None,
         });
     signals.apply_transaction_for_test(&builder).unwrap();
 }
@@ -112,6 +116,7 @@ fn signals_phase2_input_computed_output_transaction_surface_round_trips_values()
                 },
                 when: None,
                 identity: None,
+                produces_aspects: None,
             },
         )
         .unwrap();
@@ -142,6 +147,7 @@ fn signals_phase2_input_computed_output_transaction_surface_round_trips_values()
                 },
                 when: None,
                 identity: None,
+                produces_aspects: None,
             },
         )
         .unwrap();
@@ -191,7 +197,7 @@ fn signals_phase2_input_computed_output_transaction_surface_round_trips_values()
 #[test]
 fn signals_phase2_core_tracks_distinct_web_signal_kinds() {
     let mut core = crate::runtime::core::RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
-    core.define_web_input("count".to_owned(), SignalValue::Number(1.0))
+    core.define_web_input("count".to_owned(), SignalValue::Number(1.0), None)
         .unwrap();
     core.define_web_computed(
         "double".to_owned(),
@@ -209,6 +215,7 @@ fn signals_phase2_core_tracks_distinct_web_signal_kinds() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         }
         .into_recipe("double".to_owned()),
     )
@@ -222,6 +229,7 @@ fn signals_phase2_core_tracks_distinct_web_signal_kinds() {
             },
             when: None,
             identity: None,
+            produces_aspects: None,
         }
         .into_recipe("panel".to_owned()),
     )
@@ -298,6 +306,8 @@ fn signals_phase3_effect_and_failed_transaction_do_not_create_illegal_delivery()
         crate::recipe::model::TransactionOp::Set {
             id: "missing".to_owned(),
             value: SignalValue::Number(5.0),
+            aspect: None,
+            aspects: None,
         },
     ]);
     assert!(failed.is_err());
@@ -395,6 +405,7 @@ fn signals_phase4_compatibility_surface_agrees_with_app_first_committed_truth() 
                 },
                 when: None,
                 identity: None,
+                produces_aspects: None,
             },
         )
         .unwrap();
@@ -506,6 +517,113 @@ fn signals_phase4_performance_summary_exposes_web_cert_surface() {
             .borrow()
             .web_performance_summary()
             .active_handle_count,
+        1
+    );
+}
+
+#[test]
+fn app_first_aspect_scoped_transaction_methods_preserve_node_level_observation_semantics() {
+    let signals = build_signals();
+
+    signals
+        .core
+        .borrow_mut()
+        .define_web_input(
+            "count".to_owned(),
+            SignalValue::Number(1.0),
+            Some(super::signals_model::InputOptions {
+                produces_aspects: Some(vec![1, 2]),
+            }),
+        )
+        .unwrap();
+
+    let count = InputSignal {
+        core: signals.core.clone(),
+        id: "count".to_owned(),
+    };
+    let panel = signals
+        .output_for_test(
+            "panel",
+            OutputSpec {
+                reads: vec![RecipeReadSpec::Signal(
+                    crate::recipe::model::RecipeReadSignalSpec {
+                        id: "count".to_owned(),
+                        scope: None,
+                        aspects: crate::recipe::model::AspectSelectionSpec {
+                            aspect: Some(1),
+                            aspects: None,
+                        },
+                    },
+                )],
+                expr: Expr::Read {
+                    id: "count".to_owned(),
+                },
+                when: None,
+                identity: None,
+                produces_aspects: None,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(panel.read_for_test().unwrap(), SignalValue::Number(1.0));
+
+    let notices = Arc::new(Mutex::new(Vec::<WebObservationNotice>::new()));
+    let notices_clone = notices.clone();
+    let _watch = signals
+        .watch_for_test("panel", move |notice| {
+            notices_clone
+                .lock()
+                .expect("aspect notices mutex poisoned")
+                .push(notice);
+        })
+        .unwrap();
+
+    let builder = SignalsTransaction {
+        core: signals.core.clone(),
+        ops: Rc::new(RefCell::new(Vec::new())),
+    };
+    builder
+        .ops
+        .borrow_mut()
+        .push(crate::recipe::model::TransactionOp::Set {
+            id: count.id.clone(),
+            value: SignalValue::Number(9.0),
+            aspect: None,
+            aspects: Some(vec![2]),
+        });
+    signals.apply_transaction_for_test(&builder).unwrap();
+
+    assert_eq!(
+        panel.read_for_test().unwrap(),
+        SignalValue::Number(1.0),
+        "app-first aspect-targeted writes should not force node-level observers to fire on unread aspects"
+    );
+    assert!(notices
+        .lock()
+        .expect("aspect notices mutex poisoned")
+        .is_empty());
+
+    let builder = SignalsTransaction {
+        core: signals.core.clone(),
+        ops: Rc::new(RefCell::new(Vec::new())),
+    };
+    builder
+        .ops
+        .borrow_mut()
+        .push(crate::recipe::model::TransactionOp::SetManyWithRegions {
+            values: vec![crate::recipe::model::SetValueWithRegions {
+                id: count.id.clone(),
+                value: SignalValue::Number(11.0),
+                changed_regions: Vec::new(),
+                aspect: None,
+                aspects: Some(vec![1]),
+            }],
+        });
+    signals.apply_transaction_for_test(&builder).unwrap();
+
+    assert_eq!(panel.read_for_test().unwrap(), SignalValue::Number(11.0));
+    assert_eq!(
+        notices.lock().expect("aspect notices mutex poisoned").len(),
         1
     );
 }

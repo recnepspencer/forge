@@ -117,6 +117,9 @@ This web runtime must survive this hostile condition:
   in-crate domain folders so long as they do not redefine core semantics or
   collapse back into the framework-agnostic web runtime boundary.
 - `output` belongs in v1 and is not deferred.
+- aspect semantics must remain first-class on the web surface for node
+  definition, dependency reads, invalidation, recomputation, and version
+  reporting.
 - the existing `source`, `recipe`, `source_family`, and `recipe_family`
   surfaces still matter for compatibility and advanced use, but they are not
   the primary product story.
@@ -190,6 +193,8 @@ This web runtime must survive this hostile condition:
   itself must be the framework-agnostic substrate they would sit on
 - diagnostics, latest observation, latest flow, history, and branch-aware truth
   remain part of the product contract
+- subscriptions stay node-scoped by default; aspect precision belongs in
+  derivation and invalidation rather than the default observation surface
 
 Normative consequence:
 
@@ -303,6 +308,15 @@ The web surface inherits the core Milestone 11 observation contract:
 - latest observation and latest flow remain inspectable after delivery
 - branch, snapshot, restore, and merge semantics must remain consistent with
   core runtime behavior
+
+Aspect-aware observation is not the default contract.
+Instead:
+
+- node definitions can declare produced aspects
+- reads can subscribe to selected aspects
+- writes and invalidation can target specific aspects
+- node-level watchers/effects become more precise automatically because
+  irrelevant aspect churn no longer forces downstream recompute
 
 ### Compatibility Surface
 

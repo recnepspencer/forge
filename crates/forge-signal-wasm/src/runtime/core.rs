@@ -28,11 +28,13 @@ use forge_signal::facade::{
 };
 
 use crate::boundary::errors::ForgeSignalJsError;
+use crate::boundary::signals_model::InputOptions;
 use crate::expression::evaluation::ExprEnvironment;
 use crate::expression::model::{IdentitySpec, SignalValue};
 use crate::recipe::model::{
-    KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec, RecipeFamilyReadSpec,
-    RecipeReadSignalSpec, RecipeReadSpec, RecipeSpec, SourceSpec, TransactionOp,
+    AspectSelectionSpec, KeyedRecipeFamilySpec, KeyedSetValue, KeyedSourceFamilySpec,
+    RecipeFamilyReadSpec, RecipeReadSignalSpec, RecipeReadSpec, RecipeSpec, SourceSpec,
+    TransactionOp, WasmAspectId,
 };
 use crate::runtime::adapters::{
     MergePlanProofEnvelope, MergeResultProofEnvelope, RuntimeDefinitionEnvelope, RuntimeEnvelope,
@@ -40,9 +42,9 @@ use crate::runtime::adapters::{
 use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::specialist::VersionSummary;
 use crate::runtime::summaries::{
-    HealthSummary, LineageSummary, ReplaySummary, RunSummary, RuntimeSnapshotEnvelope,
-    RuntimeStoreSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot, WebPerformanceSummary,
-    WhySummary,
+    AspectVersionSummary, HealthSummary, LineageSummary, ReplaySummary, RunSummary,
+    RuntimeSnapshotEnvelope, RuntimeStoreSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot,
+    WebPerformanceSummary, WhySummary,
 };
 use crate::runtime::web_callbacks;
 
@@ -70,6 +72,120 @@ fn perf_now_ms() -> f64 {
         let start = START.get_or_init(Instant::now);
         return start.elapsed().as_secs_f64() * 1000.0;
     }
+}
+
+fn defaulted_produced_aspects(explicit: Option<&[WasmAspectId]>) -> Vec<Aspect> {
+    match explicit {
+        Some(aspects) if !aspects.is_empty() => {
+            normalize_aspects(aspects).unwrap_or_else(|_| vec![DEFAULT_ASPECT])
+        }
+        _ => vec![DEFAULT_ASPECT],
+    }
+}
+
+fn normalize_aspects(raw: &[WasmAspectId]) -> Result<Vec<Aspect>, ForgeSignalJsError> {
+    let mut aspects = raw
+        .iter()
+        .copied()
+        .map(|aspect| {
+            Aspect::try_new(aspect).ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "aspect `{aspect}` is out of range for forge-signal"
+                ))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    aspects.sort_by_key(|aspect| aspect.id());
+    aspects.dedup_by_key(|aspect| aspect.id());
+    if aspects.is_empty() {
+        aspects.push(DEFAULT_ASPECT);
+    }
+    Ok(aspects)
+}
+
+fn resolve_selected_aspects(
+    selection: Option<&AspectSelectionSpec>,
+) -> Result<Vec<Aspect>, ForgeSignalJsError> {
+    let Some(selection) = selection else {
+        return Ok(vec![DEFAULT_ASPECT]);
+    };
+    let mut raw = Vec::new();
+    if let Some(aspect) = selection.aspect {
+        raw.push(aspect);
+    }
+    if let Some(aspects) = &selection.aspects {
+        raw.extend(aspects.iter().copied());
+    }
+    if raw.is_empty() {
+        return Ok(vec![DEFAULT_ASPECT]);
+    }
+    normalize_aspects(&raw)
+}
+
+fn resolve_change_aspects(
+    aspect: Option<WasmAspectId>,
+    aspects: Option<&Vec<WasmAspectId>>,
+) -> Result<Vec<Aspect>, ForgeSignalJsError> {
+    let selection = AspectSelectionSpec {
+        aspect,
+        aspects: aspects.cloned(),
+    };
+    resolve_selected_aspects(Some(&selection))
+}
+
+fn aspect_mask_from_list(aspects: &[Aspect]) -> forge_signal::facade::AspectMask {
+    let mut mask = forge_signal::facade::AspectMask::EMPTY;
+    for aspect in aspects {
+        mask.insert(*aspect);
+    }
+    mask
+}
+
+fn bump_aspects(version: AspectVersion, aspects: &[Aspect]) -> AspectVersion {
+    aspects
+        .iter()
+        .copied()
+        .fold(version, |current, aspect| current.bump(aspect))
+}
+
+fn initial_aspect_version(aspects: &[Aspect]) -> AspectVersion {
+    let mut version = AspectVersion::zero();
+    for aspect in aspects {
+        version = version.with(*aspect, 1);
+    }
+    version
+}
+
+fn aspect_versions_summary(
+    version: AspectVersion,
+    explicit: Option<&[WasmAspectId]>,
+) -> Vec<AspectVersionSummary> {
+    defaulted_produced_aspects(explicit)
+        .into_iter()
+        .map(|aspect| AspectVersionSummary {
+            aspect: aspect.id(),
+            version: version.get(aspect),
+        })
+        .collect()
+}
+
+fn aspect_version_from_summary(
+    fallback_version: u64,
+    aspect_versions: &[AspectVersionSummary],
+    explicit: Option<&[WasmAspectId]>,
+) -> AspectVersion {
+    if aspect_versions.is_empty() {
+        return initial_aspect_version(&defaulted_produced_aspects(explicit))
+            .with(DEFAULT_ASPECT, fallback_version);
+    }
+
+    let mut version = AspectVersion::zero();
+    for entry in aspect_versions {
+        if let Some(aspect) = Aspect::try_new(entry.aspect) {
+            version = version.with(aspect, entry.version);
+        }
+    }
+    version
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -142,6 +258,7 @@ pub struct MergePolicyPreviewRequest {
 #[derive(Debug, Clone)]
 struct CatalogEntry {
     node: NodeId,
+    produced_aspects: Vec<Aspect>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -154,14 +271,14 @@ pub enum WebSignalKind {
 #[derive(Debug, Clone)]
 struct StoredSource {
     value: SignalValue,
-    version: u64,
+    version: AspectVersion,
 }
 
 #[derive(Debug, Clone)]
 struct StoredRecipe {
     spec: RecipeSpec,
     value: SignalValue,
-    version: u64,
+    version: AspectVersion,
     initialized: bool,
     output_identity: Option<String>,
 }
@@ -183,6 +300,7 @@ struct DenseGridFamily {
     ids: Vec<String>,
     nodes: Vec<NodeId>,
     key_to_index: BTreeMap<String, usize>,
+    produced_aspects: Vec<Aspect>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -247,7 +365,7 @@ impl RuntimeStore {
             .or_else(|| self.recipes.get(id).map(|recipe| recipe.value.clone()))
     }
 
-    fn snapshot(&self) -> RuntimeStoreSnapshot {
+    fn snapshot(&self, catalog: &BTreeMap<String, CatalogEntry>) -> RuntimeStoreSnapshot {
         RuntimeStoreSnapshot {
             sources: self
                 .sources
@@ -255,7 +373,27 @@ impl RuntimeStore {
                 .map(|(id, source)| StoredSourceSnapshot {
                     id: id.clone(),
                     value: source.value.clone(),
-                    version: source.version,
+                    version: source.version.get(DEFAULT_ASPECT),
+                    produces_aspects: catalog.get(id).map(|entry| {
+                        entry
+                            .produced_aspects
+                            .iter()
+                            .map(|aspect| aspect.id())
+                            .collect()
+                    }),
+                    aspect_versions: aspect_versions_summary(
+                        source.version,
+                        catalog
+                            .get(id)
+                            .map(|entry| {
+                                entry
+                                    .produced_aspects
+                                    .iter()
+                                    .map(|aspect| aspect.id())
+                                    .collect::<Vec<_>>()
+                            })
+                            .as_deref(),
+                    ),
                 })
                 .collect(),
             recipes: self
@@ -264,7 +402,12 @@ impl RuntimeStore {
                 .map(|(id, recipe)| StoredRecipeSnapshot {
                     id: id.clone(),
                     value: recipe.value.clone(),
-                    version: recipe.version,
+                    version: recipe.version.get(DEFAULT_ASPECT),
+                    produces_aspects: recipe.spec.produces_aspects.clone(),
+                    aspect_versions: aspect_versions_summary(
+                        recipe.version,
+                        recipe.spec.produces_aspects.as_deref(),
+                    ),
                     initialized: recipe.initialized,
                     output_identity: recipe.output_identity.clone(),
                 })
@@ -281,15 +424,27 @@ impl RuntimeStore {
                     source.id,
                     StoredSource {
                         value: source.value,
-                        version: source.version,
+                        version: aspect_version_from_summary(
+                            source.version,
+                            &source.aspect_versions,
+                            source.produces_aspects.as_deref(),
+                        ),
                     },
                 )
             })
             .collect();
         for recipe in snapshot.recipes {
             if let Some(existing) = self.recipes.get_mut(&recipe.id) {
+                let produced_aspects = recipe
+                    .produces_aspects
+                    .as_deref()
+                    .or(existing.spec.produces_aspects.as_deref());
                 existing.value = recipe.value;
-                existing.version = recipe.version;
+                existing.version = aspect_version_from_summary(
+                    recipe.version,
+                    &recipe.aspect_versions,
+                    produced_aspects,
+                );
                 existing.initialized = recipe.initialized;
                 existing.output_identity = recipe.output_identity;
             }
@@ -411,16 +566,27 @@ impl RuntimeCore {
     pub fn define_source(&mut self, spec: SourceSpec) -> Result<(), ForgeSignalJsError> {
         self.ensure_unique_id(&spec.id)?;
         let source_id = spec.id.clone();
-        let node = self.runtime.graph_mut().node().build();
-        self.catalog
-            .insert(source_id.clone(), CatalogEntry { node });
+        let produced_aspects = defaulted_produced_aspects(spec.produces_aspects.as_deref());
+        let node = self
+            .runtime
+            .graph_mut()
+            .node()
+            .produces_aspects(aspect_mask_from_list(&produced_aspects))
+            .build();
+        self.catalog.insert(
+            source_id.clone(),
+            CatalogEntry {
+                node,
+                produced_aspects: produced_aspects.clone(),
+            },
+        );
         self.nodes_by_id.insert(node, source_id.clone());
         let mut store = self.lock_store()?;
         store.sources.insert(
             source_id.clone(),
             StoredSource {
                 value: spec.initial,
-                version: 1,
+                version: initial_aspect_version(&produced_aspects),
             },
         );
         drop(store);
@@ -437,10 +603,12 @@ impl RuntimeCore {
         &mut self,
         id: String,
         initial: SignalValue,
+        options: Option<InputOptions>,
     ) -> Result<(), ForgeSignalJsError> {
         self.define_source(SourceSpec {
             id: id.clone(),
             initial,
+            produces_aspects: options.and_then(|options| options.produces_aspects),
         })?;
         self.web_signals.insert(id, WebSignalKind::Input);
         Ok(())
@@ -449,32 +617,47 @@ impl RuntimeCore {
     pub fn define_recipe(&mut self, spec: RecipeSpec) -> Result<(), ForgeSignalJsError> {
         self.ensure_unique_id(&spec.id)?;
         self.ensure_known_reads(&spec.reads)?;
-        let dependencies = spec
-            .reads
-            .iter()
-            .map(|read| {
-                self.catalog
-                    .get(read.id())
-                    .map(|entry| match read.scope() {
-                        Some(scope) => DependencyEdge::with_partition_scope(
-                            entry.node,
-                            DEFAULT_ASPECT,
-                            scope.clone(),
-                        ),
-                        None => DependencyEdge::new(entry.node, DEFAULT_ASPECT),
-                    })
-                    .ok_or_else(|| {
-                        ForgeSignalJsError::invalid_input(format!("unknown read `{}`", read.id()))
-                    })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut read_aspects = Vec::new();
+        let mut dependencies = Vec::new();
+        for read in &spec.reads {
+            let entry = self.catalog.get(read.id()).ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown read `{}`", read.id()))
+            })?;
+            let aspects = resolve_selected_aspects(read.aspect_spec())?;
+            read_aspects.extend(aspects.iter().copied());
+            for aspect in aspects {
+                let edge = match read.scope() {
+                    Some(scope) => {
+                        DependencyEdge::with_partition_scope(entry.node, aspect, scope.clone())
+                    }
+                    None => DependencyEdge::new(entry.node, aspect),
+                };
+                dependencies.push(edge);
+            }
+        }
+        read_aspects.sort_by_key(|aspect| aspect.id());
+        read_aspects.dedup_by_key(|aspect| aspect.id());
+        let produced_aspects = defaulted_produced_aspects(spec.produces_aspects.as_deref());
         let mut graph = self.runtime.graph_mut();
-        let node = graph.node().on_demand().build();
+        let mut builder = graph
+            .node()
+            .on_demand()
+            .produces_aspects(aspect_mask_from_list(&produced_aspects));
+        if !read_aspects.is_empty() {
+            builder = builder.reads_aspects(aspect_mask_from_list(&read_aspects));
+        }
+        let node = builder.build();
         graph
             .set_dependencies(node, dependencies)
             .map_err(ForgeSignalJsError::from)?;
         drop(graph);
-        self.catalog.insert(spec.id.clone(), CatalogEntry { node });
+        self.catalog.insert(
+            spec.id.clone(),
+            CatalogEntry {
+                node,
+                produced_aspects,
+            },
+        );
         self.nodes_by_id.insert(node, spec.id.clone());
         let mut store = self.lock_store()?;
         let recipe_id = spec.id.clone();
@@ -483,7 +666,7 @@ impl RuntimeCore {
             StoredRecipe {
                 spec,
                 value: SignalValue::Null,
-                version: 0,
+                version: AspectVersion::zero(),
                 initialized: false,
                 output_identity: None,
             },
@@ -713,6 +896,7 @@ impl RuntimeCore {
             SourceSpec {
                 id: composite_id.clone(),
                 initial: initial.unwrap_or_else(|| family.spec.initial.clone()),
+                produces_aspects: family.spec.produces_aspects.clone(),
             }
         };
         self.define_source(spec)?;
@@ -749,8 +933,12 @@ impl RuntimeCore {
             let family = store.source_families.get(family_id).ok_or_else(|| {
                 ForgeSignalJsError::invalid_input(format!("unknown source family `{family_id}`"))
             })?;
-            family.spec.initial.clone()
+            (
+                family.spec.initial.clone(),
+                defaulted_produced_aspects(family.spec.produces_aspects.as_deref()),
+            )
         };
+        let (initial, produced_aspects) = initial;
 
         let grid_cells = checked_grid_cells(width, height)?;
         let mut ids = Vec::with_capacity(grid_cells);
@@ -770,8 +958,19 @@ impl RuntimeCore {
                 continue;
             }
 
-            let node = self.runtime.graph_mut().node().build();
-            self.catalog.insert(id.clone(), CatalogEntry { node });
+            let node = self
+                .runtime
+                .graph_mut()
+                .node()
+                .produces_aspects(aspect_mask_from_list(&produced_aspects))
+                .build();
+            self.catalog.insert(
+                id.clone(),
+                CatalogEntry {
+                    node,
+                    produced_aspects: produced_aspects.clone(),
+                },
+            );
             self.nodes_by_id.insert(node, id.clone());
             ids.push(id.clone());
             nodes.push(node);
@@ -788,7 +987,13 @@ impl RuntimeCore {
         if !pending_sources.is_empty() {
             let mut store = self.lock_store()?;
             for (id, value) in pending_sources {
-                store.sources.insert(id, StoredSource { value, version: 1 });
+                store.sources.insert(
+                    id,
+                    StoredSource {
+                        value,
+                        version: initial_aspect_version(&produced_aspects),
+                    },
+                );
             }
         }
 
@@ -798,6 +1003,7 @@ impl RuntimeCore {
             ids,
             nodes,
             key_to_index,
+            produced_aspects,
         });
         self.dense_grids
             .insert(family_id.to_owned(), family.clone());
@@ -848,7 +1054,13 @@ impl RuntimeCore {
                 }
 
                 let node = self.runtime.graph_mut().node().build();
-                self.catalog.insert(id.clone(), CatalogEntry { node });
+                self.catalog.insert(
+                    id.clone(),
+                    CatalogEntry {
+                        node,
+                        produced_aspects: vec![DEFAULT_ASPECT],
+                    },
+                );
                 self.nodes_by_id.insert(node, id.clone());
                 ids.push(id.clone());
                 nodes.push(node);
@@ -866,7 +1078,13 @@ impl RuntimeCore {
         if !pending_sources.is_empty() {
             let mut store = self.lock_store()?;
             for (id, value) in pending_sources {
-                store.sources.insert(id, StoredSource { value, version: 1 });
+                store.sources.insert(
+                    id,
+                    StoredSource {
+                        value,
+                        version: initial_aspect_version(&[DEFAULT_ASPECT]),
+                    },
+                );
             }
         }
 
@@ -878,6 +1096,7 @@ impl RuntimeCore {
                 ids,
                 nodes,
                 key_to_index,
+                produced_aspects: vec![DEFAULT_ASPECT],
             }),
         );
         wasm_debug(format!(
@@ -939,18 +1158,22 @@ impl RuntimeCore {
                 .reads
                 .iter()
                 .map(|read| match read {
-                    RecipeFamilyReadSpec::Signal { id, scope } => {
+                    RecipeFamilyReadSpec::Signal { id, scope, aspects } => {
                         RecipeReadSpec::Signal(RecipeReadSignalSpec {
                             id: id.clone(),
                             scope: scope.as_ref().and_then(|value| value.resolve(key)),
+                            aspects: aspects.clone(),
                         })
                     }
-                    RecipeFamilyReadSpec::Keyed { family_id, scope } => {
-                        RecipeReadSpec::Signal(RecipeReadSignalSpec {
-                            id: composite_keyed_id(family_id, key),
-                            scope: scope.as_ref().and_then(|value| value.resolve(key)),
-                        })
-                    }
+                    RecipeFamilyReadSpec::Keyed {
+                        family_id,
+                        scope,
+                        aspects,
+                    } => RecipeReadSpec::Signal(RecipeReadSignalSpec {
+                        id: composite_keyed_id(family_id, key),
+                        scope: scope.as_ref().and_then(|value| value.resolve(key)),
+                        aspects: aspects.clone(),
+                    }),
                 })
                 .collect(),
             expr: rewrite_keyed_expr(&family.spec.expr, &family.spec.reads, key),
@@ -969,6 +1192,7 @@ impl RuntimeCore {
                         expr: rewrite_keyed_expr(expr, &family.spec.reads, key),
                     },
                 }),
+            produces_aspects: family.spec.produces_aspects.clone(),
         };
         self.define_recipe(recipe)?;
         stats.recipe_created = stats.recipe_created.saturating_add(1);
@@ -995,7 +1219,28 @@ impl RuntimeCore {
         value: SignalValue,
     ) -> Result<RunSummary, ForgeSignalJsError> {
         let id = self.ensure_source_key(family_id, key, Some(value.clone()))?;
-        self.apply_transaction(vec![TransactionOp::Set { id, value }])
+        self.apply_transaction(vec![TransactionOp::Set {
+            id,
+            value,
+            aspect: None,
+            aspects: None,
+        }])
+    }
+
+    pub fn set_keyed_value_with_aspects(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        value: SignalValue,
+        aspects: Vec<WasmAspectId>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let id = self.ensure_source_key(family_id, key, Some(value.clone()))?;
+        self.apply_transaction(vec![TransactionOp::Set {
+            id,
+            value,
+            aspect: None,
+            aspects: Some(aspects),
+        }])
     }
 
     pub fn read_keyed_values(
@@ -1186,6 +1431,8 @@ impl RuntimeCore {
             normalized.push(crate::recipe::model::SetValue {
                 id,
                 value: entry.value,
+                aspect: entry.aspect,
+                aspects: entry.aspects,
             });
         }
 
@@ -1437,6 +1684,33 @@ impl RuntimeCore {
         id: &str,
         changed_regions: Vec<ChangedRegion>,
     ) -> Result<RunSummary, ForgeSignalJsError> {
+        self.mark_changed_with_regions_on_aspects(id, changed_regions, vec![DEFAULT_ASPECT])
+    }
+
+    pub fn mark_changed_on_aspects(
+        &mut self,
+        id: &str,
+        aspect_ids: Vec<WasmAspectId>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        self.mark_changed_with_regions_for_aspect_ids(id, Vec::new(), aspect_ids)
+    }
+
+    pub fn mark_changed_with_regions_for_aspect_ids(
+        &mut self,
+        id: &str,
+        changed_regions: Vec<ChangedRegion>,
+        aspect_ids: Vec<WasmAspectId>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let aspects = normalize_aspects(&aspect_ids)?;
+        self.mark_changed_with_regions_on_aspects(id, changed_regions, aspects)
+    }
+
+    pub fn mark_changed_with_regions_on_aspects(
+        &mut self,
+        id: &str,
+        changed_regions: Vec<ChangedRegion>,
+        aspects: Vec<Aspect>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
         let node = self.node_for_id(id)?;
         let started_at = perf_now_ms();
         let previous = self.lock_store()?.clone();
@@ -1452,10 +1726,12 @@ impl RuntimeCore {
                     .sources
                     .get_mut(id)
                     .ok_or_else(|| SignalError::invalid_input(format!("unknown source `{id}`")))?;
-                source.version = source.version.saturating_add(1);
+                source.version = bump_aspects(source.version, &aspects);
             }
 
-            tx.mark_changed_with_regions(node, DEFAULT_ASPECT, &changed_regions)?;
+            for aspect in &aspects {
+                tx.mark_changed_with_regions(node, *aspect, &changed_regions)?;
+            }
             tx.evaluate_dirty(&evaluator)?;
             Ok(())
         });
@@ -1505,6 +1781,16 @@ impl RuntimeCore {
         self.mark_changed_with_regions(&id, changed_regions)
     }
 
+    pub fn mark_keyed_changed_on_aspects(
+        &mut self,
+        family_id: &str,
+        key: &str,
+        aspect_ids: Vec<WasmAspectId>,
+    ) -> Result<RunSummary, ForgeSignalJsError> {
+        let id = self.ensure_source_key(family_id, key, None)?;
+        self.mark_changed_on_aspects(&id, aspect_ids)
+    }
+
     pub fn apply_transaction(
         &mut self,
         ops: Vec<TransactionOp>,
@@ -1535,23 +1821,28 @@ impl RuntimeCore {
                             value,
                             node,
                             changed_regions,
+                            aspects,
                         } => {
                             let source = locked.sources.get_mut(id).ok_or_else(|| {
                                 SignalError::invalid_input(format!("unknown source `{id}`"))
                             })?;
                             source.value = value.clone();
-                            source.version = source.version.saturating_add(1);
+                            source.version = bump_aspects(source.version, aspects);
                             if changed_regions.is_empty() {
-                                tx.mark_changed(*node, DEFAULT_ASPECT)?;
+                                for aspect in aspects {
+                                    tx.mark_changed(*node, *aspect)?;
+                                }
                             } else {
-                                tx.mark_changed_with_regions(
-                                    *node,
-                                    DEFAULT_ASPECT,
-                                    changed_regions,
-                                )?;
+                                for aspect in aspects {
+                                    tx.mark_changed_with_regions(*node, *aspect, changed_regions)?;
+                                }
                             }
                         }
-                        SetChange::DenseGridRgba { family_id, rgba } => {
+                        SetChange::DenseGridRgba {
+                            family_id,
+                            rgba,
+                            aspects,
+                        } => {
                             let family = dense_grids.get(family_id).ok_or_else(|| {
                                 SignalError::invalid_input(format!(
                                     "unknown dense grid family `{family_id}`"
@@ -1576,8 +1867,10 @@ impl RuntimeCore {
                                     rgba[offset + 2],
                                     rgba[offset + 3],
                                 );
-                                source.version = source.version.saturating_add(1);
-                                tx.mark_changed(family.nodes[index], DEFAULT_ASPECT)?;
+                                source.version = bump_aspects(source.version, aspects);
+                                for aspect in aspects {
+                                    tx.mark_changed(family.nodes[index], *aspect)?;
+                                }
                                 if index > 0 && index % 10_000 == 0 {
                                     wasm_debug(format!(
                                         "[forge-signal-wasm] tx:dense-apply progress family={family_id} applied={index}"
@@ -1786,7 +2079,7 @@ impl RuntimeCore {
             .insert(snapshot.meta.snapshot_id.0, self.snapshot_branch_state());
         Ok(RuntimeSnapshotEnvelope {
             snapshot,
-            state: self.lock_store()?.snapshot(),
+            state: self.lock_store()?.snapshot(&self.catalog),
         })
     }
 
@@ -2213,9 +2506,17 @@ impl RuntimeCore {
                 .read(node, &self.store, &evaluator)
                 .map_err(ForgeSignalJsError::from)?;
             self.runtime.clear_live_branch_mutation_residue();
+            let produced_aspects = self.catalog.get(&id).map(|entry| {
+                entry
+                    .produced_aspects
+                    .iter()
+                    .map(|aspect| aspect.id())
+                    .collect::<Vec<_>>()
+            });
             versions.push(VersionSummary {
                 id,
                 version: version.get(DEFAULT_ASPECT),
+                aspect_versions: aspect_versions_summary(version, produced_aspects.as_deref()),
             });
         }
         Ok(versions)
@@ -2231,6 +2532,13 @@ impl RuntimeCore {
                 .map(|(id, source)| SourceSpec {
                     id: id.clone(),
                     initial: source.value.clone(),
+                    produces_aspects: self.catalog.get(id).map(|entry| {
+                        entry
+                            .produced_aspects
+                            .iter()
+                            .map(|aspect| aspect.id())
+                            .collect()
+                    }),
                 })
                 .collect(),
             recipes: store
@@ -2411,30 +2719,62 @@ impl RuntimeCore {
         &mut self,
         ops: &[TransactionOp],
     ) -> Result<Vec<SetChange>, ForgeSignalJsError> {
-        let mut deduped = BTreeMap::<String, (SignalValue, Vec<ChangedRegion>)>::new();
+        let mut deduped = BTreeMap::<String, (SignalValue, Vec<ChangedRegion>, Vec<Aspect>)>::new();
         let mut packed = Vec::new();
         for op in ops {
             match op {
-                TransactionOp::Set { id, value } => {
-                    deduped.insert(id.clone(), (value.clone(), Vec::new()));
+                TransactionOp::Set {
+                    id,
+                    value,
+                    aspect,
+                    aspects,
+                } => {
+                    deduped.insert(
+                        id.clone(),
+                        (
+                            value.clone(),
+                            Vec::new(),
+                            resolve_change_aspects(*aspect, aspects.as_ref())?,
+                        ),
+                    );
                 }
                 TransactionOp::SetWithRegions {
                     id,
                     value,
                     changed_regions,
+                    aspect,
+                    aspects,
                 } => {
-                    deduped.insert(id.clone(), (value.clone(), changed_regions.clone()));
+                    deduped.insert(
+                        id.clone(),
+                        (
+                            value.clone(),
+                            changed_regions.clone(),
+                            resolve_change_aspects(*aspect, aspects.as_ref())?,
+                        ),
+                    );
                 }
                 TransactionOp::SetMany { values } => {
                     for value in values {
-                        deduped.insert(value.id.clone(), (value.value.clone(), Vec::new()));
+                        deduped.insert(
+                            value.id.clone(),
+                            (
+                                value.value.clone(),
+                                Vec::new(),
+                                resolve_change_aspects(value.aspect, value.aspects.as_ref())?,
+                            ),
+                        );
                     }
                 }
                 TransactionOp::SetManyWithRegions { values } => {
                     for value in values {
                         deduped.insert(
                             value.id.clone(),
-                            (value.value.clone(), value.changed_regions.clone()),
+                            (
+                                value.value.clone(),
+                                value.changed_regions.clone(),
+                                resolve_change_aspects(value.aspect, value.aspects.as_ref())?,
+                            ),
                         );
                     }
                 }
@@ -2445,7 +2785,14 @@ impl RuntimeCore {
                             &value.key,
                             Some(value.value.clone()),
                         )?;
-                        deduped.insert(id, (value.value.clone(), Vec::new()));
+                        deduped.insert(
+                            id,
+                            (
+                                value.value.clone(),
+                                Vec::new(),
+                                resolve_change_aspects(value.aspect, value.aspects.as_ref())?,
+                            ),
+                        );
                     }
                 }
                 TransactionOp::SetPackedGridRgba {
@@ -2462,22 +2809,29 @@ impl RuntimeCore {
                         )));
                     }
                     self.ensure_dense_rgba_grid(family_id, *width, *height)?;
+                    let produced_aspects = self
+                        .dense_grids
+                        .get(family_id)
+                        .map(|family| family.produced_aspects.clone())
+                        .unwrap_or_else(|| vec![DEFAULT_ASPECT]);
                     packed.push(SetChange::DenseGridRgba {
                         family_id: family_id.clone(),
                         rgba: rgba.clone(),
+                        aspects: produced_aspects,
                     });
                 }
             }
         }
         let mut normalized = deduped
             .into_iter()
-            .map(|(id, (value, changed_regions))| {
+            .map(|(id, (value, changed_regions, aspects))| {
                 let node = self.node_for_id(&id)?;
                 Ok(SetChange::Source {
                     id,
                     value,
                     node,
                     changed_regions,
+                    aspects,
                 })
             })
             .collect::<Result<Vec<_>, ForgeSignalJsError>>()?;
@@ -2517,7 +2871,7 @@ impl RuntimeCore {
             metadata: self.snapshot_branch_metadata(),
             store: self
                 .lock_store()
-                .map(|store| store.snapshot())
+                .map(|store| store.snapshot(&self.catalog))
                 .unwrap_or_default(),
         }
     }
@@ -2588,10 +2942,12 @@ enum SetChange {
         value: SignalValue,
         node: NodeId,
         changed_regions: Vec<ChangedRegion>,
+        aspects: Vec<Aspect>,
     },
     DenseGridRgba {
         family_id: String,
         rgba: Vec<u8>,
+        aspects: Vec<Aspect>,
     },
 }
 
@@ -2669,6 +3025,11 @@ fn merge_branch_store(
                 id: target_id,
                 value: source_value.value.clone(),
                 version: source_value.version,
+                produces_aspects: None,
+                aspect_versions: vec![AspectVersionSummary {
+                    aspect: DEFAULT_ASPECT.id(),
+                    version: source_value.version,
+                }],
             },
         );
     }
@@ -2734,9 +3095,7 @@ fn evaluate_node(
         .map_err(|_| SignalError::internal("runtime store mutex poisoned"))?;
 
     if let Some(source) = locked.sources.get(id) {
-        return Ok(view.finish(NodeEvaluationResult::from_version(
-            AspectVersion::from_updates([(DEFAULT_ASPECT, source.version)]),
-        )));
+        return Ok(view.finish(NodeEvaluationResult::from_version(source.version)));
     }
 
     let reads = locked
@@ -2759,13 +3118,17 @@ fn evaluate_node(
                 read.id()
             )));
         };
-        match read.scope() {
-            Some(scope) => {
-                let _ =
-                    view.read_partitioned_aspect_version(read_node, DEFAULT_ASPECT, scope.clone())?;
-            }
-            None => {
-                let _ = view.read_aspect_version(read_node, DEFAULT_ASPECT)?;
+        let aspects = resolve_selected_aspects(read.aspect_spec())
+            .map_err(|err| SignalError::invalid_input(err.message))?;
+        for aspect in aspects {
+            match read.scope() {
+                Some(scope) => {
+                    let _ =
+                        view.read_partitioned_aspect_version(read_node, aspect, scope.clone())?;
+                }
+                None => {
+                    let _ = view.read_aspect_version(read_node, aspect)?;
+                }
             }
         }
         let value = locked.read_value(read.id()).ok_or_else(|| {
@@ -2786,11 +3149,7 @@ fn evaluate_node(
     if let Some(condition) = &recipe.spec.when {
         match env.evaluate(&condition.expr) {
             Ok(SignalValue::Bool(false)) if recipe.initialized => {
-                let mut result =
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-                        DEFAULT_ASPECT,
-                        recipe.version,
-                    )]))
+                let mut result = NodeEvaluationResult::from_version(recipe.version)
                     .with_output_change(OutputChange::Unchanged);
                 if let Some(identity) = &recipe.output_identity {
                     result = result.with_output_identity(identity.clone());
@@ -2812,6 +3171,7 @@ fn evaluate_node(
         .map_err(|err| SignalError::invalid_input(err.message))?;
     let next_identity = resolve_identity(&recipe.spec.identity, &env, &next_value)
         .map_err(|err| SignalError::invalid_input(err.message))?;
+    let produced_aspects = defaulted_produced_aspects(recipe.spec.produces_aspects.as_deref());
 
     let output_change = if !recipe.initialized {
         OutputChange::Replaced
@@ -2824,17 +3184,14 @@ fn evaluate_node(
     };
 
     if !recipe.initialized || !matches!(output_change, OutputChange::Unchanged) {
-        recipe.version = recipe.version.saturating_add(1);
+        recipe.version = bump_aspects(recipe.version, &produced_aspects);
         recipe.value = next_value;
         recipe.initialized = true;
         recipe.output_identity = next_identity.clone();
     }
 
-    let mut result = NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-        DEFAULT_ASPECT,
-        recipe.version,
-    )]))
-    .with_output_change(output_change);
+    let mut result =
+        NodeEvaluationResult::from_version(recipe.version).with_output_change(output_change);
     if let Some(identity) = next_identity {
         result = result.with_output_identity(identity);
     }
