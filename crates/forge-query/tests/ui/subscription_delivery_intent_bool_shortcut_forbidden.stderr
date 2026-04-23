@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `from_fallback_bool` found for enum `QuerySubscriptionDeliveryIntent` in the current scope
+ --> tests/ui/subscription_delivery_intent_bool_shortcut_forbidden.rs:4:54
+  |
+4 |     let _delivery = QuerySubscriptionDeliveryIntent::from_fallback_bool(true);
+  |                                                      ^^^^^^^^^^^^^^^^^^ variant or associated item not found in `QuerySubscriptionDeliveryIntent`

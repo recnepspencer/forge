@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/subscription_raw_bridge_declaration_activation_forbidden.rs:7:55
+  |
+7 |     let _activation = prepare_subscription_activation(raw_bridge);
+  |                       ------------------------------- ^^^^^^^^^^ expected `QuerySubscriptionAdmissionArtifact`, found `BridgeSubscriptionDeclarationFamilyKind`
+  |                       |
+  |                       arguments to this function are incorrect
+  |
+note: function defined here
+ --> src/subscription/activation.rs
+  |
+  | pub fn prepare_subscription_activation(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

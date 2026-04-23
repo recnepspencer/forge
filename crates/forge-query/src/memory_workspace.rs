@@ -483,7 +483,8 @@ impl ForgeQueryMemoryApp {
                 let member = get_json_path(&entity.payload, &identity_path)
                     .and_then(json_scalar_text)
                     .unwrap_or(entity.identity);
-                let lane = get_json_path(&entity.payload, &grouping_path).and_then(json_scalar_text)?;
+                let lane =
+                    get_json_path(&entity.payload, &grouping_path).and_then(json_scalar_text)?;
                 Some((member, lane))
             })
             .collect::<Vec<_>>();

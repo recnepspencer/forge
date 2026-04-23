@@ -1,0 +1,9 @@
+error: cannot construct `QuerySubscriptionFamilySelection` with struct literal syntax due to private fields
+ --> tests/ui/subscription_family_selection_constructor_private.rs:4:23
+  |
+4 |     let _fabricated = QuerySubscriptionFamilySelection {
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         family: QuerySubscriptionFamily::DetailExact,
+  |         -------------------------------------------- private field
+  |
+  = note: ...and other private fields that were not provided

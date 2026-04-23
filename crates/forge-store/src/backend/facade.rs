@@ -9,6 +9,7 @@ mod maintenance;
 mod opening;
 mod publication;
 mod snapshots;
+mod subscription_support;
 mod support;
 mod tiering;
 

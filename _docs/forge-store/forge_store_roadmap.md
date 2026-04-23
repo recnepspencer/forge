@@ -9,6 +9,11 @@ the Forge runtime durable without weakening authority boundaries, replay,
 branch semantics, lineage semantics, live-query semantics,
 subscription-support semantics, or recovery honesty.
 
+This roadmap is extended by
+[forge_store_roadmap_2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap_2.md),
+which defines the physical database foundation gate required after the `13.x`
+subscription-support arc and before the post-13.3 platform milestones continue.
+
 The operating rule is:
 
 `persist canonical authority once, parallelize derived storage work around it`
@@ -64,6 +69,10 @@ then the store has failed.
 - Security, authenticity, backup/restore, and disaster-recovery posture must
   appear as explicit milestone scope somewhere in the roadmap rather than
   remaining implied by integrity language.
+- The post-13.3 platform roadmap is gated by Roadmap 2. `Milestone 14` and
+  later platform claims may not proceed as platform-grade work until the
+  physical database foundation sequences `S.0` through `S.12` are closed or
+  explicitly scoped as non-platform-grade debt.
 - Extensibility must never weaken authority, replay, compatibility, retention,
   or certification boundaries.
 - Tenant isolation, quota enforcement, and blast-radius control must remain
@@ -95,8 +104,8 @@ Critical path:
   `Milestone 3.6` -> (`Milestone 4` and `Milestone 5`) -> `Milestone 6` ->
   `Milestone 7` -> (`Milestone 8` and `Milestone 10`) -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 13.1` -> `Milestone 13.2` ->
-  `Milestone 13.3` -> `Milestone 14` -> `Milestone 15` -> `Milestone 20` ->
-  `Milestone 22` -> certification
+  `Milestone 13.3` -> `Roadmap 2 S.0-S.12` -> `Milestone 14` ->
+  `Milestone 15` -> `Milestone 20` -> `Milestone 22` -> certification
 
 Parallel tracks:
 
@@ -127,6 +136,11 @@ Parallel tracks:
 - `Milestone 16`, `Milestone 17`, `Milestone 18`, and `Milestone 19` are late
   platform programs and can progress in parallel once replication, integrity,
   and rebuild contracts are stable.
+- Roadmap 2 `S.0` through `S.12` are not optional parallel polish. They form a
+  physical database foundation gate between `Milestone 13.3` and
+  `Milestone 14`. Drafting and audit work may overlap with late `13.x`
+  cleanup, but platform-grade implementation and closeout of later milestones
+  must consume the Roadmap 2 foundation.
 
 ## Milestone 1: Canonical Commit Persistence And Artifact Authority
 
@@ -151,7 +165,9 @@ must all converge to the same commit history, branch heads, and replay truth.
 - explicit durable artifact classification
 - persistence of canonical commit envelopes, version DAG records, branch heads,
   and ordered parent metadata
-- backend abstraction with a production-grade embedded backend baseline
+- backend abstraction with an embedded backend baseline whose physical
+  capability tier is later reconciled by Roadmap 2 `S.0`; no backend may claim
+  platform-grade physical database posture until Roadmap 2 gates are satisfied
 - canonical digest and identity surfaces for authoritative artifacts
 
 ### Must Preserve
@@ -955,6 +971,10 @@ work units.
 
 ## Milestone 13.1: Durable Subscription Support Artifacts And Resume Contracts
 
+Engineering spec: [milestone-13.1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13.1.md)
+
+Closeout: [milestone-13.1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13.1-closeout.md)
+
 ### Goal
 
 Make first-class subscription-support artifacts durable and basis-exact so the
@@ -1028,6 +1048,8 @@ Can begin immediately after Milestone 13 because it mostly reclassifies and
 stabilizes support artifacts that later milestones must treat explicitly.
 
 ## Milestone 13.2: Subscription Support Through Retention, Compatibility, Replication, And Maintenance
+
+Engineering spec: [milestone-13.2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13.2.md)
 
 ### Goal
 
@@ -1170,31 +1192,44 @@ and artifact identities as the original store, even for partial scopes.
 - snapshot-plus-tail replication
 - partial branch and bounded artifact-range replication
 - admitted subscription-support artifact replication and capsule inclusion
-- cross-artifact digest graph or equivalent integrity surface
+- cross-artifact digest graph or equivalent integrity surface over the Roadmap
+  2 physical page/frame/chunk integrity substrate
 - integrity-audit rebuild mode
+- capsule manifests that reference stable physical chunks, pages, or logical
+  artifact ranges without depending on backend-local heap rows
+- replication verification that composes physical checksums with logical
+  artifact digests
 
 ### Must Preserve
 
 - replication ships canonical artifact meaning, not backend-local layout
 - partial replication stays explicit about what it includes and excludes
+- replication does not bypass Roadmap 2 chunk, manifest, integrity, and offline
+  verification rules
 
 ### Complexity / Proof Obligations
 
 - name capsule-build, replication-apply, and integrity-audit contracts
 - expose exact counters for shipped artifacts, verified digests, and partial
   scope omissions
+- expose exact counters for physical chunks/pages verified, streamed bytes,
+  omitted physical ranges, and target-side admission rejections
 
 ### Allowed Debt
 
 - replication acceleration paths may remain `Debt`; replication parity cannot
+- replication over bootstrap heap/file backends may remain compatibility debt;
+  it may not be called platform-grade replication
 
 ### Sequencing Notes
 
-This belongs after retention and rebuild rules are stable.
+This belongs after retention and rebuild rules are stable and after Roadmap 2
+has established physical pages/chunks, integrity, bounded streaming, offline
+verification, and backup/repair posture.
 
 ### Parallelization Notes
 
-Depends on `Milestone 10` and `Milestone 8`.
+Depends on `Milestone 10`, `Milestone 8`, and Roadmap 2 `S.0` through `S.12`.
 
 ## Milestone 15: Extensible Durable Artifact Families And Storage Strategies
 
@@ -1226,12 +1261,17 @@ skip retention policy, or evade compatibility and certification boundaries.
 - storage-strategy containment rules
 - extension authenticity and trust-boundary rules for shipped artifacts
 - machine-checkable extension-family certification and rejection surfaces
+- storage-strategy registration against Roadmap 2 physical layout, integrity,
+  recovery, I/O, security, and certification capability tiers
 
 ### Must Preserve
 
 - extensions may not create authoritative truth families
 - extensions may not bypass replay, rebuild, retention, or compatibility rules
 - extensibility changes platform breadth, not authority shape
+- extensions may not weaken the physical database substrate, bypass buffer-pool
+  budgets, skip page/frame/chunk integrity, or claim unsupported backend
+  capabilities
 
 ### Complexity / Proof Obligations
 
@@ -1239,21 +1279,27 @@ skip retention policy, or evade compatibility and certification boundaries.
   contracts
 - expose exact counters for extension-family rebuilds, typed extension-family
   rejection, stale-extension detection, and extension-caused fallback breadth
+- expose exact counters for extension storage-strategy admission, physical
+  capability rejection, and unsupported integrity/recovery/I/O posture
 
 ### Allowed Debt
 
 - additional extension ergonomics may remain `Debt`; extension containment and
   declared contracts may not
+- extension-defined physical storage strategies may remain absent; admitted
+  strategies may not bypass Roadmap 2 capability gates
 
 ### Sequencing Notes
 
 This belongs after replication/integrity and compatibility rules are explicit,
 because extensibility without those guardrails would harden drift into the
-platform.
+platform. It also belongs after Roadmap 2 because extensible storage strategies
+must attach to a real physical substrate rather than to bootstrap persistence
+paths.
 
 ### Parallelization Notes
 
-Can begin once `Milestone 12` and `Milestone 14` are stable.
+Can begin once `Milestone 12`, Roadmap 2, and `Milestone 14` are stable.
 
 ## Milestone 16: Time-Travel Diff Acceleration And Merge-Assistance Artifacts
 
@@ -1438,8 +1484,9 @@ Can run in parallel with `Milestone 16`, `Milestone 17`, and `Milestone 18`.
 
 ### Goal
 
-Make content-addressed blob/object storage a native store capability without
-splitting the system into "truth store plus external file server."
+Expand the Roadmap 2 native chunk/object substrate into the full product-facing
+blob/object storage capability without splitting the system into "truth store
+plus external file server."
 
 ### Adversarial Constraint
 
@@ -1448,7 +1495,8 @@ references without creating a second retention or replication system.
 
 ### Must Ship
 
-- content-addressed blob/object storage
+- product-facing content-addressed blob/object storage built on Roadmap 2
+  `S.7`
 - tiered blob placement: inline, external, cold
 - typed blob references from entities, commits, and branches
 - typed blob references from admitted subscription-support artifacts where the
@@ -1456,30 +1504,40 @@ references without creating a second retention or replication system.
 - blob retention and reclaim integrated with the store retention model
 - blob replication and capsule export/import integration
 - authoritative-versus-derived blob classification
+- blob API, policy, and replication surfaces that preserve Roadmap 2 chunk-tree,
+  streaming, checksum, reachability, and constant-memory guarantees
 
 ### Must Preserve
 
 - blob references remain explicit typed artifacts
 - blob storage does not create a second replication or retention system
+- Milestone 20 does not introduce the physical blob substrate; it consumes the
+  Roadmap 2 substrate and exposes the product-level artifact model
 
 ### Complexity / Proof Obligations
 
 - name blob fetch, blob tier move, and blob dedup contracts
 - expose exact counters for blob dedup hits, tier reads, and orphan-reclaim
   breadth
+- expose exact counters for chunk-tree traversals, streamed bytes, retained
+  chunks, reclaimed chunks, referenced primary blobs, and derived blob rebuilds
 
 ### Allowed Debt
 
 - optional blob-serving fast paths may remain `Debt`; blob identity parity may
   not
+- product-serving ergonomics may remain `Debt`; Roadmap 2 constant-memory,
+  chunk-integrity, resumability, and reachability guarantees may not
 
 ### Sequencing Notes
 
-This belongs after retention and replication semantics are stable.
+This belongs after retention and replication semantics are stable and after
+Roadmap 2 `S.7` has made blob chunks a native physical database substrate.
 
 ### Parallelization Notes
 
-Can begin in parallel with late `Milestone 17` through `Milestone 19`.
+Can begin in parallel with late `Milestone 17` through `Milestone 19` only after
+Roadmap 2's physical blob substrate is stable.
 
 ## Milestone 21: Admission Control And Budget Contracts
 
@@ -1506,6 +1564,13 @@ before they become silent correctness or performance failures.
   - rebuild debt
   - WAL growth
   - blob footprint by tier
+  - resident pages and bytes
+  - pinned pages
+  - dirty pages
+  - WAL tail and recovery time
+  - page, frame, segment, extent, and chunk footprint
+  - foreground I/O reservation and background interference
+  - read amplification and write amplification
 - typed admission-control surfaces and rejection diagnostics
 - budget visibility surfaces for operators and certification
 - policy hooks for archive, compact, defer, deny, or explicit degradation
@@ -1514,12 +1579,17 @@ before they become silent correctness or performance failures.
 
 - admission control does not redefine truth semantics
 - no hidden eviction of authoritative truth
+- physical resource pressure may not fall through into OOM, unbounded recovery,
+  unbounded compaction debt, or unbounded foreground interference
 
 ### Complexity / Proof Obligations
 
 - name budget-check and admission-decision contracts
 - expose exact counters for rejections, deferrals, degradation choices, and
   policy-trigger causes
+- expose exact counters for Roadmap 2 physical budget triggers, including
+  resident-byte, dirty-page, pinned-page, WAL-tail, I/O-queue, chunk-footprint,
+  and latency-interference triggers
 
 ### Allowed Debt
 
@@ -1527,13 +1597,13 @@ before they become silent correctness or performance failures.
 
 ### Sequencing Notes
 
-This belongs late because budget contracts must know the real artifact families
-and tiers they govern.
+This belongs late because budget contracts must know the real artifact families,
+physical pages/chunks, I/O classes, recovery envelope, and tiers they govern.
 
 ### Parallelization Notes
 
 Can proceed in parallel with late `Milestone 20`, but should close after major
-artifact families and tiers are known.
+artifact families, Roadmap 2 physical budgets, and tiers are known.
 
 ## Milestone 22: Operator Repair, Audit, And Forensic Recovery Tooling
 
@@ -1551,7 +1621,8 @@ admissible without reading ambiguous logs or improvising on production data.
 
 ### Must Ship
 
-- offline audit and integrity-walk surfaces
+- offline audit and integrity-walk surfaces built on Roadmap 2 offline verifier
+  and physical integrity reports
 - repair-plan generation and typed repair-action contracts
 - quarantine and salvage modes
 - explicit trusted-truth / degraded-derived reporting
@@ -1560,6 +1631,8 @@ admissible without reading ambiguous logs or improvising on production data.
 - machine-checkable forensic bundles for operator and certification use
 - tenant-scoped blast-radius and quota diagnostics for repair and recovery work
 - authenticity-aware audit surfaces in addition to raw integrity reporting
+- backup, PITR, physical corruption, tenant, key, and audit-chain repair
+  conclusions that consume Roadmap 2 operational safety and security evidence
 
 ### Must Preserve
 
@@ -1567,12 +1640,17 @@ admissible without reading ambiguous logs or improvising on production data.
 - operator actions must remain auditable artifacts
 - tenant isolation and quota boundaries remain visible during repair and
   recovery
+- operator repair may not reinterpret damaged physical bytes after Roadmap 2
+  has quarantined or rejected them
 
 ### Complexity / Proof Obligations
 
 - name audit-walk, repair-plan, and quarantine contracts
 - expose exact counters for audited artifacts, proposed repairs, quarantined
   families, tenant-scoped repair actions, and operator-visible degraded states
+- expose exact counters for verified pages/chunks, offline verifier findings,
+  PITR candidates, key-scope failures, audit-chain failures, and physical
+  quarantine boundaries
 
 ### Allowed Debt
 
@@ -1581,11 +1659,14 @@ admissible without reading ambiguous logs or improvising on production data.
 ### Sequencing Notes
 
 This belongs before final certification because trust-grade systems need
-operator-grade recovery and forensic truth, not just internal correctness.
+operator-grade recovery and forensic truth, not just internal correctness. It
+must consume Roadmap 2 `S.10` and `S.11` rather than inventing repair after
+platform features exist.
 
 ### Parallelization Notes
 
-Can progress alongside late `Milestone 21`, but must close before certification.
+Can progress alongside late `Milestone 21`, but must close after Roadmap 2
+operational safety and security evidence is available and before certification.
 
 ## Milestone 23: Generic Store Certification Program
 
@@ -1614,6 +1695,10 @@ mode, and admitted fast path the store claims to support.
 - bulk ingest/transform parity
 - budget/admission-control honesty
 - replay-equivalence across recovery modes, not just within each mode
+- Roadmap 2 physical database certification, including bounded memory,
+  page/frame/chunk integrity, LSN/checkpoint recovery, physical isolation,
+  I/O/QoS behavior, blob-scale streaming, operational safety, security, and
+  hazard-analysis evidence
 
 Each certification run must emit machine-checkable artifact bundles.
 
@@ -1634,6 +1719,9 @@ meant to serve.
   diff support
 - chip/history durability with snapshot-safe analysis restore and locality-aware
   materialization
+- domain-scale physical evidence from Roadmap 2, including geometry/CAD blob
+  streaming, web/data PITR and tenant isolation, AI workspace backup/restore,
+  and chip/simulation large-history recovery within declared envelopes
 
 ## Completion Standard
 
@@ -1655,6 +1743,9 @@ meant to serve.
 - all required named suites in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
   pass with machine-checkable evidence
+- Roadmap 2 `S.0` through `S.12` close with machine-checkable physical database
+  evidence, or any remaining gaps are explicitly named as non-platform-grade
+  debt
 - beta readiness additionally requires all cross-cutting beta suites in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
   to pass with machine-checkable evidence
@@ -1664,11 +1755,16 @@ meant to serve.
 - tenant isolation, quota boundaries, authenticity checks, backup/restore, and
   disaster-recovery posture are explicit platform contracts rather than
   implied side effects of lower-level integrity work
+- no platform-grade backend depends on full-store heap materialization,
+  serde-loaded domain objects, backend-private residue guessing, unbounded
+  memory residency, or unverified OS writeback behavior
 
 ## Companion Documents
 
 - [forge_store_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_vision.md)
+- [forge_store_roadmap_2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap_2.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements.md)
+- [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 - [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 - [MENTALITY.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/coding_guidelines/MENTALITY.md)

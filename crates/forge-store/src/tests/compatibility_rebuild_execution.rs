@@ -99,7 +99,9 @@ fn compatibility_triggered_rebuild_matches_certification_lane_evidence() {
             .maintenance_compatibility_rebuild_admission_count
     );
     assert_eq!(
-        outcome.admission_report().derived_maintenance_summary_rebuild_count,
+        outcome
+            .admission_report()
+            .derived_maintenance_summary_rebuild_count,
         admitted_lane
             .counters()
             .derived_maintenance_summary_rebuild_count

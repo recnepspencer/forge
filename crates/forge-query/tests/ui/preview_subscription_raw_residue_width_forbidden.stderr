@@ -1,0 +1,18 @@
+error[E0308]: arguments to this function are incorrect
+ --> tests/ui/preview_subscription_raw_residue_width_forbidden.rs:4:13
+  |
+4 |     let _ = measure_preview_subscription_residue(0, 0, 0, 0, 0, 1, 1);
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -  -  -  -  -  -  - expected `PreviewResidueWidth`, found integer
+  |                                                  |  |  |  |  |  |
+  |                                                  |  |  |  |  |  expected `PreviewResidueWidth`, found integer
+  |                                                  |  |  |  |  expected `PreviewResidueWidth`, found integer
+  |                                                  |  |  |  expected `PreviewResidueWidth`, found integer
+  |                                                  |  |  expected `PreviewResidueWidth`, found integer
+  |                                                  |  expected `PreviewResidueWidth`, found integer
+  |                                                  expected `PreviewResidueWidth`, found integer
+  |
+note: function defined here
+ --> src/subscription/preview_isolation.rs
+  |
+  | pub fn measure_preview_subscription_residue(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

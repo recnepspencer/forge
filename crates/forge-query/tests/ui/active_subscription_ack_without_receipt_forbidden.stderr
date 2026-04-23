@@ -1,0 +1,23 @@
+warning: unreachable expression
+ --> tests/ui/active_subscription_ack_without_receipt_forbidden.rs:5:73
+  |
+5 |     let _ = advance_subscription_acknowledgement(&mut runtime, todo!(), "no-receipt");
+  |                                                                -------  ^^^^^^^^^^^^ unreachable expression
+  |                                                                |
+  |                                                                any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/active_subscription_ack_without_receipt_forbidden.rs:5:73
+  |
+5 |     let _ = advance_subscription_acknowledgement(&mut runtime, todo!(), "no-receipt");
+  |             ------------------------------------                        ^^^^^^^^^^^^ expected `QueryDeliveryBatchReceipt`, found `&str`
+  |             |
+  |             arguments to this function are incorrect
+  |
+note: function defined here
+ --> src/subscription/active_runtime.rs
+  |
+  | pub fn advance_subscription_acknowledgement(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

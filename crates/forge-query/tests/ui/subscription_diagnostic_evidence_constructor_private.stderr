@@ -1,0 +1,17 @@
+error[E0451]: fields `stage`, `outcome`, `reason`, `source_digest`, `counter_digest` and `digest` of struct `QuerySubscriptionDiagnosticEvidence` are private
+  --> tests/ui/subscription_diagnostic_evidence_constructor_private.rs:8:9
+   |
+ 7 |     let _fabricated = QuerySubscriptionDiagnosticEvidence {
+   |                       ----------------------------------- in this type
+ 8 |         stage: QuerySubscriptionDiagnosticStage::Declaration,
+   |         ^^^^^ private field
+ 9 |         outcome: QuerySubscriptionDiagnosticOutcome::Denied,
+   |         ^^^^^^^ private field
+10 |         reason: String::new(),
+   |         ^^^^^^ private field
+11 |         source_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+12 |         counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+13 |         digest: String::new(),
+   |         ^^^^^^ private field

@@ -5,6 +5,11 @@
 This document defines the certification-grade store test requirements for
 `forge-store`.
 
+Roadmap 2 physical certification is additionally governed by
+[test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md),
+which defines the adversarial simulation harness requirements needed to make
+the `S.*` suites realistic rather than minimum-effective-dose tests.
+
 Unlike the bridge document, this one begins at Milestone 1 because Forge Store
 does not yet have an earlier shipped foundation whose proof obligations are
 already closed elsewhere.
@@ -13,6 +18,7 @@ It governs milestone closeout for:
 
 - Milestone 1 through Milestone 22, including Milestone 3.5, Milestone 3.6,
   and Milestones 13.1 through 13.3
+- Roadmap 2 storage-foundation sequences `S.0` through `S.12`
 - the generic certification program in Milestone 23
 - the domain certification program in Milestone 24
 
@@ -39,6 +45,9 @@ The store is making much stronger claims:
 - replication and import/export preserve canonical truth
 - derived artifacts remain honest about accuracy and rebuildability
 - budget controls fail explicitly instead of allowing silent degradation
+- physical storage does not rely on full-store heap materialization,
+  serde-loaded domain objects, backend-private residue guessing, unbounded
+  memory, or unverified OS writeback behavior
 
 Those are adversarial claims. They need certification tests, not only behavior
 checks.
@@ -113,6 +122,9 @@ Every named suite must include all applicable assertion classes:
 - typed-failure assertions for rejected lanes
 - zero-or-absence assertions for forbidden residue, forbidden fallback, or
   forbidden authority drift
+- resource-envelope assertions for physical lanes: resident bytes, pinned pages,
+  dirty pages, allocation count, WAL tail, recovery time, foreground
+  interference, read amplification, write amplification, and streamed bytes
 
 ### Certification Bundle Rules
 
@@ -129,6 +141,13 @@ the fields appropriate to the suite's scope, including from this common pool:
 - `diagnostics_digest`
 - `failure_digest`
 - `counter_snapshot`
+- `physical_layout_report`
+- `resource_envelope_report`
+- `latency_envelope_report`
+- `corruption_localization_matrix`
+- `hardware_assumption_report`
+- `formal_model_report`
+- `hazard_analysis_report`
 
 The exact bundle shape may vary by suite, but it must be sufficient for offline
 evaluation of pass/fail without ambient runtime state.
@@ -150,6 +169,13 @@ The following do not count as certification:
 - using logs as the primary proof artifact
 - validating only a happy-path lane
 - validating only a failure lane with no control basis
+- using the same in-memory object graph as both writer and verifier
+- proving physical behavior only through a backend that does not exercise the
+  physical page/frame/chunk path
+- testing large objects or large stores with inputs smaller than the declared
+  memory budget
+- accepting deserialization failure as corruption localization
+- accepting elapsed-time-only benchmarks without explanatory structural counters
 
 ## Milestone-To-Suite Map
 
@@ -184,6 +210,516 @@ The following do not count as certification:
 | M22 | Operator repair, audit, and forensic recovery test |
 
 Each milestone is not closeable until its required named suite passes.
+
+## Roadmap 2 Storage-Foundation Suite Map
+
+Roadmap 2 sequences are closeout gates for the physical database substrate.
+They are not optional beta polish and they are not satisfied by the original
+milestone suites unless the physical evidence below is emitted.
+
+| Sequence | Required Named Suite(s) |
+| --- | --- |
+| S.0 | Shipped store capability reclassification test |
+| S.1 | Physical page/segment/extent substrate test |
+| S.2 | Buffer-pool and bounded-memory certification test |
+| S.3 | Physical integrity and corruption-localization test |
+| S.4 | WAL/checkpoint/LSN recovery-physics test |
+| S.5 | Physical isolation and stable-read-plan interleaving test |
+| S.6 | Hardware-aware I/O and foreground-QoS test |
+| S.7 | Native blob chunk-store streaming and retention test |
+| S.8 | Index/layout/access-path amplification test |
+| S.9 | Formal model conformance test |
+| S.10 | Operational safety, PITR, offline-verifier, and forensics test |
+| S.11 | Security, tenant-boundary, key, and auditability test |
+| S.12 | Physical database certification and performance program |
+
+Each Roadmap 2 suite must include:
+
+- `control_lane`: clean physical execution under declared backend assumptions
+- `hostile_lane`: physical fault, pressure, or interleaving condition
+- `reopen_lane`: reopen from persisted bytes, not from live heap state
+- `offline_verifier_lane`: where applicable, verification without trusting the
+  live store runtime
+- `semantic_parity_lane`: compare logical truth against canonical authority
+  after physical execution
+- `forbidden_shortcut_lane`: prove the implementation did not satisfy the suite
+  through heap materialization, backend residue guessing, unbounded allocation,
+  or unsupported backend capability
+
+Every Roadmap 2 suite must emit at least:
+
+- `artifact_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `physical_layout_report`
+- `resource_envelope_report`
+- `hardware_assumption_report`
+
+Additional outputs are required where the suite names corruption, latency,
+formal modeling, hazard analysis, security, or operator repair.
+
+### S.0. Shipped Store Capability Reclassification Test
+
+Purpose
+
+Prove that already-shipped Store milestones and backends are classified
+honestly before physical foundation work starts.
+
+Scenario
+
+- audit Milestones 1 through 13.3 and their closeouts
+- classify each backend as bootstrap, semantic-certification, compatibility,
+  physical-foundation, or platform-grade
+- identify every claim that implies physical database behavior
+
+Must verify
+
+- semantic guarantees remain listed separately from physical guarantees
+- no heap-shaped backend is described as platform-grade
+- every deferred physical guarantee maps to Roadmap 2 `S.*`
+
+Required verification output
+
+- `capability_tier_matrix`
+- `semantic_physical_claim_report`
+- `deferred_physical_guarantee_map`
+- `counter_snapshot`
+
+Pass condition
+
+The existing roadmap and closeout language can be read without implying that
+bootstrap persistence is already the platform-grade physical database.
+
+### S.1. Physical Page/Segment/Extent Substrate Test
+
+Purpose
+
+Prove that the platform-grade backend persists and locates records through the
+physical page/segment/extent substrate.
+
+Scenario
+
+- write representative authoritative and derived artifacts
+- close and reopen the store
+- scan and locate records by physical identifiers
+- attempt the same lanes with full-store heap materialization disabled
+
+Must verify
+
+- records are persisted, reopened, scanned, and located through physical ids
+- page/frame headers, generation counters, root manifests, and free-space
+  structures are present and internally consistent
+- stale generations are detected
+- heap-shaped paths are excluded from the platform-grade backend tier
+
+Required verification output
+
+- `physical_layout_report`
+- `artifact_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+The backend can perform required physical operations through pages, segments,
+extents, frames, and manifests without whole-store domain deserialization.
+
+### S.2. Buffer-Pool And Bounded-Memory Certification Test
+
+Purpose
+
+Prove that stores larger than memory operate inside declared resident-memory and
+allocation budgets.
+
+Scenario
+
+- configure a memory budget smaller than the test store
+- perform reads, writes, reopen, recovery, compaction planning, scrub, and blob
+  streaming
+- inject pressure through pinned pages, dirty pages, and eviction churn
+
+Must verify
+
+- resident bytes, pinned pages, dirty pages, and allocations stay within budget
+- admitted hot paths meet zero-allocation or exact-allocation contracts
+- pressure produces defer, deny, eviction, or pacing outcomes before OOM
+
+Required verification output
+
+- `resource_envelope_report`
+- `counter_snapshot`
+- `failure_digest`
+
+Pass condition
+
+The store remains operational and bounded when physical data exceeds the
+configured memory envelope.
+
+### S.3. Physical Integrity And Corruption-Localization Test
+
+Purpose
+
+Prove that damaged bytes fail at the physical boundary before logical decode.
+
+Scenario
+
+Inject corruption into:
+
+- page headers
+- frame payloads
+- WAL frames
+- segment manifests
+- index pages
+- blob chunks
+- generation counters
+
+Must verify
+
+- every corruption class localizes to the correct physical boundary
+- logical decoders are skipped for damaged physical bytes
+- rebuildable derived damage and damaged authority are distinguished
+- quarantine records and repair inputs are emitted
+
+Required verification output
+
+- `corruption_localization_matrix`
+- `failure_digest`
+- `physical_layout_report`
+- `counter_snapshot`
+
+Pass condition
+
+Physical damage is detected and localized before semantic interpretation.
+
+### S.4. WAL/Checkpoint/LSN Recovery-Physics Test
+
+Purpose
+
+Prove that recovery follows WAL, pageLSN, checkpoint, and flush-ordering rules.
+
+Scenario
+
+Crash at least around:
+
+- WAL append
+- data-page flush
+- checkpoint manifest write
+- checkpoint manifest cutover
+- compaction cutover
+- acknowledgment
+- directory or rename durability boundary
+
+Must verify
+
+- acknowledged writes recover exactly once
+- unacknowledged partial publications are rejected or completed through typed
+  rules
+- recovery is bounded by checkpoint interval and WAL tail
+- replay is idempotent
+- no lane trusts backend residue as authority
+
+Required verification output
+
+- `restore_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `recovery_physics_report`
+
+Pass condition
+
+Crash recovery is deterministic, bounded, and physical-rule driven.
+
+### S.5. Physical Isolation And Stable-Read-Plan Interleaving Test
+
+Purpose
+
+Prove that physical readers remain stable while maintenance moves or rewrites
+storage.
+
+Scenario
+
+Run foreground reads during:
+
+- compaction
+- checkpointing
+- reclaim
+- tier movement
+- blob migration
+- restart during cutover
+
+Must verify
+
+- readers do not observe half-published roots
+- stale page generations reject or retry explicitly
+- protected pages/chunks are not reclaimed
+- latch, lease, epoch, and blocked-reclaim counters explain the interleaving
+
+Required verification output
+
+- `interleaving_matrix`
+- `failure_digest`
+- `counter_snapshot`
+- `physical_layout_report`
+
+Pass condition
+
+Maintenance changes cost or timing only; it does not make physical read plans
+observe unstable bytes.
+
+### S.6. Hardware-Aware I/O And Foreground-QoS Test
+
+Purpose
+
+Prove that physical backend capability tiers and foreground latency envelopes
+are real.
+
+Scenario
+
+Run foreground reads and writes while executing:
+
+- compaction
+- checkpointing
+- scrub
+- replication preparation
+- blob ingest
+- blob migration
+
+Exercise each admitted backend capability tier.
+
+Must verify
+
+- backend durability assumptions are declared and checked
+- unsupported capability claims fail typed
+- foreground wait and latency stay inside declared envelopes
+- background work yields, paces, or denies itself through explicit counters
+
+Required verification output
+
+- `latency_envelope_report`
+- `hardware_assumption_report`
+- `counter_snapshot`
+- `failure_digest`
+
+Pass condition
+
+Foreground behavior is protected by explicit I/O contracts, not OS scheduler
+hope.
+
+### S.7. Native Blob Chunk-Store Streaming And Retention Test
+
+Purpose
+
+Prove that blob storage is native, chunked, streaming, checksummed, resumable,
+deduped, and retention-safe.
+
+Scenario
+
+- stream a multi-GB blob through ingest, read, verify, export, and import
+- interrupt and resume writes
+- dedupe repeated content
+- corrupt individual chunks
+- move chunks across tiers
+- reclaim orphaned chunks
+- partially replicate blob-bearing artifacts
+
+Must verify
+
+- memory remains constant with respect to blob size
+- chunk checksums and content digests both verify
+- interrupted writes resume or reject typed
+- referenced chunks survive retention and orphaned chunks reclaim safely
+
+Required verification output
+
+- `artifact_digest`
+- `corruption_localization_matrix`
+- `resource_envelope_report`
+- `counter_snapshot`
+
+Pass condition
+
+Large blobs behave as native physical database objects, not sidecar files.
+
+### S.8. Index/Layout/Access-Path Amplification Test
+
+Purpose
+
+Prove that each artifact family has an honest physical layout and access-path
+cost model.
+
+Scenario
+
+- exercise point, range, prefix, scan, streaming, rebuild, and migration paths
+  for each admitted layout family
+- corrupt an index and rebuild from the declared authority basis
+- attempt broad scans where bounded indexes are required
+
+Must verify
+
+- layout family declarations match observed access paths
+- read and write amplification counters match expectations
+- broad scans are rejected where the roadmap requires bounded access
+- rebuilt indexes preserve semantic parity
+
+Required verification output
+
+- `physical_layout_report`
+- `counter_snapshot`
+- `artifact_digest`
+- `failure_digest`
+
+Pass condition
+
+Physical access paths are explicit, measured, and rebuildable.
+
+### S.9. Formal Model Conformance Test
+
+Purpose
+
+Prove that modeled physical state machines and implementation states remain
+aligned.
+
+Scenario
+
+For each required model, exercise implementation lanes that cover legal and
+illegal transitions:
+
+- WAL/checkpoint/page flush
+- recovery source precedence
+- compaction cutover
+- read leases and reclaim barriers
+- repair/quarantine transitions
+- replication/import admission where physical evidence matters
+
+Must verify
+
+- checked model artifacts exist
+- implementation states map to model states
+- illegal modeled transitions fail typed in code
+- certification lanes would fail if transition rules were weakened
+
+Required verification output
+
+- `formal_model_report`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Formal models are executable engineering constraints, not detached documents.
+
+### S.10. Operational Safety, PITR, Offline-Verifier, And Forensics Test
+
+Purpose
+
+Prove that damaged or restored stores can be inspected and repaired without
+trusting the live runtime.
+
+Scenario
+
+- create online backups
+- restore to point-in-time boundaries
+- damage pages, chunks, manifests, and derived families
+- run offline verifier
+- generate repair, quarantine, rollback, and forensic bundles
+
+Must verify
+
+- trusted authority, degraded derived artifacts, quarantined regions, and
+  unrecoverable damage are distinguished
+- PITR candidates are exact and bounded
+- operator repair plans do not mutate authority implicitly
+- forensic bundles are machine-checkable
+
+Required verification output
+
+- `forensic_bundle_digest`
+- `repair_plan_report`
+- `quarantine_report`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Operators can determine trusted truth and admissible repair from offline
+evidence.
+
+### S.11. Security, Tenant-Boundary, Key, And Auditability Test
+
+Purpose
+
+Prove that physical security and compliance behavior survive real operations.
+
+Scenario
+
+- encrypt pages and blob chunks
+- rotate keys
+- attempt wrong-key reads
+- exercise tenant-scoped placement, backup, restore, repair, and replication
+- tamper with audit logs
+- exercise secure-delete capability declarations
+
+Must verify
+
+- checksum success is not treated as authenticity success
+- tenant boundaries remain visible under repair and restore
+- audit-chain tampering localizes and fails typed
+- key rotation preserves admitted access and rejects stale or wrong access
+
+Required verification output
+
+- `security_boundary_report`
+- `hardware_assumption_report`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Security, tenancy, deletion, and auditability are store contracts, not
+deployment assumptions.
+
+### S.12. Physical Database Certification And Performance Program
+
+Purpose
+
+Prove that Roadmap 2 has produced a real physical database substrate.
+
+Scenario
+
+Run the complete physical certification program:
+
+- power-loss simulation
+- torn writes
+- byte flips
+- stale generations
+- partial flushes
+- large-store bounded-memory runs
+- foreground load with background work
+- recovery-time envelope tests
+- blob-scale streaming
+- cross-backend parity
+- hazard-analysis lanes
+
+Must verify
+
+- every physical readiness claim has a declared backend/hardware assumption
+- every performance envelope has explanatory counters
+- residual risks are named in FMEA/STPA-style evidence
+- unsupported capability claims fail typed or are marked non-platform-grade debt
+
+Required verification output
+
+- `physical_database_certification_bundle`
+- `hazard_analysis_report`
+- `hardware_assumption_report`
+- `resource_envelope_report`
+- `latency_envelope_report`
+- `counter_snapshot`
+
+Pass condition
+
+The physical substrate is certified enough to unblock post-13.3 platform
+roadmap work.
 
 Milestones `23` and `24` are intentionally not listed in this table.
 

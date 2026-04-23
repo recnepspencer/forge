@@ -93,6 +93,18 @@ impl BridgeSubscriptionCertificationCompletenessReport {
         self.unavailable_schema_incompatible_field_count
     }
 
+    pub fn accounted_field_count(&self) -> usize {
+        self.present_field_count
+            + self.not_exercised_field_count
+            + self.rejected_before_produced_field_count
+            + self.unavailable_prior_artifact_field_count
+            + self.unavailable_schema_incompatible_field_count
+    }
+
+    pub fn is_sufficient(&self) -> bool {
+        self.accounted_field_count() >= self.required_field_count
+    }
+
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
     }

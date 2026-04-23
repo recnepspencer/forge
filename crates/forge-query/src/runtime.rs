@@ -5,8 +5,8 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 use serde_json::Value;
 
-use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::basis::ResolvedSnapshotBasis;
+use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
     ForgeQueryCollection, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
     ForgeQueryMemoryApp, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
@@ -118,12 +118,18 @@ impl ForgeQueryRuntimeBackendParts {
         self
     }
 
-    pub fn schema_adapter(mut self, adapter: impl ForgeQueryRuntimeSchemaAdapter + 'static) -> Self {
+    pub fn schema_adapter(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSchemaAdapter + 'static,
+    ) -> Self {
         self.schema_adapter = Some(Box::new(adapter));
         self
     }
 
-    pub fn source_adapter(mut self, adapter: impl ForgeQueryRuntimeSourceAdapter + 'static) -> Self {
+    pub fn source_adapter(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
+    ) -> Self {
         self.source_adapter = Some(Box::new(adapter));
         self
     }
@@ -340,12 +346,18 @@ impl ForgeQueryRuntimeBuilder {
         self
     }
 
-    pub fn schema_adapter(mut self, adapter: impl ForgeQueryRuntimeSchemaAdapter + 'static) -> Self {
+    pub fn schema_adapter(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSchemaAdapter + 'static,
+    ) -> Self {
         self.backend_parts = self.backend_parts.schema_adapter(adapter);
         self
     }
 
-    pub fn source_adapter(mut self, adapter: impl ForgeQueryRuntimeSourceAdapter + 'static) -> Self {
+    pub fn source_adapter(
+        mut self,
+        adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
+    ) -> Self {
         self.backend_parts = self.backend_parts.source_adapter(adapter);
         self
     }
@@ -1108,7 +1120,8 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     schema_view,
                 } => {
                     let _: ForgeQueryLiveView<Value> =
-                        self.runtime.declare_live_view(name.clone(), request, schema_view)?;
+                        self.runtime
+                            .declare_live_view(name.clone(), request, schema_view)?;
                     trace.record_declaration(format!("preview-live:{name}"));
                 }
                 ForgeQueryProgramEffect::DeclareDerivedView(view) => {
@@ -1323,10 +1336,10 @@ mod tests {
         BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
         BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
         RawCommittedPatchEnvelope, RelationalBridgeSourceError, RelationalCommittedPatchRequest,
-        RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope,
-        SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-        TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-        TruthSnapshotIdentity, TruthSnapshotReader,
+        RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadPacket,
+        SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity,
+        TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
+        TruthSnapshotReader,
     };
 
     #[test]
@@ -1348,7 +1361,10 @@ mod tests {
             Ok(_) => panic!("missing bridge should reject"),
             Err(error) => error,
         };
-        assert!(matches!(error, ForgeQueryRuntimeError::MissingRuntimeBridge));
+        assert!(matches!(
+            error,
+            ForgeQueryRuntimeError::MissingRuntimeBridge
+        ));
 
         let error = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
@@ -1358,7 +1374,10 @@ mod tests {
             Ok(_) => panic!("missing schema adapter should reject"),
             Err(error) => error,
         };
-        assert!(matches!(error, ForgeQueryRuntimeError::MissingSchemaAdapter));
+        assert!(matches!(
+            error,
+            ForgeQueryRuntimeError::MissingSchemaAdapter
+        ));
 
         let error = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
@@ -1369,7 +1388,10 @@ mod tests {
             Ok(_) => panic!("missing source adapter should reject"),
             Err(error) => error,
         };
-        assert!(matches!(error, ForgeQueryRuntimeError::MissingSourceAdapter));
+        assert!(matches!(
+            error,
+            ForgeQueryRuntimeError::MissingSourceAdapter
+        ));
 
         let error = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
@@ -1381,7 +1403,10 @@ mod tests {
             Ok(_) => panic!("missing write authority should reject"),
             Err(error) => error,
         };
-        assert!(matches!(error, ForgeQueryRuntimeError::MissingWriteAuthority));
+        assert!(matches!(
+            error,
+            ForgeQueryRuntimeError::MissingWriteAuthority
+        ));
 
         let error = ForgeQueryRuntime::builder()
             .runtime_bridge(test_bridge())
@@ -1556,7 +1581,10 @@ mod tests {
             run
         };
 
-        assert_eq!(preview_run.outputs()[0].value().as_array().unwrap().len(), 0);
+        assert_eq!(
+            preview_run.outputs()[0].value().as_array().unwrap().len(),
+            0
+        );
 
         {
             let mut preview = runtime.preview("promote create");
@@ -1681,7 +1709,10 @@ mod tests {
             .expect("insert should route derived patch");
         let patches = runtime.drain_derived_patches(titles.name());
 
-        assert_eq!(insert.affected_derived_view_ids(), &["task_titles".to_string()]);
+        assert_eq!(
+            insert.affected_derived_view_ids(),
+            &["task_titles".to_string()]
+        );
         let expected_row = Value::String(insert.deltas()[0].entity_identity.clone());
         assert_eq!(runtime.read_derived(&titles), vec![expected_row.clone()]);
         assert_eq!(patches.derived_patches.len(), 1);
@@ -1811,7 +1842,8 @@ mod tests {
             request: DeclarativeLiveQueryRequest,
             _schema_view: QuerySchemaView,
         ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
-            self.live_views.insert(name.clone(), request.target().to_string());
+            self.live_views
+                .insert(name.clone(), request.target().to_string());
             Ok(ForgeQueryLiveViewHandle::new(name))
         }
 

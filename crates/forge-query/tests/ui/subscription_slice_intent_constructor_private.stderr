@@ -1,0 +1,9 @@
+error[E0451]: fields `parts` and `digest` of struct `QuerySubscriptionSliceIntent` are private
+ --> tests/ui/subscription_slice_intent_constructor_private.rs:5:9
+  |
+4 |     let _fabricated = QuerySubscriptionSliceIntent {
+  |                       ---------------------------- in this type
+5 |         parts: Vec::new(),
+  |         ^^^^^ private field
+6 |         digest: String::new(),
+  |         ^^^^^^ private field

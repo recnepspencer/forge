@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{
     CompatibilityFamilyKind, ForgeStore, ForgeStoreBuilder, Milestone12CertificationLaneKind,
-    Milestone12CertificationRunner, Milestone12CertificationLaneStatus,
+    Milestone12CertificationLaneStatus, Milestone12CertificationRunner,
     RestorePublicationConflictKind, RestorePublicationConflictSet, RestorePublicationConflictUnit,
     StoreErrorKind,
 };
@@ -110,7 +110,9 @@ fn authoritative_export_restore_matches_certification_lane_evidence() {
         Some(crate::CompatibilityRejectionKind::RestorePublicationConflictRejected)
     );
     assert_eq!(
-        rejected_lane.counters().restore_publication_conflict_rejection_count,
+        rejected_lane
+            .counters()
+            .restore_publication_conflict_rejection_count,
         1
     );
 }

@@ -12,6 +12,7 @@ mod live_query_records;
 mod maintenance_records;
 mod retention_records;
 mod snapshot_records;
+mod subscription_support_records;
 mod support_records;
 mod tiering_records;
 mod verification;

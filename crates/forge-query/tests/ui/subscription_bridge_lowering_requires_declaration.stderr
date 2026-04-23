@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/subscription_bridge_lowering_requires_declaration.rs:9:52
+  |
+9 |     let _plan = lower_query_subscription_to_bridge(selection, budget);
+  |                 ---------------------------------- ^^^^^^^^^ expected `QuerySubscriptionDeclarationArtifact`, found `QuerySubscriptionFamilySelection`
+  |                 |
+  |                 arguments to this function are incorrect
+  |
+note: function defined here
+ --> src/subscription/bridge_lowering.rs
+  |
+  | pub fn lower_query_subscription_to_bridge(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

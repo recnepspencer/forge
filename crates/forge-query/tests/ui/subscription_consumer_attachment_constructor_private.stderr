@@ -1,0 +1,36 @@
+warning: unreachable expression
+ --> tests/ui/subscription_consumer_attachment_constructor_private.rs:6:22
+  |
+5 |         attachment_digest: todo!(),
+  |                            ------- any code following this expression is unreachable
+6 |         lane_digest: todo!(),
+  |                      ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: cannot construct `SubscriptionConsumerAttachment` with struct literal syntax due to private fields
+  --> tests/ui/subscription_consumer_attachment_constructor_private.rs:4:23
+   |
+ 4 |     let _attachment = SubscriptionConsumerAttachment {
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         attachment_digest: todo!(),
+   |         -------------------------- private field
+ 6 |         lane_digest: todo!(),
+   |         -------------------- private field
+ 7 |         consumer_digest: String::new(),
+   |         ------------------------------ private field
+ 8 |         delivery_cursor_digest: String::new(),
+   |         ------------------------------------- private field
+ 9 |         attachment_index: 0,
+   |         ------------------- private field
+10 |         acknowledgement_frontier: todo!(),
+   |         --------------------------------- private field
+11 |         next_delivery_sequence: todo!(),
+   |         ------------------------------- private field
+12 |         backpressure_policy: todo!(),
+   |         ---------------------------- private field
+13 |         fanout_report: todo!(),
+   |         ---------------------- private field
+   |
+   = note: ...and other private field `performance_receipt` that was not provided

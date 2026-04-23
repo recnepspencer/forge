@@ -15,7 +15,7 @@ pub(crate) fn detect_failures(
             BridgeSubscriptionCertificationFailureBoundary::BundleSchemaOrDigestIncompatibility,
         ];
     }
-    if left.completeness_report().digest() != right.completeness_report().digest() {
+    if !left.completeness_report().is_sufficient() || !right.completeness_report().is_sufficient() {
         failures.push(BridgeSubscriptionCertificationFailureBoundary::BundleInsufficiency);
     }
     if left.semantic_digests().subscription_digest()

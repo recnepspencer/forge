@@ -5,6 +5,7 @@ use super::MaintenanceDeclaration;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaintenanceBatchClass {
     Retention,
+    SubscriptionSupport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

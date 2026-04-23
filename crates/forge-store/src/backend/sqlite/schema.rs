@@ -8,6 +8,8 @@ mod compatibility;
 mod indexes;
 #[path = "schema/retention_layout.rs"]
 mod retention_layout;
+#[path = "schema/subscription_support.rs"]
+mod subscription_support;
 #[path = "schema/tiering.rs"]
 mod tiering;
 
@@ -35,6 +37,7 @@ pub(super) fn configure_connection(connection: &Connection) -> Result<(), StoreE
 pub(super) fn create_schema(connection: &Connection) -> Result<(), StoreError> {
     authority::create_authority_schema(connection)?;
     compatibility::create_compatibility_schema(connection)?;
+    subscription_support::create_subscription_support_schema(connection)?;
     retention_layout::create_retention_layout_schema(connection)?;
     bulk_snapshot::create_bulk_snapshot_schema(connection)?;
     tiering::create_tiering_schema(connection)?;

@@ -1,0 +1,17 @@
+error[E0560]: struct `QueryPatchGroup` has no field named `source_delta_digest`
+ --> tests/ui/active_subscription_public_vec_patch_group_forbidden.rs:7:13
+  |
+7 |             source_delta_digest: "delta".to_string(),
+  |             ^^^^^^^^^^^^^^^^^^^ `QueryPatchGroup` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+warning: unreachable expression
+ --> tests/ui/active_subscription_public_vec_patch_group_forbidden.rs:7:34
+  |
+6 |             kind: todo!(),
+  |                   ------- any code following this expression is unreachable
+7 |             source_delta_digest: "delta".to_string(),
+  |                                  ^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

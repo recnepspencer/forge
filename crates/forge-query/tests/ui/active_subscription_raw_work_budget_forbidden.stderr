@@ -1,0 +1,17 @@
+error[E0308]: mismatched types
+ --> tests/ui/active_subscription_raw_work_budget_forbidden.rs:7:32
+  |
+7 |         registry_lookup_width: 1,
+  |                                ^ expected `ActiveRegistryLookupWidth`, found integer
+
+error[E0308]: mismatched types
+ --> tests/ui/active_subscription_raw_work_budget_forbidden.rs:8:23
+  |
+8 |         fanout_width: 1,
+  |                       ^ expected `ActiveFanoutWidth`, found integer
+
+error[E0308]: mismatched types
+ --> tests/ui/active_subscription_raw_work_budget_forbidden.rs:9:33
+  |
+9 |         allocation_scope_width: 1,
+  |                                 ^ expected `ActiveAllocationScopeWidth`, found integer

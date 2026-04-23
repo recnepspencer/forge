@@ -1,0 +1,16 @@
+error[E0624]: associated function `admitted` is private
+ --> tests/ui/subscription_lifecycle_certification_context_admitted_private.rs:4:56
+  |
+4 |       let _ = SubscriptionLifecycleCertificationContext::admitted(
+  |                                                          ^^^^^^^^ private associated function
+  |
+ ::: src/subscription/certification.rs
+  |
+  | /     pub(crate) fn admitted(
+  | |         query_digest: impl Into<String>,
+  | |         subscription_family_digest: impl Into<String>,
+  | |         subscription_equivalence_digest: impl Into<String>,
+... |
+  | |         basis_digest: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

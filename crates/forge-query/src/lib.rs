@@ -51,6 +51,7 @@ mod saved_query;
 mod schema_macro;
 mod relationship_proof;
 mod schema_view;
+mod subscription;
 mod tenant_basis;
 mod typed;
 mod validation;

@@ -1,0 +1,33 @@
+error[E0451]: fields `certification_bundle_digest`, `admission_digest`, `activation_digest`, `query_declaration_digest`, `bridge_declaration_digest`, `basis_binding_digest`, `signal_strategy_digest`, `diagnostics_digest`, `support_profile_digest`, `admission_counter_digest`, `activation_counter_digest`, `scale_slope_digest`, `scale_activation_digest` and `scale_admission_digest` of struct `QuerySubscriptionCertificationBundle` are private
+  --> tests/ui/subscription_certification_bundle_constructor_private.rs:5:9
+   |
+ 4 |     let _ = QuerySubscriptionCertificationBundle {
+   |             ------------------------------------ in this type
+ 5 |         certification_bundle_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 6 |         admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 7 |         activation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 8 |         query_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         bridge_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         basis_binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+11 |         signal_strategy_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         diagnostics_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         support_profile_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         admission_counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         activation_counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         scale_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+17 |         scale_activation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         scale_admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field

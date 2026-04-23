@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/ui/subscription_raw_cdc_filter_declaration_forbidden.rs:10:51
+   |
+10 |     let _declaration = declare_query_subscription(raw_cdc, budget);
+   |                        -------------------------- ^^^^^^^ expected `QuerySubscriptionFamilySelection`, found `RawCdcFilter`
+   |                        |
+   |                        arguments to this function are incorrect
+   |
+note: function defined here
+  --> src/subscription/declaration.rs
+   |
+   | pub fn declare_query_subscription(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^

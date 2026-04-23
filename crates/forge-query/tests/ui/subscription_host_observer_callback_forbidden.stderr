@@ -1,0 +1,18 @@
+error[E0308]: mismatched types
+ --> tests/ui/subscription_host_observer_callback_forbidden.rs:6:55
+  |
+4 |     let observer_callback = || "host-local-observer-state";
+  |                             -- the found closure
+5 |     let budget = QuerySubscriptionWorkBudget::scratch_buffer_only(1, 1, 1, 1, 1);
+6 |     let _selection = select_query_subscription_family(observer_callback, budget);
+  |                      -------------------------------- ^^^^^^^^^^^^^^^^^ expected `LiveQueryAdmissionArtifact`, found closure
+  |                      |
+  |                      arguments to this function are incorrect
+  |
+  = note: expected struct `LiveQueryAdmissionArtifact`
+            found closure `{closure@$DIR/tests/ui/subscription_host_observer_callback_forbidden.rs:4:29: 4:31}`
+note: function defined here
+ --> src/subscription/selection.rs
+  |
+  | pub fn select_query_subscription_family(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

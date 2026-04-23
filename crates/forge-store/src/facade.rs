@@ -10,6 +10,7 @@ mod layout_support;
 mod live_query;
 mod maintenance;
 mod snapshots;
+mod subscription_support;
 mod support;
 mod tiering;
 

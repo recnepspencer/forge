@@ -1,0 +1,26 @@
+error[E0560]: struct `ActiveSubscriptionLaneAdmission` has no field named `lane`
+ --> tests/ui/active_subscription_linear_scan_lookup_without_debt_forbidden.rs:5:9
+  |
+5 |         lane: todo!(),
+  |         ^^^^ `ActiveSubscriptionLaneAdmission` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+warning: unreachable expression
+ --> tests/ui/active_subscription_linear_scan_lookup_without_debt_forbidden.rs:6:28
+  |
+5 |         lane: todo!(),
+  |               ------- any code following this expression is unreachable
+6 |         lifecycle_posture: todo!(),
+  |                            ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0560]: struct `ActiveSubscriptionLaneAdmission` has no field named `admission_counters`
+ --> tests/ui/active_subscription_linear_scan_lookup_without_debt_forbidden.rs:9:9
+  |
+9 |         admission_counters: todo!(),
+  |         ^^^^^^^^^^^^^^^^^^ `ActiveSubscriptionLaneAdmission` does not have this field
+  |
+  = note: all struct fields are already assigned

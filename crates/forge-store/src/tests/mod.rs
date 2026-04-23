@@ -44,6 +44,8 @@ mod retention_phase7;
 mod retention_phase8;
 mod retention_phase9;
 mod snapshots;
+mod subscription_support_certification;
+mod subscription_support_persistence;
 mod tiering_phase1;
 mod tiering_phase2;
 mod tiering_phase3;

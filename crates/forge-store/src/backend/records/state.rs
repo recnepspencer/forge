@@ -1,4 +1,8 @@
 use crate::wal::WalRecord;
+use crate::{
+    SubscriptionSupportAccessStructure, SubscriptionSupportCounterSnapshot,
+    SubscriptionSupportStoredRecordSet, SupportMaintenanceDescriptorRecord,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -33,6 +37,17 @@ pub(crate) struct StoreState {
     pub authoritative_artifact_digests: BTreeMap<String, AuthoritativeArtifactDigestRecord>,
     #[serde(default)]
     pub compatibility_manifest_records: BTreeMap<String, CompatibilityManifestRecord>,
+    #[serde(default)]
+    pub subscription_support_record_sets: BTreeMap<String, SubscriptionSupportStoredRecordSet>,
+    #[serde(default)]
+    pub subscription_support_maintenance_descriptor_records:
+        BTreeMap<String, SupportMaintenanceDescriptorRecord>,
+    #[serde(default)]
+    pub subscription_support_counter_snapshot: SubscriptionSupportCounterSnapshot,
+    #[serde(default = "subscription_support_access_structures_verified_default")]
+    pub subscription_support_access_structures_verified: bool,
+    #[serde(default)]
+    pub subscription_support_access_structure_debts: Vec<SubscriptionSupportAccessStructure>,
     #[serde(default)]
     pub commit_support_summaries: BTreeMap<u64, CommitSupportSummaryRecord>,
     #[serde(default)]
@@ -140,4 +155,8 @@ pub(crate) struct StoreState {
     pub next_wal_sequence: u64,
     #[serde(default)]
     pub wal_records: BTreeMap<u64, WalRecord>,
+}
+
+fn subscription_support_access_structures_verified_default() -> bool {
+    true
 }

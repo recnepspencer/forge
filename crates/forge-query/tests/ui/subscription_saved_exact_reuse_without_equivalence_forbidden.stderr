@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/subscription_saved_exact_reuse_without_equivalence_forbidden.rs:8:51
+  |
+8 |     let _declaration = declare_query_subscription(saved, budget);
+  |                        -------------------------- ^^^^^ expected `QuerySubscriptionFamilySelection`, found `SavedQueryArtifact`
+  |                        |
+  |                        arguments to this function are incorrect
+  |
+note: function defined here
+ --> src/subscription/declaration.rs
+  |
+  | pub fn declare_query_subscription(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^

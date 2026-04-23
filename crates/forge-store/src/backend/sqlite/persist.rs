@@ -16,6 +16,8 @@ mod meta;
 mod retention;
 #[path = "persist/snapshot.rs"]
 mod snapshot;
+#[path = "persist/subscription_support.rs"]
+mod subscription_support;
 #[path = "persist/tiering.rs"]
 mod tiering;
 
@@ -35,6 +37,7 @@ pub(super) fn persist_state(
     authority_primary::persist_authority_primary(&transaction, state)?;
     authority_support::persist_authority_support(&transaction, state)?;
     compatibility::persist_compatibility(&transaction, state)?;
+    subscription_support::persist_subscription_support(&transaction, state)?;
     retention::persist_retention(&transaction, state)?;
     delta::persist_delta(&transaction, state)?;
     layout::persist_layout(&transaction, state)?;
@@ -51,6 +54,10 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             "
             DELETE FROM authoritative_artifact_digests;
             DELETE FROM compatibility_manifest_records;
+            DELETE FROM subscription_support_record_sets;
+            DELETE FROM subscription_support_maintenance_descriptor_records;
+            DELETE FROM subscription_support_counter_snapshot;
+            DELETE FROM subscription_support_access_structure_state;
             DELETE FROM branch_head_records;
             DELETE FROM commit_support_summaries;
             DELETE FROM schema_support_records;

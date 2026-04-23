@@ -165,7 +165,7 @@ What it means:
 
 ### After Milestone 12: Artifact Format Evolution And Rolling Compatibility
 
-You can fully move on to:
+You are partway clear for:
 
 - `Milestone 14` Replication, Capsules, And Integrity Verification
 
@@ -173,16 +173,58 @@ Why:
 
 - rolling compatibility and rebuild invalidation rules are now explicit enough
   to spread artifacts across machines honestly
+- final subscription-support participation should still wait for the
+  `Milestone 13.1` through `Milestone 13.3` cleanup arc before Milestone 14 is
+  considered fully closeable
 
 ### After Milestone 13: Tiering And Durable Working-Set Intelligence
 
 You can fully move on to:
 
+- `Milestone 13.1` Durable Subscription Support Artifacts And Resume Contracts
 - `Milestone 21` Admission Control And Budget Contracts
 
 Why:
 
 - budget controls now have a real placement/tiering model to govern
+- subscription-support durability can now name placement and recall as cost-only
+  posture while preserving basis and cursor support truth
+
+### After Milestone 13.1: Durable Subscription Support Artifacts And Resume Contracts
+
+You can fully move on to:
+
+- `Milestone 13.2` Subscription Support Through Retention, Compatibility,
+  Replication, And Maintenance
+
+Why:
+
+- subscription-support artifacts now have durable identity, basis linkage,
+  family binding, and typed resumability posture
+
+### After Milestone 13.2: Subscription Support Through Retention, Compatibility, Replication, And Maintenance
+
+You can fully move on to:
+
+- `Milestone 13.3` Subscription Support Accuracy Taxonomy And Certification
+
+Why:
+
+- subscription-support artifacts now participate in retention, compatibility,
+  replication, and maintenance strongly enough to classify and certify their
+  trust posture
+
+### After Milestone 13.3: Subscription Support Accuracy Taxonomy And Certification
+
+You can fully move on to:
+
+- `Milestone 14` Replication, Capsules, And Integrity Verification
+
+Why:
+
+- replication and capsules can now include or reject first-class
+  subscription-support artifacts with explicit durable identity, participation
+  rules, and certified trust posture
 
 ### After Milestone 14: Replication, Capsules, And Integrity Verification
 
@@ -295,10 +337,14 @@ If you want the shortest possible version:
 - `M6 + M7` unlock `M8`
 - `M4 + M5 + M6` unlock `M10`
 - `M10` unlocks `M11`, `M12`, and `M13`
-- `M12` unlocks `M14`
+- `M12` partially clears `M14`
+- `M13` unlocks `M13.1` and `M21`
+- `M13.1` unlocks `M13.2`
+- `M13.2` unlocks `M13.3`
+- `M13.3` fully unlocks `M14`
 - `M14` unlocks `M15`, `M16`, `M17`, and `M20`
 - `M17` unlocks `M18` and `M19`
-- `M13` and later `M20` unlock `M21`
+- later `M20` also feeds `M21`
 - `M21` unlocks `M23`
 - `M23` unlocks `M24`
 
@@ -310,7 +356,12 @@ If you just closed:
 - `M5`: do `M6` and `M9`
 - `M6`: finish toward `M8` and `M10`
 - `M10`: do `M11`, `M12`, and `M13`
-- `M12`: do `M14`
+- `M12`: continue the path toward `M14`, but close `M13.1` through `M13.3`
+  before treating subscription-support replication as complete
+- `M13`: do `M13.1`
+- `M13.1`: do `M13.2`
+- `M13.2`: do `M13.3`
+- `M13.3`: do `M14`
 - `M14`: do `M15`, `M16`, `M17`, and `M20`
 - `M17`: do `M18` and `M19`
 - `M20`: finish toward `M21` and blob-bearing certification

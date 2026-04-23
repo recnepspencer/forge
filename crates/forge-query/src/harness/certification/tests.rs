@@ -1,9 +1,10 @@
 use super::{
     contains_row, milestone_five_point_four_requirements, milestone_five_point_one_requirements,
-    milestone_five_point_two_requirements, milestone_one_requirements,
-    milestone_three_requirements, milestone_two_requirements, unmet_required_assertion_classes,
-    unmet_required_rows, CanonicalCertificationRow, CertificationMatrix, HostileExpectation,
-    ParityAnchor, RejectionCertificationRow, RequiredAssertionClass,
+    milestone_five_point_two_requirements, milestone_nine_one_requirements,
+    milestone_one_requirements, milestone_three_requirements, milestone_two_requirements,
+    unmet_required_assertion_classes, unmet_required_rows, CanonicalCertificationRow,
+    CertificationMatrix, HostileExpectation, ParityAnchor, RejectionCertificationRow,
+    RequiredAssertionClass,
 };
 
 #[test]
@@ -14,6 +15,7 @@ fn requirements_registry_exposes_milestone_rows() {
     let milestone_five_point_one = milestone_five_point_one_requirements();
     let milestone_five_point_two = milestone_five_point_two_requirements();
     let milestone_five_point_four = milestone_five_point_four_requirements();
+    let milestone_nine_one = milestone_nine_one_requirements();
 
     assert_eq!(
         milestone_one.suite_name,
@@ -95,6 +97,25 @@ fn requirements_registry_exposes_milestone_rows() {
     assert!(milestone_five_point_four
         .required_rejection_rows
         .contains(&"broad-candidate-scan-success-forbidden"));
+    assert_eq!(
+        milestone_nine_one.suite_name,
+        "Query Subscription Declaration And Lowering Parity Test"
+    );
+    assert!(milestone_nine_one
+        .required_canonical_rows
+        .contains(&"detail-direct-scope-template-saved-facade-parity"));
+    assert!(milestone_nine_one
+        .required_canonical_rows
+        .contains(&"scale-slope-row-count-only-honesty"));
+    assert!(milestone_nine_one
+        .required_rejection_rows
+        .contains(&"durable-reload-overclaim-denies-before-activation"));
+    assert!(milestone_nine_one
+        .required_rejection_rows
+        .contains(&"scale-report-source-mismatch-denies-certification"));
+    assert!(milestone_nine_one
+        .required_assertion_classes
+        .contains(&RequiredAssertionClass::ZeroResidue));
 }
 
 #[test]

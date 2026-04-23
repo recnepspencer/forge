@@ -1,0 +1,19 @@
+error: cannot construct `QuerySubscriptionBasisBindingRequest` with struct literal syntax due to private fields
+ --> tests/ui/subscription_basis_binding_request_constructor_private.rs:6:23
+  |
+6 |     let _fabricated = QuerySubscriptionBasisBindingRequest {
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 |         request_kind: QuerySubscriptionBasisBindingRequestKind::CurrentHead,
+  |         ------------------------------------------------------------------- private field
+8 |         digest: String::new(),
+  |         --------------------- private field
+  |
+  = note: ...and other private field `source_declaration_digest` that was not provided
+help: you might have meant to use the `from_declaration` associated function
+  |
+6 -     let _fabricated = QuerySubscriptionBasisBindingRequest {
+7 -         request_kind: QuerySubscriptionBasisBindingRequestKind::CurrentHead,
+8 -         digest: String::new(),
+9 -     };
+6 +     let _fabricated = QuerySubscriptionBasisBindingRequest::from_declaration(_);
+  |

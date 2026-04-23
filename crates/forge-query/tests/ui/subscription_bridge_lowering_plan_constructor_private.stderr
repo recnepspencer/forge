@@ -1,0 +1,9 @@
+error: cannot construct `BridgeSubscriptionLoweringPlan` with struct literal syntax due to private fields
+ --> tests/ui/subscription_bridge_lowering_plan_constructor_private.rs:4:23
+  |
+4 |     let _fabricated = BridgeSubscriptionLoweringPlan {
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         query_declaration_digest: String::new(),
+  |         --------------------------------------- private field
+  |
+  = note: ...and other private fields that were not provided

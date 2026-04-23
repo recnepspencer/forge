@@ -1,0 +1,17 @@
+error[E0308]: arguments to this function are incorrect
+ --> tests/ui/active_subscription_raw_budget_widths_forbidden.rs:6:19
+  |
+6 |     let _budget = ActiveSubscriptionWorkBudget::admitted(
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 |         1,
+  |         - expected `ActiveRegistryLookupWidth`, found integer
+8 |         1,
+  |         - expected `ActiveFanoutWidth`, found integer
+9 |         1,
+  |         - expected `ActiveAllocationScopeWidth`, found integer
+  |
+note: associated function defined here
+ --> src/subscription/active_budget.rs
+  |
+  |     pub fn admitted(
+  |            ^^^^^^^^

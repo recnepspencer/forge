@@ -1,0 +1,5 @@
+error[E0599]: no method named `with_durable_reload_request` found for struct `QuerySubscriptionAdmissionBudget` in the current scope
+ --> tests/ui/subscription_durable_reload_admission_forbidden.rs:5:67
+  |
+5 |         QuerySubscriptionAdmissionBudget::admitted(1, 1, 1, 1, 1).with_durable_reload_request();
+  |                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `QuerySubscriptionAdmissionBudget`

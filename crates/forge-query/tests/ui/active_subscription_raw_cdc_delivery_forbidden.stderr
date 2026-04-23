@@ -1,0 +1,18 @@
+error[E0061]: this function takes 3 arguments but 2 arguments were supplied
+ --> tests/ui/active_subscription_raw_cdc_delivery_forbidden.rs:4:13
+  |
+4 |     let _ = emit_query_delivery_batch(todo::<QueryDeliveryWindow>(), "raw-cdc");
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^ -----------------------------  --------- expected `ActiveDeliveryWorkPacket`, found `&str`
+  |                                       |
+  |                                       argument #1 of type `&mut ActiveSubscriptionRuntime` is missing
+  |
+note: function defined here
+ --> src/subscription/active_runtime.rs
+  |
+  | pub fn emit_query_delivery_batch(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+help: provide the argument
+  |
+4 -     let _ = emit_query_delivery_batch(todo::<QueryDeliveryWindow>(), "raw-cdc");
+4 +     let _ = emit_query_delivery_batch(/* &mut ActiveSubscriptionRuntime */, todo::<QueryDeliveryWindow>(), /* ActiveDeliveryWorkPacket */);
+  |

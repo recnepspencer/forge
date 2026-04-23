@@ -1,0 +1,9 @@
+error[E0451]: fields `request_kind` and `digest` of struct `QuerySubscriptionSignalStrategyRequest` are private
+ --> tests/ui/subscription_signal_strategy_request_constructor_private.rs:7:9
+  |
+6 |     let _fabricated = QuerySubscriptionSignalStrategyRequest {
+  |                       -------------------------------------- in this type
+7 |         request_kind: QuerySubscriptionSignalStrategyRequestKind::ExactDetailSignals,
+  |         ^^^^^^^^^^^^ private field
+8 |         digest: String::new(),
+  |         ^^^^^^ private field

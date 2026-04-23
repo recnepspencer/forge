@@ -15,6 +15,7 @@ mod live_query;
 mod maintenance;
 mod publication_recovery;
 mod snapshots;
+mod subscription_support;
 mod support;
 mod tiering;
 
