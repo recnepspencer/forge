@@ -39,6 +39,7 @@ where
             graph: &mut self.graph,
             checkpoint: &mut self.checkpoint,
             event_bus: &mut self.event_bus,
+            temporal: &mut self.temporal,
             telemetry: &mut self.telemetry,
             branches: &mut self.branches,
             scratch: TransactionScratch::new(),

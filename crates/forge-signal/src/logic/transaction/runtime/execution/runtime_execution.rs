@@ -6,7 +6,6 @@ use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, EvaluationPlan, ExecutionReport, StageExecutor,
-    TemporalLoweringContext,
 };
 
 use super::super::state::SignalRuntime;
@@ -232,7 +231,9 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
-        let temporal_lowering = TemporalLoweringContext::runtime_clock_basis(self.clock_basis());
+        self.admit_temporal_wakes_for_plan(plan)?;
+        self.promote_due_temporal_wakes_ready()?;
+        let temporal_lowering = self.temporal_lowering_context_for_plan(plan);
         let report = execute_plan_with_runtime_config(
             &mut self.graph,
             &self.config,
@@ -243,6 +244,7 @@ where
             executor,
         )?;
         absorb_execution_report_telemetry(&mut self.telemetry, &report);
+        self.retire_consumed_temporal_wakes_from_report(&report)?;
         Ok(report)
     }
 
@@ -471,7 +473,9 @@ where
                 (&owned_targets[..], EvaluationRequestMode::Default)
             }
         };
-        let temporal_lowering = TemporalLoweringContext::runtime_clock_basis(self.clock_basis());
+        self.admit_temporal_wakes_for_nodes(targets)?;
+        self.promote_due_temporal_wakes_ready()?;
+        let temporal_lowering = self.temporal_lowering_context_for_nodes(targets);
         let report = execute_targets_with_runtime_config(
             &mut self.graph,
             &self.config,
@@ -483,6 +487,7 @@ where
             executor,
         )?;
         absorb_execution_report_telemetry(&mut self.telemetry, &report);
+        self.retire_consumed_temporal_wakes_from_report(&report)?;
         Ok(report)
     }
 }

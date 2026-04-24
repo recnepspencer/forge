@@ -99,6 +99,15 @@ where
         };
         let evaluation_summary = std::mem::take(&mut self.execution_state.summary);
         let temporal_summary = std::mem::take(&mut self.scratch.temporal.summary);
+        let temporal_evidence = self
+            .scratch
+            .temporal
+            .boundary_evidence(self.temporal.clock_basis());
+        let temporal_reconstructability =
+            crate::logic::transaction::runtime::state::TemporalReconstructabilityArtifact::from_evidence(
+                self.temporal.wake_summary(),
+                &temporal_evidence,
+            );
         let checkpoint_record =
             crate::logic::transaction::runtime::state::CheckpointRecord::from_checkpoint_telemetry(
                 crate::data::telemetry::CheckpointTelemetry {
@@ -144,6 +153,7 @@ where
                 self.graph.diagnostics_state().latest_replay_cursor(),
                 checkpoint_record,
                 &replay_events,
+                temporal_reconstructability,
             );
         let mut result = TransactionResult::from_boundary_state(
             outcome,
@@ -152,6 +162,7 @@ where
             touched_nodes,
             evaluation_summary,
             temporal_summary,
+            temporal_evidence,
             &replay_events,
             reconstructability,
             event_epochs.clone(),

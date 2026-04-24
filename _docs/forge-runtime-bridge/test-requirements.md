@@ -16,6 +16,9 @@ This document defines the certification-grade bridge test requirements for:
 - Milestone 14
 - Milestone 15
 - Milestone 16
+- Milestone 17
+- Milestone 18
+- Milestone 19
 
 Milestones 1 through 5 already have their own acceptance and closeout proof
 surfaces. This document starts at Milestone 6 because the bridge is now moving
@@ -38,6 +41,10 @@ From Milestone 6 onward, the bridge is making claims about:
 - cross-runtime policy propagation
 - bridge-mediated writeback
 - end-to-end causality and bridge-native certification
+- temporal-basis binding after `forge-signal` owns time
+- async/resource completion causality after `forge-signal` owns async lifecycle
+- mixed truth/time/async subscription delivery, restart, replay, and offline
+  certification
 
 Those are all adversarial surfaces. They need certification tests, not just
 behavior checks.
@@ -48,11 +55,13 @@ The bridge test suite from Milestone 6 onward must prove the following:
 
 > Under restart, replay, host-adapter variation, branch divergence, merge-like
 > history pressure, speculative execution, policy changes, hostile diagnostics
-> tiers, and writeback failure injection, the bridge must preserve canonical
-> truth interpretation, canonical routing meaning, replay-safe artifacts, typed
+> tiers, temporal clock advances, async/resource completion races, and
+> writeback failure injection, the bridge must preserve canonical truth
+> interpretation, canonical routing meaning, replay-safe artifacts, typed
 > failures, explicit authority boundaries, and machine-checkable diagnostics
-> without allowing host-local glue, scheduler timing, or convenience policy to
-> redefine canonical semantics.
+> without allowing host-local glue, scheduler timing, transport completion
+> order, ambient process clocks, or convenience policy to redefine canonical
+> semantics.
 
 If a bridge surface works only under one adapter, one scheduling mode, one
 consumer shape, one diagnostics tier, or one happy-path history shape, it is
@@ -1588,6 +1597,570 @@ Pass condition
 The bridge can certify end-to-end subscription workloads from canonical
 artifacts alone.
 
+## Milestone 17 Named Certification Suites
+
+### 38. Temporal Bridge Basis Equivalence Test
+
+Purpose
+
+Prove that a bridge flow depending on signal time binds truth-view evidence and
+signal temporal evidence into one canonical temporal bridge basis without
+moving clock authority into the bridge or truth runtime.
+
+Scenario
+
+- construct equivalent truth views through snapshot, branch-head, and CDC
+  cursor bases where admitted
+- pair them with equivalent signal clock basis and ready-wake evidence
+- vary host call order, diagnostics tier, adapter implementation shape, and
+  non-authoritative wall-clock metadata
+- include mismatched clock domains, stale wake evidence, missing truth basis,
+  and branch-crossed temporal evidence as hostile lanes
+
+Must verify
+
+- equivalent truth-basis plus signal-temporal-basis inputs produce equivalent
+  temporal bridge basis digests
+- wall-clock or presentation metadata cannot become bridge temporal authority
+- branch, snapshot, CDC cursor, clock basis, and wake identity are all visible
+  in the basis artifact
+- stale, missing, cross-branch, or wrong-domain temporal evidence fails
+  explicitly and typed
+- diagnostics-tier variation changes retained detail only
+
+Required verification output
+
+- `temporal_bridge_basis_digest`
+- `truth_view_basis_digest`
+- `signal_clock_basis_digest`
+- `temporal_wake_evidence_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+Temporal bridge basis is canonical, explicit, replayable, and cannot be
+defined by host time or bridge-local convention.
+
+### 39. Truth Patch Plus Clock Advance Replay Parity Test
+
+Purpose
+
+Prove that mixed truth-patch and signal clock-advance sequences replay to the
+same bridge routing, delivery, and explanation artifacts even when host call
+order varies.
+
+Scenario
+
+- run workloads where relational commits and signal clock advances interleave
+  in multiple physically different orders
+- include time-only eligibility where no relational patch occurred
+- include truth patches that arrive before, after, and at the same logical
+  delivery boundary as temporal wakes
+- replay from canonical truth, temporal, and bridge artifacts only
+- inject duplicate clock submissions, skipped host polling, and diagnostics-tier
+  variation
+
+Must verify
+
+- equivalent canonical cause sets produce identical routing and delivery
+  digests under replay
+- time-only updates are not misreported as truth-patch-caused updates
+- truth-patch-plus-clock updates retain both cause identities
+- duplicate or stale clock submissions are typed denials rather than extra
+  delivery
+- replay does not consult ambient process time or host callback ordering
+
+Required verification output
+
+- `mixed_cause_digest`
+- `routing_digest`
+- `subscription_delivery_digest`
+- `temporal_bridge_basis_digest`
+- `explanation_digest`
+- `replay_digest`
+- `failure_digest`
+
+Pass condition
+
+Mixed truth and clock causality is replay-stable, order-honest, and
+diagnosable.
+
+### 40. Time-Aware Subscription Basis Rejection Test
+
+Purpose
+
+Prove that time-aware bridge subscriptions fail closed when their truth basis,
+signal temporal basis, or admitted temporal family is missing, stale,
+unsupported, or cross-wired.
+
+Scenario
+
+- declare time-aware subscriptions over authoritative, historical,
+  branch-local, and preview-scoped truth views
+- vary temporal policies across debounce, throttle, stale-after, interval, and
+  explicit wake-driven flows where supported by `forge-signal`
+- inject missing snapshot evidence, stale CDC cursor, wrong branch clock
+  evidence, unsupported historical temporal replay, and host-forged temporal
+  family labels
+- attempt resume from a checkpoint with incompatible truth or temporal basis
+
+Must verify
+
+- supported combinations admit with explicit basis artifacts
+- unsupported combinations reject before activation or delivery
+- host-forged temporal labels cannot replace `forge-signal` temporal evidence
+- rejection localizes the failed basis boundary exactly
+- replay preserves both admitted and rejected outcomes
+
+Required verification output
+
+- `subscription_digest`
+- `subscription_basis_digest`
+- `temporal_bridge_basis_digest`
+- `admission_digest`
+- `failure_localization_matrix`
+- `replay_digest`
+
+Pass condition
+
+Time-aware subscriptions are basis-bound, fail-closed, and replay-safe.
+
+### 41. Historical Truth With Temporal Wake Replay Test
+
+Purpose
+
+Prove that temporal wake readiness over retained historical truth replays from
+canonical truth and signal temporal artifacts, not from current truth, ambient
+time, or host memory.
+
+Scenario
+
+- evaluate time-aware subscriptions against retained historical snapshots
+- advance signal time so wakes become ready after the historical truth basis is
+  selected
+- mutate current truth aggressively after the historical basis is pinned
+- restore and replay with retention-rich and retention-truncated lanes
+- include previous-value-sensitive derived work near temporal threshold
+  boundaries where supported by signal artifacts
+
+Must verify
+
+- historical truth reads remain pinned to the declared truth basis
+- temporal wake readiness remains pinned to the declared signal temporal basis
+- current truth mutation cannot affect historical time-aware results
+- retention truncation fails explicitly when the replay basis is no longer
+  available
+- previous-value evidence, if present, remains branch- and checkpoint-honest
+
+Required verification output
+
+- `historical_truth_basis_digest`
+- `temporal_bridge_basis_digest`
+- `previous_value_evidence_digest`
+- `derived_output_digest`
+- `retention_basis_report`
+- `replay_digest`
+- `failure_digest`
+
+Pass condition
+
+Historical truth plus temporal readiness remains exact under replay, restore,
+retention pressure, and current-truth churn.
+
+## Milestone 18 Named Certification Suites
+
+### 42. Async Source Lifecycle Bridge Parity Test
+
+Purpose
+
+Prove that bridge-declared async/resource sources lower into admitted
+`forge-signal` async lifecycle families without letting transport adapters or
+host callbacks define lifecycle truth.
+
+Scenario
+
+- declare async/resource bridge sources over authoritative, branch-local, and
+  historical truth-view bases
+- run fulfilled, rejected, cancelled, timed-out, retried, superseded, and
+  stale-denied paths
+- vary transport adapter implementation shape while preserving admitted
+  bridge/source semantics
+- replay from canonical bridge and signal async artifacts
+
+Must verify
+
+- equivalent source declarations and lifecycle outcomes compare equal across
+  adapters
+- each lifecycle transition is typed and bound to bridge declaration, truth
+  basis, subscription instance where applicable, and signal request generation
+- adapter-local status strings cannot become lifecycle authority
+- diagnostics distinguish source-family rejection from signal lifecycle denial
+  and transport failure
+- replay preserves lifecycle meaning
+
+Required verification output
+
+- `async_source_declaration_digest`
+- `async_lifecycle_digest`
+- `truth_view_basis_digest`
+- `signal_async_generation_digest`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Async/resource source lifecycle is bridge-visible, signal-owned,
+adapter-agnostic, and replay-safe.
+
+### 43. Out-Of-Order Completion Truth-Basis Supersession Test
+
+Purpose
+
+Prove that stale async completions cannot publish over newer truth bases,
+newer signal generations, different branches, or superseded subscription
+instances.
+
+Scenario
+
+- admit async requests R1, R2, and R3 over evolving truth bases and signal
+  generations
+- complete them in adversarial physical order, including old success after new
+  success, old failure after retry admission, and completion after branch
+  switch or preview discard
+- include same-output-lookalike completions with different truth bases
+- replay with completion order shuffled relative to original host delivery
+
+Must verify
+
+- only the completion matching the active admitted basis and generation can
+  publish derived state
+- stale completions fail typed even when payloads match the current output
+- branch-crossed, preview-discarded, and subscription-superseded completions
+  cannot commit
+- denial artifacts name the superseded truth basis, signal generation, and
+  subscription instance where applicable
+- replay gives the same accepted and denied completion set
+
+Required verification output
+
+- `async_completion_digest`
+- `supersession_report`
+- `truth_view_basis_digest`
+- `signal_async_generation_digest`
+- `subscription_instance_digest`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Out-of-order completion cannot corrupt derived truth or hide stale causality.
+
+### 44. Async Retry And Revalidation Causality Test
+
+Purpose
+
+Prove that retry and revalidation preserve bridge causality and compare equal
+to no-failure control lanes when the admitted signal lifecycle semantics say
+they should.
+
+Scenario
+
+- run equivalent no-failure and retry-after-failure lanes
+- include timeout-driven retry, explicit revalidation, cancellation followed by
+  fresh admission, and retry racing a truth-basis update
+- vary temporal retry/backoff evidence where signal exposes it
+- inject retry storms and starvation pressure with boundedness counters
+
+Must verify
+
+- retry/revalidation identity is bound to the original bridge source
+  declaration and the current admitted truth/temporal basis
+- retry lanes that semantically converge to the no-failure control produce
+  equal canonical output and causality digests
+- retries over stale truth basis or stale signal generation fail explicitly
+- retry storms are bounded by admitted signal and bridge counters
+- diagnostics distinguish retry scheduling from completion admission
+
+Required verification output
+
+- `retry_causality_digest`
+- `async_lifecycle_digest`
+- `temporal_bridge_basis_digest`
+- `derived_output_digest`
+- `counter_snapshot`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Retry and revalidation are causal, bounded, replayable, and not host-defined.
+
+### 45. Async Completion Writeback Loop Prevention Test
+
+Purpose
+
+Prove that async completion writeback cannot create bridge-origin feedback
+loops, bypass truth authority, or publish duplicate authoritative truth.
+
+Scenario
+
+- route async completion through admitted bridge writeback families
+- include idempotent duplicate completion, completion after truth changed,
+  completion from a preview branch, and completion whose payload would trigger
+  the same source subscription again
+- inject relational writeback rejection and bridge mapper failure
+- replay with host adapter and completion order variation
+
+Must verify
+
+- authoritative truth changes happen only through admitted writeback artifacts
+  and relational commit authority
+- loop-prevention evidence links bridge-origin completion, writeback intent,
+  resulting truth commit where admitted, and downstream invalidation
+- duplicate completions are idempotent or typed denials according to admitted
+  family semantics
+- rejected writebacks leave no authoritative residue
+- replay preserves idempotence, denial, and causality artifacts
+
+Required verification output
+
+- `async_completion_digest`
+- `writeback_family_digest`
+- `idempotence_report`
+- `loop_prevention_report`
+- `truth_commit_digest`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Async completion writeback preserves truth authority, idempotence, and
+loop-safety under failure and replay.
+
+## Milestone 19 Named Certification Suites
+
+### 46. Temporal Async Subscription Bundle Equivalence Test
+
+Purpose
+
+Prove that subscriptions combining truth patches, signal time, and
+async/resource completions preserve one canonical meaning from declaration
+through replay.
+
+Scenario
+
+- run subscriptions over authoritative, historical, branch-local, preview, and
+  shared-consumer bases
+- include truth-triggered, time-triggered, async-triggered, and combined-cause
+  deliveries
+- vary host adapter shape, diagnostics tier, clock submission timing, and
+  physical async completion order
+- compare original, replayed, restarted, and control bundles
+
+Must verify
+
+- equivalent temporal/async subscription lanes compare equal on canonical
+  bundle digests
+- intentionally different truth, temporal, async, or subscription bases compare
+  unequal
+- diagnostics richness changes detail only
+- all parent-runtime authority bases remain traceable from the bundle
+- replay and restart preserve subscription meaning
+
+Required verification output
+
+- `temporal_async_subscription_bundle_digest`
+- `subscription_digest`
+- `temporal_bridge_basis_digest`
+- `async_lifecycle_digest`
+- `mixed_cause_digest`
+- `replay_digest`
+
+Pass condition
+
+Temporal/async subscriptions are mechanically comparable across original
+execution, replay, restart, and hostile adapter variation.
+
+### 47. Mixed Cause Delivery Ordering Parity Test
+
+Purpose
+
+Prove that delivery ordering across truth patches, clock advances, temporal
+wakes, async completions, retries, cancellations, and supersessions is
+canonical and replay-stable.
+
+Scenario
+
+- create delivery windows containing multiple cause families at the same
+  logical boundary
+- shuffle host call order and physical async completion order
+- include duplicate causes, stale causes, branch-local causes, and preview
+  causes
+- compare delivery order against replay and independently constructed
+  equivalent runs
+
+Must verify
+
+- canonical mixed-cause ordering is stable and explainable
+- stale or duplicate causes do not create extra delivery
+- branch-local and preview causes do not leak into authoritative delivery
+- consumer pacing and coalescing change delivery shape only through admitted
+  contracts, not subscription meaning
+- replay reconstructs the same ordered delivery digest
+
+Required verification output
+
+- `mixed_cause_order_digest`
+- `subscription_delivery_digest`
+- `consumer_contract_digest`
+- `coalescing_report`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Mixed-cause delivery order is deterministic, bounded, and authority-honest.
+
+### 48. Restart Resume With Clock And Inflight Basis Test
+
+Purpose
+
+Prove that restart and resume recover active time-aware and async-backed
+subscriptions from canonical truth, temporal, inflight, and delivery basis
+artifacts.
+
+Scenario
+
+- checkpoint subscriptions with pending temporal wakes, ready temporal wakes,
+  inflight async requests, partial delivery, and shared consumers
+- restart after partial progress and resume from canonical basis
+- inject stale checkpoint, truncated retention, missing inflight generation,
+  incompatible clock basis, and branch-crossed resume evidence
+- compare against uninterrupted control lanes
+
+Must verify
+
+- resumed lanes match uninterrupted control lanes where basis is complete and
+  compatible
+- stale, truncated, incompatible, or cross-branch basis fails explicitly and
+  typed
+- inflight async requests resume, cancel, retry, or reject according to
+  canonical signal async lifecycle evidence
+- temporal wakes resume from retained temporal basis rather than broad
+  rediscovery
+- subscription checkpoint meaning remains distinct from raw stream offsets,
+  raw clock ticks, and raw transport handles
+
+Required verification output
+
+- `checkpoint_digest`
+- `temporal_bridge_basis_digest`
+- `inflight_async_basis_digest`
+- `subscription_delivery_digest`
+- `resume_report`
+- `failure_digest`
+- `replay_digest`
+
+Pass condition
+
+Restart and resume are exact for time-aware and async-backed subscriptions, or
+fail closed with localizable basis errors.
+
+### 49. Temporal Async Failure Taxonomy Localization Test
+
+Purpose
+
+Prove that temporal/async bridge failures localize to precise bridge-native
+classes instead of collapsing into generic stream, scheduler, transport, or
+host errors.
+
+Scenario
+
+- inject failures across temporal basis binding, clock-domain mismatch,
+  temporal wake evidence, historical retention, async source declaration,
+  completion admission, retry/revalidation, writeback, mixed-cause delivery,
+  resume, preview discard, and promotion
+- run equivalent failure lanes through original execution and replay
+- vary diagnostics richness and host adapter shape
+
+Must verify
+
+- every failure maps to a typed bridge-native class with parent-runtime
+  provenance
+- localization identifies the exact failed boundary and rejected artifact
+- equivalent failures compare equal across replay and adapter variation
+- diagnostics tier affects retained context only
+- offline artifacts are sufficient to distinguish temporal, async, truth,
+  subscription, delivery, and writeback failure families
+
+Required verification output
+
+- `failure_taxonomy_matrix`
+- `failure_digest`
+- `diagnostics_digest`
+- `temporal_bridge_basis_digest`
+- `async_lifecycle_digest`
+- `mixed_cause_digest`
+- `replay_failure_digest`
+
+Pass condition
+
+Temporal/async bridge failures are typed, localizable, replay-stable, and
+offline diagnosable.
+
+### 50. End-To-End Temporal Async Reference Workload Sufficiency Test
+
+Purpose
+
+Prove that the bridge emits enough canonical artifacts for an aerospace- or
+fintech-grade auditor to certify a realistic end-to-end workload involving
+truth changes, time-only updates, async resources, subscriptions, preview,
+promotion, discard, restart, and replay.
+
+Scenario
+
+- run one mixed reference workload with authoritative truth commits,
+  historical reads, branch-local preview, time-gated updates, stale-after or
+  interval wakes, async success, async failure, retry, cancellation,
+  supersession, shared-consumer fanout, writeback, restart, and replay
+- include hostile lanes for stale completion, incompatible resume basis,
+  retention truncation, branch-crossed temporal evidence, preview residue, and
+  writeback rejection
+- produce canonical bundles only
+- attempt offline diagnosis, equivalence comparison, and failure localization
+  from those bundles without live runtime or host logs
+
+Must verify
+
+- bundle completeness does not depend on ambient process clock, host transport
+  state, host logs, or live runtime memory
+- authoritative, historical, branch-local, preview, time-only, async-backed,
+  shared-consumer, restart, and replay lanes are all certifiable from one
+  coherent artifact story
+- reference workload proves both success parity and hostile failure
+  localization
+- all truth, temporal, async, delivery, subscription, and writeback causes are
+  traceable to their owning runtime or bridge boundary
+- the workload remains a certification fixture, not bridge-owned domain
+  semantics
+
+Required verification output
+
+- `temporal_async_reference_workload_digest`
+- `certification_bundle_digest`
+- `temporal_async_subscription_bundle_digest`
+- `mixed_cause_order_digest`
+- `failure_taxonomy_matrix`
+- `offline_diagnosis_report`
+- `counter_snapshot`
+
+Pass condition
+
+The bridge can certify temporal/async end-to-end behavior from canonical
+artifacts alone under production-grade restart, replay, ordering, retention,
+branch, preview, transport, and writeback pressure.
+
 ## What These Tests Collectively Prove
 
 Together, these tests prove that the bridge from Milestone 6 onward is:
@@ -1598,8 +2171,13 @@ Together, these tests prove that the bridge from Milestone 6 onward is:
 - explicit about structural identity, merge semantics, speculative flows, and policy provenance
 - explicit about first-class subscription declaration, lifecycle, continuation,
   sharing, preview isolation, and replay
+- explicit about temporal-basis binding, time-aware subscription lowering,
+  async/resource lifecycle causality, mixed truth/time/async delivery ordering,
+  and restart-safe temporal and inflight resume
 - lossless about authority provenance when lowering parent-runtime truth into
   bridge-consumption vocabularies
+- lossless about authority provenance when binding signal temporal and async
+  lifecycle artifacts to truth-view and bridge subscription artifacts
 - unable to bypass truth authority during writeback
 - certifiable through canonical artifacts rather than intuition
 
@@ -1611,6 +2189,7 @@ certification suites emit canonical machine-checkable outputs and pass across:
 - original execution
 - replay from canonical bridge artifacts
 - hostile adapter or scheduling variation
+- hostile clock-advance, temporal-wake, and async-completion ordering variation
 - diagnostics-tier variation where admitted
 
 Without that, the bridge may still be promising, but it is not yet trust-grade.

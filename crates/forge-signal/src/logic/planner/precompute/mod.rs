@@ -6,6 +6,8 @@ pub(crate) mod executor_pool;
 pub(crate) mod reporting;
 pub(crate) mod stage;
 
+use std::collections::BTreeMap;
+
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -18,11 +20,10 @@ use crate::data::proof::{LocallyOrderedShard, MergeableOrderedStream, OrderedStr
 use crate::data::proof::{OrderedStreamItem, SingleConsumer};
 use crate::data::temporal::{
     ClockTick, DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
-    RuntimeClockBasis, TemporalCondition,
+    ReadyTemporalWake, RuntimeClockBasis, TemporalCondition, TemporalWakeOwner,
 };
 use crate::logic::evaluation::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver,
-    TemporalConditionResolver,
 };
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
@@ -63,28 +64,46 @@ pub(in crate::logic::planner) enum StageExecutionData {
     Patched(SingleConsumer<Vec<PreparedTaskPatch>>),
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct TemporalLoweringContext {
     runtime_clock_basis: Option<RuntimeClockBasis>,
+    ready_wakes_by_owner: BTreeMap<TemporalWakeOwner, ReadyTemporalWake>,
 }
 
 impl TemporalLoweringContext {
     pub(crate) fn graph_only() -> Self {
         Self {
             runtime_clock_basis: None,
+            ready_wakes_by_owner: BTreeMap::new(),
         }
     }
 
     pub(crate) fn runtime_clock_basis(runtime_clock_basis: RuntimeClockBasis) -> Self {
         Self {
             runtime_clock_basis: Some(runtime_clock_basis),
+            ready_wakes_by_owner: BTreeMap::new(),
         }
     }
 
-    fn runtime_tick_for(self, domain: crate::data::temporal::ClockDomain) -> Option<ClockTick> {
+    pub(crate) fn with_ready_wake(mut self, wake: ReadyTemporalWake) -> Self {
+        self.ready_wakes_by_owner.insert(wake.owner(), wake);
+        self
+    }
+
+    fn runtime_tick_for(&self, domain: crate::data::temporal::ClockDomain) -> Option<ClockTick> {
         self.runtime_clock_basis
             .filter(|basis| basis.domain() == domain)
             .map(RuntimeClockBasis::current_tick)
+    }
+
+    fn current_runtime_tick(&self) -> Option<ClockTick> {
+        self.runtime_clock_basis
+            .map(RuntimeClockBasis::current_tick)
+    }
+
+    fn ready_wake_for_node(&self, node: NodeId) -> Option<&ReadyTemporalWake> {
+        self.ready_wakes_by_owner
+            .get(&TemporalWakeOwner::Node(node))
     }
 }
 
@@ -129,7 +148,7 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let validated = prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
+    let validated = prevalidate_stage_tasks(graph, tasks, comparator_resolver, &temporal_lowering)?;
     let snapshot = ExecutionSnapshot::new(&*graph);
     let mut prepared = Vec::with_capacity(tasks.len());
     for (task, prevalidated) in tasks.iter().zip(validated.into_iter()) {
@@ -170,7 +189,7 @@ where
         + Sync,
 {
     let mut prepared =
-        prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
+        prevalidate_stage_tasks(graph, tasks, comparator_resolver, &temporal_lowering)?;
     let mut compute_indices = Vec::new();
     for (task_index, prepared_task) in prepared.iter().enumerate() {
         if matches!(prepared_task, PrevalidatedTask::NeedsCompute { .. }) {
@@ -245,7 +264,7 @@ where
         + Sync,
 {
     let prevalidated =
-        prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
+        prevalidate_stage_tasks(graph, tasks, comparator_resolver, &temporal_lowering)?;
     let ready_temporal = prevalidated
         .iter()
         .map(PrevalidatedTask::temporal_ready)
@@ -330,7 +349,7 @@ fn prevalidate_stage_tasks(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
     comparator_resolver: &mut impl ComparatorPolicyResolver,
-    temporal_lowering: TemporalLoweringContext,
+    temporal_lowering: &TemporalLoweringContext,
 ) -> Result<Vec<PrevalidatedTask>, SignalError> {
     let mut prevalidated = Vec::with_capacity(tasks.len());
     for task in tasks {
@@ -353,7 +372,7 @@ fn prevalidate_stage_tasks(
 fn prepare_condition_outcome_if_blocked(
     graph: &mut SignalGraph,
     task: &super::types::EligibleTask,
-    temporal_lowering: TemporalLoweringContext,
+    temporal_lowering: &TemporalLoweringContext,
 ) -> Result<Option<PrevalidatedTask>, SignalError> {
     let dirty_aspects = graph.node_dirty_aspects(task.node)?;
     let required_context = graph.get_contract(task.node)?.semantics.required_context;
@@ -401,14 +420,7 @@ fn prepare_condition_outcome_if_blocked(
                 .telemetry_mut()
                 .temporal
                 .temporal_eligibility_lowering_count += 1;
-            lower_temporal_condition(
-                graph,
-                task.node,
-                condition,
-                &ctx,
-                temporal_lowering,
-                &mut default_resolver,
-            )
+            lower_temporal_condition(graph, task.node, condition, &ctx, temporal_lowering)
         }
         EvaluationCondition::Custom(key) => {
             if default_resolver.resolve_custom(&key, &ctx)? {
@@ -440,8 +452,7 @@ fn lower_temporal_condition(
     node: NodeId,
     condition: TemporalCondition,
     ctx: &ConditionEvaluationContext,
-    temporal_lowering: TemporalLoweringContext,
-    resolver: &mut impl TemporalConditionResolver,
+    temporal_lowering: &TemporalLoweringContext,
 ) -> Result<Option<PrevalidatedTask>, SignalError> {
     if let Some(prevalidated) =
         lower_temporal_condition_from_runtime_clock(condition.clone(), temporal_lowering)
@@ -454,24 +465,43 @@ fn lower_temporal_condition(
         };
     }
 
-    if resolver.resolve_temporal(&condition, ctx)? {
-        Ok(Some(PrevalidatedTask::NeedsCompute {
-            temporal_ready: Some(ReadyTemporalEligibility::resolver_backed(condition)),
-        }))
-    } else {
-        prepare_condition_blocked_result(
-            graph,
-            node,
-            PreparedEvaluation::deferred_by_time(LoweredTemporalEligibility::resolver_deferred(
-                condition,
-            )),
-        )
+    if let Some(ready) = temporal_lowering.ready_wake_for_node(node) {
+        if ready.condition() == &condition {
+            return Ok(Some(PrevalidatedTask::NeedsCompute {
+                temporal_ready: Some(ReadyTemporalEligibility::runtime_wake_backed(
+                    condition,
+                    ready.id(),
+                    ready.ready_ordinal(),
+                    ready.ready_tick(),
+                )),
+            }));
+        }
+        return Err(SignalError::internal(format!(
+            "ready temporal wake {} for node {} carried a descriptor different from the node declaration",
+            ready.id().get(),
+            node
+        )));
     }
+
+    let Some(authority_tick) = temporal_lowering.current_runtime_tick() else {
+        return Err(SignalError::invalid_input(format!(
+            "temporal condition for node {node} requires runtime-owned temporal lowering"
+        )));
+    };
+
+    let _ = ctx;
+    prepare_condition_blocked_result(
+        graph,
+        node,
+        PreparedEvaluation::deferred_by_time(LoweredTemporalEligibility::Deferred(
+            DeferredTemporalEligibility::runtime_wake_deferred(condition, authority_tick),
+        )),
+    )
 }
 
 fn lower_temporal_condition_from_runtime_clock(
     condition: TemporalCondition,
-    temporal_lowering: TemporalLoweringContext,
+    temporal_lowering: &TemporalLoweringContext,
 ) -> Option<PrevalidatedTask> {
     match condition.clone() {
         TemporalCondition::AtOrAfter(at_or_after) => {

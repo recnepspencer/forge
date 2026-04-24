@@ -1486,6 +1486,33 @@ fn multi_aspect_versions_survive_snapshot_round_trip() {
     assert_eq!(restored[0].aspect_versions, before[0].aspect_versions);
 }
 
+#[cfg(feature = "profile-extended")]
+#[test]
+fn extended_profile_accepts_aspect_slot_fifteen() {
+    let mut runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    runtime
+        .define_source(SourceSpec {
+            id: "sensor".to_owned(),
+            initial: SignalValue::Number(10.0),
+            produces_aspects: Some(vec![15]),
+        })
+        .unwrap();
+
+    runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "sensor".to_owned(),
+            value: SignalValue::Number(15.0),
+            aspect: None,
+            aspects: Some(vec![15]),
+        }])
+        .unwrap();
+
+    let versions = runtime.read_versions(vec!["sensor".to_owned()]).unwrap();
+    assert_eq!(versions[0].aspect_versions.len(), 1);
+    assert_eq!(versions[0].aspect_versions[0].aspect, 15);
+    assert_eq!(versions[0].aspect_versions[0].version, 2);
+}
+
 #[test]
 fn replay_artifact_proof_reports_typed_mismatch_classes() {
     let (mut runtime, main_branch_id, feature_branch_id, _) =

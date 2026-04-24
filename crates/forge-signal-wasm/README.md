@@ -138,6 +138,24 @@ Those concepts are also aspect-aware now. Web consumers can declare produced
 aspects, read only selected aspects, and write or invalidate only the aspects
 that changed, while keeping watcher/effect semantics node-scoped.
 
+## Aspect Profile Selection
+
+The package now passes the `forge-signal` storage-profile policy through to
+WASM builds:
+
+- default / `profile-standard`: 8 aspect slots
+- `profile-extended`: 16 aspect slots
+
+Use `forgeSignalMaxAspects()` and `forgeSignalCoreProfile()` at runtime to
+inspect the compiled profile. Build extended WASM with:
+
+```bash
+cargo build -p forge-signal-wasm --no-default-features --features profile-extended
+```
+
+Aspect identifiers remain `u8` at the JS/WASM boundary, but the compiled
+signal profile determines which ids are admitted.
+
 ## Semantics
 
 - `input` is mutable source state.

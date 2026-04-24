@@ -12,8 +12,8 @@ use crate::logic::planner::ExecutionReport;
 use crate::logic::transaction::runtime::transaction::ObservationBoundarySummary;
 
 use super::transaction_types::{
-    EvaluationSummary, TransactionOutcome, TransactionReplayEntry, TransactionResult,
-    TransactionTiming,
+    EvaluationSummary, TemporalTransactionEvidence, TransactionOutcome, TransactionReplayEntry,
+    TransactionResult, TransactionTiming,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -83,6 +83,7 @@ impl TransactionResult {
         touched_nodes: u32,
         evaluation_summary: EvaluationSummary,
         temporal_summary: TemporalExecutionSummary,
+        temporal_evidence: TemporalTransactionEvidence,
         _replay_events: &[TransactionReplayEntry],
         reconstructability: crate::logic::transaction::runtime::state::ReconstructabilityRecord,
         event_epochs: Vec<EventEpochSummary>,
@@ -179,6 +180,7 @@ impl TransactionResult {
             touched_nodes,
             evaluation_summary,
             temporal_summary,
+            temporal_evidence,
             reconstructability,
             event_epochs: event_epochs.clone(),
             rollback,

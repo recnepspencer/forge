@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ClockDomain, ClockTick, TemporalCondition};
+use super::{ClockDomain, ClockTick, TemporalCondition, TemporalWakeId, WakeOrdinal};
 
 /// Authority posture used to admit or defer temporal eligibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TemporalEligibilityAuthority {
     RuntimeClockBasis,
+    RuntimeScheduledWake,
     ResolverFallback,
 }
 
@@ -17,10 +18,6 @@ pub enum LoweredTemporalEligibility {
 }
 
 impl LoweredTemporalEligibility {
-    pub(crate) fn resolver_deferred(condition: TemporalCondition) -> Self {
-        Self::Deferred(DeferredTemporalEligibility::resolver_backed(condition))
-    }
-
     pub fn condition(&self) -> &TemporalCondition {
         match self {
             Self::Ready(eligibility) => eligibility.condition(),
@@ -61,6 +58,7 @@ pub struct TemporalExecutionSummary {
     deferred_count: u32,
     runtime_clock_authority_count: u32,
     resolver_fallback_count: u32,
+    runtime_scheduled_wake_count: u32,
 }
 
 impl TemporalExecutionSummary {
@@ -80,6 +78,10 @@ impl TemporalExecutionSummary {
         self.resolver_fallback_count
     }
 
+    pub fn runtime_scheduled_wake_count(&self) -> u32 {
+        self.runtime_scheduled_wake_count
+    }
+
     pub fn total_count(&self) -> u32 {
         self.ready_count.saturating_add(self.deferred_count)
     }
@@ -95,9 +97,12 @@ impl TemporalExecutionSummary {
                 self.runtime_clock_authority_count =
                     self.runtime_clock_authority_count.saturating_add(1);
             }
+            TemporalEligibilityAuthority::RuntimeScheduledWake => {
+                self.runtime_scheduled_wake_count =
+                    self.runtime_scheduled_wake_count.saturating_add(1);
+            }
             TemporalEligibilityAuthority::ResolverFallback => {
-                self.resolver_fallback_count =
-                    self.resolver_fallback_count.saturating_add(1);
+                self.resolver_fallback_count = self.resolver_fallback_count.saturating_add(1);
             }
         }
     }
@@ -111,6 +116,9 @@ impl TemporalExecutionSummary {
         self.resolver_fallback_count = self
             .resolver_fallback_count
             .saturating_add(other.resolver_fallback_count);
+        self.runtime_scheduled_wake_count = self
+            .runtime_scheduled_wake_count
+            .saturating_add(other.runtime_scheduled_wake_count);
     }
 }
 
@@ -121,18 +129,11 @@ pub struct ReadyTemporalEligibility {
     clock_domain: ClockDomain,
     authority: TemporalEligibilityAuthority,
     authority_tick: Option<ClockTick>,
+    wake_id: Option<TemporalWakeId>,
+    wake_ordinal: Option<WakeOrdinal>,
 }
 
 impl ReadyTemporalEligibility {
-    pub(crate) fn resolver_backed(condition: TemporalCondition) -> Self {
-        Self {
-            clock_domain: condition.clock_domain(),
-            condition,
-            authority: TemporalEligibilityAuthority::ResolverFallback,
-            authority_tick: None,
-        }
-    }
-
     pub(crate) fn runtime_clock_backed(
         condition: TemporalCondition,
         authority_tick: ClockTick,
@@ -142,6 +143,24 @@ impl ReadyTemporalEligibility {
             condition,
             authority: TemporalEligibilityAuthority::RuntimeClockBasis,
             authority_tick: Some(authority_tick),
+            wake_id: None,
+            wake_ordinal: None,
+        }
+    }
+
+    pub(crate) fn runtime_wake_backed(
+        condition: TemporalCondition,
+        wake_id: TemporalWakeId,
+        wake_ordinal: WakeOrdinal,
+        authority_tick: ClockTick,
+    ) -> Self {
+        Self {
+            clock_domain: condition.clock_domain(),
+            condition,
+            authority: TemporalEligibilityAuthority::RuntimeScheduledWake,
+            authority_tick: Some(authority_tick),
+            wake_id: Some(wake_id),
+            wake_ordinal: Some(wake_ordinal),
         }
     }
 
@@ -159,6 +178,14 @@ impl ReadyTemporalEligibility {
 
     pub fn authority_tick(&self) -> Option<ClockTick> {
         self.authority_tick
+    }
+
+    pub fn wake_id(&self) -> Option<TemporalWakeId> {
+        self.wake_id
+    }
+
+    pub fn wake_ordinal(&self) -> Option<WakeOrdinal> {
+        self.wake_ordinal
     }
 }
 
@@ -169,18 +196,11 @@ pub struct DeferredTemporalEligibility {
     clock_domain: ClockDomain,
     authority: TemporalEligibilityAuthority,
     authority_tick: Option<ClockTick>,
+    wake_id: Option<TemporalWakeId>,
+    wake_ordinal: Option<WakeOrdinal>,
 }
 
 impl DeferredTemporalEligibility {
-    pub(crate) fn resolver_backed(condition: TemporalCondition) -> Self {
-        Self {
-            clock_domain: condition.clock_domain(),
-            condition,
-            authority: TemporalEligibilityAuthority::ResolverFallback,
-            authority_tick: None,
-        }
-    }
-
     pub(crate) fn runtime_clock_backed(
         condition: TemporalCondition,
         authority_tick: ClockTick,
@@ -190,6 +210,22 @@ impl DeferredTemporalEligibility {
             condition,
             authority: TemporalEligibilityAuthority::RuntimeClockBasis,
             authority_tick: Some(authority_tick),
+            wake_id: None,
+            wake_ordinal: None,
+        }
+    }
+
+    pub(crate) fn runtime_wake_deferred(
+        condition: TemporalCondition,
+        authority_tick: ClockTick,
+    ) -> Self {
+        Self {
+            clock_domain: condition.clock_domain(),
+            condition,
+            authority: TemporalEligibilityAuthority::RuntimeScheduledWake,
+            authority_tick: Some(authority_tick),
+            wake_id: None,
+            wake_ordinal: None,
         }
     }
 
@@ -207,5 +243,13 @@ impl DeferredTemporalEligibility {
 
     pub fn authority_tick(&self) -> Option<ClockTick> {
         self.authority_tick
+    }
+
+    pub fn wake_id(&self) -> Option<TemporalWakeId> {
+        self.wake_id
+    }
+
+    pub fn wake_ordinal(&self) -> Option<WakeOrdinal> {
+        self.wake_ordinal
     }
 }

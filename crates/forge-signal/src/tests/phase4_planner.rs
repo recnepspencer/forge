@@ -523,11 +523,11 @@ fn execution_report_marks_temporal_deferral_explicitly() {
         .expect("temporal deferral should preserve lowered temporal proof");
     assert_eq!(
         temporal.authority(),
-        TemporalEligibilityAuthority::ResolverFallback
+        TemporalEligibilityAuthority::RuntimeClockBasis
     );
     assert_eq!(report.temporal_summary.total_count(), 1);
     assert_eq!(report.temporal_summary.deferred_count(), 1);
-    assert_eq!(report.temporal_summary.resolver_fallback_count(), 1);
+    assert_eq!(report.temporal_summary.resolver_fallback_count(), 0);
     assert_eq!(
         graph
             .observe()

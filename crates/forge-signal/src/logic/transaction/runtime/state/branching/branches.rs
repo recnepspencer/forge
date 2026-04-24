@@ -156,6 +156,10 @@ where
         &self.derived.telemetry
     }
 
+    pub fn temporal(&self) -> &TemporalRuntimeState {
+        &self.derived.temporal
+    }
+
     pub fn branch_id(&self) -> SignalBranchId {
         self.ancestry.branch_id()
     }
@@ -385,6 +389,9 @@ where
             restored_telemetry
                 .temporal
                 .branch_local_temporal_restore_count += 1;
+            restored_telemetry
+                .temporal
+                .branch_restore_temporal_rebuild_denial_count += 1;
         }
         *telemetry = restored_telemetry;
         self.observe_allocator_state(graph);

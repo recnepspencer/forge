@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::data::aspect::AspectVersion;
 use crate::data::handle::NodeId;
 use crate::data::output::OutputIdentity;
@@ -5,7 +7,7 @@ use crate::state::SignalBranchId;
 
 use super::{ClockTick, ReadyTemporalWake, TemporalWakeId, WakeOrdinal};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct PreviousValueRevision(u64);
 
 impl PreviousValueRevision {
@@ -24,7 +26,7 @@ impl PreviousValueRevision {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalPreviousValueAccess {
     branch_id: SignalBranchId,
     capability_epoch: u64,
@@ -69,7 +71,7 @@ impl TemporalPreviousValueAccess {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalPreviousValueReference {
     revision: PreviousValueRevision,
     branch_id: SignalBranchId,

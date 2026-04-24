@@ -777,6 +777,188 @@ This milestone is complete only when bridge harness scenarios can prove:
 - the Milestone 16 certification suites in `test-requirements.md` pass with
   canonical machine-checkable bundles
 
+## Milestone 17: Temporal Bridge Basis and Time-Aware Lowering
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 38-41: Temporal Bridge Basis Equivalence, Truth Patch Plus Clock Advance Replay Parity, Time-Aware Subscription Basis Rejection, Historical Truth With Temporal Wake Replay
+
+### Goal
+
+Make time-aware bridge flows explicit after `forge-signal` owns temporal
+eligibility, scheduled wakes, previous-value access, and temporal replay.
+
+The bridge must be able to bind a relational truth basis to a signal temporal
+basis without turning `forge-relational` into a scheduler or letting bridge
+host code redefine signal clock semantics.
+
+### Must Ship
+
+- bridge-visible temporal basis records that bind truth snapshot, branch, or
+  CDC cursor evidence to signal clock basis and temporal wake evidence
+- time-aware subscription admission for bridge families that depend on
+  admitted `forge-signal` temporal policies
+- routing and delivery records for non-patch wake causes, including flows where
+  no relational commit occurred but signal time made derived work eligible
+- replay rules for mixed truth-patch and clock-advance sequences
+- diagnostics explaining whether a derived update came from truth change, clock
+  advance, temporal wake readiness, or a combined cause
+- explicit rejection paths for missing temporal basis, incompatible clock
+  basis, unsupported historical temporal replay, and host-attempted temporal
+  meaning redefinition
+
+### Must Preserve
+
+- truth runtime remains the authority for truth history, snapshots, branches,
+  CDC cursors, and retention
+- signal runtime remains the authority for clock domains, temporal
+  eligibility, wake scheduling, previous-value access, and temporal execution
+- bridge binds and certifies cross-runtime causality; it does not own clocks,
+  temporal policies, or truth history
+- relational commits are not required for time-only derived eligibility, but
+  any truth read used by that work remains bound to an explicit truth basis
+- diagnostics richness may vary, but temporal truth and truth-view basis may
+  not vary with diagnostics tier
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- equivalent truth-basis plus signal-temporal-basis inputs produce equivalent
+  bridge temporal basis artifacts
+- reordered host calls cannot change mixed truth-patch and clock-advance replay
+  outcomes
+- time-aware subscriptions fail explicitly when snapshot, branch, clock, or
+  wake evidence is missing, stale, or mismatched
+- historical truth evaluation with temporal wake readiness replays from
+  canonical truth and signal temporal artifacts rather than ambient host time
+- time-only derived updates are diagnosable without pretending a relational
+  patch caused them
+- the Milestone 17 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
+## Milestone 18: Async Resource Bridge Families and Completion Causality
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 42-45: Async Source Lifecycle Bridge Parity, Out-Of-Order Completion Truth-Basis Supersession, Async Retry And Revalidation Causality, Async Completion Writeback Loop Prevention
+
+### Goal
+
+Make bridge-declared async and resource-backed sources lower into
+`forge-signal` async/resource lifecycle truth without leaving request identity,
+completion admission, retry, cancellation, or stale-completion rejection as
+host-local conventions.
+
+### Must Ship
+
+- bridge async/resource declaration families that lower into admitted
+  `forge-signal` async/resource node lifecycle surfaces
+- request identity binding bridge declaration, truth-view basis, subscription
+  instance where applicable, and signal async request generation
+- completion admission records for fulfilled, rejected, cancelled, timed-out,
+  retried, superseded, and stale-denied outcomes
+- stale completion rejection when truth basis, signal generation, branch,
+  subscription instance, temporal basis, or admitted family identity has moved
+  on
+- retry and revalidation evidence proving signal owns lifecycle scheduling
+  while bridge owns cross-runtime causality and source binding
+- optional writeback coordination through admitted bridge writeback families,
+  including causality transfer, idempotence, and loop-prevention evidence
+- diagnostics that distinguish transport failure, signal lifecycle denial,
+  bridge source-family rejection, truth-basis mismatch, stale completion, and
+  relational writeback rejection
+
+### Must Preserve
+
+- external async transport is not bridge authority
+- bridge does not own retry, backoff, timeout, cancellation, or completion
+  scheduling semantics
+- async/resource state remains derived state unless an admitted writeback path
+  commits authoritative truth through `forge-relational`
+- async completions cannot mutate relational truth except through explicit
+  bridge-mediated writeback admission
+- out-of-order physical completion may vary, but admitted bridge completion
+  meaning must remain generation-safe and replay-honest
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- async/resource bridge declarations lower into distinct, admitted signal
+  lifecycle families without host-local lifecycle invention
+- out-of-order completions commit, reject, cancel, retry, or supersede exactly
+  according to canonical bridge and signal evidence
+- stale completions cannot publish over newer truth basis, branch basis,
+  temporal basis, subscription instance, or signal generation
+- retry and revalidation preserve causality and compare equal to equivalent
+  no-failure control lanes where the admitted lifecycle says they should
+- async completion writeback cannot create bridge-origin feedback loops or
+  bypass truth authority
+- the Milestone 18 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
+## Milestone 19: Temporal/Async Subscription Certification and Reference Workload
+
+Required certification suites: [test-requirements.md](C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
+Suites 46-50: Temporal Async Subscription Bundle Equivalence, Mixed Cause Delivery Ordering Parity, Restart Resume With Clock And Inflight Basis, Temporal Async Failure Taxonomy Localization, End-To-End Temporal Async Reference Workload Sufficiency
+
+### Goal
+
+Close the bridge roadmap after `forge-signal` temporal and async/resource
+substrates exist by certifying one end-to-end bridge story where relational
+truth commits, signal clock advances, temporal wakes, async completions,
+subscriptions, restart, replay, branch-local preview, promotion, and discard
+all compose without a second truth model or a second scheduler.
+
+### Must Ship
+
+- one canonical temporal/async bridge certification bundle shape
+- subscription checkpoint and resume records that include truth cursor,
+  truth-view basis, signal temporal basis, async request generation, and
+  subscription delivery basis where applicable
+- mixed-cause delivery ordering rules for truth patches, clock advances,
+  temporal wakes, async completions, retries, cancellations, and supersessions
+- multi-consumer fanout over time-aware and async-backed subscriptions
+- restart-safe recovery of active temporal and inflight async bridge state from
+  canonical bridge and parent-runtime artifacts
+- offline diagnostics for stale async completion, missing temporal basis,
+  incompatible resume basis, mixed-cause replay drift, preview discard residue,
+  and promotion-boundary mismatch
+- one reference workload proving live truth changes, time-only updates, async
+  completion, retry, cancellation, branch-local preview, promotion, discard,
+  restart, and replay without relying on a UI or host-local debug logs
+
+### Must Preserve
+
+- bridge certification remains an integration proof, not domain authority
+- no ambient process clock, host transport state, host logs, or live runtime
+  memory is required for replay or offline diagnosis
+- truth-side causality, signal temporal causality, and signal async lifecycle
+  causality remain distinct but linkable
+- consumer pacing, stream coalescing, clock advancement, and async completion
+  order may affect delivery timing only through admitted bridge and signal
+  artifacts
+- reference workloads remain certification fixtures rather than bridge-owned
+  product semantics
+
+### Acceptance Evidence
+
+This milestone is complete only when bridge harness scenarios can prove:
+
+- original execution, replay, restart, and hostile adapter variation preserve
+  canonical temporal/async subscription meaning where they should
+- mixed truth/time/async causes deliver in the same canonical order under
+  replay, even when host call order and physical async completion order vary
+- stale, truncated, incompatible, or cross-branch resume basis fails explicitly
+  and typed
+- offline bundles are sufficient to diagnose temporal basis failures, async
+  completion failures, mixed-cause delivery drift, preview residue, and
+  promotion-boundary mismatches
+- the reference workload proves authoritative, historical, branch-local,
+  preview, time-only, async-backed, shared-consumer, restart, and replay lanes
+  through one coherent bridge certification story
+- the Milestone 19 certification suites in `test-requirements.md` pass with
+  canonical machine-checkable bundles
+
 ## Completion Standard
 
 The bridge roadmap is complete only when:
@@ -789,6 +971,11 @@ The bridge roadmap is complete only when:
   subscriptions, and subscription-specific certification bundles
 - those subscription scenarios prove multiple admitted subscription families
   lowered into `forge-signal`'s extensible observation and delivery substrate
+- bridge harness scenarios also cover temporal-basis binding, time-aware
+  subscription lowering, async/resource completion causality, mixed
+  truth/time/async delivery ordering, restart-safe temporal and inflight basis
+  resume, and offline certification for time-aware and async-backed bridge
+  subscriptions
 - bridge diagnostics and artifacts are canonical, machine-checkable, and replay-safe
 - bridge configuration and policy surfaces are explicit, composable, and clean enough to serve as library-grade public contracts rather than host-local conventions
 - no shipped bridge surface defines logic that belongs structurally to truth authority or compute authority

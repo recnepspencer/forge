@@ -69,5 +69,6 @@ pub use replay::{
 };
 pub use summary::{
     EvaluationPlanSummary, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
-    ExecutionReportSummary, ExplanationSummary, GraphSummary,
+    ExecutionReportSummary, ExplanationSummary, GraphSummary, TemporalCostContractSummary,
+    TemporalDiagnosticsSummary, TemporalPerformanceFailureMode,
 };

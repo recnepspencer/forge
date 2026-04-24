@@ -10,8 +10,14 @@ publish = false
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["profile-standard"]
+profile-compact = ["forge-signal/profile-compact"]
+profile-standard = ["forge-signal/profile-standard"]
+profile-extended = ["forge-signal/profile-extended"]
+
 [dependencies]
-forge-signal.workspace = true
+forge-signal = { path = "../forge-signal", default-features = false }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 wasm-bindgen = "0.2"

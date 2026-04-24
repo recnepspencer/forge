@@ -18,13 +18,16 @@ pub use eligibility::{
     DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
     TemporalEligibilityAuthority, TemporalExecutionSummary,
 };
-pub use frontier::TemporalFrontierSnapshot;
+pub use frontier::{
+    TemporalClockAdvanceSummary, TemporalFrontierSnapshot, TemporalReadyPromotionSummary,
+};
 pub use previous_value::{
     PreviousValueRevision, TemporalPreviousValueAccess, TemporalPreviousValueReference,
 };
 pub use units::{IntervalPeriod, TemporalDuration};
 pub use wake::{
     IntervalWakeRegeneration, ReadyTemporalWake, RetiredTemporalWake, ScheduledTemporalWake,
-    TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule, TemporalWakeRetirementBatch,
-    TemporalWakeRetirementReason, TemporalWakeSummary, WakeOrdinal,
+    TemporalWakeAdmissionSummary, TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule,
+    TemporalWakeRetirementBatch, TemporalWakeRetirementReason, TemporalWakeReuse,
+    TemporalWakeSummary, WakeOrdinal,
 };

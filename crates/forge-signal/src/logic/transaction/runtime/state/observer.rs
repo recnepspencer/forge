@@ -10,7 +10,9 @@ use crate::diagnostics::history::ExecutionInspector;
 use crate::diagnostics::lineage::{LineageArtifactId, SynthesizedLineageChain};
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
-use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::diagnostics::summary::{
+    ExecutionHistorySummary, GraphSummary, TemporalDiagnosticsSummary,
+};
 use crate::diagnostics::{
     FailureSummary, FlowSummary, ReplayView, RollbackDiagnostic, SynthesizedReplaySlice,
 };
@@ -96,6 +98,24 @@ where
 
     pub fn diagnostics_summary(&self, profile: DiagnosticsTier) -> GraphSummary {
         self.graph().diagnostics_summary(profile)
+    }
+
+    pub fn temporal_diagnostics_summary(
+        &self,
+        profile: DiagnosticsTier,
+    ) -> TemporalDiagnosticsSummary {
+        TemporalDiagnosticsSummary::from_artifact(
+            profile,
+            self.runtime.temporal.frontier_snapshot(),
+            crate::logic::transaction::TemporalReconstructabilityArtifact::from_temporal_state(
+                &self.runtime.temporal,
+            ),
+            self.runtime.telemetry.temporal,
+        )
+    }
+
+    pub fn temporal_diagnostics_summary_now(&self) -> TemporalDiagnosticsSummary {
+        self.temporal_diagnostics_summary(self.diagnostics_profile())
     }
 
     pub fn diagnostics(&self) -> RuntimeDiagnostics<'a> {

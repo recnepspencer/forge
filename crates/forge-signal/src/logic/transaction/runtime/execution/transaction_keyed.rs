@@ -10,7 +10,6 @@ use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
-use crate::logic::planner::TemporalLoweringContext;
 use crate::logic::prepared::{
     PreparedEvaluationOrigin, PreparedKeyedContext, PreparedMemoDecision,
 };
@@ -123,6 +122,9 @@ where
         let executor = executor_for_strategy(strategy);
         self.telemetry.invalidation.keyed_evaluation_count += 1;
         self.stage_evaluate_candidates(node)?;
+        self.admit_temporal_wakes_for_nodes(&[node])?;
+        self.promote_due_temporal_wakes_ready()?;
+        let temporal_lowering = self.temporal_lowering_context_for_nodes(&[node]);
         let family_id = self.config.key_registry.intern_family(&computation.family);
         let key_id = self.config.key_registry.intern_key(&computation.key);
         let memo_key_id = computation
@@ -177,7 +179,7 @@ where
                 let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
                     self.config,
-                    TemporalLoweringContext::graph_only(),
+                    temporal_lowering.clone(),
                     &[node],
                     request_mode,
                     &|_current, _view| {
@@ -207,9 +209,10 @@ where
                 };
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
-                self.scratch.temporal.summary.absorb(report.temporal_summary);
+                self.scratch.temporal.absorb_report(&report);
                 self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
+                self.retire_consumed_temporal_wakes_from_report(&report)?;
                 return self.apply_result(Ok(()));
             }
             self.telemetry.evaluation.memoization_misses += 1;
@@ -220,7 +223,7 @@ where
         let result = match execute_targets_with_prepared_runtime_config_detailed(
             self.graph,
             self.config,
-            TemporalLoweringContext::graph_only(),
+            temporal_lowering,
             &[node],
             request_mode,
             &|current, view| {
@@ -256,9 +259,10 @@ where
             Ok(report) => {
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
-                self.scratch.temporal.summary.absorb(report.temporal_summary);
+                self.scratch.temporal.absorb_report(&report);
                 self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
+                self.retire_consumed_temporal_wakes_from_report(&report)?;
                 self.apply_result(Ok(()))
             }
             Err(err) => self.apply_result(Err(err)),

@@ -1,6 +1,8 @@
 # Milestone A Engineering Spec: Temporal Runtime Substrate
 
-> **Status:** Planned
+> **Status:** Closeout candidate
+>
+> **Closeout:** [milestone-a-closeout.md](./milestone-a-closeout.md)
 >
 > **Roadmap parent:** [forge_signal_temporal_async_roadmap.md](./forge_signal_temporal_async_roadmap.md)
 >

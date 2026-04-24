@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
 
+use forge_signal::facade::MAX_ASPECTS;
+
 use crate::runtime::core::new_shared_core;
 use crate::runtime::policy::RuntimePolicySpec;
 
@@ -14,6 +16,16 @@ pub fn create_signals() -> Result<Signals, JsValue> {
     Ok(Signals {
         core: new_default_core()?,
     })
+}
+
+#[wasm_bindgen(js_name = forgeSignalMaxAspects)]
+pub fn forge_signal_max_aspects() -> u32 {
+    MAX_ASPECTS as u32
+}
+
+#[wasm_bindgen(js_name = forgeSignalCoreProfile)]
+pub fn forge_signal_core_profile() -> String {
+    forge_signal::facade::CORE_STORAGE_PROFILE_ID.to_owned()
 }
 
 #[wasm_bindgen]

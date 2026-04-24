@@ -53,6 +53,7 @@ pub(super) fn absorb_execution_report_telemetry(
     telemetry.planner.tasks_scheduled += report.task_count as u64;
     telemetry.planner.tasks_pruned_before_execution += report.tasks_pruned as u64;
     telemetry.planner.maybe_stale_validation_tasks += report.maybe_stale_validation_tasks as u64;
+    telemetry.temporal.deferred_by_time_count += report.temporal_summary.deferred_count() as u64;
     telemetry.execution.stage_execution_count += report.stage_count as u64;
     telemetry.execution.stage_execution_nanos += stage_execution_nanos;
     telemetry.execution.execution_snapshots_built += report.execution_snapshots_built as u64;

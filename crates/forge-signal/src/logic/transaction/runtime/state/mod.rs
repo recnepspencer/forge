@@ -73,9 +73,18 @@ pub use merge::{
 pub use observer::{RuntimeMaterializer, RuntimeObserver};
 #[allow(unused_imports)]
 pub use reconstructability::{
-    BoundedJournalSegment, CheckpointBoundary, DependencyIndexRebuildProof,
-    MergeSupportRebuildProof, ReconstructabilityProof, ReplaySuffixRebuildProof,
-    RequiredDerivedRebuildSet,
+    temporal_certification_builder, temporal_certification_bundle,
+    temporal_certification_bundle_parity_report, temporal_certification_record,
+    temporal_replay_parity_report, BoundedJournalSegment, CheckpointBoundary,
+    DependencyIndexRebuildProof, MergeSupportRebuildProof, ReconstructabilityProof,
+    ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, TemporalCertificationBuilder,
+    TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
+    TemporalCertificationBundleParityReport, TemporalCertificationFailure,
+    TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
+    TemporalReconstructabilityArtifact, TemporalReplayMismatchClass, TemporalReplayParityReport,
+    TemporalStateRebuildProof, REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES,
+    TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+    TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
 };
 #[allow(unused_imports)]
 pub use reconstructability::{CheckpointRecord, JournalSegment, ReconstructabilityRecord};
@@ -86,3 +95,4 @@ pub use runtime_observation::{
     ObservationRegistrySummary, ObservationTrigger, ObservedNodeSet, ObserverId,
 };
 pub use runtime_state::SignalRuntime;
+pub(in crate::logic::transaction::runtime) use temporal::TemporalRuntimeState;

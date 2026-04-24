@@ -66,6 +66,12 @@ where
                     graph.clear_branch_mutation_nodes();
                     rebuild_breadth += restore_plan.coarse_reasons().len() as u64;
                 }
+                crate::logic::transaction::RequiredDerivedRebuildSet::TemporalState(temporal) => {
+                    rebuild_breadth += temporal
+                        .scheduled_wake_count
+                        .saturating_add(temporal.ready_wake_count)
+                        .saturating_add(temporal.retired_wake_count);
+                }
             }
         }
         graph
@@ -166,6 +172,9 @@ where
                     },
                 ),
                 &retained_replay,
+                super::super::reconstructability::TemporalReconstructabilityArtifact::from_temporal_state(
+                    &self.temporal,
+                ),
             ),
         );
         let mut branch_state = self.capture_heavy_branch_state();
@@ -416,6 +425,9 @@ where
                             },
                         ),
                         &retained_replay,
+                        super::super::reconstructability::TemporalReconstructabilityArtifact::from_temporal_state(
+                            state.temporal(),
+                        ),
                     ),
                 ),
             };

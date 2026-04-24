@@ -6,7 +6,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
 use crate::data::temporal::{
-    DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
+    ClockTick, DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
     TemporalCondition, TemporalExecutionSummary,
 };
 use crate::logic::evaluation::EvaluationRequestMode;
@@ -338,14 +338,18 @@ fn preview_condition_action(
             let condition = condition.clone();
             if resolver.resolve_temporal(&condition, &ctx)? {
                 Ok(TestConditionAction::Evaluate {
-                    temporal_ready: Some(ReadyTemporalEligibility::resolver_backed(condition)),
+                    temporal_ready: Some(ReadyTemporalEligibility::runtime_clock_backed(
+                        condition,
+                        ClockTick::ZERO,
+                    )),
                 })
             } else {
                 Ok(TestConditionAction::Defer {
                     on_demand: false,
                     temporal: matches!(condition, TemporalCondition::Debounce(_)),
-                    temporal_deferred: Some(DeferredTemporalEligibility::resolver_backed(
+                    temporal_deferred: Some(DeferredTemporalEligibility::runtime_clock_backed(
                         condition,
+                        ClockTick::ZERO,
                     )),
                 })
             }

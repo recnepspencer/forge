@@ -15,6 +15,7 @@
 
 pub mod core {
     pub use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS};
+    pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
     pub use crate::data::dependency::DependencyEdge;
     pub use crate::data::error::SignalError;
     pub use crate::data::graph::{NodeBuilder, SignalGraph};
@@ -30,11 +31,11 @@ pub mod core {
         DeferredTemporalEligibility, IntervalAnchor, IntervalCondition, IntervalPeriod,
         IntervalWakeRegeneration, LoweredTemporalEligibility, MissedTickPolicy,
         PreviousValueRevision, ReadyTemporalEligibility, RuntimeClockBasis, StaleAfterCondition,
-        TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
-        TemporalExecutionSummary,
-        TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
-        TemporalWakeOwner, TemporalWakeReschedule, TemporalWakeRetirementBatch, ThrottleCondition,
-        ValidatedClockAdvance,
+        TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration,
+        TemporalEligibilityAuthority, TemporalExecutionSummary, TemporalFrontierSnapshot,
+        TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalReadyPromotionSummary,
+        TemporalWakeAdmissionSummary, TemporalWakeOwner, TemporalWakeReschedule,
+        TemporalWakeRetirementBatch, TemporalWakeReuse, ThrottleCondition, ValidatedClockAdvance,
     };
     pub use crate::logic::invalidation::mark_dirty_batch;
 
@@ -118,10 +119,11 @@ pub mod runtime {
     pub use crate::data::proof::SemanticBatchCommit as ChangeBatchCommit;
     pub use crate::data::temporal::{
         IntervalWakeRegeneration, PreviousValueRevision, ReadyTemporalWake, RetiredTemporalWake,
-        ScheduledTemporalWake, TemporalFrontierSnapshot, TemporalPreviousValueAccess,
-        TemporalPreviousValueReference, TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule,
-        TemporalWakeRetirementBatch, TemporalWakeRetirementReason, TemporalWakeSummary,
-        WakeOrdinal,
+        ScheduledTemporalWake, TemporalClockAdvanceSummary, TemporalFrontierSnapshot,
+        TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalReadyPromotionSummary,
+        TemporalWakeAdmissionSummary, TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule,
+        TemporalWakeRetirementBatch, TemporalWakeRetirementReason, TemporalWakeReuse,
+        TemporalWakeSummary, WakeOrdinal,
     };
     pub use crate::data::tier::TierPolicy as RuntimeTierPolicy;
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};
@@ -137,9 +139,21 @@ pub mod runtime {
     pub use crate::logic::transaction::SignalRuntimeConfig as RuntimeConfig;
     pub use crate::logic::transaction::TransactionExecutionRequest as TransactionRunRequest;
     pub use crate::logic::transaction::{
-        BatchChangeSession, PlannedRuntimeMerge, Recipe, RuntimeMerge, SignalRuntime,
-        SignalRuntimeBuilder, SignalTransaction, TransactionOutcome, TransactionResult,
-        TransactionTiming,
+        temporal_certification_builder, temporal_certification_bundle,
+        temporal_certification_bundle_parity_report, temporal_certification_record,
+        temporal_replay_parity_report, REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES,
+        TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+        TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
+    };
+    pub use crate::logic::transaction::{
+        BatchChangeSession, PlannedRuntimeMerge, Recipe, RequiredDerivedRebuildSet, RuntimeMerge,
+        SignalRuntime, SignalRuntimeBuilder, SignalTransaction, TemporalCertificationBuilder,
+        TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
+        TemporalCertificationBundleParityReport, TemporalCertificationFailure,
+        TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
+        TemporalEligibilityFact, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
+        TemporalReplayParityReport, TemporalStateRebuildProof, TemporalTransactionEvidence,
+        TransactionOutcome, TransactionResult, TransactionTiming,
     };
     pub use crate::logic::transaction::{
         CommittedObservationEventSummary, MatchingObserverSet, ObservationBoundaryOutcome,
@@ -363,6 +377,7 @@ pub mod diagnostics {
         ReconstructionBudget, ReplayCursor, ReplayDetailPolicy, ReplayDiff, ReplayEventKind,
         ReplayFrame, ReportInspector, RetentionBudget, RollbackDiagnostic, RollbackSummary,
         SemanticRetentionPolicy, SnapshotRestoreKind, SnapshotRestoreLineageMode,
+        TemporalCostContractSummary, TemporalDiagnosticsSummary, TemporalPerformanceFailureMode,
     };
 }
 
@@ -401,9 +416,10 @@ pub use self::core::{
     MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId, NodeState, OutputChange,
     OutputIdentity, PartitionMatchMode, PartitionSubscription, PartitionToken,
     ReadyTemporalEligibility, RuntimeClockBasis, SignalError, SignalGraph, StaleAfterCondition,
-    TemporalCondition, TemporalDuration, TemporalEligibilityAuthority, TemporalExecutionSummary,
-    TemporalWakeOwner,
-    TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance, MAX_ASPECTS,
+    TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
+    TemporalExecutionSummary, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
+    TemporalWakeOwner, TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance,
+    CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
 };
 #[cfg(test)]
 pub use self::diagnostics::*;
@@ -429,8 +445,8 @@ pub use self::runtime::{
     RecipeInstance, RetiredTemporalWake, RunSummary, RuntimeConfig, RuntimeMerge, RuntimePolicy,
     ScheduledTemporalWake, SignalRuntime, SignalTransaction, TemporalFrontierSnapshot,
     TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalWakeId,
-    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeSummary, TransactionOutcome,
-    TransactionResult, TransactionTiming, WakeOrdinal,
+    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse, TemporalWakeSummary,
+    TransactionOutcome, TransactionResult, TransactionTiming, WakeOrdinal,
 };
 #[cfg(test)]
 pub use self::runtime::{
@@ -457,8 +473,6 @@ pub use self::specialist::{EvaluationContext, RunMode};
 pub use crate::data::comparator::DefaultComparatorPolicyResolver;
 #[cfg(test)]
 pub use crate::data::comparator::DefaultComparatorResolver;
-#[cfg(test)]
-pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 #[cfg(test)]
 pub use crate::data::dependency::CanonicalDependencies;
 #[cfg(test)]

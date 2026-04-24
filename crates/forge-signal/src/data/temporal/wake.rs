@@ -245,6 +245,64 @@ impl TemporalWakeReschedule {
     }
 }
 
+/// Runtime-owned proof that an existing wake lifecycle was intentionally reused.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TemporalWakeReuse {
+    wake_id: TemporalWakeId,
+    ordinal: WakeOrdinal,
+    owner: TemporalWakeOwner,
+    condition: TemporalCondition,
+    original_due_tick: ClockTick,
+    attempted_due_tick: ClockTick,
+    decision_tick: ClockTick,
+}
+
+impl TemporalWakeReuse {
+    pub(crate) fn from_scheduled(
+        scheduled: &ScheduledTemporalWake,
+        attempted_due_tick: ClockTick,
+        decision_tick: ClockTick,
+    ) -> Self {
+        Self {
+            wake_id: scheduled.id(),
+            ordinal: scheduled.ordinal(),
+            owner: scheduled.owner(),
+            condition: scheduled.condition().clone(),
+            original_due_tick: scheduled.due_tick(),
+            attempted_due_tick,
+            decision_tick,
+        }
+    }
+
+    pub fn wake_id(&self) -> TemporalWakeId {
+        self.wake_id
+    }
+
+    pub fn ordinal(&self) -> WakeOrdinal {
+        self.ordinal
+    }
+
+    pub fn owner(&self) -> TemporalWakeOwner {
+        self.owner
+    }
+
+    pub fn condition(&self) -> &TemporalCondition {
+        &self.condition
+    }
+
+    pub fn original_due_tick(&self) -> ClockTick {
+        self.original_due_tick
+    }
+
+    pub fn attempted_due_tick(&self) -> ClockTick {
+        self.attempted_due_tick
+    }
+
+    pub fn decision_tick(&self) -> ClockTick {
+        self.decision_tick
+    }
+}
+
 /// Runtime-owned proof that an interval wake was consumed and regenerated under policy.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntervalWakeRegeneration {
@@ -310,6 +368,68 @@ impl TemporalWakeRetirementBatch {
 
     pub fn retired(&self) -> &[RetiredTemporalWake] {
         &self.retired
+    }
+}
+
+/// Cost-honest summary of runtime-owned temporal admission work.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TemporalWakeAdmissionSummary {
+    scheduled: Vec<ScheduledTemporalWake>,
+    rescheduled: Vec<TemporalWakeReschedule>,
+    reused: Vec<TemporalWakeReuse>,
+}
+
+impl TemporalWakeAdmissionSummary {
+    pub(crate) fn record_scheduled(&mut self, wake: ScheduledTemporalWake) {
+        self.scheduled.push(wake);
+    }
+
+    pub(crate) fn record_policy_supersession(&mut self, reschedule: TemporalWakeReschedule) {
+        self.rescheduled.push(reschedule);
+    }
+
+    pub(crate) fn record_reschedule(&mut self, reschedule: TemporalWakeReschedule) {
+        self.rescheduled.push(reschedule);
+    }
+
+    pub(crate) fn record_reused(&mut self, reuse: TemporalWakeReuse) {
+        self.reused.push(reuse);
+    }
+
+    pub(crate) fn extend(&mut self, other: Self) {
+        self.scheduled.extend(other.scheduled);
+        self.rescheduled.extend(other.rescheduled);
+        self.reused.extend(other.reused);
+    }
+
+    pub fn scheduled(&self) -> &[ScheduledTemporalWake] {
+        &self.scheduled
+    }
+
+    pub fn rescheduled(&self) -> &[TemporalWakeReschedule] {
+        &self.rescheduled
+    }
+
+    pub fn reused(&self) -> &[TemporalWakeReuse] {
+        &self.reused
+    }
+
+    pub fn scheduled_count(&self) -> u64 {
+        self.scheduled.len() as u64
+    }
+
+    pub fn rescheduled_count(&self) -> u64 {
+        self.rescheduled.len() as u64
+    }
+
+    pub fn reused_count(&self) -> u64 {
+        self.reused.len() as u64
+    }
+
+    pub fn total_decision_count(&self) -> u64 {
+        self.scheduled_count()
+            .saturating_add(self.rescheduled_count())
+            .saturating_add(self.reused_count())
     }
 }
 

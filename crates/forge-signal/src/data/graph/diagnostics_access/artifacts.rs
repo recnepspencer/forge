@@ -125,6 +125,12 @@ impl SignalGraph {
                     restored.clear_branch_mutation_nodes();
                     rebuild_breadth += restore_plan.coarse_reasons().len() as u64;
                 }
+                crate::logic::transaction::RequiredDerivedRebuildSet::TemporalState(temporal) => {
+                    rebuild_breadth += temporal
+                        .scheduled_wake_count
+                        .saturating_add(temporal.ready_wake_count)
+                        .saturating_add(temporal.retired_wake_count);
+                }
             }
         }
         restored
@@ -286,6 +292,7 @@ impl SignalGraph {
                         },
                     ),
                     &retained_replay,
+                    crate::logic::transaction::TemporalReconstructabilityArtifact::default(),
                 ),
             ),
         }

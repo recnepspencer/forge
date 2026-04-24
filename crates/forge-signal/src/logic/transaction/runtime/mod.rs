@@ -9,6 +9,8 @@ pub use config::SignalRuntimeConfig;
 pub use execution::{RuntimeExecutionRequest, TransactionExecutionRequest};
 pub(crate) use state::RuntimeObservationRegistry;
 pub use state::{branch_state_proof_report, canonical_digest};
+#[allow(unused_imports)]
+#[allow(unused_imports)]
 pub use state::{
     lowered_strategy_bundle_digest, merge_lineage_digest, replay_artifact_proof_report,
     replay_parity_proof_report,
@@ -63,17 +65,28 @@ pub use state::{
     StructuralMergeJournalSlice, BRANCH_STATE_PROOF_BASIS_VERSION, MERGE_PROOF_SCHEMA_VERSION,
 };
 pub use state::{
-    BoundedJournalSegment, CheckpointBoundary, CheckpointRecord, DependencyIndexRebuildProof,
-    JournalSegment, MatchingObserverSet, MergeSupportRebuildProof, ObservationDeliveryMode,
-    ObservationHandle, ObservationHandleId, ObservationListener, ObservationNotice,
-    ObservationPolicy, ObservationReadContext, ObservationRegistrySummary, ObservationTrigger,
-    ObservedNodeSet, ObserverId, PlannedRuntimeMerge, ReconstructabilityProof,
+    temporal_certification_builder, temporal_certification_bundle,
+    temporal_certification_bundle_parity_report, temporal_certification_record,
+    temporal_replay_parity_report, BoundedJournalSegment, CheckpointBoundary, CheckpointRecord,
+    DependencyIndexRebuildProof, JournalSegment, MatchingObserverSet, MergeSupportRebuildProof,
+    ObservationDeliveryMode, ObservationHandle, ObservationHandleId, ObservationListener,
+    ObservationNotice, ObservationPolicy, ObservationReadContext, ObservationRegistrySummary,
+    ObservationTrigger, ObservedNodeSet, ObserverId, PlannedRuntimeMerge, ReconstructabilityProof,
     ReconstructabilityRecord, ReplaySuffixRebuildProof, RequiredDerivedRebuildSet, RuntimeHistory,
     RuntimeMaterializer, RuntimeMerge, RuntimeObserver, SignalRuntime, SignalRuntimeBuilder,
+    TemporalCertificationBuilder, TemporalCertificationBundle,
+    TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
+    TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
+    TemporalCertificationSummary, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
+    TemporalReplayParityReport, TemporalStateRebuildProof,
+    REQUIRED_TEMPORAL_CERTIFICATION_FAMILIES, TEMPORAL_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+    TEMPORAL_CERTIFICATION_BUNDLE_SCHEMA_VERSION, TEMPORAL_REPLAY_PARITY_SCHEMA_VERSION,
 };
+#[allow(unused_imports)]
 pub use transaction::{
     AdvisoryRecord, BatchChangeSession, CommittedObservationEventSummary, DecisionDetail,
     DecisionLog, DecisionRecord, DecisionSummary, EvaluationSummary, IntegrityMarkers,
-    ObservationBoundaryOutcome, ObservationBoundarySummary, SignalTransaction, TransactionOutcome,
+    ObservationBoundaryOutcome, ObservationBoundarySummary, SignalTransaction,
+    TemporalEligibilityFact, TemporalTransactionEvidence, TransactionOutcome,
     TransactionReplayEntry, TransactionResult, TransactionTiming,
 };

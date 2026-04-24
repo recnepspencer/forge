@@ -62,7 +62,7 @@ where
         stage,
         ctx.precompute,
         ctx.comparator_resolver,
-        ctx.temporal_lowering,
+        ctx.temporal_lowering.clone(),
         ctx.executor,
     )?;
     record_stage_precompute_report(
