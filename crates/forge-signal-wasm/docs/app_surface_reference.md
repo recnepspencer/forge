@@ -95,20 +95,27 @@ Represents the write lane inside `transaction(...)` and `batch(...)`.
 Methods:
 
 - `set(input: InputSignal, value: SignalValue): void`
+- `setWithAspects(input: InputSignal, value: SignalValue, aspects: ReadonlyArray<number>): void`
 - `setWithRegions(input: InputSignal, value: SignalValue, changedRegions: unknown): void`
+- `setWithRegionsAndAspects(input: InputSignal, value: SignalValue, changedRegions: unknown, aspects: ReadonlyArray<number>): void`
 
 ## Core Methods On `Signals`
 
-### `input(id, initial): InputSignal`
+### `input(id, initial, options?): InputSignal`
 
 Registers mutable source state.
 
 ```ts
-const count = signals.input("count", 1);
+const count = signals.input("count", 1, {
+  producesAspects: [1, 2],
+});
 ```
 
 Use `input` for app-owned values that are explicitly mutated through
 transactions.
+
+If you omit `options` or `producesAspects`, the runtime preserves the default
+single-aspect compatibility lane through aspect `0`.
 
 ### `computed(id, spec): ComputedSignal`
 
@@ -272,6 +279,7 @@ Fields:
 - `expr: Expr`
 - `when?: ConditionSpec`
 - `identity?: IdentitySpec`
+- `producesAspects?: ReadonlyArray<number>`
 
 ### `RecipeReadSpec`
 
@@ -279,8 +287,17 @@ Fields:
 - or object form:
 
 ```ts
-{ id: "part", scope: ... }
+{ id: "part", scope: ..., aspect: 1 }
 ```
+
+Or:
+
+```ts
+{ id: "part", aspects: [1, 2] }
+```
+
+These aspect filters are how the wasm app-first surface becomes genuinely
+multi-aspect instead of flattening all reads to aspect `0`.
 
 ### `ConditionSpec`
 
@@ -358,9 +375,14 @@ archive.
 - rollback suppresses normal delivery
 - `transaction` is the write boundary
 - `batch` is an alias of `transaction`
+- aspects are first-class for node definition, read selection, invalidation,
+  and version reporting
+- subscriptions stay node-scoped by default; aspect precision belongs in
+  derivation, not in the default watch/effect model
 
 ## Related Docs
 
 - [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
 - [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
+- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
 - [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)

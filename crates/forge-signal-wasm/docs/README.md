@@ -20,6 +20,9 @@ subpath.
 - [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
   Reference for the lower-level `SignalApp` and `SignalRuntime` compatibility
   surfaces.
+- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
+  Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
+  and why subscriptions remain node-scoped.
 - [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
   Reference for `@.../forge-signal-wasm/react`.
 
@@ -41,6 +44,7 @@ The primary web concepts are:
 - `effect`
 - `transaction`
 - `nuke`
+- real aspect-aware derivation and invalidation
 
 The package also exposes:
 
@@ -62,6 +66,8 @@ The package also exposes:
 - `nuke` tears down future deliveries for an observation handle.
 - rollback suppresses normal watcher/effect delivery.
 - latest observation and latest flow remain inspectable through diagnostics.
+- aspects are first-class for node definitions, reads, invalidation, and
+  version reporting, while subscriptions remain node-scoped by default.
 
 ## Why These Docs Exist
 

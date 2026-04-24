@@ -10,9 +10,9 @@ use wasm_bindgen::prelude::*;
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::boundary::serde::{from_js, to_js};
 use crate::expression::model::SignalValue;
-use crate::recipe::model::{SetValueWithRegions, TransactionOp};
+use crate::recipe::model::{SetValueWithRegions, TransactionOp, WasmAspectId};
 
-use super::signals_model::{ComputedSpec, OutputSpec};
+use super::signals_model::{ComputedSpec, InputOptions, OutputSpec};
 use super::types::{ComputedSignal, InputSignal, OutputSignal, Signals, SignalsTransaction};
 
 fn read_signal_value(
@@ -67,11 +67,17 @@ pub(super) fn signal_id_from_js(target: &JsValue) -> Result<String, JsValue> {
 
 #[wasm_bindgen]
 impl Signals {
-    pub fn input(&self, id: String, initial: JsValue) -> Result<InputSignal, JsValue> {
+    pub fn input(
+        &self,
+        id: String,
+        initial: JsValue,
+        options: Option<JsValue>,
+    ) -> Result<InputSignal, JsValue> {
         let initial: SignalValue = from_js(initial)?;
+        let options = options.map(from_js::<InputOptions>).transpose()?;
         self.core
             .borrow_mut()
-            .define_web_input(id.clone(), initial)
+            .define_web_input(id.clone(), initial, options)
             .map_err(JsValue::from)?;
         Ok(InputSignal {
             core: self.core.clone(),
@@ -180,7 +186,7 @@ impl Signals {
     ) -> Result<InputSignal, ForgeSignalJsError> {
         self.core
             .borrow_mut()
-            .define_web_input(id.to_owned(), initial)?;
+            .define_web_input(id.to_owned(), initial, None)?;
         Ok(InputSignal {
             core: self.core.clone(),
             id: id.to_owned(),
@@ -255,6 +261,20 @@ impl SignalsTransaction {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = setWithAspects)]
+    pub fn set_with_aspects(
+        &self,
+        input: &InputSignal,
+        value: JsValue,
+        aspects: JsValue,
+    ) -> Result<(), JsValue> {
+        assert_same_runtime(&self.core, &input.core, "input handle")?;
+        let value: SignalValue = from_js(value)?;
+        let aspects: Vec<WasmAspectId> = from_js(aspects)?;
+        self.push_set_with_aspects(input, value, aspects);
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = setWithRegions)]
     pub fn set_with_regions(
         &self,
@@ -268,6 +288,22 @@ impl SignalsTransaction {
         self.push_set_with_regions(input, value, changed_regions);
         Ok(())
     }
+
+    #[wasm_bindgen(js_name = setWithRegionsAndAspects)]
+    pub fn set_with_regions_and_aspects(
+        &self,
+        input: &InputSignal,
+        value: JsValue,
+        changed_regions: JsValue,
+        aspects: JsValue,
+    ) -> Result<(), JsValue> {
+        assert_same_runtime(&self.core, &input.core, "input handle")?;
+        let value: SignalValue = from_js(value)?;
+        let changed_regions: Vec<ChangedRegion> = from_js(changed_regions)?;
+        let aspects: Vec<WasmAspectId> = from_js(aspects)?;
+        self.push_set_with_regions_and_aspects(input, value, changed_regions, aspects);
+        Ok(())
+    }
 }
 
 impl SignalsTransaction {
@@ -275,6 +311,22 @@ impl SignalsTransaction {
         self.ops.borrow_mut().push(TransactionOp::Set {
             id: input.id.clone(),
             value,
+            aspect: None,
+            aspects: None,
+        });
+    }
+
+    fn push_set_with_aspects(
+        &self,
+        input: &InputSignal,
+        value: SignalValue,
+        aspects: Vec<WasmAspectId>,
+    ) {
+        self.ops.borrow_mut().push(TransactionOp::Set {
+            id: input.id.clone(),
+            value,
+            aspect: None,
+            aspects: Some(aspects),
         });
     }
 
@@ -291,6 +343,28 @@ impl SignalsTransaction {
                     id: input.id.clone(),
                     value,
                     changed_regions,
+                    aspect: None,
+                    aspects: None,
+                }],
+            });
+    }
+
+    fn push_set_with_regions_and_aspects(
+        &self,
+        input: &InputSignal,
+        value: SignalValue,
+        changed_regions: Vec<ChangedRegion>,
+        aspects: Vec<WasmAspectId>,
+    ) {
+        self.ops
+            .borrow_mut()
+            .push(TransactionOp::SetManyWithRegions {
+                values: vec![SetValueWithRegions {
+                    id: input.id.clone(),
+                    value,
+                    changed_regions,
+                    aspect: None,
+                    aspects: Some(aspects),
                 }],
             });
     }

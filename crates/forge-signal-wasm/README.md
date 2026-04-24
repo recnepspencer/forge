@@ -15,6 +15,8 @@ bundlers and private npm distribution.
   Diagnostics, history, branch, and adapter surfaces.
 - [docs/compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
   Lower-level compatibility/runtime surface reference.
+- [docs/aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
+  Aspect-aware node, read, invalidation, and versioning reference.
 - [docs/react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
   React adapter reference.
 
@@ -132,6 +134,10 @@ The app-first concepts are:
 - `transaction`
 - `nuke`
 
+Those concepts are also aspect-aware now. Web consumers can declare produced
+aspects, read only selected aspects, and write or invalidate only the aspects
+that changed, while keeping watcher/effect semantics node-scoped.
+
 ## Semantics
 
 - `input` is mutable source state.
@@ -139,6 +145,9 @@ The app-first concepts are:
 - `output` is a public projection intended for host/framework consumption.
 - `watch` and `effect` inherit committed observation semantics from
   `forge-signal`.
+- node definitions, reads, invalidation, and version reporting support real
+  Forge Signal aspects instead of collapsing the web layer to a single default
+  aspect.
 - rollback suppresses normal watch/effect delivery.
 - `nuke(handle)` tears down future deliveries for that handle.
 - diagnostics expose both `latestObservation()` and `latestFlow()` so host code

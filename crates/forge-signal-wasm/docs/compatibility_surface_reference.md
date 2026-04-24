@@ -23,9 +23,30 @@ Use it when:
 - you need lower-level existing definitions
 - you are porting prior wasm consumers
 - you need keyed/grid helper paths the app-first surface does not foreground
+- you need direct control over aspect declarations and aspect-targeted
+  invalidation
 
 Do not start new web app code here unless you specifically need the lower-level
 shape.
+
+## Aspect Model
+
+The compatibility surface is fully aspect-aware.
+
+Definition specs can declare produced aspects:
+
+- `SourceSpec.producesAspects`
+- `KeyedSourceFamilySpec.producesAspects`
+- `RecipeSpec.producesAspects`
+- `KeyedRecipeFamilySpec.producesAspects`
+
+Read specs can also select aspects:
+
+- `RecipeReadSpec` object reads use `aspect` or `aspects`
+- `RecipeFamilyReadSpec` uses `aspects: { aspect?, aspects? }`
+
+If you omit aspect metadata, compatibility behavior stays backward-compatible
+through default aspect `0`.
 
 ## `SignalApp`
 
@@ -71,9 +92,13 @@ const app = signals.compatibilityApp();
 ### Writes And Invalidation
 
 - `set_keyed(familyId, key, value)`
+- `setKeyedWithAspects(familyId, key, value, aspects)`
 - `set_keyed_many(familyId, values)`
 - `mark_changed_with_regions(id, changedRegions)`
+- `markChanged(id, aspects)`
+- `markChangedWithRegionsAndAspects(id, changedRegions, aspects)`
 - `mark_keyed_changed_with_regions(familyId, key, changedRegions)`
+- `markKeyedChanged(familyId, key, aspects)`
 
 ### Diagnostics And Other Doors
 
@@ -122,10 +147,14 @@ const runtime = signals.compatibilityRuntime();
 ### Writes And Mutation
 
 - `set_keyed(familyId, key, value)`
+- `setKeyedWithAspects(familyId, key, value, aspects)`
 - `set_keyed_many(familyId, values)`
 - `clear_keyed_family_cache(familyId)`
 - `mark_changed_with_regions(id, changedRegions)`
+- `markChanged(id, aspects)`
+- `markChangedWithRegionsAndAspects(id, changedRegions, aspects)`
 - `mark_keyed_changed_with_regions(familyId, key, changedRegions)`
+- `markKeyedChanged(familyId, key, aspects)`
 - `transaction(ops)`
 - `transaction_with_packed_grid_rgba(prefixOps, familyId, width, height, rgba, suffixOps)`
 
@@ -156,8 +185,11 @@ This is the primary low-level way to switch runtime mode from web code:
 - this surface is not allowed to become a separate semantic engine
 - performance and read breadth still contribute to the same web perf cert
   surface
+- node observation still stays node-scoped by default even though reads and
+  invalidation are aspect-aware
 
 ## Related Docs
 
 - [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
 - [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
+- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
