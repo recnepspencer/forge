@@ -570,9 +570,13 @@ fn preview_promotion_certification_artifacts() -> LifecycleCertificationArtifact
         PreviewResidueWidth::measured(1),
         PreviewResidueWidth::measured(0),
     );
-    let promotion_handoff =
-        promote_preview_subscription(isolation.clone(), &authoritative_handle, "authority")
-            .unwrap();
+    let promotion_handoff = promote_preview_subscription(
+        isolation.clone(),
+        &residue_report,
+        &authoritative_handle,
+        "authority",
+    )
+    .unwrap();
     let closeout = close_subscription_lifecycle(
         &mut runtime,
         &handle,
@@ -1017,4 +1021,79 @@ fn lifecycle_certification_emits_preview_promotion_boundary_evidence() {
         .counter_evidence()
         .iter()
         .any(|entry| entry == "promotion_authority_boundary_crossed:true"));
+}
+
+#[test]
+fn lifecycle_certification_denies_preview_promotion_with_foreign_handoff_source() {
+    let artifacts = preview_promotion_certification_artifacts();
+    let SubscriptionLifecyclePreviewCertificationArtifacts::Promotion {
+        isolation,
+        residue_report,
+        ..
+    } = &artifacts.preview
+    else {
+        panic!("expected preview promotion artifacts");
+    };
+    let foreign_residue_report = measure_preview_subscription_residue(
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(1),
+    );
+    let mut foreign_runtime = ActiveSubscriptionRuntime::new();
+    let foreign_authoritative_admission = admit_active_subscription_lane(
+        activation_for(
+            LiveQueryFamily::OrderedCollection,
+            Some(LiveViewShapeFamily::Table),
+        ),
+        ActiveSubscriptionWorkBudget::admitted(
+            ActiveRegistryLookupWidth::measured(1),
+            ActiveFanoutWidth::measured(1),
+            ActiveAllocationScopeWidth::measured(1),
+            ActiveSubscriptionAllocationPosture::LifecycleArena,
+        ),
+    )
+    .unwrap();
+    let foreign_authoritative_handle =
+        open_active_subscription_lane(&mut foreign_runtime, foreign_authoritative_admission)
+            .unwrap();
+    let foreign_handoff = promote_preview_subscription(
+        isolation.clone(),
+        &foreign_residue_report,
+        &foreign_authoritative_handle,
+        "foreign-authority",
+    )
+    .unwrap();
+
+    let error = certify_subscription_lifecycle(
+        artifacts.context,
+        &artifacts.admission,
+        &artifacts.activation,
+        &artifacts.scale_report,
+        &artifacts.active_admission,
+        &artifacts.handle,
+        &artifacts.attachment,
+        artifacts.delivery_window_digest,
+        &artifacts.delta,
+        &artifacts.lowering_report,
+        &artifacts.work_packet,
+        &artifacts.delivery_batch,
+        &artifacts.acknowledged_attachment,
+        artifacts.continuation_report.as_ref(),
+        SubscriptionLifecyclePreviewCertification::Promotion {
+            isolation,
+            residue_report,
+            promotion_handoff: &foreign_handoff,
+        },
+        &artifacts.closeout,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error.denial_kind(),
+        &SubscriptionLifecycleCertificationDenialKind::PreviewSourceMismatch
+    );
 }

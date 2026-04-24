@@ -214,10 +214,23 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
     )
     .unwrap();
     let isolation_digest = isolation.isolation_digest().to_string();
+    let residue_report = measure_preview_subscription_residue(
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(0),
+        PreviewResidueWidth::measured(1),
+        PreviewResidueWidth::measured(0),
+    );
 
-    let handoff =
-        promote_preview_subscription(isolation, &authoritative_handle, "promotion-authority")
-            .unwrap();
+    let handoff = promote_preview_subscription(
+        isolation,
+        &residue_report,
+        &authoritative_handle,
+        "promotion-authority",
+    )
+    .unwrap();
 
     assert_eq!(
         handoff.authoritative_active_lane_digest(),
@@ -228,6 +241,10 @@ fn preview_promotion_emits_handoff_to_authoritative_lane_without_in_place_mutati
         handoff.authoritative_active_lane_digest()
     );
     assert_ne!(handoff.handoff_digest(), isolation_digest);
+    assert_eq!(
+        handoff.residue_report_digest(),
+        residue_report.report_digest()
+    );
     assert_eq!(handoff.counters().preview_promotion_handoff_count(), 1);
     assert_eq!(handoff.performance_receipt().consumed_width(), 1);
     assert_eq!(handoff.performance_receipt().remaining_width(), 0);

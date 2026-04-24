@@ -143,6 +143,7 @@ pub struct SubscriptionLifecycleCloseout {
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     closeout_kind: SubscriptionLifecycleCloseoutKind,
     lane_terminal: bool,
+    source_digest: String,
     support_profile: QuerySubscriptionSupportProfile,
     performance_receipt: SubscriptionPerformanceReceipt,
     counters: ActiveSubscriptionCounters,
@@ -193,6 +194,7 @@ impl SubscriptionLifecycleCloseout {
             attachment_digest,
             closeout_kind,
             lane_terminal,
+            source_digest,
             support_profile,
             performance_receipt,
             counters,
@@ -214,6 +216,10 @@ impl SubscriptionLifecycleCloseout {
 
     pub fn lane_terminal(&self) -> bool {
         self.lane_terminal
+    }
+
+    pub fn source_digest(&self) -> &str {
+        &self.source_digest
     }
 
     pub fn support_profile(&self) -> &QuerySubscriptionSupportProfile {

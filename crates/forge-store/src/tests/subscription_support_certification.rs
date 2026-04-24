@@ -20,7 +20,7 @@ use crate::{
     SubscriptionSupportRestartShard, SubscriptionSupportResumeEvidence,
     SubscriptionSupportResumeRequest, SubscriptionSupportRetentionDecision,
     SubscriptionSupportRole, SubscriptionSupportRuntimeHandoffRequest, SubscriptionSupportScope,
-    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope,
+    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope, SupportBatchProofKind,
     SupportCompatibilityReceiptWitness, SupportFamilyVersionWindow, SupportPathClass,
     SupportPortabilityManifestBudget, SupportProgramDensityClass,
 };
@@ -1099,6 +1099,43 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
         .unwrap(),
     );
 
+    let compatibility_basis_local = {
+        let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+        let plan = store
+            .admit_subscription_support_compatibility_batch(
+                SupportActionId::new("support-compatibility:cert-basis-local").unwrap(),
+                vec![
+                    compatibility_basis("basis-local-a"),
+                    compatibility_basis("basis-local-b"),
+                ],
+                read_receipt_witness(CompatibilityRelation::Native),
+                "semantic:cert-compatibility:basis-local",
+                SubscriptionSupportCompatibilityDecision::exact_compatible_migration(
+                    "classifier-equivalence:cert-basis-local",
+                )
+                .unwrap(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::BasisLocalBatch,
+                SupportAllocationScope::ActionLocal,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let report = store
+            .publish_subscription_support_compatibility_consequence(plan)
+            .unwrap();
+        let counters = store.subscription_support_counters();
+        (report, counters)
+    };
+    lane_outcomes.push(
+        SubscriptionSupportCertificationLaneOutcome::from_compatibility_report(
+            SubscriptionSupportCertificationLaneKind::SupportBasisLocalBatchBounded,
+            &compatibility_basis_local.0,
+            compatibility_basis_local.1,
+        )
+        .unwrap(),
+    );
+
     let compatibility_degraded = {
         let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
         let plan = store
@@ -1718,7 +1755,17 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
             128,
         )
         .unwrap();
-    bounded_pipeline.reuse_support_batch_receipt(&plan).unwrap();
+    let receipt_reuse_report = bounded_pipeline
+        .verify_support_batch_receipt_reuse(
+            &plan,
+            vec![
+                SupportBatchProofKind::CompatibilityReceipt,
+                SupportBatchProofKind::BasisEvidence,
+                SupportBatchProofKind::CursorCheckpointEvidence,
+                SupportBatchProofKind::PortabilityScopeEvidence,
+            ],
+        )
+        .unwrap();
     let foreground_error = bounded_pipeline
         .admit_support_program_path(
             SupportPathClass::ForegroundResume,
@@ -1757,8 +1804,9 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
         .unwrap(),
     );
     lane_outcomes.push(
-        SubscriptionSupportCertificationLaneOutcome::from_counter_snapshot(
+        SubscriptionSupportCertificationLaneOutcome::from_batch_receipt_reuse_report(
             SubscriptionSupportCertificationLaneKind::SupportBatchReceiptReuseVerified,
+            &receipt_reuse_report,
             bounded_counters,
         )
         .unwrap(),
@@ -1781,7 +1829,7 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
     );
     assert_eq!(
         matrix.lane_outcomes().len(),
-        SubscriptionSupportCertificationLaneKind::phase_6a_required().len() + 6
+        SubscriptionSupportCertificationLaneKind::phase_6a_required().len() + 7
     );
     assert_eq!(bundle.catalog_family_count(), 3);
     assert!(!bundle.truth_digest().is_empty());

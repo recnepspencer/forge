@@ -60,6 +60,7 @@ pub enum SubscriptionSupportPlanFamily {
     DegradedResumeClassificationPlan,
     RebuildPlanClassificationPlan,
     DeniedResumeClassificationPlan,
+    CompatibilityParticipationPlan,
     RetentionParticipationPlan,
     PortabilityParticipationPlan,
     MaintenanceParticipationPlan,

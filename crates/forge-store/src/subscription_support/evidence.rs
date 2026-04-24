@@ -8,7 +8,9 @@ use super::{
     SubscriptionSupportPostActionReport, SubscriptionSupportResultCostSurface,
 };
 use crate::failure::{StoreError, StoreErrorKind};
-use crate::SubscriptionSupportAccessStructureReport;
+use crate::{
+    SubscriptionSupportAccessStructureReport, SupportBatchProofKind, SupportBatchReceiptReuseReport,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -658,6 +660,7 @@ pub enum SubscriptionSupportCertificationLaneKind {
     SupportMaintenanceInterruptedRestartRecovered,
     SupportMaintenanceCoalescedRebuildAdmitted,
     SupportFamilyLocalBatchBounded,
+    SupportBasisLocalBatchBounded,
     SupportPortabilityScopeBatchBounded,
     SupportMaintenanceKeyBatchBounded,
     SupportStoreGlobalDensityRejected,
@@ -694,6 +697,7 @@ pub struct SubscriptionSupportCertificationLaneOutcome {
     diagnostics_digest: String,
     counter_digest: String,
     cost_surface: Option<SubscriptionSupportResultCostSurface>,
+    batch_receipt_reuse_report: Option<SupportBatchReceiptReuseReport>,
     counter_snapshot: SubscriptionSupportCounterSnapshot,
 }
 
@@ -730,6 +734,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             ))?,
             counter_digest: stable_digest(report.counter_snapshot())?,
             cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
             counter_snapshot: report.counter_snapshot().clone(),
         })
     }
@@ -754,6 +759,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             ))?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: None,
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -775,6 +781,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             diagnostics_digest: stable_digest(report)?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: None,
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -796,12 +803,14 @@ impl SubscriptionSupportCertificationLaneOutcome {
             diagnostics_digest: stable_digest(&(lane, &error_kind))?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: None,
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
 
-    pub fn from_counter_snapshot(
+    pub fn from_batch_receipt_reuse_report(
         lane: SubscriptionSupportCertificationLaneKind,
+        report: &SupportBatchReceiptReuseReport,
         counter_snapshot: SubscriptionSupportCounterSnapshot,
     ) -> Result<Self, StoreError> {
         Ok(Self {
@@ -809,13 +818,18 @@ impl SubscriptionSupportCertificationLaneOutcome {
             classification: None,
             primary_cause: None,
             suppressed_causes: Vec::new(),
-            truth_digest: stable_digest(&(lane, &counter_snapshot))?,
-            artifact_digest: stable_digest(&(lane, counter_snapshot.artifacts_published()))?,
-            subscription_support_digest: stable_digest(&(lane, &counter_snapshot))?,
+            truth_digest: stable_digest(&(
+                lane,
+                report.density_class(),
+                report.affected_entries(),
+            ))?,
+            artifact_digest: stable_digest(&(lane, report.reused_proofs()))?,
+            subscription_support_digest: stable_digest(&(lane, report, &counter_snapshot))?,
             replay_digest: stable_digest(&(lane, &counter_snapshot))?,
-            diagnostics_digest: stable_digest(&(lane, &counter_snapshot))?,
+            diagnostics_digest: stable_digest(report)?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: None,
+            batch_receipt_reuse_report: Some(report.clone()),
             counter_snapshot,
         })
     }
@@ -861,7 +875,8 @@ impl SubscriptionSupportCertificationLaneOutcome {
                 report.participation_record().milestone12_rejection_kind(),
             ))?,
             counter_digest: stable_digest(&counter_snapshot)?,
-            cost_surface: None,
+            cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -890,6 +905,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             diagnostics_digest: stable_digest(report.materialization())?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -924,6 +940,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             diagnostics_digest: stable_digest(report.outcome())?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -957,6 +974,7 @@ impl SubscriptionSupportCertificationLaneOutcome {
             ))?,
             counter_digest: stable_digest(&counter_snapshot)?,
             cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
             counter_snapshot,
         })
     }
@@ -983,6 +1001,10 @@ impl SubscriptionSupportCertificationLaneOutcome {
 
     pub fn cost_surface(&self) -> Option<SubscriptionSupportResultCostSurface> {
         self.cost_surface
+    }
+
+    pub fn batch_receipt_reuse_report(&self) -> Option<&SupportBatchReceiptReuseReport> {
+        self.batch_receipt_reuse_report.as_ref()
     }
 }
 
@@ -1091,12 +1113,12 @@ fn validate_lane_semantics(
         NotResumableCursorDrift, OversizedPayloadRejectedBeforeDecode,
         RebuildBasisMissingNotResumable, RebuildRequiredMissingSupport, RestartExactResume,
         RestartShardBoundedReconstruction, ResultCostSurfaceExact, RuntimeHandoffEquivalence,
-        SessionMemoryLossNonAuthoritative, SupportBatchReceiptReuseVerified,
-        SupportCompatibilityDegraded, SupportCompatibilityExactMigration,
-        SupportCompatibilityOldReaderRejected, SupportCompatibilityUnknownFamilyRejected,
-        SupportCompatibilityVersionSkewRejected, SupportDigestDrift,
-        SupportFamilyLocalBatchBounded, SupportForegroundOperationalWorkRejected,
-        SupportMaintenanceCoalescedRebuildAdmitted,
+        SessionMemoryLossNonAuthoritative, SupportBasisLocalBatchBounded,
+        SupportBatchReceiptReuseVerified, SupportCompatibilityDegraded,
+        SupportCompatibilityExactMigration, SupportCompatibilityOldReaderRejected,
+        SupportCompatibilityUnknownFamilyRejected, SupportCompatibilityVersionSkewRejected,
+        SupportDigestDrift, SupportFamilyLocalBatchBounded,
+        SupportForegroundOperationalWorkRejected, SupportMaintenanceCoalescedRebuildAdmitted,
         SupportMaintenanceCompatibilityMigrationAdmitted,
         SupportMaintenanceDegradationRecoveryAdmitted,
         SupportMaintenanceInterruptedRestartRecovered, SupportMaintenanceKeyBatchBounded,
@@ -1505,10 +1527,37 @@ fn validate_lane_semantics(
                 || cost_surface.allocation_scope()
                     != crate::SubscriptionSupportAllocationScope::FamilyLocalBatch
                 || cost_surface.scanned_support_rows() == 0
+                || outcome.counter_snapshot.support_retention_plan_count() == 0
+                || outcome
+                    .counter_snapshot
+                    .support_retention_affected_entries()
+                    != cost_surface.scanned_support_rows()
             {
                 return invalid_lane(
                     outcome,
-                    "family-local bounded lane must bind retention family-local work",
+                    "family-local bounded lane must bind retention family-local breadth exactly",
+                );
+            }
+        }
+        SupportBasisLocalBatchBounded => {
+            require_classification(outcome, Exact)?;
+            let cost_surface = require_cost_surface(outcome)?;
+            if cost_surface.plan_family()
+                != SubscriptionSupportPlanFamily::CompatibilityParticipationPlan
+                || cost_surface.density_class() != SubscriptionSupportDensityClass::BasisLocalBatch
+                || cost_surface.allocation_scope()
+                    != crate::SubscriptionSupportAllocationScope::ActionLocal
+                || cost_surface.scanned_support_rows() == 0
+                || outcome.counter_snapshot.support_compatibility_plan_count() == 0
+                || outcome.counter_snapshot.support_manifest_admission_count() == 0
+                || outcome
+                    .counter_snapshot
+                    .support_compatibility_affected_entries()
+                    != cost_surface.scanned_support_rows()
+            {
+                return invalid_lane(
+                    outcome,
+                    "basis-local bounded lane must bind compatibility basis-local breadth exactly",
                 );
             }
         }
@@ -1522,10 +1571,15 @@ fn validate_lane_semantics(
                 || cost_surface.allocation_scope()
                     != crate::SubscriptionSupportAllocationScope::PortabilityManifest
                 || cost_surface.scanned_support_rows() == 0
+                || outcome.counter_snapshot.support_portability_plan_count() == 0
+                || outcome
+                    .counter_snapshot
+                    .support_portability_manifest_entries()
+                    != cost_surface.scanned_support_rows()
             {
                 return invalid_lane(
                     outcome,
-                    "portability bounded lane must bind portability-scope work",
+                    "portability bounded lane must bind portability manifest breadth exactly",
                 );
             }
         }
@@ -1539,10 +1593,14 @@ fn validate_lane_semantics(
                 || cost_surface.allocation_scope()
                     != crate::SubscriptionSupportAllocationScope::FamilyLocalBatch
                 || cost_surface.scanned_support_rows() == 0
+                || outcome
+                    .counter_snapshot
+                    .support_maintenance_descriptor_count()
+                    != cost_surface.scanned_support_rows()
             {
                 return invalid_lane(
                     outcome,
-                    "maintenance bounded lane must bind maintenance-key work",
+                    "maintenance bounded lane must bind maintenance-key breadth exactly",
                 );
             }
         }
@@ -1569,11 +1627,34 @@ fn validate_lane_semantics(
             }
         }
         SupportBatchReceiptReuseVerified => {
-            require_rejection(outcome)?;
-            if outcome.counter_snapshot.support_batch_receipt_reuse_count() == 0 {
+            require_no_primary_cause(outcome)?;
+            if outcome.classification.is_some() {
                 return invalid_lane(
                     outcome,
-                    "batch receipt reuse lane must bind the batch receipt reuse counter",
+                    "batch receipt reuse lane must not masquerade as a resume classification",
+                );
+            }
+            let Some(report) = outcome.batch_receipt_reuse_report() else {
+                return invalid_lane(
+                    outcome,
+                    "batch receipt reuse lane must carry explicit reuse evidence",
+                );
+            };
+            let required_proofs = [
+                SupportBatchProofKind::CompatibilityReceipt,
+                SupportBatchProofKind::BasisEvidence,
+                SupportBatchProofKind::CursorCheckpointEvidence,
+                SupportBatchProofKind::PortabilityScopeEvidence,
+            ];
+            if report.density_class() == crate::SupportProgramDensityClass::StoreGlobalDebt
+                || report.affected_entries() == 0
+                || report.reused_proofs() != required_proofs
+                || outcome.counter_snapshot.support_batch_receipt_reuse_count()
+                    != required_proofs.len() as u64
+            {
+                return invalid_lane(
+                    outcome,
+                    "batch receipt reuse lane must prove the full named reuse set exactly once each",
                 );
             }
         }

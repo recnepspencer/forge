@@ -4,6 +4,7 @@ use super::{
 };
 use crate::failure::StoreError;
 use serde::Serialize;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum SupportProgramDensityClass {
@@ -73,6 +74,57 @@ impl SupportActionBreadthBudget {
 pub struct SupportBatchAdmissionReceipt {
     density_class: SupportProgramDensityClass,
     affected_entries: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub enum SupportBatchProofKind {
+    CompatibilityReceipt,
+    BasisEvidence,
+    CursorCheckpointEvidence,
+    PortabilityScopeEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SupportBatchReceiptReuseReport {
+    density_class: SupportProgramDensityClass,
+    affected_entries: u64,
+    reused_proofs: Vec<SupportBatchProofKind>,
+}
+
+impl SupportBatchReceiptReuseReport {
+    pub(crate) fn new(
+        receipt: &SupportBatchAdmissionReceipt,
+        reused_proofs: Vec<SupportBatchProofKind>,
+    ) -> Result<Self, StoreError> {
+        if reused_proofs.is_empty() {
+            return Err(classification_error(
+                "subscription-support batch receipt reuse must name at least one reused proof",
+            ));
+        }
+        let unique = reused_proofs.iter().copied().collect::<BTreeSet<_>>();
+        if unique.len() != reused_proofs.len() {
+            return Err(classification_error(
+                "subscription-support batch receipt reuse proofs must be unique",
+            ));
+        }
+        Ok(Self {
+            density_class: receipt.density_class(),
+            affected_entries: receipt.affected_entries(),
+            reused_proofs,
+        })
+    }
+
+    pub fn density_class(&self) -> SupportProgramDensityClass {
+        self.density_class
+    }
+
+    pub fn affected_entries(&self) -> u64 {
+        self.affected_entries
+    }
+
+    pub fn reused_proofs(&self) -> &[SupportBatchProofKind] {
+        &self.reused_proofs
+    }
 }
 
 impl SupportBatchAdmissionReceipt {

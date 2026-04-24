@@ -354,6 +354,7 @@ pub struct PreviewSubscriptionPromotionHandoff {
     authoritative_active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     preview_epoch_digest: String,
+    residue_report_digest: String,
     authority_digest: String,
     performance_receipt: SubscriptionPerformanceReceipt,
     counters: ActiveSubscriptionCounters,
@@ -363,6 +364,7 @@ pub struct PreviewSubscriptionPromotionHandoff {
 impl PreviewSubscriptionPromotionHandoff {
     pub(super) fn new(
         isolation: PreviewSubscriptionIsolationArtifact,
+        residue_report: &PreviewSubscriptionResidueReport,
         authoritative_lane: &ActiveSubscriptionLaneHandle,
         authority_digest: impl Into<String>,
     ) -> Self {
@@ -392,6 +394,7 @@ impl PreviewSubscriptionPromotionHandoff {
             format!("attachment:{}", isolation.attachment_digest().as_str()),
             format!("epoch:{}", isolation.preview_epoch_digest()),
             format!("isolation:{}", isolation.isolation_digest()),
+            format!("residue_report:{}", residue_report.report_digest()),
             format!("authority:{}", authority_digest),
             format!(
                 "performance:{}",
@@ -408,6 +411,7 @@ impl PreviewSubscriptionPromotionHandoff {
             authoritative_active_lane_digest: authoritative_lane.lane_digest().clone(),
             attachment_digest: isolation.attachment_digest,
             preview_epoch_digest: isolation.preview_epoch_digest,
+            residue_report_digest: residue_report.report_digest().to_string(),
             authority_digest,
             performance_receipt,
             counters,
@@ -429,6 +433,10 @@ impl PreviewSubscriptionPromotionHandoff {
 
     pub fn preview_epoch_digest(&self) -> &str {
         &self.preview_epoch_digest
+    }
+
+    pub fn residue_report_digest(&self) -> &str {
+        &self.residue_report_digest
     }
 
     pub fn authority_digest(&self) -> &str {
@@ -545,6 +553,7 @@ pub fn discard_preview_subscription(
 
 pub fn promote_preview_subscription(
     isolation: PreviewSubscriptionIsolationArtifact,
+    residue_report: &PreviewSubscriptionResidueReport,
     authoritative_lane: &ActiveSubscriptionLaneHandle,
     authority_digest: impl Into<String>,
 ) -> Result<PreviewSubscriptionPromotionHandoff, PreviewSubscriptionIsolationError> {
@@ -561,6 +570,7 @@ pub fn promote_preview_subscription(
 
     Ok(PreviewSubscriptionPromotionHandoff::new(
         isolation,
+        residue_report,
         authoritative_lane,
         authority_digest,
     ))

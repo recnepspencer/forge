@@ -1042,8 +1042,13 @@ fn preview_promotion_lane() -> SubscriptionLifecycleCertificationBundle {
     )
     .unwrap();
     let authoritative = active_attachment(&mut runtime).0;
-    let handoff =
-        promote_preview_subscription(isolation.clone(), &authoritative, "authority").unwrap();
+    let handoff = promote_preview_subscription(
+        isolation.clone(),
+        &residue_report,
+        &authoritative,
+        "authority",
+    )
+    .unwrap();
     let lifecycle_closeout = close_subscription_lifecycle(
         &mut runtime,
         &handle,

@@ -1,9 +1,10 @@
 use super::{
-    classification_error, stable_digest, CompletedSupportProgramAction,
-    SubscriptionSupportActionOrigin, SubscriptionSupportArtifactId, SubscriptionSupportFamilyId,
-    SubscriptionSupportFamilyKind, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportRole, SupportActionId,
-    SupportAffectedSetDigest, SupportProgramPathPlan,
+    classification_error, cost_surface_for_program_path, stable_digest,
+    CompletedSupportProgramAction, SubscriptionSupportActionOrigin, SubscriptionSupportArtifactId,
+    SubscriptionSupportFamilyId, SubscriptionSupportFamilyKind,
+    SubscriptionSupportOperationalBasis, SubscriptionSupportOperationalVerdict,
+    SubscriptionSupportPlanFamily, SubscriptionSupportResultCostSurface, SubscriptionSupportRole,
+    SupportActionId, SupportAffectedSetDigest, SupportProgramPathPlan,
 };
 use crate::{
     failure::StoreError, ArtifactFamilyId, CompatibilityReadAdmissionOutcome,
@@ -804,12 +805,14 @@ pub struct SubscriptionSupportCompatibilityReport {
     completed_action: CompletedSupportProgramAction,
     participation_record: SupportCompatibilityParticipationRecord,
     outcome: SubscriptionSupportCompatibilityOutcome,
+    cost_surface: SubscriptionSupportResultCostSurface,
 }
 
 impl SubscriptionSupportCompatibilityReport {
     pub(crate) fn new(
         completed_action: CompletedSupportProgramAction,
         affected_set: SupportCompatibilityAffectedSet,
+        path_plan: &SupportProgramPathPlan,
         manifest_admission: SupportManifestAdmissionWitness,
         semantic_access: SupportDecodedRowSemanticAccess,
         decision: &SubscriptionSupportCompatibilityDecision,
@@ -832,6 +835,10 @@ impl SubscriptionSupportCompatibilityReport {
             completed_action,
             participation_record,
             outcome,
+            cost_surface: cost_surface_for_program_path(
+                SubscriptionSupportPlanFamily::CompatibilityParticipationPlan,
+                path_plan,
+            ),
         })
     }
 
@@ -845,6 +852,10 @@ impl SubscriptionSupportCompatibilityReport {
 
     pub fn outcome(&self) -> &SubscriptionSupportCompatibilityOutcome {
         &self.outcome
+    }
+
+    pub fn cost_surface(&self) -> SubscriptionSupportResultCostSurface {
+        self.cost_surface
     }
 }
 

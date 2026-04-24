@@ -95,7 +95,8 @@ pub use participation::{
 pub(crate) use performance::cost_surface_for_program_path;
 pub use performance::{
     SupportActionBreadthBudget, SupportAllocationScope, SupportBatchAdmissionReceipt,
-    SupportPathClass, SupportProgramDensityClass, SupportProgramPathPlan,
+    SupportBatchProofKind, SupportBatchReceiptReuseReport, SupportPathClass,
+    SupportProgramDensityClass, SupportProgramPathPlan,
 };
 pub use persistence::{SubscriptionSupportStoredRecordKey, SubscriptionSupportStoredRecordSet};
 pub use pipeline::SubscriptionSupportPublicationPipeline;

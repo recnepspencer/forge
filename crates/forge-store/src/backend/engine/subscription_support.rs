@@ -647,7 +647,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         &mut self,
         plan: SupportCompatibilityBatchPlan,
     ) -> Result<SubscriptionSupportCompatibilityReport, StoreError> {
-        let (action_id, affected_set, _path_plan, manifest_admission, semantic_access, decision) =
+        let (action_id, affected_set, path_plan, manifest_admission, semantic_access, decision) =
             plan.into_parts();
         let raw_action = RawSupportProgramAction::new(
             action_id,
@@ -661,6 +661,7 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         let report = SubscriptionSupportCompatibilityReport::new(
             completed,
             affected_set,
+            &path_plan,
             manifest_admission,
             semantic_access,
             &decision,

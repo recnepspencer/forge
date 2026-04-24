@@ -871,6 +871,7 @@ fn preview_certification_evidence(
                 || discard_closeout.attachment_digest() != attachment.attachment_digest()
                 || discard_closeout.preview_epoch_digest() != isolation.preview_epoch_digest()
                 || discard_closeout.residue_report_digest() != residue_report.report_digest()
+                || lifecycle_closeout.source_digest() != discard_closeout.closeout_digest()
             {
                 return Err(SubscriptionLifecycleCertificationError::new(
                     SubscriptionLifecycleCertificationDenialKind::PreviewSourceMismatch,
@@ -930,6 +931,8 @@ fn preview_certification_evidence(
                 || promotion_handoff.preview_lane_digest() != active_lane_handle.lane_digest()
                 || promotion_handoff.attachment_digest() != attachment.attachment_digest()
                 || promotion_handoff.preview_epoch_digest() != isolation.preview_epoch_digest()
+                || promotion_handoff.residue_report_digest() != residue_report.report_digest()
+                || lifecycle_closeout.source_digest() != promotion_handoff.handoff_digest()
             {
                 return Err(SubscriptionLifecycleCertificationError::new(
                     SubscriptionLifecycleCertificationDenialKind::PreviewSourceMismatch,

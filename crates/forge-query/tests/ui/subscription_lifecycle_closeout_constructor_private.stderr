@@ -8,24 +8,40 @@ warning: unreachable expression
    |
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0451]: fields `active_lane_digest`, `attachment_digest`, `closeout_kind`, `lane_terminal`, `support_profile`, `performance_receipt`, `counters` and `closeout_digest` of struct `SubscriptionLifecycleCloseout` are private
-  --> tests/ui/subscription_lifecycle_closeout_constructor_private.rs:9:9
+error: cannot construct `SubscriptionLifecycleCloseout` with struct literal syntax due to private fields
+  --> tests/ui/subscription_lifecycle_closeout_constructor_private.rs:8:13
    |
  8 |     let _ = SubscriptionLifecycleCloseout {
-   |             ----------------------------- in this type
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  9 |         active_lane_digest: todo!() as ActiveSubscriptionLaneDigest,
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------- private field
 10 |         attachment_digest: todo!() as SubscriptionConsumerAttachmentDigest,
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------------------ private field
 11 |         closeout_kind: SubscriptionLifecycleCloseoutKind::ConsumerTerminated,
-   |         ^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------------- private field
 12 |         lane_terminal: true,
-   |         ^^^^^^^^^^^^^ private field
+   |         ------------------- private field
 13 |         support_profile: todo!() as QuerySubscriptionSupportProfile,
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------------------------- private field
 14 |         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
-   |         ^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------------------------------- private field
 15 |         counters: ActiveSubscriptionCounters::default(),
-   |         ^^^^^^^^ private field
+   |         ----------------------------------------------- private field
 16 |         closeout_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `source_digest` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+ 8 -     let _ = SubscriptionLifecycleCloseout {
+ 9 -         active_lane_digest: todo!() as ActiveSubscriptionLaneDigest,
+10 -         attachment_digest: todo!() as SubscriptionConsumerAttachmentDigest,
+11 -         closeout_kind: SubscriptionLifecycleCloseoutKind::ConsumerTerminated,
+12 -         lane_terminal: true,
+13 -         support_profile: todo!() as QuerySubscriptionSupportProfile,
+14 -         performance_receipt: todo!() as SubscriptionPerformanceReceipt,
+15 -         counters: ActiveSubscriptionCounters::default(),
+16 -         closeout_digest: String::new(),
+17 -     };
+ 8 +     let _ = SubscriptionLifecycleCloseout::new(_, _);
+   |

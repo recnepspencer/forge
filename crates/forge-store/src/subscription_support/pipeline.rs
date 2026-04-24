@@ -25,7 +25,8 @@ use super::{
     SubscriptionSupportResultCostSurface, SubscriptionSupportRetentionDecision,
     SubscriptionSupportRetentionMaterialization, SubscriptionSupportRole,
     SupportActionBreadthBudget, SupportActionId, SupportAffectedSet, SupportAllocationScope,
-    SupportBatchAdmissionReceipt, SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
+    SupportBatchAdmissionReceipt, SupportBatchProofKind, SupportBatchReceiptReuseReport,
+    SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
     SupportCompatibilityReceiptWitness, SupportDecodedRowSemanticAccess,
     SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan, SupportManifestAdmissionWitness,
     SupportPathClass, SupportPortabilityAffectedSet, SupportPortabilityBatchPlan,
@@ -297,6 +298,18 @@ impl SubscriptionSupportPublicationPipeline {
         Ok(receipt)
     }
 
+    pub fn verify_support_batch_receipt_reuse(
+        &mut self,
+        plan: &SupportProgramPathPlan,
+        reused_proofs: Vec<SupportBatchProofKind>,
+    ) -> Result<SupportBatchReceiptReuseReport, StoreError> {
+        let receipt = self.reuse_support_batch_receipt(plan)?;
+        for _ in 1..reused_proofs.len() {
+            self.reuse_support_batch_receipt(plan)?;
+        }
+        SupportBatchReceiptReuseReport::new(receipt, reused_proofs)
+    }
+
     pub fn publish_support_consequence(
         &mut self,
         action: ExecutedSupportAction,
@@ -447,7 +460,7 @@ impl SubscriptionSupportPublicationPipeline {
         &mut self,
         plan: SupportCompatibilityBatchPlan,
     ) -> Result<SubscriptionSupportCompatibilityReport, StoreError> {
-        let (action_id, affected_set, _path_plan, manifest_admission, semantic_access, decision) =
+        let (action_id, affected_set, path_plan, manifest_admission, semantic_access, decision) =
             plan.into_parts();
         let raw_action = RawSupportProgramAction::new(
             action_id,
@@ -460,6 +473,7 @@ impl SubscriptionSupportPublicationPipeline {
         let report = SubscriptionSupportCompatibilityReport::new(
             completed,
             affected_set,
+            &path_plan,
             manifest_admission,
             semantic_access,
             &decision,
