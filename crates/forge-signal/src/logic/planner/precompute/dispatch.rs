@@ -8,7 +8,7 @@ use super::super::types::{EligibleTask, StageExecutor};
 use super::admission::StageParallelAdmission;
 #[cfg(feature = "parallel")]
 use super::{build_parallel_stage_patches, precompute_stage_parallel};
-use super::{precompute_stage_serial, StageExecutionData};
+use super::{precompute_stage_serial, StageExecutionData, TemporalLoweringContext};
 
 pub(in crate::logic::planner) fn dispatch_stage_precompute(
     graph: &mut SignalGraph,
@@ -19,6 +19,7 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
           + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) -> Result<StageExecutionData, SignalError> {
@@ -32,11 +33,18 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
             tasks,
             precompute,
             comparator_resolver,
+            temporal_lowering,
             executor,
         );
     }
 
-    dispatch_stage_precompute_serial(graph, tasks, precompute, comparator_resolver)
+    dispatch_stage_precompute_serial(
+        graph,
+        tasks,
+        precompute,
+        comparator_resolver,
+        temporal_lowering,
+    )
 }
 
 fn dispatch_stage_precompute_serial(
@@ -48,9 +56,16 @@ fn dispatch_stage_precompute_serial(
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
           + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
 ) -> Result<StageExecutionData, SignalError> {
     Ok(StageExecutionData::Prepared(SingleConsumer::new(
-        precompute_stage_serial(graph, tasks, precompute, comparator_resolver)?,
+        precompute_stage_serial(
+            graph,
+            tasks,
+            precompute,
+            comparator_resolver,
+            temporal_lowering,
+        )?,
     )))
 }
 
@@ -64,6 +79,7 @@ fn dispatch_stage_precompute_parallel(
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
           + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<StageExecutionData, SignalError> {
     match executor {
@@ -76,6 +92,7 @@ fn dispatch_stage_precompute_parallel(
                     .parallel_policy()
                     .expect("parallel policy should exist"),
                 comparator_resolver,
+                temporal_lowering,
             )?,
         ))),
         StageExecutor::StagedParallelPrecompute { .. } => Ok(StageExecutionData::Prepared(
@@ -87,10 +104,15 @@ fn dispatch_stage_precompute_parallel(
                     .parallel_policy()
                     .expect("parallel policy should exist"),
                 comparator_resolver,
+                temporal_lowering,
             )?),
         )),
-        StageExecutor::Serial => {
-            dispatch_stage_precompute_serial(graph, tasks, precompute, comparator_resolver)
-        }
+        StageExecutor::Serial => dispatch_stage_precompute_serial(
+            graph,
+            tasks,
+            precompute,
+            comparator_resolver,
+            temporal_lowering,
+        ),
     }
 }

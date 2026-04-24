@@ -11,6 +11,7 @@ use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
 use crate::logic::planner::{
     admit_direct_task_with_policy_resolver, EvaluationPlan, ExecutionReport, StageExecutor,
+    TemporalLoweringContext,
 };
 
 use super::super::transaction::SignalTransaction;
@@ -240,6 +241,7 @@ where
         let report = match execute_plan_with_runtime_config(
             self.graph,
             self.config,
+            TemporalLoweringContext::graph_only(),
             &*self.runtime_ctx,
             plan,
             evaluator,
@@ -261,6 +263,7 @@ where
         };
         self.execution_state
             .record_report(&report, execution_start.elapsed().as_nanos());
+        self.scratch.temporal.summary.absorb(report.temporal_summary);
         self.lower_observation_classifications_from_report(&report)?;
         absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)
@@ -482,6 +485,7 @@ where
         let report = match execute_targets_with_runtime_config_detailed(
             self.graph,
             self.config,
+            TemporalLoweringContext::graph_only(),
             &*self.runtime_ctx,
             targets,
             request_mode,
@@ -505,6 +509,7 @@ where
         };
         self.execution_state
             .record_report(&report, execution_start.elapsed().as_nanos());
+        self.scratch.temporal.summary.absorb(report.temporal_summary);
         self.lower_observation_classifications_from_report(&report)?;
         absorb_execution_report_telemetry(self.telemetry, &report);
         Ok(report)

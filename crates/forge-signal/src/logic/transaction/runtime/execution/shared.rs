@@ -8,7 +8,8 @@ use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
     build_evaluation_session_with_policy_resolver, execute_evaluation_session_with_policy,
-    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, PlanSummary, StageExecutor,
+    execute_prepared_plan_with_policy_and_temporal_lowering, EvaluationPlan, ExecutionReport,
+    PlanSummary, StageExecutor, TemporalLoweringContext,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 
@@ -106,6 +107,7 @@ where
 pub(super) fn execute_targets_with_runtime_config<T, Ctx, F, O>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
+    temporal_lowering: TemporalLoweringContext,
     domain_ctx: &Ctx,
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
@@ -121,6 +123,7 @@ where
     execute_targets_with_runtime_config_detailed(
         graph,
         config,
+        temporal_lowering,
         domain_ctx,
         targets,
         request_mode,
@@ -133,6 +136,7 @@ where
 pub(super) fn execute_targets_with_prepared_runtime_config_detailed<T, F>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
+    temporal_lowering: TemporalLoweringContext,
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
     precompute: &F,
@@ -161,6 +165,7 @@ where
             &session,
             precompute,
             &mut resolver,
+            temporal_lowering,
             executor,
         );
         match result {
@@ -176,6 +181,7 @@ where
 pub(super) fn execute_targets_with_runtime_config_detailed<T, Ctx, F, O>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
+    temporal_lowering: TemporalLoweringContext,
     domain_ctx: &Ctx,
     targets: &[NodeId],
     request_mode: EvaluationRequestMode,
@@ -209,6 +215,7 @@ where
                 prepare_with_context(view.graph(), domain_ctx, node, evaluator)
             },
             &mut resolver,
+            temporal_lowering,
             executor,
         );
         match result {
@@ -224,6 +231,7 @@ where
 pub(super) fn execute_plan_with_runtime_config<T, Ctx, F, O>(
     graph: &mut SignalGraph,
     config: &SignalRuntimeConfig<T>,
+    temporal_lowering: TemporalLoweringContext,
     domain_ctx: &Ctx,
     plan: &EvaluationPlan,
     evaluator: &F,
@@ -240,5 +248,13 @@ where
         config.tier_policies(),
         config.fallback_comparator(),
     );
-    execute_prepared_plan_with_policy(graph, plan, domain_ctx, evaluator, &mut resolver, executor)
+    execute_prepared_plan_with_policy_and_temporal_lowering(
+        graph,
+        plan,
+        domain_ctx,
+        evaluator,
+        &mut resolver,
+        temporal_lowering,
+        executor,
+    )
 }

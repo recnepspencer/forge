@@ -365,6 +365,7 @@ fn synthetic_payload(
     requested_path_class: Option<&str>,
     materialization_identity: Option<&str>,
 ) -> Vec<String> {
+    let historical_query_identity = preflight.plan().query().validated_query_digest().as_str();
     let collection = preflight.plan().collection();
     let is_cdc_collection = collection
         .map(|collection| {
@@ -402,14 +403,12 @@ fn synthetic_payload(
             if is_cdc_collection {
                 format!(
                     "cdc:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    basis_digest,
-                    index
+                    historical_query_identity, basis_digest, index
                 )
             } else if is_count_rollup {
                 format!(
                     "aggregate:count_rows:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
+                    historical_query_identity,
                     basis_digest,
                     preflight
                         .plan()
@@ -423,14 +422,12 @@ fn synthetic_payload(
             } else if is_display_label_derived {
                 format!(
                     "derived:display_label:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    basis_digest,
-                    index
+                    historical_query_identity, basis_digest, index
                 )
             } else {
                 format!(
                     "result:{}:{}:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
+                    historical_query_identity,
                     basis_digest,
                     requested_path_class.unwrap_or("runtime"),
                     materialization_identity.unwrap_or("none"),
@@ -448,6 +445,7 @@ fn synthetic_result_digest(
     requested_path_class: Option<&str>,
     materialization_identity: Option<&str>,
 ) -> ResultDigest {
+    let historical_query_identity = preflight.plan().query().validated_query_digest().as_str();
     let collection = preflight.plan().collection();
     let is_cdc_collection = collection
         .map(|collection| {
@@ -485,8 +483,8 @@ fn synthetic_result_digest(
             .iter()
             .cloned()
             .chain(std::iter::once(format!(
-                "plan:{}",
-                preflight.plan().query().plan_digest().as_str()
+                "query:{}",
+                historical_query_identity
             )))
             .chain(std::iter::once(format!("basis:{basis_digest}")))
             .chain(std::iter::once(format!(

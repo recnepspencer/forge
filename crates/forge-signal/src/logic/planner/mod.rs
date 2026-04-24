@@ -12,6 +12,7 @@ pub(crate) use self::execution::task_reporting as reporting;
 pub(crate) use self::model as types;
 pub(crate) use self::planning as plan_builder;
 pub(crate) use self::planning::validation;
+pub(crate) use self::precompute::TemporalLoweringContext;
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]
 pub(crate) use self::precompute::{admission as stage_admission, executor_pool};
@@ -20,8 +21,10 @@ pub(crate) use self::semantic::stage_recording;
 
 pub use crate::data::performance::{ResolvedExecutionStrategy, ResolvedMaintenanceStrategy};
 pub(crate) use execution::{
-    execute_evaluation_session_with_policy, execute_prepared_plan_with_precompute,
+    execute_evaluation_session_with_policy,
+    execute_prepared_plan_with_policy_and_temporal_lowering, execute_prepared_plan_with_precompute,
 };
+#[allow(unused_imports)]
 pub use execution::{execute_prepared_plan, execute_prepared_plan_with_policy};
 pub(crate) use model::SessionScratch;
 pub(crate) use model::StageCursor;

@@ -803,6 +803,7 @@ impl SupportCompatibilityParticipationRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SubscriptionSupportCompatibilityReport {
     completed_action: CompletedSupportProgramAction,
+    translation_basis: SubscriptionSupportOperationalBasis,
     participation_record: SupportCompatibilityParticipationRecord,
     outcome: SubscriptionSupportCompatibilityOutcome,
     cost_surface: SubscriptionSupportResultCostSurface,
@@ -818,6 +819,7 @@ impl SubscriptionSupportCompatibilityReport {
         decision: &SubscriptionSupportCompatibilityDecision,
     ) -> Result<Self, StoreError> {
         let decision_kind = decision.kind();
+        let translation_basis = affected_set.primary_basis().clone();
         let participation_record = SupportCompatibilityParticipationRecord::new(
             &completed_action,
             &affected_set,
@@ -833,6 +835,7 @@ impl SubscriptionSupportCompatibilityReport {
         }
         Ok(Self {
             completed_action,
+            translation_basis,
             participation_record,
             outcome,
             cost_surface: cost_surface_for_program_path(
@@ -844,6 +847,10 @@ impl SubscriptionSupportCompatibilityReport {
 
     pub fn completed_action(&self) -> &CompletedSupportProgramAction {
         &self.completed_action
+    }
+
+    pub fn translation_basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.translation_basis
     }
 
     pub fn participation_record(&self) -> &SupportCompatibilityParticipationRecord {

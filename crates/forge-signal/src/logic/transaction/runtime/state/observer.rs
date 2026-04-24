@@ -86,6 +86,7 @@ where
             execution: graph_metrics.execution,
             storage: graph_metrics.storage,
             checkpoint: self.composed_checkpoint_telemetry(),
+            temporal: self.runtime.telemetry.temporal,
         }
     }
 

@@ -89,6 +89,10 @@ impl SupportMaintenanceAffectedSet {
         &self.affected_bases[0]
     }
 
+    pub(crate) fn affected_bases(&self) -> &[SubscriptionSupportOperationalBasis] {
+        &self.affected_bases
+    }
+
     pub(crate) fn descriptors_for(
         &self,
         decision: &SubscriptionSupportMaintenanceDecision,
@@ -590,6 +594,10 @@ impl SupportMaintenanceBatchPlan {
         &self.affected_set
     }
 
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
     pub fn descriptors(&self) -> &[SupportMaintenanceDescriptor] {
         &self.descriptors
     }
@@ -629,6 +637,257 @@ impl SupportMaintenanceBatchPlan {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SupportMaintenanceDebtSummary {
+    action_id: SupportActionId,
+    affected_set_digest: SupportAffectedSetDigest,
+    work_kind: SupportMaintenanceWorkKind,
+    verdict: SubscriptionSupportOperationalVerdict,
+    delay_reason: String,
+    descriptor_count: u64,
+    coalesced_duplicate_count: u64,
+}
+
+impl SupportMaintenanceDebtSummary {
+    fn new(
+        action_id: &SupportActionId,
+        affected_set: &SupportMaintenanceAffectedSet,
+        decision: &SubscriptionSupportMaintenanceDecision,
+        descriptor_count: u64,
+        coalesced_duplicate_count: u64,
+        delay_reason: impl Into<String>,
+    ) -> Result<Self, StoreError> {
+        if descriptor_count == 0 {
+            return Err(classification_error(
+                "subscription-support maintenance debt summaries require admitted descriptors",
+            ));
+        }
+        Ok(Self {
+            action_id: action_id.clone(),
+            affected_set_digest: affected_set.affected_set_digest().clone(),
+            work_kind: decision.work_kind(),
+            verdict: decision.verdict(),
+            delay_reason: require_non_empty("delay reason", delay_reason)?,
+            descriptor_count,
+            coalesced_duplicate_count,
+        })
+    }
+
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
+    pub fn affected_set_digest(&self) -> &SupportAffectedSetDigest {
+        &self.affected_set_digest
+    }
+
+    pub fn work_kind(&self) -> SupportMaintenanceWorkKind {
+        self.work_kind
+    }
+
+    pub fn verdict(&self) -> SubscriptionSupportOperationalVerdict {
+        self.verdict
+    }
+
+    pub fn delay_reason(&self) -> &str {
+        &self.delay_reason
+    }
+
+    pub fn descriptor_count(&self) -> u64 {
+        self.descriptor_count
+    }
+
+    pub fn coalesced_duplicate_count(&self) -> u64 {
+        self.coalesced_duplicate_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportMaintenanceDebtRecord {
+    record_key: String,
+    action_id: SupportActionId,
+    family_id: SubscriptionSupportFamilyId,
+    family_kind: SubscriptionSupportFamilyKind,
+    support_role: SubscriptionSupportRole,
+    affected_set_digest: SupportAffectedSetDigest,
+    work_kind: SupportMaintenanceWorkKind,
+    verdict: SubscriptionSupportOperationalVerdict,
+    delay_reason: String,
+    descriptor_count: u64,
+    coalesced_duplicate_count: u64,
+}
+
+impl Serialize for SupportMaintenanceDebtRecord {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        PersistedSupportMaintenanceDebtRecord::from(self).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SupportMaintenanceDebtRecord {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let persisted = PersistedSupportMaintenanceDebtRecord::deserialize(deserializer)?;
+        Self::try_from(persisted).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct PersistedSupportMaintenanceDebtRecord {
+    record_key: String,
+    action_id: String,
+    family_id: String,
+    family_kind: SubscriptionSupportFamilyKind,
+    support_role: SubscriptionSupportRole,
+    affected_set_digest: String,
+    work_kind: String,
+    verdict: String,
+    delay_reason: String,
+    descriptor_count: u64,
+    coalesced_duplicate_count: u64,
+}
+
+impl SupportMaintenanceDebtRecord {
+    pub(crate) fn from_plan_and_report(
+        plan: &SupportMaintenanceBatchPlan,
+        report: &SubscriptionSupportMaintenanceDebtReport,
+    ) -> Result<Self, StoreError> {
+        let record_key = stable_digest(&(
+            plan.action_id().as_str(),
+            plan.affected_set().family_id().as_str(),
+            plan.affected_set().support_role(),
+            report.debt_summary().affected_set_digest().as_str(),
+            report.debt_summary().delay_reason(),
+            report.debt_summary().work_kind(),
+        ))?;
+        Ok(Self {
+            record_key,
+            action_id: plan.action_id().clone(),
+            family_id: plan.affected_set().family_id().clone(),
+            family_kind: plan.affected_set().family_kind(),
+            support_role: plan.affected_set().support_role(),
+            affected_set_digest: report.debt_summary().affected_set_digest().clone(),
+            work_kind: report.debt_summary().work_kind(),
+            verdict: report.debt_summary().verdict(),
+            delay_reason: report.debt_summary().delay_reason().to_string(),
+            descriptor_count: report.debt_summary().descriptor_count(),
+            coalesced_duplicate_count: report.debt_summary().coalesced_duplicate_count(),
+        })
+    }
+
+    pub fn record_key(&self) -> &str {
+        &self.record_key
+    }
+
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
+    pub fn family_id(&self) -> &SubscriptionSupportFamilyId {
+        &self.family_id
+    }
+
+    pub fn support_role(&self) -> SubscriptionSupportRole {
+        self.support_role
+    }
+
+    pub fn verdict(&self) -> SubscriptionSupportOperationalVerdict {
+        self.verdict
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), StoreError> {
+        let expected_record_key = stable_digest(&(
+            self.action_id.as_str(),
+            self.family_id.as_str(),
+            self.support_role,
+            self.affected_set_digest.as_str(),
+            self.delay_reason.as_str(),
+            self.work_kind,
+        ))?;
+        if self.record_key != expected_record_key {
+            return Err(publication_error(
+                "subscription-support maintenance debt record key drifted from its debt identity",
+            ));
+        }
+        if self.descriptor_count == 0 {
+            return Err(publication_error(
+                "subscription-support maintenance debt records require admitted descriptors",
+            ));
+        }
+        if self.delay_reason.trim().is_empty() {
+            return Err(publication_error(
+                "subscription-support maintenance debt records require a non-empty delay reason",
+            ));
+        }
+        let expected_verdict = match self.work_kind {
+            SupportMaintenanceWorkKind::Rebuild => {
+                SubscriptionSupportOperationalVerdict::RebuildRequired
+            }
+            SupportMaintenanceWorkKind::Refresh
+            | SupportMaintenanceWorkKind::CompatibilityMigration => {
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved
+            }
+            SupportMaintenanceWorkKind::DegradationRecovery => {
+                SubscriptionSupportOperationalVerdict::DegradedResumePreserved
+            }
+        };
+        if self.verdict != expected_verdict {
+            return Err(publication_error(
+                "subscription-support maintenance debt record verdict drifted from work-kind posture",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl From<&SupportMaintenanceDebtRecord> for PersistedSupportMaintenanceDebtRecord {
+    fn from(record: &SupportMaintenanceDebtRecord) -> Self {
+        Self {
+            record_key: record.record_key.clone(),
+            action_id: record.action_id.as_str().to_string(),
+            family_id: record.family_id.as_str().to_string(),
+            family_kind: record.family_kind,
+            support_role: record.support_role,
+            affected_set_digest: record.affected_set_digest.as_str().to_string(),
+            work_kind: format!("{:?}", record.work_kind),
+            verdict: format!("{:?}", record.verdict),
+            delay_reason: record.delay_reason.clone(),
+            descriptor_count: record.descriptor_count,
+            coalesced_duplicate_count: record.coalesced_duplicate_count,
+        }
+    }
+}
+
+impl TryFrom<PersistedSupportMaintenanceDebtRecord> for SupportMaintenanceDebtRecord {
+    type Error = String;
+
+    fn try_from(record: PersistedSupportMaintenanceDebtRecord) -> Result<Self, Self::Error> {
+        Ok(Self {
+            record_key: require_non_empty("debt record key", record.record_key)
+                .map_err(|error| error.to_string())?,
+            action_id: SupportActionId::new(record.action_id).map_err(|error| error.to_string())?,
+            family_id: SubscriptionSupportFamilyId::new(record.family_id)
+                .map_err(|error| error.to_string())?,
+            family_kind: record.family_kind,
+            support_role: record.support_role,
+            affected_set_digest: SupportAffectedSetDigest::from_persisted(
+                record.affected_set_digest,
+            )
+            .map_err(|error| error.to_string())?,
+            work_kind: parse_persisted_maintenance_work_kind(&record.work_kind)?,
+            verdict: parse_persisted_operational_verdict(&record.verdict)?,
+            delay_reason: require_non_empty("delay reason", record.delay_reason)
+                .map_err(|error| error.to_string())?,
+            descriptor_count: record.descriptor_count,
+            coalesced_duplicate_count: record.coalesced_duplicate_count,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupportMaintenanceDescriptorRecord {
     record_key: String,
@@ -636,6 +895,7 @@ pub struct SupportMaintenanceDescriptorRecord {
     family_kind: SubscriptionSupportFamilyKind,
     support_role: SubscriptionSupportRole,
     artifact_id: SubscriptionSupportArtifactId,
+    work_kind: SupportMaintenanceWorkKind,
     basis_digest: String,
     cursor_digest: String,
     checkpoint_digest: String,
@@ -678,6 +938,7 @@ struct PersistedSupportMaintenanceDescriptorRecord {
     family_kind: SubscriptionSupportFamilyKind,
     support_role: SubscriptionSupportRole,
     artifact_id: String,
+    work_kind: String,
     basis_digest: String,
     cursor_digest: String,
     checkpoint_digest: String,
@@ -716,6 +977,7 @@ impl SupportMaintenanceDescriptorRecord {
             family_kind: descriptor.family_kind,
             support_role: descriptor.support_role,
             artifact_id: descriptor.artifact_id.clone(),
+            work_kind: descriptor.work_kind(),
             basis_digest: descriptor.basis_digest().to_string(),
             cursor_digest: descriptor.cursor_digest().to_string(),
             checkpoint_digest: descriptor.checkpoint_digest().to_string(),
@@ -748,6 +1010,14 @@ impl SupportMaintenanceDescriptorRecord {
         &self.family_id
     }
 
+    pub fn artifact_id(&self) -> &SubscriptionSupportArtifactId {
+        &self.artifact_id
+    }
+
+    pub fn family_kind(&self) -> SubscriptionSupportFamilyKind {
+        self.family_kind
+    }
+
     pub fn support_role(&self) -> SubscriptionSupportRole {
         self.support_role
     }
@@ -766,6 +1036,26 @@ impl SupportMaintenanceDescriptorRecord {
 
     pub fn maintenance_work_class(&self) -> MaintenanceWorkClass {
         self.maintenance_work_class
+    }
+
+    pub fn basis_digest(&self) -> &str {
+        &self.basis_digest
+    }
+
+    pub fn cursor_digest(&self) -> &str {
+        &self.cursor_digest
+    }
+
+    pub fn checkpoint_digest(&self) -> &str {
+        &self.checkpoint_digest
+    }
+
+    pub fn compatibility_digest(&self) -> &str {
+        &self.compatibility_digest
+    }
+
+    pub fn portability_digest(&self) -> &str {
+        &self.portability_digest
     }
 
     pub(crate) fn verify_persisted_descriptor(
@@ -804,21 +1094,7 @@ impl SupportMaintenanceDescriptorRecord {
     }
 
     fn work_kind(&self) -> SupportMaintenanceWorkKind {
-        match self.decision_kind {
-            SubscriptionSupportMaintenanceDecisionKind::RebuildDescriptorAdmitted
-            | SubscriptionSupportMaintenanceDecisionKind::InterruptedRestartRecovered => {
-                SupportMaintenanceWorkKind::Rebuild
-            }
-            SubscriptionSupportMaintenanceDecisionKind::RefreshDescriptorAdmitted => {
-                SupportMaintenanceWorkKind::Refresh
-            }
-            SubscriptionSupportMaintenanceDecisionKind::CompatibilityMigrationDescriptorAdmitted => {
-                SupportMaintenanceWorkKind::CompatibilityMigration
-            }
-            SubscriptionSupportMaintenanceDecisionKind::DegradationRecoveryDescriptorAdmitted => {
-                SupportMaintenanceWorkKind::DegradationRecovery
-            }
-        }
+        self.work_kind
     }
 }
 
@@ -830,6 +1106,7 @@ impl From<&SupportMaintenanceDescriptorRecord> for PersistedSupportMaintenanceDe
             family_kind: record.family_kind,
             support_role: record.support_role,
             artifact_id: record.artifact_id.as_str().to_string(),
+            work_kind: format!("{:?}", record.work_kind),
             basis_digest: record.basis_digest.clone(),
             cursor_digest: record.cursor_digest.clone(),
             checkpoint_digest: record.checkpoint_digest.clone(),
@@ -862,6 +1139,7 @@ impl TryFrom<PersistedSupportMaintenanceDescriptorRecord> for SupportMaintenance
             family_kind: record.family_kind,
             support_role: record.support_role,
             artifact_id: SubscriptionSupportArtifactId(record.artifact_id),
+            work_kind: parse_persisted_maintenance_work_kind(&record.work_kind)?,
             basis_digest: require_non_empty("basis digest", record.basis_digest)
                 .map_err(|error| error.to_string())?,
             cursor_digest: require_non_empty("cursor digest", record.cursor_digest)
@@ -915,6 +1193,20 @@ fn parse_persisted_maintenance_decision_kind(
         }
         other => Err(format!(
             "unknown subscription-support maintenance decision kind `{other}`"
+        )),
+    }
+}
+
+fn parse_persisted_maintenance_work_kind(
+    value: &str,
+) -> Result<SupportMaintenanceWorkKind, String> {
+    match value {
+        "Rebuild" => Ok(SupportMaintenanceWorkKind::Rebuild),
+        "Refresh" => Ok(SupportMaintenanceWorkKind::Refresh),
+        "CompatibilityMigration" => Ok(SupportMaintenanceWorkKind::CompatibilityMigration),
+        "DegradationRecovery" => Ok(SupportMaintenanceWorkKind::DegradationRecovery),
+        other => Err(format!(
+            "unknown subscription-support maintenance work kind `{other}`"
         )),
     }
 }
@@ -1072,6 +1364,79 @@ impl SubscriptionSupportMaintenanceReport {
 
     pub fn descriptor_records(&self) -> &[SupportMaintenanceDescriptorRecord] {
         &self.descriptor_records
+    }
+
+    pub fn cost_surface(&self) -> SubscriptionSupportResultCostSurface {
+        self.cost_surface
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportMaintenanceDebtReport {
+    debt_summary: SupportMaintenanceDebtSummary,
+    admissions: Vec<SupportMaintenanceAdmissionWitness>,
+    translation_bases: Vec<SubscriptionSupportOperationalBasis>,
+    cost_surface: SubscriptionSupportResultCostSurface,
+}
+
+impl SubscriptionSupportMaintenanceDebtReport {
+    pub(crate) fn new(
+        plan: &SupportMaintenanceBatchPlan,
+        delay_reason: impl Into<String>,
+        path_plan: &SupportProgramPathPlan,
+    ) -> Result<Self, StoreError> {
+        if path_plan.path_class() != super::SupportPathClass::OperatorReporting {
+            return Err(classification_error(
+                "subscription-support maintenance debt reports require operator-reporting paths",
+            ));
+        }
+        if path_plan.density_class() != SupportProgramDensityClass::MaintenanceKeyBatch {
+            return Err(classification_error(
+                "subscription-support maintenance debt reports require maintenance-key density",
+            ));
+        }
+        if path_plan.allocation_scope() != SupportAllocationScope::OperatorReport {
+            return Err(classification_error(
+                "subscription-support maintenance debt reports require operator-report allocation",
+            ));
+        }
+        if path_plan.batch_width() != plan.affected_set().affected_count() {
+            return Err(classification_error(
+                "subscription-support maintenance debt reports must preserve affected-set breadth",
+            ));
+        }
+        Ok(Self {
+            debt_summary: SupportMaintenanceDebtSummary::new(
+                plan.action_id(),
+                plan.affected_set(),
+                plan.decision(),
+                plan.descriptors().len() as u64,
+                plan.coalesced_duplicate_count(),
+                delay_reason,
+            )?,
+            admissions: plan
+                .descriptors()
+                .iter()
+                .map(SupportMaintenanceAdmissionWitness::new)
+                .collect(),
+            translation_bases: plan.affected_set().affected_bases().to_vec(),
+            cost_surface: cost_surface_for_program_path(
+                SubscriptionSupportPlanFamily::MaintenanceParticipationPlan,
+                path_plan,
+            ),
+        })
+    }
+
+    pub fn debt_summary(&self) -> &SupportMaintenanceDebtSummary {
+        &self.debt_summary
+    }
+
+    pub fn admissions(&self) -> &[SupportMaintenanceAdmissionWitness] {
+        &self.admissions
+    }
+
+    pub fn translation_bases(&self) -> &[SubscriptionSupportOperationalBasis] {
+        &self.translation_bases
     }
 
     pub fn cost_surface(&self) -> SubscriptionSupportResultCostSurface {

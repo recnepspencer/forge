@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::temporal::LoweredTemporalEligibility;
+
 use super::EvaluationVerdict;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +18,7 @@ pub struct AppliedEffectReport {
     pub verdict: EvaluationVerdict,
     pub comparison: EffectComparison,
     pub suppressed_downstream: u64,
+    pub temporal_eligibility: Option<LoweredTemporalEligibility>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,4 +26,5 @@ pub(crate) struct PreparedApplyResult {
     pub dependency_updates: u32,
     pub report: AppliedEffectReport,
     pub pending_snapshot: Option<super::PendingDependencySnapshot>,
+    pub temporal_eligibility: Option<LoweredTemporalEligibility>,
 }

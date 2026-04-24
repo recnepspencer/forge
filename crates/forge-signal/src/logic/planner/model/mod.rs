@@ -21,6 +21,7 @@ use crate::data::proof::{
     StructuralDelta,
 };
 use crate::data::reuse::{ReuseBasis, ReuseOrigin};
+use crate::data::temporal::{LoweredTemporalEligibility, TemporalExecutionSummary};
 use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::{DeferralReason, EvaluationVerdict, SuppressionReason};
@@ -615,6 +616,7 @@ pub struct TaskExecutionRecord {
     pub verdict: Option<EvaluationVerdict>,
     pub suppression_reason: Option<SuppressionReason>,
     pub deferral_reason: Option<DeferralReason>,
+    pub temporal_eligibility: Option<LoweredTemporalEligibility>,
     pub prune_reason: Option<ExecutionPruneReason>,
     pub recomputed: bool,
     pub memoized_origin: MemoizedResultOrigin,
@@ -674,6 +676,7 @@ pub struct ExecutionReport {
     pub task_count: u32,
     pub maybe_stale_validation_tasks: u32,
     pub latest_execution_record_id: Option<u64>,
+    pub temporal_summary: TemporalExecutionSummary,
     pub reuse_origin_counts: BTreeMap<ReuseOrigin, u32>,
     pub tasks_executed: u32,
     pub tasks_pruned: u32,

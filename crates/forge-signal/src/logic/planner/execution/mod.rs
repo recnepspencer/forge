@@ -12,6 +12,7 @@ use self::stage::execute_stage;
 use super::types::{
     EligibleTask, EvaluationPlan, ExecutionReport, PlanSummary, SessionScratch, StageExecutor,
 };
+use super::TemporalLoweringContext;
 
 mod context;
 pub(crate) mod diagnostics;
@@ -71,6 +72,7 @@ pub(crate) fn execute_prepared_plan_with_precompute<F>(
     plan: &EvaluationPlan,
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<ExecutionReport, SignalError>
 where
@@ -101,6 +103,7 @@ where
         plan_summary,
         first_target,
         comparator_resolver,
+        temporal_lowering,
         executor,
     )
 }
@@ -111,6 +114,31 @@ pub fn execute_prepared_plan_with_policy<Ctx, F, O>(
     domain_ctx: &Ctx,
     evaluator: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    executor: StageExecutor,
+) -> Result<ExecutionReport, SignalError>
+where
+    Ctx: Sync,
+    F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
+    O: IntoEvaluationOutput,
+{
+    execute_prepared_plan_with_policy_and_temporal_lowering(
+        graph,
+        plan,
+        domain_ctx,
+        evaluator,
+        comparator_resolver,
+        TemporalLoweringContext::graph_only(),
+        executor,
+    )
+}
+
+pub(crate) fn execute_prepared_plan_with_policy_and_temporal_lowering<Ctx, F, O>(
+    graph: &mut SignalGraph,
+    plan: &EvaluationPlan,
+    domain_ctx: &Ctx,
+    evaluator: &F,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<ExecutionReport, SignalError>
 where
@@ -141,6 +169,7 @@ where
         plan_summary,
         first_target,
         comparator_resolver,
+        temporal_lowering,
         executor,
     )
 }
@@ -150,6 +179,7 @@ pub(crate) fn execute_evaluation_session_with_policy<F>(
     session: &SessionScratch<'_>,
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<ExecutionReport, SignalError>
 where
@@ -179,6 +209,7 @@ where
         plan_summary,
         first_target,
         comparator_resolver,
+        temporal_lowering,
         executor,
     )?;
     Ok(report)
@@ -194,6 +225,7 @@ fn execute_plan_stage_slices_with_policy<'a, F>(
     plan_summary: crate::diagnostics::summary::EvaluationPlanSummary,
     first_target: Option<NodeId>,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<ExecutionReport, SignalError>
 where
@@ -212,6 +244,7 @@ where
         first_target,
         precompute,
         comparator_resolver,
+        temporal_lowering,
         executor,
     );
     for stage in stages {

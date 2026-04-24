@@ -2,7 +2,7 @@ use crate::failure::{StoreError, StoreErrorKind};
 use crate::{
     SubscriptionSupportAccessStructure, SubscriptionSupportCatalog,
     SubscriptionSupportCounterSnapshot, SubscriptionSupportStoredRecordSet,
-    SupportMaintenanceDescriptorRecord,
+    SupportActionDurableRecord, SupportMaintenanceDebtRecord, SupportMaintenanceDescriptorRecord,
 };
 use rusqlite::Connection;
 
@@ -14,9 +14,11 @@ pub(super) fn load_subscription_support(
     state: &mut StoreState,
 ) -> Result<(), StoreError> {
     state.subscription_support_record_sets.clear();
+    state.subscription_support_action_records.clear();
     state
         .subscription_support_maintenance_descriptor_records
         .clear();
+    state.subscription_support_maintenance_debt_records.clear();
     let mut statement = connection
         .prepare(
             "SELECT storage_key, family_id, artifact_id, declaration_digest, basis_digest, \
@@ -59,6 +61,40 @@ pub(super) fn load_subscription_support(
     }
     drop(statement);
 
+    let mut action_statement = connection
+        .prepare(
+            "SELECT action_id, artifact_id, action_origin, publication_state, payload_json \
+             FROM subscription_support_action_records ORDER BY action_id",
+        )
+        .map_err(sqlite_error)?;
+    let action_rows = action_statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                SubscriptionSupportActionIndexedProjection {
+                    artifact_id: row.get(1)?,
+                    action_origin: row.get(2)?,
+                    publication_state: row.get(3)?,
+                },
+                deserialize_json::<SupportActionDurableRecord>(row.get(4)?)?,
+            ))
+        })
+        .map_err(sqlite_error)?;
+    for row in action_rows {
+        let (action_id, indexed, record) = row.map_err(sqlite_error)?;
+        if record.action_id().as_str() != action_id {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "sqlite subscription-support action record key does not match payload action id",
+            ));
+        }
+        indexed.verify_matches(&record)?;
+        state
+            .subscription_support_action_records
+            .insert(action_id, record);
+    }
+    drop(action_statement);
+
     let mut descriptor_statement = connection
         .prepare(
             "SELECT record_key, family_id, support_role, maintenance_key, declaration_id, \
@@ -94,6 +130,43 @@ pub(super) fn load_subscription_support(
             .subscription_support_maintenance_descriptor_records
             .insert(record_key, record);
     }
+    drop(descriptor_statement);
+
+    let mut debt_statement = connection
+        .prepare(
+            "SELECT record_key, action_id, family_id, support_role, verdict, payload_json \
+             FROM subscription_support_maintenance_debt_records ORDER BY record_key",
+        )
+        .map_err(sqlite_error)?;
+    let debt_rows = debt_statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                SubscriptionSupportMaintenanceDebtIndexedProjection {
+                    action_id: row.get(1)?,
+                    family_id: row.get(2)?,
+                    support_role: row.get(3)?,
+                    verdict: row.get(4)?,
+                },
+                deserialize_json::<SupportMaintenanceDebtRecord>(row.get(5)?)?,
+            ))
+        })
+        .map_err(sqlite_error)?;
+    for row in debt_rows {
+        let (record_key, indexed, record) = row.map_err(sqlite_error)?;
+        if record.record_key() != record_key {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "sqlite subscription-support maintenance debt record key does not match payload",
+            ));
+        }
+        indexed.verify_matches(&record)?;
+        state
+            .subscription_support_maintenance_debt_records
+            .insert(record_key, record);
+    }
+    drop(debt_statement);
+
     state.subscription_support_counter_snapshot = connection
         .query_row(
             "SELECT payload_json FROM subscription_support_counter_snapshot WHERE counter_id = 'first_ship'",
@@ -167,6 +240,19 @@ struct SubscriptionSupportMaintenanceIndexedProjection {
     descriptor_digest: String,
 }
 
+struct SubscriptionSupportMaintenanceDebtIndexedProjection {
+    action_id: String,
+    family_id: String,
+    support_role: String,
+    verdict: String,
+}
+
+struct SubscriptionSupportActionIndexedProjection {
+    artifact_id: String,
+    action_origin: String,
+    publication_state: String,
+}
+
 impl SubscriptionSupportIndexedProjection {
     fn verify_matches(
         &self,
@@ -235,6 +321,32 @@ impl SubscriptionSupportIndexedProjection {
     }
 }
 
+impl SubscriptionSupportActionIndexedProjection {
+    fn verify_matches(&self, record: &SupportActionDurableRecord) -> Result<(), StoreError> {
+        let action_origin = format!("{:?}", record.action_origin());
+        let publication_state = format!("{:?}", record.publication_state());
+        if self.artifact_id != record.artifact_id().as_str() {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "sqlite subscription-support action artifact id index projection does not match payload",
+            ));
+        }
+        if self.action_origin != action_origin {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "sqlite subscription-support action origin index projection does not match payload",
+            ));
+        }
+        if self.publication_state != publication_state {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "sqlite subscription-support action state index projection does not match payload",
+            ));
+        }
+        Ok(())
+    }
+}
+
 impl SubscriptionSupportMaintenanceIndexedProjection {
     fn verify_matches(
         &self,
@@ -274,6 +386,42 @@ impl SubscriptionSupportMaintenanceIndexedProjection {
                     StoreErrorKind::SubscriptionSupportPublicationViolation,
                     format!(
                         "sqlite subscription-support maintenance descriptor {label} index projection does not match payload"
+                    ),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl SubscriptionSupportMaintenanceDebtIndexedProjection {
+    fn verify_matches(&self, record: &SupportMaintenanceDebtRecord) -> Result<(), StoreError> {
+        let support_role = format!("{:?}", record.support_role());
+        let verdict = format!("{:?}", record.verdict());
+        let expected = [
+            (
+                "action id",
+                self.action_id.as_str(),
+                record.action_id().as_str(),
+            ),
+            (
+                "family id",
+                self.family_id.as_str(),
+                record.family_id().as_str(),
+            ),
+            (
+                "support role",
+                self.support_role.as_str(),
+                support_role.as_str(),
+            ),
+            ("verdict", self.verdict.as_str(), verdict.as_str()),
+        ];
+        for (label, indexed, payload) in expected {
+            if indexed != payload {
+                return Err(StoreError::new(
+                    StoreErrorKind::SubscriptionSupportPublicationViolation,
+                    format!(
+                        "sqlite subscription-support maintenance debt {label} index projection does not match payload"
                     ),
                 ));
             }

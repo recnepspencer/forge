@@ -27,7 +27,7 @@ pub(super) fn classify_condition_decision(
         {
             Some(ConditionDecision::RevertedClean)
         }
-        EvaluationCondition::Debounce(_) => Some(ConditionDecision::Deferred),
+        EvaluationCondition::Temporal(_) => Some(ConditionDecision::Deferred),
         EvaluationCondition::Custom(_) => Some(ConditionDecision::Deferred),
         _ => None,
     }

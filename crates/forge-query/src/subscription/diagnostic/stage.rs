@@ -12,6 +12,10 @@ pub enum QuerySubscriptionDiagnosticStage {
     ActiveLifecycleAllocation,
     RuntimeBackedAdmission,
     ActivationReadiness,
+    SupportReporting,
+    Continuation,
+    PreviewIsolation,
+    LifecycleCloseout,
     ViewMismatch,
     RelationshipProofDrift,
     DeliveryIntent,
@@ -31,6 +35,10 @@ impl QuerySubscriptionDiagnosticStage {
             Self::ActiveLifecycleAllocation => "active_lifecycle_allocation",
             Self::RuntimeBackedAdmission => "runtime_backed_admission",
             Self::ActivationReadiness => "activation_readiness",
+            Self::SupportReporting => "support_reporting",
+            Self::Continuation => "continuation",
+            Self::PreviewIsolation => "preview_isolation",
+            Self::LifecycleCloseout => "lifecycle_closeout",
             Self::ViewMismatch => "view_mismatch",
             Self::RelationshipProofDrift => "relationship_proof_drift",
             Self::DeliveryIntent => "delivery_intent",
@@ -65,7 +73,22 @@ pub struct QuerySubscriptionDiagnosticEvidence {
 }
 
 impl QuerySubscriptionDiagnosticEvidence {
-    pub(super) fn denied(
+    pub(crate) fn admitted(
+        stage: QuerySubscriptionDiagnosticStage,
+        reason: impl Into<String>,
+        source_digest: impl Into<String>,
+        counter_digest: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            stage,
+            QuerySubscriptionDiagnosticOutcome::Admitted,
+            reason,
+            source_digest,
+            counter_digest,
+        )
+    }
+
+    pub(crate) fn denied(
         stage: QuerySubscriptionDiagnosticStage,
         reason: impl Into<String>,
         source_digest: impl Into<String>,

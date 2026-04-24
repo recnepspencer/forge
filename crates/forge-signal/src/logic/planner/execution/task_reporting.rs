@@ -2,6 +2,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::reuse::{ReuseBasis, ReuseOrigin, ReuseStrategy};
+use crate::data::temporal::LoweredTemporalEligibility;
 use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::failure::ExecutionFailureContext;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
@@ -22,6 +23,7 @@ pub(crate) fn classify_task_record(
     before_trace: Option<&RuntimeArtifactFinalizeImage>,
     after_trace: Option<&RuntimeArtifactFinalizeImage>,
     verdict: EvaluationVerdict,
+    temporal_eligibility: Option<LoweredTemporalEligibility>,
     memoized_origin: MemoizedResultOrigin,
     reuse_basis: ReuseBasis,
 ) -> ExecutedTask {
@@ -36,6 +38,7 @@ pub(crate) fn classify_task_record(
             before_trace,
             after_trace,
             verdict,
+            temporal_eligibility,
             memoized_origin,
             reuse_basis,
         ),
@@ -51,6 +54,7 @@ pub(crate) fn classify_task_execution_record(
     before_trace: Option<&RuntimeArtifactFinalizeImage>,
     after_trace: Option<&RuntimeArtifactFinalizeImage>,
     verdict: EvaluationVerdict,
+    temporal_eligibility: Option<LoweredTemporalEligibility>,
     memoized_origin: MemoizedResultOrigin,
     reuse_basis: ReuseBasis,
 ) -> TaskExecutionRecord {
@@ -125,6 +129,7 @@ pub(crate) fn classify_task_execution_record(
         verdict: Some(verdict),
         suppression_reason,
         deferral_reason,
+        temporal_eligibility,
         prune_reason,
         recomputed,
         memoized_origin,
@@ -173,6 +178,9 @@ pub(crate) fn accumulate_report_counters(
         .reuse_origin_counts
         .entry(task_record.reuse_origin)
         .or_insert(0) += 1;
+    if let Some(temporal_eligibility) = task_record.temporal_eligibility.as_ref() {
+        report.temporal_summary.observe(temporal_eligibility);
+    }
 
     match task_record.outcome {
         TaskExecutionOutcome::Recomputed | TaskExecutionOutcome::PropagationSuppressed => {

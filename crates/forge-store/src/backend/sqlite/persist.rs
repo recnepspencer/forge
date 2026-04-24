@@ -55,7 +55,9 @@ fn clear_tables(transaction: &Transaction<'_>) -> Result<(), StoreError> {
             DELETE FROM authoritative_artifact_digests;
             DELETE FROM compatibility_manifest_records;
             DELETE FROM subscription_support_record_sets;
+            DELETE FROM subscription_support_action_records;
             DELETE FROM subscription_support_maintenance_descriptor_records;
+            DELETE FROM subscription_support_maintenance_debt_records;
             DELETE FROM subscription_support_counter_snapshot;
             DELETE FROM subscription_support_access_structure_state;
             DELETE FROM branch_head_records;

@@ -28,7 +28,7 @@ pub enum SupportPathClass {
 }
 
 impl SupportPathClass {
-    fn admits_operational_work(self) -> bool {
+    pub(crate) fn admits_operational_work(self) -> bool {
         !matches!(self, Self::ForegroundResume | Self::ForegroundRead)
     }
 }
@@ -67,6 +67,10 @@ impl SupportActionBreadthBudget {
     pub fn admits(&self, support_artifacts: u64, payload_header_bytes: u64) -> bool {
         support_artifacts <= self.max_support_artifacts
             && payload_header_bytes <= self.max_payload_header_bytes
+    }
+
+    pub fn max_payload_header_bytes(&self) -> u64 {
+        self.max_payload_header_bytes
     }
 }
 
@@ -213,6 +217,10 @@ impl SupportProgramPathPlan {
 
     pub fn allocation_scope(&self) -> SupportAllocationScope {
         self.allocation_scope
+    }
+
+    pub fn budget(&self) -> SupportActionBreadthBudget {
+        self.budget
     }
 
     pub fn batch_width(&self) -> u64 {

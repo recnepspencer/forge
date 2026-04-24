@@ -595,6 +595,85 @@ fn certification_bundle_is_digest_backed() {
 
     assert_eq!(bundle.catalog_family_count(), 3);
     assert!(!bundle.classification_digest().is_empty());
+    assert!(!bundle.failure_digest().is_empty());
+}
+
+#[test]
+fn certification_bundle_failure_digest_changes_when_reports_fail() {
+    let catalog = SubscriptionSupportCatalog::first_ship();
+    let exact = SubscriptionSupportClassificationReport {
+        artifact_id: SubscriptionSupportArtifactId("artifact:exact".into()),
+        declaration_digest: SubscriptionSupportDeclarationDigest("declaration:exact".into()),
+        classification: SubscriptionResumeClassification::Exact,
+        primary_cause: None,
+        suppressed_causes: Vec::new(),
+        cost_surface: SubscriptionSupportResultCostSurface::new(
+            SubscriptionSupportPlanFamily::ExactResumeClassificationPlan,
+            SubscriptionSupportDensityClass::SparseIdentityClassification,
+            1,
+            1,
+            0,
+            SubscriptionSupportAllocationScope::NoAllocation,
+        ),
+        counter_snapshot: SubscriptionSupportCounterSnapshot::default(),
+    };
+    let denied = SubscriptionSupportClassificationReport {
+        artifact_id: SubscriptionSupportArtifactId("artifact:denied".into()),
+        declaration_digest: SubscriptionSupportDeclarationDigest("declaration:denied".into()),
+        classification: SubscriptionResumeClassification::NotResumable,
+        primary_cause: Some(SubscriptionSupportDriftCause::SubscriptionSupportBasisDrift),
+        suppressed_causes: Vec::new(),
+        cost_surface: SubscriptionSupportResultCostSurface::new(
+            SubscriptionSupportPlanFamily::DeniedResumeClassificationPlan,
+            SubscriptionSupportDensityClass::SparseIdentityClassification,
+            1,
+            1,
+            0,
+            SubscriptionSupportAllocationScope::NoAllocation,
+        ),
+        counter_snapshot: SubscriptionSupportCounterSnapshot::default(),
+    };
+
+    let exact_bundle = SubscriptionSupportCertificationBundle::new(
+        &catalog,
+        SubscriptionSupportCounterSnapshot::default(),
+        &[exact.clone()],
+    )
+    .unwrap();
+    let mixed_bundle = SubscriptionSupportCertificationBundle::new(
+        &catalog,
+        SubscriptionSupportCounterSnapshot::default(),
+        &[exact, denied],
+    )
+    .unwrap();
+
+    assert_ne!(exact_bundle.failure_digest(), mixed_bundle.failure_digest());
+}
+
+#[test]
+fn phase_1_illegal_hot_path_does_not_claim_payload_budget_rejection() {
+    let mut pipeline = SubscriptionSupportPublicationPipeline::first_ship();
+    let error = pipeline
+        .admit_support_program_path(
+            SupportPathClass::ForegroundResume,
+            SupportProgramDensityClass::FamilyLocalBatch,
+            SupportAllocationScope::FamilyLocalBatch,
+            SupportActionBreadthBudget::new(4, 16).unwrap(),
+            2,
+            128,
+        )
+        .expect_err("illegal hot path must reject before budget accounting");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportClassificationViolation
+    );
+    assert_eq!(pipeline.counters().support_hot_path_rejections(), 1);
+    assert_eq!(
+        pipeline.counters().support_payload_budget_rejection_count(),
+        0
+    );
+    assert_eq!(pipeline.counters().budget_denials(), 0);
 }
 
 #[test]
@@ -673,7 +752,11 @@ fn phase_1_support_actions_complete_only_after_publication() {
     .unwrap();
 
     let completed = pipeline
-        .publish_support_consequence(raw_action.plan().verify().execute())
+        .publish_support_consequence(
+            raw_action.plan().verify().execute(),
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+        )
+        .unwrap()
         .complete();
 
     assert_eq!(
@@ -2277,5 +2360,59 @@ fn phase_5_maintenance_refresh_migration_degradation_and_restart_publish_typed_p
             .counters()
             .support_maintenance_interrupted_restart_recovery_count(),
         1
+    );
+}
+
+#[test]
+fn phase_5_maintenance_delay_reports_debt_without_mutating_truth() {
+    let mut pipeline = SubscriptionSupportPublicationPipeline::first_ship();
+    let basis = maintenance_basis("delayed");
+    let retained_basis_digest = basis.basis_digest().to_string();
+    let plan = pipeline
+        .admit_support_maintenance_batch(
+            SupportActionId::new("support-maintenance:delayed").unwrap(),
+            vec![basis],
+            SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
+                retained_basis_digest,
+            )
+            .unwrap(),
+            SupportPathClass::MaintenanceExecution,
+            SupportProgramDensityClass::MaintenanceKeyBatch,
+            SupportAllocationScope::FamilyLocalBatch,
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+
+    let report = pipeline
+        .report_delayed_support_maintenance(
+            &plan,
+            "maintenance lane deferred by batch pacing",
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+
+    assert_eq!(
+        report.debt_summary().verdict(),
+        SubscriptionSupportOperationalVerdict::RebuildRequired
+    );
+    assert_eq!(
+        report.debt_summary().work_kind(),
+        SupportMaintenanceWorkKind::Rebuild
+    );
+    assert_eq!(
+        report.debt_summary().delay_reason(),
+        "maintenance lane deferred by batch pacing"
+    );
+    assert_eq!(report.admissions().len(), 1);
+    assert_eq!(
+        report.cost_surface().allocation_scope(),
+        crate::SubscriptionSupportAllocationScope::OperatorReport
+    );
+    assert_eq!(pipeline.counters().support_maintenance_delay_count(), 1);
+    assert_eq!(
+        pipeline.counters().support_action_envelope_publications(),
+        0
     );
 }

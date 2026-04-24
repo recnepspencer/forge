@@ -1,6 +1,6 @@
 use crate::{
     failure::StoreError, SubscriptionSupportAccessStructure, SubscriptionSupportStoredRecordSet,
-    SupportMaintenanceDescriptorRecord,
+    SupportActionDurableRecord, SupportMaintenanceDebtRecord, SupportMaintenanceDescriptorRecord,
 };
 use rusqlite::{params, Connection};
 
@@ -38,6 +38,13 @@ pub(super) fn create_subscription_support_schema(
                 counter_id TEXT PRIMARY KEY,
                 payload_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS subscription_support_action_records (
+                action_id TEXT PRIMARY KEY,
+                artifact_id TEXT NOT NULL DEFAULT '',
+                action_origin TEXT NOT NULL DEFAULT '',
+                publication_state TEXT NOT NULL DEFAULT '',
+                payload_json TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS subscription_support_maintenance_descriptor_records (
                 record_key TEXT PRIMARY KEY,
                 family_id TEXT NOT NULL,
@@ -45,6 +52,14 @@ pub(super) fn create_subscription_support_schema(
                 maintenance_key TEXT NOT NULL,
                 declaration_id TEXT NOT NULL,
                 descriptor_digest TEXT NOT NULL,
+                payload_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS subscription_support_maintenance_debt_records (
+                record_key TEXT PRIMARY KEY,
+                action_id TEXT NOT NULL DEFAULT '',
+                family_id TEXT NOT NULL DEFAULT '',
+                support_role TEXT NOT NULL DEFAULT '',
+                verdict TEXT NOT NULL DEFAULT '',
                 payload_json TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS subscription_support_access_structure_state (
@@ -60,7 +75,9 @@ pub(super) fn create_subscription_support_schema(
     ensure_subscription_support_access_state_columns(connection)?;
     ensure_subscription_support_projection_columns(connection)?;
     backfill_missing_subscription_support_projection_columns(connection)?;
+    backfill_missing_subscription_support_action_projection_columns(connection)?;
     backfill_missing_subscription_support_maintenance_projection_columns(connection)?;
+    backfill_missing_subscription_support_maintenance_debt_projection_columns(connection)?;
     connection
         .execute_batch(
             "
@@ -82,12 +99,24 @@ pub(super) fn create_subscription_support_schema(
                 ON subscription_support_record_sets(initial_classification);
             CREATE INDEX IF NOT EXISTS idx_subscription_support_restart_shard
                 ON subscription_support_record_sets(restart_shard);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_action_artifact
+                ON subscription_support_action_records(artifact_id);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_action_origin
+                ON subscription_support_action_records(action_origin);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_action_state
+                ON subscription_support_action_records(publication_state);
             CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_family
                 ON subscription_support_maintenance_descriptor_records(family_id);
             CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_declaration
                 ON subscription_support_maintenance_descriptor_records(declaration_id);
             CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_key
                 ON subscription_support_maintenance_descriptor_records(maintenance_key);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_debt_action
+                ON subscription_support_maintenance_debt_records(action_id);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_debt_family
+                ON subscription_support_maintenance_debt_records(family_id);
+            CREATE INDEX IF NOT EXISTS idx_subscription_support_maintenance_debt_verdict
+                ON subscription_support_maintenance_debt_records(verdict);
             ",
         )
         .map_err(sqlite_error)?;
@@ -162,6 +191,104 @@ fn backfill_missing_subscription_support_maintenance_projection_columns(
                     record.declaration_id(),
                     record.descriptor_digest(),
                     record_key,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn backfill_missing_subscription_support_maintenance_debt_projection_columns(
+    connection: &Connection,
+) -> Result<(), StoreError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT record_key, action_id, family_id, support_role, verdict, payload_json \
+             FROM subscription_support_maintenance_debt_records ORDER BY record_key",
+        )
+        .map_err(sqlite_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+            ))
+        })
+        .map_err(sqlite_error)?;
+    let mut candidates = Vec::new();
+    for row in rows {
+        candidates.push(row.map_err(sqlite_error)?);
+    }
+    drop(statement);
+    for (record_key, action_id, family_id, support_role, verdict, payload_json) in candidates {
+        if !action_id.is_empty()
+            && !family_id.is_empty()
+            && !support_role.is_empty()
+            && !verdict.is_empty()
+        {
+            continue;
+        }
+        let record: SupportMaintenanceDebtRecord = serde_json::from_str(&payload_json)?;
+        connection
+            .execute(
+                "UPDATE subscription_support_maintenance_debt_records SET \
+                 action_id = ?1, family_id = ?2, support_role = ?3, verdict = ?4 WHERE record_key = ?5",
+                params![
+                    record.action_id().as_str(),
+                    record.family_id().as_str(),
+                    format!("{:?}", record.support_role()),
+                    format!("{:?}", record.verdict()),
+                    record_key,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    Ok(())
+}
+
+fn backfill_missing_subscription_support_action_projection_columns(
+    connection: &Connection,
+) -> Result<(), StoreError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT action_id, artifact_id, action_origin, publication_state, payload_json \
+             FROM subscription_support_action_records ORDER BY action_id",
+        )
+        .map_err(sqlite_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(sqlite_error)?;
+    let mut candidates = Vec::new();
+    for row in rows {
+        candidates.push(row.map_err(sqlite_error)?);
+    }
+    drop(statement);
+    for (action_id, artifact_id, action_origin, publication_state, payload_json) in candidates {
+        if !artifact_id.is_empty() && !action_origin.is_empty() && !publication_state.is_empty() {
+            continue;
+        }
+        let record: SupportActionDurableRecord = serde_json::from_str(&payload_json)?;
+        connection
+            .execute(
+                "UPDATE subscription_support_action_records SET artifact_id = ?1, action_origin = ?2, publication_state = ?3 \
+                 WHERE action_id = ?4",
+                params![
+                    record.artifact_id().as_str(),
+                    format!("{:?}", record.action_origin()),
+                    format!("{:?}", record.publication_state()),
+                    action_id,
                 ],
             )
             .map_err(sqlite_error)?;

@@ -1652,3 +1652,673 @@ boundedness over long-lived runs
 
 The original three hit the first two hardest.
 These extra tests hit the last three.
+
+11. The temporal eligibility replay parity test
+
+This is the first non-optional certification gate for making time a real
+runtime primitive instead of a host convenience.
+
+Why it matters
+
+If temporal eligibility changes between ordinary execution, replay, restore, or
+branch re-entry, then "debounce", "delay", "stale-after", "timeout", and any
+future time-shaped policy are all lies wearing nicer names.
+
+For a high-trust runtime substrate, "the same clock basis and same inputs
+produced different admission decisions" is not a performance bug. It is a
+truth failure.
+
+What to stress
+
+seeded temporal workloads containing:
+
+time-gated nodes
+
+previous-value-sensitive nodes
+
+multiple temporal policies in one graph
+
+at minimum mixes of:
+
+after
+
+at-or-after
+
+debounce
+
+throttle
+
+stale-after
+
+interval
+
+branch fork before a scheduled wake becomes ready
+
+snapshot restore to a point before and after temporal admission
+
+replay from checkpoint plus bounded history
+
+long gaps with no host writes where only time advance can make work eligible
+
+oscillation around eligibility boundaries
+
+What to verify
+
+for the same authoritative input history and same clock basis:
+
+temporal eligibility decisions are identical
+
+wake ordering is identical after canonicalization
+
+committed outputs are identical
+
+explanations of why work became eligible are identical
+
+branch restore and replay do not invent or erase temporal wake history
+
+Pass condition
+
+The runtime must emit canonical digests for:
+
+clock checkpoints
+
+scheduled wake sets
+
+ready ordering
+
+eligibility decisions
+
+committed outputs
+
+temporal explanations
+
+All equivalent runs must match exactly except for fields explicitly declared
+non-semantic.
+
+12. The temporal branch restore equivalence test
+
+This proves that time is branch-honest instead of being ambient process state
+that leaks across histories.
+
+Why it matters
+
+If one branch can advance temporal eligibility for another branch, or if a
+restore replays a different timer story than the original history, then the
+runtime does not really support branchable time semantics.
+
+What to stress
+
+branch fork while multiple temporal wakes are pending
+
+different time-advance scripts on each branch
+
+restore to checkpoints on each branch repeatedly
+
+re-admission of work after restore
+
+mixed host invalidation plus time-driven invalidation
+
+What to verify
+
+branch-local temporal state stays isolated
+
+restoring a branch reproduces the same ready set the original history had at
+that checkpoint
+
+equivalent suffixes from equivalent restored checkpoints converge to identical
+digests
+
+temporal explanations stay branch-local and checkpoint-honest
+
+Pass condition
+
+For every branch/checkpoint pair, the runtime must emit:
+
+clock basis digest
+
+scheduled wake digest
+
+ready queue digest
+
+node-state digest
+
+explanation digest
+
+Equivalent restored suffixes must produce identical canonical digests.
+
+13. The temporal wake boundedness test
+
+This is the anti-fake-performance test for time.
+
+Why it matters
+
+A runtime can claim temporal support while secretly doing broad timer scans,
+per-node polling, or repeated heap churn that only looks acceptable in toy
+graphs. That is not good enough for long-lived enterprise state management.
+
+What to stress
+
+very large graphs with a small temporal frontier
+
+bursty timer readiness where only a few nodes become eligible per advance
+
+long idle periods
+
+branch-local pending wakes under heavy churn
+
+thousands of repeated clock advances with sparse eligibility changes
+
+large elapsed jumps across many interval periods with different missed-tick
+policies
+
+node replacement or policy rewrite while many unrelated wakes remain pending
+
+What to verify
+
+ready-node discovery scales with the temporal frontier, not total graph size
+
+long idle periods do not trigger broad scans
+
+dead or restored wakes do not stay resident forever
+
+named counters can prove where temporal work went
+
+interval catch-up behavior scales with the admitted missed-tick policy outcome,
+not with raw elapsed-period count when the policy does not require that work
+
+branch restore and policy rewrite do not rebuild temporal readiness by whole
+registry scan
+
+Pass condition
+
+The runtime must expose and certify counters for at least:
+
+temporal wake count
+
+deferred-by-time count
+
+ready queue width
+
+broad temporal scan denial count
+
+branch-local temporal restore count
+
+Any implementation that cannot make those costs attributable is not honest
+enough to ship.
+
+14. The previous-value and time-gated node equivalence test
+
+This proves that previous-value access is a semantic feature, not a hidden
+side-channel.
+
+Why it matters
+
+Many of the most valuable temporal behaviors depend on comparing the current
+candidate world to the last committed world. If previous-value reads are not
+transactional, branch-honest, and replayable, every debounce/windowing/fresh
+state rule built on top will drift.
+
+What to stress
+
+nodes that compare current candidate values to last committed values
+
+nodes whose eligibility depends on both previous-value and time windows
+
+rollback after previous-value-sensitive work was staged
+
+restore to checkpoints before and after previous committed transitions
+
+replay of threshold-boundary transitions
+
+What to verify
+
+previous-value reads always refer to the same committed history across normal
+execution, replay, restore, and branch re-entry
+
+rollback does not leak staged-but-uncommitted previous values
+
+explanations distinguish:
+
+current candidate value
+
+last committed value
+
+temporal basis
+
+Pass condition
+
+Equivalent histories must produce identical canonical digests for:
+
+current outputs
+
+previous-value references
+
+eligibility decisions
+
+rollback suppression behavior
+
+explanation artifacts
+
+15. The async resource lifecycle parity test
+
+This is the foundational async honesty test.
+
+Why it matters
+
+If pending, fulfilled, rejected, cancelled, stale, and superseded states are
+not canonical runtime truths, every future resource, route loader, form submit
+flow, cache layer, and query replacement will invent its own state machine.
+
+That is exactly how global systems become impossible to audit.
+
+What to stress
+
+async/resource nodes with:
+
+overlapping admissions
+
+revalidation while work is still inflight
+
+success, failure, cancellation, and retry paths
+
+branch fork with inflight work
+
+snapshot restore with inflight work
+
+replay from checkpoint plus completion history
+
+What to verify
+
+resource lifecycle transitions are identical across equivalent executions
+
+completion handling re-enters the runtime transactionally
+
+rollback suppresses failed completion commits fully
+
+observation remains commit-bounded even when driven by async completion
+
+Pass condition
+
+The runtime must emit canonical digests for:
+
+request identity
+
+lifecycle transitions
+
+committed resource state
+
+observation boundaries
+
+diagnostics and explanations
+
+Equivalent runs must match exactly after canonicalization.
+
+16. The out-of-order completion supersession test
+
+This is the first true async nightmare test.
+
+Why it matters
+
+Real systems do not complete in order.
+
+Requests race each other.
+
+Networks stall.
+
+Retries come back after later revalidations already succeeded.
+
+User intent moves on while old work is still alive.
+
+If old completions can overwrite newer admitted intent, the runtime is not safe
+for serious state management.
+
+What to stress
+
+issue request R1
+
+before R1 completes, invalidate and admit R2
+
+before R2 completes, admit retry or replacement R3
+
+complete R2, then R1, then R3 in hostile order
+
+mix success, failure, timeout, cancellation, and explicit supersession
+
+repeat under branch fork, restore, and replay
+
+What to verify
+
+only the newest admitted generation allowed by policy may commit
+
+older completions are denied explicitly as stale or superseded
+
+denial classification is stable across replay
+
+observers never see impossible intermediate truths
+
+Pass condition
+
+The runtime must produce a machine-checkable denial report containing:
+
+request identity
+
+generation or epoch identity
+
+completion order
+
+admission outcome
+
+denial classification
+
+committed winner
+
+If any stale completion commits in any equivalent run, the phase is not
+certifiable.
+
+17. The async rollback and observation equivalence test
+
+This proves that async completion cannot punch holes through transaction
+boundaries.
+
+Why it matters
+
+One of the ugliest async failure modes is "the state rolled back, but some
+observer, effect, or cache already saw the half-committed result."
+
+That bug destroys trust quietly because the final state can still look right.
+
+What to stress
+
+completion handling that fails after staging resource updates but before commit
+
+multiple observers with overlapping scopes
+
+unsubscribe during completion churn
+
+retry after rollback
+
+mixed sync and async invalidations inside the same hostile workload
+
+What to verify
+
+no observer delivery escapes from the failed completion transaction
+
+post-rollback state equals the pre-transaction digest exactly
+
+retry delivery equals the no-failure control path
+
+completion-driven observation remains one packet per committed boundary per
+observer
+
+Pass condition
+
+The runtime must emit:
+
+pre-transaction digest
+
+staged-but-suppressed observer packet digest
+
+post-rollback digest
+
+retry digest
+
+per-observer delivery digest
+
+The rollback lane must be indistinguishable from "the failed completion never
+committed."
+
+18. The async branch restore and replay equivalence test
+
+This proves that inflight work and completed resource truth survive historical
+machinery honestly.
+
+Why it matters
+
+Async state is where many runtimes quietly give up on replay honesty. They
+replay values but not lifecycles, or they restore outputs but lose the story of
+which work was still inflight and which completion was denied.
+
+That is not acceptable for a system that may need to explain why a decision was
+made later.
+
+What to stress
+
+branch fork with inflight requests
+
+different completion orders on each branch
+
+restore to checkpoints before and after completion
+
+replay from checkpoint plus completion stream
+
+long-lived inflight work spanning multiple unrelated sync transactions
+
+What to verify
+
+branch-local inflight state stays isolated
+
+restore reconstructs the same inflight and committed resource story the branch
+originally had
+
+equivalent replay produces identical lifecycle and denial digests
+
+explanations can answer both:
+
+why is the resource in this state now
+
+how did this request lifecycle evolve
+
+Pass condition
+
+For each branch checkpoint, the runtime must emit canonical digests for:
+
+inflight set
+
+committed resource states
+
+lifecycle history
+
+denial history
+
+explanation artifacts
+
+Equivalent histories must converge exactly.
+
+19. The async inflight boundedness test
+
+This is the anti-meltdown test for real async pressure.
+
+Why it matters
+
+The runtime is going to be judged under unreliable connections, partial
+connections, duplicate delivery, cross-region latency, retries, operator
+churn, and long-lived sessions.
+
+If inflight tracking, cancellation, retry bookkeeping, or completion matching
+widens into broad scans, hidden maps, or retention leaks, the system will fail
+operationally long before it fails semantically.
+
+What to stress
+
+large graphs with a small active inflight surface
+
+large inflight populations with sparse completion activity
+
+heavy cancellation and retry churn
+
+long sessions with repeated acquire, supersede, cancel, and dispose cycles
+
+branch churn while inflight work remains live
+
+What to verify
+
+completion matching scales with inflight-local structures, not total graph size
+
+dead, cancelled, or superseded inflight records do not accumulate forever
+
+named counters explain inflight cost posture
+
+retention policies fail explicitly when history is outside the retained window
+
+Pass condition
+
+The runtime must expose and certify counters for at least:
+
+inflight request count
+
+fulfilled count
+
+rejected count
+
+cancelled count
+
+superseded completion denial count
+
+retry admission count
+
+inflight broad-scan denial count
+
+async branch restore count
+
+If the runtime cannot show boundedness with counters and canonical digests, it
+is not ready for hostile production workloads.
+
+19A. The worst async nightmare grammar
+
+Every future async/resource certification suite must instantiate this workload
+grammar before it adds any higher-level expectations.
+
+The canonical async failure families are:
+
+completion ordering failures
+
+completion integrity failures
+
+request identity failures
+
+liveness failures
+
+async pressure failures
+
+The grammar must instantiate at least one hostile case from each family.
+
+Completion ordering failures include:
+
+multiple admissions before any completion
+
+out-of-order completion
+
+duplicate completion delivery for the same request
+
+success after timeout
+
+failure after supersession
+
+cancellation racing completion
+
+retry racing fresh admission
+
+Completion integrity failures include:
+
+broken connection before completion delivery
+
+partial connection with delayed completion delivery
+
+contradictory completion reports for the same request
+
+partial payload delivery
+
+completion with impossible status or timing claims
+
+host metadata omission or corruption
+
+Request identity failures include:
+
+completion with missing or corrupted request identity
+
+completion for an unknown request
+
+completion for a retired, cancelled, or superseded request
+
+completion that lies about generation or attempt identity
+
+Liveness failures include:
+
+lost completion
+
+ghost inflight state
+
+zombie completion after the runtime moved on
+
+timeout truth split between runtime and host boundary
+
+Async pressure failures include:
+
+long-session churn with acquire and dispose
+
+retry storms
+
+completion floods
+
+inflight buildup with sparse resolution
+
+starvation under repeated supersession or retry pressure
+
+This is the minimum hostile async shape.
+
+If a future abstraction cannot survive this grammar, it does not deserve to be
+called first-class.
+
+19B. The regulated-system adversarial rule
+
+If `forge-signal` is going to become a serious global runtime substrate, then
+test requirements must assume hostile operators, hostile schedulers, hostile
+clocks, broken or partial connections, dishonest completions, duplicate
+delivery, identity mismatch, liveness failure, and long-lived sessions instead
+of "well-behaved app code."
+
+Normative consequence
+
+No temporal or async feature is considered complete because:
+
+it works in a demo
+
+it survives one serial path
+
+it survives one replay path
+
+it can usually recover after failure
+
+Instead it must prove:
+
+deterministic committed truth
+
+explicit denial of impossible or stale work
+
+rollback integrity
+
+branch and restore honesty
+
+replayable causal explanation
+
+bounded hot-path cost
+
+bounded long-session retention
+
+For high-trust workloads, the runtime must be able to answer:
+
+what committed
+
+what was denied
+
+why it was denied
+
+what would replay identically
+
+which completions were rejected as malformed, partial, contradictory, or
+dishonest
+
+what history was intentionally dropped by policy
+
+If it cannot answer those questions with machine-checkable artifacts, it is not
+yet honest enough.

@@ -1,6 +1,6 @@
 use crate::data::telemetry::{
     CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry,
-    PlannerTelemetry, StorageTelemetry, TransactionTelemetry,
+    PlannerTelemetry, StorageTelemetry, TemporalTelemetry, TransactionTelemetry,
 };
 use crate::easy::ReactiveGraph;
 use crate::facade::*;
@@ -470,8 +470,8 @@ fn gate5_rollback_and_merge_paths_use_checkpoint_node_images_as_authority_bounda
         "merge adoption should materialize introduced nodes through the checkpoint-image boundary"
     );
     assert!(
-        MERGE_EXECUTE_SOURCE.contains("replace_entry_from_checkpoint_image("),
-        "merge adoption should rewrite existing targets through the checkpoint-image boundary"
+        MERGE_EXECUTE_SOURCE.contains("replace_node_from_checkpoint_image("),
+        "merge adoption should route existing-target checkpoint replacement through the temporal-aware replacement boundary"
     );
     assert!(
         !MERGE_EXECUTE_SOURCE.contains("NodeEntry::from_checkpoint_image("),
@@ -486,8 +486,8 @@ fn gate5_rollback_and_merge_paths_use_checkpoint_node_images_as_authority_bounda
         "merge adoption should not fall back to broad mutable entry mutation after checkpoint-image materialization"
     );
     assert!(
-        MERGE_RUNTIME_SOURCE.contains("replace_entry_from_checkpoint_image("),
-        "branch merge reconciliation should rewrite existing targets through the checkpoint-image boundary"
+        MERGE_RUNTIME_SOURCE.contains("replace_node_from_checkpoint_image("),
+        "branch merge reconciliation should route existing targets through the branch-aware temporal replacement boundary"
     );
     assert!(
         MERGE_RUNTIME_SOURCE.contains("node_checkpoint_image("),
@@ -1164,6 +1164,13 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
             checkpoint_flushes: 17,
             ..CheckpointTelemetry::default()
         },
+        temporal: TemporalTelemetry {
+            temporal_wake_count: 19,
+            scheduled_frontier_width: 29,
+            temporal_eligibility_lowering_count: 31,
+            previous_value_reference_count: 23,
+            ..TemporalTelemetry::default()
+        },
     };
     let counters = telemetry.performance_counter_surface();
 
@@ -1174,6 +1181,10 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
     assert_eq!(counters.execution.rewiring_apply_count, 11);
     assert_eq!(counters.storage.graph_storage_snapshot_rewrites, 13);
     assert_eq!(counters.checkpoint.checkpoint_flushes, 17);
+    assert_eq!(counters.temporal.temporal_wake_count, 19);
+    assert_eq!(counters.temporal.scheduled_frontier_width, 29);
+    assert_eq!(counters.temporal.temporal_eligibility_lowering_count, 31);
+    assert_eq!(counters.temporal.previous_value_reference_count, 23);
 }
 
 #[test]

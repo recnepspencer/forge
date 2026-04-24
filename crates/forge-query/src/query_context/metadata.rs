@@ -10,12 +10,14 @@ use super::performance::{
     HistoricalMaterializationCostClass, QueryContextBudgetClass, QueryContextCostClass,
     QueryContextCounters, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
 };
+use crate::basis::BasisAuthorityFamily;
 use crate::identity::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryBasisMetadata {
     query_digest: String,
     basis_digest: String,
+    basis_authority_family: BasisAuthorityFamily,
     basis_family: QueryContextFamily,
     cost_class: QueryContextCostClass,
     budget_class: QueryContextBudgetClass,
@@ -39,6 +41,10 @@ impl QueryBasisMetadata {
 
     pub fn basis_digest(&self) -> &str {
         &self.basis_digest
+    }
+
+    pub fn basis_authority_family(&self) -> &BasisAuthorityFamily {
+        &self.basis_authority_family
     }
 
     pub fn basis_family(&self) -> &QueryContextFamily {
@@ -252,6 +258,7 @@ pub fn attach_query_basis_metadata(
     Ok(QueryBasisMetadata {
         query_digest: context.query_digest().to_string(),
         basis_digest: context.basis_digest().to_string(),
+        basis_authority_family: context.basis_authority_family().clone(),
         basis_family: context.family().clone(),
         cost_class: context.cost_class().clone(),
         budget_class: context.budget_class().clone(),

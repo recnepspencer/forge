@@ -43,14 +43,19 @@ pub fn render_execution_report_summary(summary: &ExecutionReportSummary) -> Stri
         ],
     );
     format!(
-        "ExecutionReportSummary profile={:?} stages={} tasks={} executed={} memoized={} advanced_reuse=[{}] suppressed={}",
+        "ExecutionReportSummary profile={:?} stages={} tasks={} executed={} memoized={} advanced_reuse=[{}] suppressed={} temporal(total={},ready={},deferred={},runtime={},resolver={})",
         summary.profile,
         summary.stage_count,
         summary.task_count,
         summary.tasks_executed,
         summary.tasks_satisfied_by_memoization,
         advanced_reuse,
-        summary.tasks_with_suppressed_propagation
+        summary.tasks_with_suppressed_propagation,
+        summary.temporal_summary.total_count(),
+        summary.temporal_summary.ready_count(),
+        summary.temporal_summary.deferred_count(),
+        summary.temporal_summary.runtime_clock_authority_count(),
+        summary.temporal_summary.resolver_fallback_count(),
     )
 }
 

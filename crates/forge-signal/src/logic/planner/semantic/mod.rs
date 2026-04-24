@@ -13,6 +13,8 @@ use crate::data::output::MemoizedResultOrigin;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBasis;
 #[cfg(feature = "parallel")]
+use crate::data::temporal::LoweredTemporalEligibility;
+#[cfg(feature = "parallel")]
 use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::recorder::stamp_trace_summary_and_record_lineage_transition_from_image;
 #[cfg(feature = "parallel")]
@@ -49,6 +51,7 @@ pub(super) struct SemanticTaskUpdate {
     dependency_updates: u32,
     recomputed: bool,
     partition_aware: bool,
+    temporal_eligibility: Option<LoweredTemporalEligibility>,
     rewiring: Option<RewiringSummary>,
     verdict: EvaluationVerdict,
     memoized_origin: MemoizedResultOrigin,
@@ -102,6 +105,7 @@ impl SemanticTaskUpdate {
         dependency_updates: u32,
         recomputed: bool,
         partition_aware: bool,
+        temporal_eligibility: Option<LoweredTemporalEligibility>,
         rewiring: Option<RewiringSummary>,
         verdict: EvaluationVerdict,
         memoized_origin: MemoizedResultOrigin,
@@ -117,6 +121,7 @@ impl SemanticTaskUpdate {
             dependency_updates,
             recomputed,
             partition_aware,
+            temporal_eligibility,
             rewiring,
             verdict,
             memoized_origin,
@@ -136,6 +141,7 @@ impl SemanticTaskUpdate {
         u32,
         bool,
         bool,
+        Option<LoweredTemporalEligibility>,
         Option<RewiringSummary>,
         EvaluationVerdict,
         MemoizedResultOrigin,
@@ -151,6 +157,7 @@ impl SemanticTaskUpdate {
             self.dependency_updates,
             self.recomputed,
             self.partition_aware,
+            self.temporal_eligibility,
             self.rewiring,
             self.verdict,
             self.memoized_origin,
@@ -245,6 +252,7 @@ pub(super) fn finalize_stage_batch(
                 dependency_updates,
                 recomputed,
                 partition_aware,
+                temporal_eligibility,
                 rewiring,
                 verdict,
                 memoized_origin,
@@ -271,6 +279,7 @@ pub(super) fn finalize_stage_batch(
                 before_artifact_state.as_ref(),
                 after_finalize_image.as_ref(),
                 verdict,
+                temporal_eligibility,
                 memoized_origin,
                 reuse_basis,
             );
@@ -352,6 +361,7 @@ pub(in crate::logic::planner) fn finalize_serial_stage_batch(
             seed.before_artifact_state.as_ref(),
             after_finalize_image.as_ref(),
             applied.verdict,
+            applied.temporal_eligibility,
             applied.memoized_origin,
             applied.reuse_basis,
         );

@@ -26,6 +26,7 @@ mod bridge_family;
 mod bridge_lowering;
 mod bridge_lowering_budget;
 mod bridge_lowering_error;
+mod bridge_parity;
 mod bridge_slice;
 mod budget;
 mod certification;
@@ -58,6 +59,7 @@ mod posture;
 mod preview_isolation;
 mod preview_isolation_error;
 mod relationship_proof;
+mod runtime_certification;
 mod scale;
 mod selection;
 mod signal_strategy;
@@ -117,6 +119,14 @@ pub use bridge_lowering_budget::QuerySubscriptionBridgeLoweringBudget;
 pub use bridge_lowering_error::{
     QuerySubscriptionBridgeLoweringDenialKind, QuerySubscriptionBridgeLoweringError,
 };
+pub use bridge_parity::{
+    build_query_subscription_manual_bridge_witness, explain_query_subscription_bridge_parity,
+    BridgeParityReceipt, BridgeWitnessAssemblyPosture, QuerySubscriptionBridgeParityClass,
+    QuerySubscriptionBridgeParityComparison, QuerySubscriptionBridgeParityCounters,
+    QuerySubscriptionBridgeParityError, QuerySubscriptionBridgeParityExplanation,
+    QuerySubscriptionBridgeParityFailure, QuerySubscriptionBridgeParityFailureKind,
+    QuerySubscriptionManualBridgeWitness, SubscriptionBridgeParityWidth,
+};
 pub use bridge_slice::{BridgeSubscriptionSliceKind, QueryToBridgeSliceMap};
 pub use budget::QuerySubscriptionWorkBudget;
 pub use certification::{
@@ -159,8 +169,16 @@ pub use delivery_window::{
 };
 pub use delivery_work_packet::ActiveDeliveryWorkPacket;
 pub use diagnostic::{
-    QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticOutcome,
-    QuerySubscriptionDiagnosticStage,
+    bundle_admitted_query_subscription_diagnostics, bundle_denied_query_subscription_diagnostics,
+    trace_admitted_query_subscription_diagnostics, trace_denied_query_subscription_diagnostics,
+    BundleAssemblyPosture, DiagnosticAssemblyReceipt, QuerySubscriptionAdmittedDiagnosticBundle,
+    QuerySubscriptionDeniedDiagnosticBundle, QuerySubscriptionDiagnosticBundleError,
+    QuerySubscriptionDiagnosticBundleErrorKind, QuerySubscriptionDiagnosticBundleWidth,
+    QuerySubscriptionDiagnosticCounters, QuerySubscriptionDiagnosticEvidence,
+    QuerySubscriptionDiagnosticFailure, QuerySubscriptionDiagnosticOutcome,
+    QuerySubscriptionDiagnosticSelectionContext, QuerySubscriptionDiagnosticSemanticLabels,
+    QuerySubscriptionDiagnosticStage, QuerySubscriptionDiagnosticStageTrace,
+    QuerySubscriptionDiagnosticTrace,
 };
 pub use dimensions::QuerySubscriptionAdmissionDimensions;
 pub use equivalence::{QuerySubscriptionEquivalenceBasis, QuerySubscriptionMeaningDigest};
@@ -192,6 +210,20 @@ pub use preview_isolation_error::{
     PreviewSubscriptionIsolationDenialKind, PreviewSubscriptionIsolationError,
 };
 pub use relationship_proof::QuerySubscriptionRelationshipProofPosture;
+pub use runtime_certification::{
+    build_certified_family_coverage_handle, build_query_subscription_family_coverage_matrix,
+    build_query_subscription_runtime_certification_scope,
+    certify_query_subscription_runtime_family, CertificationCoverageReceipt,
+    CertifiedFamilyCoverageHandle, CoverageResolutionPosture, QuerySubscriptionBasisVariationSet,
+    QuerySubscriptionFamilyCoverageMatrix, QuerySubscriptionFamilyCoverageRow,
+    QuerySubscriptionFamilyCoverageRowClass, QuerySubscriptionLifecycleClassVariationSet,
+    QuerySubscriptionLifecycleCoverageClass, QuerySubscriptionPolicyVariationSet,
+    QuerySubscriptionRelationshipProofVariationSet, QuerySubscriptionRuntimeCertificationBundle,
+    QuerySubscriptionRuntimeCertificationCounters, QuerySubscriptionRuntimeCertificationError,
+    QuerySubscriptionRuntimeCertificationErrorKind, QuerySubscriptionRuntimeCertificationScope,
+    QuerySubscriptionTenantVariationSet, QuerySubscriptionViewShapeVariationSet,
+    SubscriptionCertificationCoverageWidth,
+};
 pub use scale::{
     certify_query_subscription_scale_slope, QuerySubscriptionScaleCounterSnapshot,
     QuerySubscriptionScaleFixtureSize, QuerySubscriptionScaleSlopeReport,
@@ -205,9 +237,16 @@ pub use slice::{
 };
 pub use slice_budget::QuerySubscriptionSliceBudget;
 pub use support::{
-    QuerySubscriptionActiveLifecycleSupport, QuerySubscriptionDurableSupport,
-    QuerySubscriptionLifecycleCloseoutSupport, QuerySubscriptionRuntimeBackedSupport,
-    QuerySubscriptionSupportProfile,
+    report_query_subscription_support, QuerySubscriptionActiveLifecycleSupport,
+    QuerySubscriptionDurableSupport, QuerySubscriptionLifecycleCloseoutSupport,
+    QuerySubscriptionRuntimeBackedSupport, QuerySubscriptionSupportClass,
+    QuerySubscriptionSupportCounters, QuerySubscriptionSupportEvidence,
+    QuerySubscriptionSupportEvidenceError, QuerySubscriptionSupportMatrix,
+    QuerySubscriptionSupportMatrixRow, QuerySubscriptionSupportPosture,
+    QuerySubscriptionSupportProfile, QuerySubscriptionSupportReport,
+    QuerySubscriptionSupportReportDenialKind, QuerySubscriptionSupportReportError,
+    QuerySubscriptionSupportSubject, SubscriptionFamilyCapabilityDigest, SupportLookupReceipt,
+    SupportResolutionPosture,
 };
 
 #[cfg(test)]

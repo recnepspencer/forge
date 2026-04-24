@@ -115,6 +115,7 @@ impl SignalGraph {
                 verdict: effect.operational.verdict,
                 comparison,
                 suppressed_downstream,
+                temporal_eligibility: None,
             },
             pending_snapshot,
         ))
@@ -188,6 +189,7 @@ impl SignalGraph {
                 verdict: effect.operational.verdict,
                 comparison,
                 suppressed_downstream: 0,
+                temporal_eligibility: None,
             },
             pending_snapshot,
         ))
@@ -387,7 +389,8 @@ impl SignalGraph {
                         reason:
                             DeferralReason::ConditionNotMet
                             | DeferralReason::OnDemandNotRequested
-                            | DeferralReason::DebounceWindow,
+                            | DeferralReason::DebounceWindow
+                            | DeferralReason::TemporalConditionNotMet,
                     } => {
                         self.set_node_state(node, NodeState::MaybeStale)?;
                         state_changed = !matches!(previous_state, NodeState::MaybeStale);

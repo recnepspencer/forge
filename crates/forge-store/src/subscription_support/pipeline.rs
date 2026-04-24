@@ -16,17 +16,17 @@ use super::{
     SubscriptionSupportCompatibilityDecision, SubscriptionSupportCompatibilityDecisionKind,
     SubscriptionSupportCompatibilityReport, SubscriptionSupportCounterSnapshot,
     SubscriptionSupportDriftCause, SubscriptionSupportFamilyKind,
-    SubscriptionSupportMaintenanceDecision, SubscriptionSupportMaintenanceDecisionKind,
-    SubscriptionSupportMaintenanceReport, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportPlanFamily,
-    SubscriptionSupportPortabilityDecision, SubscriptionSupportPortabilityDecisionKind,
-    SubscriptionSupportPortabilityOutcome, SubscriptionSupportPortabilityReport,
-    SubscriptionSupportPostActionReport, SubscriptionSupportRebuildPlanHandle,
-    SubscriptionSupportResultCostSurface, SubscriptionSupportRetentionDecision,
-    SubscriptionSupportRetentionMaterialization, SubscriptionSupportRole,
-    SupportActionBreadthBudget, SupportActionId, SupportAffectedSet, SupportAllocationScope,
-    SupportBatchAdmissionReceipt, SupportBatchProofKind, SupportBatchReceiptReuseReport,
-    SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
+    SubscriptionSupportMaintenanceDebtReport, SubscriptionSupportMaintenanceDecision,
+    SubscriptionSupportMaintenanceDecisionKind, SubscriptionSupportMaintenanceReport,
+    SubscriptionSupportOperationalBasis, SubscriptionSupportOperationalVerdict,
+    SubscriptionSupportPlanFamily, SubscriptionSupportPortabilityDecision,
+    SubscriptionSupportPortabilityDecisionKind, SubscriptionSupportPortabilityOutcome,
+    SubscriptionSupportPortabilityReport, SubscriptionSupportPostActionReport,
+    SubscriptionSupportRebuildPlanHandle, SubscriptionSupportResultCostSurface,
+    SubscriptionSupportRetentionDecision, SubscriptionSupportRetentionMaterialization,
+    SubscriptionSupportRole, SupportActionBreadthBudget, SupportActionId, SupportAffectedSet,
+    SupportAllocationScope, SupportBatchAdmissionReceipt, SupportBatchProofKind,
+    SupportBatchReceiptReuseReport, SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
     SupportCompatibilityReceiptWitness, SupportDecodedRowSemanticAccess,
     SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan, SupportManifestAdmissionWitness,
     SupportPathClass, SupportPortabilityAffectedSet, SupportPortabilityBatchPlan,
@@ -263,6 +263,29 @@ impl SubscriptionSupportPublicationPipeline {
         affected_entries: u64,
         payload_header_bytes: u64,
     ) -> Result<SupportProgramPathPlan, StoreError> {
+        if !path_class.admits_operational_work() {
+            if matches!(
+                path_class,
+                SupportPathClass::ForegroundResume | SupportPathClass::ForegroundRead
+            ) {
+                self.counters.record_support_hot_path_rejection();
+            }
+            return Err(classification_error(
+                "foreground subscription-support paths cannot admit operational work",
+            ));
+        }
+        if density_class == SupportProgramDensityClass::StoreGlobalDebt {
+            self.counters.record_support_store_global_debt_rejection();
+            return Err(classification_error(
+                "store-global subscription-support density is debt and cannot close Phase 1 admission",
+            ));
+        }
+        if !budget.admits(affected_entries, payload_header_bytes) {
+            self.counters.record_budget_denial();
+            return Err(classification_error(
+                "subscription-support path plan exceeds its breadth budget before execution",
+            ));
+        }
         match SupportProgramPathPlan::new(
             path_class,
             density_class,
@@ -272,18 +295,7 @@ impl SubscriptionSupportPublicationPipeline {
             payload_header_bytes,
         ) {
             Ok(plan) => Ok(plan),
-            Err(err) => {
-                match (path_class, density_class) {
-                    (SupportPathClass::ForegroundResume | SupportPathClass::ForegroundRead, _) => {
-                        self.counters.record_support_hot_path_rejection();
-                    }
-                    (_, SupportProgramDensityClass::StoreGlobalDebt) => {
-                        self.counters.record_support_store_global_debt_rejection();
-                    }
-                    _ => {}
-                }
-                Err(err)
-            }
+            Err(err) => Err(err),
         }
     }
 
@@ -313,9 +325,25 @@ impl SubscriptionSupportPublicationPipeline {
     pub fn publish_support_consequence(
         &mut self,
         action: ExecutedSupportAction,
-    ) -> PublishedSupportConsequence {
+        publication_budget: SupportActionBreadthBudget,
+    ) -> Result<PublishedSupportConsequence, StoreError> {
+        let envelope_header_bytes = action.publication_envelope_header_bytes()?;
+        if envelope_header_bytes > publication_budget.max_payload_header_bytes() {
+            self.counters.record_budget_denial();
+            return Err(classification_error(
+                "subscription-support action envelope exceeds publication budget before materialization",
+            ));
+        }
         self.counters.record_support_action_envelope_publication();
-        action.publish()
+        Ok(action.publish())
+    }
+
+    pub fn reject_support_global_scan_recovery(&mut self) -> Result<(), StoreError> {
+        self.counters
+            .record_support_global_scan_recovery_rejection();
+        Err(classification_error(
+            "subscription-support restart recovery must not scan backend residue outside durable action identity",
+        ))
     }
 
     pub fn admit_support_retention_batch(
@@ -357,10 +385,11 @@ impl SubscriptionSupportPublicationPipeline {
             decision.verdict(),
         )?;
         let completed = self
-            .publish_support_consequence(raw_action.plan().verify().execute())
+            .publish_support_consequence(raw_action.plan().verify().execute(), path_plan.budget())?
             .complete();
         let survival_witness =
             SupportRetentionSurvivalWitness::new(&completed, decision.verdict(), &affected_set)?;
+        let translation_basis = affected_set.primary_basis().clone();
         let materialization =
             SubscriptionSupportRetentionMaterialization::from_decision(affected_set, &decision)?;
         if decision.is_reclaim() {
@@ -368,6 +397,7 @@ impl SubscriptionSupportPublicationPipeline {
         }
         let report = SubscriptionSupportPostActionReport::new(
             completed,
+            translation_basis,
             survival_witness,
             materialization,
             decision_kind,
@@ -468,7 +498,7 @@ impl SubscriptionSupportPublicationPipeline {
             decision.verdict(),
         )?;
         let completed = self
-            .publish_support_consequence(raw_action.plan().verify().execute())
+            .publish_support_consequence(raw_action.plan().verify().execute(), path_plan.budget())?
             .complete();
         let report = SubscriptionSupportCompatibilityReport::new(
             completed,
@@ -576,7 +606,7 @@ impl SubscriptionSupportPublicationPipeline {
             decision.verdict(),
         )?;
         let completed = self
-            .publish_support_consequence(raw_action.plan().verify().execute())
+            .publish_support_consequence(raw_action.plan().verify().execute(), path_plan.budget())?
             .complete();
         let report = SubscriptionSupportPortabilityReport::new(
             completed,
@@ -671,7 +701,7 @@ impl SubscriptionSupportPublicationPipeline {
             decision.verdict(),
         )?;
         let completed = self
-            .publish_support_consequence(raw_action.plan().verify().execute())
+            .publish_support_consequence(raw_action.plan().verify().execute(), path_plan.budget())?
             .complete();
         let report = SubscriptionSupportMaintenanceReport::new(
             completed,
@@ -702,6 +732,26 @@ impl SubscriptionSupportPublicationPipeline {
                     .record_support_maintenance_interrupted_restart_recovery();
             }
         }
+        Ok(report)
+    }
+
+    pub fn report_delayed_support_maintenance(
+        &mut self,
+        plan: &SupportMaintenanceBatchPlan,
+        delay_reason: impl Into<String>,
+        budget: SupportActionBreadthBudget,
+        payload_header_bytes: u64,
+    ) -> Result<SubscriptionSupportMaintenanceDebtReport, StoreError> {
+        let path_plan = self.admit_support_program_path(
+            SupportPathClass::OperatorReporting,
+            SupportProgramDensityClass::MaintenanceKeyBatch,
+            SupportAllocationScope::OperatorReport,
+            budget,
+            plan.affected_set().affected_count(),
+            payload_header_bytes,
+        )?;
+        let report = SubscriptionSupportMaintenanceDebtReport::new(plan, delay_reason, &path_plan)?;
+        self.counters.record_support_maintenance_delay_report();
         Ok(report)
     }
 

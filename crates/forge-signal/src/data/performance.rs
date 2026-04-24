@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::telemetry::{
     CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry,
-    PlannerTelemetry, RuntimeTelemetry, StorageTelemetry, TransactionTelemetry,
+    PlannerTelemetry, RuntimeTelemetry, StorageTelemetry, TemporalTelemetry, TransactionTelemetry,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -161,6 +161,7 @@ pub struct PerformanceCounterSurface<'a> {
     pub execution: &'a ExecutionTelemetry,
     pub storage: &'a StorageTelemetry,
     pub checkpoint: &'a CheckpointTelemetry,
+    pub temporal: &'a TemporalTelemetry,
 }
 
 impl RuntimeTelemetry {
@@ -173,6 +174,7 @@ impl RuntimeTelemetry {
             execution: &self.execution,
             storage: &self.storage,
             checkpoint: &self.checkpoint,
+            temporal: &self.temporal,
         }
     }
 }

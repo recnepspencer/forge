@@ -21,6 +21,7 @@ pub enum DeferralReason {
     ConditionNotMet,
     OnDemandNotRequested,
     DebounceWindow,
+    TemporalConditionNotMet,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

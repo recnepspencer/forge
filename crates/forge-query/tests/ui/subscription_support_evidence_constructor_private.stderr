@@ -1,0 +1,27 @@
+warning: unreachable expression
+ --> tests/ui/subscription_support_evidence_constructor_private.rs:4:13
+  |
+4 |       let _ = QuerySubscriptionSupportEvidence {
+  |  _____________^
+5 | |         kind: todo!(),
+  | |               ------- any code following this expression is unreachable
+6 | |     };
+  | |_____^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: field `kind` of struct `QuerySubscriptionSupportEvidence` is private
+ --> tests/ui/subscription_support_evidence_constructor_private.rs:5:9
+  |
+4 |     let _ = QuerySubscriptionSupportEvidence {
+  |             -------------------------------- in this type
+5 |         kind: todo!(),
+  |         ^^^^ private field
+
+error: type `forge_query::subscription::support::subject::QuerySubscriptionSupportEvidenceKind` is private
+ --> tests/ui/subscription_support_evidence_constructor_private.rs:5:15
+  |
+5 |         kind: todo!(),
+  |               ^^^^^^^ private type
+  |
+  = note: this error originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)

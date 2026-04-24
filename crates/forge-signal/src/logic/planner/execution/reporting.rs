@@ -28,6 +28,7 @@ pub(crate) fn begin_execution_report(
         task_count: summary.task_count,
         maybe_stale_validation_tasks: maybe_stale_validation_tasks as u32,
         latest_execution_record_id: None,
+        temporal_summary: crate::data::temporal::TemporalExecutionSummary::default(),
         reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,

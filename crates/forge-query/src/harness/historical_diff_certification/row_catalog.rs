@@ -19,6 +19,7 @@ pub const HISTORICAL_DIFF_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "current-vs-branch-basis-explicitness",
     "current-vs-historical-basis-explicitness",
     "historical-materialization-path-explicitness",
+    "runtime-vs-store-historical-parity",
     "diff-comparison-family-explicitness",
     "branch-to-branch-diff-shaped",
     "current-to-historical-diff-shaped",
@@ -32,7 +33,6 @@ pub const HISTORICAL_DIFF_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "unsupported-historical-basis",
     "ambiguous-comparison-basis",
     "diff-scope-mismatch",
-    "store-backed-historical-deferred-debt",
     "forbidden-basis-substitution",
     "raw-storage-delta-leakage-forbidden",
     "historical-broadening-denied",
@@ -54,6 +54,11 @@ pub const HISTORICAL_DIFF_CANONICAL_ROW_SPECS: &[HistoricalDiffCanonicalRowSpec]
     HistoricalDiffCanonicalRowSpec {
         row_name: "historical-materialization-path-explicitness",
         perturbation_class: HistoricalDiffPerturbationClass::MetadataShaping,
+        hostile_expectation: HostileExpectation::EquivalentToControl,
+    },
+    HistoricalDiffCanonicalRowSpec {
+        row_name: "runtime-vs-store-historical-parity",
+        perturbation_class: HistoricalDiffPerturbationClass::HistoricalBasis,
         hostile_expectation: HostileExpectation::EquivalentToControl,
     },
     HistoricalDiffCanonicalRowSpec {
@@ -108,11 +113,6 @@ pub const HISTORICAL_DIFF_REJECTION_ROW_SPECS: &[HistoricalDiffRejectionRowSpec]
         row_name: "diff-scope-mismatch",
         perturbation_class: HistoricalDiffPerturbationClass::BasisSubstitution,
         failure_class: HistoricalDiffFailureClass::DiffScopeMismatch,
-    },
-    HistoricalDiffRejectionRowSpec {
-        row_name: "store-backed-historical-deferred-debt",
-        perturbation_class: HistoricalDiffPerturbationClass::DeferredHistorical,
-        failure_class: HistoricalDiffFailureClass::StoreBackedHistoricalDeferred,
     },
     HistoricalDiffRejectionRowSpec {
         row_name: "forbidden-basis-substitution",

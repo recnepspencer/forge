@@ -12,6 +12,7 @@ use crate::data::proof::{
     SnapshotBatchCommit, SortedSourceBatch, StructuralDelta, TouchedScopeSummary,
 };
 use crate::data::reuse::ReuseBasis;
+use crate::data::temporal::LoweredTemporalEligibility;
 use crate::data::trace::RuntimeArtifactFinalizeImage;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::{
@@ -132,6 +133,7 @@ pub(in crate::logic::planner) struct AppliedSerialTask {
     pub(in crate::logic::planner) node: NodeId,
     pub(in crate::logic::planner) verdict: EvaluationVerdict,
     pub(in crate::logic::planner) after_state: NodeState,
+    pub(in crate::logic::planner) temporal_eligibility: Option<LoweredTemporalEligibility>,
     pub(in crate::logic::planner) memoized_origin: MemoizedResultOrigin,
     pub(in crate::logic::planner) reuse_basis: ReuseBasis,
 }
@@ -141,6 +143,7 @@ impl AppliedSerialTask {
         graph: &SignalGraph,
         node: NodeId,
         verdict: EvaluationVerdict,
+        temporal_eligibility: Option<LoweredTemporalEligibility>,
     ) -> Result<Self, SignalError> {
         let after_state = graph.get_state(node)?;
         let after_trace = graph.node_runtime_artifact_operational_summary(node)?;
@@ -148,6 +151,7 @@ impl AppliedSerialTask {
             node,
             verdict,
             after_state,
+            temporal_eligibility,
             memoized_origin: after_trace
                 .as_ref()
                 .map(|trace| trace.memoized_origin)
@@ -566,6 +570,7 @@ impl PreparedSerialStageBatch {
                 graph,
                 input.node,
                 apply_result.report.verdict,
+                apply_result.temporal_eligibility,
             )?);
         }
 

@@ -24,6 +24,18 @@ pub mod core {
         CanonicalChangedRegions, ChangedRegion, NodeEvaluationResult, OutputChange, OutputIdentity,
         PartitionMatchMode, PartitionSubscription, PartitionToken,
     };
+    pub use crate::data::temporal::{
+        AfterCondition, AtOrAfterCondition, ClockAdvanceOrdinal, ClockAdvanceRequest,
+        ClockAuthority, ClockCheckpointId, ClockDomain, ClockTick, DebounceCondition,
+        DeferredTemporalEligibility, IntervalAnchor, IntervalCondition, IntervalPeriod,
+        IntervalWakeRegeneration, LoweredTemporalEligibility, MissedTickPolicy,
+        PreviousValueRevision, ReadyTemporalEligibility, RuntimeClockBasis, StaleAfterCondition,
+        TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
+        TemporalExecutionSummary,
+        TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
+        TemporalWakeOwner, TemporalWakeReschedule, TemporalWakeRetirementBatch, ThrottleCondition,
+        ValidatedClockAdvance,
+    };
     pub use crate::logic::invalidation::mark_dirty_batch;
 
     pub fn mark_dirty(
@@ -104,6 +116,13 @@ pub mod runtime {
     pub use crate::data::output::KeyedComputation as KeyedRecipe;
     pub use crate::data::proof::DirtyBatch as ChangeBatch;
     pub use crate::data::proof::SemanticBatchCommit as ChangeBatchCommit;
+    pub use crate::data::temporal::{
+        IntervalWakeRegeneration, PreviousValueRevision, ReadyTemporalWake, RetiredTemporalWake,
+        ScheduledTemporalWake, TemporalFrontierSnapshot, TemporalPreviousValueAccess,
+        TemporalPreviousValueReference, TemporalWakeId, TemporalWakeOwner, TemporalWakeReschedule,
+        TemporalWakeRetirementBatch, TemporalWakeRetirementReason, TemporalWakeSummary,
+        WakeOrdinal,
+    };
     pub use crate::data::tier::TierPolicy as RuntimeTierPolicy;
     pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger};
     pub use crate::diagnostics::policy::SignalRuntimePolicy as RuntimePolicy;
@@ -184,7 +203,7 @@ pub mod specialist {
         AppliedEffectReport, ConditionEvaluationContext, ConditionResolver,
         DefaultConditionResolver, DeferralReason, DiagnosticEnvelope, EvaluationExecutionMetadata,
         EvaluationOutput, EvaluationVerdict, IntoEvaluationOutput, OperationalEffect,
-        SuppressionReason,
+        SuppressionReason, TemporalConditionResolver,
     };
     pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
     #[cfg(feature = "parallel")]
@@ -374,11 +393,17 @@ pub use self::adapters::*;
 pub use self::core::*;
 #[cfg(not(test))]
 pub use self::core::{
-    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions, Aspect,
-    AspectMask, AspectVersion, CanonicalChangedRegions, ChangedRegion, DependencyEdge,
-    EvaluationCondition, NodeBuilder, NodeEvaluationResult, NodeId, NodeState, OutputChange,
-    OutputIdentity, PartitionMatchMode, PartitionSubscription, PartitionToken, SignalError,
-    SignalGraph, MAX_ASPECTS,
+    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions, AfterCondition,
+    Aspect, AspectMask, AspectVersion, AtOrAfterCondition, CanonicalChangedRegions, ChangedRegion,
+    ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain,
+    ClockTick, DebounceCondition, DeferredTemporalEligibility, DependencyEdge, EvaluationCondition,
+    IntervalAnchor, IntervalCondition, IntervalPeriod, LoweredTemporalEligibility,
+    MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId, NodeState, OutputChange,
+    OutputIdentity, PartitionMatchMode, PartitionSubscription, PartitionToken,
+    ReadyTemporalEligibility, RuntimeClockBasis, SignalError, SignalGraph, StaleAfterCondition,
+    TemporalCondition, TemporalDuration, TemporalEligibilityAuthority, TemporalExecutionSummary,
+    TemporalWakeOwner,
+    TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance, MAX_ASPECTS,
 };
 #[cfg(test)]
 pub use self::diagnostics::*;
@@ -388,6 +413,8 @@ pub use self::diagnostics::{diagnostics_for_graph, diagnostics_for_runtime};
 pub use self::diagnostics::{
     DiagnosticsLevel as DiagnosticsTier, LineageEvent as LineageRecord, ReplayView as ReplaySlice,
 };
+#[cfg(not(test))]
+pub use self::history::RuntimeBranchId as SignalBranchId;
 #[cfg(test)]
 pub use self::history::{
     RuntimeBranch as SignalBranchHandle, RuntimeBranchId as SignalBranchId,
@@ -398,9 +425,12 @@ pub use self::runtime::*;
 #[cfg(not(test))]
 pub use self::runtime::{
     mark_dirty_batch, BatchChange, BatchChangeResult, BatchChangeSession, ChangeBatch,
-    ChangeBatchCommit, History, RecipeInstance, RunSummary, RuntimeConfig, RuntimeMerge,
-    RuntimePolicy, SignalRuntime, SignalTransaction, TransactionOutcome, TransactionResult,
-    TransactionTiming,
+    ChangeBatchCommit, History, IntervalWakeRegeneration, PreviousValueRevision, ReadyTemporalWake,
+    RecipeInstance, RetiredTemporalWake, RunSummary, RuntimeConfig, RuntimeMerge, RuntimePolicy,
+    ScheduledTemporalWake, SignalRuntime, SignalTransaction, TemporalFrontierSnapshot,
+    TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalWakeId,
+    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeSummary, TransactionOutcome,
+    TransactionResult, TransactionTiming, WakeOrdinal,
 };
 #[cfg(test)]
 pub use self::runtime::{
@@ -419,7 +449,7 @@ pub use self::specialist::{
     ComparatorPolicy as VersionComparatorPolicy, ComparatorResolver as VersionComparatorResolver,
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationContext,
     EvaluationOutput, PlannedRun as PreparedEvaluation, ReadView as ExecutionReadView,
-    RunMode as EvaluationRequestMode,
+    RunMode as EvaluationRequestMode, TemporalConditionResolver,
 };
 #[cfg(not(test))]
 pub use self::specialist::{EvaluationContext, RunMode};

@@ -6,18 +6,23 @@ use crate::data::node::CheckpointNodeImage;
 use crate::data::trace::{ArtifactMergeAuthority, ArtifactWriteDelta, MergeAdoptability};
 
 use super::{
-    AdoptedNodeMaterialization, CausalityCarryPolicy, DependencyRemapRecord, MergeNodeMap,
-    RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
-    SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent,
+    super::branching::BranchState, AdoptedNodeMaterialization, CausalityCarryPolicy,
+    DependencyRemapRecord, MergeNodeMap, RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy,
+    SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore, TargetNodeIdentityIntent,
 };
 
-pub(crate) fn adopt_source_node_into_target(
-    target_graph: &mut SignalGraph,
+pub(crate) fn adopt_source_node_into_target<D, I, T>(
+    target_state: &mut BranchState<D, I, T>,
     source_graph: &SignalGraph,
     core: &SourceNodeAdoptionPlanCore,
     carry_policy: &SourceNodeAdoptionCarryPolicy,
     node_map: &MergeNodeMap,
-) -> Result<(AdoptedNodeMaterialization, Vec<DependencyRemapRecord>), SignalError> {
+) -> Result<(AdoptedNodeMaterialization, Vec<DependencyRemapRecord>), SignalError>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
     let source_image = source_graph.node_checkpoint_image(core.source_node)?;
     let target_node = match core.target_identity {
         TargetNodeIdentityIntent::ExistingMapping { mapped_target_node } => mapped_target_node,
@@ -33,17 +38,20 @@ pub(crate) fn adopt_source_node_into_target(
             entry_image.set_eval_config(core.entry_contract.eval_config.clone());
             if let Some(runtime) = entry_image.runtime_artifact_state_mut() {
                 runtime.set_lineage_artifact_id(Some(
-                    target_graph
+                    target_state
+                        .graph_mut()
                         .diagnostics_state_mut()
                         .allocate_lineage_artifact_id(),
                 ));
             }
-            target_graph.create_node_from_checkpoint_image(entry_image)
+            target_state
+                .graph_mut()
+                .create_node_from_checkpoint_image(entry_image)
         }
     };
 
     let remapped_edges = remap_dependency_edges(
-        target_graph,
+        target_state.graph(),
         core.source_node,
         core.dependency_topology.dependencies.as_slice(),
         node_map,
@@ -53,13 +61,17 @@ pub(crate) fn adopt_source_node_into_target(
         &core.dependency_snapshot_ref.snapshot,
         node_map,
     )?;
-    target_graph.set_dependencies(target_node, remapped_edges.clone())?;
-    target_graph.set_dep_snapshot(target_node, remapped_snapshot)?;
+    target_state
+        .graph_mut()
+        .set_dependencies(target_node, remapped_edges.clone())?;
+    target_state
+        .graph_mut()
+        .set_dep_snapshot(target_node, remapped_snapshot)?;
     if matches!(
         core.target_identity,
         TargetNodeIdentityIntent::ExistingMapping { .. }
     ) {
-        let mut entry_image = target_graph.node_checkpoint_image(target_node)?;
+        let mut entry_image = target_state.graph().node_checkpoint_image(target_node)?;
         apply_carry_policy(
             &mut entry_image,
             &source_image,
@@ -67,8 +79,7 @@ pub(crate) fn adopt_source_node_into_target(
             &core.authority,
         );
         entry_image.set_eval_config(core.entry_contract.eval_config.clone());
-        target_graph.replace_entry_from_checkpoint_image(target_node, entry_image)?;
-        target_graph.set_dependencies(target_node, remapped_edges)?;
+        target_state.replace_node_from_checkpoint_image(target_node, entry_image)?;
     }
 
     Ok((

@@ -7,6 +7,7 @@ use crate::data::output::{
 };
 use crate::data::proof::PartitionScopeSet;
 use crate::data::reuse::PersistentCorrespondenceEvidence;
+use crate::data::temporal::LoweredTemporalEligibility;
 use crate::data::trace::CausalityMetadata;
 
 use super::capture::PreparedDependencyCapture;
@@ -17,6 +18,8 @@ pub struct PreparedTraceData {
     pub labels: Vec<String>,
     #[serde(default)]
     pub causality: Option<CausalityMetadata>,
+    #[serde(default)]
+    pub temporal_eligibility: Option<LoweredTemporalEligibility>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -109,6 +112,10 @@ impl PreparedEvaluation {
         }
     }
 
+    pub fn deferred_by_time(temporal_eligibility: LoweredTemporalEligibility) -> Self {
+        Self::deferred_by_condition().with_temporal_eligibility(temporal_eligibility)
+    }
+
     pub fn reverted_clean_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),
@@ -128,6 +135,14 @@ impl PreparedEvaluation {
 
     pub fn with_origin(mut self, origin: PreparedEvaluationOrigin) -> Self {
         self.origin = origin;
+        self
+    }
+
+    pub fn with_temporal_eligibility(
+        mut self,
+        temporal_eligibility: LoweredTemporalEligibility,
+    ) -> Self {
+        self.trace_data.temporal_eligibility = Some(temporal_eligibility);
         self
     }
 

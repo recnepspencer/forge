@@ -204,6 +204,7 @@ where
                 before_trace.as_ref(),
                 after_trace.as_ref(),
                 apply_result.report.verdict.clone(),
+                apply_result.temporal_eligibility.clone(),
                 after_warm
                     .as_ref()
                     .map(|trace| trace.memoized_origin)
@@ -263,6 +264,7 @@ fn task_record_classification_uses_reuse_basis_as_authoritative_truth() {
         crate::logic::evaluation::EvaluationVerdict::Suppressed {
             reason: crate::logic::evaluation::SuppressionReason::ComparatorMatch,
         },
+        None,
         crate::data::output::MemoizedResultOrigin::DirectCompute,
         ReuseBasis::strategy(
             crate::data::reuse::ReuseStrategy::MemoizedArtifactReuse,
@@ -422,6 +424,7 @@ where
                 before_trace.as_ref(),
                 after_trace.as_ref(),
                 apply_result.report.verdict.clone(),
+                apply_result.temporal_eligibility.clone(),
                 after_warm
                     .as_ref()
                     .map(|trace| trace.memoized_origin)

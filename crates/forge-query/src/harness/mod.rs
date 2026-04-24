@@ -33,6 +33,8 @@ pub(crate) mod milestone_nine_certification;
 #[cfg(test)]
 pub(crate) mod milestone_nine_one_certification;
 #[cfg(test)]
+pub(crate) mod milestone_nine_three_certification;
+#[cfg(test)]
 pub(crate) mod milestone_nine_two_certification;
 #[cfg(test)]
 mod parity;

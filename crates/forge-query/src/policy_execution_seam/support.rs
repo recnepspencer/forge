@@ -12,7 +12,7 @@ pub enum PolicyExecutionSeamSurface {
     LiveAdmission,
     DeliveryShape,
     OptimizerInput,
-    StoreBackedExecution,
+    StoreBackedRetainedHistoricalExecution,
     DurablePolicyCursor,
     DurablePolicyArtifactReload,
 }
@@ -27,7 +27,9 @@ impl PolicyExecutionSeamSurface {
             Self::LiveAdmission => "policy_aware_live_admission",
             Self::DeliveryShape => "policy_aware_delivery_shape",
             Self::OptimizerInput => "policy_aware_optimizer_input",
-            Self::StoreBackedExecution => "policy_aware_store_backed_execution",
+            Self::StoreBackedRetainedHistoricalExecution => {
+                "policy_aware_store_backed_retained_historical_execution"
+            }
             Self::DurablePolicyCursor => "durable_policy_cursor",
             Self::DurablePolicyArtifactReload => "durable_policy_artifact_reload",
         }
@@ -37,6 +39,7 @@ impl PolicyExecutionSeamSurface {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum PolicyExecutionSeamSupportStatus {
     Verified,
+    LimitedAdmission,
     Deferred,
     BlockedOnForgeStore,
 }
@@ -45,6 +48,7 @@ impl PolicyExecutionSeamSupportStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Verified => "verified",
+            Self::LimitedAdmission => "limited_admission",
             Self::Deferred => "deferred",
             Self::BlockedOnForgeStore => "blocked_on_forge_store",
         }
@@ -87,6 +91,7 @@ pub struct PolicyExecutionSeamHandoffReport {
     milestone_ten_store_backed_handoff: Vec<&'static str>,
     milestone_eleven_durable_handoff: Vec<&'static str>,
     runtime_backed_verified_surface_count: usize,
+    limited_admission_surface_count: usize,
     blocked_or_deferred_surface_count: usize,
     handoff_digest: String,
 }
@@ -94,9 +99,9 @@ pub struct PolicyExecutionSeamHandoffReport {
 impl PolicyExecutionSeamHandoffReport {
     pub(crate) fn new(profile: &PolicyExecutionSeamSupportProfile) -> Self {
         let milestone_ten_store_backed_handoff = vec![
-            "store-backed policy-aware execution",
-            "store-backed historical restore",
-            "runtime/store parity over policy-aware query plans",
+            "store-backed historical restore breadth expansion",
+            "store-backed diff execution parity",
+            "runtime/store parity over broader policy-aware query plans",
         ];
         let milestone_eleven_durable_handoff = vec![
             "durable tenant/query artifacts",
@@ -110,10 +115,21 @@ impl PolicyExecutionSeamHandoffReport {
             .iter()
             .filter(|(_, status)| *status == PolicyExecutionSeamSupportStatus::Verified)
             .count();
+        let limited_admission_surface_count = profile
+            .surfaces()
+            .iter()
+            .filter(|(_, status)| *status == PolicyExecutionSeamSupportStatus::LimitedAdmission)
+            .count();
         let blocked_or_deferred_surface_count = profile
             .surfaces()
             .iter()
-            .filter(|(_, status)| *status != PolicyExecutionSeamSupportStatus::Verified)
+            .filter(|(_, status)| {
+                matches!(
+                    status,
+                    PolicyExecutionSeamSupportStatus::Deferred
+                        | PolicyExecutionSeamSupportStatus::BlockedOnForgeStore
+                )
+            })
             .count();
         let mut parts = Vec::new();
         parts.extend(
@@ -130,6 +146,9 @@ impl PolicyExecutionSeamHandoffReport {
             "runtime_verified:{runtime_backed_verified_surface_count}"
         ));
         parts.push(format!(
+            "limited_admission:{limited_admission_surface_count}"
+        ));
+        parts.push(format!(
             "blocked_or_deferred:{blocked_or_deferred_surface_count}"
         ));
         parts.push(format!("profile:{}", profile.profile_digest()));
@@ -138,6 +157,7 @@ impl PolicyExecutionSeamHandoffReport {
             milestone_ten_store_backed_handoff,
             milestone_eleven_durable_handoff,
             runtime_backed_verified_surface_count,
+            limited_admission_surface_count,
             blocked_or_deferred_surface_count,
             handoff_digest,
         }
@@ -153,6 +173,10 @@ impl PolicyExecutionSeamHandoffReport {
 
     pub fn runtime_backed_verified_surface_count(&self) -> usize {
         self.runtime_backed_verified_surface_count
+    }
+
+    pub fn limited_admission_surface_count(&self) -> usize {
+        self.limited_admission_surface_count
     }
 
     pub fn blocked_or_deferred_surface_count(&self) -> usize {
@@ -195,8 +219,8 @@ pub fn runtime_backed_policy_execution_seam_support_profile() -> PolicyExecution
             PolicyExecutionSeamSupportStatus::Verified,
         ),
         (
-            PolicyExecutionSeamSurface::StoreBackedExecution,
-            PolicyExecutionSeamSupportStatus::BlockedOnForgeStore,
+            PolicyExecutionSeamSurface::StoreBackedRetainedHistoricalExecution,
+            PolicyExecutionSeamSupportStatus::LimitedAdmission,
         ),
         (
             PolicyExecutionSeamSurface::DurablePolicyCursor,

@@ -1,11 +1,12 @@
 use super::{
-    classification_error, SubscriptionSupportActionOrigin, SubscriptionSupportArtifactId,
-    SubscriptionSupportOperationalBasis, SubscriptionSupportOperationalVerdict,
+    classification_error, publication_error, SubscriptionSupportActionOrigin,
+    SubscriptionSupportArtifactId, SubscriptionSupportOperationalBasis,
+    SubscriptionSupportOperationalVerdict,
 };
 use crate::failure::StoreError;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SupportActionId(String);
 
 impl SupportActionId {
@@ -24,11 +25,18 @@ impl SupportActionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SupportActionRecoveryDisposition {
     NotInterrupted,
     InterruptedBeforePublication,
     PublishedConsequenceRecovered,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SupportActionPublicationState {
+    PendingPublication,
+    InterruptedBeforePublication,
+    PublishedConsequence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -115,6 +123,34 @@ pub struct ExecutedSupportAction {
 }
 
 impl ExecutedSupportAction {
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
+    pub fn basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.basis
+    }
+
+    pub fn planned_verdict(&self) -> SubscriptionSupportOperationalVerdict {
+        self.planned_verdict
+    }
+
+    pub(crate) fn publication_envelope_header_bytes(&self) -> Result<u64, StoreError> {
+        let envelope = SupportConsequenceEnvelope {
+            action_id: self.action_id.clone(),
+            artifact_id: self.basis.artifact_id().clone(),
+            verdict: self.planned_verdict,
+            action_origin: self.basis.action_origin(),
+            recovery_disposition: self.disposition,
+        };
+        let encoded = serde_json::to_vec(&envelope).map_err(|err| {
+            publication_error(format!(
+                "subscription-support action envelope must serialize before publication: {err}"
+            ))
+        })?;
+        Ok(encoded.len() as u64)
+    }
+
     pub(crate) fn publish(self) -> PublishedSupportConsequence {
         let envelope = SupportConsequenceEnvelope {
             action_id: self.action_id.clone(),
@@ -132,7 +168,7 @@ impl ExecutedSupportAction {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SupportActionPublicationWitness {
     action_id: SupportActionId,
 }
@@ -148,7 +184,7 @@ impl SupportActionPublicationWitness {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SupportConsequenceEnvelope {
     action_id: SupportActionId,
     artifact_id: SubscriptionSupportArtifactId,
@@ -172,6 +208,10 @@ impl SupportConsequenceEnvelope {
 
     pub fn recovery_disposition(&self) -> SupportActionRecoveryDisposition {
         self.recovery_disposition
+    }
+
+    pub fn artifact_id(&self) -> &SubscriptionSupportArtifactId {
+        &self.artifact_id
     }
 }
 
@@ -215,5 +255,235 @@ impl CompletedSupportProgramAction {
 
     pub fn publication_witness(&self) -> &SupportActionPublicationWitness {
         &self.witness
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SupportActionDurableRecord {
+    action_id: SupportActionId,
+    basis: SubscriptionSupportOperationalBasis,
+    artifact_id: SubscriptionSupportArtifactId,
+    verdict: SubscriptionSupportOperationalVerdict,
+    action_origin: SubscriptionSupportActionOrigin,
+    publication_state: SupportActionPublicationState,
+    published_envelope: Option<SupportConsequenceEnvelope>,
+}
+
+impl SupportActionDurableRecord {
+    pub(crate) fn from_executed(action: &ExecutedSupportAction) -> Self {
+        Self {
+            action_id: action.action_id().clone(),
+            basis: action.basis().clone(),
+            artifact_id: action.basis().artifact_id().clone(),
+            verdict: action.planned_verdict(),
+            action_origin: action.basis().action_origin(),
+            publication_state: SupportActionPublicationState::PendingPublication,
+            published_envelope: None,
+        }
+    }
+
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
+    pub fn basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.basis
+    }
+
+    pub fn artifact_id(&self) -> &SubscriptionSupportArtifactId {
+        &self.artifact_id
+    }
+
+    pub fn verdict(&self) -> SubscriptionSupportOperationalVerdict {
+        self.verdict
+    }
+
+    pub fn action_origin(&self) -> SubscriptionSupportActionOrigin {
+        self.action_origin
+    }
+
+    pub fn publication_state(&self) -> SupportActionPublicationState {
+        self.publication_state
+    }
+
+    pub fn published_envelope(&self) -> Option<&SupportConsequenceEnvelope> {
+        self.published_envelope.as_ref()
+    }
+
+    pub(crate) fn storage_key(&self) -> String {
+        self.action_id.as_str().to_string()
+    }
+
+    pub(crate) fn mark_interrupted_before_publication(&mut self) {
+        self.publication_state = SupportActionPublicationState::InterruptedBeforePublication;
+        self.published_envelope = None;
+    }
+
+    pub(crate) fn mark_published_consequence(
+        &mut self,
+        envelope: SupportConsequenceEnvelope,
+    ) -> Result<(), StoreError> {
+        if envelope.action_id() != &self.action_id
+            || envelope.artifact_id() != &self.artifact_id
+            || envelope.verdict() != self.verdict
+            || envelope.action_origin() != self.action_origin
+        {
+            return Err(publication_error(
+                "subscription-support published consequence envelope drifted from its durable action record",
+            ));
+        }
+        self.publication_state = SupportActionPublicationState::PublishedConsequence;
+        self.published_envelope = Some(envelope);
+        Ok(())
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), StoreError> {
+        if self.action_id.as_str().trim().is_empty() {
+            return Err(publication_error(
+                "subscription-support durable action records require non-empty action ids",
+            ));
+        }
+        if self.basis.artifact_id() != &self.artifact_id {
+            return Err(publication_error(
+                "subscription-support durable action basis drifted from the durable action artifact id",
+            ));
+        }
+        if self.basis.action_origin() != self.action_origin {
+            return Err(publication_error(
+                "subscription-support durable action basis drifted from the durable action origin",
+            ));
+        }
+        if self.artifact_id.as_str().trim().is_empty() {
+            return Err(publication_error(
+                "subscription-support durable action records require non-empty artifact ids",
+            ));
+        }
+        if self.action_origin == SubscriptionSupportActionOrigin::TierRecall
+            && self.verdict == SubscriptionSupportOperationalVerdict::RebuildRequired
+        {
+            return Err(publication_error(
+                "subscription-support durable action records may not claim rebuild-required tier recall posture",
+            ));
+        }
+        match self.publication_state {
+            SupportActionPublicationState::PendingPublication
+            | SupportActionPublicationState::InterruptedBeforePublication => {
+                if self.published_envelope.is_some() {
+                    return Err(publication_error(
+                        "subscription-support interrupted or pending action records must not carry a published envelope",
+                    ));
+                }
+            }
+            SupportActionPublicationState::PublishedConsequence => {
+                let Some(envelope) = &self.published_envelope else {
+                    return Err(publication_error(
+                        "subscription-support published action records require a durable envelope",
+                    ));
+                };
+                if envelope.action_id() != &self.action_id
+                    || envelope.artifact_id() != &self.artifact_id
+                    || envelope.verdict() != self.verdict
+                    || envelope.action_origin() != self.action_origin
+                {
+                    return Err(publication_error(
+                        "subscription-support durable action record envelope drifted from its indexed action identity",
+                    ));
+                }
+                if envelope.recovery_disposition()
+                    != SupportActionRecoveryDisposition::NotInterrupted
+                {
+                    return Err(publication_error(
+                        "subscription-support durable published envelopes may not persist recovered or interrupted disposition",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportActionPublicationRecoveryReport {
+    action_id: SupportActionId,
+    translation_basis: SubscriptionSupportOperationalBasis,
+    artifact_id: SubscriptionSupportArtifactId,
+    verdict: SubscriptionSupportOperationalVerdict,
+    action_origin: SubscriptionSupportActionOrigin,
+    recovery_disposition: SupportActionRecoveryDisposition,
+    completed_action: Option<CompletedSupportProgramAction>,
+}
+
+impl SubscriptionSupportActionPublicationRecoveryReport {
+    pub(crate) fn from_durable_record(
+        record: &SupportActionDurableRecord,
+    ) -> Result<Self, StoreError> {
+        let (recovery_disposition, completed_action) = match record.publication_state() {
+            SupportActionPublicationState::PendingPublication
+            | SupportActionPublicationState::InterruptedBeforePublication => (
+                SupportActionRecoveryDisposition::InterruptedBeforePublication,
+                None,
+            ),
+            SupportActionPublicationState::PublishedConsequence => {
+                let envelope = record
+                    .published_envelope()
+                    .cloned()
+                    .ok_or_else(|| {
+                        publication_error(
+                            "subscription-support published recovery requires a durable consequence envelope",
+                        )
+                    })?;
+                let recovered_envelope = SupportConsequenceEnvelope {
+                    recovery_disposition:
+                        SupportActionRecoveryDisposition::PublishedConsequenceRecovered,
+                    ..envelope
+                };
+                (
+                    SupportActionRecoveryDisposition::PublishedConsequenceRecovered,
+                    Some(CompletedSupportProgramAction::new(
+                        recovered_envelope.clone(),
+                        SupportActionPublicationWitness::new(
+                            recovered_envelope.action_id().clone(),
+                        ),
+                    )),
+                )
+            }
+        };
+        Ok(Self {
+            action_id: record.action_id().clone(),
+            translation_basis: record.basis().clone(),
+            artifact_id: record.artifact_id().clone(),
+            verdict: record.verdict(),
+            action_origin: record.action_origin(),
+            recovery_disposition,
+            completed_action,
+        })
+    }
+
+    pub fn action_id(&self) -> &SupportActionId {
+        &self.action_id
+    }
+
+    pub fn translation_basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.translation_basis
+    }
+
+    pub fn artifact_id(&self) -> &SubscriptionSupportArtifactId {
+        &self.artifact_id
+    }
+
+    pub fn verdict(&self) -> SubscriptionSupportOperationalVerdict {
+        self.verdict
+    }
+
+    pub fn action_origin(&self) -> SubscriptionSupportActionOrigin {
+        self.action_origin
+    }
+
+    pub fn recovery_disposition(&self) -> SupportActionRecoveryDisposition {
+        self.recovery_disposition
+    }
+
+    pub fn completed_action(&self) -> Option<&CompletedSupportProgramAction> {
+        self.completed_action.as_ref()
     }
 }

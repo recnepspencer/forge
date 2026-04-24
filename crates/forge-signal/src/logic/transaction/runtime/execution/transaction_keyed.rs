@@ -10,6 +10,7 @@ use crate::data::reuse::PersistentCorrespondenceEvidence;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::{EvaluationRequestMode, IntoEvaluationOutput};
+use crate::logic::planner::TemporalLoweringContext;
 use crate::logic::prepared::{
     PreparedEvaluationOrigin, PreparedKeyedContext, PreparedMemoDecision,
 };
@@ -176,6 +177,7 @@ where
                 let report = match execute_targets_with_prepared_runtime_config_detailed(
                     self.graph,
                     self.config,
+                    TemporalLoweringContext::graph_only(),
                     &[node],
                     request_mode,
                     &|_current, _view| {
@@ -205,6 +207,7 @@ where
                 };
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
+                self.scratch.temporal.summary.absorb(report.temporal_summary);
                 self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
                 return self.apply_result(Ok(()));
@@ -217,6 +220,7 @@ where
         let result = match execute_targets_with_prepared_runtime_config_detailed(
             self.graph,
             self.config,
+            TemporalLoweringContext::graph_only(),
             &[node],
             request_mode,
             &|current, view| {
@@ -252,6 +256,7 @@ where
             Ok(report) => {
                 self.execution_state
                     .record_report(&report, execution_start.elapsed().as_nanos());
+                self.scratch.temporal.summary.absorb(report.temporal_summary);
                 self.lower_observation_classifications_from_report(&report)?;
                 absorb_execution_report_telemetry(self.telemetry, &report);
                 self.apply_result(Ok(()))

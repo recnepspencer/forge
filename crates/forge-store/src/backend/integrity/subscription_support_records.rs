@@ -27,6 +27,34 @@ impl StoreState {
         }
         if self
             .subscription_support_counter_snapshot
+            .support_action_envelope_publications()
+            < self
+                .subscription_support_action_records
+                .values()
+                .filter(|record| {
+                    matches!(
+                        record.publication_state(),
+                        crate::SupportActionPublicationState::PublishedConsequence
+                    )
+                })
+                .count() as u64
+        {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "subscription-support action publication records exceed the published envelope counter",
+            ));
+        }
+        for (action_id, record) in &self.subscription_support_action_records {
+            if record.action_id().as_str() != action_id {
+                return Err(StoreError::new(
+                    StoreErrorKind::SubscriptionSupportPublicationViolation,
+                    "subscription-support action record key drifted from its durable action id",
+                ));
+            }
+            record.validate()?;
+        }
+        if self
+            .subscription_support_counter_snapshot
             .support_maintenance_descriptor_count()
             < self
                 .subscription_support_maintenance_descriptor_records
@@ -57,6 +85,25 @@ impl StoreState {
                 &declaration.declaration,
                 &declaration.work_descriptor,
             )?;
+        }
+        if self
+            .subscription_support_counter_snapshot
+            .support_maintenance_delay_count()
+            < self.subscription_support_maintenance_debt_records.len() as u64
+        {
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "subscription-support maintenance debt records exceed the delayed-maintenance counter",
+            ));
+        }
+        for (record_key, record) in &self.subscription_support_maintenance_debt_records {
+            if record.record_key() != record_key {
+                return Err(StoreError::new(
+                    StoreErrorKind::SubscriptionSupportPublicationViolation,
+                    "subscription-support maintenance debt record key drifted from its durable map key",
+                ));
+            }
+            record.validate()?;
         }
         Ok(())
     }

@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::proof::DedupedNodeBatch;
+use crate::data::temporal::TemporalExecutionSummary;
 use crate::logic::planner::ExecutionReport;
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
@@ -22,6 +23,7 @@ pub(super) fn empty_execution_report() -> ExecutionReport {
         task_count: 0,
         maybe_stale_validation_tasks: 0,
         latest_execution_record_id: None,
+        temporal_summary: TemporalExecutionSummary::default(),
         reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,

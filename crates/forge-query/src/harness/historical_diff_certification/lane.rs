@@ -34,6 +34,7 @@ pub enum HistoricalDiffFailureClass {
 pub struct HistoricalDiffLane {
     pub query_digest: String,
     pub basis_digest: String,
+    pub basis_authority_family: String,
     pub comparison_basis_digest: String,
     pub result_digest: String,
     pub result_shape_digest: String,
@@ -59,6 +60,7 @@ impl HistoricalDiffLane {
         Self {
             query_digest: metadata.query_digest().to_string(),
             basis_digest: metadata.basis_digest().to_string(),
+            basis_authority_family: metadata.basis_authority_family().as_str().to_string(),
             comparison_basis_digest: "none".to_string(),
             result_digest: metadata.result_digest().to_string(),
             result_shape_digest: execution.result_shape_digest().to_string(),
@@ -117,6 +119,12 @@ impl HistoricalDiffLane {
         Self {
             query_digest: metadata.query_digest().to_string(),
             basis_digest: metadata.left_basis_digest().to_string(),
+            basis_authority_family: bundle
+                .context()
+                .left()
+                .basis_authority_family()
+                .as_str()
+                .to_string(),
             comparison_basis_digest: metadata.right_basis_digest().to_string(),
             result_digest: metadata.comparison_result_digest().to_string(),
             result_shape_digest: metadata.result_shape_digest().to_string(),

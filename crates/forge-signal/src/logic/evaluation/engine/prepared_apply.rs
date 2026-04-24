@@ -14,6 +14,7 @@ use crate::data::reuse::ReuseBoundaryAuthority;
 use crate::data::reuse::ReuseBoundaryEvidence;
 #[cfg(feature = "parallel")]
 use crate::data::reuse::ReuseBoundaryFailure;
+use crate::data::temporal::LoweredTemporalEligibility;
 use crate::logic::evaluation::EffectDependencyInputs;
 use crate::logic::evaluation::{
     DeferralReason, PreparedApplyResult, PreviousArtifactWarmSnapshot, SuppressionReason,
@@ -64,6 +65,7 @@ impl From<SignalError> for ApplyCommitBuildError {
 struct PassivePreparedEffect {
     result: NodeEvaluationResult,
     verdict: crate::logic::evaluation::EvaluationVerdict,
+    temporal_eligibility: Option<LoweredTemporalEligibility>,
     reuse_boundary_authority: ReuseBoundaryAuthority,
     reuse_boundary_detail: Option<crate::data::reuse::ReuseBoundaryContext>,
     keyed: Option<crate::logic::prepared::PreparedKeyedContext>,
@@ -90,18 +92,26 @@ where
         trace_data,
         ..
     } = prepared;
+    let temporal_eligibility = trace_data.temporal_eligibility;
     let verdict = match outcome {
         PreparedEvaluationOutcome::ValidatedClean => {
+            ensure_temporal_outcome_alignment(outcome, temporal_eligibility.as_ref())?;
             crate::logic::evaluation::EvaluationVerdict::Suppressed {
                 reason: SuppressionReason::ValidatedClean,
             }
         }
         PreparedEvaluationOutcome::DeferredByCondition => {
+            ensure_temporal_outcome_alignment(outcome, temporal_eligibility.as_ref())?;
             crate::logic::evaluation::EvaluationVerdict::Deferred {
-                reason: DeferralReason::ConditionNotMet,
+                reason: if temporal_eligibility.is_some() {
+                    DeferralReason::TemporalConditionNotMet
+                } else {
+                    DeferralReason::ConditionNotMet
+                },
             }
         }
         PreparedEvaluationOutcome::RevertedCleanByCondition => {
+            ensure_temporal_outcome_alignment(outcome, temporal_eligibility.as_ref())?;
             crate::logic::evaluation::EvaluationVerdict::Suppressed {
                 reason: SuppressionReason::ConditionRevertedClean,
             }
@@ -117,6 +127,7 @@ where
     Ok(PassivePreparedEffect {
         result,
         verdict,
+        temporal_eligibility,
         reuse_boundary_authority: resolve_reuse_boundary_authority(
             graph,
             node,
@@ -189,11 +200,17 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
             None,
         )?;
         apply_result.dependency_updates = dependency_updates;
+        apply_result.report.temporal_eligibility = passive.temporal_eligibility.clone();
+        apply_result.temporal_eligibility = passive.temporal_eligibility;
         return Ok(apply_result);
     }
 
     match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
+            ensure_temporal_outcome_alignment(
+                prepared.outcome,
+                prepared.trace_data.temporal_eligibility.as_ref(),
+            )?;
             let mut result = prepared.result;
             result.labels.extend(prepared.trace_data.labels);
             let reuse_decision = crate::logic::evaluation::resolve_prepared_reuse_decision(
@@ -289,6 +306,9 @@ pub(crate) fn apply_prepared_evaluation_after_dependencies_with_policy(
                 previous_artifact_warm,
             )?;
             apply_result.dependency_updates = dependency_updates;
+            apply_result.report.temporal_eligibility =
+                prepared.trace_data.temporal_eligibility.clone();
+            apply_result.temporal_eligibility = prepared.trace_data.temporal_eligibility;
             Ok(apply_result)
         }
         PreparedEvaluationOutcome::ValidatedClean
@@ -342,6 +362,10 @@ pub(crate) fn build_prepared_apply_commit_packet(
 
     let packet = match prepared.outcome {
         PreparedEvaluationOutcome::Evaluate => {
+            ensure_temporal_outcome_alignment(
+                prepared.outcome,
+                prepared.trace_data.temporal_eligibility.as_ref(),
+            )?;
             let mut result = prepared.result;
             result.labels.extend(prepared.trace_data.labels);
             let reuse_decision = crate::logic::evaluation::resolve_prepared_reuse_decision(
@@ -451,6 +475,33 @@ pub(crate) fn build_prepared_apply_commit_packet(
     };
 
     Ok(packet)
+}
+
+fn ensure_temporal_outcome_alignment(
+    outcome: PreparedEvaluationOutcome,
+    temporal_eligibility: Option<&LoweredTemporalEligibility>,
+) -> Result<(), SignalError> {
+    match (outcome, temporal_eligibility) {
+        (PreparedEvaluationOutcome::Evaluate, Some(LoweredTemporalEligibility::Deferred(_))) => {
+            Err(SignalError::internal(
+                "evaluate outcome cannot carry deferred temporal eligibility proof",
+            ))
+        }
+        (
+            PreparedEvaluationOutcome::DeferredByCondition,
+            Some(LoweredTemporalEligibility::Ready(_)),
+        ) => Err(SignalError::internal(
+            "deferred outcome cannot carry ready temporal eligibility proof",
+        )),
+        (
+            PreparedEvaluationOutcome::ValidatedClean
+            | PreparedEvaluationOutcome::RevertedCleanByCondition,
+            Some(_),
+        ) => Err(SignalError::internal(
+            "passive non-temporal suppression cannot carry temporal eligibility proof",
+        )),
+        _ => Ok(()),
+    }
 }
 
 fn node_output_change_is_meaningful(

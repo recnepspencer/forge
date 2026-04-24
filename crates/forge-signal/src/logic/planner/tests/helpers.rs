@@ -5,6 +5,10 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
+use crate::data::temporal::{
+    DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
+    TemporalCondition, TemporalExecutionSummary,
+};
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::prepared::{ExecutionSnapshot, PreparedDependencyCapture, PreparedEvaluation};
 
@@ -29,6 +33,7 @@ pub(super) fn empty_execution_report(plan: &EvaluationPlan) -> ExecutionReport {
             })
             .count() as u32,
         latest_execution_record_id: None,
+        temporal_summary: TemporalExecutionSummary::default(),
         reuse_origin_counts: BTreeMap::new(),
         tasks_executed: 0,
         tasks_pruned: 0,
@@ -63,6 +68,7 @@ pub(super) struct TestPrecomputeTelemetry {
     condition_skip_count: u64,
     ondemand_deferred_count: u64,
     debounce_deferred_count: u64,
+    temporal_eligibility_lowering_count: u64,
     partition_scope_revert_clean_count: u64,
 }
 
@@ -73,6 +79,7 @@ impl TestPrecomputeTelemetry {
         self.condition_skip_count += other.condition_skip_count;
         self.ondemand_deferred_count += other.ondemand_deferred_count;
         self.debounce_deferred_count += other.debounce_deferred_count;
+        self.temporal_eligibility_lowering_count += other.temporal_eligibility_lowering_count;
         self.partition_scope_revert_clean_count += other.partition_scope_revert_clean_count;
     }
 }
@@ -111,9 +118,16 @@ where
 
     telemetry.nodes_evaluated += 1;
     match preview_condition_action(graph, node, request_mode, condition_resolver)? {
-        TestConditionAction::Evaluate => {
+        TestConditionAction::Evaluate { temporal_ready } => {
+            if temporal_ready.is_some() {
+                telemetry.temporal_eligibility_lowering_count += 1;
+            }
             let view = snapshot.read_view(node);
-            let prepared = precompute(node, &view)?;
+            let mut prepared = precompute(node, &view)?;
+            if let Some(temporal_ready) = temporal_ready {
+                prepared = prepared
+                    .with_temporal_eligibility(LoweredTemporalEligibility::Ready(temporal_ready));
+            }
             Ok(TestPreparedTask {
                 prepared,
                 telemetry,
@@ -129,14 +143,23 @@ where
         }
         TestConditionAction::Defer {
             on_demand,
-            debounce,
+            temporal,
+            temporal_deferred,
         } => {
             telemetry.condition_skip_count += 1;
             telemetry.ondemand_deferred_count += u64::from(on_demand);
-            telemetry.debounce_deferred_count += u64::from(debounce);
+            telemetry.debounce_deferred_count += u64::from(temporal);
+            if temporal_deferred.is_some() {
+                telemetry.temporal_eligibility_lowering_count += 1;
+            }
+            let mut prepared = PreparedEvaluation::deferred_by_condition();
+            if let Some(temporal_deferred) = temporal_deferred {
+                prepared = prepared.with_temporal_eligibility(
+                    LoweredTemporalEligibility::Deferred(temporal_deferred),
+                );
+            }
             Ok(TestPreparedTask {
-                prepared: PreparedEvaluation::deferred_by_condition()
-                    .with_dependencies(dependencies),
+                prepared: prepared.with_dependencies(dependencies),
                 telemetry,
             })
         }
@@ -173,10 +196,18 @@ where
 
     telemetry.nodes_evaluated += 1;
     match preview_condition_action(graph, node, request_mode, condition_resolver)? {
-        TestConditionAction::Evaluate => {
+        TestConditionAction::Evaluate { temporal_ready } => {
+            if temporal_ready.is_some() {
+                telemetry.temporal_eligibility_lowering_count += 1;
+            }
             let result = compute(node, graph)?.into_evaluation_result();
+            let mut prepared = PreparedEvaluation::from_result(result);
+            if let Some(temporal_ready) = temporal_ready {
+                prepared = prepared
+                    .with_temporal_eligibility(LoweredTemporalEligibility::Ready(temporal_ready));
+            }
             Ok(TestPreparedTask {
-                prepared: PreparedEvaluation::from_result(result).with_dependencies(dependencies),
+                prepared: prepared.with_dependencies(dependencies),
                 telemetry,
             })
         }
@@ -190,14 +221,23 @@ where
         }
         TestConditionAction::Defer {
             on_demand,
-            debounce,
+            temporal,
+            temporal_deferred,
         } => {
             telemetry.condition_skip_count += 1;
             telemetry.ondemand_deferred_count += u64::from(on_demand);
-            telemetry.debounce_deferred_count += u64::from(debounce);
+            telemetry.debounce_deferred_count += u64::from(temporal);
+            if temporal_deferred.is_some() {
+                telemetry.temporal_eligibility_lowering_count += 1;
+            }
+            let mut prepared = PreparedEvaluation::deferred_by_condition();
+            if let Some(temporal_deferred) = temporal_deferred {
+                prepared = prepared.with_temporal_eligibility(
+                    LoweredTemporalEligibility::Deferred(temporal_deferred),
+                );
+            }
             Ok(TestPreparedTask {
-                prepared: PreparedEvaluation::deferred_by_condition()
-                    .with_dependencies(dependencies),
+                prepared: prepared.with_dependencies(dependencies),
                 telemetry,
             })
         }
@@ -215,15 +255,25 @@ pub(super) fn apply_test_precompute_telemetry(
     graph.telemetry_mut().evaluation.debounce_deferred_count += telemetry.debounce_deferred_count;
     graph
         .telemetry_mut()
+        .temporal
+        .temporal_eligibility_lowering_count += telemetry.temporal_eligibility_lowering_count;
+    graph
+        .telemetry_mut()
         .invalidation
         .partition_scope_revert_clean_count += telemetry.partition_scope_revert_clean_count;
 }
 
 #[cfg(test)]
 enum TestConditionAction {
-    Evaluate,
+    Evaluate {
+        temporal_ready: Option<ReadyTemporalEligibility>,
+    },
     RevertClean,
-    Defer { on_demand: bool, debounce: bool },
+    Defer {
+        on_demand: bool,
+        temporal: bool,
+        temporal_deferred: Option<DeferredTemporalEligibility>,
+    },
 }
 
 #[cfg(test)]
@@ -246,51 +296,70 @@ fn preview_condition_action(
     };
 
     match &entry.get_eval_config().condition {
-        EvaluationCondition::Always => Ok(TestConditionAction::Evaluate),
+        EvaluationCondition::Always => Ok(TestConditionAction::Evaluate {
+            temporal_ready: None,
+        }),
         EvaluationCondition::AspectFilter(mask) => {
             if dirty_aspects.is_empty() || dirty_aspects.intersects(*mask) {
-                Ok(TestConditionAction::Evaluate)
+                Ok(TestConditionAction::Evaluate {
+                    temporal_ready: None,
+                })
             } else {
                 Ok(TestConditionAction::Defer {
                     on_demand: false,
-                    debounce: false,
+                    temporal: false,
+                    temporal_deferred: None,
                 })
             }
         }
         EvaluationCondition::OnDemand => match request_mode {
             EvaluationRequestMode::Default => Ok(TestConditionAction::Defer {
                 on_demand: true,
-                debounce: false,
+                temporal: false,
+                temporal_deferred: None,
             }),
-            EvaluationRequestMode::ForceOnDemand => Ok(TestConditionAction::Evaluate),
+            EvaluationRequestMode::ForceOnDemand => Ok(TestConditionAction::Evaluate {
+                temporal_ready: None,
+            }),
         },
         EvaluationCondition::DeltaThreshold(threshold) => {
             if !has_dependency_snapshot
                 || dirty_aspects.is_empty()
                 || (max_dependency_delta as f64) > *threshold
             {
-                Ok(TestConditionAction::Evaluate)
+                Ok(TestConditionAction::Evaluate {
+                    temporal_ready: None,
+                })
             } else {
                 Ok(TestConditionAction::RevertClean)
             }
         }
-        EvaluationCondition::Debounce(quiet_period_ms) => {
-            if resolver.debounce_ready(*quiet_period_ms, &ctx)? {
-                Ok(TestConditionAction::Evaluate)
+        EvaluationCondition::Temporal(condition) => {
+            let condition = condition.clone();
+            if resolver.resolve_temporal(&condition, &ctx)? {
+                Ok(TestConditionAction::Evaluate {
+                    temporal_ready: Some(ReadyTemporalEligibility::resolver_backed(condition)),
+                })
             } else {
                 Ok(TestConditionAction::Defer {
                     on_demand: false,
-                    debounce: true,
+                    temporal: matches!(condition, TemporalCondition::Debounce(_)),
+                    temporal_deferred: Some(DeferredTemporalEligibility::resolver_backed(
+                        condition,
+                    )),
                 })
             }
         }
         EvaluationCondition::Custom(key) => {
             if resolver.resolve_custom(key, &ctx)? {
-                Ok(TestConditionAction::Evaluate)
+                Ok(TestConditionAction::Evaluate {
+                    temporal_ready: None,
+                })
             } else {
                 Ok(TestConditionAction::Defer {
                     on_demand: false,
-                    debounce: false,
+                    temporal: false,
+                    temporal_deferred: None,
                 })
             }
         }

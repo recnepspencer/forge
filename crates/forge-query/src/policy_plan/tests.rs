@@ -8,13 +8,14 @@ use crate::policy_basis::{
     PolicyRuleSnapshot,
 };
 use crate::policy_narrowing::narrow_policy_query;
+use crate::policy_plan::historical::PolicyAwareHistoricalBasisClass;
 use crate::relationship_proof::RelationshipProofDescriptorSet;
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
 use super::{
     deny_raw_diff_scrub, lower_policy_aware_branch_plan, lower_policy_aware_current_plan,
     lower_policy_aware_diff_plan, lower_policy_aware_historical_plan, PolicyAwareDiffBasisPair,
-    PolicyAwareHistoricalBasis, PolicyAwareReadBasis,
+    PolicyAwareHistoricalBasis, PolicyAwarePlanCostPosture, PolicyAwareReadBasis,
 };
 
 fn narrowed() -> crate::policy_narrowing::NarrowedPolicyQueryArtifact {
@@ -112,19 +113,26 @@ fn branch_mismatch_and_raw_diff_scrub_deny_before_truth_touch() {
 }
 
 #[test]
-fn store_backed_historical_and_diff_are_deferred() {
+fn store_backed_retained_historical_is_admitted_while_diff_remains_deferred() {
     let artifact = narrowed();
     let historical = lower_policy_aware_historical_plan(
         &artifact,
-        PolicyAwareHistoricalBasis::store_backed_deferred("store-basis"),
+        PolicyAwareHistoricalBasis::store_backed_retained("store-basis"),
     )
-    .expect_err("store-backed historical parity is deferred");
+    .expect("retained store-backed historical slice should be admitted");
     let diff = lower_policy_aware_diff_plan(
         &artifact,
         PolicyAwareDiffBasisPair::store_backed_deferred("left", "right"),
     )
     .expect_err("store-backed diff parity is deferred");
 
-    assert_eq!(historical.counters().store_backed_deferred_count(), 1);
+    assert_eq!(
+        historical.core().report().posture(),
+        PolicyAwarePlanCostPosture::StoreHistoricalRetainedBounded
+    );
+    assert_eq!(
+        historical.basis().basis_class(),
+        PolicyAwareHistoricalBasisClass::StoreBackedRetainedSnapshot
+    );
     assert_eq!(diff.counters().store_backed_deferred_count(), 1);
 }

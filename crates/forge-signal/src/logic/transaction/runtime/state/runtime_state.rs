@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
+use crate::data::handle::NodeId;
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
@@ -18,6 +19,7 @@ use super::merge::{
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
 use super::runtime_observation::RuntimeObservationRegistry;
+use super::temporal::TemporalRuntimeState;
 
 #[derive(Debug)]
 pub(in crate::logic::transaction::runtime) struct HeavyCaptureWitness(());
@@ -170,6 +172,7 @@ where
     pub(in crate::logic::transaction::runtime) event_bus: EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) observations:
         RuntimeObservationRegistry<D, I, E, Ctx, T>,
+    pub(in crate::logic::transaction::runtime) temporal: TemporalRuntimeState,
     pub(in crate::logic::transaction::runtime) telemetry: RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) branches: BranchManager<D, I, T>,
 }
@@ -181,6 +184,40 @@ where
     T: Copy + Ord,
 {
     runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
+}
+
+impl<D, I, E, Ctx, T> SignalGraphMut<'_, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    pub fn unregister_node(
+        &mut self,
+        node: NodeId,
+    ) -> Result<crate::data::temporal::TemporalWakeRetirementBatch, crate::data::error::SignalError>
+    {
+        self.runtime.unregister_node(node)
+    }
+
+    pub fn replace_node_from_checkpoint_image(
+        &mut self,
+        node: NodeId,
+        image: crate::data::node::CheckpointNodeImage,
+    ) -> Result<crate::data::temporal::TemporalWakeRetirementBatch, crate::data::error::SignalError>
+    {
+        self.runtime.replace_node_from_checkpoint_image(node, image)
+    }
+
+    pub fn replace_node_evaluation_config(
+        &mut self,
+        node: NodeId,
+        eval_config: crate::data::node::NodeEvaluationConfig,
+    ) -> Result<crate::data::temporal::TemporalWakeRetirementBatch, crate::data::error::SignalError>
+    {
+        self.runtime
+            .replace_node_evaluation_config(node, eval_config)
+    }
 }
 
 impl<D, I, E, Ctx, T> Deref for SignalGraphMut<'_, D, I, E, Ctx, T>
@@ -539,6 +576,7 @@ where
             checkpoint,
             event_bus,
             observations: RuntimeObservationRegistry::default(),
+            temporal: TemporalRuntimeState::default(),
             telemetry: RuntimeTelemetry::default(),
             branches: BranchManager::<D, I, T>::new(),
         }
@@ -657,7 +695,7 @@ where
     }
 
     pub(super) fn capture_full_derived_state(&self) -> DerivedState<D, I> {
-        DerivedState::capture(&self.checkpoint, &self.telemetry)
+        DerivedState::capture(&self.checkpoint, &self.temporal, &self.telemetry)
     }
 
     fn heavy_capture_witness(&mut self) -> HeavyCaptureWitness {
@@ -726,6 +764,7 @@ where
                 &mut self.checkpoint,
                 CheckpointRuntime::new(checkpoint_policy),
             ),
+            temporal: std::mem::take(&mut self.temporal),
             telemetry: std::mem::take(&mut self.telemetry),
         };
         self.branches
@@ -735,6 +774,7 @@ where
     fn load_branch_state(
         &mut self,
         packet: AuthorityTransferPacket<D, I, T>,
+        count_temporal_restore: bool,
     ) -> Result<(), crate::data::error::SignalError> {
         let preserved_transaction = self.telemetry.transaction;
         let branch_id = packet.branch_id();
@@ -751,7 +791,9 @@ where
             &mut self.graph,
             &mut self.config,
             &mut self.checkpoint,
+            &mut self.temporal,
             &mut self.telemetry,
+            count_temporal_restore,
         );
         Self::merge_global_transaction_telemetry(
             preserved_transaction,
@@ -765,10 +807,10 @@ where
         packet: RestoreTransferPacket<D, I, T>,
     ) -> Result<(), crate::data::error::SignalError> {
         self.telemetry.transaction.restore_transfer_count += 1;
-        self.load_branch_state(AuthorityTransferPacket::new(
-            packet.branch_id(),
-            packet.into_state(),
-        ))
+        self.load_branch_state(
+            AuthorityTransferPacket::new(packet.branch_id(), packet.into_state()),
+            true,
+        )
     }
 
     pub(super) fn apply_branch_lifecycle_transfer(
@@ -776,7 +818,7 @@ where
         transfer: BranchLifecycleTransfer<D, I, T>,
     ) -> Result<(), crate::data::error::SignalError> {
         match transfer {
-            BranchLifecycleTransfer::Move(packet) => self.load_branch_state(packet),
+            BranchLifecycleTransfer::Move(packet) => self.load_branch_state(packet, false),
             BranchLifecycleTransfer::Restore(packet) => self.load_restored_branch_state(packet),
         }
     }

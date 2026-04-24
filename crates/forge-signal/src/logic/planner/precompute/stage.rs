@@ -8,7 +8,7 @@ use super::super::types::{PlanSummary, StageExecutor};
 use super::admission::{decide_stage_parallel_admission, StageParallelAdmission};
 use super::dispatch::dispatch_stage_precompute;
 use super::reporting::{record_stage_precompute_failure, record_stage_precompute_telemetry};
-use super::StageExecutionData;
+use super::{StageExecutionData, TemporalLoweringContext};
 
 pub(in crate::logic::planner) struct StagePrecomputeResult {
     pub(in crate::logic::planner) execution: StageExecutionData,
@@ -37,6 +37,7 @@ pub(in crate::logic::planner) fn perform_stage_precompute(
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
           + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
 ) -> Result<StagePrecomputeResult, SignalError> {
     #[cfg(feature = "parallel")]
@@ -50,6 +51,7 @@ pub(in crate::logic::planner) fn perform_stage_precompute(
         stage.tasks,
         precompute,
         comparator_resolver,
+        temporal_lowering,
         executor,
         #[cfg(feature = "parallel")]
         parallel_admission,
@@ -93,6 +95,7 @@ fn run_precompute_dispatch_pass(
     ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
           + Sync),
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
     executor: StageExecutor,
     #[cfg(feature = "parallel")] parallel_admission: StageParallelAdmission,
 ) -> Result<PrecomputeDispatchPass, SignalError> {
@@ -102,6 +105,7 @@ fn run_precompute_dispatch_pass(
         tasks,
         precompute,
         comparator_resolver,
+        temporal_lowering,
         executor,
         #[cfg(feature = "parallel")]
         parallel_admission,

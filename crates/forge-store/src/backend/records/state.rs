@@ -1,7 +1,8 @@
 use crate::wal::WalRecord;
 use crate::{
     SubscriptionSupportAccessStructure, SubscriptionSupportCounterSnapshot,
-    SubscriptionSupportStoredRecordSet, SupportMaintenanceDescriptorRecord,
+    SubscriptionSupportStoredRecordSet, SupportActionDurableRecord, SupportMaintenanceDebtRecord,
+    SupportMaintenanceDescriptorRecord,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -40,8 +41,13 @@ pub(crate) struct StoreState {
     #[serde(default)]
     pub subscription_support_record_sets: BTreeMap<String, SubscriptionSupportStoredRecordSet>,
     #[serde(default)]
+    pub subscription_support_action_records: BTreeMap<String, SupportActionDurableRecord>,
+    #[serde(default)]
     pub subscription_support_maintenance_descriptor_records:
         BTreeMap<String, SupportMaintenanceDescriptorRecord>,
+    #[serde(default)]
+    pub subscription_support_maintenance_debt_records:
+        BTreeMap<String, SupportMaintenanceDebtRecord>,
     #[serde(default)]
     pub subscription_support_counter_snapshot: SubscriptionSupportCounterSnapshot,
     #[serde(default = "subscription_support_access_structures_verified_default")]

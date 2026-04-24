@@ -32,6 +32,7 @@ impl MilestoneSixHistoricalDiffCertificationAdapter {
         let current = current_lane();
         let branch = branch_lane();
         let historical = historical_lane();
+        let store_historical = store_historical_lane();
         let preview = preview_lane();
         let branch_diff = branch_diff_lane();
         let current_historical_diff = current_historical_diff_lane();
@@ -46,6 +47,7 @@ impl MilestoneSixHistoricalDiffCertificationAdapter {
                         &current,
                         &branch,
                         &historical,
+                        &store_historical,
                         &preview,
                         &branch_diff,
                         &current_historical_diff,
@@ -130,6 +132,46 @@ fn historical_lane() -> HistoricalDiffLane {
     .expect("historical context should admit");
     let result = execute_query_basis_context(&context)
         .expect("historical query-context execution should succeed");
+    let bundle = build_query_basis_result_bundle(&context, result)
+        .expect("basis result bundle should shape");
+
+    HistoricalDiffLane::from_basis_result_bundle(&bundle)
+}
+
+fn store_historical_lane() -> HistoricalDiffLane {
+    let preflight = execution_preflights::store_detail_preflight();
+    let request = HistoricalEvaluationRequest::retained_snapshot(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let admission =
+        admit_historical_evaluation_path(request, capability).expect("history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+    )
+    .expect("history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+    let context = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("store historical context should bind"),
+    )
+    .expect("store historical context should admit");
+    let result = execute_query_basis_context(&context)
+        .expect("store historical query-context execution should succeed");
     let bundle = build_query_basis_result_bundle(&context, result)
         .expect("basis result bundle should shape");
 
@@ -272,6 +314,7 @@ fn canonical_row(
     current: &HistoricalDiffLane,
     branch: &HistoricalDiffLane,
     historical: &HistoricalDiffLane,
+    store_historical: &HistoricalDiffLane,
     preview: &HistoricalDiffLane,
     branch_diff: &HistoricalDiffLane,
     current_historical_diff: &HistoricalDiffLane,
@@ -280,6 +323,7 @@ fn canonical_row(
         "current-vs-branch-basis-explicitness" => (current.clone(), branch.clone()),
         "current-vs-historical-basis-explicitness" => (current.clone(), historical.clone()),
         "historical-materialization-path-explicitness" => (current.clone(), historical.clone()),
+        "runtime-vs-store-historical-parity" => (historical.clone(), store_historical.clone()),
         "diff-comparison-family-explicitness" => (branch_diff.clone(), branch.clone()),
         "branch-to-branch-diff-shaped" => (branch.clone(), branch_diff.clone()),
         "current-to-historical-diff-shaped" => {
@@ -295,6 +339,7 @@ fn canonical_row(
         "current-vs-branch-basis-explicitness" => current_lane(),
         "current-vs-historical-basis-explicitness" => current_lane(),
         "historical-materialization-path-explicitness" => historical_lane(),
+        "runtime-vs-store-historical-parity" => store_historical_lane(),
         "diff-comparison-family-explicitness" => branch_diff_lane(),
         "branch-to-branch-diff-shaped" => branch_diff_lane(),
         "current-to-historical-diff-shaped" => current_historical_diff_lane(),
@@ -346,23 +391,6 @@ fn rejection_row(
             )
         }
         "diff-scope-mismatch" => HistoricalDiffRejection::from_error(&diff_scope_mismatch_error()),
-        "store-backed-historical-deferred-debt" => HistoricalDiffRejection::from_error(
-            &bind_query_basis_context(
-                QueryBasisContextRequest::historical_commit("history:store"),
-                QueryContextBindingSource::HistoricalCapability(
-                    &HistoricalCapabilityDescriptor::new(
-                        "history:store",
-                        None,
-                        false,
-                        false,
-                        false,
-                        true,
-                        HistoricalPathReuseDescriptor::no_reuse(),
-                    ),
-                ),
-            )
-            .expect_err("store historical should remain deferred"),
-        ),
         "forbidden-basis-substitution" => {
             HistoricalDiffRejection::from_error(&basis_substitution_error())
         }

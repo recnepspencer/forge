@@ -10,6 +10,7 @@ use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
 use crate::data::proof::DirtyBatchEntry;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::temporal::TemporalExecutionSummary;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::replay::ReplayEventKind;
@@ -55,6 +56,7 @@ pub struct TransactionResult {
     pub timing: TransactionTiming,
     pub touched_nodes: u32,
     pub evaluation_summary: EvaluationSummary,
+    pub temporal_summary: TemporalExecutionSummary,
     pub reconstructability: ReconstructabilityRecord,
     pub event_epochs: Vec<EventEpochSummary>,
     pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
@@ -78,6 +80,7 @@ pub struct TransactionReplayEntry {
 pub(in crate::logic::transaction::runtime) struct TransactionExecutionState {
     pub latest_report: Option<ExecutionReport>,
     pub summary: EvaluationSummary,
+    pub temporal_summary: TemporalExecutionSummary,
     pub evaluation_nanos: u128,
 }
 
@@ -98,6 +101,7 @@ impl TransactionExecutionState {
             .count() as u32;
         self.summary.plans_built += 1;
         self.summary.stages_executed += report.stage_count;
+        self.temporal_summary.absorb(report.temporal_summary);
         self.evaluation_nanos += duration_nanos;
         // This retained report has a second observer by design:
         // public transaction evaluation APIs return the report immediately,
@@ -127,6 +131,7 @@ where
     I: Copy + Ord,
 {
     pub observations: TransactionObservationScratch,
+    pub temporal: TransactionTemporalScratch,
     pub staged_dirty: BatchedDirtySet<D, I>,
     pub staged_checkpoint_flushes: u64,
     pub staged_checkpoint_flush_nanos: u128,
@@ -154,6 +159,7 @@ where
     pub fn new() -> Self {
         Self {
             observations: TransactionObservationScratch::default(),
+            temporal: TransactionTemporalScratch::default(),
             staged_dirty: BatchedDirtySet::new(),
             staged_checkpoint_flushes: 0,
             staged_checkpoint_flush_nanos: 0,
@@ -170,6 +176,11 @@ where
             staged_patch_count: 0,
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub(in crate::logic::transaction::runtime) struct TransactionTemporalScratch {
+    pub summary: TemporalExecutionSummary,
 }
 
 #[derive(Debug, Clone)]

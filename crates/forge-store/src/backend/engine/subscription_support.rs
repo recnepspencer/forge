@@ -4,17 +4,17 @@ use crate::{
     support_maintenance_batch, FetchedSubscriptionSupportArtifact,
     PostActionResumeClassificationInput, PublishableSubscriptionSupportArtifact,
     PublishedSubscriptionSupportArtifact, RawSupportProgramAction,
-    ResumeClassificationTranslationPlan, SubscriptionResumeClassification,
-    SubscriptionSupportAccessStructureReport, SubscriptionSupportAllocationScope,
+    SubscriptionResumeClassification, SubscriptionSupportAccessStructureReport,
+    SubscriptionSupportActionPublicationRecoveryReport, SubscriptionSupportAllocationScope,
     SubscriptionSupportCatalog, SubscriptionSupportClassificationPlan,
     SubscriptionSupportClassificationReport, SubscriptionSupportCompatibilityDecision,
     SubscriptionSupportCompatibilityDecisionKind, SubscriptionSupportCompatibilityReport,
     SubscriptionSupportDensityClass, SubscriptionSupportDriftCause, SubscriptionSupportFetchReport,
-    SubscriptionSupportFetchRequest, SubscriptionSupportMaintenanceDecision,
-    SubscriptionSupportMaintenanceDecisionKind, SubscriptionSupportMaintenanceReport,
-    SubscriptionSupportMissingSupportRecoveryReport,
+    SubscriptionSupportFetchRequest, SubscriptionSupportMaintenanceDebtReport,
+    SubscriptionSupportMaintenanceDecision, SubscriptionSupportMaintenanceDecisionKind,
+    SubscriptionSupportMaintenanceReport, SubscriptionSupportMissingSupportRecoveryReport,
     SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportPayloadBudget,
+    SubscriptionSupportOperationalVerdictTranslationRequest, SubscriptionSupportPayloadBudget,
     SubscriptionSupportPlanFamily, SubscriptionSupportPortabilityDecision,
     SubscriptionSupportPortabilityDecisionKind, SubscriptionSupportPortabilityOutcome,
     SubscriptionSupportPortabilityReport, SubscriptionSupportPostActionReport,
@@ -24,15 +24,15 @@ use crate::{
     SubscriptionSupportRetentionDecision, SubscriptionSupportRetentionMaterialization,
     SubscriptionSupportRole, SubscriptionSupportRuntimeHandoffReport,
     SubscriptionSupportRuntimeHandoffRequest, SubscriptionSupportStoredRecordKey,
-    SubscriptionSupportStoredRecordSet, SupportActionBreadthBudget, SupportActionId,
-    SupportAffectedSet, SupportAllocationScope, SupportBatchAdmissionReceipt,
-    SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
+    SubscriptionSupportStoredRecordSet, SupportActionBreadthBudget, SupportActionDurableRecord,
+    SupportActionId, SupportActionPublicationState, SupportAffectedSet, SupportAllocationScope,
+    SupportBatchAdmissionReceipt, SupportCompatibilityAffectedSet, SupportCompatibilityBatchPlan,
     SupportCompatibilityReceiptWitness, SupportDecodedRowSemanticAccess,
-    SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan, SupportManifestAdmissionWitness,
-    SupportPathClass, SupportPortabilityAffectedSet, SupportPortabilityBatchPlan,
-    SupportPortabilityManifestBudget, SupportPortabilityScopeFootprint, SupportProgramDensityClass,
-    SupportProgramPathPlan, SupportReclaimConsequence, SupportRetentionBatchPlan,
-    SupportRetentionSurvivalWitness,
+    SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan, SupportMaintenanceDebtRecord,
+    SupportManifestAdmissionWitness, SupportPathClass, SupportPortabilityAffectedSet,
+    SupportPortabilityBatchPlan, SupportPortabilityManifestBudget,
+    SupportPortabilityScopeFootprint, SupportProgramDensityClass, SupportProgramPathPlan,
+    SupportReclaimConsequence, SupportRetentionBatchPlan, SupportRetentionSurvivalWitness,
 };
 
 use super::{core::verify_durable_barrier, StateBackedStoreBackend, StatePersistence};
@@ -410,17 +410,9 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
 
     pub fn translate_subscription_support_operational_verdict(
         &mut self,
-        verdict: SubscriptionSupportOperationalVerdict,
-        basis: SubscriptionSupportOperationalBasis,
-        maintenance_admission_key: Option<String>,
-        policy_reason: Option<String>,
+        request: SubscriptionSupportOperationalVerdictTranslationRequest,
     ) -> Result<PostActionResumeClassificationInput, StoreError> {
-        match ResumeClassificationTranslationPlan::from_operational_verdict(
-            verdict,
-            basis,
-            maintenance_admission_key,
-            policy_reason,
-        ) {
+        match request.into_plan() {
             Ok(plan) => {
                 self.state
                     .subscription_support_counter_snapshot
@@ -436,6 +428,78 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         }
     }
 
+    pub fn persist_subscription_support_executed_action_for_publication(
+        &mut self,
+        action: crate::ExecutedSupportAction,
+    ) -> Result<(), StoreError> {
+        self.persist_pending_support_action_record(&action)
+    }
+
+    pub fn recover_subscription_support_action_publication(
+        &mut self,
+        action_id: SupportActionId,
+    ) -> Result<SubscriptionSupportActionPublicationRecoveryReport, StoreError> {
+        let key = action_id.as_str().to_string();
+        let mut record = self
+            .state
+            .subscription_support_action_records
+            .get(&key)
+            .cloned()
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::SubscriptionSupportPublicationViolation,
+                    "subscription-support action recovery requires a persisted durable action record",
+                )
+            })?;
+        let previous_counter_snapshot = self.state.subscription_support_counter_snapshot.clone();
+        let previous_record = record.clone();
+        let transitioned = match record.publication_state() {
+            SupportActionPublicationState::PendingPublication => {
+                record.mark_interrupted_before_publication();
+                true
+            }
+            SupportActionPublicationState::InterruptedBeforePublication
+            | SupportActionPublicationState::PublishedConsequence => false,
+        };
+        if transitioned {
+            self.state
+                .subscription_support_action_records
+                .insert(key, record.clone());
+            self.state
+                .subscription_support_counter_snapshot
+                .record_support_action_recovery();
+            if let Err(error) = self.state.verify_subscription_support_record_family() {
+                self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+                self.state
+                    .subscription_support_action_records
+                    .insert(action_id.as_str().to_string(), previous_record);
+                return Err(error);
+            }
+            let persist_report = match self.persistence.persist_state(&self.state) {
+                Ok(report) => report,
+                Err(error) => {
+                    self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+                    self.state
+                        .subscription_support_action_records
+                        .insert(action_id.as_str().to_string(), previous_record);
+                    return Err(error);
+                }
+            };
+            verify_durable_barrier(&mut self.counters, &persist_report)?;
+        }
+        SubscriptionSupportActionPublicationRecoveryReport::from_durable_record(&record)
+    }
+
+    pub fn reject_subscription_support_global_scan_recovery(&mut self) -> Result<(), StoreError> {
+        self.state
+            .subscription_support_counter_snapshot
+            .record_support_global_scan_recovery_rejection();
+        Err(StoreError::new(
+            StoreErrorKind::SubscriptionSupportClassificationViolation,
+            "subscription-support restart recovery must not scan backend residue outside durable action identity",
+        ))
+    }
+
     pub fn admit_subscription_support_program_path(
         &mut self,
         path_class: SupportPathClass,
@@ -445,6 +509,38 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
         affected_entries: u64,
         payload_header_bytes: u64,
     ) -> Result<SupportProgramPathPlan, StoreError> {
+        if !path_class.admits_operational_work() {
+            if matches!(
+                path_class,
+                SupportPathClass::ForegroundResume | SupportPathClass::ForegroundRead
+            ) {
+                self.state
+                    .subscription_support_counter_snapshot
+                    .record_support_hot_path_rejection();
+            }
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportClassificationViolation,
+                "foreground subscription-support paths cannot admit operational work",
+            ));
+        }
+        if density_class == SupportProgramDensityClass::StoreGlobalDebt {
+            self.state
+                .subscription_support_counter_snapshot
+                .record_support_store_global_debt_rejection();
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportClassificationViolation,
+                "store-global subscription-support density is debt and cannot close Phase 1 admission",
+            ));
+        }
+        if !budget.admits(affected_entries, payload_header_bytes) {
+            self.state
+                .subscription_support_counter_snapshot
+                .record_budget_denial();
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportClassificationViolation,
+                "subscription-support path plan exceeds its breadth budget before execution",
+            ));
+        }
         match SupportProgramPathPlan::new(
             path_class,
             density_class,
@@ -454,23 +550,101 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             payload_header_bytes,
         ) {
             Ok(plan) => Ok(plan),
-            Err(error) => {
-                match (path_class, density_class) {
-                    (SupportPathClass::ForegroundResume | SupportPathClass::ForegroundRead, _) => {
-                        self.state
-                            .subscription_support_counter_snapshot
-                            .record_support_hot_path_rejection();
-                    }
-                    (_, SupportProgramDensityClass::StoreGlobalDebt) => {
-                        self.state
-                            .subscription_support_counter_snapshot
-                            .record_support_store_global_debt_rejection();
-                    }
-                    _ => {}
-                }
-                Err(error)
-            }
+            Err(error) => Err(error),
         }
+    }
+
+    fn persist_pending_support_action_record(
+        &mut self,
+        action: &crate::ExecutedSupportAction,
+    ) -> Result<(), StoreError> {
+        let record = SupportActionDurableRecord::from_executed(action);
+        let key = record.storage_key();
+        if let Some(existing) = self.state.subscription_support_action_records.get(&key) {
+            if existing == &record {
+                return Ok(());
+            }
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "subscription-support action record collided with a different durable publication state",
+            ));
+        }
+        self.state
+            .subscription_support_action_records
+            .insert(key.clone(), record);
+        if let Err(error) = self.state.verify_subscription_support_record_family() {
+            self.state.subscription_support_action_records.remove(&key);
+            return Err(error);
+        }
+        let persist_report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state.subscription_support_action_records.remove(&key);
+                return Err(error);
+            }
+        };
+        verify_durable_barrier(&mut self.counters, &persist_report)?;
+        Ok(())
+    }
+
+    fn publish_support_action_with_durable_recovery(
+        &mut self,
+        raw_action: RawSupportProgramAction,
+        publication_budget: SupportActionBreadthBudget,
+    ) -> Result<crate::CompletedSupportProgramAction, StoreError> {
+        let executed = raw_action.plan().verify().execute();
+        let envelope_header_bytes = executed.publication_envelope_header_bytes()?;
+        if envelope_header_bytes > publication_budget.max_payload_header_bytes() {
+            self.state
+                .subscription_support_counter_snapshot
+                .record_budget_denial();
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportClassificationViolation,
+                "subscription-support action envelope exceeds publication budget before materialization",
+            ));
+        }
+        self.persist_pending_support_action_record(&executed)?;
+        let published = executed.publish();
+        let key = published.envelope().action_id().as_str().to_string();
+        let previous_counter_snapshot = self.state.subscription_support_counter_snapshot.clone();
+        let previous_record = self
+            .state
+            .subscription_support_action_records
+            .get(&key)
+            .cloned()
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorKind::SubscriptionSupportPublicationViolation,
+                    "subscription-support publication requires a persisted pending action record",
+                )
+            })?;
+        let mut updated_record = previous_record.clone();
+        updated_record.mark_published_consequence(published.envelope().clone())?;
+        self.state
+            .subscription_support_action_records
+            .insert(key.clone(), updated_record);
+        self.state
+            .subscription_support_counter_snapshot
+            .record_support_action_envelope_publication();
+        if let Err(error) = self.state.verify_subscription_support_record_family() {
+            self.state
+                .subscription_support_action_records
+                .insert(key.clone(), previous_record);
+            self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+            return Err(error);
+        }
+        let persist_report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state
+                    .subscription_support_action_records
+                    .insert(key, previous_record);
+                self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+                return Err(error);
+            }
+        };
+        verify_durable_barrier(&mut self.counters, &persist_report)?;
+        Ok(published.complete())
     }
 
     pub fn reuse_subscription_support_batch_receipt<'a>(
@@ -528,16 +702,16 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             affected_set.primary_basis().clone(),
             decision.verdict(),
         )?;
-        self.state
-            .subscription_support_counter_snapshot
-            .record_support_action_envelope_publication();
-        let completed = raw_action.plan().verify().execute().publish().complete();
+        let completed =
+            self.publish_support_action_with_durable_recovery(raw_action, path_plan.budget())?;
         let survival_witness =
             SupportRetentionSurvivalWitness::new(&completed, decision.verdict(), &affected_set)?;
+        let translation_basis = affected_set.primary_basis().clone();
         let materialization =
             SubscriptionSupportRetentionMaterialization::from_decision(affected_set, &decision)?;
         let report = SubscriptionSupportPostActionReport::new(
             completed,
+            translation_basis,
             survival_witness,
             materialization,
             decision_kind,
@@ -654,10 +828,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             affected_set.primary_basis().clone(),
             decision.verdict(),
         )?;
-        self.state
-            .subscription_support_counter_snapshot
-            .record_support_action_envelope_publication();
-        let completed = raw_action.plan().verify().execute().publish().complete();
+        let completed =
+            self.publish_support_action_with_durable_recovery(raw_action, path_plan.budget())?;
         let report = SubscriptionSupportCompatibilityReport::new(
             completed,
             affected_set,
@@ -774,10 +946,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             affected_set.primary_basis().clone(),
             decision.verdict(),
         )?;
-        self.state
-            .subscription_support_counter_snapshot
-            .record_support_action_envelope_publication();
-        let completed = raw_action.plan().verify().execute().publish().complete();
+        let completed =
+            self.publish_support_action_with_durable_recovery(raw_action, path_plan.budget())?;
         let report = SubscriptionSupportPortabilityReport::new(
             completed,
             affected_set,
@@ -879,7 +1049,8 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
             affected_set.primary_basis().clone(),
             decision.verdict(),
         )?;
-        let completed = raw_action.plan().verify().execute().publish().complete();
+        let completed =
+            self.publish_support_action_with_durable_recovery(raw_action, path_plan.budget())?;
         let report = SubscriptionSupportMaintenanceReport::new(
             completed,
             affected_set,
@@ -918,9 +1089,6 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                 }
             }
         }
-        self.state
-            .subscription_support_counter_snapshot
-            .record_support_action_envelope_publication();
         match decision.kind() {
             SubscriptionSupportMaintenanceDecisionKind::RebuildDescriptorAdmitted => {
                 self.state
@@ -956,6 +1124,65 @@ impl<P: StatePersistence> StateBackedStoreBackend<P> {
                         .subscription_support_maintenance_descriptor_records
                         .remove(&key);
                 }
+                self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+                return Err(error);
+            }
+        };
+        verify_durable_barrier(&mut self.counters, &persist_report)?;
+        Ok(report)
+    }
+
+    pub fn report_delayed_subscription_support_maintenance(
+        &mut self,
+        plan: &SupportMaintenanceBatchPlan,
+        delay_reason: impl Into<String>,
+        budget: SupportActionBreadthBudget,
+        payload_header_bytes: u64,
+    ) -> Result<SubscriptionSupportMaintenanceDebtReport, StoreError> {
+        let path_plan = self.admit_subscription_support_program_path(
+            SupportPathClass::OperatorReporting,
+            SupportProgramDensityClass::MaintenanceKeyBatch,
+            SupportAllocationScope::OperatorReport,
+            budget,
+            plan.affected_set().affected_count(),
+            payload_header_bytes,
+        )?;
+        let report = SubscriptionSupportMaintenanceDebtReport::new(plan, delay_reason, &path_plan)?;
+        let record = SupportMaintenanceDebtRecord::from_plan_and_report(plan, &report)?;
+        let key = record.record_key().to_string();
+        if let Some(existing) = self
+            .state
+            .subscription_support_maintenance_debt_records
+            .get(&key)
+        {
+            if existing == &record {
+                return Ok(report);
+            }
+            return Err(StoreError::new(
+                StoreErrorKind::SubscriptionSupportPublicationViolation,
+                "subscription-support maintenance debt record collided with a different durable operator report",
+            ));
+        }
+        let previous_counter_snapshot = self.state.subscription_support_counter_snapshot.clone();
+        self.state
+            .subscription_support_maintenance_debt_records
+            .insert(key.clone(), record);
+        self.state
+            .subscription_support_counter_snapshot
+            .record_support_maintenance_delay_report();
+        if let Err(error) = self.state.verify_subscription_support_record_family() {
+            self.state
+                .subscription_support_maintenance_debt_records
+                .remove(&key);
+            self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
+            return Err(error);
+        }
+        let persist_report = match self.persistence.persist_state(&self.state) {
+            Ok(report) => report,
+            Err(error) => {
+                self.state
+                    .subscription_support_maintenance_debt_records
+                    .remove(&key);
                 self.state.subscription_support_counter_snapshot = previous_counter_snapshot;
                 return Err(error);
             }

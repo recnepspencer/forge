@@ -21,6 +21,7 @@ pub mod proof;
 pub mod reuse;
 pub mod subscriber_context;
 pub mod telemetry;
+pub mod temporal;
 pub mod tier;
 pub mod tier_policy_table;
 pub mod trace;

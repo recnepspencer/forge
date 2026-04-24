@@ -1,0 +1,39 @@
+warning: unreachable statement
+ --> tests/ui/subscription_support_report_constructor_private.rs:9:5
+  |
+8 |     let support_subject: QuerySubscriptionSupportSubject = todo!();
+  |                                                            ------- any code following this expression is unreachable
+9 |     let support_matrix: QuerySubscriptionSupportMatrix = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `support_subject`
+ --> tests/ui/subscription_support_report_constructor_private.rs:8:9
+  |
+8 |     let support_subject: QuerySubscriptionSupportSubject = todo!();
+  |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_support_subject`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `support_subject`, `support_posture`, `support_matrix`, `source_digest`, `counter_snapshot`, `lookup_receipt_digest`, `report_digest` and `counters` of struct `QuerySubscriptionSupportReport` are private
+  --> tests/ui/subscription_support_report_constructor_private.rs:11:9
+   |
+10 |     let _ = QuerySubscriptionSupportReport {
+   |             ------------------------------ in this type
+11 |         support_subject,
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         support_posture: QuerySubscriptionSupportPosture::RuntimeBackedCertified,
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         support_matrix,
+   |         ^^^^^^^^^^^^^^ private field
+14 |         source_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+15 |         counter_snapshot: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+16 |         lookup_receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         report_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+18 |         counters: QuerySubscriptionSupportCounters::default(),
+   |         ^^^^^^^^ private field

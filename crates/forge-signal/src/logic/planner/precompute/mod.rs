@@ -16,8 +16,13 @@ use crate::data::node::EvaluationCondition;
 #[cfg(feature = "parallel")]
 use crate::data::proof::{LocallyOrderedShard, MergeableOrderedStream, OrderedStreamMergeError};
 use crate::data::proof::{OrderedStreamItem, SingleConsumer};
+use crate::data::temporal::{
+    ClockTick, DeferredTemporalEligibility, LoweredTemporalEligibility, ReadyTemporalEligibility,
+    RuntimeClockBasis, TemporalCondition,
+};
 use crate::logic::evaluation::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver,
+    TemporalConditionResolver,
 };
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
@@ -58,6 +63,31 @@ pub(in crate::logic::planner) enum StageExecutionData {
     Patched(SingleConsumer<Vec<PreparedTaskPatch>>),
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct TemporalLoweringContext {
+    runtime_clock_basis: Option<RuntimeClockBasis>,
+}
+
+impl TemporalLoweringContext {
+    pub(crate) fn graph_only() -> Self {
+        Self {
+            runtime_clock_basis: None,
+        }
+    }
+
+    pub(crate) fn runtime_clock_basis(runtime_clock_basis: RuntimeClockBasis) -> Self {
+        Self {
+            runtime_clock_basis: Some(runtime_clock_basis),
+        }
+    }
+
+    fn runtime_tick_for(self, domain: crate::data::temporal::ClockDomain) -> Option<ClockTick> {
+        self.runtime_clock_basis
+            .filter(|basis| basis.domain() == domain)
+            .map(RuntimeClockBasis::current_tick)
+    }
+}
+
 impl StageExecutionData {
     pub fn len(&self) -> usize {
         match self {
@@ -90,6 +120,7 @@ pub(super) fn precompute_stage_serial<F>(
     tasks: &[EligibleTask],
     precompute: &F,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
 ) -> Result<Vec<PreparedEvaluation>, SignalError>
 where
     F: Fn(
@@ -98,16 +129,26 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let validated = prevalidate_stage_tasks(graph, tasks, comparator_resolver)?;
+    let validated = prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
     let snapshot = ExecutionSnapshot::new(&*graph);
     let mut prepared = Vec::with_capacity(tasks.len());
     for (task, prevalidated) in tasks.iter().zip(validated.into_iter()) {
-        if let Some(prepared_task) = prevalidated {
-            prepared.push(prepared_task);
-            continue;
+        match prevalidated {
+            PrevalidatedTask::Prepared(prepared_task) => {
+                prepared.push(prepared_task);
+                continue;
+            }
+            PrevalidatedTask::NeedsCompute { temporal_ready } => {
+                let view = snapshot.read_view(task.node);
+                let mut prepared_task = precompute(task.node, &view)?;
+                if let Some(temporal_ready) = temporal_ready {
+                    prepared_task = prepared_task.with_temporal_eligibility(
+                        LoweredTemporalEligibility::Ready(temporal_ready),
+                    );
+                }
+                prepared.push(prepared_task);
+            }
         }
-        let view = snapshot.read_view(task.node);
-        prepared.push(precompute(task.node, &view)?);
     }
     Ok(prepared)
 }
@@ -119,6 +160,7 @@ pub(super) fn precompute_stage_parallel<F>(
     precompute: &F,
     policy: ParallelExecutionPolicy,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
 ) -> Result<Vec<PreparedEvaluation>, SignalError>
 where
     F: Fn(
@@ -127,18 +169,23 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let mut prepared = prevalidate_stage_tasks(graph, tasks, comparator_resolver)?;
+    let mut prepared =
+        prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
     let mut compute_indices = Vec::new();
     for (task_index, prepared_task) in prepared.iter().enumerate() {
-        if prepared_task.is_none() {
+        if matches!(prepared_task, PrevalidatedTask::NeedsCompute { .. }) {
             compute_indices.push(task_index);
         }
     }
+    let ready_temporal = prepared
+        .iter()
+        .map(PrevalidatedTask::temporal_ready)
+        .collect::<Vec<_>>();
 
     if compute_indices.is_empty() {
         return Ok(prepared
             .into_iter()
-            .map(|prepared| prepared.expect("validated task should be populated"))
+            .map(|prepared| prepared.into_prepared())
             .collect());
     }
 
@@ -154,7 +201,13 @@ where
                 for &task_index in index_chunk {
                     let task = &tasks[task_index];
                     let view = snapshot.read_view(task.node);
-                    chunk_results.push((task_index, precompute(task.node, &view)?));
+                    let mut prepared_task = precompute(task.node, &view)?;
+                    if let Some(temporal_ready) = ready_temporal[task_index].clone() {
+                        prepared_task = prepared_task.with_temporal_eligibility(
+                            LoweredTemporalEligibility::Ready(temporal_ready),
+                        );
+                    }
+                    chunk_results.push((task_index, prepared_task));
                 }
                 Ok::<LocallyOrderedShard<(usize, PreparedEvaluation)>, SignalError>(
                     LocallyOrderedShard::new(chunk_results),
@@ -166,11 +219,11 @@ where
             .try_into_vec()
             .map_err(parallel_duplicate_task_index)?;
         for (task_index, prepared_task) in computed {
-            prepared[task_index] = Some(prepared_task);
+            prepared[task_index] = PrevalidatedTask::Prepared(prepared_task);
         }
         Ok(prepared
             .into_iter()
-            .map(|prepared| prepared.expect("every task should have a prepared evaluation"))
+            .map(|prepared| prepared.into_prepared())
             .collect())
     })
 }
@@ -182,6 +235,7 @@ pub(super) fn build_parallel_stage_patches<F>(
     precompute: &F,
     policy: ParallelExecutionPolicy,
     comparator_resolver: &mut impl ComparatorPolicyResolver,
+    temporal_lowering: TemporalLoweringContext,
 ) -> Result<Vec<PreparedTaskPatch>, SignalError>
 where
     F: Fn(
@@ -190,29 +244,34 @@ where
         ) -> Result<PreparedEvaluation, SignalError>
         + Sync,
 {
-    let prepatched = prevalidate_stage_tasks(graph, tasks, comparator_resolver)?
-        .into_iter()
+    let prevalidated =
+        prevalidate_stage_tasks(graph, tasks, comparator_resolver, temporal_lowering)?;
+    let ready_temporal = prevalidated
+        .iter()
+        .map(PrevalidatedTask::temporal_ready)
+        .collect::<Vec<_>>();
+    let prepatched = prevalidated
+        .iter()
+        .cloned()
         .enumerate()
-        .map(|(task_index, prepared)| {
-            prepared.map(|prepared| PreparedTaskPatch {
+        .filter_map(|(task_index, prepared)| match prepared {
+            PrevalidatedTask::Prepared(prepared) => Some(PreparedTaskPatch {
                 task_index,
                 node: tasks[task_index].node,
                 prepared,
-            })
+            }),
+            PrevalidatedTask::NeedsCompute { .. } => None,
         })
         .collect::<Vec<_>>();
     let mut compute_indices = Vec::new();
-    for (task_index, patch) in prepatched.iter().enumerate() {
-        if patch.is_none() {
+    for (task_index, prepared) in prevalidated.into_iter().enumerate() {
+        if matches!(prepared, PrevalidatedTask::NeedsCompute { .. }) {
             compute_indices.push(task_index);
         }
     }
 
     if compute_indices.is_empty() {
-        return Ok(prepatched
-            .into_iter()
-            .map(|patch| patch.expect("validated task patch should be populated"))
-            .collect());
+        return Ok(prepatched);
     }
 
     let chunk_size = policy.chunk_size_for(tasks.len());
@@ -227,10 +286,16 @@ where
                 for &task_index in index_chunk {
                     let task = &tasks[task_index];
                     let view = snapshot.read_view(task.node);
+                    let mut prepared_task = precompute(task.node, &view)?;
+                    if let Some(temporal_ready) = ready_temporal[task_index].clone() {
+                        prepared_task = prepared_task.with_temporal_eligibility(
+                            LoweredTemporalEligibility::Ready(temporal_ready),
+                        );
+                    }
                     chunk_patches.push(PreparedTaskPatch {
                         task_index,
                         node: task.node,
-                        prepared: precompute(task.node, &view)?,
+                        prepared: prepared_task,
                     });
                 }
                 Ok::<LocallyOrderedShard<PreparedTaskPatch>, SignalError>(LocallyOrderedShard::new(
@@ -238,8 +303,7 @@ where
                 ))
             })
             .collect::<Result<Vec<_>, SignalError>>()?;
-        let prevalidated =
-            LocallyOrderedShard::new(prepatched.into_iter().flatten().collect::<Vec<_>>());
+        let prevalidated = LocallyOrderedShard::new(prepatched);
         let patches =
             MergeableOrderedStream::new(std::iter::once(prevalidated).chain(computed.into_iter()))
                 .try_into_vec()
@@ -266,13 +330,20 @@ fn prevalidate_stage_tasks(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
     comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<Vec<Option<PreparedEvaluation>>, SignalError> {
+    temporal_lowering: TemporalLoweringContext,
+) -> Result<Vec<PrevalidatedTask>, SignalError> {
     let mut prevalidated = Vec::with_capacity(tasks.len());
     for task in tasks {
-        let prepared = if let Some(prepared) = prepare_condition_outcome_if_blocked(graph, task)? {
-            Some(prepared)
+        let prepared = if let Some(prepared) =
+            prepare_condition_outcome_if_blocked(graph, task, temporal_lowering)?
+        {
+            prepared
         } else {
-            prepare_validated_clean_if_unchanged(graph, task, comparator_resolver)?
+            prepare_validated_clean_if_unchanged(graph, task, comparator_resolver)?.unwrap_or(
+                PrevalidatedTask::NeedsCompute {
+                    temporal_ready: None,
+                },
+            )
         };
         prevalidated.push(prepared);
     }
@@ -282,7 +353,8 @@ fn prevalidate_stage_tasks(
 fn prepare_condition_outcome_if_blocked(
     graph: &mut SignalGraph,
     task: &super::types::EligibleTask,
-) -> Result<Option<PreparedEvaluation>, SignalError> {
+    temporal_lowering: TemporalLoweringContext,
+) -> Result<Option<PrevalidatedTask>, SignalError> {
     let dirty_aspects = graph.node_dirty_aspects(task.node)?;
     let required_context = graph.get_contract(task.node)?.semantics.required_context;
     let max_dependency_delta = max_dependency_delta(graph, task.node)?;
@@ -324,16 +396,19 @@ fn prepare_condition_outcome_if_blocked(
                 )
             }
         }
-        EvaluationCondition::Debounce(quiet_period_ms) => {
-            if default_resolver.debounce_ready(quiet_period_ms, &ctx)? {
-                Ok(None)
-            } else {
-                prepare_condition_blocked_result(
-                    graph,
-                    task.node,
-                    PreparedEvaluation::deferred_by_condition(),
-                )
-            }
+        EvaluationCondition::Temporal(condition) => {
+            graph
+                .telemetry_mut()
+                .temporal
+                .temporal_eligibility_lowering_count += 1;
+            lower_temporal_condition(
+                graph,
+                task.node,
+                condition,
+                &ctx,
+                temporal_lowering,
+                &mut default_resolver,
+            )
         }
         EvaluationCondition::Custom(key) => {
             if default_resolver.resolve_custom(&key, &ctx)? {
@@ -353,16 +428,81 @@ fn prepare_condition_blocked_result(
     graph: &mut SignalGraph,
     node: NodeId,
     prepared: PreparedEvaluation,
-) -> Result<Option<PreparedEvaluation>, SignalError> {
+) -> Result<Option<PrevalidatedTask>, SignalError> {
     let dependencies = capture_current_dependencies_without_refresh(graph, node)?;
-    Ok(Some(prepared.with_dependencies(dependencies)))
+    Ok(Some(PrevalidatedTask::Prepared(
+        prepared.with_dependencies(dependencies),
+    )))
+}
+
+fn lower_temporal_condition(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    condition: TemporalCondition,
+    ctx: &ConditionEvaluationContext,
+    temporal_lowering: TemporalLoweringContext,
+    resolver: &mut impl TemporalConditionResolver,
+) -> Result<Option<PrevalidatedTask>, SignalError> {
+    if let Some(prevalidated) =
+        lower_temporal_condition_from_runtime_clock(condition.clone(), temporal_lowering)
+    {
+        return match prevalidated {
+            PrevalidatedTask::Prepared(prepared) => {
+                prepare_condition_blocked_result(graph, node, prepared)
+            }
+            other => Ok(Some(other)),
+        };
+    }
+
+    if resolver.resolve_temporal(&condition, ctx)? {
+        Ok(Some(PrevalidatedTask::NeedsCompute {
+            temporal_ready: Some(ReadyTemporalEligibility::resolver_backed(condition)),
+        }))
+    } else {
+        prepare_condition_blocked_result(
+            graph,
+            node,
+            PreparedEvaluation::deferred_by_time(LoweredTemporalEligibility::resolver_deferred(
+                condition,
+            )),
+        )
+    }
+}
+
+fn lower_temporal_condition_from_runtime_clock(
+    condition: TemporalCondition,
+    temporal_lowering: TemporalLoweringContext,
+) -> Option<PrevalidatedTask> {
+    match condition.clone() {
+        TemporalCondition::AtOrAfter(at_or_after) => {
+            let authority_tick = temporal_lowering.runtime_tick_for(at_or_after.clock_domain())?;
+            if authority_tick >= at_or_after.tick() {
+                Some(PrevalidatedTask::NeedsCompute {
+                    temporal_ready: Some(ReadyTemporalEligibility::runtime_clock_backed(
+                        condition,
+                        authority_tick,
+                    )),
+                })
+            } else {
+                Some(PrevalidatedTask::Prepared(
+                    PreparedEvaluation::deferred_by_time(LoweredTemporalEligibility::Deferred(
+                        DeferredTemporalEligibility::runtime_clock_backed(
+                            condition,
+                            authority_tick,
+                        ),
+                    )),
+                ))
+            }
+        }
+        _ => None,
+    }
 }
 
 fn prepare_validated_clean_if_unchanged(
     graph: &mut SignalGraph,
     task: &super::types::EligibleTask,
     _comparator_resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<Option<PreparedEvaluation>, SignalError> {
+) -> Result<Option<PrevalidatedTask>, SignalError> {
     if matches!(
         task.request_mode,
         crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand
@@ -390,9 +530,37 @@ fn prepare_validated_clean_if_unchanged(
     }
 
     let dependencies = capture_current_dependencies_without_refresh(graph, task.node)?;
-    Ok(Some(
+    Ok(Some(PrevalidatedTask::Prepared(
         PreparedEvaluation::validated_clean().with_dependencies(dependencies),
-    ))
+    )))
+}
+
+#[derive(Debug, Clone)]
+enum PrevalidatedTask {
+    Prepared(PreparedEvaluation),
+    NeedsCompute {
+        temporal_ready: Option<ReadyTemporalEligibility>,
+    },
+}
+
+impl PrevalidatedTask {
+    #[cfg(feature = "parallel")]
+    fn temporal_ready(&self) -> Option<ReadyTemporalEligibility> {
+        match self {
+            Self::Prepared(_) => None,
+            Self::NeedsCompute { temporal_ready } => temporal_ready.clone(),
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    fn into_prepared(self) -> PreparedEvaluation {
+        match self {
+            Self::Prepared(prepared) => prepared,
+            Self::NeedsCompute { .. } => {
+                panic!("compute-needed task was converted into prepared output too early")
+            }
+        }
+    }
 }
 
 fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {

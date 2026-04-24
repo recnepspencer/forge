@@ -3,8 +3,8 @@ use crate::{
     ArtifactCompatibilityWindow, ArtifactFamilyId, ArtifactFormatVersion, ArtifactSemanticVersion,
     CompatibilityAdmissionCounters, CompatibilityManifestDigest, CompatibilityReadAdmissionOutcome,
     CompatibilityRejection, CompatibilityRejectionKind, ForgeStoreBuilder,
-    QuarantinedDecodedArtifact, RawSubscriptionSupportDeclaration, StoreErrorKind,
-    SubscriptionResumeClassification, SubscriptionSupportAccessStructure,
+    QuarantinedDecodedArtifact, RawSubscriptionSupportDeclaration, RawSupportProgramAction,
+    StoreErrorKind, SubscriptionResumeClassification, SubscriptionSupportAccessStructure,
     SubscriptionSupportActionOrigin, SubscriptionSupportAllocationScope,
     SubscriptionSupportArtifactId, SubscriptionSupportAuthority,
     SubscriptionSupportCompatibilityDecision, SubscriptionSupportCompatibilityDecisionKind,
@@ -13,16 +13,18 @@ use crate::{
     SubscriptionSupportFetchRequest, SubscriptionSupportMaintenanceDecision,
     SubscriptionSupportMissingSupportMaintenanceAdmission,
     SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportPayloadBudget,
-    SubscriptionSupportPayloadDigest, SubscriptionSupportPlanFamily,
-    SubscriptionSupportPortabilityDecision, SubscriptionSupportPortabilityDecisionKind,
-    SubscriptionSupportPortabilityOutcome, SubscriptionSupportRestartReconstructionRequest,
-    SubscriptionSupportRestartShard, SubscriptionSupportResumeEvidence,
-    SubscriptionSupportResumeRequest, SubscriptionSupportRetentionDecision,
-    SubscriptionSupportRetentionDecisionKind, SubscriptionSupportRetentionMaterialization,
-    SubscriptionSupportRole, SubscriptionSupportScope, SupportActionBreadthBudget, SupportActionId,
-    SupportAllocationScope, SupportCompatibilityReceiptWitness, SupportFamilyVersionWindow,
-    SupportPathClass, SupportPortabilityManifestBudget, SupportProgramDensityClass,
+    SubscriptionSupportOperationalVerdict, SubscriptionSupportOperationalVerdictTranslationRequest,
+    SubscriptionSupportPayloadBudget, SubscriptionSupportPayloadDigest,
+    SubscriptionSupportPlanFamily, SubscriptionSupportPortabilityDecision,
+    SubscriptionSupportPortabilityDecisionKind, SubscriptionSupportPortabilityOutcome,
+    SubscriptionSupportRestartReconstructionRequest, SubscriptionSupportRestartShard,
+    SubscriptionSupportResumeEvidence, SubscriptionSupportResumeRequest,
+    SubscriptionSupportRetentionDecision, SubscriptionSupportRetentionDecisionKind,
+    SubscriptionSupportRetentionMaterialization, SubscriptionSupportRole, SubscriptionSupportScope,
+    SupportActionBreadthBudget, SupportActionId, SupportActionPublicationState,
+    SupportActionRecoveryDisposition, SupportAllocationScope, SupportCompatibilityReceiptWitness,
+    SupportFamilyVersionWindow, SupportPathClass, SupportPortabilityManifestBudget,
+    SupportProgramDensityClass,
 };
 
 fn raw_exact() -> RawSubscriptionSupportDeclaration {
@@ -180,26 +182,30 @@ fn rejected_read_outcome_witness(
 #[test]
 fn subscription_support_operational_facade_helpers_record_backend_counters() {
     let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
-    let basis = SubscriptionSupportOperationalBasis::new(
-        SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
-        SubscriptionSupportFamilyKind::BasisBoundContinuationSupport,
-        SubscriptionSupportRole::ExactContinuation,
-        SubscriptionSupportArtifactId("artifact:phase-1-facade".into()),
-        "basis:facade",
-        "cursor:facade",
-        "checkpoint:facade",
-        "compatibility:facade",
-        "portability:facade",
-        SubscriptionSupportActionOrigin::Retention,
-    )
-    .unwrap();
+    let basis = retention_basis("facade");
+    let retention_plan = store
+        .admit_subscription_support_retention_batch(
+            SupportActionId::new("support-retention:facade-translation").unwrap(),
+            vec![basis.clone()],
+            SubscriptionSupportRetentionDecision::retain_exact(),
+            SupportPathClass::OperationalPlanning,
+            SupportProgramDensityClass::FamilyLocalBatch,
+            SupportAllocationScope::FamilyLocalBatch,
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+    let retention_report = store
+        .publish_subscription_support_retention_consequence(retention_plan)
+        .unwrap();
 
     store
         .translate_subscription_support_operational_verdict(
-            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
-            basis,
-            None,
-            None,
+            SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_retention_report(
+                &retention_report,
+                basis,
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -504,6 +510,79 @@ fn subscription_support_maintenance_facade_admits_descriptor_and_counters() {
 }
 
 #[test]
+fn subscription_support_maintenance_delay_report_persists_without_publishing_action() {
+    let path = unique_test_store_path("forge-store-support-maintenance-delay-local-reopen");
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let basis = maintenance_basis("delayed-local");
+        let retained_basis_digest = basis.basis_digest().to_string();
+        let plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:delayed-local").unwrap(),
+                vec![basis],
+                SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
+                    retained_basis_digest,
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+
+        let report = store
+            .report_delayed_subscription_support_maintenance(
+                &plan,
+                "maintenance pacing deferred support rebuild",
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+
+        assert_eq!(
+            report.debt_summary().verdict(),
+            SubscriptionSupportOperationalVerdict::RebuildRequired
+        );
+        assert_eq!(
+            store
+                .subscription_support_counters()
+                .support_maintenance_delay_count(),
+            1
+        );
+        assert_eq!(
+            store
+                .subscription_support_counters()
+                .support_action_envelope_publications(),
+            0
+        );
+    }
+
+    let reopened = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
+    assert_eq!(
+        reopened
+            .subscription_support_counters()
+            .support_maintenance_delay_count(),
+        1
+    );
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get("subscription_support_maintenance_debt_records")
+        .and_then(serde_json::Value::as_object)
+        .expect("maintenance debt records should persist");
+    assert_eq!(records.len(), 1);
+}
+
+#[test]
 fn subscription_support_maintenance_descriptor_records_survive_local_file_reopen() {
     let path = unique_test_store_path("forge-store-support-maintenance-local-reopen");
     let declaration_id = {
@@ -668,6 +747,65 @@ fn local_file_subscription_support_maintenance_descriptor_drift_fails_open() {
 }
 
 #[test]
+fn local_file_subscription_support_maintenance_debt_drift_fails_open() {
+    let path = unique_test_store_path("forge-store-support-maintenance-debt-drift");
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let basis = maintenance_basis("debt-drift");
+        let retained_basis_digest = basis.basis_digest().to_string();
+        let plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:debt-drift").unwrap(),
+                vec![basis],
+                SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
+                    retained_basis_digest,
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        store
+            .report_delayed_subscription_support_maintenance(
+                &plan,
+                "maintenance debt drift fixture",
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+    }
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let mut payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get_mut("subscription_support_maintenance_debt_records")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("support maintenance debt records should persist");
+    let first_record = records
+        .values_mut()
+        .next()
+        .expect("one debt record should persist");
+    first_record["verdict"] = serde_json::Value::String(String::from("ExactResumePreserved"));
+    std::fs::write(&path, serde_json::to_string_pretty(&payload).unwrap()).unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("drifted maintenance debt report should fail reopen");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportPublicationViolation
+    );
+}
+
+#[test]
 fn publish_subscription_support_persists_complete_record_family() {
     let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
     let admitted = store
@@ -709,6 +847,421 @@ fn publish_subscription_support_persists_complete_record_family() {
     assert_eq!(
         fetched.record_set().compatibility_digest(),
         "compatibility:1"
+    );
+}
+
+#[test]
+fn subscription_support_action_publication_recovery_marks_pending_action_interrupted_after_reopen()
+{
+    let path = unique_test_store_path("forge-store-subscription-support-action-pending-recovery");
+    let action_id = SupportActionId::new("support-retention:pending-publication-recovery").unwrap();
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let executed = RawSupportProgramAction::new(
+            action_id.clone(),
+            retention_basis("pending-recovery"),
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap()
+        .plan()
+        .verify()
+        .execute();
+        store
+            .persist_subscription_support_executed_action_for_publication(executed)
+            .unwrap();
+    }
+
+    let mut reopened = ForgeStoreBuilder::new()
+        .local_file(path.clone())
+        .build()
+        .unwrap();
+    let report = reopened
+        .recover_subscription_support_action_publication(action_id.clone())
+        .unwrap();
+    assert_eq!(
+        report.recovery_disposition(),
+        SupportActionRecoveryDisposition::InterruptedBeforePublication
+    );
+    assert!(report.completed_action().is_none());
+    assert_eq!(
+        reopened
+            .subscription_support_counters()
+            .support_action_interrupted_recovery_count(),
+        1
+    );
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get("subscription_support_action_records")
+        .and_then(serde_json::Value::as_object)
+        .expect("support action records should persist");
+    let record = records
+        .get(action_id.as_str())
+        .expect("pending action record should persist");
+    assert_eq!(
+        record
+            .get("publication_state")
+            .and_then(serde_json::Value::as_str),
+        Some("InterruptedBeforePublication")
+    );
+
+    let mut reopened_again = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+    let second = reopened_again
+        .recover_subscription_support_action_publication(action_id)
+        .unwrap();
+    assert_eq!(
+        second.recovery_disposition(),
+        SupportActionRecoveryDisposition::InterruptedBeforePublication
+    );
+    assert_eq!(
+        reopened_again
+            .subscription_support_counters()
+            .support_action_interrupted_recovery_count(),
+        1
+    );
+}
+
+#[test]
+fn subscription_support_action_publication_recovery_reopens_published_consequence_without_duplication(
+) {
+    let path =
+        unique_test_sqlite_path("forge-store-subscription-support-action-published-recovery");
+    let action_id =
+        SupportActionId::new("support-retention:published-publication-recovery").unwrap();
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .sqlite_file(path.clone())
+            .build()
+            .unwrap();
+        let plan = store
+            .admit_subscription_support_retention_batch(
+                action_id.clone(),
+                vec![retention_basis("published-recovery")],
+                SubscriptionSupportRetentionDecision::retain_exact(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::FamilyLocalBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        store
+            .publish_subscription_support_retention_consequence(plan)
+            .unwrap();
+    }
+
+    let mut reopened = ForgeStoreBuilder::new()
+        .sqlite_file(path.clone())
+        .build()
+        .unwrap();
+    let report = reopened
+        .recover_subscription_support_action_publication(action_id)
+        .unwrap();
+    assert_eq!(
+        report.recovery_disposition(),
+        SupportActionRecoveryDisposition::PublishedConsequenceRecovered
+    );
+    let completed = report
+        .completed_action()
+        .expect("published action recovery should expose completed action");
+    assert_eq!(
+        completed.envelope().recovery_disposition(),
+        SupportActionRecoveryDisposition::PublishedConsequenceRecovered
+    );
+    assert_eq!(
+        reopened
+            .subscription_support_counters()
+            .support_action_envelope_publications(),
+        1
+    );
+    assert_eq!(
+        reopened
+            .subscription_support_counters()
+            .support_action_interrupted_recovery_count(),
+        0
+    );
+
+    let mut reopened_again = ForgeStoreBuilder::new().sqlite_file(path).build().unwrap();
+    let second = reopened_again
+        .recover_subscription_support_action_publication(
+            SupportActionId::new("support-retention:published-publication-recovery").unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        second.recovery_disposition(),
+        SupportActionRecoveryDisposition::PublishedConsequenceRecovered
+    );
+    assert_eq!(
+        reopened_again
+            .subscription_support_counters()
+            .support_action_interrupted_recovery_count(),
+        0
+    );
+}
+
+#[test]
+fn subscription_support_translation_rejects_forged_report_basis() {
+    let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+    let plan = store
+        .admit_subscription_support_retention_batch(
+            SupportActionId::new("support-retention:forged-translation-basis").unwrap(),
+            vec![retention_basis("forged-translation-basis")],
+            SubscriptionSupportRetentionDecision::retain_exact(),
+            SupportPathClass::OperationalPlanning,
+            SupportProgramDensityClass::FamilyLocalBatch,
+            SupportAllocationScope::FamilyLocalBatch,
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+    let report = store
+        .publish_subscription_support_retention_consequence(plan)
+        .unwrap();
+
+    let forged_basis = SubscriptionSupportOperationalBasis::new(
+        SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
+        SubscriptionSupportFamilyKind::BasisBoundContinuationSupport,
+        SubscriptionSupportRole::ExactContinuation,
+        SubscriptionSupportArtifactId("artifact:store-retention:forged-translation-basis".into()),
+        "basis:store-retention",
+        "cursor:store-retention",
+        "checkpoint:store-retention",
+        "compatibility:forged-drift",
+        "portability:store-retention",
+        SubscriptionSupportActionOrigin::Retention,
+    )
+    .unwrap();
+
+    let error =
+        SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_retention_report(
+            &report,
+            forged_basis,
+        )
+        .expect_err(
+            "translation must reject a report basis whose digests drift from the published proof",
+        );
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportClassificationViolation
+    );
+}
+
+#[test]
+fn subscription_support_maintenance_debt_translation_requires_reported_basis() {
+    let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+    let basis = maintenance_basis("delayed-exact-translation");
+    let plan = store
+        .admit_subscription_support_maintenance_batch(
+            SupportActionId::new("support-maintenance:delayed-exact-translation").unwrap(),
+            vec![basis.clone()],
+            SubscriptionSupportMaintenanceDecision::refresh_descriptor_admitted(
+                "maintenance refresh deferred by operator pacing",
+            )
+            .unwrap(),
+            SupportPathClass::MaintenanceExecution,
+            SupportProgramDensityClass::MaintenanceKeyBatch,
+            SupportAllocationScope::FamilyLocalBatch,
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+    let report = store
+        .report_delayed_subscription_support_maintenance(
+            &plan,
+            "maintenance refresh deferred by operator pacing",
+            SupportActionBreadthBudget::new(4, 1024).unwrap(),
+            128,
+        )
+        .unwrap();
+
+    let forged_basis = SubscriptionSupportOperationalBasis::new(
+        SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
+        SubscriptionSupportFamilyKind::BasisBoundContinuationSupport,
+        SubscriptionSupportRole::ExactContinuation,
+        basis.artifact_id().clone(),
+        "basis:store-maintenance:delayed-exact-translation",
+        "cursor:store-maintenance",
+        "checkpoint:store-maintenance",
+        "compatibility:forged-drift",
+        "portability:store-maintenance",
+        SubscriptionSupportActionOrigin::Maintenance,
+    )
+    .unwrap();
+
+    let error =
+        SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_maintenance_debt_report(
+            &report,
+            forged_basis,
+        )
+        .expect_err("maintenance debt translation must reject a basis the debt report did not prove");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportClassificationViolation
+    );
+
+    store
+        .translate_subscription_support_operational_verdict(
+            SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_maintenance_debt_report(
+                &report,
+                basis,
+            )
+            .unwrap(),
+        )
+        .expect("exact delayed refresh should still translate when using the report-proven basis");
+}
+
+#[test]
+fn local_file_interrupted_refresh_maintenance_work_kind_drift_fails_open() {
+    let path = unique_test_store_path("forge-store-support-maintenance-work-kind-drift");
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:restart-refresh-drift").unwrap(),
+                vec![maintenance_basis("restart-refresh-drift")],
+                SubscriptionSupportMaintenanceDecision::interrupted_restart_recovered(
+                    crate::SupportMaintenanceWorkKind::Refresh,
+                    "maintenance-restart:refresh-drift",
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        store
+            .publish_subscription_support_maintenance_consequence(plan)
+            .unwrap();
+    }
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let mut payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get_mut("subscription_support_maintenance_descriptor_records")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("support maintenance descriptor records should persist");
+    let first_record = records
+        .values_mut()
+        .next()
+        .expect("one descriptor record should persist");
+    first_record["work_kind"] = serde_json::Value::String(String::from("Rebuild"));
+    std::fs::write(&path, serde_json::to_string_pretty(&payload).unwrap()).unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("interrupted refresh descriptors must not reopen as rebuild work");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportPublicationViolation
+    );
+}
+
+#[test]
+fn local_file_subscription_support_action_record_drift_fails_open() {
+    let path = unique_test_store_path("forge-store-subscription-support-action-record-drift");
+    let action_id = SupportActionId::new("support-retention:drifted-action-record").unwrap();
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let executed = RawSupportProgramAction::new(
+            action_id.clone(),
+            retention_basis("drifted-action"),
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap()
+        .plan()
+        .verify()
+        .execute();
+        store
+            .persist_subscription_support_executed_action_for_publication(executed)
+            .unwrap();
+    }
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let mut payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get_mut("subscription_support_action_records")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("support action records should persist");
+    let record = records
+        .get_mut(action_id.as_str())
+        .expect("staged action record should persist");
+    record["publication_state"] = serde_json::Value::String(format!(
+        "{:?}",
+        SupportActionPublicationState::PublishedConsequence
+    ));
+    std::fs::write(&path, serde_json::to_string_pretty(&payload).unwrap()).unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("drifted action record should fail reopen");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportPublicationViolation
+    );
+}
+
+#[test]
+fn local_file_subscription_support_action_record_rejects_illegal_tier_recall_rebuild_state() {
+    let path = unique_test_store_path("forge-store-subscription-support-tier-recall-action-drift");
+    let action_id = SupportActionId::new("support-tier-recall:drifted-action-record").unwrap();
+    {
+        let mut store = ForgeStoreBuilder::new()
+            .local_file(path.clone())
+            .build()
+            .unwrap();
+        let executed = RawSupportProgramAction::new(
+            action_id.clone(),
+            retention_basis("tier-recall-drift"),
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap()
+        .plan()
+        .verify()
+        .execute();
+        store
+            .persist_subscription_support_executed_action_for_publication(executed)
+            .unwrap();
+    }
+
+    let raw = std::fs::read_to_string(&path).unwrap();
+    let mut payload: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let records = payload
+        .get_mut("subscription_support_action_records")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("support action records should persist");
+    let record = records
+        .get_mut(action_id.as_str())
+        .expect("staged action record should persist");
+    record["action_origin"] = serde_json::Value::String(String::from("TierRecall"));
+    record["verdict"] = serde_json::Value::String(String::from("RebuildRequired"));
+    std::fs::write(&path, serde_json::to_string_pretty(&payload).unwrap()).unwrap();
+
+    let error = ForgeStoreBuilder::new()
+        .local_file(path)
+        .build()
+        .expect_err("illegal tier-recall rebuild posture must fail reopen");
+
+    assert_eq!(
+        error.kind(),
+        &StoreErrorKind::SubscriptionSupportPublicationViolation
     );
 }
 
@@ -1150,7 +1703,7 @@ fn subscription_support_missing_materialized_support_requires_retained_rebuild_b
                 "basis:retained",
                 SubscriptionSupportMissingSupportMaintenanceAdmission::new(
                     SupportActionId::new("support-maintenance:missing-recovery").unwrap(),
-                    SupportActionBreadthBudget::new(1, 256).unwrap(),
+                    SupportActionBreadthBudget::new(1, 1024).unwrap(),
                     128,
                 )
                 .unwrap(),

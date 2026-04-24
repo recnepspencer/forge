@@ -1,7 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::data::graph::SignalGraph;
+use crate::data::node::CheckpointNodeImage;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::temporal::{
+    TemporalWakeOwner, TemporalWakeRetirementBatch, TemporalWakeRetirementReason,
+};
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
@@ -9,6 +13,7 @@ use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 use super::super::merge::{BranchMergeKind, BranchMergeStrategy, BranchMutationLedger};
 use super::super::reconstructability::{AuthorityState, DerivedState};
 use super::super::runtime_state::{AuthorityTransferPacket, ExplicitBranchForkPacket};
+use super::super::temporal::TemporalRuntimeState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::logic::transaction::runtime) struct LatestMergeReference {
@@ -184,6 +189,27 @@ where
     pub fn clear_branch_mutation_nodes(&mut self) {
         self.authority.graph.clear_branch_mutation_nodes();
     }
+
+    pub fn replace_node_from_checkpoint_image(
+        &mut self,
+        node: crate::data::handle::NodeId,
+        image: CheckpointNodeImage,
+    ) -> Result<TemporalWakeRetirementBatch, crate::data::error::SignalError> {
+        if !self.authority.graph.is_alive(node) {
+            return Err(crate::data::error::SignalError::invalid_input(format!(
+                "cannot replace checkpoint image for non-live node owner {node}"
+            )));
+        }
+
+        self.authority
+            .graph
+            .replace_entry_from_checkpoint_image(node, image)?;
+        self.derived.temporal.retire_wakes_for_owner(
+            TemporalWakeOwner::Node(node),
+            TemporalWakeRetirementReason::Superseded,
+            &mut self.derived.telemetry.temporal,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -243,6 +269,7 @@ where
             },
             DerivedState {
                 checkpoint: self.derived.checkpoint,
+                temporal: self.derived.temporal,
                 telemetry: runtime_telemetry.unwrap_or(self.derived.telemetry),
             },
             self.ancestry,
@@ -321,7 +348,9 @@ where
         graph: &mut SignalGraph,
         config: &mut SignalRuntimeConfig<T>,
         checkpoint: &mut CheckpointRuntime<D, I>,
+        temporal: &mut TemporalRuntimeState,
         telemetry: &mut RuntimeTelemetry,
+        count_temporal_restore: bool,
     ) {
         self.observe_allocator_state(state.graph());
         state
@@ -347,7 +376,17 @@ where
         *graph = authority.graph;
         *config = authority.config;
         *checkpoint = derived.checkpoint;
-        *telemetry = derived.telemetry;
+        *temporal = derived.temporal;
+        if count_temporal_restore {
+            temporal.bump_previous_value_capability_epoch();
+        }
+        let mut restored_telemetry = derived.telemetry;
+        if count_temporal_restore {
+            restored_telemetry
+                .temporal
+                .branch_local_temporal_restore_count += 1;
+        }
+        *telemetry = restored_telemetry;
         self.observe_allocator_state(graph);
     }
 

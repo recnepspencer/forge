@@ -2,14 +2,16 @@ use super::{
     stable_digest, SubscriptionResumeClassification, SubscriptionSupportCatalog,
     SubscriptionSupportClassificationReport, SubscriptionSupportCompatibilityOutcome,
     SubscriptionSupportCompatibilityReport, SubscriptionSupportDensityClass,
-    SubscriptionSupportDriftCause, SubscriptionSupportMaintenanceReport,
-    SubscriptionSupportMissingSupportRecoveryReport, SubscriptionSupportOperationalVerdict,
-    SubscriptionSupportPlanFamily, SubscriptionSupportPortabilityReport,
-    SubscriptionSupportPostActionReport, SubscriptionSupportResultCostSurface,
+    SubscriptionSupportDriftCause, SubscriptionSupportMaintenanceDebtReport,
+    SubscriptionSupportMaintenanceReport, SubscriptionSupportMissingSupportRecoveryReport,
+    SubscriptionSupportOperationalVerdict, SubscriptionSupportPlanFamily,
+    SubscriptionSupportPortabilityReport, SubscriptionSupportPostActionReport,
+    SubscriptionSupportResultCostSurface,
 };
 use crate::failure::{StoreError, StoreErrorKind};
 use crate::{
-    SubscriptionSupportAccessStructureReport, SupportBatchProofKind, SupportBatchReceiptReuseReport,
+    SubscriptionSupportAccessStructureReport, SubscriptionSupportActionPublicationRecoveryReport,
+    SupportBatchProofKind, SupportBatchReceiptReuseReport,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -43,9 +45,13 @@ pub struct SubscriptionSupportCounterSnapshot {
     operational_verdict_translation_count: u64,
     operational_verdict_translation_rejections: u64,
     support_action_envelope_publications: u64,
+    support_action_recovery_count: u64,
+    support_hidden_exact_loss_count: u64,
     support_hot_path_rejections: u64,
+    support_payload_budget_rejection_count: u64,
     support_batch_receipt_reuse_count: u64,
     support_store_global_debt_rejections: u64,
+    support_global_scan_recovery_rejection_count: u64,
     support_retention_plan_count: u64,
     support_retention_affected_entries: u64,
     support_retained_family_count: u64,
@@ -71,6 +77,7 @@ pub struct SubscriptionSupportCounterSnapshot {
     support_import_rejection_count: u64,
     support_capsule_manifest_budget_denial_count: u64,
     support_maintenance_descriptor_count: u64,
+    support_maintenance_delay_count: u64,
     support_maintenance_rebuild_debt_count: u64,
     support_maintenance_refresh_count: u64,
     support_maintenance_compatibility_migration_count: u64,
@@ -176,8 +183,24 @@ impl SubscriptionSupportCounterSnapshot {
         self.support_action_envelope_publications
     }
 
+    pub fn support_action_recovery_count(&self) -> u64 {
+        self.support_action_recovery_count
+    }
+
+    pub fn support_action_interrupted_recovery_count(&self) -> u64 {
+        self.support_action_recovery_count
+    }
+
+    pub fn support_hidden_exact_loss_count(&self) -> u64 {
+        self.support_hidden_exact_loss_count
+    }
+
     pub fn support_hot_path_rejections(&self) -> u64 {
         self.support_hot_path_rejections
+    }
+
+    pub fn support_payload_budget_rejection_count(&self) -> u64 {
+        self.support_payload_budget_rejection_count
     }
 
     pub fn support_batch_receipt_reuse_count(&self) -> u64 {
@@ -186,6 +209,10 @@ impl SubscriptionSupportCounterSnapshot {
 
     pub fn support_store_global_debt_rejections(&self) -> u64 {
         self.support_store_global_debt_rejections
+    }
+
+    pub fn support_global_scan_recovery_rejection_count(&self) -> u64 {
+        self.support_global_scan_recovery_rejection_count
     }
 
     pub fn support_retention_plan_count(&self) -> u64 {
@@ -288,6 +315,10 @@ impl SubscriptionSupportCounterSnapshot {
         self.support_maintenance_descriptor_count
     }
 
+    pub fn support_maintenance_delay_count(&self) -> u64 {
+        self.support_maintenance_delay_count
+    }
+
     pub fn support_maintenance_rebuild_debt_count(&self) -> u64 {
         self.support_maintenance_rebuild_debt_count
     }
@@ -366,6 +397,7 @@ impl SubscriptionSupportCounterSnapshot {
 
     pub(crate) fn record_budget_denial(&mut self) {
         self.budget_denials += 1;
+        self.support_payload_budget_rejection_count += 1;
     }
 
     pub(crate) fn record_restart_reconstruction(&mut self, shards_touched: u64) {
@@ -393,8 +425,16 @@ impl SubscriptionSupportCounterSnapshot {
         self.support_action_envelope_publications += 1;
     }
 
+    pub(crate) fn record_support_action_recovery(&mut self) {
+        self.support_action_recovery_count += 1;
+    }
+
     pub(crate) fn record_support_hot_path_rejection(&mut self) {
         self.support_hot_path_rejections += 1;
+    }
+
+    pub(crate) fn record_support_global_scan_recovery_rejection(&mut self) {
+        self.support_global_scan_recovery_rejection_count += 1;
     }
 
     pub(crate) fn record_support_batch_receipt_reuse(&mut self) {
@@ -483,6 +523,7 @@ impl SubscriptionSupportCounterSnapshot {
 
     pub(crate) fn record_support_capsule_manifest_budget_denial(&mut self) {
         self.support_capsule_manifest_budget_denial_count += 1;
+        self.support_payload_budget_rejection_count += 1;
     }
 
     pub(crate) fn record_support_maintenance_plan(
@@ -492,6 +533,10 @@ impl SubscriptionSupportCounterSnapshot {
     ) {
         self.support_maintenance_descriptor_count += descriptor_count;
         self.support_maintenance_coalesced_duplicate_count += coalesced_duplicate_count;
+    }
+
+    pub(crate) fn record_support_maintenance_delay_report(&mut self) {
+        self.support_maintenance_delay_count += 1;
     }
 
     pub(crate) fn record_support_maintenance_rebuild_descriptor(&mut self) {
@@ -526,6 +571,7 @@ pub struct SubscriptionSupportCertificationBundle {
     subscription_support_digest: String,
     replay_digest: String,
     diagnostics_digest: String,
+    failure_digest: String,
     counter_digest: String,
 }
 
@@ -537,6 +583,11 @@ impl SubscriptionSupportCertificationBundle {
     ) -> Result<Self, StoreError> {
         let classification_digest = stable_digest(&reports)?;
         let counter_digest = stable_digest(&counter_snapshot)?;
+        let failure_reports = reports
+            .iter()
+            .filter(|report| report.classification() != SubscriptionResumeClassification::Exact)
+            .cloned()
+            .collect::<Vec<_>>();
         Ok(Self {
             catalog_family_count: catalog.family_count(),
             counter_snapshot,
@@ -547,6 +598,7 @@ impl SubscriptionSupportCertificationBundle {
             subscription_support_digest: classification_digest.clone(),
             replay_digest: classification_digest.clone(),
             diagnostics_digest: classification_digest,
+            failure_digest: stable_digest(&failure_reports)?,
             counter_digest,
         })
     }
@@ -567,6 +619,7 @@ impl SubscriptionSupportCertificationBundle {
             subscription_support_digest: stable_digest(&matrix.subscription_support_digests())?,
             replay_digest: stable_digest(&matrix.replay_digests())?,
             diagnostics_digest: stable_digest(&matrix.diagnostics_digests())?,
+            failure_digest: stable_digest(&matrix.failure_digests())?,
             counter_digest: stable_digest(&matrix.counter_digests())?,
             matrix: Some(matrix),
         })
@@ -606,6 +659,10 @@ impl SubscriptionSupportCertificationBundle {
 
     pub fn diagnostics_digest(&self) -> &str {
         &self.diagnostics_digest
+    }
+
+    pub fn failure_digest(&self) -> &str {
+        &self.failure_digest
     }
 
     pub fn counter_digest(&self) -> &str {
@@ -658,6 +715,7 @@ pub enum SubscriptionSupportCertificationLaneKind {
     SupportMaintenanceCompatibilityMigrationAdmitted,
     SupportMaintenanceDegradationRecoveryAdmitted,
     SupportMaintenanceInterruptedRestartRecovered,
+    SupportMaintenanceDelayedDebtReported,
     SupportMaintenanceCoalescedRebuildAdmitted,
     SupportFamilyLocalBatchBounded,
     SupportBasisLocalBatchBounded,
@@ -666,6 +724,9 @@ pub enum SubscriptionSupportCertificationLaneKind {
     SupportStoreGlobalDensityRejected,
     SupportForegroundOperationalWorkRejected,
     SupportBatchReceiptReuseVerified,
+    SupportActionPublicationCrashRecovered,
+    SupportGlobalScanRecoveryForbidden,
+    SupportHiddenExactLossForbidden,
 }
 
 impl SubscriptionSupportCertificationLaneKind {
@@ -834,6 +895,36 @@ impl SubscriptionSupportCertificationLaneOutcome {
         })
     }
 
+    pub fn from_action_publication_recovery(
+        lane: SubscriptionSupportCertificationLaneKind,
+        report: &SubscriptionSupportActionPublicationRecoveryReport,
+        counter_snapshot: SubscriptionSupportCounterSnapshot,
+    ) -> Result<Self, StoreError> {
+        Ok(Self {
+            lane,
+            classification: operational_verdict_classification(report.verdict()),
+            primary_cause: None,
+            suppressed_causes: Vec::new(),
+            truth_digest: stable_digest(&(
+                lane,
+                report.action_id(),
+                report.recovery_disposition(),
+                report.verdict(),
+            ))?,
+            artifact_digest: stable_digest(&(report.action_id(), report.artifact_id()))?,
+            subscription_support_digest: stable_digest(report)?,
+            replay_digest: stable_digest(&(lane, &counter_snapshot))?,
+            diagnostics_digest: stable_digest(&(
+                report.action_origin(),
+                report.completed_action().map(|action| action.envelope()),
+            ))?,
+            counter_digest: stable_digest(&counter_snapshot)?,
+            cost_surface: None,
+            batch_receipt_reuse_report: None,
+            counter_snapshot,
+        })
+    }
+
     pub fn from_compatibility_report(
         lane: SubscriptionSupportCertificationLaneKind,
         report: &SubscriptionSupportCompatibilityReport,
@@ -979,6 +1070,36 @@ impl SubscriptionSupportCertificationLaneOutcome {
         })
     }
 
+    pub fn from_maintenance_debt_report(
+        lane: SubscriptionSupportCertificationLaneKind,
+        report: &SubscriptionSupportMaintenanceDebtReport,
+        counter_snapshot: SubscriptionSupportCounterSnapshot,
+    ) -> Result<Self, StoreError> {
+        Ok(Self {
+            lane,
+            classification: operational_verdict_classification(report.debt_summary().verdict()),
+            primary_cause: None,
+            suppressed_causes: Vec::new(),
+            truth_digest: stable_digest(&(
+                lane,
+                report.debt_summary().work_kind(),
+                report.debt_summary().verdict(),
+                report.debt_summary().delay_reason(),
+            ))?,
+            artifact_digest: stable_digest(&(
+                report.debt_summary().action_id(),
+                report.debt_summary().affected_set_digest(),
+            ))?,
+            subscription_support_digest: stable_digest(report)?,
+            replay_digest: stable_digest(&(lane, &counter_snapshot))?,
+            diagnostics_digest: stable_digest(report.debt_summary())?,
+            counter_digest: stable_digest(&counter_snapshot)?,
+            cost_surface: Some(report.cost_surface()),
+            batch_receipt_reuse_report: None,
+            counter_snapshot,
+        })
+    }
+
     pub fn lane(&self) -> SubscriptionSupportCertificationLaneKind {
         self.lane
     }
@@ -1093,6 +1214,16 @@ impl SubscriptionSupportCertificationMatrix {
             .collect()
     }
 
+    fn failure_digests(&self) -> Vec<&str> {
+        self.lane_outcomes
+            .iter()
+            .filter(|outcome| {
+                outcome.classification != Some(SubscriptionResumeClassification::Exact)
+            })
+            .map(|outcome| outcome.truth_digest.as_str())
+            .collect()
+    }
+
     fn counter_digests(&self) -> Vec<&str> {
         self.lane_outcomes
             .iter()
@@ -1113,14 +1244,16 @@ fn validate_lane_semantics(
         NotResumableCursorDrift, OversizedPayloadRejectedBeforeDecode,
         RebuildBasisMissingNotResumable, RebuildRequiredMissingSupport, RestartExactResume,
         RestartShardBoundedReconstruction, ResultCostSurfaceExact, RuntimeHandoffEquivalence,
-        SessionMemoryLossNonAuthoritative, SupportBasisLocalBatchBounded,
-        SupportBatchReceiptReuseVerified, SupportCompatibilityDegraded,
-        SupportCompatibilityExactMigration, SupportCompatibilityOldReaderRejected,
-        SupportCompatibilityUnknownFamilyRejected, SupportCompatibilityVersionSkewRejected,
-        SupportDigestDrift, SupportFamilyLocalBatchBounded,
-        SupportForegroundOperationalWorkRejected, SupportMaintenanceCoalescedRebuildAdmitted,
+        SessionMemoryLossNonAuthoritative, SupportActionPublicationCrashRecovered,
+        SupportBasisLocalBatchBounded, SupportBatchReceiptReuseVerified,
+        SupportCompatibilityDegraded, SupportCompatibilityExactMigration,
+        SupportCompatibilityOldReaderRejected, SupportCompatibilityUnknownFamilyRejected,
+        SupportCompatibilityVersionSkewRejected, SupportDigestDrift,
+        SupportFamilyLocalBatchBounded, SupportForegroundOperationalWorkRejected,
+        SupportGlobalScanRecoveryForbidden, SupportHiddenExactLossForbidden,
+        SupportMaintenanceCoalescedRebuildAdmitted,
         SupportMaintenanceCompatibilityMigrationAdmitted,
-        SupportMaintenanceDegradationRecoveryAdmitted,
+        SupportMaintenanceDegradationRecoveryAdmitted, SupportMaintenanceDelayedDebtReported,
         SupportMaintenanceInterruptedRestartRecovered, SupportMaintenanceKeyBatchBounded,
         SupportMaintenanceRebuildAdmitted, SupportMaintenanceRefreshAdmitted,
         SupportPortabilityFullScopeReplicated, SupportPortabilityImportAdmitted,
@@ -1255,10 +1388,14 @@ fn validate_lane_semantics(
         }
         OversizedPayloadRejectedBeforeDecode => {
             require_rejection(outcome)?;
-            if outcome.counter_snapshot.budget_denials() == 0 {
+            if outcome
+                .counter_snapshot
+                .support_payload_budget_rejection_count()
+                == 0
+            {
                 return invalid_lane(
                     outcome,
-                    "oversized payload lane must bind a budget denial counter",
+                    "oversized payload lane must bind the support payload budget rejection counter",
                 );
             }
         }
@@ -1494,6 +1631,33 @@ fn validate_lane_semantics(
                 );
             }
         }
+        SupportMaintenanceDelayedDebtReported => {
+            match outcome.classification {
+                Some(Exact | Degraded | RebuildRequired) => {}
+                _ => {
+                    return invalid_lane(
+                        outcome,
+                        "maintenance delayed lane must preserve the admitted maintenance posture",
+                    );
+                }
+            }
+            require_no_primary_cause(outcome)?;
+            let cost_surface = require_cost_surface(outcome)?;
+            if cost_surface.plan_family()
+                != SubscriptionSupportPlanFamily::MaintenanceParticipationPlan
+                || cost_surface.density_class()
+                    != SubscriptionSupportDensityClass::MaintenanceKeyBatch
+                || cost_surface.allocation_scope()
+                    != crate::SubscriptionSupportAllocationScope::OperatorReport
+                || cost_surface.scanned_support_rows() == 0
+                || outcome.counter_snapshot.support_maintenance_delay_count() == 0
+            {
+                return invalid_lane(
+                    outcome,
+                    "maintenance delayed lane must bind delayed debt reporting through operator-report cost surface",
+                );
+            }
+        }
         SupportMaintenanceCoalescedRebuildAdmitted => {
             require_classification(outcome, RebuildRequired)?;
             require_no_primary_cause(outcome)?;
@@ -1658,6 +1822,49 @@ fn validate_lane_semantics(
                 );
             }
         }
+        SupportActionPublicationCrashRecovered => {
+            require_no_primary_cause(outcome)?;
+            if outcome
+                .counter_snapshot
+                .support_action_interrupted_recovery_count()
+                == 0
+            {
+                return invalid_lane(
+                    outcome,
+                    "action publication crash recovery lane must bind the recovery counter",
+                );
+            }
+            match outcome.classification {
+                Some(Exact | Degraded | RebuildRequired | NotResumable) | None => {}
+            }
+        }
+        SupportGlobalScanRecoveryForbidden => {
+            require_rejection(outcome)?;
+            if outcome
+                .counter_snapshot
+                .support_global_scan_recovery_rejection_count()
+                == 0
+            {
+                return invalid_lane(
+                    outcome,
+                    "global-scan recovery forbidden lane must bind the explicit rejection counter",
+                );
+            }
+        }
+        SupportHiddenExactLossForbidden => {
+            require_rejection(outcome)?;
+            if outcome
+                .counter_snapshot
+                .operational_verdict_translation_rejections()
+                == 0
+                || outcome.counter_snapshot.support_hidden_exact_loss_count() != 0
+            {
+                return invalid_lane(
+                    outcome,
+                    "hidden exact-loss lane must bind translation rejection while hidden exact-loss count remains zero",
+                );
+            }
+        }
     }
     Ok(())
 }
@@ -1798,7 +2005,7 @@ const PHASE_5B_REQUIRED_CERTIFICATION_LANES: [SubscriptionSupportCertificationLa
     SubscriptionSupportCertificationLaneKind::BatchClassificationDebt,
 ];
 
-const PHASE_6A_REQUIRED_CERTIFICATION_LANES: [SubscriptionSupportCertificationLaneKind; 44] = [
+const PHASE_6A_REQUIRED_CERTIFICATION_LANES: [SubscriptionSupportCertificationLaneKind; 55] = [
     SubscriptionSupportCertificationLaneKind::ExactResumeControl,
     SubscriptionSupportCertificationLaneKind::RestartExactResume,
     SubscriptionSupportCertificationLaneKind::RebuildRequiredMissingSupport,
@@ -1842,5 +2049,16 @@ const PHASE_6A_REQUIRED_CERTIFICATION_LANES: [SubscriptionSupportCertificationLa
     SubscriptionSupportCertificationLaneKind::SupportMaintenanceCompatibilityMigrationAdmitted,
     SubscriptionSupportCertificationLaneKind::SupportMaintenanceDegradationRecoveryAdmitted,
     SubscriptionSupportCertificationLaneKind::SupportMaintenanceInterruptedRestartRecovered,
+    SubscriptionSupportCertificationLaneKind::SupportMaintenanceDelayedDebtReported,
     SubscriptionSupportCertificationLaneKind::SupportMaintenanceCoalescedRebuildAdmitted,
+    SubscriptionSupportCertificationLaneKind::SupportFamilyLocalBatchBounded,
+    SubscriptionSupportCertificationLaneKind::SupportBasisLocalBatchBounded,
+    SubscriptionSupportCertificationLaneKind::SupportPortabilityScopeBatchBounded,
+    SubscriptionSupportCertificationLaneKind::SupportMaintenanceKeyBatchBounded,
+    SubscriptionSupportCertificationLaneKind::SupportStoreGlobalDensityRejected,
+    SubscriptionSupportCertificationLaneKind::SupportForegroundOperationalWorkRejected,
+    SubscriptionSupportCertificationLaneKind::SupportBatchReceiptReuseVerified,
+    SubscriptionSupportCertificationLaneKind::SupportActionPublicationCrashRecovered,
+    SubscriptionSupportCertificationLaneKind::SupportGlobalScanRecoveryForbidden,
+    SubscriptionSupportCertificationLaneKind::SupportHiddenExactLossForbidden,
 ];

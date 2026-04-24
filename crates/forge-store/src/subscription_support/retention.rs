@@ -576,6 +576,13 @@ impl SubscriptionSupportRetentionMaterialization {
             Self::Expired(_) => SubscriptionSupportRetentionDecisionKind::ExpireByPolicy,
         }
     }
+
+    pub fn maintenance_admission_key(&self) -> Option<&str> {
+        match self {
+            Self::Reclaimed(set) => set.maintenance_admission_key(),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -758,6 +765,7 @@ impl SupportReclaimConsequence {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SubscriptionSupportPostActionReport {
     completed_action: CompletedSupportProgramAction,
+    translation_basis: SubscriptionSupportOperationalBasis,
     survival_witness: SupportRetentionSurvivalWitness,
     retention_record: SupportRetentionParticipationRecord,
     materialization: SubscriptionSupportRetentionMaterialization,
@@ -767,6 +775,7 @@ pub struct SubscriptionSupportPostActionReport {
 impl SubscriptionSupportPostActionReport {
     pub(crate) fn new(
         completed_action: CompletedSupportProgramAction,
+        translation_basis: SubscriptionSupportOperationalBasis,
         survival_witness: SupportRetentionSurvivalWitness,
         materialization: SubscriptionSupportRetentionMaterialization,
         decision_kind: SubscriptionSupportRetentionDecisionKind,
@@ -780,6 +789,7 @@ impl SubscriptionSupportPostActionReport {
         )?;
         Ok(Self {
             completed_action,
+            translation_basis,
             survival_witness,
             retention_record,
             materialization,
@@ -792,6 +802,10 @@ impl SubscriptionSupportPostActionReport {
 
     pub fn completed_action(&self) -> &CompletedSupportProgramAction {
         &self.completed_action
+    }
+
+    pub fn translation_basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.translation_basis
     }
 
     pub fn survival_witness(&self) -> &SupportRetentionSurvivalWitness {

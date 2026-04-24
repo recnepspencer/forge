@@ -662,6 +662,7 @@ fn publish_group_local_task_commit(
         dependency_updates,
         recomputed,
         partition_aware,
+        report.temporal_eligibility,
         rewiring,
         report.verdict,
         memoized_origin,

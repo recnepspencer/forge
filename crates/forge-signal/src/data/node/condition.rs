@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
+use crate::data::temporal::TemporalCondition;
 use crate::logic::transaction::{
     AspectMergePolicyBinding, ConflictIsolationPolicyName, ConflictPolicyName, DeletionPolicyName,
     IdentityMatcherName, MergeStrategyName, SourceOnlyPolicyName,
@@ -25,8 +26,8 @@ pub enum EvaluationCondition {
     DeltaThreshold(f64),
     /// Evaluate only when explicitly requested.
     OnDemand,
-    /// Evaluate only after this quiet period (milliseconds) with no updates.
-    Debounce(u64),
+    /// Evaluate according to a first-class temporal policy.
+    Temporal(TemporalCondition),
     /// Named custom condition handled by embedding runtime.
     Custom(String),
 }

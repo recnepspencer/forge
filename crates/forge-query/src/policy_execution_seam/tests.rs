@@ -93,8 +93,8 @@ fn seam_identity_binds_narrowed_artifact_components() {
 fn support_profile_and_handoff_report_keep_store_and_durable_debt_explicit() {
     let profile = runtime_backed_policy_execution_seam_support_profile();
     assert!(profile.surfaces().contains(&(
-        PolicyExecutionSeamSurface::StoreBackedExecution,
-        PolicyExecutionSeamSupportStatus::BlockedOnForgeStore
+        PolicyExecutionSeamSurface::StoreBackedRetainedHistoricalExecution,
+        PolicyExecutionSeamSupportStatus::LimitedAdmission
     )));
     assert!(profile.surfaces().contains(&(
         PolicyExecutionSeamSurface::DurablePolicyCursor,
@@ -107,10 +107,11 @@ fn support_profile_and_handoff_report_keep_store_and_durable_debt_explicit() {
 
     let handoff = runtime_backed_policy_execution_seam_handoff_report();
     assert_eq!(handoff.runtime_backed_verified_surface_count(), 7);
-    assert_eq!(handoff.blocked_or_deferred_surface_count(), 3);
+    assert_eq!(handoff.limited_admission_surface_count(), 1);
+    assert_eq!(handoff.blocked_or_deferred_surface_count(), 2);
     assert!(handoff
         .milestone_ten_store_backed_handoff()
-        .contains(&"store-backed policy-aware execution"));
+        .contains(&"store-backed diff execution parity"));
     assert!(handoff
         .milestone_eleven_durable_handoff()
         .contains(&"durable delivery cursors"));

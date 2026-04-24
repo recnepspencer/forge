@@ -1,7 +1,8 @@
 use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
 use crate::historical::{
     HistoricalCapabilityDescriptor, HistoricalEvaluationAdmission,
-    HistoricalMaterializationPathMetadata,
+    HistoricalMaterializationPathMetadata, RequestedHistoricalPathClass,
+    ResolvedHistoricalPathClass,
 };
 use crate::identity::hash_parts;
 use crate::preview::{AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationRequest};
@@ -229,6 +230,7 @@ pub struct QueryBasisContextBinding {
     request: QueryBasisContextRequest,
     query_digest: String,
     basis_digest: String,
+    basis_authority_family: BasisAuthorityFamily,
     drift_outcome: QueryContextDriftOutcome,
     cost_class: QueryContextCostClass,
     budget_class: QueryContextBudgetClass,
@@ -253,6 +255,10 @@ impl QueryBasisContextBinding {
 
     pub fn basis_digest(&self) -> &str {
         &self.basis_digest
+    }
+
+    pub fn basis_authority_family(&self) -> &BasisAuthorityFamily {
+        &self.basis_authority_family
     }
 
     pub fn drift_outcome(&self) -> &QueryContextDriftOutcome {
@@ -334,6 +340,10 @@ impl AdmittedQueryBasisContext {
 
     pub fn basis_digest(&self) -> &str {
         self.binding.basis_digest()
+    }
+
+    pub fn basis_authority_family(&self) -> &BasisAuthorityFamily {
+        self.binding.basis_authority_family()
     }
 
     pub fn cost_class(&self) -> &QueryContextCostClass {
@@ -509,6 +519,7 @@ pub(crate) fn bind_runtime_context(
             .as_str()
             .to_string(),
         basis_digest: preflight.basis().proof().digest().as_str().to_string(),
+        basis_authority_family: preflight.basis().identity().authority_family().clone(),
         drift_outcome: QueryContextDriftOutcome::BasisExact,
         cost_class,
         budget_class: QueryContextBudgetClass::NarrowSingleBasis,
@@ -557,6 +568,21 @@ fn bind_historical_context(
     }
 
     let admission_class = historical_admission_class(admission);
+    let store_authority =
+        query_preflight.basis().identity().authority_family() == &BasisAuthorityFamily::Store;
+    if store_authority
+        && (admission_class != HistoricalAdmissionClass::RuntimeRetained
+            || metadata.requested_path_class()
+                != &RequestedHistoricalPathClass::RequestedRetainedSnapshotPath
+            || metadata.resolved_path_class()
+                != &ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath)
+    {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::StoreBackedHistoricalDeferred,
+            "store-backed historical query contexts are only admitted for the retained-snapshot slice proven in Milestone 10",
+            QueryContextCounters::for_denial(true, false),
+        ));
+    }
     let materialization_identity = materialization_path_identity(metadata);
     let materialization_cost_class = materialization_path_cost_class(admission);
     let cost_class = match admission_class {
@@ -590,6 +616,11 @@ fn bind_historical_context(
             ),
             format!("materialization:{}", materialization_identity),
         ]),
+        basis_authority_family: query_preflight
+            .basis()
+            .identity()
+            .authority_family()
+            .clone(),
         drift_outcome: drift_outcome_for_historical(admission),
         cost_class,
         budget_class: QueryContextBudgetClass::HistoricalBounded,
@@ -640,6 +671,7 @@ fn bind_preview_context(
     Ok(QueryBasisContextBinding {
         query_digest: foundation.validated_query_digest().as_str().to_string(),
         basis_digest: foundation.digest().to_string(),
+        basis_authority_family: BasisAuthorityFamily::Runtime,
         drift_outcome: QueryContextDriftOutcome::BasisExact,
         cost_class: QueryContextCostClass::PreviewDerivedHistoricalBounded,
         budget_class: QueryContextBudgetClass::PreviewDerivedBounded,

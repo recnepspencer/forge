@@ -10,6 +10,8 @@ use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
 use crate::logic::transaction::TransactionReplayEntry;
 use crate::state::{SignalBranchId, SignalSnapshotId};
 
+use super::temporal::TemporalRuntimeState;
+
 #[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) struct AuthorityState<T>
 where
@@ -38,6 +40,7 @@ where
     I: Copy + Ord,
 {
     pub checkpoint: CheckpointRuntime<D, I>,
+    pub temporal: TemporalRuntimeState,
     pub telemetry: RuntimeTelemetry,
 }
 
@@ -46,9 +49,14 @@ where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
 {
-    pub fn capture(checkpoint: &CheckpointRuntime<D, I>, telemetry: &RuntimeTelemetry) -> Self {
+    pub fn capture(
+        checkpoint: &CheckpointRuntime<D, I>,
+        temporal: &TemporalRuntimeState,
+        telemetry: &RuntimeTelemetry,
+    ) -> Self {
         Self {
             checkpoint: checkpoint.clone(),
+            temporal: temporal.clone(),
             telemetry: telemetry.clone(),
         }
     }

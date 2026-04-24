@@ -6,6 +6,7 @@ mod reuse;
 
 pub use condition::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationRequestMode,
+    TemporalConditionResolver,
 };
 pub use effect::{
     AppliedEffectReport, DeferralReason, DiagnosticEnvelope, EvaluationVerdict, OperationalEffect,

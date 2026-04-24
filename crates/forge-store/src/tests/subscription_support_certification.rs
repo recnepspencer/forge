@@ -4,8 +4,9 @@ use crate::{
     CompatibilityAdmissionCounters, CompatibilityAdmissionPath, CompatibilityAdmissionReceipt,
     CompatibilityManifestDigest, CompatibilityReadAdmissionOutcome, CompatibilityRejection,
     CompatibilityRejectionKind, CompatibilityRelation, ForgeStore, ForgeStoreBuilder,
-    QuarantinedDecodedArtifact, RawSubscriptionSupportDeclaration, ReadCompatibilityReceipt,
-    StoreErrorKind, SubscriptionResumeClassification, SubscriptionSupportAllocationScope,
+    QuarantinedDecodedArtifact, RawSubscriptionSupportDeclaration, RawSupportProgramAction,
+    ReadCompatibilityReceipt, StoreErrorKind, SubscriptionResumeClassification,
+    SubscriptionSupportActionOrigin, SubscriptionSupportAllocationScope,
     SubscriptionSupportArtifactId, SubscriptionSupportAuthority, SubscriptionSupportCatalog,
     SubscriptionSupportCertificationBundle, SubscriptionSupportCertificationLaneKind,
     SubscriptionSupportCertificationLaneOutcome, SubscriptionSupportCertificationMatrixStatus,
@@ -14,15 +15,17 @@ use crate::{
     SubscriptionSupportDensityClass, SubscriptionSupportDriftCause, SubscriptionSupportFamilyId,
     SubscriptionSupportFamilyKind, SubscriptionSupportFetchRequest,
     SubscriptionSupportMaintenanceDecision, SubscriptionSupportMissingSupportMaintenanceAdmission,
-    SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportPayloadBudget,
+    SubscriptionSupportMissingSupportRecoveryRequest,
+    SubscriptionSupportOperationalVerdictTranslationRequest, SubscriptionSupportPayloadBudget,
     SubscriptionSupportPayloadDigest, SubscriptionSupportPlanFamily,
     SubscriptionSupportPortabilityDecision, SubscriptionSupportRestartReconstructionRequest,
     SubscriptionSupportRestartShard, SubscriptionSupportResumeEvidence,
     SubscriptionSupportResumeRequest, SubscriptionSupportRetentionDecision,
     SubscriptionSupportRole, SubscriptionSupportRuntimeHandoffRequest, SubscriptionSupportScope,
-    SupportActionBreadthBudget, SupportActionId, SupportAllocationScope, SupportBatchProofKind,
-    SupportCompatibilityReceiptWitness, SupportFamilyVersionWindow, SupportPathClass,
-    SupportPortabilityManifestBudget, SupportProgramDensityClass,
+    SupportActionBreadthBudget, SupportActionId, SupportActionRecoveryDisposition,
+    SupportAllocationScope, SupportBatchProofKind, SupportCompatibilityReceiptWitness,
+    SupportFamilyVersionWindow, SupportPathClass, SupportPortabilityManifestBudget,
+    SupportProgramDensityClass,
 };
 
 fn raw_exact() -> RawSubscriptionSupportDeclaration {
@@ -359,7 +362,7 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
                 SubscriptionSupportMissingSupportMaintenanceAdmission::new(
                     crate::SupportActionId::new("support-maintenance:certification-rebuild")
                         .unwrap(),
-                    crate::SupportActionBreadthBudget::new(1, 256).unwrap(),
+                    crate::SupportActionBreadthBudget::new(1, 1024).unwrap(),
                     128,
                 )
                 .unwrap(),
@@ -1000,13 +1003,116 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
                 SubscriptionSupportClassificationPlan::exact_sparse_identity().unwrap(),
             ))
             .expect_err("oversized payload must reject before classification");
+
+        let path_budget_error = store
+            .admit_subscription_support_program_path(
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::FamilyLocalBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 64).unwrap(),
+                2,
+                128,
+            )
+            .expect_err("oversized support path must reject before admission");
+        assert_eq!(
+            path_budget_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let manifest_budget_error = store
+            .admit_subscription_support_portability_batch(
+                SupportActionId::new("support-portability:cert-manifest-budget").unwrap(),
+                vec![
+                    portability_basis(
+                        SubscriptionSupportActionOrigin::ReplicationExport,
+                        "manifest-budget-a",
+                    ),
+                    portability_basis(
+                        SubscriptionSupportActionOrigin::ReplicationExport,
+                        "manifest-budget-b",
+                    ),
+                ],
+                2,
+                0,
+                SupportPortabilityManifestBudget::new(1, 64).unwrap(),
+                SubscriptionSupportPortabilityDecision::full_scope_replication(
+                    "identity-preserved:manifest-budget",
+                    "identity-preserved:manifest-budget",
+                )
+                .unwrap(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::PortabilityScopeBatch,
+                SupportAllocationScope::PortabilityManifest,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .expect_err("oversized portability manifest must reject before materialization");
+        assert_eq!(
+            manifest_budget_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let plan = store
+            .admit_subscription_support_retention_batch(
+                SupportActionId::new("support-retention:cert-envelope-budget").unwrap(),
+                vec![retention_basis("envelope-budget")],
+                SubscriptionSupportRetentionDecision::retain_exact(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::FamilyLocalBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 16).unwrap(),
+                8,
+            )
+            .unwrap();
+        let envelope_budget_error = store
+            .publish_subscription_support_retention_consequence(plan)
+            .expect_err("oversized publication envelope must reject before materialization");
+        assert_eq!(
+            envelope_budget_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let delayed_plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:cert-operator-budget").unwrap(),
+                vec![maintenance_basis("operator-budget")],
+                SubscriptionSupportMaintenanceDecision::refresh_descriptor_admitted(
+                    "operator budget refresh",
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let operator_report_budget_error = store
+            .report_delayed_subscription_support_maintenance(
+                &delayed_plan,
+                "operator-report-budget",
+                SupportActionBreadthBudget::new(4, 32).unwrap(),
+                128,
+            )
+            .expect_err("oversized operator report must reject before materialization");
+        assert_eq!(
+            operator_report_budget_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
         (error, store.subscription_support_counters())
     };
     assert_eq!(
         oversized_payload_error.0.kind(),
         &StoreErrorKind::SubscriptionSupportClassificationViolation
     );
-    assert_eq!(oversized_payload_error.1.budget_denials(), 1);
+    assert_eq!(oversized_payload_error.1.budget_denials(), 4);
+    assert_eq!(
+        oversized_payload_error
+            .1
+            .support_payload_budget_rejection_count(),
+        5
+    );
     lane_outcomes.push(
         SubscriptionSupportCertificationLaneOutcome::from_typed_rejection(
             SubscriptionSupportCertificationLaneKind::OversizedPayloadRejectedBeforeDecode,
@@ -1709,6 +1815,45 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
         .unwrap(),
     );
 
+    let maintenance_delayed = {
+        let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+        let basis = maintenance_basis("delayed");
+        let retained_basis_digest = basis.basis_digest().to_string();
+        let plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:cert-delayed").unwrap(),
+                vec![basis],
+                SubscriptionSupportMaintenanceDecision::rebuild_descriptor_admitted(
+                    retained_basis_digest,
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let report = store
+            .report_delayed_subscription_support_maintenance(
+                &plan,
+                "maintenance lane deferred by operator pacing",
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let counters = store.subscription_support_counters();
+        (report, counters)
+    };
+    lane_outcomes.push(
+        SubscriptionSupportCertificationLaneOutcome::from_maintenance_debt_report(
+            SubscriptionSupportCertificationLaneKind::SupportMaintenanceDelayedDebtReported,
+            &maintenance_delayed.0,
+            maintenance_delayed.1,
+        )
+        .unwrap(),
+    );
+
     let maintenance_coalesced = {
         let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
         let basis = maintenance_basis("coalesced");
@@ -1812,6 +1957,245 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
         .unwrap(),
     );
 
+    let action_publication_recovery = {
+        let path = crate::tests::harness::fixtures::stores::unique_test_store_path(
+            "forge-store-subscription-support-certification-action-recovery",
+        );
+        let action_id = SupportActionId::new("support-retention:cert-crash-recovery").unwrap();
+        {
+            let mut store = ForgeStoreBuilder::new()
+                .local_file(path.clone())
+                .build()
+                .unwrap();
+            let executed = RawSupportProgramAction::new(
+                action_id.clone(),
+                retention_basis("crash-recovery"),
+                crate::SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+            )
+            .unwrap()
+            .plan()
+            .verify()
+            .execute();
+            store
+                .persist_subscription_support_executed_action_for_publication(executed)
+                .unwrap();
+        }
+        let mut reopened = ForgeStoreBuilder::new().local_file(path).build().unwrap();
+        let report = reopened
+            .recover_subscription_support_action_publication(action_id)
+            .unwrap();
+        assert_eq!(
+            report.recovery_disposition(),
+            SupportActionRecoveryDisposition::InterruptedBeforePublication
+        );
+        let counters = reopened.subscription_support_counters();
+        (report, counters)
+    };
+    lane_outcomes.push(
+        SubscriptionSupportCertificationLaneOutcome::from_action_publication_recovery(
+            SubscriptionSupportCertificationLaneKind::SupportActionPublicationCrashRecovered,
+            &action_publication_recovery.0,
+            action_publication_recovery.1,
+        )
+        .unwrap(),
+    );
+
+    let global_scan_recovery_forbidden = {
+        let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+        let error = store
+            .reject_subscription_support_global_scan_recovery()
+            .expect_err("global scan recovery must remain forbidden");
+        let counters = store.subscription_support_counters();
+        (error, counters)
+    };
+    assert_eq!(
+        global_scan_recovery_forbidden.0.kind(),
+        &StoreErrorKind::SubscriptionSupportClassificationViolation
+    );
+    assert_eq!(
+        global_scan_recovery_forbidden
+            .1
+            .support_global_scan_recovery_rejection_count(),
+        1
+    );
+    lane_outcomes.push(
+        SubscriptionSupportCertificationLaneOutcome::from_typed_rejection(
+            SubscriptionSupportCertificationLaneKind::SupportGlobalScanRecoveryForbidden,
+            global_scan_recovery_forbidden.0.kind().clone(),
+            global_scan_recovery_forbidden.1,
+        )
+        .unwrap(),
+    );
+
+    let hidden_exact_loss_counters = {
+        let mut store = ForgeStoreBuilder::new().in_memory().build().unwrap();
+
+        let retention_plan = store
+            .admit_subscription_support_retention_batch(
+                SupportActionId::new("support-retention:cert-hidden-exact").unwrap(),
+                vec![retention_basis("hidden-exact-retention")],
+                SubscriptionSupportRetentionDecision::expire_by_policy(
+                    "policy-expired:hidden-exact",
+                )
+                .unwrap(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::FamilyLocalBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let retention_report = store
+            .publish_subscription_support_retention_consequence(retention_plan)
+            .unwrap();
+        let retention_error = store
+            .translate_subscription_support_operational_verdict(
+                SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_retention_report(
+                    &retention_report,
+                    retention_basis("hidden-exact-retention"),
+                )
+                .unwrap(),
+            )
+            .expect_err("expired retention support must not translate to exact");
+        assert_eq!(
+            retention_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let compatibility_plan = store
+            .admit_subscription_support_compatibility_batch(
+                SupportActionId::new("support-compatibility:cert-hidden-exact").unwrap(),
+                vec![compatibility_basis("hidden-exact-compatibility")],
+                read_receipt_witness(CompatibilityRelation::AdapterRequired),
+                "semantic:hidden-exact-compatibility",
+                SubscriptionSupportCompatibilityDecision::degraded_compatibility(
+                    "compatibility drift hidden exact guard",
+                )
+                .unwrap(),
+                SupportPathClass::OperationalPlanning,
+                SupportProgramDensityClass::FamilyLocalBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let compatibility_report = store
+            .publish_subscription_support_compatibility_consequence(compatibility_plan)
+            .unwrap();
+        let compatibility_error = store
+            .translate_subscription_support_operational_verdict(
+                SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_compatibility_report(
+                    &compatibility_report,
+                    compatibility_basis("hidden-exact-compatibility"),
+                )
+                .unwrap(),
+            )
+            .expect_err("degraded compatibility support must not translate to exact");
+        assert_eq!(
+            compatibility_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let omitted_id = portability_basis(
+            crate::SubscriptionSupportActionOrigin::ReplicationExport,
+            "hidden-exact-portability-b",
+        )
+        .artifact_id()
+        .clone();
+        let portability_plan = store
+            .admit_subscription_support_portability_batch(
+                SupportActionId::new("support-portability:cert-hidden-exact").unwrap(),
+                vec![
+                    portability_basis(
+                        crate::SubscriptionSupportActionOrigin::ReplicationExport,
+                        "hidden-exact-portability-a",
+                    ),
+                    portability_basis(
+                        crate::SubscriptionSupportActionOrigin::ReplicationExport,
+                        "hidden-exact-portability-b",
+                    ),
+                ],
+                1,
+                1,
+                SupportPortabilityManifestBudget::new(4, 1024).unwrap(),
+                SubscriptionSupportPortabilityDecision::partial_scope_omission(
+                    vec![omitted_id],
+                    "hidden exact portability omission",
+                )
+                .unwrap(),
+                SupportPathClass::ReplicationExport,
+                SupportProgramDensityClass::PortabilityScopeBatch,
+                SupportAllocationScope::PortabilityManifest,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let portability_report = store
+            .publish_subscription_support_portability_consequence(portability_plan)
+            .unwrap();
+        let portability_error = store
+            .translate_subscription_support_operational_verdict(
+                SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_portability_report(
+                    &portability_report,
+                    portability_basis(
+                        crate::SubscriptionSupportActionOrigin::ReplicationExport,
+                        "hidden-exact-portability-a",
+                    ),
+                )
+                .unwrap(),
+            )
+            .expect_err("partial portability omission must not translate to exact");
+        assert_eq!(
+            portability_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let maintenance_plan = store
+            .admit_subscription_support_maintenance_batch(
+                SupportActionId::new("support-maintenance:cert-hidden-exact").unwrap(),
+                vec![maintenance_basis("hidden-exact-maintenance")],
+                SubscriptionSupportMaintenanceDecision::degradation_recovery_descriptor_admitted(
+                    "maintenance hidden exact guard",
+                )
+                .unwrap(),
+                SupportPathClass::MaintenanceExecution,
+                SupportProgramDensityClass::MaintenanceKeyBatch,
+                SupportAllocationScope::FamilyLocalBatch,
+                SupportActionBreadthBudget::new(4, 1024).unwrap(),
+                128,
+            )
+            .unwrap();
+        let maintenance_report = store
+            .publish_subscription_support_maintenance_consequence(maintenance_plan)
+            .unwrap();
+        let maintenance_error = store
+            .translate_subscription_support_operational_verdict(
+                SubscriptionSupportOperationalVerdictTranslationRequest::exact_from_maintenance_report(
+                    &maintenance_report,
+                    maintenance_basis("hidden-exact-maintenance"),
+                )
+                .unwrap(),
+            )
+            .expect_err("degraded maintenance recovery must not translate to exact");
+        assert_eq!(
+            maintenance_error.kind(),
+            &StoreErrorKind::SubscriptionSupportClassificationViolation
+        );
+
+        let counters = store.subscription_support_counters();
+        assert_eq!(counters.operational_verdict_translation_rejections(), 4);
+        assert_eq!(counters.support_hidden_exact_loss_count(), 0);
+        counters
+    };
+    lane_outcomes.push(
+        SubscriptionSupportCertificationLaneOutcome::from_typed_rejection(
+            SubscriptionSupportCertificationLaneKind::SupportHiddenExactLossForbidden,
+            StoreErrorKind::SubscriptionSupportClassificationViolation,
+            hidden_exact_loss_counters,
+        )
+        .unwrap(),
+    );
+
     let bundle = SubscriptionSupportCertificationBundle::from_lane_outcomes(
         &SubscriptionSupportCatalog::first_ship(),
         SubscriptionSupportCounterSnapshot::default(),
@@ -1829,7 +2213,7 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
     );
     assert_eq!(
         matrix.lane_outcomes().len(),
-        SubscriptionSupportCertificationLaneKind::phase_6a_required().len() + 7
+        SubscriptionSupportCertificationLaneKind::phase_6a_required().len()
     );
     assert_eq!(bundle.catalog_family_count(), 3);
     assert!(!bundle.truth_digest().is_empty());
@@ -1837,6 +2221,7 @@ fn durable_subscription_support_resume_contract_phase_6a_matrix_is_machine_check
     assert!(!bundle.subscription_support_digest().is_empty());
     assert!(!bundle.replay_digest().is_empty());
     assert!(!bundle.diagnostics_digest().is_empty());
+    assert!(!bundle.failure_digest().is_empty());
     assert!(!bundle.counter_digest().is_empty());
 }
 

@@ -63,6 +63,7 @@ pub(crate) fn apply_effect_with_policy_and_condition(
         dependency_updates: 0,
         report,
         pending_snapshot,
+        temporal_eligibility: None,
     })
 }
 

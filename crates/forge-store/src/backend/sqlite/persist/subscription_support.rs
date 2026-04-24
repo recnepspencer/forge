@@ -32,6 +32,22 @@ pub(super) fn persist_subscription_support(
             )
             .map_err(sqlite_error)?;
     }
+    for (action_id, record) in &state.subscription_support_action_records {
+        transaction
+            .execute(
+                "INSERT INTO subscription_support_action_records \
+                 (action_id, artifact_id, action_origin, publication_state, payload_json) \
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    action_id,
+                    record.artifact_id().as_str(),
+                    format!("{:?}", record.action_origin()),
+                    format!("{:?}", record.publication_state()),
+                    serde_json::to_string(record)?,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
     for (record_key, record) in &state.subscription_support_maintenance_descriptor_records {
         transaction
             .execute(
@@ -45,6 +61,23 @@ pub(super) fn persist_subscription_support(
                     record.maintenance_key(),
                     record.declaration_id(),
                     record.descriptor_digest(),
+                    serde_json::to_string(record)?,
+                ],
+            )
+            .map_err(sqlite_error)?;
+    }
+    for (record_key, record) in &state.subscription_support_maintenance_debt_records {
+        transaction
+            .execute(
+                "INSERT INTO subscription_support_maintenance_debt_records \
+                 (record_key, action_id, family_id, support_role, verdict, payload_json) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    record_key,
+                    record.action_id().as_str(),
+                    record.family_id().as_str(),
+                    format!("{:?}", record.support_role()),
+                    format!("{:?}", record.verdict()),
                     serde_json::to_string(record)?,
                 ],
             )

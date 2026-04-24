@@ -875,7 +875,7 @@ where
             .zip(plan.adoption_policy().iter())
         {
             let (materialized, remaps) = adopt_source_node_into_target(
-                target_state.graph_mut(),
+                &mut target_state,
                 source_state.graph(),
                 core,
                 policy,
@@ -942,8 +942,7 @@ where
                             &node_map,
                         )?;
                         target_state
-                            .graph_mut()
-                            .replace_entry_from_checkpoint_image(target_node, replacement)?;
+                            .replace_node_from_checkpoint_image(target_node, replacement)?;
                         target_state
                             .graph_mut()
                             .set_dependencies(target_node, mapped_edges)?;

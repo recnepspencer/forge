@@ -961,6 +961,7 @@ fn rendered_execution_report_summary_names_advanced_reuse_families() {
         prepared_evaluations_applied: 4,
         dependency_capture_updates: 0,
         semantic_segment_count: 4,
+        temporal_summary: TemporalExecutionSummary::default(),
         task_outcome_counts: [
             (
                 crate::logic::planner::TaskExecutionOutcome::MemoizedReuse,

@@ -459,6 +459,7 @@ fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
                 Ok(prepared)
             },
             &mut resolver,
+            crate::logic::planner::TemporalLoweringContext::graph_only(),
             StageExecutor::full_parallel(1).with_parallel_policy(
                 ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
                     .with_worker_count(2)

@@ -959,6 +959,7 @@ impl SupportPortabilityParticipationRecord {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SubscriptionSupportPortabilityReport {
     completed_action: CompletedSupportProgramAction,
+    translation_basis: SubscriptionSupportOperationalBasis,
     participation_record: SupportPortabilityParticipationRecord,
     manifest: CapsuleSupportManifest,
     outcome: SubscriptionSupportPortabilityOutcome,
@@ -988,6 +989,7 @@ impl SubscriptionSupportPortabilityReport {
         }
         Ok(Self {
             completed_action,
+            translation_basis: affected_set.primary_basis().clone(),
             participation_record,
             manifest,
             outcome,
@@ -1000,6 +1002,10 @@ impl SubscriptionSupportPortabilityReport {
 
     pub fn completed_action(&self) -> &CompletedSupportProgramAction {
         &self.completed_action
+    }
+
+    pub fn translation_basis(&self) -> &SubscriptionSupportOperationalBasis {
+        &self.translation_basis
     }
 
     pub fn participation_record(&self) -> &SupportPortabilityParticipationRecord {

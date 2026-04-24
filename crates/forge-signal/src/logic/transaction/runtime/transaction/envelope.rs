@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::node::AuthorityPolicy;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::temporal::TemporalExecutionSummary;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::failure::ExecutionFailurePhase;
 use crate::diagnostics::failure::FailureSummary;
@@ -81,6 +82,7 @@ impl TransactionResult {
         timing: TransactionTiming,
         touched_nodes: u32,
         evaluation_summary: EvaluationSummary,
+        temporal_summary: TemporalExecutionSummary,
         _replay_events: &[TransactionReplayEntry],
         reconstructability: crate::logic::transaction::runtime::state::ReconstructabilityRecord,
         event_epochs: Vec<EventEpochSummary>,
@@ -176,6 +178,7 @@ impl TransactionResult {
             timing,
             touched_nodes,
             evaluation_summary,
+            temporal_summary,
             reconstructability,
             event_epochs: event_epochs.clone(),
             rollback,

@@ -3,6 +3,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::summary::EvaluationPlanSummary;
+use crate::logic::planner::precompute::TemporalLoweringContext;
 use crate::logic::prepared::PreparedEvaluation;
 
 use super::super::types::{ExecutionReport, PlanSummary, StageExecutor};
@@ -22,6 +23,7 @@ where
     pub(crate) summary: &'a PlanSummary,
     pub(crate) precompute: &'a F,
     pub(crate) comparator_resolver: &'a mut R,
+    pub(crate) temporal_lowering: TemporalLoweringContext,
     pub(crate) executor: StageExecutor,
     pub(crate) next_record_id: u64,
     pub(crate) next_segment_id: u64,
@@ -48,6 +50,7 @@ where
         first_target: Option<NodeId>,
         precompute: &'a F,
         comparator_resolver: &'a mut R,
+        temporal_lowering: TemporalLoweringContext,
         executor: StageExecutor,
     ) -> Self {
         let report = begin_execution_report(
@@ -62,6 +65,7 @@ where
             summary,
             precompute,
             comparator_resolver,
+            temporal_lowering,
             executor,
             next_record_id: 1,
             next_segment_id: 1,

@@ -1031,6 +1031,157 @@ Active subscription lifecycle, sharing, query-shaped delivery, continuation,
 and preview isolation remain family-aware, parity-safe with one-shot meaning,
 and fail-closed before lifecycle, delivery, or preview residue can drift.
 
+## Milestone 9.3 Named Certification Suites
+
+### 9.3. Query Subscription Bridge Parity And Diagnostic Sufficiency Test
+
+Purpose
+
+Prove that every admitted automatic query subscription family is
+bridge-explainable, support-reportable, offline-diagnosable, and
+runtime-certified without inventing hidden semantics beyond canonical query,
+bridge, signal, and runtime lifecycle artifacts.
+
+Scenario
+
+- use the concrete `EmployeeRecord` fixture from Milestones 9.1 and 9.2
+- derive admitted automatic subscription families for:
+  - detail exact
+  - inspector detail exact
+  - ordered collection membership
+  - grouped collection membership
+  - bounded materialization where admitted
+- assemble for each admitted family:
+  - support report for explicit declaration/lifecycle/preview support subjects
+  - support lookup receipt
+  - manual bridge witness
+  - bridge parity explanation
+  - bridge parity receipt
+  - lifecycle certification bundle
+  - offline admitted diagnostic bundle
+  - diagnostic assembly receipt
+  - runtime family certification bundle
+  - certification coverage receipt
+- exercise:
+  - declaration-family-preserving lifecycle closure
+  - grouped and inspector families that share lower bridge classes while
+    remaining query-side distinct
+  - continuation and preview evidence carried into diagnostic bundles
+  - hostile support, bridge-parity, and certification-coverage denials
+- vary:
+  - masked and unmasked policy digests
+  - tenant truth/schema basis digests
+  - relationship-proof digests
+  - view-shape digests
+  - current, branch-head, runtime snapshot, and preview-scoped bases
+  - admitted and denied family coverage sets
+
+Required concrete lanes
+
+- detail support lane where admitted declaration, bridge lowering, lifecycle
+  certification, and diagnostic bundle all bind the same declaration and bridge
+  digests
+- grouped family lane where grouped query-side meaning remains distinct from an
+  ordered collection family even if the bridge family is shared underneath
+- preview certification lane where preview discard or promotion evidence is
+  surfaced in the diagnostic bundle and family certification scope
+- support-overclaim denial lane where runtime-backed support is requested for a
+  family lacking required hostile coverage
+- denied diagnostic bundle lane where declaration or bridge denial is still
+  emitted as one offline-readable denied bundle without fake lifecycle slots
+- bridge-parity mismatch lane where a foreign declaration or signal strategy
+  source is supplied and parity fails before a certification bundle exists
+
+Must verify
+
+- support reporting is query-family-aware and does not collapse distinct query
+  subscription families into shared bridge-family claims
+- runtime-backed support cannot be claimed for uncertified families
+- support reporting is phase-typed and distinguishes declaration support,
+  active lifecycle support, continuation support, preview-closeout support, and
+  deferred durable/store-backed support
+- support reporting exposes exact lookup posture and lookup width through a
+  receipt; indexed lookup is admitted, while broader scans are explicit debt or
+  denial
+- store-backed restart, durable replay, and persisted continuation claims
+  remain explicit deferred or denied support surfaces
+- every admitted automatic family has one bridge-facing explanation binding
+  query family, declaration, bridge family, bridge slices, basis posture, and
+  signal strategy
+- every bridge-facing explanation is bound to one tangible manual bridge
+  witness describing the host-equivalent bridge request that Query claims to
+  automate
+- bridge parity is comparison over pre-lowered or canonically composed witness
+  artifacts; witness rebuild or semantic rediscovery after witness construction
+  is explicit debt or denial
+- grouped and inspector families remain mechanically distinct in support,
+  diagnostics, and certification artifacts even when their bridge lowerings
+  share infrastructure below Query
+- diagnostic bundles are sufficient for offline explanation of admitted and
+  denied paths without re-running Query or consulting hidden host state
+- admitted and denied diagnostic bundles are different proof types rather than
+  one optional-hole envelope
+- admitted and denied bundle assembly emit receipts proving stage evidence and
+  semantic labels were composed rather than re-derived
+- diagnostic traces localize whether failure occurred during family selection,
+  declaration, bridge lowering, support reporting, lifecycle certification,
+  bridge parity, or coverage closure
+- declaration-family drift remains distinct from lifecycle-instance churn such
+  as lane handle, attachment, delivery sequence, continuation epoch, or preview
+  closeout changes
+- runtime family certification requires at least one admitted row and one
+  hostile row for each supported family
+- runtime family certification also requires representative basis, policy,
+  tenant, relationship-proof, view-shape, and lifecycle-class variation rows
+  for each supported family
+- runtime family certification consumes family-scoped indexed coverage handles
+  or explicit matrix-scan debt/denial posture; raw row iteration is not an
+  invisible implementation choice
+- support, bridge parity, lifecycle certification, and runtime family
+  certification bind the same canonical query/declaration/bridge digests
+- compile-fail boundaries prove external callers cannot mint support reports,
+  bridge parity explanations, diagnostic bundles, or runtime family
+  certification bundles directly
+- small/medium/larger fixture runs prove support and bundle assembly cost
+  slopes are bounded by family coverage width, diagnostic bundle width, and
+  indexed coverage width rather than unrelated row count
+
+Required verification output
+
+- `query_digest`
+- `subscription_family_digest`
+- `subscription_declaration_digest`
+- `subscription_equivalence_digest`
+- `bridge_declaration_digest`
+- `bridge_basis_digest`
+- `signal_strategy_digest`
+- `support_report_digest`
+- `support_matrix_digest`
+- `support_lookup_receipt_digest`
+- `manual_bridge_witness_digest`
+- `bridge_parity_digest`
+- `bridge_parity_receipt_digest`
+- `diagnostic_trace_digest`
+- `admitted_diagnostic_bundle_digest`
+- `denied_diagnostic_bundle_digest`
+- `diagnostic_assembly_receipt_digest`
+- `lifecycle_certification_digest`
+- `runtime_certification_bundle_digest`
+- `certification_coverage_receipt_digest`
+- `continuation_digest`
+- `preview_isolation_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `subscription_support_scale_slope_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Automatic subscription family selection remains bridge-honest, support claims
+remain synchronized with certified runtime behavior, diagnostic bundles remain
+offline-sufficient, and unsupported or uncertified family claims fail-closed
+before store-backed or durable milestones build on top of them.
+
 ## Milestone 10 Named Certification Suites
 
 ### 10. Store-Backed Execution And Historical Parity Test

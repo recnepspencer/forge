@@ -30,8 +30,9 @@ pub const SUBSCRIPTION_SUPPORT_FAMILY_VERSION: u16 = 1;
 pub use actions::{
     CompletedSupportProgramAction, ExecutedSupportAction, PlannedSupportAction,
     ProofCheckedSupportAction, PublishedSupportConsequence, RawSupportProgramAction,
-    SupportActionId, SupportActionPublicationWitness, SupportActionRecoveryDisposition,
-    SupportConsequenceEnvelope,
+    SubscriptionSupportActionPublicationRecoveryReport, SupportActionDurableRecord,
+    SupportActionId, SupportActionPublicationState, SupportActionPublicationWitness,
+    SupportActionRecoveryDisposition, SupportConsequenceEnvelope,
 };
 pub use artifacts::{PublishableSubscriptionSupportArtifact, PublishedSubscriptionSupportArtifact};
 pub use catalog::{
@@ -79,9 +80,10 @@ pub use identity::{
 };
 pub(crate) use maintenance::{support_maintenance_batch, synthetic_support_maintenance_receipt};
 pub use maintenance::{
-    SubscriptionSupportMaintenanceDecision, SubscriptionSupportMaintenanceDecisionKind,
-    SubscriptionSupportMaintenanceReport, SupportMaintenanceAdmissionWitness,
-    SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan, SupportMaintenanceDescriptor,
+    SubscriptionSupportMaintenanceDebtReport, SubscriptionSupportMaintenanceDecision,
+    SubscriptionSupportMaintenanceDecisionKind, SubscriptionSupportMaintenanceReport,
+    SupportMaintenanceAdmissionWitness, SupportMaintenanceAffectedSet, SupportMaintenanceBatchPlan,
+    SupportMaintenanceDebtRecord, SupportMaintenanceDebtSummary, SupportMaintenanceDescriptor,
     SupportMaintenanceDescriptorRecord, SupportMaintenanceParticipationRecord,
     SupportMaintenanceWorkKind,
 };
@@ -89,8 +91,8 @@ pub use participation::{
     DegradedResumePreservationWitness, ExactResumePreservationWitness,
     PostActionResumeClassificationInput, ResumeClassificationTranslationPlan,
     SubscriptionSupportActionOrigin, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SupportNonResumableWitness,
-    SupportPolicyRejectionWitness, SupportRebuildAdmissionWitness,
+    SubscriptionSupportOperationalVerdict, SubscriptionSupportOperationalVerdictTranslationRequest,
+    SupportNonResumableWitness, SupportPolicyRejectionWitness, SupportRebuildAdmissionWitness,
 };
 pub(crate) use performance::cost_surface_for_program_path;
 pub use performance::{

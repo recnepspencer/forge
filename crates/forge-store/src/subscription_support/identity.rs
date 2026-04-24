@@ -17,7 +17,7 @@ pub enum SubscriptionSupportRole {
     DegradedContinuation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SubscriptionSupportFamilyId(pub(crate) String);
 
 impl SubscriptionSupportFamilyId {
@@ -36,7 +36,7 @@ impl SubscriptionSupportFamilyId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SubscriptionSupportArtifactId(pub(crate) String);
 
 impl SubscriptionSupportArtifactId {

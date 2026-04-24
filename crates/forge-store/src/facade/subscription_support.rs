@@ -5,12 +5,14 @@ use crate::{
     SubscriptionSupportAccessStructureReport, SubscriptionSupportCatalog,
     SubscriptionSupportClassificationReport, SubscriptionSupportCompatibilityDecision,
     SubscriptionSupportCompatibilityReport, SubscriptionSupportCounterSnapshot,
-    SubscriptionSupportFetchRequest, SubscriptionSupportMaintenanceDecision,
-    SubscriptionSupportMaintenanceReport, SubscriptionSupportMissingSupportRecoveryReport,
+    SubscriptionSupportFetchRequest, SubscriptionSupportMaintenanceDebtReport,
+    SubscriptionSupportMaintenanceDecision, SubscriptionSupportMaintenanceReport,
+    SubscriptionSupportMissingSupportRecoveryReport,
     SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportPortabilityDecision,
-    SubscriptionSupportPortabilityReport, SubscriptionSupportPostActionReport,
-    SubscriptionSupportPublicationPipeline, SubscriptionSupportRestartReconstructionReport,
+    SubscriptionSupportOperationalVerdictTranslationRequest,
+    SubscriptionSupportPortabilityDecision, SubscriptionSupportPortabilityReport,
+    SubscriptionSupportPostActionReport, SubscriptionSupportPublicationPipeline,
+    SubscriptionSupportRestartReconstructionReport,
     SubscriptionSupportRestartReconstructionRequest, SubscriptionSupportResumeRequest,
     SubscriptionSupportRetentionDecision, SubscriptionSupportRuntimeHandoffReport,
     SubscriptionSupportRuntimeHandoffRequest, SupportActionBreadthBudget, SupportActionId,
@@ -40,18 +42,31 @@ impl ForgeStore {
 
     pub fn translate_subscription_support_operational_verdict(
         &mut self,
-        verdict: SubscriptionSupportOperationalVerdict,
-        basis: SubscriptionSupportOperationalBasis,
-        maintenance_admission_key: Option<String>,
-        policy_reason: Option<String>,
+        request: SubscriptionSupportOperationalVerdictTranslationRequest,
     ) -> Result<PostActionResumeClassificationInput, StoreError> {
         self.backend
-            .translate_subscription_support_operational_verdict(
-                verdict,
-                basis,
-                maintenance_admission_key,
-                policy_reason,
-            )
+            .translate_subscription_support_operational_verdict(request)
+    }
+
+    pub fn persist_subscription_support_executed_action_for_publication(
+        &mut self,
+        action: crate::ExecutedSupportAction,
+    ) -> Result<(), StoreError> {
+        self.backend
+            .persist_subscription_support_executed_action_for_publication(action)
+    }
+
+    pub fn recover_subscription_support_action_publication(
+        &mut self,
+        action_id: SupportActionId,
+    ) -> Result<crate::SubscriptionSupportActionPublicationRecoveryReport, StoreError> {
+        self.backend
+            .recover_subscription_support_action_publication(action_id)
+    }
+
+    pub fn reject_subscription_support_global_scan_recovery(&mut self) -> Result<(), StoreError> {
+        self.backend
+            .reject_subscription_support_global_scan_recovery()
     }
 
     pub fn admit_subscription_support_program_path(
@@ -220,6 +235,22 @@ impl ForgeStore {
     ) -> Result<SubscriptionSupportMaintenanceReport, StoreError> {
         self.backend
             .publish_subscription_support_maintenance_consequence(plan)
+    }
+
+    pub fn report_delayed_subscription_support_maintenance(
+        &mut self,
+        plan: &SupportMaintenanceBatchPlan,
+        delay_reason: impl Into<String>,
+        budget: SupportActionBreadthBudget,
+        payload_header_bytes: u64,
+    ) -> Result<SubscriptionSupportMaintenanceDebtReport, StoreError> {
+        self.backend
+            .report_delayed_subscription_support_maintenance(
+                plan,
+                delay_reason,
+                budget,
+                payload_header_bytes,
+            )
     }
 
     pub fn publish_subscription_support(

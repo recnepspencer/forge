@@ -69,7 +69,7 @@ pub struct QuerySubscriptionSupportProfile {
 }
 
 impl QuerySubscriptionSupportProfile {
-    pub(super) fn admitted(source_digest: &str) -> Self {
+    pub(crate) fn admitted(source_digest: &str) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Admitted,
             QuerySubscriptionActiveLifecycleSupport::Admitted,
@@ -78,7 +78,7 @@ impl QuerySubscriptionSupportProfile {
         )
     }
 
-    pub(super) fn denied(source_digest: &str) -> Self {
+    pub(crate) fn denied(source_digest: &str) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Denied,
             QuerySubscriptionActiveLifecycleSupport::Denied,
@@ -87,7 +87,7 @@ impl QuerySubscriptionSupportProfile {
         )
     }
 
-    pub(super) fn active_runtime_admitted(source_digest: &str) -> Self {
+    pub(crate) fn active_runtime_admitted(source_digest: &str) -> Self {
         Self::new(
             QuerySubscriptionRuntimeBackedSupport::Admitted,
             QuerySubscriptionActiveLifecycleSupport::Admitted,

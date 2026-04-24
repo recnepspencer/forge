@@ -456,6 +456,170 @@ fn store_backed_historical_debt_is_denied_typed_and_early() {
 }
 
 #[test]
+fn store_backed_retained_historical_binding_preserves_query_owned_parity() {
+    let runtime_preflight = execution_preflights::direct_runtime_preflight();
+    let store_preflight = execution_preflights::store_detail_preflight();
+    let request = HistoricalEvaluationRequest::retained_snapshot(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::retained_snapshot(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::retained_reuse(),
+    );
+    let admission = admit_historical_evaluation_path(request, capability)
+        .expect("retained history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::retained_snapshot("history:snapshot-1"),
+    )
+    .expect("retained history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+
+    let runtime = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &runtime_preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("runtime historical context should bind"),
+    )
+    .expect("runtime historical context should admit");
+    let store = admit_query_basis_context(
+        bind_query_basis_context(
+            QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+            QueryContextBindingSource::Historical {
+                query_preflight: &store_preflight,
+                admission: &admission,
+                metadata: &metadata,
+            },
+        )
+        .expect("store historical context should bind"),
+    )
+    .expect("store historical context should admit");
+
+    let runtime_bundle = attach_query_basis_metadata(
+        &runtime,
+        &execute_query_basis_context(&runtime).expect("runtime execution should succeed"),
+    )
+    .expect("runtime metadata should shape");
+    let store_bundle = attach_query_basis_metadata(
+        &store,
+        &execute_query_basis_context(&store).expect("store execution should succeed"),
+    )
+    .expect("store metadata should shape");
+
+    assert_eq!(
+        runtime_bundle.result_digest(),
+        store_bundle.result_digest(),
+        "store-backed retained history must preserve canonical result parity"
+    );
+    assert_eq!(
+        runtime_bundle.materialization_path_identity(),
+        store_bundle.materialization_path_identity()
+    );
+    assert_eq!(
+        runtime_bundle.historical_admission_class(),
+        store_bundle.historical_admission_class()
+    );
+    assert_eq!(
+        runtime.basis_authority_family(),
+        &crate::basis::BasisAuthorityFamily::Runtime
+    );
+    assert_eq!(
+        store.basis_authority_family(),
+        &crate::basis::BasisAuthorityFamily::Store
+    );
+}
+
+#[test]
+fn store_backed_replay_historical_binding_stays_explicit_deferred_debt() {
+    let store_preflight = execution_preflights::store_detail_preflight();
+    let request = HistoricalEvaluationRequest::delta_replay(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::delta_replay(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let admission =
+        admit_historical_evaluation_path(request, capability).expect("replay history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::delta_replay("history:snapshot-1"),
+    )
+    .expect("replay history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+
+    let error = bind_query_basis_context(
+        QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+        QueryContextBindingSource::Historical {
+            query_preflight: &store_preflight,
+            admission: &admission,
+            metadata: &metadata,
+        },
+    )
+    .expect_err("store-backed replay must remain deferred until a later milestone");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::StoreBackedHistoricalDeferred
+    );
+    assert_eq!(error.counters().unsupported_basis_denial_count(), 1);
+    assert_eq!(error.counters().historical_lookup_width(), 1);
+    assert_eq!(error.counters().denial_width(), 1);
+}
+
+#[test]
+fn store_backed_reconstruction_historical_binding_stays_explicit_deferred_debt() {
+    let store_preflight = execution_preflights::store_detail_preflight();
+    let request = HistoricalEvaluationRequest::full_reconstruction(
+        "history:snapshot-1",
+        1,
+        1,
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let capability = HistoricalCapabilityDescriptor::full_reconstruction(
+        "history:snapshot-1",
+        HistoricalPathReuseDescriptor::no_reuse(),
+    );
+    let admission = admit_historical_evaluation_path(request, capability)
+        .expect("reconstruction history should admit");
+    let resolved = resolve_historical_materialization_path(
+        admission.clone(),
+        HistoricalMaterializationDescriptor::full_reconstruction("history:snapshot-1"),
+    )
+    .expect("reconstruction history should resolve");
+    let metadata = materialization_metadata_from_resolved(resolved);
+
+    let error = bind_query_basis_context(
+        QueryBasisContextRequest::historical_snapshot("history:snapshot-1"),
+        QueryContextBindingSource::Historical {
+            query_preflight: &store_preflight,
+            admission: &admission,
+            metadata: &metadata,
+        },
+    )
+    .expect_err("store-backed reconstruction must remain deferred until a later milestone");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::StoreBackedHistoricalDeferred
+    );
+    assert_eq!(error.counters().unsupported_basis_denial_count(), 1);
+    assert_eq!(error.counters().historical_lookup_width(), 1);
+    assert_eq!(error.counters().denial_width(), 1);
+}
+
+#[test]
 fn diff_scope_mismatch_rejects_before_broadening() {
     let left_preflight = execution_preflights::direct_runtime_preflight();
     let right_preflight = execution_preflights::ordered_collection_preflight();

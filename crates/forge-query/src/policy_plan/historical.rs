@@ -9,21 +9,35 @@ use super::{PolicyAwarePlanCore, PolicyAwarePlanCostPosture};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PolicyAwareHistoricalBasis {
     basis_digest: String,
-    runtime_backed: bool,
+    basis_class: PolicyAwareHistoricalBasisClass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum PolicyAwareHistoricalBasisClass {
+    RuntimeBacked,
+    StoreBackedRetainedSnapshot,
+    StoreBackedDeferred,
 }
 
 impl PolicyAwareHistoricalBasis {
     pub fn runtime_backed(basis_digest: impl Into<String>) -> Self {
         Self {
             basis_digest: basis_digest.into(),
-            runtime_backed: true,
+            basis_class: PolicyAwareHistoricalBasisClass::RuntimeBacked,
+        }
+    }
+
+    pub fn store_backed_retained(basis_digest: impl Into<String>) -> Self {
+        Self {
+            basis_digest: basis_digest.into(),
+            basis_class: PolicyAwareHistoricalBasisClass::StoreBackedRetainedSnapshot,
         }
     }
 
     pub fn store_backed_deferred(basis_digest: impl Into<String>) -> Self {
         Self {
             basis_digest: basis_digest.into(),
-            runtime_backed: false,
+            basis_class: PolicyAwareHistoricalBasisClass::StoreBackedDeferred,
         }
     }
 
@@ -31,8 +45,8 @@ impl PolicyAwareHistoricalBasis {
         &self.basis_digest
     }
 
-    pub fn is_runtime_backed(&self) -> bool {
-        self.runtime_backed
+    pub fn basis_class(&self) -> PolicyAwareHistoricalBasisClass {
+        self.basis_class
     }
 }
 
@@ -56,14 +70,22 @@ pub fn lower_policy_aware_historical_plan(
     artifact: &NarrowedPolicyQueryArtifact,
     basis: PolicyAwareHistoricalBasis,
 ) -> Result<PolicyAwareHistoricalPlan, PolicyAwareExecutionSeamError> {
-    if !basis.is_runtime_backed() {
-        return defer_store_backed_policy_historical_plan();
-    }
+    let posture = match basis.basis_class() {
+        PolicyAwareHistoricalBasisClass::RuntimeBacked => {
+            PolicyAwarePlanCostPosture::RuntimeHistoricalBounded
+        }
+        PolicyAwareHistoricalBasisClass::StoreBackedRetainedSnapshot => {
+            PolicyAwarePlanCostPosture::StoreHistoricalRetainedBounded
+        }
+        PolicyAwareHistoricalBasisClass::StoreBackedDeferred => {
+            return defer_store_backed_policy_historical_plan();
+        }
+    };
     Ok(PolicyAwareHistoricalPlan {
         core: PolicyAwarePlanCore::from_narrowed(
             artifact,
             PolicyAwareExecutionMode::HistoricalRead,
-            PolicyAwarePlanCostPosture::RuntimeHistoricalBounded,
+            posture,
             artifact.authorized_projection().visible_fields().len(),
             0,
         ),

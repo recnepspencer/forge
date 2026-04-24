@@ -7,6 +7,7 @@ use crate::data::handle::NodeId;
 use crate::data::node::{ContextRequirement, NodeState};
 use crate::data::output::{MemoizedResultOrigin, OutputChange};
 use crate::data::reuse::{PersistentCorrespondenceKind, ReuseBasis, ReuseOrigin};
+use crate::data::temporal::TemporalExecutionSummary;
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::policy::{
     DetailLimit, DiagnosticsAvailability, OrdinaryAccessLane, RetentionBudget,
@@ -75,6 +76,7 @@ pub struct ExecutionReportSummary {
     pub prepared_evaluations_applied: u32,
     pub dependency_capture_updates: u32,
     pub semantic_segment_count: u32,
+    pub temporal_summary: TemporalExecutionSummary,
     pub task_outcome_counts: TaskOutcomeCounts,
     pub stage_outcome_counts: StageOutcomeCounts,
 }
@@ -343,6 +345,7 @@ impl ExecutionReportSummary {
             prepared_evaluations_applied: report.prepared_evaluations_applied,
             dependency_capture_updates: report.dependency_capture_updates,
             semantic_segment_count: report.semantic_segment_count,
+            temporal_summary: report.temporal_summary,
             task_outcome_counts,
             stage_outcome_counts,
         }

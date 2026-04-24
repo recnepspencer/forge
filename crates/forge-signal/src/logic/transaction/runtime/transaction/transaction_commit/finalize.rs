@@ -98,6 +98,7 @@ where
             commit_nanos,
         };
         let evaluation_summary = std::mem::take(&mut self.execution_state.summary);
+        let temporal_summary = std::mem::take(&mut self.scratch.temporal.summary);
         let checkpoint_record =
             crate::logic::transaction::runtime::state::CheckpointRecord::from_checkpoint_telemetry(
                 crate::data::telemetry::CheckpointTelemetry {
@@ -150,6 +151,7 @@ where
             timing,
             touched_nodes,
             evaluation_summary,
+            temporal_summary,
             &replay_events,
             reconstructability,
             event_epochs.clone(),

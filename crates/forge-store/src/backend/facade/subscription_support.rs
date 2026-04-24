@@ -4,12 +4,12 @@ use crate::{
     SubscriptionSupportAccessStructureReport, SubscriptionSupportClassificationReport,
     SubscriptionSupportCompatibilityDecision, SubscriptionSupportCompatibilityReport,
     SubscriptionSupportCounterSnapshot, SubscriptionSupportFetchRequest,
-    SubscriptionSupportMaintenanceDecision, SubscriptionSupportMaintenanceReport,
-    SubscriptionSupportMissingSupportRecoveryReport,
+    SubscriptionSupportMaintenanceDebtReport, SubscriptionSupportMaintenanceDecision,
+    SubscriptionSupportMaintenanceReport, SubscriptionSupportMissingSupportRecoveryReport,
     SubscriptionSupportMissingSupportRecoveryRequest, SubscriptionSupportOperationalBasis,
-    SubscriptionSupportOperationalVerdict, SubscriptionSupportPortabilityDecision,
-    SubscriptionSupportPortabilityReport, SubscriptionSupportPostActionReport,
-    SubscriptionSupportRestartReconstructionReport,
+    SubscriptionSupportOperationalVerdictTranslationRequest,
+    SubscriptionSupportPortabilityDecision, SubscriptionSupportPortabilityReport,
+    SubscriptionSupportPostActionReport, SubscriptionSupportRestartReconstructionReport,
     SubscriptionSupportRestartReconstructionRequest, SubscriptionSupportResumeRequest,
     SubscriptionSupportRetentionDecision, SubscriptionSupportRuntimeHandoffReport,
     SubscriptionSupportRuntimeHandoffRequest, SupportActionBreadthBudget, SupportActionId,
@@ -71,18 +71,31 @@ impl StoreBackend {
 
     pub fn translate_subscription_support_operational_verdict(
         &mut self,
-        verdict: SubscriptionSupportOperationalVerdict,
-        basis: SubscriptionSupportOperationalBasis,
-        maintenance_admission_key: Option<String>,
-        policy_reason: Option<String>,
+        request: SubscriptionSupportOperationalVerdictTranslationRequest,
     ) -> Result<PostActionResumeClassificationInput, StoreError> {
         dispatch_mut!(self, |backend| backend
-            .translate_subscription_support_operational_verdict(
-                verdict,
-                basis,
-                maintenance_admission_key,
-                policy_reason,
-            ))
+            .translate_subscription_support_operational_verdict(request))
+    }
+
+    pub fn persist_subscription_support_executed_action_for_publication(
+        &mut self,
+        action: crate::ExecutedSupportAction,
+    ) -> Result<(), StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .persist_subscription_support_executed_action_for_publication(action))
+    }
+
+    pub fn recover_subscription_support_action_publication(
+        &mut self,
+        action_id: SupportActionId,
+    ) -> Result<crate::SubscriptionSupportActionPublicationRecoveryReport, StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .recover_subscription_support_action_publication(action_id))
+    }
+
+    pub fn reject_subscription_support_global_scan_recovery(&mut self) -> Result<(), StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .reject_subscription_support_global_scan_recovery())
     }
 
     pub fn admit_subscription_support_program_path(
@@ -257,6 +270,22 @@ impl StoreBackend {
     ) -> Result<SubscriptionSupportMaintenanceReport, StoreError> {
         dispatch_mut!(self, |backend| backend
             .publish_subscription_support_maintenance_consequence(plan))
+    }
+
+    pub fn report_delayed_subscription_support_maintenance(
+        &mut self,
+        plan: &SupportMaintenanceBatchPlan,
+        delay_reason: impl Into<String>,
+        budget: SupportActionBreadthBudget,
+        payload_header_bytes: u64,
+    ) -> Result<SubscriptionSupportMaintenanceDebtReport, StoreError> {
+        dispatch_mut!(self, |backend| backend
+            .report_delayed_subscription_support_maintenance(
+                plan,
+                delay_reason,
+                budget,
+                payload_header_bytes,
+            ))
     }
 
     pub fn subscription_support_counters(&self) -> SubscriptionSupportCounterSnapshot {

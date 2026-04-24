@@ -6,6 +6,7 @@ use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, EvaluationPlan, ExecutionReport, StageExecutor,
+    TemporalLoweringContext,
 };
 
 use super::super::state::SignalRuntime;
@@ -231,9 +232,11 @@ where
         F: for<'ctx> Fn(&mut EvaluationContext<'ctx, Ctx>) -> Result<O, SignalError> + Sync,
         O: IntoEvaluationOutput,
     {
+        let temporal_lowering = TemporalLoweringContext::runtime_clock_basis(self.clock_basis());
         let report = execute_plan_with_runtime_config(
             &mut self.graph,
             &self.config,
+            temporal_lowering,
             runtime_ctx,
             plan,
             evaluator,
@@ -468,9 +471,11 @@ where
                 (&owned_targets[..], EvaluationRequestMode::Default)
             }
         };
+        let temporal_lowering = TemporalLoweringContext::runtime_clock_basis(self.clock_basis());
         let report = execute_targets_with_runtime_config(
             &mut self.graph,
             &self.config,
+            temporal_lowering,
             runtime_ctx,
             targets,
             request_mode,

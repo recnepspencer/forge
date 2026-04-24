@@ -1,5 +1,6 @@
 use crate::data::aspect::AspectVersion;
 use crate::data::output::{IntoNodeEvaluationResult, NodeEvaluationResult};
+use crate::data::temporal::LoweredTemporalEligibility;
 use crate::data::trace::CausalityMetadata;
 use crate::logic::prepared::PreparedDependencyCapture;
 use crate::logic::prepared::{PreparedEvaluation, PreparedEvaluationOutcome, PreparedTraceData};
@@ -36,6 +37,12 @@ impl EvaluationOutput {
         }
     }
 
+    pub fn deferred_by_time(temporal_eligibility: LoweredTemporalEligibility) -> Self {
+        let mut output = Self::deferred_by_condition();
+        output.trace_data.temporal_eligibility = Some(temporal_eligibility);
+        output
+    }
+
     pub fn reverted_clean_by_condition() -> Self {
         Self {
             result: NodeEvaluationResult::from_version(AspectVersion::zero()),
@@ -58,6 +65,14 @@ impl EvaluationOutput {
 
     pub fn with_causality(mut self, causality: CausalityMetadata) -> Self {
         self.trace_data.causality = Some(causality);
+        self
+    }
+
+    pub fn with_temporal_eligibility(
+        mut self,
+        temporal_eligibility: LoweredTemporalEligibility,
+    ) -> Self {
+        self.trace_data.temporal_eligibility = Some(temporal_eligibility);
         self
     }
 

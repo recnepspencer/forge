@@ -3,8 +3,9 @@ use crate::logic::context::EvaluationContext;
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::evaluation::IntoEvaluationOutput;
 use crate::logic::planner::{
-    build_evaluation_plan, execute_prepared_plan, execute_prepared_plan_with_policy,
-    execute_prepared_plan_with_precompute, EvaluationPlan, ExecutionReport, StageExecutor,
+    build_evaluation_plan, execute_prepared_plan,
+    execute_prepared_plan_with_policy_and_temporal_lowering, execute_prepared_plan_with_precompute,
+    EvaluationPlan, ExecutionReport, StageExecutor, TemporalLoweringContext,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 
@@ -33,6 +34,7 @@ impl SignalGraph {
             plan,
             precompute,
             &mut resolver,
+            TemporalLoweringContext::graph_only(),
             StageExecutor::Serial,
         )
     }
@@ -76,12 +78,13 @@ impl SignalGraph {
             fallback: crate::data::comparator::VersionComparatorPolicy::Exact,
             custom: &mut comparator,
         };
-        execute_prepared_plan_with_policy(
+        execute_prepared_plan_with_policy_and_temporal_lowering(
             self,
             plan,
             domain_ctx,
             evaluator,
             &mut resolver,
+            TemporalLoweringContext::graph_only(),
             executor,
         )
     }

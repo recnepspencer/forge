@@ -207,6 +207,20 @@ pub struct CheckpointTelemetry {
     pub restore_diagnostic_richness_breadth: u64,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TemporalTelemetry {
+    pub temporal_wake_count: u64,
+    pub scheduled_frontier_width: u64,
+    pub ready_queue_width: u64,
+    pub retired_wake_count: u64,
+    pub rescheduled_wake_count: u64,
+    pub temporal_eligibility_lowering_count: u64,
+    pub previous_value_reference_count: u64,
+    pub branch_local_temporal_restore_count: u64,
+    pub wake_allocation_count: u64,
+    pub wake_reuse_count: u64,
+}
+
 /// Lightweight runtime telemetry for signal orchestration internals.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeTelemetry {
@@ -217,4 +231,5 @@ pub struct RuntimeTelemetry {
     pub execution: ExecutionTelemetry,
     pub storage: StorageTelemetry,
     pub checkpoint: CheckpointTelemetry,
+    pub temporal: TemporalTelemetry,
 }

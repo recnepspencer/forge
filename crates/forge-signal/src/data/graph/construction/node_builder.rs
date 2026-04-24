@@ -1,5 +1,6 @@
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::comparator::VersionComparatorPolicy;
+use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{
@@ -9,6 +10,7 @@ use crate::data::node::{
 };
 use crate::data::output::PartitionSubscription;
 use crate::data::reuse::{ArtifactEquivalenceContract, NodeReuseContract};
+use crate::data::temporal::{ClockTick, IntervalCondition, TemporalCondition};
 use crate::logic::transaction::{
     AspectMergePolicyBinding, AspectMergePolicyName, ConflictIsolationPolicyName,
     ConflictPolicyName, DeletionPolicyName, IdentityMatcherName, MergeStrategyName,
@@ -253,8 +255,9 @@ impl<'a> NodeBuilder<'a> {
 
     /// Set the node evaluation condition directly.
     ///
-    /// Prefer the helper methods like `on_demand()`, `debounce(...)`, and
-    /// `custom_condition(...)` when one of them matches your intent.
+    /// Prefer the helper methods like `on_demand()`, `debounce(...)`,
+    /// `after(...)`, and `custom_condition(...)` when one of them matches your
+    /// intent.
     pub fn condition(mut self, condition: EvaluationCondition) -> Self {
         self.config.condition = condition;
         self
@@ -270,9 +273,71 @@ impl<'a> NodeBuilder<'a> {
         self.condition(EvaluationCondition::OnDemand)
     }
 
+    /// Evaluate the node only after the relative delay has elapsed.
+    ///
+    /// Returns an error when the declared delay is zero.
+    pub fn after(self, milliseconds: u64) -> Result<Self, SignalError> {
+        Ok(
+            self.condition(EvaluationCondition::Temporal(TemporalCondition::after(
+                milliseconds,
+            )?)),
+        )
+    }
+
+    /// Evaluate the node only at or after the explicit runtime tick.
+    pub fn at_or_after(self, tick_ms: u64) -> Self {
+        self.condition(EvaluationCondition::Temporal(
+            TemporalCondition::at_or_after(ClockTick::new(tick_ms)),
+        ))
+    }
+
     /// Evaluate the node only after the quiet period has elapsed.
-    pub fn debounce(self, milliseconds: u64) -> Self {
-        self.condition(EvaluationCondition::Debounce(milliseconds))
+    ///
+    /// Returns an error when the declared quiet period is zero.
+    pub fn debounce(self, milliseconds: u64) -> Result<Self, SignalError> {
+        Ok(
+            self.condition(EvaluationCondition::Temporal(TemporalCondition::debounce(
+                milliseconds,
+            )?)),
+        )
+    }
+
+    /// Evaluate the node at most once per throttle window.
+    ///
+    /// Returns an error when the declared window is zero.
+    pub fn throttle(self, milliseconds: u64) -> Result<Self, SignalError> {
+        Ok(
+            self.condition(EvaluationCondition::Temporal(TemporalCondition::throttle(
+                milliseconds,
+            )?)),
+        )
+    }
+
+    /// Treat the node as stale once the freshness window has elapsed.
+    ///
+    /// Returns an error when the declared freshness window is zero.
+    pub fn stale_after(self, milliseconds: u64) -> Result<Self, SignalError> {
+        Ok(self.condition(EvaluationCondition::Temporal(
+            TemporalCondition::stale_after(milliseconds)?,
+        )))
+    }
+
+    /// Evaluate the node on a recurring interval with default anchor and missed-tick policy.
+    ///
+    /// Returns an error when the declared period is zero.
+    pub fn interval(self, period_ms: u64) -> Result<Self, SignalError> {
+        Ok(
+            self.condition(EvaluationCondition::Temporal(TemporalCondition::interval(
+                IntervalCondition::try_new(period_ms)?,
+            ))),
+        )
+    }
+
+    /// Evaluate the node on a recurring interval with explicit scheduling semantics.
+    pub fn interval_with(self, interval: IntervalCondition) -> Self {
+        self.condition(EvaluationCondition::Temporal(TemporalCondition::interval(
+            interval,
+        )))
     }
 
     /// Evaluate the node only when the matching aspects are touched.
