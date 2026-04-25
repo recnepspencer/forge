@@ -2322,3 +2322,259 @@ what history was intentionally dropped by policy
 
 If it cannot answer those questions with machine-checkable artifacts, it is not
 yet honest enough.
+
+20. The async resource policy family certification test
+
+This is the test family that proves async policy is a runtime substrate, not
+adapter folklore.
+
+Why it matters
+
+Async behavior is where product assumptions usually leak into infrastructure:
+retry delay, retry budget, timeout scope, output visibility, cancellation
+propagation, revalidation, retained history, and diagnostic richness all look
+like local choices until branch restore, replay, or a regulated audit asks why
+the runtime did what it did.
+
+If these choices are not deterministic policy descriptors, every higher-level
+resource surface will create a second state machine.
+
+What to stress
+
+Run equivalent async/resource workloads across declared policy families for:
+
+retry and backoff:
+
+disabled retry
+
+fixed delay
+
+exponential backoff
+
+capped exponential backoff
+
+deterministic jitter
+
+max attempts
+
+max elapsed retry window
+
+failure-class-based retry
+
+node, family, runtime, and declared-scope retry budgets
+
+duplicate pending retry coalescing
+
+timeout and deadline:
+
+disabled timeout
+
+fixed timeout
+
+transaction/runtime inherited deadline
+
+per-attempt timeout
+
+total request-lifetime timeout
+
+progress-heartbeat extension
+
+terminal timeout
+
+timeout as revalidation-eligible
+
+cancellation and supersession:
+
+runtime-hard cancellation
+
+best-effort host cancellation signal
+
+cancellation grace period
+
+cancellation after supersession
+
+dependent-resource cancellation propagation
+
+newest-generation-wins supersession
+
+overlapping-generation policy
+
+intent-equivalence coalescing
+
+leave old host work running while denying completion
+
+cancel old host work on supersession
+
+revalidation and freshness:
+
+explicit revalidation
+
+stale-after revalidation
+
+dependency-change revalidation
+
+observer-demand revalidation
+
+terminal-state revalidation
+
+fulfilled-only revalidation
+
+forced revalidation with active-handle proof
+
+deduped and coalesced revalidation
+
+observation and output continuity:
+
+lifecycle-only observation
+
+output-continuity observation
+
+denied-completion observation
+
+retry-schedule observation
+
+per-transaction coalesced observation
+
+preserve previous output while pending
+
+hide previous output while pending
+
+preserve or hide output after rejection, timeout, cancellation, or supersession
+
+retention, diagnostics, and replay compatibility:
+
+retain all lifecycle transitions
+
+retain terminal summaries only
+
+retain denied completions by budget
+
+retain retry lineage by budget
+
+compact superseded, cancelled, and timed-out records
+
+retained-history unavailable classifications
+
+diagnostics expansion budgets
+
+policy version compatibility and incompatibility
+
+What to verify
+
+Policy identity:
+
+every decision carries policy id, semantic name, version, digest, and selection
+basis
+
+changing policy parameters changes descriptor digest
+
+unknown, duplicate, or incompatible policies deny before execution work is
+constructed
+
+Lifecycle law preservation:
+
+policy may alter eligibility, timing, visibility, retention, or diagnostics
+
+policy may not alter request identity, generation, attempt lineage, branch
+epoch matching, stale completion denial, or denied-completion non-apply
+
+Replay and branch parity:
+
+deterministic jitter replays identically
+
+budget exhaustion replays identically
+
+policy-compatible restore emits compatibility proof
+
+policy-incompatible restore emits typed denial
+
+Performance honesty:
+
+retry cost reports decision width, temporal wake footprint, and budget-scope
+touches
+
+timeout cost reports temporal frontier width and affected request count
+
+cancellation and supersession cost report affected request footprint and
+host-signal advisory width separately
+
+revalidation cost reports active-handle proof checks and coalescing width
+
+observation cost reports candidate width, coalesced width, and delivery width
+
+retention and diagnostics cost report retained-summary reads, cold
+reconstruction, pruned records, and diagnostics budget consumption separately
+
+Pass condition
+
+The runtime must emit canonical policy certification artifacts containing:
+
+policy registry digest
+
+policy descriptor digest
+
+policy selection basis
+
+policy decision trace
+
+resource lifecycle digest
+
+output-continuity digest
+
+retry lineage and budget digest
+
+timeout/deadline digest
+
+cancellation/supersession digest
+
+revalidation/freshness digest
+
+observation delivery digest
+
+retention and diagnostics digest
+
+replay compatibility or incompatibility artifact
+
+boundary performance envelope
+
+Equivalent runs must match exactly when policies are compatible. Incompatible
+policy history must deny explicitly; it must never silently reinterpret old
+async truth.
+
+20A. The async policy registry boundary test
+
+Purpose
+
+Prove that async/resource policy extensibility behaves like the existing
+strategy registry surfaces rather than like loose application callbacks.
+
+What to stress
+
+register duplicate policy ids
+
+register duplicate semantic names
+
+reference unknown policy names from resource declarations
+
+restore from a checkpoint with missing policy descriptors
+
+restore from a checkpoint with incompatible policy versions
+
+try to construct policy descriptors or force tokens outside the proving module
+
+What to verify
+
+duplicate registrations fail before runtime construction
+
+unknown policy declarations fail before descriptor lowering completes
+
+missing or incompatible restore policy descriptors produce typed compatibility
+denials
+
+private constructors prevent forged policy descriptor proofs
+
+Pass condition
+
+No policy decision can enter request admission, temporal wake allocation,
+completion admission, transaction apply, observation, or replay unless it has
+lowered through a frozen deterministic descriptor.

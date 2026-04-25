@@ -273,6 +273,7 @@ where
             },
             DerivedState {
                 checkpoint: self.derived.checkpoint,
+                resource: self.derived.resource,
                 temporal: self.derived.temporal,
                 telemetry: runtime_telemetry.unwrap_or(self.derived.telemetry),
             },
@@ -352,6 +353,7 @@ where
         graph: &mut SignalGraph,
         config: &mut SignalRuntimeConfig<T>,
         checkpoint: &mut CheckpointRuntime<D, I>,
+        resource: &mut super::super::resource::ResourceRuntimeState,
         temporal: &mut TemporalRuntimeState,
         telemetry: &mut RuntimeTelemetry,
         count_temporal_restore: bool,
@@ -376,15 +378,18 @@ where
             state.ancestry().clone(),
             state.mutation_ledger().clone(),
         );
+        let branch_id = state.branch_id();
         let (authority, derived, _, _) = state.into_parts();
         *graph = authority.graph;
         *config = authority.config;
         *checkpoint = derived.checkpoint;
+        *resource = derived.resource;
         *temporal = derived.temporal;
+        let mut restored_telemetry = derived.telemetry;
         if count_temporal_restore {
+            resource.bump_restore_epoch(branch_id, &mut restored_telemetry.resource);
             temporal.bump_previous_value_capability_epoch();
         }
-        let mut restored_telemetry = derived.telemetry;
         if count_temporal_restore {
             restored_telemetry
                 .temporal

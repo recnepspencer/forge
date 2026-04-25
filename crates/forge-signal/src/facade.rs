@@ -25,6 +25,41 @@ pub mod core {
         CanonicalChangedRegions, ChangedRegion, NodeEvaluationResult, OutputChange, OutputIdentity,
         PartitionMatchMode, PartitionSubscription, PartitionToken,
     };
+    pub use crate::data::resource::{
+        AdmittedResourceCompletion, AdmittedResourceRequest, AdmittedResourceRetry,
+        AdmittedResourceRevalidation, AsyncDenialId, CancelledResourceRequest,
+        CommittedResourceCompletionArtifact, CompletionDenialClass, DeniedResourceCancellation,
+        DeniedResourceCompletion, DeniedResourceRetry, DeniedResourceRevalidation,
+        DeniedResourceTimeout, FrozenResourcePolicyRegistry, InFlightResourceRequest,
+        RawCompletionEnvelope, ResourceAttemptId, ResourceBranchEpoch,
+        ResourceCancellationDenialClass, ResourceCancellationOrdinal,
+        ResourceCancellationPolicyDeclaration, ResourceCancellationReason,
+        ResourceCancellationReport, ResourceCompletionAdmissionReport,
+        ResourceCompletionCommitReport, ResourceCompletionDenialStagingReport,
+        ResourceCompletionOrdinal, ResourceCompletionRollbackReport,
+        ResourceCompletionRollbackSubject, ResourceCompletionStagingReport, ResourceCostContractId,
+        ResourceCostPosture, ResourceGeneration, ResourceInFlightStatus, ResourceLifecycleClass,
+        ResourceLifecycleOrdinal, ResourceLifecyclePolicyDeclaration, ResourceLifecycleTransition,
+        ResourceLifecycleTransitionKind, ResourceNodeDeclaration, ResourceNodeId,
+        ResourceObservationPolicyDeclaration, ResourceOutputContinuity,
+        ResourceOutputContinuityPolicyDeclaration, ResourcePayloadContract,
+        ResourcePayloadContractDigest, ResourcePayloadContractId,
+        ResourcePolicyCompatibilityPosture, ResourcePolicyDescriptor, ResourcePolicyDescriptorId,
+        ResourcePolicyDigest, ResourcePolicyKind, ResourcePolicyName, ResourcePolicyRegistration,
+        ResourcePolicyRegistryError, ResourcePolicyResolutionError, ResourcePolicySelectionBasis,
+        ResourcePolicyVersion, ResourceRequestHandle, ResourceRequestId, ResourceRequestIntent,
+        ResourceResolvedPolicy, ResourceResolvedPolicyBundle, ResourceRetentionPolicyDeclaration,
+        ResourceRetryAdmissionReport, ResourceRetryDenialClass, ResourceRetryOrdinal,
+        ResourceRetryPolicyDeclaration, ResourceRetryReason, ResourceRetryScheduleReport,
+        ResourceRevalidationDenialClass, ResourceRevalidationIntent,
+        ResourceRevalidationPolicyDeclaration, ResourceRevalidationReport,
+        ResourceStaleAfterPolicyDeclaration, ResourceSupersessionOrdinal,
+        ResourceSupersessionPolicyDeclaration, ResourceSupersessionRecord,
+        ResourceTimeoutDenialClass, ResourceTimeoutOrdinal, ResourceTimeoutPolicyDeclaration,
+        ResourceTimeoutReport, RolledBackResourceCompletionArtifact, ScheduledResourceRetry,
+        StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
+        TimedOutResourceRequest, ValidatedCompletionEnvelope,
+    };
     pub use crate::data::temporal::{
         AfterCondition, AtOrAfterCondition, ClockAdvanceOrdinal, ClockAdvanceRequest,
         ClockAuthority, ClockCheckpointId, ClockDomain, ClockTick, DebounceCondition,
@@ -117,6 +152,20 @@ pub mod runtime {
     pub use crate::data::output::KeyedComputation as KeyedRecipe;
     pub use crate::data::proof::DirtyBatch as ChangeBatch;
     pub use crate::data::proof::SemanticBatchCommit as ChangeBatchCommit;
+    pub use crate::data::resource::{
+        CommittedResourceCompletionArtifact, LoweredResourceDescriptor, ResourceBoundaryKind,
+        ResourceBoundaryPerformanceEnvelope, ResourceCompletionCommitReport,
+        ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
+        ResourceCompletionRollbackSubject, ResourceCompletionStagingReport,
+        ResourceDeclarationReport, ResourceDescriptorId, ResourceDescriptorVersion,
+        ResourceLifecycleSummary, ResourcePayloadContractDigest, ResourcePolicyDescriptor,
+        ResourcePolicyDigest, ResourcePolicyKind, ResourcePolicySelectionBasis,
+        ResourceRequestAdmissionReport, ResourceResolvedPolicy, ResourceResolvedPolicyBundle,
+        ResourceRetryAdmissionReport, ResourceRetryScheduleReport, ResourceRevalidationReport,
+        ResourceRuntimeSummary, ResourceSupersessionRecord, ResourceTimeoutReport,
+        RolledBackResourceCompletionArtifact, StagedDeniedResourceCompletionEffect,
+        StagedResourceCompletionEffect,
+    };
     pub use crate::data::temporal::{
         IntervalWakeRegeneration, PreviousValueRevision, ReadyTemporalWake, RetiredTemporalWake,
         ScheduledTemporalWake, TemporalClockAdvanceSummary, TemporalFrontierSnapshot,
@@ -290,7 +339,7 @@ pub mod adapters {
         ReuseSource, ReuseStrategy, ReuseStrategyBoundaryAuthority,
     };
     pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
-    pub use crate::data::telemetry::RuntimeTelemetry;
+    pub use crate::data::telemetry::{ResourceTelemetry, RuntimeTelemetry};
     pub use crate::data::tier_policy_table::TierPolicyTable;
     pub use crate::logic::transaction::{
         branch_state_proof_report, canonical_digest, lowered_strategy_bundle_digest,
@@ -479,6 +528,43 @@ pub use crate::data::dependency::CanonicalDependencies;
 pub use crate::data::graph::{GcPressure, ObservationLevel, ParallelismHint};
 #[cfg(test)]
 pub use crate::data::output::MemoizedResultOrigin;
+#[cfg(not(test))]
+pub use crate::data::resource::{
+    AdmittedResourceCompletion, AdmittedResourceRequest, AdmittedResourceRetry,
+    AdmittedResourceRevalidation, AsyncDenialId, CancelledResourceRequest,
+    CommittedResourceCompletionArtifact, CompletionDenialClass, DeniedResourceCancellation,
+    DeniedResourceCompletion, DeniedResourceRetry, DeniedResourceRevalidation,
+    DeniedResourceTimeout, FrozenResourcePolicyRegistry, InFlightResourceRequest,
+    LoweredResourceDescriptor, RawCompletionEnvelope, ResourceAttemptId, ResourceBoundaryKind,
+    ResourceBoundaryPerformanceEnvelope, ResourceBranchEpoch, ResourceCancellationDenialClass,
+    ResourceCancellationOrdinal, ResourceCancellationPolicyDeclaration, ResourceCancellationReason,
+    ResourceCancellationReport, ResourceCompletionAdmissionReport, ResourceCompletionCommitReport,
+    ResourceCompletionDenialStagingReport, ResourceCompletionOrdinal,
+    ResourceCompletionRollbackReport, ResourceCompletionRollbackSubject,
+    ResourceCompletionStagingReport, ResourceCostContractId, ResourceCostPosture,
+    ResourceDeclarationReport, ResourceDescriptorId, ResourceDescriptorVersion, ResourceGeneration,
+    ResourceInFlightStatus, ResourceLifecycleClass, ResourceLifecycleOrdinal,
+    ResourceLifecyclePolicyDeclaration, ResourceLifecycleSummary, ResourceLifecycleTransition,
+    ResourceLifecycleTransitionKind, ResourceNodeDeclaration, ResourceNodeId,
+    ResourceObservationPolicyDeclaration, ResourceOutputContinuity,
+    ResourceOutputContinuityPolicyDeclaration, ResourcePayloadContract,
+    ResourcePayloadContractDigest, ResourcePayloadContractId, ResourcePolicyCompatibilityPosture,
+    ResourcePolicyDescriptor, ResourcePolicyDescriptorId, ResourcePolicyDigest, ResourcePolicyKind,
+    ResourcePolicyName, ResourcePolicyRegistration, ResourcePolicyRegistryError,
+    ResourcePolicyResolutionError, ResourcePolicySelectionBasis, ResourcePolicyVersion,
+    ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestId,
+    ResourceRequestIntent, ResourceResolvedPolicy, ResourceResolvedPolicyBundle,
+    ResourceRetentionPolicyDeclaration, ResourceRetryAdmissionReport, ResourceRetryDenialClass,
+    ResourceRetryOrdinal, ResourceRetryPolicyDeclaration, ResourceRetryReason,
+    ResourceRetryScheduleReport, ResourceRevalidationDenialClass, ResourceRevalidationIntent,
+    ResourceRevalidationPolicyDeclaration, ResourceRevalidationReport, ResourceRuntimeSummary,
+    ResourceStaleAfterPolicyDeclaration, ResourceSupersessionOrdinal,
+    ResourceSupersessionPolicyDeclaration, ResourceSupersessionRecord, ResourceTimeoutDenialClass,
+    ResourceTimeoutOrdinal, ResourceTimeoutPolicyDeclaration, ResourceTimeoutReport,
+    RolledBackResourceCompletionArtifact, ScheduledResourceRetry,
+    StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect, TimedOutResourceRequest,
+    ValidatedCompletionEnvelope,
+};
 #[cfg(test)]
 pub use crate::data::trace::{
     ArtifactAuthorityClass, ArtifactMergeAuthority, CausalityMetadata, MergeAdoptability,

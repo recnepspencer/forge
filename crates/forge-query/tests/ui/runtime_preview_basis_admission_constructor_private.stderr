@@ -1,0 +1,13 @@
+error[E0451]: fields `label`, `effect_policy`, `authority_lane` and `evidence` of struct `ForgeQueryPreviewBasisAdmission` are private
+  --> tests/ui/runtime_preview_basis_admission_constructor_private.rs:7:9
+   |
+ 6 |     let _ = ForgeQueryPreviewBasisAdmission {
+   |             ------------------------------- in this type
+ 7 |         label: String::new(),
+   |         ^^^^^ private field
+ 8 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^^^^ private field
+10 |         evidence: Vec::new(),
+   |         ^^^^^^^^ private field

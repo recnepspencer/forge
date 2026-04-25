@@ -1,0 +1,35 @@
+error[E0451]: fields `name`, `trigger_source`, `trigger_source_kind`, `trigger_aspects`, `condition_descriptor`, `condition_inputs`, `condition_outputs`, `condition_failure_posture`, `action`, `target_lane`, `target`, `effect_policy`, `suppression_policy`, `counters` and `pending_delivery_count` of struct `ForgeQueryEffectInspectionEvidence` are private
+  --> tests/ui/runtime_effect_inspection_evidence_constructor_private.rs:9:9
+   |
+ 8 |     let _forged = ForgeQueryEffectInspectionEvidence {
+   |                   ---------------------------------- in this type
+ 9 |         name: "ui.forged".to_string(),
+   |         ^^^^ private field
+10 |         trigger_source: "tasks.table".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         trigger_source_kind: ForgeQueryEffectTriggerSourceKind::LiveView,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+12 |         trigger_aspects: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         condition_descriptor: "always".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+14 |         condition_inputs: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+15 |         condition_outputs: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+16 |         condition_failure_posture: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         action: ForgeQueryEffectAction::Deliver,
+   |         ^^^^^^ private field
+18 |         target_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
+   |         ^^^^^^^^^^^ private field
+19 |         target: "ui.badges".to_string(),
+   |         ^^^^^^ private field
+20 |         effect_policy: ForgeQueryEffectPolicy::AuthoritativeAllowed,
+   |         ^^^^^^^^^^^^^ private field
+21 |         suppression_policy: ForgeQueryEffectSuppressionPolicy::None,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+22 |         counters: ForgeQueryEffectCounters::default(),
+   |         ^^^^^^^^ private field
+23 |         pending_delivery_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field

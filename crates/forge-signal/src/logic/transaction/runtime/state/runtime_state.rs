@@ -2,7 +2,23 @@ use std::ops::{Deref, DerefMut};
 
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::handle::NodeId;
+use crate::data::resource::{
+    AdmittedResourceCompletion, DeniedResourceCompletion, InFlightResourceRequest,
+    LoweredResourceDescriptor, RawCompletionEnvelope, ResourceCancellationReason,
+    ResourceCancellationReport, ResourceCompletionAdmissionReport, ResourceCompletionCommitReport,
+    ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
+    ResourceCompletionStagingReport, ResourceDeclarationReport, ResourceNodeDeclaration,
+    ResourceNodeId, ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestIntent,
+    ResourceRetryAdmissionReport, ResourceRetryReason, ResourceRetryScheduleReport,
+    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
+    ResourceTimeoutPolicyDeclaration, ResourceTimeoutReport, StagedDeniedResourceCompletionEffect,
+    StagedResourceCompletionEffect,
+};
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
+use crate::data::temporal::{
+    ReadyTemporalWake, ScheduledTemporalWake, TemporalCondition, TemporalWakeOwner,
+    TemporalWakeRetirementReason,
+};
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 use crate::schema::data::SignalSchemaRegistry;
@@ -18,6 +34,7 @@ use super::merge::{
 };
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
+use super::resource::ResourceRuntimeState;
 use super::runtime_observation::RuntimeObservationRegistry;
 use super::temporal::TemporalRuntimeState;
 
@@ -172,6 +189,7 @@ where
     pub(in crate::logic::transaction::runtime) event_bus: EventBus<E, D, Ctx>,
     pub(in crate::logic::transaction::runtime) observations:
         RuntimeObservationRegistry<D, I, E, Ctx, T>,
+    pub(in crate::logic::transaction::runtime) resource: ResourceRuntimeState,
     pub(in crate::logic::transaction::runtime) temporal: TemporalRuntimeState,
     pub(in crate::logic::transaction::runtime) telemetry: RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) branches: BranchManager<D, I, T>,
@@ -506,6 +524,12 @@ where
         restored.rollback_packet_subscriber_repair_count = restored
             .rollback_packet_subscriber_repair_count
             .max(current.rollback_packet_subscriber_repair_count);
+        restored.rollback_packet_resource_count = restored
+            .rollback_packet_resource_count
+            .max(current.rollback_packet_resource_count);
+        restored.rollback_packet_temporal_count = restored
+            .rollback_packet_temporal_count
+            .max(current.rollback_packet_temporal_count);
         restored.move_transfer_count = restored
             .move_transfer_count
             .max(current.move_transfer_count);
@@ -576,6 +600,7 @@ where
             checkpoint,
             event_bus,
             observations: RuntimeObservationRegistry::default(),
+            resource: ResourceRuntimeState::default(),
             temporal: TemporalRuntimeState::default(),
             telemetry: RuntimeTelemetry::default(),
             branches: BranchManager::<D, I, T>::new(),
@@ -686,6 +711,356 @@ where
         &mut self.observations
     }
 
+    pub fn resource_runtime_summary(&self) -> ResourceRuntimeSummary {
+        self.resource.summary()
+    }
+
+    pub fn resource_descriptor_for_node(
+        &self,
+        node: ResourceNodeId,
+    ) -> Option<&LoweredResourceDescriptor> {
+        self.resource.descriptor_for_node(node)
+    }
+
+    pub fn in_flight_resource_request(
+        &mut self,
+        handle: ResourceRequestHandle,
+    ) -> Option<&InFlightResourceRequest> {
+        self.resource
+            .in_flight_request(handle, &mut self.telemetry.resource)
+    }
+
+    pub fn declare_resource_node(
+        &mut self,
+        declaration: ResourceNodeDeclaration,
+    ) -> Result<ResourceDeclarationReport, crate::data::error::SignalError> {
+        if !self.graph.is_alive(declaration.node().node()) {
+            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            return Err(crate::data::error::SignalError::invalid_input(format!(
+                "cannot declare resource node for non-live owner {}",
+                declaration.node().node()
+            )));
+        }
+
+        self.resource
+            .declare_resource_node(declaration, &mut self.telemetry.resource)
+    }
+
+    fn schedule_resource_timeout_wake(
+        &mut self,
+        resource_node: ResourceNodeId,
+        timeout_policy: ResourceTimeoutPolicyDeclaration,
+    ) -> Result<Option<ScheduledTemporalWake>, crate::data::error::SignalError> {
+        if let ResourceTimeoutPolicyDeclaration::RuntimeTimeout { timeout } = timeout_policy {
+            let condition = TemporalCondition::after(timeout.get())?;
+            let current_tick = self.clock_basis().current_tick();
+            let due_tick = crate::data::temporal::ClockTick::new(
+                current_tick.get().saturating_add(timeout.get()),
+            );
+            return self
+                .schedule_owned_temporal_wake(
+                    TemporalWakeOwner::ResourceNode(resource_node.node()),
+                    condition,
+                    due_tick,
+                )
+                .map(Some);
+        }
+
+        Ok(None)
+    }
+
+    fn dispose_resource_timeout_wake(&mut self, scheduled_timeout_wake: &ScheduledTemporalWake) {
+        let _ = self.retire_temporal_wake(
+            scheduled_timeout_wake.id(),
+            TemporalWakeRetirementReason::Disposed,
+        );
+    }
+
+    fn retire_superseded_resource_timeout_wake(
+        &mut self,
+        prior_timeout_wake: Option<crate::data::temporal::TemporalWakeId>,
+        scheduled_timeout_wake: Option<&ScheduledTemporalWake>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        if let Some(wake_id) = prior_timeout_wake {
+            if let Err(err) =
+                self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Superseded)
+            {
+                if let Some(wake) = scheduled_timeout_wake {
+                    self.dispose_resource_timeout_wake(wake);
+                }
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn admit_resource_request(
+        &mut self,
+        intent: ResourceRequestIntent,
+    ) -> Result<ResourceRequestAdmissionReport, crate::data::error::SignalError> {
+        let resource_node = intent.node();
+        if !self.graph.is_alive(intent.node().node()) {
+            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            return Err(crate::data::error::SignalError::invalid_input(format!(
+                "cannot admit resource request for non-live owner {}",
+                intent.node().node()
+            )));
+        }
+
+        let timeout_policy = self
+            .resource
+            .descriptor_for_node(resource_node)
+            .map(LoweredResourceDescriptor::timeout_policy)
+            .cloned()
+            .unwrap_or_default();
+        let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
+        let scheduled_timeout_wake =
+            self.schedule_resource_timeout_wake(resource_node, timeout_policy)?;
+        self.retire_superseded_resource_timeout_wake(
+            prior_timeout_wake,
+            scheduled_timeout_wake.as_ref(),
+        )?;
+        let report = match self.resource.admit_resource_request(
+            intent,
+            self.graph.current_branch().id,
+            &mut self.telemetry.resource,
+        ) {
+            Ok(report) => report,
+            Err(err) => {
+                if let Some(wake) = scheduled_timeout_wake.as_ref() {
+                    self.dispose_resource_timeout_wake(wake);
+                }
+                return Err(err);
+            }
+        };
+
+        if let Some(wake) = scheduled_timeout_wake {
+            if let Err(err) = self.resource.attach_timeout_wake(
+                report.admitted_request().handle(),
+                wake.id(),
+                &mut self.telemetry.resource,
+            ) {
+                self.dispose_resource_timeout_wake(&wake);
+                return Err(err);
+            }
+        }
+
+        Ok(report)
+    }
+
+    pub fn admit_resource_completion(
+        &mut self,
+        completion: RawCompletionEnvelope,
+    ) -> ResourceCompletionAdmissionReport {
+        self.resource
+            .admit_resource_completion(completion, &mut self.telemetry.resource)
+    }
+
+    pub fn stage_admitted_resource_completion(
+        &mut self,
+        admitted: AdmittedResourceCompletion,
+    ) -> Result<ResourceCompletionStagingReport, crate::data::error::SignalError> {
+        self.resource
+            .stage_admitted_resource_completion(admitted, &mut self.telemetry.resource)
+    }
+
+    pub fn stage_denied_resource_completion(
+        &mut self,
+        denied: DeniedResourceCompletion,
+    ) -> Result<ResourceCompletionDenialStagingReport, crate::data::error::SignalError> {
+        self.resource
+            .stage_denied_resource_completion(denied, &mut self.telemetry.resource)
+    }
+
+    pub fn rollback_staged_resource_completion(
+        &mut self,
+        staged: StagedResourceCompletionEffect,
+    ) -> ResourceCompletionRollbackReport {
+        self.resource
+            .rollback_staged_resource_completion(staged, &mut self.telemetry.resource)
+    }
+
+    pub fn rollback_staged_denied_resource_completion(
+        &mut self,
+        staged: StagedDeniedResourceCompletionEffect,
+    ) -> ResourceCompletionRollbackReport {
+        self.resource
+            .rollback_staged_denied_resource_completion(staged, &mut self.telemetry.resource)
+    }
+
+    pub fn commit_staged_resource_completion(
+        &mut self,
+        staged: StagedResourceCompletionEffect,
+    ) -> Result<ResourceCompletionCommitReport, crate::data::error::SignalError> {
+        let handle = staged.handle();
+        if let Some(wake_id) = self.resource.active_timeout_wake_for_handle(handle) {
+            self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
+        }
+        self.resource
+            .commit_staged_resource_completion(staged, &mut self.telemetry.resource)
+    }
+
+    pub fn revalidate_resource_node(
+        &mut self,
+        intent: ResourceRevalidationIntent,
+    ) -> Result<ResourceRevalidationReport, crate::data::error::SignalError> {
+        let resource_node = intent.node();
+        if !self.graph.is_alive(resource_node.node()) {
+            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            return Err(crate::data::error::SignalError::invalid_input(format!(
+                "cannot revalidate resource node for non-live owner {}",
+                resource_node.node()
+            )));
+        }
+
+        if self
+            .resource
+            .validate_resource_revalidation_intent(intent)
+            .is_some()
+        {
+            return Ok(self.resource.admit_resource_revalidation(
+                intent,
+                self.graph.current_branch().id,
+                &mut self.telemetry.resource,
+            ));
+        }
+
+        let timeout_policy = self
+            .resource
+            .descriptor_for_node(resource_node)
+            .map(LoweredResourceDescriptor::timeout_policy)
+            .cloned()
+            .unwrap_or_default();
+        let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
+        let scheduled_timeout_wake =
+            self.schedule_resource_timeout_wake(resource_node, timeout_policy)?;
+        self.retire_superseded_resource_timeout_wake(
+            prior_timeout_wake,
+            scheduled_timeout_wake.as_ref(),
+        )?;
+
+        let report = self.resource.admit_resource_revalidation(
+            intent,
+            self.graph.current_branch().id,
+            &mut self.telemetry.resource,
+        );
+        if let Some(wake) = scheduled_timeout_wake {
+            if let Some(admitted) = report.admitted_revalidation() {
+                if let Err(err) = self.resource.attach_timeout_wake(
+                    admitted.admitted_request().handle(),
+                    wake.id(),
+                    &mut self.telemetry.resource,
+                ) {
+                    self.dispose_resource_timeout_wake(&wake);
+                    return Err(err);
+                }
+            } else {
+                self.dispose_resource_timeout_wake(&wake);
+            }
+        }
+        Ok(report)
+    }
+
+    pub fn cancel_resource_request(
+        &mut self,
+        handle: ResourceRequestHandle,
+        reason: ResourceCancellationReason,
+    ) -> Result<ResourceCancellationReport, crate::data::error::SignalError> {
+        if let Some(wake_id) = self.resource.active_timeout_wake_for_handle(handle) {
+            self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Cancelled)?;
+        }
+        let report =
+            self.resource
+                .cancel_resource_request(handle, reason, &mut self.telemetry.resource);
+        Ok(report)
+    }
+
+    pub fn admit_resource_timeout(
+        &mut self,
+        handle: ResourceRequestHandle,
+        ready_wake: ReadyTemporalWake,
+    ) -> Result<ResourceTimeoutReport, crate::data::error::SignalError> {
+        let wake_id = ready_wake.id();
+        if self
+            .resource
+            .active_timeout_wake_for_handle(handle)
+            .is_some_and(|active| active == wake_id)
+        {
+            self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
+        }
+        let report =
+            self.resource
+                .admit_resource_timeout(handle, ready_wake, &mut self.telemetry.resource);
+        Ok(report)
+    }
+
+    pub fn schedule_resource_retry(
+        &mut self,
+        handle: ResourceRequestHandle,
+        reason: ResourceRetryReason,
+    ) -> Result<ResourceRetryScheduleReport, crate::data::error::SignalError> {
+        let delay = match self.resource.retry_backoff_delay_for_handle(handle) {
+            Ok(delay) => delay,
+            Err(class) => {
+                return Ok(self.resource.deny_resource_retry_schedule(
+                    handle,
+                    class,
+                    &mut self.telemetry.resource,
+                ));
+            }
+        };
+        let condition = TemporalCondition::after(delay.get())?;
+        let current_tick = self.clock_basis().current_tick();
+        let due_tick =
+            crate::data::temporal::ClockTick::new(current_tick.get().saturating_add(delay.get()));
+        let node = self
+            .resource
+            .in_flight_request(handle, &mut self.telemetry.resource)
+            .map(|in_flight| in_flight.node())
+            .ok_or_else(|| {
+                crate::data::error::SignalError::invalid_input(format!(
+                    "cannot schedule retry for unknown resource request {}",
+                    handle.request_id().get()
+                ))
+            })?;
+        let wake = self.schedule_owned_temporal_wake(
+            TemporalWakeOwner::ResourceNode(node.node()),
+            condition,
+            due_tick,
+        )?;
+        let report = self.resource.schedule_resource_retry(
+            handle,
+            reason,
+            wake.id(),
+            &mut self.telemetry.resource,
+        );
+        if report.denied_retry().is_some() {
+            let _ = self.retire_temporal_wake(wake.id(), TemporalWakeRetirementReason::Disposed);
+        }
+        Ok(report)
+    }
+
+    pub fn admit_scheduled_resource_retry(
+        &mut self,
+        handle: ResourceRequestHandle,
+        ready_wake: ReadyTemporalWake,
+    ) -> Result<ResourceRetryAdmissionReport, crate::data::error::SignalError> {
+        let wake_id = ready_wake.id();
+        if self
+            .resource
+            .pending_retry_wake_for_handle(handle)
+            .is_some_and(|pending| pending == wake_id)
+        {
+            self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
+        }
+        Ok(self.resource.admit_scheduled_resource_retry(
+            handle,
+            ready_wake,
+            self.graph.current_branch().id,
+            &mut self.telemetry.resource,
+        ))
+    }
+
     pub fn telemetry(&self) -> &RuntimeTelemetry {
         &self.telemetry
     }
@@ -695,7 +1070,12 @@ where
     }
 
     pub(super) fn capture_full_derived_state(&self) -> DerivedState<D, I> {
-        DerivedState::capture(&self.checkpoint, &self.temporal, &self.telemetry)
+        DerivedState::capture(
+            &self.checkpoint,
+            &self.resource,
+            &self.temporal,
+            &self.telemetry,
+        )
     }
 
     fn heavy_capture_witness(&mut self) -> HeavyCaptureWitness {
@@ -764,6 +1144,7 @@ where
                 &mut self.checkpoint,
                 CheckpointRuntime::new(checkpoint_policy),
             ),
+            resource: std::mem::take(&mut self.resource),
             temporal: std::mem::take(&mut self.temporal),
             telemetry: std::mem::take(&mut self.telemetry),
         };
@@ -791,6 +1172,7 @@ where
             &mut self.graph,
             &mut self.config,
             &mut self.checkpoint,
+            &mut self.resource,
             &mut self.temporal,
             &mut self.telemetry,
             count_temporal_restore,

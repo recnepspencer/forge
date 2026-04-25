@@ -43,6 +43,7 @@ impl WakeOrdinal {
 pub enum TemporalWakeOwner {
     Manual,
     Node(NodeId),
+    ResourceNode(NodeId),
 }
 
 /// Runtime-owned proof that a temporal wake has been admitted but is not yet ready.

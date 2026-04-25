@@ -16,6 +16,7 @@ use crate::state::{SignalBranchId, SignalSnapshotId};
 
 use super::super::transaction::TemporalTransactionEvidence;
 use super::merge::canonical_digest;
+use super::resource::ResourceRuntimeState;
 use super::temporal::TemporalRuntimeState;
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,7 @@ where
     I: Copy + Ord,
 {
     pub checkpoint: CheckpointRuntime<D, I>,
+    pub resource: ResourceRuntimeState,
     pub temporal: TemporalRuntimeState,
     pub telemetry: RuntimeTelemetry,
 }
@@ -57,11 +59,13 @@ where
 {
     pub fn capture(
         checkpoint: &CheckpointRuntime<D, I>,
+        resource: &ResourceRuntimeState,
         temporal: &TemporalRuntimeState,
         telemetry: &RuntimeTelemetry,
     ) -> Self {
         Self {
             checkpoint: checkpoint.clone(),
+            resource: resource.clone(),
             temporal: temporal.clone(),
             telemetry: telemetry.clone(),
         }

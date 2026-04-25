@@ -75,6 +75,7 @@ pub enum MilestoneNineThreeFailureClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MilestoneNineThreeCertificationBundle {
     pub query_family_label: String,
+    pub declaration_family_label: String,
     pub bridge_family_label: String,
     pub support_class_label: String,
     pub support_resolution_posture_label: String,
@@ -109,6 +110,7 @@ pub struct MilestoneNineThreeCertificationBundle {
 impl MilestoneNineThreeCertificationBundle {
     pub(super) fn has_required_outputs(&self) -> bool {
         is_present(&self.query_family_label)
+            && is_present(&self.declaration_family_label)
             && is_present(&self.bridge_family_label)
             && is_present(&self.support_class_label)
             && is_present(&self.support_resolution_posture_label)

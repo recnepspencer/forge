@@ -290,7 +290,7 @@ fn hostile_family_coverage_rows_reject_denied_bundles_from_foreign_proof_chains(
     let artifacts = runtime_certification_artifacts_for(LiveQueryFamily::Detail, None);
     let foreign = runtime_certification_artifacts_for_source(
         LiveQueryFamily::Detail,
-        None,
+        Some(LiveViewShapeFamily::Detail),
         QuerySubscriptionConstructionSource::Direct,
     );
     let foreign_hostile = hostile_support_failure_for(&foreign);

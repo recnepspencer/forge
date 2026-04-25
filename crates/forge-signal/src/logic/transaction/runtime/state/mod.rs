@@ -6,6 +6,7 @@ mod mutation;
 mod observation;
 mod observer;
 mod reconstructability;
+mod resource;
 mod runtime_observation;
 mod runtime_state;
 mod temporal;
@@ -88,6 +89,7 @@ pub use reconstructability::{
 };
 #[allow(unused_imports)]
 pub use reconstructability::{CheckpointRecord, JournalSegment, ReconstructabilityRecord};
+pub(in crate::logic::transaction::runtime) use resource::ResourceRuntimeState;
 pub(crate) use runtime_observation::RuntimeObservationRegistry;
 pub use runtime_observation::{
     MatchingObserverSet, ObservationDeliveryMode, ObservationHandle, ObservationHandleId,

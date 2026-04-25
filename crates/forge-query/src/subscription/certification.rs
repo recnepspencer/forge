@@ -292,6 +292,7 @@ pub struct SubscriptionLifecycleCertificationBundle {
     subscription_family_digest: String,
     subscription_declaration_digest: String,
     subscription_equivalence_digest: String,
+    admission_digest: String,
     active_lane_digest: String,
     active_lane_handle_digest: String,
     active_lane_lookup_class_digest: String,
@@ -342,6 +343,10 @@ impl SubscriptionLifecycleCertificationBundle {
 
     pub fn subscription_equivalence_digest(&self) -> &str {
         &self.subscription_equivalence_digest
+    }
+
+    pub fn admission_digest(&self) -> &str {
+        &self.admission_digest
     }
 
     pub fn active_lane_digest(&self) -> &str {
@@ -742,6 +747,7 @@ pub fn certify_subscription_lifecycle(
         format!("query:{}", context.query_digest()),
         format!("family:{}", context.subscription_family_digest()),
         format!("equivalence:{}", context.subscription_equivalence_digest()),
+        format!("admission:{}", admission.admission_digest()),
         format!("lane:{}", active_admission.lane_digest().as_str()),
         format!("handle:{}", active_lane_handle_digest),
         format!("performance:{}", subscription_performance_receipt_digest),
@@ -763,6 +769,7 @@ pub fn certify_subscription_lifecycle(
         subscription_family_digest: context.subscription_family_digest().to_string(),
         subscription_declaration_digest: admission.query_declaration_digest().to_string(),
         subscription_equivalence_digest: context.subscription_equivalence_digest().to_string(),
+        admission_digest: admission.admission_digest().to_string(),
         active_lane_digest: active_admission.lane_digest().as_str().to_string(),
         active_lane_handle_digest,
         active_lane_lookup_class_digest,

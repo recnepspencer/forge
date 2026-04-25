@@ -1,0 +1,32 @@
+#[test]
+fn resource_compile_fail_boundaries_hold() {
+    let cases = trybuild::TestCases::new();
+    cases.compile_fail("tests/ui/admitted_resource_request_fields_are_private.rs");
+    cases.compile_fail("tests/ui/admitted_resource_completion_fields_are_private.rs");
+    cases.compile_fail("tests/ui/cancelled_resource_request_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_resource_cancellation_fields_are_private.rs");
+    cases.compile_fail("tests/ui/timed_out_resource_request_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_resource_timeout_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_resource_completion_fields_are_private.rs");
+    cases.compile_fail("tests/ui/validated_completion_envelope_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_lifecycle_transition_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_supersession_record_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_request_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_cancellation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_timeout_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retry_schedule_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retry_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_revalidation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_completion_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_resource_completion_cannot_be_staged.rs");
+    cases.compile_fail("tests/ui/staged_resource_completion_effect_fields_are_private.rs");
+    cases.compile_fail("tests/ui/staged_denied_resource_completion_effect_fields_are_private.rs");
+    cases.compile_fail("tests/ui/committed_resource_completion_artifact_fields_are_private.rs");
+    cases.compile_fail("tests/ui/staged_resource_completion_effect_cannot_be_cloned.rs");
+    cases.compile_fail("tests/ui/staged_denied_resource_completion_effect_cannot_be_cloned.rs");
+    cases.compile_fail("tests/ui/staged_denied_resource_completion_cannot_commit.rs");
+    cases.compile_fail("tests/ui/staged_denied_resource_completion_cannot_transaction_commit.rs");
+    cases.compile_fail("tests/ui/committed_resource_completion_artifact_cannot_be_cloned.rs");
+    cases.compile_fail("tests/ui/resource_runtime_summary_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_policy_descriptor_fields_are_private.rs");
+}

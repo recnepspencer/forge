@@ -1,0 +1,17 @@
+error[E0451]: fields `descriptor_count`, `declared_resource_node_count`, `in_flight_request_count`, `active_in_flight_node_count`, `denied_completion_count` and `next_descriptor_id` of struct `ResourceRuntimeSummary` are private
+  --> tests/ui/resource_runtime_summary_fields_are_private.rs:5:9
+   |
+ 4 |     let _ = ResourceRuntimeSummary {
+   |             ---------------------- in this type
+ 5 |         descriptor_count: 0,
+   |         ^^^^^^^^^^^^^^^^ private field
+ 6 |         declared_resource_node_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         in_flight_request_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         active_in_flight_node_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         denied_completion_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         next_descriptor_id: ResourceDescriptorId::new(0),
+   |         ^^^^^^^^^^^^^^^^^^ private field

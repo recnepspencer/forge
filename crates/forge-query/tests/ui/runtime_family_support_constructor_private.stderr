@@ -1,0 +1,17 @@
+error[E0451]: fields `family`, `status`, `authority_lanes`, `effect_policies`, `evidence` and `denial_reason` of struct `ForgeQueryRuntimeFamilySupport` are private
+  --> tests/ui/runtime_family_support_constructor_private.rs:8:9
+   |
+ 7 |     let _ = ForgeQueryRuntimeFamilySupport {
+   |             ------------------------------ in this type
+ 8 |         family: ForgeQueryRuntimeFacadeFamily::Read,
+   |         ^^^^^^ private field
+ 9 |         status: ForgeQueryRuntimeFamilySupportStatus::Supported,
+   |         ^^^^^^ private field
+10 |         authority_lanes: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         effect_policies: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         evidence: Vec::new(),
+   |         ^^^^^^^^ private field
+13 |         denial_reason: None,
+   |         ^^^^^^^^^^^^^ private field

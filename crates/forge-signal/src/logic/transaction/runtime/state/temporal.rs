@@ -655,7 +655,7 @@ where
     fn validate_temporal_wake_owner(&self, owner: TemporalWakeOwner) -> Result<(), SignalError> {
         match owner {
             TemporalWakeOwner::Manual => Ok(()),
-            TemporalWakeOwner::Node(node) => {
+            TemporalWakeOwner::Node(node) | TemporalWakeOwner::ResourceNode(node) => {
                 if self.graph.is_alive(node) {
                     Ok(())
                 } else {

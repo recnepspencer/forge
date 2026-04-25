@@ -135,6 +135,11 @@ impl ClassifiedObservationEvent {
         self.meaningful_change = true;
     }
 
+    fn mark_resource_lifecycle_change(&mut self) {
+        self.touched = true;
+        self.meaningful_change = true;
+    }
+
     #[cfg_attr(not(test), allow(dead_code))]
     fn trigger_matched(&self) -> bool {
         match self.policy.trigger() {
@@ -314,6 +319,33 @@ impl TransactionObservationScratch {
         }
 
         Ok(())
+    }
+
+    pub fn classify_resource_lifecycle_change<D, I, E, Ctx, T>(
+        &mut self,
+        observations: &RuntimeObservationRegistry<D, I, E, Ctx, T>,
+        node: NodeId,
+    ) -> usize
+    where
+        D: Copy + Ord + std::fmt::Debug + 'static,
+        I: Copy + Ord,
+        T: Copy + Ord,
+    {
+        let mut matched = 0;
+        observations.for_each_matching_observer_for_node(node, |observer_id| {
+            matched += 1;
+            self.stage_match(observations, observer_id, node);
+            let Some(candidate) = self.staged_candidates.get(&observer_id) else {
+                return;
+            };
+            let classified = self
+                .classified_events
+                .entry(observer_id)
+                .or_insert_with(|| ClassifiedObservationEvent::from_candidate(candidate));
+            classified.absorb_candidate(candidate);
+            classified.mark_resource_lifecycle_change();
+        });
+        matched
     }
 
     pub fn summary(&self) -> ObservationScratchSummary {

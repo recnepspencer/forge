@@ -247,6 +247,9 @@ impl ForgeQueryAuthorityRequirement {
 pub struct ForgeQueryDerivedView {
     name: String,
     dependency_aspects: Vec<String>,
+    produced_aspects: Vec<String>,
+    upstream_live_views: Vec<String>,
+    upstream_derived_views: Vec<String>,
     incremental: bool,
 }
 
@@ -258,8 +261,39 @@ impl ForgeQueryDerivedView {
         Self {
             name: name.into(),
             dependency_aspects: dependency_aspects.into_iter().collect(),
+            produced_aspects: Vec::new(),
+            upstream_live_views: Vec::new(),
+            upstream_derived_views: Vec::new(),
             incremental: true,
         }
+    }
+
+    pub fn produces(mut self, aspects: impl IntoIterator<Item = String>) -> Self {
+        self.produced_aspects = aspects.into_iter().collect();
+        self
+    }
+
+    pub fn depends_on_live<T>(mut self, view: &crate::runtime::ForgeQueryLiveView<T>) -> Self {
+        self.upstream_live_views.push(view.name().to_string());
+        self
+    }
+
+    pub fn depends_on_derived<T>(
+        mut self,
+        view: &crate::runtime::ForgeQueryDerivedViewHandle<T>,
+    ) -> Self {
+        self.upstream_derived_views.push(view.name().to_string());
+        self
+    }
+
+    pub fn depends_on_live_name(mut self, name: impl Into<String>) -> Self {
+        self.upstream_live_views.push(name.into());
+        self
+    }
+
+    pub fn depends_on_derived_name(mut self, name: impl Into<String>) -> Self {
+        self.upstream_derived_views.push(name.into());
+        self
     }
 
     pub fn whole_refresh_fallback(mut self) -> Self {
@@ -273,6 +307,18 @@ impl ForgeQueryDerivedView {
 
     pub fn dependency_aspects(&self) -> &[String] {
         &self.dependency_aspects
+    }
+
+    pub fn produced_aspects(&self) -> &[String] {
+        &self.produced_aspects
+    }
+
+    pub fn upstream_live_views(&self) -> &[String] {
+        &self.upstream_live_views
+    }
+
+    pub fn upstream_derived_views(&self) -> &[String] {
+        &self.upstream_derived_views
     }
 
     pub fn incremental(&self) -> bool {

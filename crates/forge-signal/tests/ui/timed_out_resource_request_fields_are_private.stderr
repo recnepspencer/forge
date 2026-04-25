@@ -1,0 +1,13 @@
+error[E0451]: fields `handle`, `timeout_ordinal`, `ready_wake` and `lifecycle_transition` of struct `TimedOutResourceRequest` are private
+  --> tests/ui/timed_out_resource_request_fields_are_private.rs:20:9
+   |
+19 |     let _ = TimedOutResourceRequest {
+   |             ----------------------- in this type
+20 |         handle: forged_handle(),
+   |         ^^^^^^ private field
+21 |         timeout_ordinal: ResourceTimeoutOrdinal::new(0),
+   |         ^^^^^^^^^^^^^^^ private field
+22 |         ready_wake: forged_ready_wake(),
+   |         ^^^^^^^^^^ private field
+23 |         lifecycle_transition: forged_transition(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

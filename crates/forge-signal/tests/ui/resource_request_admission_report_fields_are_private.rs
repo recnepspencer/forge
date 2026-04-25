@@ -1,0 +1,36 @@
+use forge_signal::facade::{
+    AdmittedResourceRequest, ResourceBoundaryPerformanceEnvelope, ResourceLifecycleSummary,
+    ResourceLifecycleTransition, ResourceRequestAdmissionReport, ResourceSupersessionRecord,
+};
+
+fn admitted() -> AdmittedResourceRequest {
+    loop {}
+}
+
+fn lifecycle() -> ResourceLifecycleSummary {
+    loop {}
+}
+
+fn transition() -> ResourceLifecycleTransition {
+    loop {}
+}
+
+fn performance() -> ResourceBoundaryPerformanceEnvelope {
+    loop {}
+}
+
+fn supersession() -> ResourceSupersessionRecord {
+    loop {}
+}
+
+fn main() {
+    let _ = ResourceRequestAdmissionReport {
+        admitted_request: admitted(),
+        lifecycle: lifecycle(),
+        transition: transition(),
+        supersession_record: Some(supersession()),
+        superseded_request: None,
+        superseded_transition: None,
+        performance: performance(),
+    };
+}

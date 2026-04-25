@@ -27,7 +27,8 @@ use super::super::super::key_registry::RuntimeStringId;
 use super::super::super::patch_buffer::SparsePatchBuffer;
 use super::super::config::SignalRuntimeConfig;
 use super::super::state::{
-    BranchManager, ReconstructabilityRecord, RuntimeObservationRegistry, TemporalRuntimeState,
+    BranchManager, ReconstructabilityRecord, ResourceRuntimeState, RuntimeObservationRegistry,
+    TemporalRuntimeState,
 };
 use super::transaction_observation::{ObservationBoundarySummary, TransactionObservationScratch};
 
@@ -330,12 +331,24 @@ pub(in crate::logic::transaction::runtime) struct SubscriberRepairRollbackDelta 
 }
 
 #[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct ResourceRollbackDelta {
+    pub baseline: ResourceRuntimeState,
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct TemporalRollbackDelta {
+    pub baseline: TemporalRuntimeState,
+}
+
+#[derive(Debug, Clone)]
 pub(in crate::logic::transaction::runtime) enum TransactionRollbackPacket<T: Copy + Ord> {
     Config(ConfigRollbackDelta<T>),
     DiagnosticsRequired(DiagnosticsRollbackDelta),
     GraphPatches(GraphPatchRollbackDelta),
     CreatedNodes(CreatedNodeRollbackDelta),
     SubscriberRepair(SubscriberRepairRollbackDelta),
+    Resource(ResourceRollbackDelta),
+    Temporal(TemporalRollbackDelta),
 }
 
 #[derive(Debug, Clone)]
@@ -345,6 +358,8 @@ pub(in crate::logic::transaction::runtime) struct TransactionRollbackPacketSet<T
     graph_patches: Option<GraphPatchRollbackDelta>,
     created_nodes: Option<CreatedNodeRollbackDelta>,
     subscriber_repair: Option<SubscriberRepairRollbackDelta>,
+    resource: Option<ResourceRollbackDelta>,
+    temporal: Option<TemporalRollbackDelta>,
 }
 
 impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
@@ -355,6 +370,8 @@ impl<T: Copy + Ord> Default for TransactionRollbackPacketSet<T> {
             graph_patches: None,
             created_nodes: None,
             subscriber_repair: None,
+            resource: None,
+            temporal: None,
         }
     }
 }
@@ -416,8 +433,24 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
         Ok(())
     }
 
+    pub fn capture_resource_baseline_if_needed(&mut self, resource: &ResourceRuntimeState) {
+        if self.resource.is_none() {
+            self.resource = Some(ResourceRollbackDelta {
+                baseline: resource.clone(),
+            });
+        }
+    }
+
+    pub fn capture_temporal_baseline_if_needed(&mut self, temporal: &TemporalRuntimeState) {
+        if self.temporal.is_none() {
+            self.temporal = Some(TemporalRollbackDelta {
+                baseline: temporal.clone(),
+            });
+        }
+    }
+
     pub fn drain_ordered(&mut self) -> Vec<TransactionRollbackPacket<T>> {
-        let mut packets = Vec::with_capacity(5);
+        let mut packets = Vec::with_capacity(7);
         if let Some(delta) = self.graph_patches.take() {
             packets.push(TransactionRollbackPacket::GraphPatches(delta));
         }
@@ -426,6 +459,12 @@ impl<T: Copy + Ord> TransactionRollbackPacketSet<T> {
         }
         if let Some(delta) = self.subscriber_repair.take() {
             packets.push(TransactionRollbackPacket::SubscriberRepair(delta));
+        }
+        if let Some(delta) = self.resource.take() {
+            packets.push(TransactionRollbackPacket::Resource(delta));
+        }
+        if let Some(delta) = self.temporal.take() {
+            packets.push(TransactionRollbackPacket::Temporal(delta));
         }
         if let Some(delta) = self.config.take() {
             packets.push(TransactionRollbackPacket::Config(delta));
@@ -450,6 +489,7 @@ where
     pub(in crate::logic::transaction::runtime) graph: &'a mut crate::data::graph::SignalGraph,
     pub(in crate::logic::transaction::runtime) checkpoint: &'a mut CheckpointRuntime<D, I>,
     pub(in crate::logic::transaction::runtime) event_bus: &'a mut EventBus<E, D, Ctx>,
+    pub(in crate::logic::transaction::runtime) resource: &'a mut ResourceRuntimeState,
     pub(in crate::logic::transaction::runtime) temporal: &'a mut TemporalRuntimeState,
     pub(in crate::logic::transaction::runtime) telemetry: &'a mut RuntimeTelemetry,
     pub(in crate::logic::transaction::runtime) branches: &'a mut BranchManager<D, I, T>,

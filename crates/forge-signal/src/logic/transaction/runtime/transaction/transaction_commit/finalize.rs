@@ -47,6 +47,18 @@ where
                     self.graph
                         .reconcile_subscriber_membership_for_sources(&delta.sources)?;
                 }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::Resource(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_resource_count += 1;
+                    *self.resource = delta.baseline;
+                }
+                crate::logic::transaction::runtime::transaction::TransactionRollbackPacket::Temporal(
+                    delta,
+                ) => {
+                    self.telemetry.transaction.rollback_packet_temporal_count += 1;
+                    *self.temporal = delta.baseline;
+                }
             }
         }
         Ok(())

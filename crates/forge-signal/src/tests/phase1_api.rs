@@ -1171,6 +1171,11 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
             previous_value_reference_count: 23,
             ..TemporalTelemetry::default()
         },
+        resource: ResourceTelemetry {
+            resource_declaration_lowering_count: 37,
+            resource_descriptor_count: 41,
+            ..ResourceTelemetry::default()
+        },
     };
     let counters = telemetry.performance_counter_surface();
 
@@ -1185,6 +1190,8 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
     assert_eq!(counters.temporal.scheduled_frontier_width, 29);
     assert_eq!(counters.temporal.temporal_eligibility_lowering_count, 31);
     assert_eq!(counters.temporal.previous_value_reference_count, 23);
+    assert_eq!(counters.resource.resource_declaration_lowering_count, 37);
+    assert_eq!(counters.resource.resource_descriptor_count, 41);
 }
 
 #[test]

@@ -21,6 +21,7 @@ mod resume;
 mod retention;
 #[cfg(test)]
 mod tests;
+mod trust;
 mod witnesses;
 
 use crate::failure::{StoreError, StoreErrorKind};
@@ -132,6 +133,55 @@ pub use retention::{
     SupportAffectedSet, SupportAffectedSetDigest, SupportReclaimConsequence,
     SupportRetentionBatchPlan, SupportRetentionParticipationRecord,
     SupportRetentionSurvivalWitness,
+};
+pub use trust::{
+    admit_support_trust_request, check_support_trust_coverage, check_support_trust_drift,
+    check_support_trust_equivalence, classify_certified_support_trust,
+    classify_operational_support_trust, translate_support_trust_inputs,
+    CertifiedSupportTrustClassified, CertifiedSupportTrustReport, CertifiedSupportTrustWitness,
+    DegradedSupportTrustWitness, ExactSupportTrustWitness, OperationalSupportTrustClassified,
+    OperationalSupportTrustReport, RawSupportTrustRequest, RebuildDerivedSupportTrustWitness,
+    RejectedSupportTrustWitness, SubscriptionSupportAccuracyCertificationCounterSnapshot,
+    SubscriptionSupportAccuracyCertificationOutputs, SubscriptionSupportAccuracyCertificationRow,
+    SubscriptionSupportAccuracyCertificationRowKind, SubscriptionSupportAccuracyCertificationSuite,
+    SubscriptionSupportCertificationCoveragePlan, SubscriptionSupportTrustClass,
+    SupportBasisReceipt, SupportCatalogEpoch, SupportCertificationBatchScope,
+    SupportCertificationBatchScopeKind, SupportCertificationCorpusVersion,
+    SupportCertificationCounterSnapshot, SupportCertificationCoverageMatrix,
+    SupportCertificationCoverageWitness, SupportCertificationEpoch,
+    SupportCertificationEvidenceBundle, SupportCertificationGapReport,
+    SupportCertificationHandoffReport, SupportCertificationLaneDigestSet, SupportCertificationRow,
+    SupportCertificationRowEvidence, SupportCertificationRowRequirement,
+    SupportCertificationSummary, SupportCompatibilityEpoch, SupportCompatibilityReceipt,
+    SupportCursorCheckpointReceipt, SupportDomainCertificationBatchPlan,
+    SupportDomainCertificationBundle, SupportDomainCertificationCounterSnapshot,
+    SupportDomainCertificationDebtOwner, SupportDomainCertificationDebtReason,
+    SupportDomainCertificationRow, SupportDomainCertificationRowStatus,
+    SupportDomainCertificationScenario, SupportExactTrustTranslation, SupportFamilyRoleReceipt,
+    SupportGenericCertificationCounterSnapshot, SupportGenericCertificationReport,
+    SupportImportAdmissionReceipt, SupportImportEquivalenceWitness, SupportMaintenanceReceipt,
+    SupportMigrationEquivalenceWitness, SupportOperationalLedgerEpoch,
+    SupportOperationalVerdictReceipt, SupportPortabilityReceipt, SupportRebuildEquivalenceWitness,
+    SupportReplicationEquivalenceWitness, SupportResumeClassificationReceipt,
+    SupportRetentionReceipt, SupportRoadmapPhysicalReadinessPosture, SupportRoleTrustPosture,
+    SupportStalenessVerdict, SupportTrustAccessIndexKind, SupportTrustAccessPath,
+    SupportTrustAccessStructurePlan, SupportTrustAllocationScope, SupportTrustBatchCardinality,
+    SupportTrustCertificationStamp, SupportTrustClass, SupportTrustClassificationCostSurface,
+    SupportTrustClassificationCounterSnapshot, SupportTrustClassificationPlan,
+    SupportTrustClassificationReport, SupportTrustClassificationWitness, SupportTrustCloneBoundary,
+    SupportTrustComplexityContract, SupportTrustComplexityStatus, SupportTrustCoverageChecked,
+    SupportTrustDensityClass, SupportTrustDowngradeReason, SupportTrustDriftCause,
+    SupportTrustDriftChecked, SupportTrustDriftLocality, SupportTrustDriftReport,
+    SupportTrustDriftScanPlan, SupportTrustEpoch, SupportTrustEquivalenceChecked,
+    SupportTrustEquivalenceContract, SupportTrustEquivalenceEvidence, SupportTrustEquivalenceLane,
+    SupportTrustEquivalenceWitness, SupportTrustEvidenceBudget, SupportTrustExpiredReport,
+    SupportTrustFailure, SupportTrustFailureKind, SupportTrustFreshnessWitness,
+    SupportTrustOperationalWitness, SupportTrustPathClass, SupportTrustPerformancePlan,
+    SupportTrustProvenance, SupportTrustReceiptBundle, SupportTrustReceiptStatus,
+    SupportTrustRecoveryPosture, SupportTrustRequestAdmitted, SupportTrustRequestedUse,
+    SupportTrustStrength, SupportTrustStrengthProvenance, SupportTrustSuppressedCause,
+    SupportTrustTranslatedInputs, SupportTrustTranslationPlan, SupportTrustUseBoundary,
+    UncertifiedSupportTrustPosture, SUBSCRIPTION_SUPPORT_ACCURACY_CERTIFICATION_SUITE_NAME,
 };
 
 use digest::stable_digest;

@@ -674,6 +674,26 @@ impl ForgeQueryMemoryApp {
 }
 
 impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
+    fn support_profile(&self) -> crate::runtime::ForgeQueryRuntimeSupportProfile {
+        crate::runtime::ForgeQueryRuntimeSupportProfile::compatibility_backend()
+    }
+
+    fn admit_live_view_declaration(
+        &self,
+        _name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        _schema_view: &QuerySchemaView,
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        if self.collections.contains_key(request.target()) {
+            Ok(())
+        } else {
+            Err(ForgeQueryWorkspaceError::new(format!(
+                "unknown live view collection `{}`",
+                request.target()
+            )))
+        }
+    }
+
     fn declare_live_view(
         &mut self,
         name: String,
@@ -717,6 +737,52 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
 
     fn snapshot_token(&self) -> String {
         Self::snapshot_token(self)
+    }
+
+    fn install_live_subscription(
+        &mut self,
+        view_name: &str,
+        activation: &crate::subscription::SubscriptionActivationInput,
+    ) -> Result<String, ForgeQueryWorkspaceError> {
+        Ok(format!(
+            "memory-live-subscription:{}:{}",
+            view_name,
+            activation.activation_digest()
+        ))
+    }
+
+    fn admit_preview_basis(
+        &self,
+        label: &str,
+        effect_policy: crate::runtime::ForgeQueryEffectPolicy,
+        authority: &crate::runtime::ForgeQueryRuntimeEvidenceAuthority,
+    ) -> Result<crate::runtime::ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
+        Ok(crate::runtime::ForgeQueryPreviewBasisAdmission::new(
+            authority,
+            label,
+            effect_policy,
+            ["memory-preview-basis"],
+        ))
+    }
+
+    fn inspect_write_receipt(
+        &self,
+        receipt: &crate::runtime::ForgeQueryWriteReceipt,
+        authority: &crate::runtime::ForgeQueryRuntimeEvidenceAuthority,
+    ) -> Result<crate::runtime::ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError> {
+        Ok(crate::runtime::ForgeQueryRuntimeInspectionEvidence::new(
+            authority,
+            "write-receipt",
+            receipt.authority_lane(),
+            ["memory-inspector-evidence"],
+        ))
+    }
+
+    fn grouped_baseline_members(
+        &self,
+        request: &DeclarativeLiveQueryRequest,
+    ) -> Result<Option<Vec<(String, String)>>, ForgeQueryWorkspaceError> {
+        Ok(self.grouped_baseline_members_for_request(request))
     }
 }
 

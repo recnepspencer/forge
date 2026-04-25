@@ -1,0 +1,21 @@
+error[E0451]: fields `name`, `authority_lane`, `upstream_live_views`, `upstream_derived_views`, `dependency_aspects`, `produced_aspects`, `materialized_row_count` and `pending_patch_count` of struct `ForgeQueryComputedInspectionEvidence` are private
+  --> tests/ui/runtime_computed_inspection_evidence_constructor_private.rs:5:9
+   |
+ 4 |     let _forged = ForgeQueryComputedInspectionEvidence {
+   |                   ------------------------------------ in this type
+ 5 |         name: "computed.forged".to_string(),
+   |         ^^^^ private field
+ 6 |         authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
+   |         ^^^^^^^^^^^^^^ private field
+ 7 |         upstream_live_views: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         upstream_derived_views: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         dependency_aspects: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+10 |         produced_aspects: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+11 |         materialized_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         pending_patch_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^ private field

@@ -388,6 +388,10 @@ fn certification_bundle(
             .parity_explanation
             .query_family_label()
             .to_string(),
+        declaration_family_label: artifacts
+            .parity_explanation
+            .declaration_family_label()
+            .to_string(),
         bridge_family_label: artifacts
             .parity_explanation
             .bridge_family_label()

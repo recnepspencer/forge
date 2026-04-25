@@ -1052,8 +1052,16 @@ fn validate_denied_trace_sources(
 ) -> Result<(), QuerySubscriptionDiagnosticBundleError> {
     validate_trace_stage_source(
         trace,
-        QuerySubscriptionDiagnosticStage::FamilySelection,
-        selection_context.source_digest(),
+        if selection_context.is_selection_denied() {
+            *failure.stage()
+        } else {
+            QuerySubscriptionDiagnosticStage::FamilySelection
+        },
+        if selection_context.is_selection_denied() {
+            failure.source_digest()
+        } else {
+            selection_context.source_digest()
+        },
         "denied diagnostic bundle assembly requires trace family-selection evidence for the supplied selection context",
         QuerySubscriptionDiagnosticBundleErrorKind::SelectionContextMismatch,
     )?;
@@ -1074,6 +1082,22 @@ fn validate_denied_trace_sources(
             "denied diagnostic bundle assembly requires declaration trace evidence aligned with the supplied declaration or declaration-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::DeclarationSourceMismatch,
         )?;
+    } else {
+        validate_optional_trace_stage_source(
+            trace,
+            QuerySubscriptionDiagnosticStage::Declaration,
+            if matches!(
+                failure.stage(),
+                QuerySubscriptionDiagnosticStage::Declaration
+                    | QuerySubscriptionDiagnosticStage::DeliveryIntent
+            ) {
+                Some(failure.source_digest())
+            } else {
+                None
+            },
+            "diagnostic bundle assembly requires the trace to carry every stage that the assembled artifacts claim",
+            QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
+        )?;
     }
 
     if let Some(lowering) = lowering {
@@ -1092,6 +1116,23 @@ fn validate_denied_trace_sources(
             },
             "denied diagnostic bundle assembly requires bridge-lowering trace evidence aligned with the supplied lowering artifact or bridge-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::BridgeLoweringSourceMismatch,
+        )?;
+    } else {
+        validate_optional_trace_stage_source(
+            trace,
+            QuerySubscriptionDiagnosticStage::BridgeFamilyLowering,
+            if matches!(
+                failure.stage(),
+                QuerySubscriptionDiagnosticStage::BridgeFamilyLowering
+                    | QuerySubscriptionDiagnosticStage::BridgeSliceLowering
+                    | QuerySubscriptionDiagnosticStage::BasisBinding
+            ) {
+                Some(failure.source_digest())
+            } else {
+                None
+            },
+            "diagnostic bundle assembly requires the trace to carry every stage that the assembled artifacts claim",
+            QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
         )?;
     }
 
@@ -1114,18 +1155,35 @@ fn validate_denied_trace_sources(
             "denied diagnostic bundle assembly requires runtime-admission trace evidence aligned with the supplied admission artifact or admission-stage failure",
             QuerySubscriptionDiagnosticBundleErrorKind::AdmissionSourceMismatch,
         )?;
+    } else {
+        validate_optional_trace_stage_source(
+            trace,
+            QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission,
+            if matches!(
+                failure.stage(),
+                QuerySubscriptionDiagnosticStage::RuntimeBackedAdmission
+                    | QuerySubscriptionDiagnosticStage::AdmissionBudget
+                    | QuerySubscriptionDiagnosticStage::DurableReloadOverclaim
+                    | QuerySubscriptionDiagnosticStage::ActiveLifecycleAllocation
+                    | QuerySubscriptionDiagnosticStage::ActivationReadiness
+            ) {
+                Some(failure.source_digest())
+            } else {
+                None
+            },
+            "diagnostic bundle assembly requires the trace to carry every stage that the assembled artifacts claim",
+            QuerySubscriptionDiagnosticBundleErrorKind::MissingRequiredStage,
+        )?;
     }
 
     validate_optional_trace_stage_source(
         trace,
         QuerySubscriptionDiagnosticStage::SupportReporting,
-        support.map(|value| {
-            if *failure.stage() == QuerySubscriptionDiagnosticStage::SupportReporting {
-                failure.source_digest()
-            } else {
-                value.report_digest()
-            }
-        }),
+        if *failure.stage() == QuerySubscriptionDiagnosticStage::SupportReporting {
+            Some(failure.source_digest())
+        } else {
+            support.map(|value| value.report_digest())
+        },
         "denied diagnostic bundle assembly may only carry support-reporting trace evidence when the supplied support report is present",
         QuerySubscriptionDiagnosticBundleErrorKind::SupportSourceMismatch,
     )?;

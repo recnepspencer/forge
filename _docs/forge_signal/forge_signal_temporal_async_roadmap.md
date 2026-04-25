@@ -37,6 +37,9 @@ This roadmap extends the direction already named in:
 - [forge_signal_vision.md](./forge_signal_vision.md)
 - [signal_architecture2.md](./signal_architecture2.md)
 - [milestone-11-closeout.md](./milestone-11-closeout.md)
+- [milestone-a-plan.md](./milestone-a-plan.md)
+- [milestone-b-plan.md](./milestone-b-plan.md)
+- [milestone-c-plan.md](./milestone-c-plan.md)
 - [test-requirements.md](./test-requirements.md)
 
 The key continuity is:
@@ -130,6 +133,7 @@ There is one strict dependency order:
 
 - `Phase 1: Temporal Runtime Substrate`
 - `Phase 2: Async And Resource Node Runtime Substrate`
+- `Phase 3: Async Resource Policy Families`
 
 The order is intentional.
 
@@ -143,6 +147,11 @@ Async/resource nodes need runtime-owned time semantics for:
 
 If async lands before time, the runtime will either hardcode weak temporal
 policy or push it back into host glue, which would poison the foundation.
+
+Async resource policy families come after the async/resource substrate because
+policy variation must consume canonical lifecycle truth, request identity,
+temporal wake proof, transaction apply, and replay artifacts rather than define
+them.
 
 ## Phase 1: Temporal Runtime Substrate
 
@@ -259,6 +268,9 @@ with canonical machine-checkable artifacts for:
 
 ## Phase 2: Async And Resource Node Runtime Substrate
 
+See [milestone-b-plan.md](./milestone-b-plan.md) for the concrete engineering
+specification for this phase.
+
 ### Goal
 
 Make async and resource nodes first-class runtime concepts so pending,
@@ -373,6 +385,76 @@ with canonical machine-checkable artifacts for:
 - replay/restore digests
 - diagnostics/explanation digests
 
+## Phase 3: Async Resource Policy Families
+
+See [milestone-c-plan.md](./milestone-c-plan.md) for the concrete engineering
+specification for this phase.
+
+### Goal
+
+Complete the async/resource policy layer by building deterministic, descriptor-
+backed policy families for retry, timeout, cancellation, supersession,
+revalidation, observation, output continuity, retention, diagnostics, and
+replay compatibility.
+
+### Adversarial Constraint
+
+The same async/resource workload, driven through different declared policy
+families, must preserve the same hard lifecycle laws, expose the policy choices
+that changed operational behavior, and replay deterministically or deny with a
+typed compatibility artifact.
+
+### Why This Phase Exists
+
+Milestone B freezes the extensibility boundary, but async is too important to
+leave policy richness as a vague later adapter concern.
+
+Without this phase:
+
+- route-resource, query, form, and background-refresh products will each invent
+  separate retry, timeout, visibility, and retention semantics
+- retry storms, timeout drift, and retention truncation will be product bugs
+  instead of certified runtime behavior
+- replay and diagnostics will not be able to explain why one policy admitted a
+  retry, cancelled host work, preserved output, or retained history
+
+### Must Ship
+
+- complete frozen registries for all async/resource policy families
+- built-in policy families for retry, timeout, cancellation, supersession,
+  revalidation, observation, output continuity, retention, diagnostics, and
+  replay compatibility
+- typed policy denial classifications for unknown, duplicate, incompatible,
+  budget-exhausted, and semantically illegal policy decisions
+- policy-specific boundary performance envelopes
+- certification suites for retry budgets/backoff, deadline behavior,
+  cancellation/supersession, revalidation/freshness, observation/visibility,
+  retention/diagnostics, and replay compatibility
+
+### Must Preserve
+
+- lifecycle legality remains runtime law, not policy preference
+- policy variation is resolved before execution and consumed as lowered
+  descriptor truth
+- host callbacks do not decide runtime legality inside the hot path
+- public product layers consume policy truth instead of redefining it
+
+### Acceptance Evidence
+
+This phase is complete only when `forge-signal` can prove:
+
+- the `Async Resource Policy Family Certification Test`
+- the `Async Retry Budget And Backoff Certification Test`
+- the `Async Timeout Deadline Certification Test`
+- the `Async Cancellation Supersession Policy Certification Test`
+- the `Async Revalidation Freshness Certification Test`
+- the `Async Observation Output Continuity Certification Test`
+- the `Async Retention Replay Policy Certification Test`
+
+with canonical machine-checkable artifacts for policy descriptors, selection
+bases, decision outcomes, replay compatibility, diagnostics, and boundary
+performance envelopes.
+
 ## Per-Phase Format
 
 Each phase in this roadmap is intentionally small in count but heavy in
@@ -395,10 +477,14 @@ This roadmap is complete only when all of the following are true:
 - time is runtime-owned rather than host-interpreted
 - previous-value-sensitive and time-gated nodes are replay- and branch-honest
 - async/resource lifecycle is runtime-owned rather than adapter-local
+- async/resource policy variation is descriptor-owned rather than adapter-local
 - pending, fulfilled, rejected, cancelled, stale, and superseded states are
   canonical runtime truths
 - branch, snapshot, restore, replay, rollback, diagnostics, and observation all
   preserve one semantic story for temporal and async work
+- retry, timeout, cancellation, supersession, revalidation, observation,
+  output-continuity, retention, diagnostics, and replay policies are fully
+  certified runtime families
 - later wasm, query, route-resource, and form layers can consume these
   semantics without needing a second truth model
 

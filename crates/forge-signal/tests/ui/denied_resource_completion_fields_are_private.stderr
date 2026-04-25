@@ -1,0 +1,19 @@
+error[E0451]: fields `denial_id`, `class`, `request_id`, `generation`, `branch_epoch`, `attempt` and `payload_byte_len` of struct `DeniedResourceCompletion` are private
+  --> tests/ui/denied_resource_completion_fields_are_private.rs:8:9
+   |
+ 7 |     let _ = DeniedResourceCompletion {
+   |             ------------------------ in this type
+ 8 |         denial_id: AsyncDenialId::new(0),
+   |         ^^^^^^^^^ private field
+ 9 |         class: CompletionDenialClass::UnknownRequest,
+   |         ^^^^^ private field
+10 |         request_id: ResourceRequestId::new(0),
+   |         ^^^^^^^^^^ private field
+11 |         generation: ResourceGeneration::new(0),
+   |         ^^^^^^^^^^ private field
+12 |         branch_epoch: ResourceBranchEpoch::new(SignalBranchId(0), 0),
+   |         ^^^^^^^^^^^^ private field
+13 |         attempt: ResourceAttemptId::new(0),
+   |         ^^^^^^^ private field
+14 |         payload_byte_len: 0,
+   |         ^^^^^^^^^^^^^^^^ private field

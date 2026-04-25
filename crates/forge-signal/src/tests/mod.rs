@@ -38,6 +38,8 @@ mod phase4_planner;
 mod phase5_state;
 mod phase5_workflows;
 mod reentrancy;
+mod resource_api;
+mod resource_runtime;
 mod rollback_integrity;
 mod rollback_leakage;
 mod signal_contract;

@@ -2,6 +2,7 @@ mod envelope;
 mod transaction_commit;
 mod transaction_mutation;
 mod transaction_observation;
+mod transaction_resource;
 mod transaction_types;
 
 pub use envelope::{
