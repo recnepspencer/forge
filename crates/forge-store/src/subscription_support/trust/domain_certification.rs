@@ -92,6 +92,22 @@ impl SupportGenericCertificationCounterSnapshot {
         self.certified_support_report_count
     }
 
+    pub fn generic_row_count(&self) -> u64 {
+        self.generic_row_count
+    }
+
+    pub fn index_probe_count(&self) -> u64 {
+        self.index_probe_count
+    }
+
+    pub fn receipt_reuse_count(&self) -> u64 {
+        self.receipt_reuse_count
+    }
+
+    pub fn allocation_count(&self) -> u64 {
+        self.allocation_count
+    }
+
     pub fn physical_readiness_debt_count(&self) -> u64 {
         self.physical_readiness_debt_count
     }
@@ -372,6 +388,26 @@ impl SupportDomainCertificationCounterSnapshot {
         self.scenario_row_count
     }
 
+    pub fn certified_semantic_row_count(&self) -> u64 {
+        self.certified_semantic_row_count
+    }
+
+    pub fn explicit_debt_row_count(&self) -> u64 {
+        self.explicit_debt_row_count
+    }
+
+    pub fn index_probe_count(&self) -> u64 {
+        self.index_probe_count
+    }
+
+    pub fn receipt_reuse_count(&self) -> u64 {
+        self.receipt_reuse_count
+    }
+
+    pub fn allocation_count(&self) -> u64 {
+        self.allocation_count
+    }
+
     pub fn physical_readiness_debt_count(&self) -> u64 {
         self.physical_readiness_debt_count
     }
@@ -535,6 +571,14 @@ impl SupportCertificationHandoffReport {
 
     pub fn semantic_support_trust_closed(&self) -> bool {
         self.semantic_support_trust_closed
+    }
+
+    pub fn generic_certification_digest(&self) -> &str {
+        &self.generic_certification_digest
+    }
+
+    pub fn domain_certification_digest(&self) -> &str {
+        &self.domain_certification_digest
     }
 
     pub fn roadmap_physical_readiness_posture(&self) -> SupportRoadmapPhysicalReadinessPosture {

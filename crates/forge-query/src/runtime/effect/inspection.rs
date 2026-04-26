@@ -4,6 +4,7 @@ use super::declaration::{
     ForgeQueryEffectSuppressionPolicy, ForgeQueryEffectTriggerSourceKind,
 };
 use super::delivery::ForgeQueryEffectCounters;
+use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,6 +24,8 @@ pub struct ForgeQueryEffectInspectionEvidence {
     suppression_policy: ForgeQueryEffectSuppressionPolicy,
     counters: ForgeQueryEffectCounters,
     pending_delivery_count: usize,
+    pending_write_intent_count: usize,
+    latest_phase_evidence: Option<ForgeQueryEffectPhaseEvidence>,
 }
 impl ForgeQueryEffectInspectionEvidence {
     pub(in crate::runtime) fn from_runtime(effect: &ForgeQueryEffectRuntime) -> Self {
@@ -55,7 +58,26 @@ impl ForgeQueryEffectInspectionEvidence {
             effect_policy: effect.declaration.effect_policy(),
             suppression_policy: effect.declaration.suppression_policy(),
             counters: effect.counters.clone(),
-            pending_delivery_count: effect.deliveries.len(),
+            pending_delivery_count: effect
+                .deliveries
+                .iter()
+                .filter(|delivery| {
+                    delivery.family()
+                        != &super::delivery::ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+                })
+                .count(),
+            pending_write_intent_count: effect
+                .deliveries
+                .iter()
+                .filter(|delivery| {
+                    delivery.family()
+                        == &super::delivery::ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+                })
+                .count(),
+            latest_phase_evidence: effect
+                .deliveries
+                .last()
+                .map(|delivery| delivery.phase_evidence().clone()),
         }
     }
     pub fn name(&self) -> &str {
@@ -102,5 +124,11 @@ impl ForgeQueryEffectInspectionEvidence {
     }
     pub fn pending_delivery_count(&self) -> usize {
         self.pending_delivery_count
+    }
+    pub fn pending_write_intent_count(&self) -> usize {
+        self.pending_write_intent_count
+    }
+    pub fn latest_phase_evidence(&self) -> Option<&ForgeQueryEffectPhaseEvidence> {
+        self.latest_phase_evidence.as_ref()
     }
 }

@@ -1,0 +1,17 @@
+error[E0451]: fields `schema_version`, `runtime_summary`, `latest_branch_restore_report`, `replay_reconstruction`, `performance` and `provenance_digest` of struct `ResourceDiagnosticsSummary` are private
+  --> tests/ui/resource_diagnostics_summary_fields_are_private.rs:16:9
+   |
+15 |     let _forged = ResourceDiagnosticsSummary {
+   |                   -------------------------- in this type
+16 |         schema_version: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+17 |         runtime_summary: ResourceRuntimeSummary::default(),
+   |         ^^^^^^^^^^^^^^^ private field
+18 |         latest_branch_restore_report: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         replay_reconstruction: forged_replay(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         performance: forged_performance(),
+   |         ^^^^^^^^^^^ private field
+21 |         provenance_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

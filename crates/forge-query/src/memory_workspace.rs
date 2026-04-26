@@ -723,6 +723,16 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
         }
     }
 
+    fn execute_intent(
+        &mut self,
+        declaration: &crate::runtime::ForgeQueryIntentDeclaration,
+    ) -> Result<crate::runtime::ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
+        Err(ForgeQueryWorkspaceError::new(format!(
+            "intent `{}` is not supported by the memory compatibility backend",
+            declaration.name()
+        )))
+    }
+
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
         Self::live_entities(self, view_name)
     }

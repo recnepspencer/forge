@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use serde::Serialize;
+
 use crate::data::resource::{
     AdmittedResourceCompletion, AdmittedResourceRequest, AdmittedResourceRetry,
     AdmittedResourceRevalidation, AsyncDenialId, CancelledResourceRequest,
@@ -7,28 +9,35 @@ use crate::data::resource::{
     DeniedResourceCompletion, DeniedResourceRetry, DeniedResourceRevalidation,
     DeniedResourceTimeout, FrozenResourcePolicyRegistry, InFlightResourceRequest,
     LoweredResourceDescriptor, RawCompletionEnvelope, ResourceAttemptId,
-    ResourceBoundaryPerformanceEnvelope, ResourceBranchEpoch, ResourceCancellationDenialClass,
-    ResourceCancellationOrdinal, ResourceCancellationReason, ResourceCancellationReport,
-    ResourceCompletionAdmissionReport, ResourceCompletionCommitReport,
+    ResourceBoundaryPerformanceEnvelope, ResourceBranchEpoch, ResourceBranchRestoreReport,
+    ResourceCancellationDenialClass, ResourceCancellationOrdinal, ResourceCancellationReason,
+    ResourceCancellationReport, ResourceCompletionAdmissionReport,
+    ResourceCompletionBatchAdmissionReport, ResourceCompletionCommitReport,
     ResourceCompletionDenialStagingReport, ResourceCompletionOrdinal,
     ResourceCompletionRollbackReport, ResourceCompletionStagingReport, ResourceDeclarationReport,
     ResourceDescriptorId, ResourceDescriptorVersion, ResourceGeneration, ResourceInFlightStatus,
     ResourceLifecycleClass, ResourceLifecycleOrdinal, ResourceLifecycleSummary,
     ResourceLifecycleTransition, ResourceLifecycleTransitionKind, ResourceNodeDeclaration,
     ResourceNodeId, ResourceOutputContinuity, ResourcePolicyResolutionError,
-    ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestId,
-    ResourceRequestIntent, ResourceResolvedPolicyBundle, ResourceRetryAdmissionReport,
-    ResourceRetryDenialClass, ResourceRetryOrdinal, ResourceRetryPolicyDeclaration,
-    ResourceRetryReason, ResourceRetryScheduleReport, ResourceRevalidationDenialClass,
-    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
-    ResourceSupersessionOrdinal, ResourceSupersessionRecord, ResourceTimeoutDenialClass,
-    ResourceTimeoutOrdinal, ResourceTimeoutReport, RolledBackResourceCompletionArtifact,
-    ScheduledResourceRetry, StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
-    TimedOutResourceRequest, ValidatedCompletionEnvelope,
+    ResourceReplayReconstructionReport, ResourceRequestAdmissionReport, ResourceRequestHandle,
+    ResourceRequestId, ResourceRequestIntent, ResourceResolvedPolicyBundle,
+    ResourceRetryAdmissionReport, ResourceRetryDenialClass, ResourceRetryOrdinal,
+    ResourceRetryPolicyDeclaration, ResourceRetryReason, ResourceRetryScheduleReport,
+    ResourceRevalidationDenialClass, ResourceRevalidationIntent, ResourceRevalidationReport,
+    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceSupersessionOrdinal,
+    ResourceSupersessionRecord, ResourceTimeoutDenialClass, ResourceTimeoutOrdinal,
+    ResourceTimeoutReport, RolledBackResourceCompletionArtifact, ScheduledResourceRetry,
+    StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect, TimedOutResourceRequest,
+    ValidatedCompletionEnvelope,
 };
 use crate::data::telemetry::ResourceTelemetry;
 use crate::data::temporal::{ReadyTemporalWake, TemporalWakeId};
 use crate::state::SignalBranchId;
+
+use super::merge::canonical_digest;
+
+const RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION: &str =
+    "forge.resource.replay-reconstruction.v1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::logic::transaction::runtime) struct ResourceRuntimeState {
@@ -52,6 +61,7 @@ pub(in crate::logic::transaction::runtime) struct ResourceRuntimeState {
     pending_retry_by_request: BTreeMap<ResourceRequestId, ScheduledResourceRetry>,
     pending_retry_by_wake: BTreeMap<TemporalWakeId, ResourceRequestId>,
     denied_completions: BTreeMap<AsyncDenialId, DeniedResourceCompletion>,
+    latest_branch_restore_report: Option<ResourceBranchRestoreReport>,
 }
 
 impl Default for ResourceRuntimeState {
@@ -77,8 +87,43 @@ impl Default for ResourceRuntimeState {
             pending_retry_by_request: BTreeMap::new(),
             pending_retry_by_wake: BTreeMap::new(),
             denied_completions: BTreeMap::new(),
+            latest_branch_restore_report: None,
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayLifecycleDigestBasis<'a> {
+    schema_version: &'static str,
+    lifecycle_summaries: &'a [ResourceLifecycleSummary],
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayDescriptorDigestBasis<'a> {
+    schema_version: &'static str,
+    descriptors: &'a [LoweredResourceDescriptor],
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayDenialDigestBasis<'a> {
+    schema_version: &'static str,
+    denied_completions: &'a [DeniedResourceCompletion],
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayInFlightDigestBasis<'a> {
+    schema_version: &'static str,
+    in_flight_requests: &'a [InFlightResourceRequest],
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayDigestBasis<'a> {
+    schema_version: &'static str,
+    descriptor_digest: &'a str,
+    lifecycle_digest: &'a str,
+    denied_completion_digest: &'a str,
+    in_flight_digest: &'a str,
+    retained_history_unavailable_count: u32,
 }
 
 impl ResourceRuntimeState {
@@ -93,17 +138,130 @@ impl ResourceRuntimeState {
         )
     }
 
+    pub fn summary_read_report(
+        &self,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceRuntimeSummaryReadReport {
+        telemetry.resource_retained_summary_read_count += 1;
+        telemetry.resource_boundary_performance_envelope_count += 1;
+        ResourceRuntimeSummaryReadReport::new(
+            self.summary(),
+            ResourceBoundaryPerformanceEnvelope::summary_read(),
+        )
+    }
+
     pub fn descriptor_for_node(&self, node: ResourceNodeId) -> Option<&LoweredResourceDescriptor> {
         self.descriptors_by_node
             .get(&node)
             .and_then(|descriptor_id| self.descriptors.get(descriptor_id))
     }
 
+    pub fn latest_branch_restore_report(&self) -> Option<ResourceBranchRestoreReport> {
+        self.latest_branch_restore_report
+    }
+
+    pub fn replay_reconstruction_width(&self) -> u32 {
+        let width = self
+            .descriptors
+            .len()
+            .saturating_add(self.lifecycle_by_node.len())
+            .saturating_add(self.denied_completions.len())
+            .saturating_add(self.in_flight_by_request.len());
+        width.min(u32::MAX as usize) as u32
+    }
+
+    pub fn reconstruct_replay_summary(
+        &self,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceReplayReconstructionReport {
+        let descriptors = self.descriptors.values().cloned().collect::<Vec<_>>();
+        let lifecycle_summaries = self.lifecycle_by_node.values().copied().collect::<Vec<_>>();
+        let denied_completions = self
+            .denied_completions
+            .values()
+            .copied()
+            .collect::<Vec<_>>();
+        let in_flight_requests = self
+            .in_flight_by_request
+            .values()
+            .copied()
+            .collect::<Vec<_>>();
+        let retained_history_unavailable_count = lifecycle_summaries
+            .iter()
+            .filter(|summary| {
+                summary.lifecycle() == ResourceLifecycleClass::RetainedHistoryUnavailable
+            })
+            .count() as u32;
+        let lifecycle_summary_width = lifecycle_summaries.len() as u32;
+        let descriptor_width = descriptors.len() as u32;
+        let denied_completion_width = denied_completions.len() as u32;
+        let in_flight_width = in_flight_requests.len() as u32;
+        let descriptor_digest = canonical_digest(&ResourceReplayDescriptorDigestBasis {
+            schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
+            descriptors: &descriptors,
+        });
+        let lifecycle_digest = canonical_digest(&ResourceReplayLifecycleDigestBasis {
+            schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
+            lifecycle_summaries: &lifecycle_summaries,
+        });
+        let denied_completion_digest = canonical_digest(&ResourceReplayDenialDigestBasis {
+            schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
+            denied_completions: &denied_completions,
+        });
+        let in_flight_digest = canonical_digest(&ResourceReplayInFlightDigestBasis {
+            schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
+            in_flight_requests: &in_flight_requests,
+        });
+        let replay_digest = canonical_digest(&ResourceReplayDigestBasis {
+            schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
+            descriptor_digest: &descriptor_digest,
+            lifecycle_digest: &lifecycle_digest,
+            denied_completion_digest: &denied_completion_digest,
+            in_flight_digest: &in_flight_digest,
+            retained_history_unavailable_count,
+        });
+
+        telemetry.resource_replay_reconstruction_count += 1;
+        telemetry.resource_replay_reconstruction_lifecycle_width = telemetry
+            .resource_replay_reconstruction_lifecycle_width
+            .max(lifecycle_summary_width as u64);
+        telemetry.resource_replay_reconstruction_denial_width = telemetry
+            .resource_replay_reconstruction_denial_width
+            .max(denied_completion_width as u64);
+        telemetry.resource_replay_reconstruction_in_flight_width = telemetry
+            .resource_replay_reconstruction_in_flight_width
+            .max(in_flight_width as u64);
+        telemetry.resource_retained_history_unavailable_count = telemetry
+            .resource_retained_history_unavailable_count
+            .saturating_add(retained_history_unavailable_count as u64);
+        telemetry.resource_boundary_performance_envelope_count += 1;
+
+        ResourceReplayReconstructionReport::new(
+            descriptor_width,
+            lifecycle_summary_width,
+            denied_completion_width,
+            in_flight_width,
+            retained_history_unavailable_count,
+            descriptor_digest,
+            lifecycle_digest,
+            denied_completion_digest,
+            in_flight_digest,
+            replay_digest,
+            ResourceBoundaryPerformanceEnvelope::replay_reconstruction(
+                descriptor_width,
+                lifecycle_summary_width,
+                denied_completion_width,
+                in_flight_width,
+                retained_history_unavailable_count,
+            ),
+        )
+    }
+
     pub fn bump_restore_epoch(
         &mut self,
         branch_id: SignalBranchId,
         telemetry: &mut ResourceTelemetry,
-    ) {
+    ) -> ResourceBranchRestoreReport {
         self.restore_epoch = self.restore_epoch.saturating_add(1);
         let branch_epoch = ResourceBranchEpoch::new(branch_id, self.restore_epoch);
         for in_flight in self.in_flight_by_request.values_mut() {
@@ -117,6 +275,31 @@ impl ResourceRuntimeState {
         telemetry.resource_branch_restore_in_flight_width = telemetry
             .resource_branch_restore_in_flight_width
             .max(self.in_flight_by_request.len() as u64);
+        let restored_in_flight_width = self.in_flight_by_request.len() as u32;
+        let retained_summary_width =
+            self.lifecycle_by_node
+                .len()
+                .saturating_add(self.denied_completions.len()) as u32;
+        let broad_rebuild_denial_count = 1;
+        telemetry.resource_branch_restore_retained_summary_width = telemetry
+            .resource_branch_restore_retained_summary_width
+            .max(retained_summary_width as u64);
+        telemetry.resource_branch_restore_broad_rebuild_denial_count = telemetry
+            .resource_branch_restore_broad_rebuild_denial_count
+            .saturating_add(broad_rebuild_denial_count as u64);
+        telemetry.resource_boundary_performance_envelope_count += 1;
+        let report = ResourceBranchRestoreReport::new(
+            restored_in_flight_width,
+            retained_summary_width,
+            broad_rebuild_denial_count,
+            ResourceBoundaryPerformanceEnvelope::branch_restore(
+                restored_in_flight_width,
+                retained_summary_width,
+                broad_rebuild_denial_count,
+            ),
+        );
+        self.latest_branch_restore_report = Some(report);
+        report
     }
 
     pub fn in_flight_request(
@@ -657,11 +840,25 @@ impl ResourceRuntimeState {
         raw: RawCompletionEnvelope,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceCompletionAdmissionReport {
+        self.admit_resource_completion_with_boundary(raw, telemetry, true)
+    }
+
+    fn admit_resource_completion_with_boundary(
+        &mut self,
+        raw: RawCompletionEnvelope,
+        telemetry: &mut ResourceTelemetry,
+        count_scalar_boundary: bool,
+    ) -> ResourceCompletionAdmissionReport {
         telemetry.resource_completion_validation_count += 1;
         telemetry.resource_hot_in_flight_lookup_count += 1;
 
         let Some(in_flight) = self.in_flight_by_request.get(&raw.request_id()).copied() else {
-            return self.deny_completion(&raw, CompletionDenialClass::UnknownRequest, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::UnknownRequest,
+                telemetry,
+                count_scalar_boundary,
+            );
         };
 
         let handle = in_flight.handle();
@@ -670,49 +867,166 @@ impl ResourceRuntimeState {
             || handle.branch_epoch() != raw.branch_epoch()
             || in_flight.attempt() != raw.attempt()
         {
-            return self.deny_completion(&raw, CompletionDenialClass::Stale, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Stale,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if in_flight.status() == ResourceInFlightStatus::Superseded {
-            return self.deny_completion(&raw, CompletionDenialClass::Superseded, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Superseded,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if in_flight.status() == ResourceInFlightStatus::Cancelled {
-            return self.deny_completion(&raw, CompletionDenialClass::Cancelled, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Cancelled,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if in_flight.status() == ResourceInFlightStatus::TimedOut {
-            return self.deny_completion(&raw, CompletionDenialClass::TimedOut, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::TimedOut,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if in_flight.status() != ResourceInFlightStatus::Active
             || in_flight.lifecycle() != ResourceLifecycleClass::Pending
         {
-            return self.deny_completion(&raw, CompletionDenialClass::Retired, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Retired,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         let Some(descriptor) = self.descriptors.get(&in_flight.descriptor_id()) else {
-            return self.deny_completion(&raw, CompletionDenialClass::Impossible, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Impossible,
+                telemetry,
+                count_scalar_boundary,
+            );
         };
 
         if descriptor.payload_contract_digest() != raw.payload_contract_digest() {
-            return self.deny_completion(&raw, CompletionDenialClass::Malformed, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Malformed,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if descriptor
             .max_payload_bytes()
             .is_some_and(|max| raw.payload_byte_len() > max)
         {
-            return self.deny_completion(&raw, CompletionDenialClass::Partial, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Partial,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         if in_flight.lifecycle() != ResourceLifecycleClass::Pending {
-            return self.deny_completion(&raw, CompletionDenialClass::Impossible, telemetry);
+            return self.deny_completion(
+                &raw,
+                CompletionDenialClass::Impossible,
+                telemetry,
+                count_scalar_boundary,
+            );
         }
 
         let validated =
             ValidatedCompletionEnvelope::new(handle, raw.attempt(), raw.payload_byte_len());
-        self.admit_validated_completion(validated, in_flight, telemetry)
+        self.admit_validated_completion(validated, in_flight, telemetry, count_scalar_boundary)
+    }
+
+    pub fn admit_resource_completion_batch(
+        &mut self,
+        completions: impl IntoIterator<Item = RawCompletionEnvelope>,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceCompletionBatchAdmissionReport {
+        let mut completions = completions.into_iter().collect::<Vec<_>>();
+        let input_width = completions.len() as u32;
+        completions.sort();
+
+        let mut admitted_completions = Vec::new();
+        let mut denied_completions = Vec::new();
+        let mut seen_identities = BTreeMap::<
+            (
+                ResourceRequestId,
+                ResourceGeneration,
+                ResourceBranchEpoch,
+                ResourceAttemptId,
+            ),
+            RawCompletionEnvelope,
+        >::new();
+        let mut duplicate_width = 0_u32;
+
+        for raw in completions {
+            let identity = (
+                raw.request_id(),
+                raw.generation(),
+                raw.branch_epoch(),
+                raw.attempt(),
+            );
+            if let Some(prior) = seen_identities.get(&identity) {
+                duplicate_width = duplicate_width.saturating_add(1);
+                telemetry.resource_completion_validation_count += 1;
+                let class = if prior == &raw {
+                    CompletionDenialClass::Duplicate
+                } else {
+                    CompletionDenialClass::Contradictory
+                };
+                let denied = self
+                    .deny_completion(&raw, class, telemetry, false)
+                    .denied_completion()
+                    .expect("batch duplicate denial should retain denied completion");
+                denied_completions.push(denied);
+                continue;
+            }
+            seen_identities.insert(identity, raw.clone());
+
+            let report = self.admit_resource_completion_with_boundary(raw, telemetry, false);
+            if let Some(admitted) = report.admitted_completion() {
+                admitted_completions.push(admitted);
+            }
+            if let Some(denied) = report.denied_completion() {
+                denied_completions.push(denied);
+            }
+        }
+
+        telemetry.resource_completion_batch_admission_count += 1;
+        telemetry.resource_boundary_performance_envelope_count += 1;
+        let admitted_count = admitted_completions.len() as u32;
+        let denied_count = denied_completions.len() as u32;
+        ResourceCompletionBatchAdmissionReport::new(
+            admitted_completions,
+            denied_completions,
+            input_width,
+            duplicate_width,
+            ResourceBoundaryPerformanceEnvelope::completion_batch_admission(
+                input_width,
+                admitted_count,
+                denied_count,
+            ),
+        )
     }
 
     pub fn stage_admitted_resource_completion(
@@ -1179,6 +1493,7 @@ impl ResourceRuntimeState {
         validated: ValidatedCompletionEnvelope,
         in_flight: InFlightResourceRequest,
         telemetry: &mut ResourceTelemetry,
+        count_scalar_boundary: bool,
     ) -> ResourceCompletionAdmissionReport {
         let lifecycle_ordinal = self.issue_lifecycle_ordinal();
         let completion_ordinal = self.issue_completion_ordinal();
@@ -1199,8 +1514,10 @@ impl ResourceRuntimeState {
             transition,
         );
 
-        telemetry.resource_completion_admission_count += 1;
-        telemetry.resource_boundary_performance_envelope_count += 1;
+        if count_scalar_boundary {
+            telemetry.resource_completion_admission_count += 1;
+            telemetry.resource_boundary_performance_envelope_count += 1;
+        }
 
         ResourceCompletionAdmissionReport::admitted(
             admitted,
@@ -1213,13 +1530,16 @@ impl ResourceRuntimeState {
         raw: &RawCompletionEnvelope,
         class: CompletionDenialClass,
         telemetry: &mut ResourceTelemetry,
+        count_scalar_boundary: bool,
     ) -> ResourceCompletionAdmissionReport {
         let denial_id = self.issue_denial_id();
         let denied = DeniedResourceCompletion::new(denial_id, class, raw);
         self.denied_completions.insert(denial_id, denied);
 
         telemetry.resource_completion_denial_count += 1;
-        telemetry.resource_boundary_performance_envelope_count += 1;
+        if count_scalar_boundary {
+            telemetry.resource_boundary_performance_envelope_count += 1;
+        }
         match class {
             CompletionDenialClass::Stale => telemetry.resource_stale_completion_denial_count += 1,
             CompletionDenialClass::Superseded => {
@@ -1233,6 +1553,9 @@ impl ResourceRuntimeState {
             }
             CompletionDenialClass::Contradictory => {
                 telemetry.resource_contradictory_completion_denial_count += 1
+            }
+            CompletionDenialClass::Duplicate => {
+                telemetry.resource_duplicate_completion_denial_count += 1
             }
             CompletionDenialClass::UnknownRequest => {
                 telemetry.resource_unknown_request_completion_denial_count += 1

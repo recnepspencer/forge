@@ -1,0 +1,27 @@
+error[E0451]: fields `label`, `handle_name`, `family`, `source_lane`, `preview_lane`, `effect_policy`, `effect_disposition`, `basis_evidence`, `effect_delivery_admitted`, `pending_write_intent_admitted` and `authoritative_side_effect_admitted` of struct `ForgeQueryPreviewHandleBindingEvidence` are private
+  --> tests/ui/runtime_preview_handle_binding_evidence_constructor_private.rs:8:9
+   |
+ 7 |     let _forged = ForgeQueryPreviewHandleBindingEvidence {
+   |                   -------------------------------------- in this type
+ 8 |         label: "preview".to_string(),
+   |         ^^^^^ private field
+ 9 |         handle_name: "ui.effect".to_string(),
+   |         ^^^^^^^^^^^ private field
+10 |         family: ForgeQueryPreviewHandleBindingFamily::Effect,
+   |         ^^^^^^ private field
+11 |         source_lane: ForgeQueryAuthorityLane::EffectDeliveryState,
+   |         ^^^^^^^^^^^ private field
+12 |         preview_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^^ private field
+13 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+   |         ^^^^^^^^^^^^^ private field
+14 |         effect_disposition: Some(ForgeQueryPreviewEffectBindingDisposition::Muted),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+15 |         basis_evidence: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+16 |         effect_delivery_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         pending_write_intent_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         authoritative_side_effect_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

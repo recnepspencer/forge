@@ -1,0 +1,41 @@
+error[E0451]: fields `intent_name`, `strategy_identity`, `strategy_version`, `strategy_descriptor_digest`, `canonical_input_digest`, `produced_mutation_digest`, `invariant_evidence`, `source_lane`, `target_lane`, `commit_identity`, `snapshot_token`, `affected_live_view_ids`, `affected_derived_view_ids`, `considered_computed_view_count`, `considered_effect_count`, `delivered_effect_count`, `pending_write_intent_count` and `receipt_digest` of struct `ForgeQueryIntentReceipt` are private
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:7:9
+   |
+ 6 |     let _forged = ForgeQueryIntentReceipt {
+   |                   ----------------------- in this type
+ 7 |         intent_name: "intent".to_string(),
+   |         ^^^^^^^^^^^ private field
+ 8 |         strategy_identity: "strategy".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 9 |         strategy_version: "1.0".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         strategy_descriptor_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         canonical_input_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         produced_mutation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         invariant_evidence: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
+   |         ^^^^^^^^^^^ private field
+15 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+16 |         commit_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+17 |         snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+18 |         affected_live_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         affected_derived_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         considered_computed_view_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         considered_effect_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         delivered_effect_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |         pending_write_intent_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+24 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field

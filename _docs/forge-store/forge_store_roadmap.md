@@ -1117,6 +1117,8 @@ Can overlap with documentation updates for Milestones 14, 15, 17, 20, 21, and
 
 Engineering spec: [milestone-13.3.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13.3.md)
 
+Closeout: [milestone-13.3-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/milestone-13.3-closeout.md)
+
 ### Goal
 
 Classify and certify first-class subscription-support artifacts so they carry

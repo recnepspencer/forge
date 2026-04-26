@@ -1,10 +1,17 @@
-use super::certification::SupportCertificationEvidenceBundle;
+use super::certification::{
+    SupportCertificationBatchScopeKind, SupportCertificationEvidenceBundle,
+};
 use super::domain_certification::{
     SupportCertificationHandoffReport, SupportDomainCertificationBundle,
     SupportDomainCertificationScenario, SupportGenericCertificationReport,
     SupportRoadmapPhysicalReadinessPosture,
 };
 use super::failure::{SupportTrustFailure, SupportTrustFailureKind, SupportTrustRecoveryPosture};
+use super::performance::{
+    SupportTrustAllocationScope, SupportTrustDensityClass, SupportTrustPathClass,
+};
+use super::reports::CertifiedSupportTrustReport;
+use super::taxonomy::{SupportTrustClass, SupportTrustProvenance, SupportTrustStrength};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -49,6 +56,216 @@ pub enum SubscriptionSupportAccuracyCertificationRowKind {
 impl SubscriptionSupportAccuracyCertificationRowKind {
     pub fn required() -> &'static [Self] {
         &REQUIRED_SUBSCRIPTION_SUPPORT_ACCURACY_ROWS
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum SubscriptionSupportAccuracyLaneOutcome {
+    CertifiedPass,
+    TypedRejection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyLaneEvidence {
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    outcome: SubscriptionSupportAccuracyLaneOutcome,
+    failure_kind: Option<SupportTrustFailureKind>,
+    recovery_posture: Option<SupportTrustRecoveryPosture>,
+    source_digest: String,
+    diagnostics_digest: String,
+    counter_digest: String,
+    evidence_digest: String,
+}
+
+impl SubscriptionSupportAccuracyLaneEvidence {
+    pub fn certified_pass_from_report(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        report: &CertifiedSupportTrustReport,
+        diagnostics_digest: impl Into<String>,
+        counter_digest: impl Into<String>,
+    ) -> Result<Self, SupportTrustFailure> {
+        validate_certified_report_lane(row_kind, report)?;
+        let source_digest =
+            stable_digest(&SubscriptionSupportAccuracyCertifiedReportLaneDigestBasis {
+                row_kind,
+                trust_class: report.trust_class(),
+                trust_strength: report.trust_strength(),
+                provenance: report.provenance(),
+                suite_version: report.certification_stamp().suite_version(),
+                row_id: report.certification_stamp().row_id(),
+                evidence_bundle_digest: report.certification_stamp().evidence_bundle_digest(),
+            })?;
+        Self::certified_pass(row_kind, source_digest, diagnostics_digest, counter_digest)
+    }
+
+    pub fn certified_counter_pass_from_evidence_bundle(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        evidence_bundle: &SupportCertificationEvidenceBundle,
+    ) -> Result<Self, SupportTrustFailure> {
+        validate_zero_counter_lane(row_kind, evidence_bundle)?;
+        let source_digest = stable_digest(&SubscriptionSupportAccuracyCounterLaneDigestBasis {
+            row_kind,
+            evidence_bundle_digest: evidence_bundle.evidence_bundle_digest(),
+            forbidden_exact_overclaim_count: evidence_bundle
+                .counter_snapshot()
+                .forbidden_exact_overclaim_count(),
+            global_scan_debt_count: evidence_bundle.counter_snapshot().global_scan_debt_count(),
+        })?;
+        Self::certified_pass(
+            row_kind,
+            source_digest,
+            evidence_bundle.diagnostics_digest(),
+            evidence_bundle.counter_snapshot_digest(),
+        )
+    }
+
+    pub(crate) fn certified_pass(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        source_digest: impl Into<String>,
+        diagnostics_digest: impl Into<String>,
+        counter_digest: impl Into<String>,
+    ) -> Result<Self, SupportTrustFailure> {
+        Self::new(
+            row_kind,
+            SubscriptionSupportAccuracyLaneOutcome::CertifiedPass,
+            None,
+            None,
+            source_digest,
+            diagnostics_digest,
+            counter_digest,
+        )
+    }
+
+    pub fn typed_rejection_from_failure(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        failure: &SupportTrustFailure,
+    ) -> Result<Self, SupportTrustFailure> {
+        let source_digest = stable_digest(&SubscriptionSupportAccuracyFailureLaneDigestBasis {
+            row_kind,
+            digest_role: "failure-source",
+            failure,
+        })?;
+        let diagnostics_digest =
+            stable_digest(&SubscriptionSupportAccuracyFailureLaneDigestBasis {
+                row_kind,
+                digest_role: "failure-diagnostics",
+                failure,
+            })?;
+        let counter_digest = stable_digest(&SubscriptionSupportAccuracyFailureLaneDigestBasis {
+            row_kind,
+            digest_role: "failure-counter",
+            failure,
+        })?;
+        Self::typed_rejection(
+            row_kind,
+            failure,
+            source_digest,
+            diagnostics_digest,
+            counter_digest,
+        )
+    }
+
+    pub(crate) fn typed_rejection(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        failure: &SupportTrustFailure,
+        source_digest: impl Into<String>,
+        diagnostics_digest: impl Into<String>,
+        counter_digest: impl Into<String>,
+    ) -> Result<Self, SupportTrustFailure> {
+        Self::new(
+            row_kind,
+            SubscriptionSupportAccuracyLaneOutcome::TypedRejection,
+            Some(failure.kind()),
+            Some(failure.recovery_posture()),
+            source_digest,
+            diagnostics_digest,
+            counter_digest,
+        )
+    }
+
+    pub fn row_kind(&self) -> SubscriptionSupportAccuracyCertificationRowKind {
+        self.row_kind
+    }
+
+    pub fn evidence_digest(&self) -> &str {
+        &self.evidence_digest
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+        outcome: SubscriptionSupportAccuracyLaneOutcome,
+        failure_kind: Option<SupportTrustFailureKind>,
+        recovery_posture: Option<SupportTrustRecoveryPosture>,
+        source_digest: impl Into<String>,
+        diagnostics_digest: impl Into<String>,
+        counter_digest: impl Into<String>,
+    ) -> Result<Self, SupportTrustFailure> {
+        validate_lane_outcome(row_kind, outcome, failure_kind)?;
+        let mut evidence = Self {
+            row_kind,
+            outcome,
+            failure_kind,
+            recovery_posture,
+            source_digest: require_non_empty("lane source digest", source_digest)?,
+            diagnostics_digest: require_non_empty("lane diagnostics digest", diagnostics_digest)?,
+            counter_digest: require_non_empty("lane counter digest", counter_digest)?,
+            evidence_digest: String::new(),
+        };
+        evidence.evidence_digest =
+            stable_digest(&SubscriptionSupportAccuracyLaneEvidenceDigestBasis {
+                row_kind: evidence.row_kind,
+                outcome: evidence.outcome,
+                failure_kind: evidence.failure_kind,
+                recovery_posture: evidence.recovery_posture,
+                source_digest: &evidence.source_digest,
+                diagnostics_digest: &evidence.diagnostics_digest,
+                counter_digest: &evidence.counter_digest,
+            })?;
+        Ok(evidence)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyLaneEvidenceSet {
+    lanes: Vec<SubscriptionSupportAccuracyLaneEvidence>,
+    lane_evidence_set_digest: String,
+}
+
+impl SubscriptionSupportAccuracyLaneEvidenceSet {
+    pub fn new(
+        mut lanes: Vec<SubscriptionSupportAccuracyLaneEvidence>,
+    ) -> Result<Self, SupportTrustFailure> {
+        lanes.sort_by_key(SubscriptionSupportAccuracyLaneEvidence::row_kind);
+        validate_required_lane_evidence(&lanes)?;
+        let mut evidence_set = Self {
+            lanes,
+            lane_evidence_set_digest: String::new(),
+        };
+        evidence_set.lane_evidence_set_digest =
+            stable_digest(&SubscriptionSupportAccuracyLaneEvidenceSetDigestBasis {
+                lane_digests: &evidence_set
+                    .lanes
+                    .iter()
+                    .map(SubscriptionSupportAccuracyLaneEvidence::evidence_digest)
+                    .collect::<Vec<_>>(),
+            })?;
+        Ok(evidence_set)
+    }
+
+    pub fn lanes(&self) -> &[SubscriptionSupportAccuracyLaneEvidence] {
+        &self.lanes
+    }
+
+    pub fn lane_evidence_set_digest(&self) -> &str {
+        &self.lane_evidence_set_digest
+    }
+
+    fn evidence_for(
+        &self,
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    ) -> Option<&SubscriptionSupportAccuracyLaneEvidence> {
+        self.lanes.iter().find(|lane| lane.row_kind() == row_kind)
     }
 }
 
@@ -209,18 +426,300 @@ pub struct SubscriptionSupportAccuracyCertificationSuite {
     suite_digest: String,
 }
 
-impl SubscriptionSupportAccuracyCertificationSuite {
-    pub fn from_phase_artifacts(
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum SubscriptionSupportAccuracyPersistencePosture {
+    InMemoryCertificationOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyPerformanceCloseout {
+    certification_row_count: u64,
+    certification_index_probe_count: u64,
+    certification_receipt_reuse_count: u64,
+    certification_allocation_count: u64,
+    generic_row_count: u64,
+    generic_index_probe_count: u64,
+    generic_receipt_reuse_count: u64,
+    generic_allocation_count: u64,
+    domain_scenario_row_count: u64,
+    domain_index_probe_count: u64,
+    domain_receipt_reuse_count: u64,
+    domain_allocation_count: u64,
+    forbidden_exact_overclaim_count: u64,
+    global_scan_debt_count: u64,
+}
+
+impl SubscriptionSupportAccuracyPerformanceCloseout {
+    fn from_phase_artifacts(
+        evidence_bundle: &SupportCertificationEvidenceBundle,
+        generic_report: &SupportGenericCertificationReport,
+        domain_bundle: &SupportDomainCertificationBundle,
+    ) -> Result<Self, SupportTrustFailure> {
+        validate_certification_performance(evidence_bundle)?;
+        validate_generic_performance(generic_report)?;
+        validate_domain_performance(domain_bundle)?;
+        let certification_counters = evidence_bundle.counter_snapshot();
+        let generic_counters = generic_report.counter_snapshot();
+        let domain_counters = domain_bundle.counter_snapshot();
+        Ok(Self {
+            certification_row_count: certification_counters.coverage_row_count(),
+            certification_index_probe_count: certification_counters.index_probe_count(),
+            certification_receipt_reuse_count: certification_counters.receipt_reuse_count(),
+            certification_allocation_count: certification_counters.allocation_count(),
+            generic_row_count: generic_counters.generic_row_count(),
+            generic_index_probe_count: generic_counters.index_probe_count(),
+            generic_receipt_reuse_count: generic_counters.receipt_reuse_count(),
+            generic_allocation_count: generic_counters.allocation_count(),
+            domain_scenario_row_count: domain_counters.scenario_row_count(),
+            domain_index_probe_count: domain_counters.index_probe_count(),
+            domain_receipt_reuse_count: domain_counters.receipt_reuse_count(),
+            domain_allocation_count: domain_counters.allocation_count(),
+            forbidden_exact_overclaim_count: certification_counters
+                .forbidden_exact_overclaim_count(),
+            global_scan_debt_count: certification_counters.global_scan_debt_count(),
+        })
+    }
+
+    pub fn certification_row_count(&self) -> u64 {
+        self.certification_row_count
+    }
+
+    pub fn certification_index_probe_count(&self) -> u64 {
+        self.certification_index_probe_count
+    }
+
+    pub fn certification_receipt_reuse_count(&self) -> u64 {
+        self.certification_receipt_reuse_count
+    }
+
+    pub fn certification_allocation_count(&self) -> u64 {
+        self.certification_allocation_count
+    }
+
+    pub fn generic_row_count(&self) -> u64 {
+        self.generic_row_count
+    }
+
+    pub fn generic_index_probe_count(&self) -> u64 {
+        self.generic_index_probe_count
+    }
+
+    pub fn generic_receipt_reuse_count(&self) -> u64 {
+        self.generic_receipt_reuse_count
+    }
+
+    pub fn generic_allocation_count(&self) -> u64 {
+        self.generic_allocation_count
+    }
+
+    pub fn domain_scenario_row_count(&self) -> u64 {
+        self.domain_scenario_row_count
+    }
+
+    pub fn domain_index_probe_count(&self) -> u64 {
+        self.domain_index_probe_count
+    }
+
+    pub fn domain_receipt_reuse_count(&self) -> u64 {
+        self.domain_receipt_reuse_count
+    }
+
+    pub fn domain_allocation_count(&self) -> u64 {
+        self.domain_allocation_count
+    }
+
+    pub fn forbidden_exact_overclaim_count(&self) -> u64 {
+        self.forbidden_exact_overclaim_count
+    }
+
+    pub fn global_scan_debt_count(&self) -> u64 {
+        self.global_scan_debt_count
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyAccessCloseout {
+    certified_semantic_domain_row_count: u64,
+    explicit_advanced_family_debt_count: u64,
+    roadmap2_physical_debt_explicit: bool,
+    milestone15_extension_debt_explicit: bool,
+    handoff_semantic_trust_closed: bool,
+    persistence_posture: SubscriptionSupportAccuracyPersistencePosture,
+}
+
+impl SubscriptionSupportAccuracyAccessCloseout {
+    fn from_phase_artifacts(
+        domain_bundle: &SupportDomainCertificationBundle,
+        handoff_report: &SupportCertificationHandoffReport,
+        persistence_posture: SubscriptionSupportAccuracyPersistencePosture,
+    ) -> Result<Self, SupportTrustFailure> {
+        validate_handoff(handoff_report)?;
+        let certified_semantic_domain_row_count = domain_bundle
+            .counter_snapshot()
+            .certified_semantic_row_count();
+        let explicit_advanced_family_debt_count =
+            domain_bundle.counter_snapshot().explicit_debt_row_count();
+        let roadmap2_physical_debt_explicit = domain_bundle.rows().iter().any(|row| {
+            row.required_future_milestone()
+                == Some(super::domain_certification::SupportDomainCertificationDebtOwner::Roadmap2PhysicalDatabaseFoundation)
+        });
+        let milestone15_extension_debt_explicit = domain_bundle.rows().iter().any(|row| {
+            row.required_future_milestone()
+                == Some(super::domain_certification::SupportDomainCertificationDebtOwner::Milestone15ExtensionSupportRegistration)
+        });
+        if certified_semantic_domain_row_count == 0
+            || explicit_advanced_family_debt_count != 2
+            || !roadmap2_physical_debt_explicit
+            || !milestone15_extension_debt_explicit
+        {
+            return Err(SupportTrustFailure::new(
+                SupportTrustFailureKind::SupportTrustCoverageMissing,
+                SupportTrustRecoveryPosture::RerunCertification,
+                "subscription-support accuracy closeout requires certified first-ship domain rows and explicit future-owned advanced-family debt",
+            ));
+        }
+        Ok(Self {
+            certified_semantic_domain_row_count,
+            explicit_advanced_family_debt_count,
+            roadmap2_physical_debt_explicit,
+            milestone15_extension_debt_explicit,
+            handoff_semantic_trust_closed: handoff_report.semantic_support_trust_closed(),
+            persistence_posture,
+        })
+    }
+
+    pub fn certified_semantic_domain_row_count(&self) -> u64 {
+        self.certified_semantic_domain_row_count
+    }
+
+    pub fn explicit_advanced_family_debt_count(&self) -> u64 {
+        self.explicit_advanced_family_debt_count
+    }
+
+    pub fn roadmap2_physical_debt_explicit(&self) -> bool {
+        self.roadmap2_physical_debt_explicit
+    }
+
+    pub fn milestone15_extension_debt_explicit(&self) -> bool {
+        self.milestone15_extension_debt_explicit
+    }
+
+    pub fn handoff_semantic_trust_closed(&self) -> bool {
+        self.handoff_semantic_trust_closed
+    }
+
+    pub fn persistence_posture(&self) -> SubscriptionSupportAccuracyPersistencePosture {
+        self.persistence_posture
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyCertificationRun {
+    suite: SubscriptionSupportAccuracyCertificationSuite,
+    performance_closeout: SubscriptionSupportAccuracyPerformanceCloseout,
+    access_closeout: SubscriptionSupportAccuracyAccessCloseout,
+    persistence_posture: SubscriptionSupportAccuracyPersistencePosture,
+    run_digest: String,
+}
+
+impl SubscriptionSupportAccuracyCertificationRun {
+    pub fn suite(&self) -> &SubscriptionSupportAccuracyCertificationSuite {
+        &self.suite
+    }
+
+    pub fn performance_closeout(&self) -> &SubscriptionSupportAccuracyPerformanceCloseout {
+        &self.performance_closeout
+    }
+
+    pub fn access_closeout(&self) -> &SubscriptionSupportAccuracyAccessCloseout {
+        &self.access_closeout
+    }
+
+    pub fn persistence_posture(&self) -> SubscriptionSupportAccuracyPersistencePosture {
+        self.persistence_posture
+    }
+
+    pub fn run_digest(&self) -> &str {
+        &self.run_digest
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct SubscriptionSupportAccuracyCertificationRunner {
+    persistence_posture: SubscriptionSupportAccuracyPersistencePosture,
+}
+
+impl Default for SubscriptionSupportAccuracyCertificationRunner {
+    fn default() -> Self {
+        Self::production()
+    }
+}
+
+impl SubscriptionSupportAccuracyCertificationRunner {
+    pub fn production() -> Self {
+        Self {
+            persistence_posture:
+                SubscriptionSupportAccuracyPersistencePosture::InMemoryCertificationOnly,
+        }
+    }
+
+    pub fn certify(
+        &self,
         evidence_bundle: &SupportCertificationEvidenceBundle,
         generic_report: &SupportGenericCertificationReport,
         domain_bundle: &SupportDomainCertificationBundle,
         handoff_report: &SupportCertificationHandoffReport,
+        lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
+    ) -> Result<SubscriptionSupportAccuracyCertificationRun, SupportTrustFailure> {
+        let suite =
+            SubscriptionSupportAccuracyCertificationSuite::from_phase_artifacts_and_lane_evidence(
+                evidence_bundle,
+                generic_report,
+                domain_bundle,
+                handoff_report,
+                lane_evidence,
+            )?;
+        let performance_closeout =
+            SubscriptionSupportAccuracyPerformanceCloseout::from_phase_artifacts(
+                evidence_bundle,
+                generic_report,
+                domain_bundle,
+            )?;
+        let access_closeout = SubscriptionSupportAccuracyAccessCloseout::from_phase_artifacts(
+            domain_bundle,
+            handoff_report,
+            self.persistence_posture,
+        )?;
+        let run_digest = stable_digest(&SubscriptionSupportAccuracyCertificationRunDigestBasis {
+            suite_digest: suite.suite_digest(),
+            performance_closeout: &performance_closeout,
+            access_closeout: &access_closeout,
+            persistence_posture: self.persistence_posture,
+        })?;
+        Ok(SubscriptionSupportAccuracyCertificationRun {
+            suite,
+            performance_closeout,
+            access_closeout,
+            persistence_posture: self.persistence_posture,
+            run_digest,
+        })
+    }
+}
+
+impl SubscriptionSupportAccuracyCertificationSuite {
+    pub fn from_phase_artifacts_and_lane_evidence(
+        evidence_bundle: &SupportCertificationEvidenceBundle,
+        generic_report: &SupportGenericCertificationReport,
+        domain_bundle: &SupportDomainCertificationBundle,
+        handoff_report: &SupportCertificationHandoffReport,
+        lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
     ) -> Result<Self, SupportTrustFailure> {
         let rows = build_required_rows_from_phase_artifacts(
             evidence_bundle,
             generic_report,
             domain_bundle,
             handoff_report,
+            lane_evidence,
         )?;
         Self::from_rows_and_phase_artifacts(
             rows,
@@ -228,6 +727,7 @@ impl SubscriptionSupportAccuracyCertificationSuite {
             generic_report,
             domain_bundle,
             handoff_report,
+            lane_evidence,
         )
     }
 
@@ -237,8 +737,10 @@ impl SubscriptionSupportAccuracyCertificationSuite {
         generic_report: &SupportGenericCertificationReport,
         domain_bundle: &SupportDomainCertificationBundle,
         handoff_report: &SupportCertificationHandoffReport,
+        lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
     ) -> Result<Self, SupportTrustFailure> {
         validate_handoff(handoff_report)?;
+        validate_handoff_matches_phase_artifacts(generic_report, domain_bundle, handoff_report)?;
         rows.sort_by_key(SubscriptionSupportAccuracyCertificationRow::row_kind);
         validate_required_rows(&rows)?;
         validate_rows_match_phase_artifacts(
@@ -247,6 +749,7 @@ impl SubscriptionSupportAccuracyCertificationSuite {
             generic_report,
             domain_bundle,
             handoff_report,
+            lane_evidence,
         )?;
         let required_outputs =
             SubscriptionSupportAccuracyCertificationOutputs::from_evidence_bundle(evidence_bundle)?;
@@ -325,12 +828,14 @@ fn build_required_rows_from_phase_artifacts(
     generic_report: &SupportGenericCertificationReport,
     domain_bundle: &SupportDomainCertificationBundle,
     handoff_report: &SupportCertificationHandoffReport,
+    lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
 ) -> Result<Vec<SubscriptionSupportAccuracyCertificationRow>, SupportTrustFailure> {
     expected_row_evidence_digests(
         evidence_bundle,
         generic_report,
         domain_bundle,
         handoff_report,
+        lane_evidence,
     )?
     .into_iter()
     .map(|(row_kind, evidence_digest)| {
@@ -345,12 +850,14 @@ fn validate_rows_match_phase_artifacts(
     generic_report: &SupportGenericCertificationReport,
     domain_bundle: &SupportDomainCertificationBundle,
     handoff_report: &SupportCertificationHandoffReport,
+    lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
 ) -> Result<(), SupportTrustFailure> {
     let expected = expected_row_evidence_digests(
         evidence_bundle,
         generic_report,
         domain_bundle,
         handoff_report,
+        lane_evidence,
     )?;
     for row in rows {
         match expected.get(&row.row_kind()) {
@@ -372,6 +879,7 @@ fn expected_row_evidence_digests(
     generic_report: &SupportGenericCertificationReport,
     domain_bundle: &SupportDomainCertificationBundle,
     handoff_report: &SupportCertificationHandoffReport,
+    lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
 ) -> Result<BTreeMap<SubscriptionSupportAccuracyCertificationRowKind, String>, SupportTrustFailure>
 {
     let mut digests = BTreeMap::new();
@@ -491,6 +999,13 @@ fn expected_row_evidence_digests(
         if digests.contains_key(row_kind) {
             continue;
         }
+        let lane = lane_evidence.evidence_for(*row_kind).ok_or_else(|| {
+            SupportTrustFailure::new(
+                SupportTrustFailureKind::SupportTrustCoverageMissing,
+                SupportTrustRecoveryPosture::RerunCertification,
+                "subscription-support accuracy suite requires explicit lane evidence for hostile rows",
+            )
+        })?;
         insert_expected(
             &mut digests,
             *row_kind,
@@ -499,8 +1014,8 @@ fn expected_row_evidence_digests(
             generic_report,
             domain_bundle,
             handoff_report,
-            Some(evidence_bundle.evidence_bundle_digest()),
-            Some(evidence_bundle.diagnostics_digest()),
+            Some(lane.evidence_digest()),
+            Some(lane_evidence.lane_evidence_set_digest()),
         )?;
     }
     Ok(digests)
@@ -605,6 +1120,56 @@ struct SubscriptionSupportAccuracyRowEvidenceDigestBasis<'a> {
     hostile_source_digest: Option<&'a str>,
 }
 
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyLaneEvidenceDigestBasis<'a> {
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    outcome: SubscriptionSupportAccuracyLaneOutcome,
+    failure_kind: Option<SupportTrustFailureKind>,
+    recovery_posture: Option<SupportTrustRecoveryPosture>,
+    source_digest: &'a str,
+    diagnostics_digest: &'a str,
+    counter_digest: &'a str,
+}
+
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyCertifiedReportLaneDigestBasis<'a> {
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    trust_class: SupportTrustClass,
+    trust_strength: SupportTrustStrength,
+    provenance: SupportTrustProvenance,
+    suite_version: &'a str,
+    row_id: &'a str,
+    evidence_bundle_digest: &'a str,
+}
+
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyCounterLaneDigestBasis<'a> {
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    evidence_bundle_digest: &'a str,
+    forbidden_exact_overclaim_count: u64,
+    global_scan_debt_count: u64,
+}
+
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyFailureLaneDigestBasis<'a> {
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    digest_role: &'static str,
+    failure: &'a SupportTrustFailure,
+}
+
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyCertificationRunDigestBasis<'a> {
+    suite_digest: &'a str,
+    performance_closeout: &'a SubscriptionSupportAccuracyPerformanceCloseout,
+    access_closeout: &'a SubscriptionSupportAccuracyAccessCloseout,
+    persistence_posture: SubscriptionSupportAccuracyPersistencePosture,
+}
+
+#[derive(Serialize)]
+struct SubscriptionSupportAccuracyLaneEvidenceSetDigestBasis<'a> {
+    lane_digests: &'a [&'a str],
+}
+
 const REQUIRED_SUBSCRIPTION_SUPPORT_ACCURACY_ROWS:
     [SubscriptionSupportAccuracyCertificationRowKind; 30] = [
     SubscriptionSupportAccuracyCertificationRowKind::ExactSupportTrustedControl,
@@ -664,6 +1229,271 @@ fn validate_required_rows(
     Ok(())
 }
 
+fn validate_required_lane_evidence(
+    lanes: &[SubscriptionSupportAccuracyLaneEvidence],
+) -> Result<(), SupportTrustFailure> {
+    let mut seen = BTreeSet::new();
+    for lane in lanes {
+        if !requires_explicit_lane_evidence(lane.row_kind()) || !seen.insert(lane.row_kind()) {
+            return Err(SupportTrustFailure::new(
+                SupportTrustFailureKind::SupportTrustCoverageMissing,
+                SupportTrustRecoveryPosture::RerunCertification,
+                "subscription-support accuracy lane evidence must be required and unique",
+            ));
+        }
+    }
+    for row_kind in SubscriptionSupportAccuracyCertificationRowKind::required()
+        .iter()
+        .copied()
+        .filter(|row_kind| requires_explicit_lane_evidence(*row_kind))
+    {
+        if !seen.contains(&row_kind) {
+            return Err(SupportTrustFailure::new(
+                SupportTrustFailureKind::SupportTrustCoverageMissing,
+                SupportTrustRecoveryPosture::RerunCertification,
+                "subscription-support accuracy suite is missing required hostile lane evidence",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn requires_explicit_lane_evidence(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+) -> bool {
+    !matches!(
+        row_kind,
+        SubscriptionSupportAccuracyCertificationRowKind::ExactSupportTrustedControl
+            | SubscriptionSupportAccuracyCertificationRowKind::DegradedSupportTrusted
+            | SubscriptionSupportAccuracyCertificationRowKind::CertificationMatrixComplete
+            | SubscriptionSupportAccuracyCertificationRowKind::GenericCertificationIncludesSupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::DomainGeometrySupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::DomainWebDataSupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::DomainAiDegradedSupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::DomainChipRebuildSupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::DomainOfflineOmittedSupportTrust
+            | SubscriptionSupportAccuracyCertificationRowKind::Roadmap2HandoffPhysicalDebtExplicit
+    )
+}
+
+fn validate_lane_outcome(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    outcome: SubscriptionSupportAccuracyLaneOutcome,
+    failure_kind: Option<SupportTrustFailureKind>,
+) -> Result<(), SupportTrustFailure> {
+    if !requires_explicit_lane_evidence(row_kind) {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "artifact-bound suite rows cannot be represented as hostile lane evidence",
+        ));
+    }
+    let expected_outcome = expected_lane_outcome(row_kind);
+    let expected_failure_kind = expected_lane_failure_kind(row_kind);
+    if outcome != expected_outcome || failure_kind != expected_failure_kind {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy lane evidence outcome does not match the required row kind",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_certified_report_lane(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    report: &CertifiedSupportTrustReport,
+) -> Result<(), SupportTrustFailure> {
+    let matches_row = match row_kind {
+        SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportExactEquivalence => {
+            report.trust_strength() == SupportTrustStrength::Exact
+                && report.provenance() == SupportTrustProvenance::Rebuilt
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence => {
+            report.trust_class() == SupportTrustClass::ReplicatedSupportTrusted
+                && report.trust_strength() == SupportTrustStrength::Exact
+                && report.provenance() == SupportTrustProvenance::Replicated
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::MigratedSupportExactEquivalence => {
+            report.trust_class() == SupportTrustClass::MigratedSupportTrusted
+                && report.trust_strength() == SupportTrustStrength::Exact
+                && report.provenance() == SupportTrustProvenance::Migrated
+        }
+        _ => false,
+    };
+    if !matches_row {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy certified pass lane must match its certified support report posture",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_zero_counter_lane(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    evidence_bundle: &SupportCertificationEvidenceBundle,
+) -> Result<(), SupportTrustFailure> {
+    if !matches!(
+        row_kind,
+        SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero
+            | SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden
+    ) {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy counter pass lanes must be counter-debt rows",
+        ));
+    }
+    if evidence_bundle
+        .counter_snapshot()
+        .forbidden_exact_overclaim_count()
+        != 0
+        || evidence_bundle.counter_snapshot().global_scan_debt_count() != 0
+    {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustForbiddenExactOverclaim,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy counter pass lanes require zero exact-overclaim and global-scan debt",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_certification_performance(
+    evidence_bundle: &SupportCertificationEvidenceBundle,
+) -> Result<(), SupportTrustFailure> {
+    let batch_scope = evidence_bundle.batch_scope();
+    let counters = evidence_bundle.counter_snapshot();
+    let valid_scope = batch_scope.scope_kind()
+        == SupportCertificationBatchScopeKind::CertificationScopeLocal
+        && batch_scope.density_class() == SupportTrustDensityClass::CertificationScopeLocal
+        && batch_scope.path_class() == SupportTrustPathClass::BatchCertificationPath
+        && batch_scope.allocation_scope() == SupportTrustAllocationScope::BatchCertification;
+    if !valid_scope
+        || batch_scope.row_count() != 4
+        || batch_scope.expected_index_probes() != 4
+        || batch_scope.expected_receipt_reuse_count() != 3
+        || batch_scope.expected_allocation_count() != 1
+        || counters.coverage_row_count() != batch_scope.row_count()
+        || counters.index_probe_count() != batch_scope.expected_index_probes()
+        || counters.receipt_reuse_count() != batch_scope.expected_receipt_reuse_count()
+        || counters.allocation_count() != batch_scope.expected_allocation_count()
+        || counters.forbidden_exact_overclaim_count() != 0
+        || counters.global_scan_debt_count() != 0
+    {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy closeout requires exact certification performance counters and bounded batch access",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_generic_performance(
+    generic_report: &SupportGenericCertificationReport,
+) -> Result<(), SupportTrustFailure> {
+    let counters = generic_report.counter_snapshot();
+    if counters.certified_support_report_count() != 1
+        || counters.generic_row_count() != 1
+        || counters.index_probe_count() != 1
+        || counters.receipt_reuse_count() != 1
+        || counters.allocation_count() != 1
+        || counters.physical_readiness_debt_count() != 1
+    {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy closeout requires exact generic certification counters and explicit physical-readiness debt",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_domain_performance(
+    domain_bundle: &SupportDomainCertificationBundle,
+) -> Result<(), SupportTrustFailure> {
+    let counters = domain_bundle.counter_snapshot();
+    if counters.scenario_row_count() != 5
+        || counters.certified_semantic_row_count() != 3
+        || counters.explicit_debt_row_count() != 2
+        || counters.index_probe_count() != 5
+        || counters.receipt_reuse_count() != 4
+        || counters.allocation_count() != 1
+        || counters.physical_readiness_debt_count() != counters.explicit_debt_row_count()
+    {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy closeout requires exact domain scenario counters and future-owned debt rows",
+        ));
+    }
+    Ok(())
+}
+
+fn expected_lane_outcome(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+) -> SubscriptionSupportAccuracyLaneOutcome {
+    match row_kind {
+        SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::MigratedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero
+        | SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden => {
+            SubscriptionSupportAccuracyLaneOutcome::CertifiedPass
+        }
+        _ => SubscriptionSupportAccuracyLaneOutcome::TypedRejection,
+    }
+}
+
+fn expected_lane_failure_kind(
+    row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+) -> Option<SupportTrustFailureKind> {
+    match row_kind {
+        SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::MigratedSupportExactEquivalence
+        | SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero
+        | SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden => None,
+        SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportDowngraded
+        | SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportIdentityNotEnough => {
+            Some(SupportTrustFailureKind::SupportTrustEquivalenceMissing)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::ImportedSupportMissingBasisNotResumable => {
+            Some(SupportTrustFailureKind::SupportTrustBasisMismatch)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::StaleSupportRejected => {
+            Some(SupportTrustFailureKind::SupportTrustEpochExpired)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::PolicyRejectedSupport
+        | SubscriptionSupportAccuracyCertificationRowKind::OperationalVerdictDriftRejectsExactTrust => {
+            Some(SupportTrustFailureKind::SupportTrustOperationalVerdictMismatch)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::FamilyRoleMismatchRejected => {
+            Some(SupportTrustFailureKind::SupportTrustRoleMismatch)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::CompatibilityDriftRejectsExactTrust => {
+            Some(SupportTrustFailureKind::SupportTrustCompatibilityMismatch)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::PortabilityDriftRejectsExactTrust => {
+            Some(SupportTrustFailureKind::SupportTrustPortabilityMismatch)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::CoverageDriftRejectsPlatformTrust
+        | SubscriptionSupportAccuracyCertificationRowKind::CertificationMissingRowRejected
+        | SubscriptionSupportAccuracyCertificationRowKind::CertificationDuplicateRowRejected
+        | SubscriptionSupportAccuracyCertificationRowKind::CertificationMislabeledRowRejected
+        | SubscriptionSupportAccuracyCertificationRowKind::CertificationSelfComparisonRejected => {
+            Some(SupportTrustFailureKind::SupportTrustCoverageMissing)
+        }
+        SubscriptionSupportAccuracyCertificationRowKind::MultiDriftPrecedenceDeterministic => {
+            Some(SupportTrustFailureKind::SupportTrustBasisMismatch)
+        }
+        _ => None,
+    }
+}
+
 fn validate_handoff(
     handoff_report: &SupportCertificationHandoffReport,
 ) -> Result<(), SupportTrustFailure> {
@@ -675,6 +1505,25 @@ fn validate_handoff(
             SupportTrustFailureKind::SupportTrustForbiddenExactOverclaim,
             SupportTrustRecoveryPosture::WaitForMilestone14OrRoadmap2Evidence,
             "subscription-support accuracy suite requires semantic trust closure while keeping physical readiness debt explicit",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_handoff_matches_phase_artifacts(
+    generic_report: &SupportGenericCertificationReport,
+    domain_bundle: &SupportDomainCertificationBundle,
+    handoff_report: &SupportCertificationHandoffReport,
+) -> Result<(), SupportTrustFailure> {
+    if handoff_report.generic_certification_digest()
+        != generic_report.generic_certification_digest()
+        || handoff_report.domain_certification_digest()
+            != domain_bundle.domain_certification_digest()
+    {
+        return Err(SupportTrustFailure::new(
+            SupportTrustFailureKind::SupportTrustCoverageMissing,
+            SupportTrustRecoveryPosture::RerunCertification,
+            "subscription-support accuracy handoff must be bound to the supplied generic and domain certification artifacts",
         ));
     }
     Ok(())

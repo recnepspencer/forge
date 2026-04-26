@@ -1428,6 +1428,10 @@ fn resource_snapshot_restore_rekeys_in_flight_handles_to_new_restore_epoch() {
         .admitted_request()
         .handle();
     assert_eq!(pre_restore.branch_epoch().restore_epoch(), 0);
+    let boundary_envelopes_at_snapshot = runtime
+        .telemetry()
+        .resource
+        .resource_boundary_performance_envelope_count;
     let snapshot = runtime.capture_snapshot();
 
     runtime
@@ -1436,11 +1440,27 @@ fn resource_snapshot_restore_rekeys_in_flight_handles_to_new_restore_epoch() {
     runtime
         .restore_snapshot(&snapshot)
         .expect("restore should reinstate captured resource state");
+    let restore_report = runtime
+        .latest_resource_branch_restore_report()
+        .expect("resource restore should publish a report");
 
     assert!(
         runtime.in_flight_resource_request(pre_restore).is_none(),
         "pre-restore handles must not resolve after branch restore changes the resource epoch"
     );
+    assert_eq!(
+        restore_report.performance().boundary(),
+        ResourceBoundaryKind::BranchRestore
+    );
+    assert_eq!(restore_report.performance().cost_contract().get(), 13);
+    assert_eq!(
+        restore_report.performance().cost_posture(),
+        ResourceCostPosture::Verified
+    );
+    assert_eq!(restore_report.restored_in_flight_width(), 1);
+    assert_eq!(restore_report.retained_summary_width(), 1);
+    assert_eq!(restore_report.broad_rebuild_denial_count(), 1);
+    assert_eq!(restore_report.performance().broad_scan_denial_count(), 1);
     assert_eq!(
         runtime.telemetry().resource.resource_branch_restore_count,
         1
@@ -1451,6 +1471,27 @@ fn resource_snapshot_restore_rekeys_in_flight_handles_to_new_restore_epoch() {
             .resource
             .resource_branch_restore_in_flight_width,
         1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_branch_restore_retained_summary_width,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_branch_restore_broad_rebuild_denial_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_boundary_performance_envelope_count,
+        boundary_envelopes_at_snapshot + 1
     );
 
     let post_restore = runtime
@@ -1472,6 +1513,618 @@ fn resource_snapshot_restore_rekeys_in_flight_handles_to_new_restore_epoch() {
             .restore_epoch(),
         1
     );
+}
+
+#[test]
+fn resource_replay_reconstruction_digest_matches_after_snapshot_restore() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .expect("descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    runtime
+        .admit_resource_completion(RawCompletionEnvelope::new(
+            ResourceRequestId::new(9_999),
+            ResourceGeneration::new(1),
+            ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+            ResourceAttemptId::ZERO,
+            digest,
+            32,
+        ))
+        .denied_completion()
+        .expect("unknown request should produce retained denial");
+    let snapshot = runtime.capture_snapshot();
+    let expected = runtime.reconstruct_resource_replay_summary();
+
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("post-snapshot request should mutate resource state");
+    runtime
+        .restore_snapshot(&snapshot)
+        .expect("restore should reinstate captured resource state");
+    let boundary_envelopes_before_replay = runtime
+        .telemetry()
+        .resource
+        .resource_boundary_performance_envelope_count;
+    let replayed = runtime.reconstruct_resource_replay_summary();
+
+    assert_eq!(
+        replayed.performance().boundary(),
+        ResourceBoundaryKind::ReplayReconstruction
+    );
+    assert_eq!(replayed.performance().cost_contract().get(), 14);
+    assert_eq!(
+        replayed.performance().cost_posture(),
+        ResourceCostPosture::Debt
+    );
+    assert_eq!(replayed.descriptor_width(), 1);
+    assert_eq!(replayed.lifecycle_summary_width(), 1);
+    assert_eq!(replayed.denied_completion_width(), 1);
+    assert_eq!(replayed.in_flight_width(), 0);
+    assert_eq!(replayed.retained_history_unavailable_count(), 0);
+    assert_eq!(replayed.descriptor_digest(), expected.descriptor_digest());
+    assert_eq!(replayed.lifecycle_digest(), expected.lifecycle_digest());
+    assert_eq!(
+        replayed.denied_completion_digest(),
+        expected.denied_completion_digest()
+    );
+    assert_eq!(replayed.in_flight_digest(), expected.in_flight_digest());
+    assert_eq!(replayed.replay_digest(), expected.replay_digest());
+    assert_eq!(replayed.performance().input_width(), 3);
+    assert_eq!(replayed.performance().lifecycle_transition_count(), 1);
+    assert_eq!(replayed.performance().denied_count(), 1);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_lifecycle_width,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_denial_width,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_boundary_performance_envelope_count,
+        boundary_envelopes_before_replay + 1
+    );
+}
+
+#[test]
+fn resource_certification_bundle_requires_all_named_phase10_families() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let first_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("first request should admit");
+    let first_request = first_admission.admitted_request();
+    let second_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("second request should supersede first request");
+    let superseded_request = second_admission
+        .superseded_request()
+        .expect("second admission should retain supersession evidence");
+    assert_eq!(superseded_request, first_request.handle());
+    let second_request = second_admission.admitted_request();
+    let snapshot = runtime.capture_snapshot();
+
+    let admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            node,
+            second_request.handle(),
+            second_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("current completion should admit");
+    let staging = runtime
+        .stage_admitted_resource_completion(admitted_completion)
+        .expect("admitted completion should stage");
+    let rollback = runtime.rollback_staged_resource_completion(staging.staged_effect());
+
+    runtime
+        .restore_snapshot(&snapshot)
+        .expect("restore should reinstate resource state");
+    let restore_report = runtime
+        .latest_resource_branch_restore_report()
+        .expect("resource restore should publish branch evidence");
+    let replay = runtime.reconstruct_resource_replay_summary();
+
+    let bundle = resource_certification_builder()
+        .with_async_resource_lifecycle_parity(&replay)
+        .expect("lifecycle parity evidence should be accepted")
+        .with_out_of_order_completion_supersession(second_admission)
+        .expect("supersession evidence should be accepted")
+        .with_async_rollback_observation_equivalence(rollback)
+        .expect("rollback evidence should be accepted")
+        .with_async_branch_restore_replay_equivalence(restore_report, &replay)
+        .expect("branch/replay evidence should be accepted")
+        .with_async_inflight_boundedness(
+            runtime.resource_runtime_summary(),
+            first_admission.performance(),
+        )
+        .expect("boundedness evidence should be accepted")
+        .build()
+        .expect("complete resource certification bundle should pass");
+
+    assert!(bundle.passed());
+    assert_eq!(
+        bundle.schema_version(),
+        RESOURCE_CERTIFICATION_BUNDLE_SCHEMA_VERSION
+    );
+    assert_eq!(
+        bundle.records().len(),
+        REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len()
+    );
+    assert_eq!(
+        bundle.summary().passed_family_count(),
+        REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(bundle.summary().missing_family_count(), 0);
+    assert_eq!(bundle.summary().duplicate_family_count(), 0);
+    assert!(bundle.failures().is_empty());
+    assert!(bundle
+        .records()
+        .iter()
+        .all(|record| record.performance().cost_contract().get() > 0));
+}
+
+#[test]
+fn resource_certification_bundle_reports_missing_duplicate_and_parity_drift() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit");
+    let performance = admission.performance();
+    let missing_supersession = resource_certification_builder()
+        .with_out_of_order_completion_supersession(admission)
+        .expect_err("supersession family must require real supersession evidence");
+    assert!(format!("{missing_supersession}")
+        .contains("requires request admission with supersession evidence"));
+
+    let lifecycle = ResourceCertificationRecord::passing(
+        ResourceCertificationFamily::AsyncResourceLifecycleParity,
+        "lifecycle",
+        performance,
+    )
+    .expect("non-empty evidence digest should certify a record");
+    let duplicate_lifecycle = ResourceCertificationRecord::passing(
+        ResourceCertificationFamily::AsyncResourceLifecycleParity,
+        "lifecycle-duplicate",
+        performance,
+    )
+    .expect("duplicate family is reported at bundle construction");
+    let partial = resource_certification_bundle([lifecycle.clone(), duplicate_lifecycle]);
+
+    assert!(!partial.passed());
+    assert_eq!(partial.summary().missing_family_count(), 4);
+    assert_eq!(partial.summary().duplicate_family_count(), 1);
+    assert!(partial.failures().iter().any(|failure| matches!(
+        failure,
+        ResourceCertificationFailure::DuplicateFamily {
+            family: ResourceCertificationFamily::AsyncResourceLifecycleParity,
+            count: 2
+        }
+    )));
+
+    let complete = resource_certification_fixture_bundle(ResourceRequestId::new(9_999));
+    let drifted = resource_certification_fixture_bundle(ResourceRequestId::new(9_998));
+    let parity = resource_certification_bundle_parity_report(&complete, &drifted);
+
+    assert!(!parity.parity());
+    assert!(parity
+        .mismatch_classes()
+        .contains(&ResourceCertificationBundleMismatchClass::BundleDigestMismatch));
+    assert!(parity
+        .mismatch_classes()
+        .contains(&ResourceCertificationBundleMismatchClass::RecordSetMismatch));
+    assert!(ResourceCertificationRecord::passing(
+        ResourceCertificationFamily::AsyncInflightBoundedness,
+        "",
+        performance,
+    )
+    .is_err());
+    let builder_err = resource_certification_builder()
+        .with_async_inflight_boundedness(runtime.resource_runtime_summary(), performance)
+        .expect("first lifecycle record should be accepted")
+        .with_async_inflight_boundedness(runtime.resource_runtime_summary(), performance)
+        .expect_err("duplicate builder family must reject before bundle construction");
+    assert!(format!("{builder_err}").contains("duplicate certification family evidence"));
+}
+
+fn resource_certification_fixture_bundle(
+    retained_denial_request_id: ResourceRequestId,
+) -> ResourceCertificationBundle {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .expect("resource descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    runtime
+        .admit_resource_completion(RawCompletionEnvelope::new(
+            retained_denial_request_id,
+            ResourceGeneration::new(1),
+            ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+            ResourceAttemptId::ZERO,
+            digest,
+            32,
+        ))
+        .denied_completion()
+        .expect("unknown request should produce retained denial evidence");
+    let first_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("first request should admit");
+    let second_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("second request should supersede first request");
+    let second_request = second_admission.admitted_request();
+    let snapshot = runtime.capture_snapshot();
+    let admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            node,
+            second_request.handle(),
+            second_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("current completion should admit");
+    let staging = runtime
+        .stage_admitted_resource_completion(admitted_completion)
+        .expect("admitted completion should stage");
+    let rollback = runtime.rollback_staged_resource_completion(staging.staged_effect());
+    runtime
+        .restore_snapshot(&snapshot)
+        .expect("restore should reinstate resource state");
+    let restore = runtime
+        .latest_resource_branch_restore_report()
+        .expect("resource restore should publish branch evidence");
+    let replay = runtime.reconstruct_resource_replay_summary();
+
+    resource_certification_builder()
+        .with_async_resource_lifecycle_parity(&replay)
+        .expect("lifecycle evidence should be accepted")
+        .with_out_of_order_completion_supersession(second_admission)
+        .expect("supersession evidence should be accepted")
+        .with_async_rollback_observation_equivalence(rollback)
+        .expect("rollback evidence should be accepted")
+        .with_async_branch_restore_replay_equivalence(restore, &replay)
+        .expect("branch/replay evidence should be accepted")
+        .with_async_inflight_boundedness(
+            runtime.resource_runtime_summary(),
+            first_admission.performance(),
+        )
+        .expect("boundedness evidence should be accepted")
+        .build()
+        .expect("complete fixture bundle should pass")
+}
+
+#[test]
+fn resource_diagnostics_summary_preserves_truth_and_exposes_replay_debt() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .expect("resource descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    runtime
+        .admit_resource_completion(RawCompletionEnvelope::new(
+            ResourceRequestId::new(9_999),
+            ResourceGeneration::new(1),
+            ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+            ResourceAttemptId::ZERO,
+            digest,
+            32,
+        ))
+        .denied_completion()
+        .expect("unknown completion should retain denial provenance");
+
+    let runtime_summary_before = runtime.resource_runtime_summary();
+    let replay_count_before = runtime
+        .telemetry()
+        .resource
+        .resource_replay_reconstruction_count;
+    let diagnostics = runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+
+    assert_eq!(
+        diagnostics.schema_version(),
+        RESOURCE_DIAGNOSTICS_SUMMARY_SCHEMA_VERSION
+    );
+    assert_eq!(diagnostics.runtime_summary(), runtime_summary_before);
+    assert_eq!(runtime.resource_runtime_summary(), runtime_summary_before);
+    assert!(diagnostics.latest_branch_restore_report().is_none());
+    assert_eq!(
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .cost_posture(),
+        ResourceCostPosture::Debt
+    );
+    assert_eq!(
+        diagnostics.performance().boundary(),
+        ResourceBoundaryKind::DiagnosticsExpansion
+    );
+    assert_eq!(
+        diagnostics.performance().cost_posture(),
+        ResourceCostPosture::Debt
+    );
+    assert_eq!(
+        diagnostics
+            .replay_reconstruction()
+            .denied_completion_width(),
+        1
+    );
+    assert!(!diagnostics.provenance_digest().is_empty());
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        replay_count_before + 1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_expansion_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_cold_reconstruction_count,
+        1
+    );
+}
+
+#[test]
+fn resource_runtime_summary_read_report_is_zero_cold_reconstruction() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+
+    let replay_count_before = runtime
+        .telemetry()
+        .resource
+        .resource_replay_reconstruction_count;
+    let diagnostics_expansion_before = runtime
+        .telemetry()
+        .resource
+        .resource_diagnostics_expansion_count;
+    let report = runtime.resource_runtime_summary_read_report();
+
+    assert_eq!(
+        report.performance().boundary(),
+        ResourceBoundaryKind::SummaryRead
+    );
+    assert_eq!(
+        report.performance().cost_posture(),
+        ResourceCostPosture::Verified
+    );
+    assert_eq!(report.performance().broad_scan_denial_count(), 0);
+    assert_eq!(report.summary(), runtime.resource_runtime_summary());
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_summary_read_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        replay_count_before
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_expansion_count,
+        diagnostics_expansion_before
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_cold_reconstruction_count,
+        0
+    );
+}
+
+#[test]
+fn resource_diagnostics_summary_respects_cold_reconstruction_budget() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+
+    let err = runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::retained_summary_only(),
+        )
+        .expect_err("retained-summary-only diagnostics should deny replay reconstruction");
+
+    assert_eq!(
+        err.class(),
+        ResourceDiagnosticsExpansionDenialClass::ColdReconstructionDisabled
+    );
+    assert_eq!(err.replay_reconstruction_width(), 2);
+    assert_eq!(
+        err.performance().boundary(),
+        ResourceBoundaryKind::DiagnosticsExpansion
+    );
+    assert_eq!(err.performance().denied_count(), 1);
+    assert_eq!(
+        err.performance().cost_posture(),
+        ResourceCostPosture::DeniedFallback
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_expansion_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_cold_reconstruction_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_boundary_performance_envelope_count,
+        2
+    );
+
+    let admitted = runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(2),
+        )
+        .expect("budget that admits descriptor plus lifecycle reconstruction should pass");
+
+    assert_eq!(
+        admitted.performance().boundary(),
+        ResourceBoundaryKind::DiagnosticsExpansion
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        1
+    );
+}
+
+#[test]
+fn resource_diagnostics_summary_denies_when_replay_width_exceeds_budget() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+
+    let denial = runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(1),
+        )
+        .expect_err("descriptor plus lifecycle width should exceed budget one");
+
+    assert_eq!(
+        denial.class(),
+        ResourceDiagnosticsExpansionDenialClass::ReplayReconstructionBudgetExceeded
+    );
+    assert_eq!(denial.budget().max_replay_reconstruction_width(), 1);
+    assert_eq!(denial.replay_reconstruction_width(), 2);
+    assert_eq!(denial.performance().denied_count(), 1);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_replay_reconstruction_count,
+        0
+    );
+}
+
+#[test]
+fn resource_diagnostics_summary_digest_tracks_retained_denial_drift() {
+    let left = resource_diagnostics_summary_for_unknown_completion(ResourceRequestId::new(9_999));
+    let right = resource_diagnostics_summary_for_unknown_completion(ResourceRequestId::new(9_998));
+
+    assert_ne!(left.provenance_digest(), right.provenance_digest());
+    assert_ne!(
+        left.replay_reconstruction().denied_completion_digest(),
+        right.replay_reconstruction().denied_completion_digest()
+    );
+    assert_eq!(left.runtime_summary(), right.runtime_summary());
+}
+
+fn resource_diagnostics_summary_for_unknown_completion(
+    request_id: ResourceRequestId,
+) -> ResourceDiagnosticsSummary {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .expect("resource descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    runtime
+        .admit_resource_completion(RawCompletionEnvelope::new(
+            request_id,
+            ResourceGeneration::new(1),
+            ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+            ResourceAttemptId::ZERO,
+            digest,
+            32,
+        ))
+        .denied_completion()
+        .expect("unknown completion should retain denial provenance");
+
+    runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction()
 }
 
 #[test]
@@ -1596,6 +2249,11 @@ fn resource_completion_stage_and_commit_apply_lifecycle_once() {
     assert_eq!(
         staging.performance().boundary(),
         ResourceBoundaryKind::CompletionStaging
+    );
+    assert_eq!(staging.performance().cost_contract().get(), 9);
+    assert_eq!(
+        staging.performance().cost_posture(),
+        ResourceCostPosture::Verified
     );
     assert_eq!(staging.performance().lifecycle_transition_count(), 0);
     assert_eq!(
@@ -2039,6 +2697,216 @@ fn resource_completion_admission_denies_unknown_request_without_lifecycle_mutati
     assert_eq!(
         runtime.resource_runtime_summary().in_flight_request_count(),
         0
+    );
+}
+
+#[test]
+fn resource_completion_batch_admission_canonicalizes_out_of_order_inputs() {
+    let mut graph = SignalGraph::new();
+    let first = graph.node().build();
+    let second = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(first))
+        .expect("first resource declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(second))
+        .expect("second resource declaration should lower");
+    let first_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(first)))
+        .expect("first request should admit")
+        .admitted_request();
+    let second_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            second,
+        )))
+        .expect("second request should admit")
+        .admitted_request();
+    let first_raw = raw_completion(
+        &runtime,
+        first,
+        first_request.handle(),
+        first_request.attempt(),
+        64,
+    );
+    let second_raw = raw_completion(
+        &runtime,
+        second,
+        second_request.handle(),
+        second_request.attempt(),
+        96,
+    );
+    let boundary_envelopes_before = runtime
+        .telemetry()
+        .resource
+        .resource_boundary_performance_envelope_count;
+
+    let report = runtime.admit_resource_completion_batch([second_raw, first_raw]);
+
+    assert_eq!(
+        report.performance().boundary(),
+        ResourceBoundaryKind::CompletionBatchAdmission
+    );
+    assert_eq!(report.input_width(), 2);
+    assert_eq!(report.deduplicated_width(), 2);
+    assert_eq!(report.duplicate_width(), 0);
+    assert_eq!(report.admitted_completions().len(), 2);
+    assert!(report.denied_completions().is_empty());
+    assert_eq!(
+        report.admitted_completions()[0].handle(),
+        first_request.handle()
+    );
+    assert_eq!(
+        report.admitted_completions()[1].handle(),
+        second_request.handle()
+    );
+    assert_eq!(report.performance().admitted_count(), 2);
+    assert_eq!(report.performance().denied_count(), 0);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_completion_admission_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_completion_batch_admission_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_boundary_performance_envelope_count,
+        boundary_envelopes_before + 1
+    );
+}
+
+#[test]
+fn resource_completion_batch_admission_denies_in_batch_duplicate_without_second_admitted_proof() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let raw = raw_completion(
+        &runtime,
+        node,
+        admitted_request.handle(),
+        admitted_request.attempt(),
+        64,
+    );
+    let boundary_envelopes_before = runtime
+        .telemetry()
+        .resource
+        .resource_boundary_performance_envelope_count;
+
+    let report = runtime.admit_resource_completion_batch([raw.clone(), raw]);
+
+    assert_eq!(report.input_width(), 2);
+    assert_eq!(report.deduplicated_width(), 1);
+    assert_eq!(report.duplicate_width(), 1);
+    assert_eq!(report.admitted_completions().len(), 1);
+    assert_eq!(
+        report.admitted_completions()[0].handle(),
+        admitted_request.handle()
+    );
+    assert_eq!(report.denied_completions().len(), 1);
+    assert_eq!(
+        report.denied_completions()[0].class(),
+        CompletionDenialClass::Duplicate
+    );
+    assert_eq!(report.performance().input_width(), 2);
+    assert_eq!(report.performance().admitted_count(), 1);
+    assert_eq!(report.performance().denied_count(), 1);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_duplicate_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_completion_validation_count,
+        2
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_completion_admission_count,
+        0
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_boundary_performance_envelope_count,
+        boundary_envelopes_before + 1
+    );
+}
+
+#[test]
+fn resource_completion_batch_admission_denies_contradictory_duplicate_identity() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let accepted = raw_completion(
+        &runtime,
+        node,
+        admitted_request.handle(),
+        admitted_request.attempt(),
+        64,
+    );
+    let contradictory = raw_completion(
+        &runtime,
+        node,
+        admitted_request.handle(),
+        admitted_request.attempt(),
+        96,
+    );
+
+    let report = runtime.admit_resource_completion_batch([contradictory, accepted]);
+
+    assert_eq!(report.input_width(), 2);
+    assert_eq!(report.deduplicated_width(), 1);
+    assert_eq!(report.duplicate_width(), 1);
+    assert_eq!(report.admitted_completions().len(), 1);
+    assert_eq!(
+        report.admitted_completions()[0].handle(),
+        admitted_request.handle()
+    );
+    assert_eq!(report.denied_completions().len(), 1);
+    assert_eq!(
+        report.denied_completions()[0].class(),
+        CompletionDenialClass::Contradictory
+    );
+    assert_eq!(report.performance().admitted_count(), 1);
+    assert_eq!(report.performance().denied_count(), 1);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_contradictory_completion_denial_count,
+        1
     );
 }
 

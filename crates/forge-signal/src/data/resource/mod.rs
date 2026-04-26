@@ -1,8 +1,10 @@
 mod cancellation;
+mod certification;
 mod completion;
 mod declaration;
 mod denial;
 mod descriptor;
+mod diagnostics;
 mod inflight;
 mod lifecycle;
 mod policy;
@@ -19,6 +21,15 @@ pub use cancellation::{
     CancelledResourceRequest, DeniedResourceCancellation, ResourceCancellationDenialClass,
     ResourceCancellationReason,
 };
+pub use certification::{
+    resource_certification_builder, resource_certification_bundle,
+    resource_certification_bundle_parity_report, ResourceCertificationBuilder,
+    ResourceCertificationBundle, ResourceCertificationBundleMismatchClass,
+    ResourceCertificationBundleParityReport, ResourceCertificationFailure,
+    ResourceCertificationFamily, ResourceCertificationRecord, ResourceCertificationSummary,
+    REQUIRED_RESOURCE_CERTIFICATION_FAMILIES, RESOURCE_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+    RESOURCE_CERTIFICATION_BUNDLE_SCHEMA_VERSION,
+};
 pub use completion::{
     AdmittedResourceCompletion, CommittedResourceCompletionArtifact, DeniedResourceCompletion,
     RawCompletionEnvelope, ResourceCompletionRollbackSubject, RolledBackResourceCompletionArtifact,
@@ -32,6 +43,11 @@ pub use denial::{AsyncDenialId, CompletionDenialClass};
 pub use descriptor::{
     LoweredResourceDescriptor, ResourceDescriptorId, ResourceDescriptorVersion,
     ResourcePayloadContractDigest,
+};
+pub use diagnostics::{
+    ResourceDiagnosticsExpansionBudget, ResourceDiagnosticsExpansionDenial,
+    ResourceDiagnosticsExpansionDenialClass, ResourceDiagnosticsSummary,
+    RESOURCE_DIAGNOSTICS_SUMMARY_SCHEMA_VERSION,
 };
 pub use inflight::{InFlightResourceRequest, ResourceInFlightStatus};
 pub use lifecycle::{
@@ -68,13 +84,15 @@ pub use revalidation::{
     ResourceRevalidationIntent,
 };
 pub use summary::{
-    ResourceBoundaryKind, ResourceBoundaryPerformanceEnvelope, ResourceCancellationReport,
-    ResourceCompletionAdmissionReport, ResourceCompletionCommitReport,
+    ResourceBoundaryKind, ResourceBoundaryPerformanceEnvelope, ResourceBranchRestoreReport,
+    ResourceCancellationReport, ResourceCompletionAdmissionReport,
+    ResourceCompletionBatchAdmissionReport, ResourceCompletionCommitReport,
     ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
     ResourceCompletionStagingReport, ResourceCostContractId, ResourceCostPosture,
-    ResourceDeclarationReport, ResourceLifecycleSummary, ResourceRequestAdmissionReport,
-    ResourceRetryAdmissionReport, ResourceRetryScheduleReport, ResourceRevalidationReport,
-    ResourceRuntimeSummary, ResourceTimeoutReport,
+    ResourceDeclarationReport, ResourceLifecycleSummary, ResourceReplayReconstructionReport,
+    ResourceRequestAdmissionReport, ResourceRetryAdmissionReport, ResourceRetryScheduleReport,
+    ResourceRevalidationReport, ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport,
+    ResourceTimeoutReport,
 };
 pub use supersession::ResourceSupersessionRecord;
 pub use timeout::{DeniedResourceTimeout, ResourceTimeoutDenialClass, TimedOutResourceRequest};

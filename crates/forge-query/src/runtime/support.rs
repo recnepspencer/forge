@@ -301,19 +301,19 @@ impl ForgeQueryRuntimeSupportProfile {
         }
     }
 
-    pub(crate) fn validate_batch_one_backend_claims(
+    pub(crate) fn validate_backend_claims(
         &self,
+        has_intent_authority: bool,
     ) -> Result<(), ForgeQueryRuntimeSupportDenial> {
-        for family in [ForgeQueryRuntimeFacadeFamily::Intent] {
-            if self
-                .support_for(family)
-                .is_some_and(|row| row.status() == ForgeQueryRuntimeFamilySupportStatus::Supported)
-            {
-                return Err(ForgeQueryRuntimeSupportDenial::new(
-                    family,
-                    "this runtime batch has no executable facade path for this family; support profiles may not claim it before the adapter path exists",
-                ));
-            }
+        if self
+            .support_for(ForgeQueryRuntimeFacadeFamily::Intent)
+            .is_some_and(|row| row.status() == ForgeQueryRuntimeFamilySupportStatus::Supported)
+            && !has_intent_authority
+        {
+            return Err(ForgeQueryRuntimeSupportDenial::new(
+                ForgeQueryRuntimeFacadeFamily::Intent,
+                "intent support requires an executable intent authority adapter",
+            ));
         }
 
         Ok(())

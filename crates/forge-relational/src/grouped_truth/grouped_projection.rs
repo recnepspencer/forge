@@ -163,7 +163,9 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RelationalGroupedTruthError {
     PacketResultShapeMismatch,
-    PayloadDecodeFailure { request_key: String },
+    PayloadDecodeFailure {
+        request_key: String,
+    },
     MissingIdentityField {
         row_identity: String,
         field_key: String,
@@ -271,6 +273,9 @@ mod tests {
 
         assert_eq!(grouped.members().len(), 2);
         assert_eq!(grouped.members()[0].row_identity().as_str(), "entity-1");
-        assert_eq!(grouped.members()[0].identity_value(), &Value::String("task-1".to_string()));
+        assert_eq!(
+            grouped.members()[0].identity_value(),
+            &Value::String("task-1".to_string())
+        );
     }
 }

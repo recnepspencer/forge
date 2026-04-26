@@ -18,6 +18,16 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/resource_retry_admission_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_revalidation_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_completion_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_completion_batch_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_completion_batch_admission_report_cannot_be_cloned.rs");
+    cases.compile_fail("tests/ui/resource_branch_restore_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_replay_reconstruction_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_certification_record_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_certification_record_passing_is_private.rs");
+    cases.compile_fail("tests/ui/resource_diagnostics_expansion_budget_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_diagnostics_expansion_denial_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_diagnostics_summary_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_runtime_summary_read_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/denied_resource_completion_cannot_be_staged.rs");
     cases.compile_fail("tests/ui/staged_resource_completion_effect_fields_are_private.rs");
     cases.compile_fail("tests/ui/staged_denied_resource_completion_effect_fields_are_private.rs");

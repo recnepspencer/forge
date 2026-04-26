@@ -28,11 +28,15 @@ pub enum ResourceBoundaryKind {
     RetryAdmission,
     RevalidationAdmission,
     CompletionAdmission,
+    CompletionBatchAdmission,
     CompletionStaging,
     CompletionDenialStaging,
     CompletionCommit,
     CompletionRollback,
+    BranchRestore,
+    ReplayReconstruction,
     SummaryRead,
+    DiagnosticsExpansion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,6 +123,24 @@ impl ResourceBoundaryPerformanceEnvelope {
         }
     }
 
+    pub(crate) fn completion_batch_admission(
+        input_width: u32,
+        admitted_count: u32,
+        denied_count: u32,
+    ) -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::CompletionBatchAdmission,
+            input_width,
+            lifecycle_transition_count: admitted_count,
+            admitted_count,
+            denied_count,
+            broad_scan_denial_count: 0,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(12),
+            cost_posture: ResourceCostPosture::Verified,
+        }
+    }
+
     pub(crate) fn completion_commit(lifecycle_transition_count: u32) -> Self {
         Self {
             boundary: ResourceBoundaryKind::CompletionCommit,
@@ -147,6 +169,83 @@ impl ResourceBoundaryPerformanceEnvelope {
         }
     }
 
+    pub(crate) fn replay_reconstruction(
+        descriptor_width: u32,
+        lifecycle_summary_width: u32,
+        denied_completion_width: u32,
+        in_flight_width: u32,
+        retained_history_unavailable_count: u32,
+    ) -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::ReplayReconstruction,
+            input_width: descriptor_width
+                .saturating_add(lifecycle_summary_width)
+                .saturating_add(denied_completion_width)
+                .saturating_add(in_flight_width),
+            lifecycle_transition_count: lifecycle_summary_width,
+            admitted_count: in_flight_width,
+            denied_count: denied_completion_width,
+            broad_scan_denial_count: retained_history_unavailable_count,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(14),
+            cost_posture: ResourceCostPosture::Debt,
+        }
+    }
+
+    pub(crate) fn summary_read() -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::SummaryRead,
+            input_width: 1,
+            lifecycle_transition_count: 0,
+            admitted_count: 1,
+            denied_count: 0,
+            broad_scan_denial_count: 0,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(15),
+            cost_posture: ResourceCostPosture::Verified,
+        }
+    }
+
+    pub(crate) fn diagnostics_expansion(
+        runtime_summary_width: u32,
+        replay_reconstruction_width: u32,
+        branch_restore_width: u32,
+    ) -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::DiagnosticsExpansion,
+            input_width: runtime_summary_width
+                .saturating_add(replay_reconstruction_width)
+                .saturating_add(branch_restore_width),
+            lifecycle_transition_count: 0,
+            admitted_count: runtime_summary_width,
+            denied_count: 0,
+            broad_scan_denial_count: replay_reconstruction_width,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(16),
+            cost_posture: ResourceCostPosture::Debt,
+        }
+    }
+
+    pub(crate) fn diagnostics_expansion_denied(
+        runtime_summary_width: u32,
+        replay_reconstruction_width: u32,
+        branch_restore_width: u32,
+    ) -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::DiagnosticsExpansion,
+            input_width: runtime_summary_width
+                .saturating_add(replay_reconstruction_width)
+                .saturating_add(branch_restore_width),
+            lifecycle_transition_count: 0,
+            admitted_count: 0,
+            denied_count: 1,
+            broad_scan_denial_count: replay_reconstruction_width,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(16),
+            cost_posture: ResourceCostPosture::DeniedFallback,
+        }
+    }
+
     pub(crate) fn completion_denial_staging() -> Self {
         Self {
             boundary: ResourceBoundaryKind::CompletionDenialStaging,
@@ -171,6 +270,24 @@ impl ResourceBoundaryPerformanceEnvelope {
             broad_scan_denial_count: 0,
             temporal_wake_footprint: 0,
             cost_contract: ResourceCostContractId::new(11),
+            cost_posture: ResourceCostPosture::Verified,
+        }
+    }
+
+    pub(crate) fn branch_restore(
+        restored_in_flight_width: u32,
+        retained_summary_width: u32,
+        broad_rebuild_denial_count: u32,
+    ) -> Self {
+        Self {
+            boundary: ResourceBoundaryKind::BranchRestore,
+            input_width: restored_in_flight_width.saturating_add(retained_summary_width),
+            lifecycle_transition_count: restored_in_flight_width,
+            admitted_count: restored_in_flight_width,
+            denied_count: 0,
+            broad_scan_denial_count: broad_rebuild_denial_count,
+            temporal_wake_footprint: 0,
+            cost_contract: ResourceCostContractId::new(13),
             cost_posture: ResourceCostPosture::Verified,
         }
     }
@@ -619,6 +736,68 @@ impl ResourceCompletionAdmissionReport {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceCompletionBatchAdmissionReport {
+    admitted_completions: Vec<AdmittedResourceCompletion>,
+    denied_completions: Vec<DeniedResourceCompletion>,
+    input_width: u32,
+    deduplicated_width: u32,
+    duplicate_width: u32,
+    performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+impl ResourceCompletionBatchAdmissionReport {
+    pub(crate) fn new(
+        admitted_completions: Vec<AdmittedResourceCompletion>,
+        denied_completions: Vec<DeniedResourceCompletion>,
+        input_width: u32,
+        duplicate_width: u32,
+        performance: ResourceBoundaryPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            admitted_completions,
+            denied_completions,
+            input_width,
+            deduplicated_width: input_width.saturating_sub(duplicate_width),
+            duplicate_width,
+            performance,
+        }
+    }
+
+    pub fn admitted_completions(&self) -> &[AdmittedResourceCompletion] {
+        &self.admitted_completions
+    }
+
+    pub fn denied_completions(&self) -> &[DeniedResourceCompletion] {
+        &self.denied_completions
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        Vec<AdmittedResourceCompletion>,
+        Vec<DeniedResourceCompletion>,
+    ) {
+        (self.admitted_completions, self.denied_completions)
+    }
+
+    pub fn input_width(&self) -> u32 {
+        self.input_width
+    }
+
+    pub fn deduplicated_width(&self) -> u32 {
+        self.deduplicated_width
+    }
+
+    pub fn duplicate_width(&self) -> u32 {
+        self.duplicate_width
+    }
+
+    pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
+        self.performance
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceCompletionStagingReport {
     staged_effect: StagedResourceCompletionEffect,
     performance: ResourceBoundaryPerformanceEnvelope,
@@ -729,6 +908,135 @@ impl ResourceCompletionRollbackReport {
 
     pub fn rolled_back_completion(self) -> RolledBackResourceCompletionArtifact {
         self.rolled_back_completion
+    }
+
+    pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
+        self.performance
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceBranchRestoreReport {
+    restored_in_flight_width: u32,
+    retained_summary_width: u32,
+    broad_rebuild_denial_count: u32,
+    performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+impl ResourceBranchRestoreReport {
+    pub(crate) fn new(
+        restored_in_flight_width: u32,
+        retained_summary_width: u32,
+        broad_rebuild_denial_count: u32,
+        performance: ResourceBoundaryPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            restored_in_flight_width,
+            retained_summary_width,
+            broad_rebuild_denial_count,
+            performance,
+        }
+    }
+
+    pub fn restored_in_flight_width(self) -> u32 {
+        self.restored_in_flight_width
+    }
+
+    pub fn retained_summary_width(self) -> u32 {
+        self.retained_summary_width
+    }
+
+    pub fn broad_rebuild_denial_count(self) -> u32 {
+        self.broad_rebuild_denial_count
+    }
+
+    pub fn performance(self) -> ResourceBoundaryPerformanceEnvelope {
+        self.performance
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceReplayReconstructionReport {
+    descriptor_width: u32,
+    lifecycle_summary_width: u32,
+    denied_completion_width: u32,
+    in_flight_width: u32,
+    retained_history_unavailable_count: u32,
+    descriptor_digest: String,
+    lifecycle_digest: String,
+    denied_completion_digest: String,
+    in_flight_digest: String,
+    replay_digest: String,
+    performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+impl ResourceReplayReconstructionReport {
+    pub(crate) fn new(
+        descriptor_width: u32,
+        lifecycle_summary_width: u32,
+        denied_completion_width: u32,
+        in_flight_width: u32,
+        retained_history_unavailable_count: u32,
+        descriptor_digest: String,
+        lifecycle_digest: String,
+        denied_completion_digest: String,
+        in_flight_digest: String,
+        replay_digest: String,
+        performance: ResourceBoundaryPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            descriptor_width,
+            lifecycle_summary_width,
+            denied_completion_width,
+            in_flight_width,
+            retained_history_unavailable_count,
+            descriptor_digest,
+            lifecycle_digest,
+            denied_completion_digest,
+            in_flight_digest,
+            replay_digest,
+            performance,
+        }
+    }
+
+    pub fn descriptor_width(&self) -> u32 {
+        self.descriptor_width
+    }
+
+    pub fn lifecycle_summary_width(&self) -> u32 {
+        self.lifecycle_summary_width
+    }
+
+    pub fn denied_completion_width(&self) -> u32 {
+        self.denied_completion_width
+    }
+
+    pub fn in_flight_width(&self) -> u32 {
+        self.in_flight_width
+    }
+
+    pub fn retained_history_unavailable_count(&self) -> u32 {
+        self.retained_history_unavailable_count
+    }
+
+    pub fn descriptor_digest(&self) -> &str {
+        &self.descriptor_digest
+    }
+
+    pub fn lifecycle_digest(&self) -> &str {
+        &self.lifecycle_digest
+    }
+
+    pub fn denied_completion_digest(&self) -> &str {
+        &self.denied_completion_digest
+    }
+
+    pub fn in_flight_digest(&self) -> &str {
+        &self.in_flight_digest
+    }
+
+    pub fn replay_digest(&self) -> &str {
+        &self.replay_digest
     }
 
     pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
@@ -884,6 +1192,32 @@ pub struct ResourceRuntimeSummary {
     active_in_flight_node_count: u64,
     denied_completion_count: u64,
     next_descriptor_id: ResourceDescriptorId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceRuntimeSummaryReadReport {
+    summary: ResourceRuntimeSummary,
+    performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+impl ResourceRuntimeSummaryReadReport {
+    pub(crate) fn new(
+        summary: ResourceRuntimeSummary,
+        performance: ResourceBoundaryPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            summary,
+            performance,
+        }
+    }
+
+    pub fn summary(self) -> ResourceRuntimeSummary {
+        self.summary
+    }
+
+    pub fn performance(self) -> ResourceBoundaryPerformanceEnvelope {
+        self.performance
+    }
 }
 
 impl ResourceRuntimeSummary {

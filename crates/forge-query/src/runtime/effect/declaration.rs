@@ -182,6 +182,22 @@ impl ForgeQueryEffectDeclaration {
             suppression_policy: ForgeQueryEffectSuppressionPolicy::None,
         }
     }
+    pub fn write_intent(
+        name: impl Into<String>,
+        trigger: ForgeQueryEffectTrigger,
+        intent: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            trigger,
+            condition: ForgeQueryEffectCondition::Always,
+            action: ForgeQueryEffectAction::WriteIntent,
+            target_lane: ForgeQueryAuthorityLane::PendingWriteIntent,
+            target: intent.into(),
+            effect_policy: ForgeQueryEffectPolicy::SandboxedWriteIntent,
+            suppression_policy: ForgeQueryEffectSuppressionPolicy::None,
+        }
+    }
     pub fn with_condition(mut self, condition: ForgeQueryEffectCondition) -> Self {
         self.condition = condition;
         self

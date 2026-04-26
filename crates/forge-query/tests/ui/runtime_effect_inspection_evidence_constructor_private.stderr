@@ -1,4 +1,4 @@
-error[E0451]: fields `name`, `trigger_source`, `trigger_source_kind`, `trigger_aspects`, `condition_descriptor`, `condition_inputs`, `condition_outputs`, `condition_failure_posture`, `action`, `target_lane`, `target`, `effect_policy`, `suppression_policy`, `counters` and `pending_delivery_count` of struct `ForgeQueryEffectInspectionEvidence` are private
+error[E0451]: fields `name`, `trigger_source`, `trigger_source_kind`, `trigger_aspects`, `condition_descriptor`, `condition_inputs`, `condition_outputs`, `condition_failure_posture`, `action`, `target_lane`, `target`, `effect_policy`, `suppression_policy`, `counters`, `pending_delivery_count`, `pending_write_intent_count` and `latest_phase_evidence` of struct `ForgeQueryEffectInspectionEvidence` are private
   --> tests/ui/runtime_effect_inspection_evidence_constructor_private.rs:9:9
    |
  8 |     let _forged = ForgeQueryEffectInspectionEvidence {
@@ -33,3 +33,7 @@ error[E0451]: fields `name`, `trigger_source`, `trigger_source_kind`, `trigger_a
    |         ^^^^^^^^ private field
 23 |         pending_delivery_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+24 |         pending_write_intent_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+25 |         latest_phase_evidence: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field

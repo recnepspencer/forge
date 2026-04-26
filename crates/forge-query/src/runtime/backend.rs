@@ -10,10 +10,13 @@ use crate::schema_view::QuerySchemaView;
 use crate::subscription::SubscriptionActivationInput;
 
 use super::{
-    ForgeQueryEffectPolicy, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError,
+    ForgeQueryEffectPolicy, ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError,
     ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
+
+pub use super::ForgeQueryIntentAuthorityAdapter as ForgeQueryRuntimeIntentAuthorityAdapter;
 
 pub trait ForgeQueryRuntimeBackend {
     fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile;
@@ -36,6 +39,11 @@ pub trait ForgeQueryRuntimeBackend {
         &mut self,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
+
+    fn execute_intent(
+        &mut self,
+        declaration: &ForgeQueryIntentDeclaration,
+    ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError>;
 
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
 
@@ -152,6 +160,7 @@ pub struct ForgeQueryRuntimeBackendParts {
     subscription_activation: Option<Box<dyn ForgeQueryRuntimeSubscriptionActivationAdapter>>,
     preview_basis: Option<Box<dyn ForgeQueryRuntimePreviewBasisAdapter>>,
     inspector_evidence: Option<Box<dyn ForgeQueryRuntimeInspectorEvidenceAdapter>>,
+    intent_authority: Option<Box<dyn ForgeQueryIntentAuthorityAdapter>>,
     support_profile: Option<ForgeQueryRuntimeSupportProfile>,
 }
 
@@ -223,6 +232,14 @@ impl ForgeQueryRuntimeBackendParts {
         self
     }
 
+    pub fn intent_authority(
+        mut self,
+        adapter: impl ForgeQueryIntentAuthorityAdapter + 'static,
+    ) -> Self {
+        self.intent_authority = Some(Box::new(adapter));
+        self
+    }
+
     pub fn support_profile(mut self, profile: ForgeQueryRuntimeSupportProfile) -> Self {
         self.support_profile = Some(profile);
         self
@@ -239,6 +256,7 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
     subscription_activation: Box<dyn ForgeQueryRuntimeSubscriptionActivationAdapter>,
     preview_basis: Box<dyn ForgeQueryRuntimePreviewBasisAdapter>,
     inspector_evidence: Box<dyn ForgeQueryRuntimeInspectorEvidenceAdapter>,
+    intent_authority: Option<Box<dyn ForgeQueryIntentAuthorityAdapter>>,
     support_profile: ForgeQueryRuntimeSupportProfile,
 }
 
@@ -271,6 +289,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
         let inspector_evidence = parts
             .inspector_evidence
             .ok_or(ForgeQueryRuntimeError::MissingInspectorEvidence)?;
+        let intent_authority = parts.intent_authority;
         let support_profile = parts.support_profile.unwrap_or_else(|| {
             ForgeQueryRuntimeSupportProfile::bridge_backed(
                 subscription_activation.support_evidence(),
@@ -280,7 +299,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
         });
 
         support_profile
-            .validate_batch_one_backend_claims()
+            .validate_backend_claims(intent_authority.is_some())
             .map_err(ForgeQueryRuntimeError::UnsupportedFacadeFamily)?;
 
         Ok(Self {
@@ -293,6 +312,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
             subscription_activation,
             preview_basis,
             inspector_evidence,
+            intent_authority,
             support_profile,
         })
     }
@@ -334,6 +354,25 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         )?;
         self.signal_sink.route_write_receipt(&receipt)?;
         Ok(receipt)
+    }
+
+    fn execute_intent(
+        &mut self,
+        declaration: &ForgeQueryIntentDeclaration,
+    ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
+        let Some(intent_authority) = self.intent_authority.as_mut() else {
+            return Err(ForgeQueryWorkspaceError::new(
+                "intent authority adapter is not configured",
+            ));
+        };
+        let execution = intent_authority.execute_intent(
+            &self.runtime_bridge,
+            self.relational_runtime.as_mut(),
+            declaration,
+        )?;
+        self.signal_sink
+            .route_write_receipt(execution.mutation_receipt())?;
+        Ok(execution)
     }
 
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {

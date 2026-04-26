@@ -4,15 +4,18 @@ use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::handle::NodeId;
 use crate::data::resource::{
     AdmittedResourceCompletion, DeniedResourceCompletion, InFlightResourceRequest,
-    LoweredResourceDescriptor, RawCompletionEnvelope, ResourceCancellationReason,
-    ResourceCancellationReport, ResourceCompletionAdmissionReport, ResourceCompletionCommitReport,
-    ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
-    ResourceCompletionStagingReport, ResourceDeclarationReport, ResourceNodeDeclaration,
-    ResourceNodeId, ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestIntent,
-    ResourceRetryAdmissionReport, ResourceRetryReason, ResourceRetryScheduleReport,
-    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
-    ResourceTimeoutPolicyDeclaration, ResourceTimeoutReport, StagedDeniedResourceCompletionEffect,
-    StagedResourceCompletionEffect,
+    LoweredResourceDescriptor, RawCompletionEnvelope, ResourceBoundaryPerformanceEnvelope,
+    ResourceBranchRestoreReport, ResourceCancellationReason, ResourceCancellationReport,
+    ResourceCompletionAdmissionReport, ResourceCompletionBatchAdmissionReport,
+    ResourceCompletionCommitReport, ResourceCompletionDenialStagingReport,
+    ResourceCompletionRollbackReport, ResourceCompletionStagingReport, ResourceDeclarationReport,
+    ResourceDiagnosticsExpansionBudget, ResourceDiagnosticsExpansionDenial,
+    ResourceDiagnosticsSummary, ResourceNodeDeclaration, ResourceNodeId,
+    ResourceReplayReconstructionReport, ResourceRequestAdmissionReport, ResourceRequestHandle,
+    ResourceRequestIntent, ResourceRetryAdmissionReport, ResourceRetryReason,
+    ResourceRetryScheduleReport, ResourceRevalidationIntent, ResourceRevalidationReport,
+    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceTimeoutPolicyDeclaration,
+    ResourceTimeoutReport, StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
 };
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::data::temporal::{
@@ -715,11 +718,106 @@ where
         self.resource.summary()
     }
 
+    pub fn resource_runtime_summary_read_report(&mut self) -> ResourceRuntimeSummaryReadReport {
+        self.resource
+            .summary_read_report(&mut self.telemetry.resource)
+    }
+
     pub fn resource_descriptor_for_node(
         &self,
         node: ResourceNodeId,
     ) -> Option<&LoweredResourceDescriptor> {
         self.resource.descriptor_for_node(node)
+    }
+
+    pub fn latest_resource_branch_restore_report(&self) -> Option<ResourceBranchRestoreReport> {
+        self.resource.latest_branch_restore_report()
+    }
+
+    pub fn reconstruct_resource_replay_summary(&mut self) -> ResourceReplayReconstructionReport {
+        self.resource
+            .reconstruct_replay_summary(&mut self.telemetry.resource)
+    }
+
+    pub fn resource_diagnostics_summary_with_cold_reconstruction_budget(
+        &mut self,
+        budget: ResourceDiagnosticsExpansionBudget,
+    ) -> Result<ResourceDiagnosticsSummary, ResourceDiagnosticsExpansionDenial> {
+        self.try_resource_diagnostics_summary(budget)
+    }
+
+    pub fn resource_diagnostics_summary_with_unbounded_cold_reconstruction(
+        &mut self,
+    ) -> ResourceDiagnosticsSummary {
+        self.resource_diagnostics_summary_with_cold_reconstruction_budget(
+            ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(u32::MAX),
+        )
+        .expect("unbounded resource diagnostics budget should admit replay reconstruction")
+    }
+
+    pub fn try_resource_diagnostics_summary(
+        &mut self,
+        budget: ResourceDiagnosticsExpansionBudget,
+    ) -> Result<ResourceDiagnosticsSummary, ResourceDiagnosticsExpansionDenial> {
+        let runtime_summary = self.resource_runtime_summary();
+        let latest_branch_restore_report = self.latest_resource_branch_restore_report();
+        let estimated_replay_width = self.resource.replay_reconstruction_width();
+        let branch_restore_width = u32::from(latest_branch_restore_report.is_some());
+        if let Some(class) = budget.denial_class(estimated_replay_width) {
+            let performance = ResourceBoundaryPerformanceEnvelope::diagnostics_expansion_denied(
+                1,
+                estimated_replay_width,
+                branch_restore_width,
+            );
+            self.telemetry.resource.resource_diagnostics_expansion_count += 1;
+            self.telemetry
+                .resource
+                .resource_diagnostics_expansion_input_width = self
+                .telemetry
+                .resource
+                .resource_diagnostics_expansion_input_width
+                .max(performance.input_width() as u64);
+            self.telemetry
+                .resource
+                .resource_boundary_performance_envelope_count += 1;
+            return Err(ResourceDiagnosticsExpansionDenial::new(
+                class,
+                budget,
+                estimated_replay_width,
+                performance,
+            ));
+        }
+        let replay_reconstruction = self.reconstruct_resource_replay_summary();
+        let replay_reconstruction_width = replay_reconstruction
+            .descriptor_width()
+            .saturating_add(replay_reconstruction.lifecycle_summary_width())
+            .saturating_add(replay_reconstruction.denied_completion_width())
+            .saturating_add(replay_reconstruction.in_flight_width());
+        let performance = ResourceBoundaryPerformanceEnvelope::diagnostics_expansion(
+            1,
+            replay_reconstruction_width,
+            branch_restore_width,
+        );
+        self.telemetry.resource.resource_diagnostics_expansion_count += 1;
+        self.telemetry
+            .resource
+            .resource_diagnostics_expansion_input_width = self
+            .telemetry
+            .resource
+            .resource_diagnostics_expansion_input_width
+            .max(performance.input_width() as u64);
+        self.telemetry
+            .resource
+            .resource_diagnostics_cold_reconstruction_count += 1;
+        self.telemetry
+            .resource
+            .resource_boundary_performance_envelope_count += 1;
+        Ok(ResourceDiagnosticsSummary::new(
+            runtime_summary,
+            latest_branch_restore_report,
+            replay_reconstruction,
+            performance,
+        ))
     }
 
     pub fn in_flight_resource_request(
@@ -854,6 +952,14 @@ where
     ) -> ResourceCompletionAdmissionReport {
         self.resource
             .admit_resource_completion(completion, &mut self.telemetry.resource)
+    }
+
+    pub fn admit_resource_completion_batch(
+        &mut self,
+        completions: impl IntoIterator<Item = RawCompletionEnvelope>,
+    ) -> ResourceCompletionBatchAdmissionReport {
+        self.resource
+            .admit_resource_completion_batch(completions, &mut self.telemetry.resource)
     }
 
     pub fn stage_admitted_resource_completion(

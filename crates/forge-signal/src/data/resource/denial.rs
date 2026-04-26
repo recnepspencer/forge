@@ -20,6 +20,7 @@ pub enum CompletionDenialClass {
     Malformed,
     Partial,
     Contradictory,
+    Duplicate,
     UnknownRequest,
     Retired,
     Cancelled,

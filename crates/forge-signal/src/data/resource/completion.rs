@@ -9,7 +9,7 @@ use super::request::{
 };
 
 /// Raw host-delivered completion envelope. It is untrusted input only.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct RawCompletionEnvelope {
     request_id: ResourceRequestId,
     generation: ResourceGeneration,

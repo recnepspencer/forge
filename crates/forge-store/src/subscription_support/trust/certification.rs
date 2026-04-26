@@ -652,6 +652,14 @@ impl SupportCertificationCounterSnapshot {
         self.receipt_reuse_count
     }
 
+    pub fn index_probe_count(&self) -> u64 {
+        self.index_probe_count
+    }
+
+    pub fn allocation_count(&self) -> u64 {
+        self.allocation_count
+    }
+
     pub fn forbidden_exact_overclaim_count(&self) -> u64 {
         self.forbidden_exact_overclaim_count
     }
@@ -738,6 +746,10 @@ impl SupportCertificationEvidenceBundle {
 
     pub fn counter_snapshot(&self) -> SupportCertificationCounterSnapshot {
         self.counter_snapshot
+    }
+
+    pub fn batch_scope(&self) -> SupportCertificationBatchScope {
+        self.batch_scope
     }
 
     pub(crate) fn coverage_rows(&self) -> &[SupportCertificationRow] {

@@ -51,9 +51,14 @@ pub use equivalence::{
 };
 pub use failure::{SupportTrustFailure, SupportTrustFailureKind, SupportTrustRecoveryPosture};
 pub use named_suite::{
+    SubscriptionSupportAccuracyAccessCloseout,
     SubscriptionSupportAccuracyCertificationCounterSnapshot,
     SubscriptionSupportAccuracyCertificationOutputs, SubscriptionSupportAccuracyCertificationRow,
-    SubscriptionSupportAccuracyCertificationRowKind, SubscriptionSupportAccuracyCertificationSuite,
+    SubscriptionSupportAccuracyCertificationRowKind, SubscriptionSupportAccuracyCertificationRun,
+    SubscriptionSupportAccuracyCertificationRunner, SubscriptionSupportAccuracyCertificationSuite,
+    SubscriptionSupportAccuracyLaneEvidence, SubscriptionSupportAccuracyLaneEvidenceSet,
+    SubscriptionSupportAccuracyLaneOutcome, SubscriptionSupportAccuracyPerformanceCloseout,
+    SubscriptionSupportAccuracyPersistencePosture,
     SUBSCRIPTION_SUPPORT_ACCURACY_CERTIFICATION_SUITE_NAME,
 };
 pub use performance::{
@@ -843,16 +848,476 @@ mod tests {
         generic: &SupportGenericCertificationReport,
         domain: &SupportDomainCertificationBundle,
         handoff: &SupportCertificationHandoffReport,
+        lane_evidence: &SubscriptionSupportAccuracyLaneEvidenceSet,
     ) -> Vec<SubscriptionSupportAccuracyCertificationRow> {
-        SubscriptionSupportAccuracyCertificationSuite::from_phase_artifacts(
+        SubscriptionSupportAccuracyCertificationSuite::from_phase_artifacts_and_lane_evidence(
             evidence_bundle,
             generic,
             domain,
             handoff,
+            lane_evidence,
         )
         .unwrap()
         .rows()
         .to_vec()
+    }
+
+    fn phase7_lane_evidence() -> SubscriptionSupportAccuracyLaneEvidenceSet {
+        let lanes = SubscriptionSupportAccuracyCertificationRowKind::required()
+            .iter()
+            .copied()
+            .filter(|row_kind| {
+                !matches!(
+                    row_kind,
+                    SubscriptionSupportAccuracyCertificationRowKind::ExactSupportTrustedControl
+                        | SubscriptionSupportAccuracyCertificationRowKind::DegradedSupportTrusted
+                        | SubscriptionSupportAccuracyCertificationRowKind::CertificationMatrixComplete
+                        | SubscriptionSupportAccuracyCertificationRowKind::GenericCertificationIncludesSupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::DomainGeometrySupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::DomainWebDataSupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::DomainAiDegradedSupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::DomainChipRebuildSupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::DomainOfflineOmittedSupportTrust
+                        | SubscriptionSupportAccuracyCertificationRowKind::Roadmap2HandoffPhysicalDebtExplicit
+                )
+            })
+            .map(|row_kind| {
+                let diagnostics_digest = format!("phase7:lane:diagnostics:{row_kind:?}");
+                let counter_digest = format!("phase7:lane:counter:{row_kind:?}");
+                match row_kind {
+                    SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportExactEquivalence => {
+                        let report = phase7_certified_transformed_exact_report(
+                            SupportTrustProvenance::Rebuilt,
+                            "row:phase7:rebuild-exact",
+                        );
+                        SubscriptionSupportAccuracyLaneEvidence::certified_pass_from_report(
+                            row_kind,
+                            &report,
+                            diagnostics_digest,
+                            counter_digest,
+                        )
+                    }
+                    SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence => {
+                        let report = phase7_certified_transformed_exact_report(
+                            SupportTrustProvenance::Replicated,
+                            "row:phase7:replicated-exact",
+                        );
+                        SubscriptionSupportAccuracyLaneEvidence::certified_pass_from_report(
+                            row_kind,
+                            &report,
+                            diagnostics_digest,
+                            counter_digest,
+                        )
+                    }
+                    SubscriptionSupportAccuracyCertificationRowKind::MigratedSupportExactEquivalence => {
+                        let report = phase7_certified_transformed_exact_report(
+                            SupportTrustProvenance::Migrated,
+                            "row:phase7:migrated-exact",
+                        );
+                        SubscriptionSupportAccuracyLaneEvidence::certified_pass_from_report(
+                            row_kind,
+                            &report,
+                            diagnostics_digest,
+                            counter_digest,
+                        )
+                    }
+                    SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero
+                    | SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden => {
+                        let (evidence_bundle, _, _, _) = phase7_suite_artifacts();
+                        SubscriptionSupportAccuracyLaneEvidence::certified_counter_pass_from_evidence_bundle(
+                            row_kind,
+                            &evidence_bundle,
+                        )
+                    }
+                    _ => {
+                        let failure = phase7_expected_lane_failure(row_kind);
+                        SubscriptionSupportAccuracyLaneEvidence::typed_rejection_from_failure(
+                            row_kind, &failure,
+                        )
+                    }
+                }
+                .unwrap()
+            })
+            .collect();
+        SubscriptionSupportAccuracyLaneEvidenceSet::new(lanes).unwrap()
+    }
+
+    fn phase7_expected_lane_failure(
+        row_kind: SubscriptionSupportAccuracyCertificationRowKind,
+    ) -> SupportTrustFailure {
+        match row_kind {
+            SubscriptionSupportAccuracyCertificationRowKind::RebuildDerivedSupportDowngraded => {
+                phase7_missing_equivalence_failure(SupportTrustProvenance::Rebuilt)
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportIdentityNotEnough => {
+                phase7_missing_equivalence_failure(SupportTrustProvenance::Replicated)
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::ImportedSupportMissingBasisNotResumable => {
+                phase7_import_basis_mismatch_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::StaleSupportRejected => {
+                SupportCatalogEpoch::new(0).expect_err("zero catalog epoch must reject as stale")
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::PolicyRejectedSupport => {
+                phase7_operational_drift_failure(
+                    SubscriptionSupportOperationalVerdict::RejectedByPolicy,
+                )
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::FamilyRoleMismatchRejected => {
+                phase7_family_role_mismatch_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CompatibilityDriftRejectsExactTrust => {
+                phase7_receipt_drift_failure(
+                    "basis:trust",
+                    "compatibility:wrong",
+                    "portability:trust",
+                )
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::OperationalVerdictDriftRejectsExactTrust => {
+                phase7_operational_drift_failure(
+                    SubscriptionSupportOperationalVerdict::DegradedResumePreserved,
+                )
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::PortabilityDriftRejectsExactTrust => {
+                phase7_receipt_drift_failure(
+                    "basis:trust",
+                    "compatibility:trust",
+                    "portability:wrong",
+                )
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CoverageDriftRejectsPlatformTrust => {
+                phase7_coverage_drift_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CertificationMissingRowRejected => {
+                phase7_certification_missing_row_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CertificationDuplicateRowRejected => {
+                phase7_certification_duplicate_row_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CertificationMislabeledRowRejected => {
+                phase7_certification_mislabeled_row_failure()
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::CertificationSelfComparisonRejected => {
+                SupportCertificationLaneDigestSet::new(
+                    "phase7:lane:same",
+                    "phase7:lane:same",
+                    "phase7:lane:replay",
+                )
+                .expect_err("self-comparison lane digests must reject")
+            }
+            SubscriptionSupportAccuracyCertificationRowKind::MultiDriftPrecedenceDeterministic => {
+                phase7_receipt_drift_failure(
+                    "basis:wrong",
+                    "compatibility:wrong",
+                    "portability:wrong",
+                )
+            }
+            _ => unreachable!("phase7 pass rows do not create rejection failures"),
+        }
+    }
+
+    fn phase7_missing_equivalence_failure(
+        provenance: SupportTrustProvenance,
+    ) -> SupportTrustFailure {
+        let admitted = admit_support_trust_request(
+            raw_phase2_request(SupportTrustStrength::Exact, provenance),
+            phase2_receipts(
+                SubscriptionResumeClassification::Exact,
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+            ),
+        )
+        .unwrap();
+        let translated = translate_support_trust_inputs(admitted).unwrap();
+        let drift_checked = check_support_trust_drift(
+            translated,
+            SupportTrustDriftScanPlan::foreground_support_identity(),
+        )
+        .unwrap();
+        check_support_trust_equivalence(drift_checked, SupportTrustEquivalenceEvidence::none())
+            .expect_err("missing transformed equivalence must reject exact support trust")
+    }
+
+    fn phase7_import_basis_mismatch_failure() -> SupportTrustFailure {
+        let bundle = phase2_receipts(
+            SubscriptionResumeClassification::Exact,
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .with_import_admission(
+            SupportImportAdmissionReceipt::new(
+                SubscriptionSupportArtifactId("artifact:trust:wrong-import".into()),
+                SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
+                "import:admission",
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+        );
+        let admitted = admit_support_trust_request(
+            RawSupportTrustRequest::new(
+                SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
+                SubscriptionSupportRole::ExactContinuation,
+                SubscriptionSupportArtifactId("artifact:trust:phase-1".into()),
+                SupportTrustStrength::Exact,
+                SupportTrustProvenance::Imported,
+                SupportTrustRequestedUse::StoreLocalResume,
+                SupportTrustBatchCardinality::SingleSupportArtifact,
+                epochs(),
+                phase2_performance_plan(),
+                SupportTrustEvidenceBudget::new(4096, 9, 1).unwrap(),
+            ),
+            bundle,
+        )
+        .unwrap();
+        translate_support_trust_inputs(admitted)
+            .expect_err("import admission bound to a different artifact must reject")
+    }
+
+    fn phase7_family_role_mismatch_failure() -> SupportTrustFailure {
+        let role_mismatched_basis = basis_for(
+            "basis-bound-continuation-support",
+            SubscriptionSupportFamilyKind::BasisBoundContinuationSupport,
+            SubscriptionSupportRole::DegradedContinuation,
+            "artifact:trust:phase-1",
+        );
+        admit_support_trust_request(
+            raw_phase2_request(
+                SupportTrustStrength::Exact,
+                SupportTrustProvenance::NativePublished,
+            ),
+            phase2_receipts_for_basis(
+                role_mismatched_basis,
+                SubscriptionResumeClassification::Exact,
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+            ),
+        )
+        .expect_err("family-role receipt role drift must reject admission")
+    }
+
+    fn phase7_operational_drift_failure(
+        verdict: SubscriptionSupportOperationalVerdict,
+    ) -> SupportTrustFailure {
+        let admitted = admit_support_trust_request(
+            raw_phase2_request(
+                SupportTrustStrength::Exact,
+                SupportTrustProvenance::NativePublished,
+            ),
+            phase2_receipts(SubscriptionResumeClassification::Exact, verdict),
+        )
+        .unwrap();
+        let translated = translate_support_trust_inputs(admitted).unwrap();
+        check_support_trust_drift(
+            translated,
+            SupportTrustDriftScanPlan::foreground_support_identity(),
+        )
+        .expect_err("operational verdict drift must reject exact trust")
+    }
+
+    fn phase7_receipt_drift_failure(
+        basis_digest: &str,
+        compatibility_digest: &str,
+        portability_digest: &str,
+    ) -> SupportTrustFailure {
+        let artifact_id = SubscriptionSupportArtifactId("artifact:trust:phase-1".into());
+        let bundle = SupportTrustReceiptBundle::new(
+            SupportResumeClassificationReceipt::new(
+                artifact_id.clone(),
+                SubscriptionResumeClassification::Exact,
+                "resume:proof",
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+            SupportOperationalVerdictReceipt::new(
+                basis(),
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+                "operational:proof",
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+            family_role_receipt(),
+            SupportBasisReceipt::new(
+                artifact_id.clone(),
+                basis_digest,
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+            SupportCursorCheckpointReceipt::new(
+                artifact_id.clone(),
+                "cursor:trust:checkpoint:trust",
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+            SupportCompatibilityReceipt::new(
+                artifact_id.clone(),
+                compatibility_digest,
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+            SupportPortabilityReceipt::new(
+                artifact_id.clone(),
+                portability_digest,
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+        )
+        .with_retention(
+            SupportRetentionReceipt::new(
+                artifact_id,
+                "retention:trust",
+                SupportTrustReceiptStatus::Proven,
+            )
+            .unwrap(),
+        );
+        let admitted = admit_support_trust_request(
+            raw_phase2_request(
+                SupportTrustStrength::Exact,
+                SupportTrustProvenance::NativePublished,
+            ),
+            bundle,
+        )
+        .unwrap();
+        let translated = translate_support_trust_inputs(admitted).unwrap();
+        check_support_trust_drift(
+            translated,
+            SupportTrustDriftScanPlan::foreground_support_identity(),
+        )
+        .expect_err("receipt drift must reject exact trust")
+    }
+
+    fn phase7_coverage_drift_failure() -> SupportTrustFailure {
+        let admitted = admit_support_trust_request(
+            raw_phase2_request(
+                SupportTrustStrength::Exact,
+                SupportTrustProvenance::NativePublished,
+            ),
+            phase2_receipts(
+                SubscriptionResumeClassification::Exact,
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+            ),
+        )
+        .unwrap();
+        let translated = translate_support_trust_inputs(admitted).unwrap();
+        check_support_trust_drift(
+            translated,
+            SupportTrustDriftScanPlan::certification_scope(
+                SupportTrustPathClass::BatchCertificationPath,
+                9,
+                2,
+                false,
+            )
+            .unwrap(),
+        )
+        .expect_err("missing coverage must reject platform trust")
+    }
+
+    fn phase7_certification_missing_row_failure() -> SupportTrustFailure {
+        let classified = classify_phase2(
+            SupportTrustStrength::Exact,
+            SupportTrustProvenance::NativePublished,
+            SubscriptionResumeClassification::Exact,
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap();
+        let plan = SubscriptionSupportCertificationCoveragePlan::new(
+            SupportOperationalLedgerEpoch::new(7).unwrap(),
+            SupportCertificationEpoch::new(11).unwrap(),
+            vec![
+                exact_certification_requirement("row:exact-control"),
+                exact_certification_requirement("row:hostile-stale"),
+            ],
+        )
+        .unwrap();
+        SupportCertificationCoverageMatrix::from_rows(
+            &plan,
+            vec![exact_certification_row("row:exact-control", &classified)],
+        )
+        .expect_err("missing required certification row must reject coverage")
+    }
+
+    fn phase7_certification_duplicate_row_failure() -> SupportTrustFailure {
+        let classified = classify_phase2(
+            SupportTrustStrength::Exact,
+            SupportTrustProvenance::NativePublished,
+            SubscriptionResumeClassification::Exact,
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap();
+        SupportCertificationCoverageMatrix::from_rows(
+            &exact_certification_plan("row:exact-control"),
+            vec![
+                exact_certification_row("row:exact-control", &classified),
+                exact_certification_row("row:exact-control", &classified),
+            ],
+        )
+        .expect_err("duplicate certification rows must reject coverage")
+    }
+
+    fn phase7_certification_mislabeled_row_failure() -> SupportTrustFailure {
+        let classified = classify_phase2(
+            SupportTrustStrength::Exact,
+            SupportTrustProvenance::NativePublished,
+            SubscriptionResumeClassification::Exact,
+            SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+        )
+        .unwrap();
+        let plan = SubscriptionSupportCertificationCoveragePlan::new(
+            SupportOperationalLedgerEpoch::new(7).unwrap(),
+            SupportCertificationEpoch::new(11).unwrap(),
+            vec![SupportCertificationRowRequirement::new(
+                "row:exact-control",
+                SubscriptionSupportFamilyId::new("basis-bound-continuation-support").unwrap(),
+                SubscriptionSupportFamilyKind::BasisBoundContinuationSupport,
+                SubscriptionSupportRole::ExactContinuation,
+                SupportTrustClass::DegradedSupportTrusted,
+                SupportTrustStrength::Degraded,
+                SupportTrustProvenance::NativePublished,
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+                SubscriptionResumeClassification::Exact,
+                None,
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        SupportCertificationCoverageMatrix::from_rows(
+            &plan,
+            vec![exact_certification_row("row:exact-control", &classified)],
+        )
+        .expect_err("mislabeled certification row must reject coverage")
+    }
+
+    fn phase7_certified_transformed_exact_report(
+        provenance: SupportTrustProvenance,
+        row_id: &str,
+    ) -> CertifiedSupportTrustReport {
+        let translation = exact_translation();
+        let source_basis = translation.basis().clone();
+        let family_id = source_basis.family_id().clone();
+        let support_role = source_basis.support_role();
+        let witness = ExactSupportTrustWitness::from_equivalent_operational_basis(
+            translation,
+            provenance,
+            SupportTrustFreshnessWitness::new(epochs()),
+            SupportTrustEquivalenceWitness::new(
+                source_basis,
+                SubscriptionSupportFamilyId::new("phase7:transformed-target").unwrap(),
+                SubscriptionSupportOperationalVerdict::ExactResumePreserved,
+                format!("equivalence:phase7:{provenance:?}"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let operational = OperationalSupportTrustReport::from_exact_witness(witness);
+        let stamp = SupportTrustCertificationStamp::new(
+            SupportCertificationCorpusVersion::new("corpus:13.3").unwrap(),
+            SupportCertificationEpoch::new(11).unwrap(),
+            "suite:13.3-phase-7",
+            family_id,
+            support_role,
+            SupportTrustStrength::Exact,
+            provenance,
+            row_id,
+            "bundle:digest:phase7:lane",
+        )
+        .unwrap();
+        CertifiedSupportTrustReport::from_operational_report(operational, stamp).unwrap()
     }
 
     fn exact_equivalence_contract(
@@ -1058,13 +1523,16 @@ mod tests {
     #[test]
     fn phase7_named_subscription_support_accuracy_suite_emits_required_outputs() {
         let (evidence_bundle, generic, domain, handoff) = phase7_suite_artifacts();
-        let suite = SubscriptionSupportAccuracyCertificationSuite::from_phase_artifacts(
-            &evidence_bundle,
-            &generic,
-            &domain,
-            &handoff,
-        )
-        .unwrap();
+        let lane_evidence = phase7_lane_evidence();
+        let suite =
+            SubscriptionSupportAccuracyCertificationSuite::from_phase_artifacts_and_lane_evidence(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &handoff,
+                &lane_evidence,
+            )
+            .unwrap();
 
         assert_eq!(
             suite.suite_name(),
@@ -1102,9 +1570,235 @@ mod tests {
     }
 
     #[test]
+    fn phase7_production_runner_emits_performance_access_and_persistence_closeout() {
+        let (evidence_bundle, generic, domain, handoff) = phase7_suite_artifacts();
+        let lane_evidence = phase7_lane_evidence();
+        let run = SubscriptionSupportAccuracyCertificationRunner::production()
+            .certify(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &handoff,
+                &lane_evidence,
+            )
+            .expect("production runner must emit the named suite with closeout proof");
+
+        assert_eq!(
+            run.suite().rows().len(),
+            SubscriptionSupportAccuracyCertificationRowKind::required().len()
+        );
+        assert_eq!(run.performance_closeout().certification_row_count(), 4);
+        assert_eq!(
+            run.performance_closeout().certification_index_probe_count(),
+            4
+        );
+        assert_eq!(
+            run.performance_closeout()
+                .certification_receipt_reuse_count(),
+            3
+        );
+        assert_eq!(
+            run.performance_closeout().certification_allocation_count(),
+            1
+        );
+        assert_eq!(run.performance_closeout().generic_row_count(), 1);
+        assert_eq!(run.performance_closeout().generic_index_probe_count(), 1);
+        assert_eq!(run.performance_closeout().generic_receipt_reuse_count(), 1);
+        assert_eq!(run.performance_closeout().generic_allocation_count(), 1);
+        assert_eq!(run.performance_closeout().domain_scenario_row_count(), 5);
+        assert_eq!(run.performance_closeout().domain_index_probe_count(), 5);
+        assert_eq!(run.performance_closeout().domain_receipt_reuse_count(), 4);
+        assert_eq!(run.performance_closeout().domain_allocation_count(), 1);
+        assert_eq!(run.performance_closeout().global_scan_debt_count(), 0);
+        assert_eq!(
+            run.access_closeout().certified_semantic_domain_row_count(),
+            3
+        );
+        assert_eq!(
+            run.access_closeout().explicit_advanced_family_debt_count(),
+            2
+        );
+        assert!(run.access_closeout().handoff_semantic_trust_closed());
+        assert!(run.access_closeout().roadmap2_physical_debt_explicit());
+        assert!(run.access_closeout().milestone15_extension_debt_explicit());
+        assert_eq!(
+            run.persistence_posture(),
+            SubscriptionSupportAccuracyPersistencePosture::InMemoryCertificationOnly
+        );
+        assert!(!run.run_digest().is_empty());
+    }
+
+    #[test]
+    fn phase7_runner_rejects_handoff_not_bound_to_phase_artifacts() {
+        let (evidence_bundle, generic, domain, _) = phase7_suite_artifacts();
+        let mismatched_generic = generic_support_certification_report_for(
+            "generic:subscription-support-trust:mismatched",
+            certified_first_ship_support_trust(),
+        );
+        let mismatched_handoff =
+            SupportCertificationHandoffReport::from_generic_and_domain_certification(
+                &mismatched_generic,
+                &domain,
+            )
+            .unwrap();
+        let error = SubscriptionSupportAccuracyCertificationRunner::production()
+            .certify(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &mismatched_handoff,
+                &phase7_lane_evidence(),
+            )
+            .expect_err("runner must reject a handoff digest from a different generic artifact");
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_runner_rejects_certification_counter_regime_drift() {
+        let drifted_scope = SupportCertificationBatchScope::new(
+            SupportCertificationBatchScopeKind::CertificationScopeLocal,
+            SupportTrustDensityClass::CertificationScopeLocal,
+            SupportTrustPathClass::BatchCertificationPath,
+            SupportTrustAllocationScope::BatchCertification,
+            4,
+            5,
+            3,
+            1,
+        )
+        .unwrap();
+        let evidence_bundle = SupportCertificationEvidenceBundle::new(
+            "run:13.3:first-ship:wrong-index-probes",
+            first_ship_certification_matrix(),
+            drifted_scope,
+            SupportCertificationCounterSnapshot::new(4, 4, 3, 5, 1, 0, 0),
+        )
+        .unwrap();
+        let generic = generic_support_certification_report();
+        let domain = SupportDomainCertificationBundle::new(
+            first_ship_domain_rows(&generic),
+            first_ship_domain_batch_plan(),
+            SupportDomainCertificationCounterSnapshot::new(5, 3, 2, 5, 4, 1, 2),
+        )
+        .unwrap();
+        let handoff = SupportCertificationHandoffReport::from_generic_and_domain_certification(
+            &generic, &domain,
+        )
+        .unwrap();
+        let error = SubscriptionSupportAccuracyCertificationRunner::production()
+            .certify(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &handoff,
+                &phase7_lane_evidence(),
+            )
+            .expect_err("runner closeout must reject a valid bundle whose counter regime drifted");
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_runner_rejects_generic_performance_without_physical_debt_counter() {
+        let evidence_bundle = first_ship_certification_bundle();
+        let certified = certified_first_ship_support_trust();
+        let generic = SupportGenericCertificationReport::from_certified_support_trust(
+            "generic:subscription-support-trust:missing-physical-debt-counter",
+            certified.report().clone(),
+            certified.coverage_witness(),
+            SupportGenericCertificationCounterSnapshot::new(1, 1, 1, 1, 1, 0).unwrap(),
+        )
+        .unwrap();
+        let domain = SupportDomainCertificationBundle::new(
+            first_ship_domain_rows(&generic),
+            first_ship_domain_batch_plan(),
+            SupportDomainCertificationCounterSnapshot::new(5, 3, 2, 5, 4, 1, 2),
+        )
+        .unwrap();
+        let handoff = SupportCertificationHandoffReport::from_generic_and_domain_certification(
+            &generic, &domain,
+        )
+        .unwrap();
+        let error = SubscriptionSupportAccuracyCertificationRunner::production()
+            .certify(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &handoff,
+                &phase7_lane_evidence(),
+            )
+            .expect_err(
+                "runner closeout must reject generic performance counters without physical debt",
+            );
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_runner_rejects_domain_counter_regime_drift() {
+        let evidence_bundle = first_ship_certification_bundle();
+        let generic = generic_support_certification_report();
+        let drifted_scope = SupportCertificationBatchScope::new(
+            SupportCertificationBatchScopeKind::DomainScenarioLocal,
+            SupportTrustDensityClass::DomainScenarioLocal,
+            SupportTrustPathClass::DomainCertificationPath,
+            SupportTrustAllocationScope::DomainCertification,
+            5,
+            6,
+            4,
+            1,
+        )
+        .unwrap();
+        let drifted_domain_plan =
+            SupportDomainCertificationBatchPlan::new(5, 5, drifted_scope, 5).unwrap();
+        let domain = SupportDomainCertificationBundle::new(
+            first_ship_domain_rows(&generic),
+            drifted_domain_plan,
+            SupportDomainCertificationCounterSnapshot::new(5, 3, 2, 6, 4, 1, 2),
+        )
+        .unwrap();
+        let handoff = SupportCertificationHandoffReport::from_generic_and_domain_certification(
+            &generic, &domain,
+        )
+        .unwrap();
+        let error = SubscriptionSupportAccuracyCertificationRunner::production()
+            .certify(
+                &evidence_bundle,
+                &generic,
+                &domain,
+                &handoff,
+                &phase7_lane_evidence(),
+            )
+            .expect_err(
+                "runner closeout must reject a valid domain bundle whose exact counter regime drifted",
+            );
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
     fn phase7_named_suite_rejects_missing_required_row() {
         let (evidence_bundle, generic, domain, handoff) = phase7_suite_artifacts();
-        let mut rows = phase7_required_suite_rows(&evidence_bundle, &generic, &domain, &handoff);
+        let lane_evidence = phase7_lane_evidence();
+        let mut rows = phase7_required_suite_rows(
+            &evidence_bundle,
+            &generic,
+            &domain,
+            &handoff,
+            &lane_evidence,
+        );
         rows.retain(|row| {
             row.row_kind()
                 != SubscriptionSupportAccuracyCertificationRowKind::DomainAiDegradedSupportTrust
@@ -1116,6 +1810,7 @@ mod tests {
             &generic,
             &domain,
             &handoff,
+            &lane_evidence,
         )
         .expect_err("missing named Phase 7 row must reject suite completion");
 
@@ -1128,7 +1823,14 @@ mod tests {
     #[test]
     fn phase7_named_suite_rejects_duplicate_required_row() {
         let (evidence_bundle, generic, domain, handoff) = phase7_suite_artifacts();
-        let mut rows = phase7_required_suite_rows(&evidence_bundle, &generic, &domain, &handoff);
+        let lane_evidence = phase7_lane_evidence();
+        let mut rows = phase7_required_suite_rows(
+            &evidence_bundle,
+            &generic,
+            &domain,
+            &handoff,
+            &lane_evidence,
+        );
         rows.push(
             SubscriptionSupportAccuracyCertificationRow::new(
                 SubscriptionSupportAccuracyCertificationRowKind::ExactSupportTrustedControl,
@@ -1151,6 +1853,7 @@ mod tests {
             &generic,
             &domain,
             &handoff,
+            &lane_evidence,
         )
         .expect_err("duplicate named Phase 7 row must reject suite completion");
 
@@ -1163,7 +1866,14 @@ mod tests {
     #[test]
     fn phase7_named_suite_rejects_tampered_artifact_row_evidence() {
         let (evidence_bundle, generic, domain, handoff) = phase7_suite_artifacts();
-        let mut rows = phase7_required_suite_rows(&evidence_bundle, &generic, &domain, &handoff);
+        let lane_evidence = phase7_lane_evidence();
+        let mut rows = phase7_required_suite_rows(
+            &evidence_bundle,
+            &generic,
+            &domain,
+            &handoff,
+            &lane_evidence,
+        );
         let exact = rows
             .iter_mut()
             .find(|row| {
@@ -1185,6 +1895,7 @@ mod tests {
             &generic,
             &domain,
             &handoff,
+            &lane_evidence,
         )
         .expect_err("suite row evidence must be recomputed from supplied artifacts");
 
@@ -1218,6 +1929,140 @@ mod tests {
         assert_eq!(
             global_scan.kind(),
             SupportTrustFailureKind::SupportTrustForbiddenExactOverclaim
+        );
+    }
+
+    #[test]
+    fn phase7_named_suite_rejects_missing_hostile_lane_evidence() {
+        let mut lanes = phase7_lane_evidence().lanes().to_vec();
+        lanes.retain(|lane| {
+            lane.row_kind()
+                != SubscriptionSupportAccuracyCertificationRowKind::CompatibilityDriftRejectsExactTrust
+        });
+        let error = SubscriptionSupportAccuracyLaneEvidenceSet::new(lanes)
+            .expect_err("every hostile named suite row requires explicit lane evidence");
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_named_suite_rejects_misclassified_hostile_lane_outcome() {
+        let wrong_failure = phase7_expected_lane_failure(
+            SubscriptionSupportAccuracyCertificationRowKind::ImportedSupportMissingBasisNotResumable,
+        );
+        let error = SubscriptionSupportAccuracyLaneEvidence::typed_rejection_from_failure(
+            SubscriptionSupportAccuracyCertificationRowKind::CompatibilityDriftRejectsExactTrust,
+            &wrong_failure,
+        )
+        .expect_err("compatibility drift lane must carry compatibility mismatch evidence");
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_certified_pass_lane_derives_from_matching_certified_report() {
+        let replicated = phase7_certified_transformed_exact_report(
+            SupportTrustProvenance::Replicated,
+            "row:phase7:replicated-exact",
+        );
+        let lane = SubscriptionSupportAccuracyLaneEvidence::certified_pass_from_report(
+            SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence,
+            &replicated,
+            "phase7:diagnostics:replicated",
+            "phase7:counter:replicated",
+        )
+        .expect("replicated exact suite lane must derive from certified replicated exact report");
+
+        assert_eq!(
+            lane.row_kind(),
+            SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence
+        );
+        assert!(!lane.evidence_digest().is_empty());
+    }
+
+    #[test]
+    fn phase7_certified_pass_lane_rejects_report_posture_drift() {
+        let replicated = phase7_certified_transformed_exact_report(
+            SupportTrustProvenance::Replicated,
+            "row:phase7:replicated-exact",
+        );
+        let error = SubscriptionSupportAccuracyLaneEvidence::certified_pass_from_report(
+            SubscriptionSupportAccuracyCertificationRowKind::MigratedSupportExactEquivalence,
+            &replicated,
+            "phase7:diagnostics:wrong-posture",
+            "phase7:counter:wrong-posture",
+        )
+        .expect_err("migrated exact suite lane cannot consume replicated exact certification");
+
+        assert_eq!(
+            error.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_counter_pass_lanes_derive_from_zero_debt_evidence_bundle() {
+        let (evidence_bundle, _, _, _) = phase7_suite_artifacts();
+        let overclaim =
+            SubscriptionSupportAccuracyLaneEvidence::certified_counter_pass_from_evidence_bundle(
+                SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero,
+                &evidence_bundle,
+            )
+            .expect("zero exact-overclaim counter lane must derive from evidence bundle counters");
+        let global_scan =
+            SubscriptionSupportAccuracyLaneEvidence::certified_counter_pass_from_evidence_bundle(
+                SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden,
+                &evidence_bundle,
+            )
+            .expect("zero global-scan counter lane must derive from evidence bundle counters");
+        let wrong_row =
+            SubscriptionSupportAccuracyLaneEvidence::certified_counter_pass_from_evidence_bundle(
+                SubscriptionSupportAccuracyCertificationRowKind::ReplicatedSupportExactEquivalence,
+                &evidence_bundle,
+            )
+            .expect_err("non-counter suite rows cannot be certified from bundle counters");
+
+        assert_eq!(
+            overclaim.row_kind(),
+            SubscriptionSupportAccuracyCertificationRowKind::ForbiddenExactOverclaimZero
+        );
+        assert_eq!(
+            global_scan.row_kind(),
+            SubscriptionSupportAccuracyCertificationRowKind::GlobalScanDebtForbidden
+        );
+        assert_eq!(
+            wrong_row.kind(),
+            SupportTrustFailureKind::SupportTrustCoverageMissing
+        );
+    }
+
+    #[test]
+    fn phase7_rejection_lane_digest_is_bound_to_failure_evidence() {
+        let catalog_failure =
+            SupportCatalogEpoch::new(0).expect_err("zero catalog epoch must reject");
+        let ledger_failure = SupportOperationalLedgerEpoch::new(0)
+            .expect_err("zero operational ledger epoch must reject");
+
+        let catalog_lane = SubscriptionSupportAccuracyLaneEvidence::typed_rejection_from_failure(
+            SubscriptionSupportAccuracyCertificationRowKind::StaleSupportRejected,
+            &catalog_failure,
+        )
+        .unwrap();
+        let ledger_lane = SubscriptionSupportAccuracyLaneEvidence::typed_rejection_from_failure(
+            SubscriptionSupportAccuracyCertificationRowKind::StaleSupportRejected,
+            &ledger_failure,
+        )
+        .unwrap();
+
+        assert_ne!(
+            catalog_lane.evidence_digest(),
+            ledger_lane.evidence_digest()
         );
     }
 

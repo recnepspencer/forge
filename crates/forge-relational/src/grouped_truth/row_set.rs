@@ -121,10 +121,12 @@ pub fn materialize_relational_authoritative_row_set(
 
     let rows = rows
         .into_iter()
-        .map(|(row_identity, fields)| RelationalAuthoritativeRowArtifact {
-            row_identity: RelationalRowIdentity::new(row_identity),
-            fields,
-        })
+        .map(
+            |(row_identity, fields)| RelationalAuthoritativeRowArtifact {
+                row_identity: RelationalRowIdentity::new(row_identity),
+                fields,
+            },
+        )
         .collect::<Vec<_>>();
 
     let mut digest_parts = vec![format!("snapshot:{}", result.snapshot_identity().as_str())];
@@ -153,10 +155,11 @@ fn decode_record_value(
     if let Ok(value) = serde_json::from_slice::<Value>(payload) {
         return Ok(value);
     }
-    let text =
-        std::str::from_utf8(payload).map_err(|_| RelationalGroupedTruthError::PayloadDecodeFailure {
+    let text = std::str::from_utf8(payload).map_err(|_| {
+        RelationalGroupedTruthError::PayloadDecodeFailure {
             request_key: request_key.to_string(),
-        })?;
+        }
+    })?;
     Ok(Value::String(text.to_string()))
 }
 
@@ -195,6 +198,8 @@ mod tests {
 
         assert_eq!(row_set.rows().len(), 2);
         assert_eq!(row_set.rows()[0].row_identity().as_str(), "entity-1");
-        assert!(row_set.rows()[0].fields().contains_key(&super::RelationalFieldBindingKey::new("identity.id")));
+        assert!(row_set.rows()[0]
+            .fields()
+            .contains_key(&super::RelationalFieldBindingKey::new("identity.id")));
     }
 }

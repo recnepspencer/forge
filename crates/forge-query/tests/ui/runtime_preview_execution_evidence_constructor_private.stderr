@@ -1,0 +1,21 @@
+error[E0451]: fields `label`, `kind`, `handle_name`, `source_lane`, `preview_lane`, `commit_identity`, `aspect_paths` and `execution_digest` of struct `ForgeQueryPreviewExecutionEvidence` are private
+  --> tests/ui/runtime_preview_execution_evidence_constructor_private.rs:7:9
+   |
+ 6 |     let _forged = ForgeQueryPreviewExecutionEvidence {
+   |                   ---------------------------------- in this type
+ 7 |         label: "preview".to_string(),
+   |         ^^^^^ private field
+ 8 |         kind: ForgeQueryPreviewExecutionKind::LivePatch,
+   |         ^^^^ private field
+ 9 |         handle_name: "handle".to_string(),
+   |         ^^^^^^^^^^^ private field
+10 |         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+11 |         preview_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^^ private field
+12 |         commit_identity: "commit".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         aspect_paths: Vec::new(),
+   |         ^^^^^^^^^^^^ private field
+14 |         execution_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field

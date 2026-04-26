@@ -32,14 +32,23 @@ pub(in crate::runtime) fn admit_effect_declaration(
         .effect_policy()
         .admit(declaration.action(), declaration.target_lane())
         .map_err(ForgeQueryRuntimeError::EffectPolicyDenied)?;
-    if declaration.action() != ForgeQueryEffectAction::Deliver
-        || declaration.target_lane() != ForgeQueryAuthorityLane::EffectDeliveryState
-    {
-        return Err(effect_declaration_error(
-            declaration.name(),
-            "authority-admission",
-            "batch 5A effect declarations may only deliver into effect delivery state; truth writes require intent authority",
-        ));
+    match (declaration.action(), declaration.target_lane()) {
+        (ForgeQueryEffectAction::Deliver, ForgeQueryAuthorityLane::EffectDeliveryState) => {}
+        (ForgeQueryEffectAction::WriteIntent, ForgeQueryAuthorityLane::PendingWriteIntent) => {}
+        (ForgeQueryEffectAction::WriteIntent, _) => {
+            return Err(effect_declaration_error(
+                declaration.name(),
+                "write-intent-admission",
+                "effect-triggered writes must lower to pending write intent authority before any commit",
+            ));
+        }
+        _ => {
+            return Err(effect_declaration_error(
+                declaration.name(),
+                "authority-admission",
+                "effect declarations may only deliver into effect delivery state or lower into pending write intent authority",
+            ));
+        }
     }
     if declaration.trigger().aspects().is_empty() {
         return Err(effect_declaration_error(
@@ -102,6 +111,7 @@ fn effect_declaration_error(
 pub(in crate::runtime) struct ForgeQueryEffectRouteResult {
     considered_effect_count: usize,
     delivered_effect_count: usize,
+    pending_write_intent_count: usize,
     suppressed_effect_count: usize,
     meaningful_suppression_count: usize,
     expression_failure_count: usize,
@@ -112,6 +122,9 @@ impl ForgeQueryEffectRouteResult {
     }
     pub(in crate::runtime) fn delivered_effect_count(&self) -> usize {
         self.delivered_effect_count
+    }
+    pub(in crate::runtime) fn pending_write_intent_count(&self) -> usize {
+        self.pending_write_intent_count
     }
     pub(in crate::runtime) fn suppressed_effect_count(&self) -> usize {
         self.suppressed_effect_count
@@ -176,19 +189,46 @@ pub(in crate::runtime) fn route_effect_deliveries(
             continue;
         };
         match evaluate_condition(effect.declaration.condition(), &trigger.aspect_paths) {
-            EffectConditionOutcome::Delivered(payload) => {
-                let delivery = ForgeQueryEffectDelivery::delivered(
-                    &effect.declaration,
-                    &receipt.commit_identity,
-                    trigger.source,
-                    trigger.source_kind,
-                    trigger.aspect_paths,
-                    payload,
-                );
-                effect.deliveries.push(delivery);
-                effect.counters.delivered += 1;
-                result.delivered_effect_count += 1;
-            }
+            EffectConditionOutcome::Delivered(payload) => match effect.declaration.action() {
+                ForgeQueryEffectAction::Deliver => {
+                    let delivery = ForgeQueryEffectDelivery::delivered(
+                        &effect.declaration,
+                        &receipt.commit_identity,
+                        trigger.source,
+                        trigger.source_kind,
+                        trigger.aspect_paths,
+                        payload,
+                    );
+                    effect.deliveries.push(delivery);
+                    effect.counters.delivered += 1;
+                    result.delivered_effect_count += 1;
+                }
+                ForgeQueryEffectAction::WriteIntent => {
+                    let delivery = ForgeQueryEffectDelivery::pending_write_intent(
+                        &effect.declaration,
+                        &receipt.commit_identity,
+                        trigger.source,
+                        trigger.source_kind,
+                        trigger.aspect_paths,
+                        payload,
+                    );
+                    effect.deliveries.push(delivery);
+                    effect.counters.pending_write_intents += 1;
+                    result.pending_write_intent_count += 1;
+                }
+                ForgeQueryEffectAction::Derive => {
+                    let delivery = ForgeQueryEffectDelivery::suppressed(
+                            &effect.declaration,
+                            &receipt.commit_identity,
+                            trigger.source,
+                            trigger.source_kind,
+                            "derive-only effects are admitted by policy but not executable as runtime deliveries",
+                        );
+                    effect.deliveries.push(delivery);
+                    effect.counters.suppressed += 1;
+                    result.suppressed_effect_count += 1;
+                }
+            },
             EffectConditionOutcome::Suppressed(reason) => {
                 let delivery = ForgeQueryEffectDelivery::suppressed(
                     &effect.declaration,

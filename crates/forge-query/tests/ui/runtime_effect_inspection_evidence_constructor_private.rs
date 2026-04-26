@@ -21,5 +21,7 @@ fn main() {
         suppression_policy: ForgeQueryEffectSuppressionPolicy::None,
         counters: ForgeQueryEffectCounters::default(),
         pending_delivery_count: 0,
+        pending_write_intent_count: 0,
+        latest_phase_evidence: None,
     };
 }
