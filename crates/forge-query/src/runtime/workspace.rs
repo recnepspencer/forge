@@ -1,0 +1,225 @@
+use serde_json::Value;
+
+use super::{
+    DeclarativeLiveQueryRequest, ForgeQueryBranchOptions, ForgeQueryBranchSession,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryEffectBuilder, ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt,
+    ForgeQueryHandleContract, ForgeQueryInspection, ForgeQueryInspectionTarget,
+    ForgeQueryInstalledProgram, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
+    ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryPatchBatch, ForgeQueryPreviewOptions,
+    ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimeStateSnapshot,
+    ForgeQueryRuntimeStateTarget, ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt, QuerySchemaView,
+};
+use crate::program::{ForgeQueryDerivedView, ForgeQueryProgram};
+
+pub struct ForgeQueryWorkspace {
+    name: String,
+    runtime: ForgeQueryRuntime,
+}
+
+impl ForgeQueryWorkspace {
+    pub(super) fn new(
+        name: impl Into<String>,
+        runtime: ForgeQueryRuntime,
+    ) -> Result<Self, ForgeQueryRuntimeError> {
+        let name = name.into();
+        if name.trim().is_empty() {
+            return Err(ForgeQueryRuntimeError::Workspace(
+                crate::memory_workspace::ForgeQueryWorkspaceError::new(
+                    "workspace name may not be empty",
+                ),
+            ));
+        }
+        Ok(Self { name, runtime })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn into_runtime(self) -> ForgeQueryRuntime {
+        self.runtime
+    }
+
+    pub fn public_api_contract(&self) -> ForgeQueryRuntimePublicApiContract {
+        self.runtime.public_api_contract()
+    }
+
+    pub fn public_handle_contract(&self) -> ForgeQueryHandleContract {
+        self.runtime.public_handle_contract()
+    }
+
+    pub fn state<T>(
+        &self,
+        target: T,
+    ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError>
+    where
+        T: ForgeQueryRuntimeStateTarget,
+    {
+        target.into_state_snapshot(&self.runtime)
+    }
+
+    pub fn live_view<T>(
+        &mut self,
+        name: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryLiveViewBuilder) -> ForgeQueryLiveViewBuilder,
+    ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
+        let name = name.into();
+        let (request, schema_view) = declaration(ForgeQueryLiveViewBuilder::new(&name))
+            .build()?
+            .into_parts();
+        self.runtime.declare_live_view(name, request, schema_view)
+    }
+
+    pub fn live_view_request<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+    ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
+        let declaration =
+            ForgeQueryWorkspaceLiveViewDeclaration::from_request(request, schema_view);
+        let (request, schema_view) = declaration.into_parts();
+        self.runtime.declare_live_view(name, request, schema_view)
+    }
+
+    pub fn computed<T>(
+        &mut self,
+        name: impl Into<String>,
+        view: impl FnOnce(ForgeQueryComputedBuilder) -> ForgeQueryComputedBuilder,
+        maintainer: impl ForgeQueryDerivedViewMaintainer + 'static,
+    ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
+        let name = name.into();
+        let view = view(ForgeQueryComputedBuilder::new(&name)).build()?;
+        self.runtime
+            .declare_maintained_derived_view(view, maintainer)
+    }
+
+    pub fn computed_view<T>(
+        &mut self,
+        view: ForgeQueryDerivedView,
+        maintainer: impl ForgeQueryDerivedViewMaintainer + 'static,
+    ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
+        self.runtime
+            .declare_maintained_derived_view(view, maintainer)
+    }
+
+    pub fn computed_definition(
+        &mut self,
+        name: impl Into<String>,
+        view: impl FnOnce(ForgeQueryComputedBuilder) -> ForgeQueryComputedBuilder,
+    ) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
+        let name = name.into();
+        let view = view(ForgeQueryComputedBuilder::new(&name)).build()?;
+        self.runtime.declare_derived_view(view)
+    }
+
+    pub fn effect<T>(
+        &mut self,
+        name: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryEffectBuilder) -> ForgeQueryEffectBuilder,
+    ) -> Result<ForgeQueryEffectHandle<T>, ForgeQueryRuntimeError> {
+        let name = name.into();
+        let declaration = declaration(ForgeQueryEffectBuilder::new(&name)).build()?;
+        self.runtime.declare_effect(declaration)
+    }
+
+    pub fn effect_declaration<T>(
+        &mut self,
+        declaration: super::ForgeQueryEffectDeclaration,
+    ) -> Result<ForgeQueryEffectHandle<T>, ForgeQueryRuntimeError> {
+        self.runtime.declare_effect(declaration)
+    }
+
+    pub fn preview<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        self.runtime.preview(label)
+    }
+
+    pub fn preview_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryPreviewOptions,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        self.runtime.preview_with_options(label, options)
+    }
+
+    pub fn branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.runtime.branch(label)
+    }
+
+    pub fn branch_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryBranchOptions,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.runtime.branch_with_options(label, options)
+    }
+
+    pub fn intent(
+        &mut self,
+        declaration: ForgeQueryIntentDeclaration,
+    ) -> Result<ForgeQueryIntentReceipt, ForgeQueryRuntimeError> {
+        self.runtime.execute_intent(declaration)
+    }
+
+    pub fn next_effect_intent<T>(
+        &mut self,
+        effect: &ForgeQueryEffectHandle<T>,
+        strategy_version: impl Into<String>,
+        input_contract: impl Into<String>,
+    ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError> {
+        self.runtime
+            .execute_next_effect_write_intent(effect, strategy_version, input_contract)
+    }
+
+    pub fn write(
+        &mut self,
+        command: ForgeQueryWriteCommand,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        self.runtime.write(command)
+    }
+
+    pub fn read<T>(
+        &self,
+        view: &ForgeQueryLiveView<T>,
+    ) -> Vec<crate::memory_workspace::ForgeQueryEntity> {
+        self.runtime.read_live(view)
+    }
+
+    pub fn observe<T>(&mut self, view: &ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
+        self.runtime.drain_patches(view)
+    }
+
+    pub fn materialize<T>(&self, view: &ForgeQueryDerivedViewHandle<T>) -> Vec<Value> {
+        self.runtime.read_derived(view)
+    }
+
+    pub fn observe_computed(&mut self, view_name: &str) -> ForgeQueryPatchBatch {
+        self.runtime.drain_derived_patches(view_name)
+    }
+
+    pub fn install_program(
+        &mut self,
+        program: ForgeQueryProgram,
+    ) -> Result<ForgeQueryInstalledProgram, ForgeQueryRuntimeError> {
+        self.runtime.install_program(program)
+    }
+
+    pub fn inspect<'a, T>(
+        &'a self,
+        target: T,
+    ) -> Result<ForgeQueryInspection, ForgeQueryRuntimeError>
+    where
+        T: Into<ForgeQueryInspectionTarget<'a>>,
+    {
+        self.runtime.inspect(target)
+    }
+}

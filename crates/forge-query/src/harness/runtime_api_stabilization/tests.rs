@@ -50,9 +50,61 @@ fn runtime_api_stabilization_rows_have_required_outputs_and_meaningful_assertion
                 lane.meaningful_assertion_count >= 8,
                 "golden DX rows must assert proof artifacts, not only compilation"
             );
+            assert!(
+                lane.unsupported_neighbor_denial_count >= 1,
+                "golden DX rows must prove future-neighbor denials"
+            );
+            assert!(
+                lane.delivery_residue_count >= 1,
+                "golden DX rows must prove delivery or pending-intent residue"
+            );
+            assert!(
+                lane.counter_snapshot.contains("denials=")
+                    && lane.counter_snapshot.contains("residue="),
+                "runtime API counter snapshot must include executable transcript proof counters"
+            );
+            assert!(
+                lane.counter_snapshot.contains("preferred_names=")
+                    && lane.counter_snapshot.contains("compat_names="),
+                "runtime API counter snapshot must include canonical naming contract counters"
+            );
+            assert!(!lane.public_api_naming_contract_digest.is_empty());
+            assert_ne!(
+                lane.public_api_naming_contract_digest, lane.public_api_surface_digest,
+                "naming contract must be distinct from backend family support posture"
+            );
             assert!(lane.stable_family_count >= 7);
             assert!(lane.deferred_family_count >= 5);
         }
+    }
+}
+
+#[test]
+fn runtime_api_stabilization_golden_transcripts_are_executable_and_distinct() {
+    let matrix = RuntimeApiStabilizationAdapter::runtime_api_golden_dx_and_async_safe_facade_test();
+    let mut digests = matrix
+        .rows
+        .iter()
+        .map(|row| {
+            assert!(
+                row.control_lane.executable_transcript_digest
+                    != row.control_lane.golden_transcript_digest,
+                "row '{}' should carry runtime-executed evidence beyond label evidence",
+                row.row_name
+            );
+            (
+                row.row_name,
+                row.control_lane.executable_transcript_digest.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    digests.sort_by(|left, right| left.1.cmp(&right.1));
+    for pair in digests.windows(2) {
+        assert_ne!(
+            pair[0].1, pair[1].1,
+            "rows '{}' and '{}' should not collapse to the same executable transcript digest",
+            pair[0].0, pair[1].0
+        );
     }
 }
 

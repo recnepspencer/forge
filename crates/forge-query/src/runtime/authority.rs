@@ -8,6 +8,8 @@ pub enum ForgeQueryAuthorityLane {
     EffectDeliveryState,
     PendingWriteIntent,
     BridgeExternalState,
+    TemporalExecutionState,
+    AsyncResourceState,
 }
 
 impl ForgeQueryAuthorityLane {
@@ -20,6 +22,8 @@ impl ForgeQueryAuthorityLane {
             Self::EffectDeliveryState => "effect-delivery-state",
             Self::PendingWriteIntent => "pending-write-intent",
             Self::BridgeExternalState => "bridge-external-state",
+            Self::TemporalExecutionState => "temporal-execution-state",
+            Self::AsyncResourceState => "async-resource-state",
         }
     }
 }

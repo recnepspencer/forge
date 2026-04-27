@@ -1,0 +1,39 @@
+error[E0451]: fields `family`, `authority_lanes`, `basis_lanes`, `support_status`, `inspection_sections`, `retained_artifact_required`, `deferred_future_posture` and `contract_digest` of struct `ForgeQueryHandleContractRow` are private
+  --> tests/ui/runtime_handle_contract_private_fields.rs:7:9
+   |
+ 6 |     let _row = ForgeQueryHandleContractRow {
+   |                --------------------------- in this type
+ 7 |         family: ForgeQueryHandleContractFamily::LiveView,
+   |         ^^^^^^ private field
+ 8 |         authority_lanes: Vec::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 9 |         basis_lanes: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+10 |         support_status: forge_query::facade::ForgeQueryRuntimeFamilySupportStatus::Supported,
+   |         ^^^^^^^^^^^^^^ private field
+11 |         inspection_sections: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+12 |         retained_artifact_required: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         deferred_future_posture: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `rows`, `support_contract_digest`, `inspectable_family_count`, `retained_artifact_family_count`, `deferred_future_family_count` and `contract_digest` of struct `ForgeQueryHandleContract` are private
+  --> tests/ui/runtime_handle_contract_private_fields.rs:17:9
+   |
+16 |     let _contract = ForgeQueryHandleContract {
+   |                     ------------------------ in this type
+17 |         rows: Vec::new(),
+   |         ^^^^ private field
+18 |         support_contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         inspectable_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         retained_artifact_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         deferred_future_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

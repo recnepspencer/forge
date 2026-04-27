@@ -42,13 +42,17 @@ mod computed;
 mod delivery;
 mod effect;
 mod error;
+mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
 mod preview;
 mod public_api;
+mod state;
 mod support;
 mod surface;
+mod workspace;
+mod workspace_declaration;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
     "runtime-live-subscription-family:scratch_buffer_only:canonical=64:relationship=64:policy=64:projection=512:tenant=1";
@@ -104,6 +108,9 @@ pub use effect::{
     ForgeQueryEffectTriggerSourceKind,
 };
 pub use error::ForgeQueryRuntimeError;
+pub use handle_contract::{
+    ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
+};
 pub use inspection::{
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
     ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
@@ -131,8 +138,11 @@ pub use preview::{
 };
 pub use public_api::{
     ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
-    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot,
+    ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicApiNamingRow,
+    ForgeQueryRuntimePublicApiTranscriptEvidence, ForgeQueryRuntimeStateKind,
+    ForgeQueryRuntimeStateSnapshot,
 };
+pub use state::ForgeQueryRuntimeStateTarget;
 pub use support::{
     ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
@@ -144,6 +154,11 @@ pub use surface::{
     ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact, ForgeQueryInstalledOperation,
     ForgeQueryInstalledProgram, ForgeQueryLiveView, ForgeQueryPatchBatch, ForgeQueryRunReceipt,
     ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+};
+pub use workspace::ForgeQueryWorkspace;
+pub use workspace_declaration::{
+    ForgeQueryComputedBuilder, ForgeQueryEffectBuilder, ForgeQueryLiveViewBuilder,
+    ForgeQueryWorkspaceLiveViewDeclaration,
 };
 
 pub struct ForgeQueryRuntime {
@@ -166,8 +181,23 @@ impl ForgeQueryRuntime {
         ForgeQueryRuntimeBuilder::new()
     }
 
+    pub fn workspace(
+        self,
+        name: impl Into<String>,
+    ) -> Result<ForgeQueryWorkspace, ForgeQueryRuntimeError> {
+        ForgeQueryWorkspace::new(name, self)
+    }
+
+    pub fn public_api_naming_contract() -> ForgeQueryRuntimePublicApiNamingContract {
+        ForgeQueryRuntimePublicApiNamingContract::standard()
+    }
+
     pub fn public_api_contract(&self) -> ForgeQueryRuntimePublicApiContract {
         ForgeQueryRuntimePublicApiContract::from_support_profile(&self.backend.support_profile())
+    }
+
+    pub fn public_handle_contract(&self) -> ForgeQueryHandleContract {
+        ForgeQueryHandleContract::from_public_api_contract(&self.public_api_contract())
     }
 
     pub fn declare_live_view<T>(

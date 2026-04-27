@@ -4,11 +4,12 @@ use crate::harness::certification::{
 };
 use crate::runtime::{
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
-    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiNamingContract,
+    ForgeQueryRuntimeSupportProfile,
 };
 
 use super::{
-    RuntimeApiStabilizationBundle, RuntimeApiStabilizationCertificationMatrix,
+    transcripts, RuntimeApiStabilizationBundle, RuntimeApiStabilizationCertificationMatrix,
     RuntimeApiStabilizationFailureClass, RuntimeApiStabilizationPerturbationClass,
     RuntimeApiStabilizationRejectionBundle,
 };
@@ -23,7 +24,7 @@ pub(super) fn canonical_rows() -> Vec<
         canonical_row(
             "workflow-editor-golden-transcript",
             RuntimeApiStabilizationPerturbationClass::WorkflowEditorGoldenTranscript,
-            "workflow-editor",
+            transcripts::workflow_editor_transcript,
             [
                 "live",
                 "computed",
@@ -37,7 +38,7 @@ pub(super) fn canonical_rows() -> Vec<
         canonical_row(
             "geometry-kernel-golden-transcript",
             RuntimeApiStabilizationPerturbationClass::GeometryKernelGoldenTranscript,
-            "geometry-kernel",
+            transcripts::geometry_kernel_transcript,
             [
                 "topology-live",
                 "derived-surface",
@@ -50,7 +51,7 @@ pub(super) fn canonical_rows() -> Vec<
         canonical_row(
             "table-spreadsheet-golden-transcript",
             RuntimeApiStabilizationPerturbationClass::TableSpreadsheetGoldenTranscript,
-            "table-spreadsheet",
+            transcripts::table_spreadsheet_transcript,
             [
                 "visible-rows",
                 "formula",
@@ -60,22 +61,7 @@ pub(super) fn canonical_rows() -> Vec<
             ],
             8,
         ),
-        canonical_row(
-            "composed-runtime-adversarial-transcript",
-            RuntimeApiStabilizationPerturbationClass::ComposedRuntimeAdversarialTranscript,
-            "composed-runtime",
-            [
-                "live-subscription",
-                "nested-computed",
-                "pending-intent-effect",
-                "authoritative-intent",
-                "effect-intent",
-                "branch-intent",
-                "preview-isolation",
-                "feedback-graph",
-            ],
-            14,
-        ),
+        adversarial_composed_row(),
     ]
 }
 
@@ -162,29 +148,76 @@ pub(super) fn coverage_digest_parts(
 fn canonical_row(
     row_name: &'static str,
     perturbation_class: RuntimeApiStabilizationPerturbationClass,
-    transcript_family: &'static str,
+    transcript: fn() -> crate::runtime::ForgeQueryRuntimePublicApiTranscriptEvidence,
     surfaces: impl IntoIterator<Item = &'static str> + Clone,
     meaningful_assertion_count: usize,
 ) -> CanonicalCertificationRow<
     RuntimeApiStabilizationPerturbationClass,
     RuntimeApiStabilizationBundle,
 > {
+    let transcript_evidence = transcript();
     CanonicalCertificationRow {
         row_name,
         perturbation_class,
         hostile_expectation: HostileExpectation::EquivalentToControl,
         parity_anchor: ParityAnchor::Control,
         control_lane: bundle(
-            transcript_family,
+            transcript_evidence.clone(),
             surfaces.clone(),
             meaningful_assertion_count,
         ),
         hostile_lane: bundle(
-            transcript_family,
+            transcript_evidence.clone(),
             surfaces.clone(),
             meaningful_assertion_count,
         ),
-        parity_lane: bundle(transcript_family, surfaces, meaningful_assertion_count),
+        parity_lane: bundle(transcript_evidence, surfaces, meaningful_assertion_count),
+    }
+}
+
+fn adversarial_composed_row() -> CanonicalCertificationRow<
+    RuntimeApiStabilizationPerturbationClass,
+    RuntimeApiStabilizationBundle,
+> {
+    let control_lane = bundle(
+        transcripts::composed_runtime_transcript(),
+        [
+            "live-subscription",
+            "nested-computed",
+            "pending-intent-effect",
+            "authoritative-intent",
+            "effect-intent",
+            "branch-intent",
+            "preview-isolation",
+            "feedback-graph",
+        ],
+        14,
+    );
+    let hostile_lane = bundle(
+        transcripts::composed_runtime_hostile_transcript(),
+        [
+            "live-subscription",
+            "nested-computed",
+            "pending-intent-effect",
+            "authoritative-intent",
+            "effect-intent",
+            "branch-intent",
+            "preview-isolation",
+            "feedback-graph",
+            "temporal-neighbor-denial",
+            "async-resource-neighbor-denial",
+        ],
+        18,
+    );
+    CanonicalCertificationRow {
+        row_name: "composed-runtime-adversarial-transcript",
+        perturbation_class:
+            RuntimeApiStabilizationPerturbationClass::ComposedRuntimeAdversarialTranscript,
+        hostile_expectation: HostileExpectation::DistinctFromControl,
+        parity_anchor: ParityAnchor::Hostile,
+        control_lane,
+        parity_lane: hostile_lane.clone(),
+        hostile_lane,
     }
 }
 
@@ -198,7 +231,11 @@ fn rejection_row(
     RuntimeApiStabilizationBundle,
     RuntimeApiStabilizationRejectionBundle,
 > {
-    let control_lane = bundle("stable-control", ["read", "live", "inspect"], 6);
+    let control_lane = bundle(
+        transcripts::workflow_editor_transcript(),
+        ["read", "live", "inspect"],
+        6,
+    );
     let contract = contract();
     let row = contract
         .family(family)
@@ -227,12 +264,14 @@ fn rejection_row(
 }
 
 fn bundle(
-    transcript_family: &'static str,
+    transcript_evidence: crate::runtime::ForgeQueryRuntimePublicApiTranscriptEvidence,
     surfaces: impl IntoIterator<Item = &'static str>,
     meaningful_assertion_count: usize,
 ) -> RuntimeApiStabilizationBundle {
     let contract = contract();
+    let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
     let surface_list: Vec<_> = surfaces.into_iter().collect();
+    let transcript_family = transcript_evidence.transcript_family().to_string();
     let golden_transcript_digest = digest_parts(
         &surface_list
             .iter()
@@ -242,7 +281,9 @@ fn bundle(
     );
     RuntimeApiStabilizationBundle {
         public_api_surface_digest: contract.contract_digest().to_string(),
+        public_api_naming_contract_digest: naming_contract.contract_digest().to_string(),
         golden_transcript_digest,
+        executable_transcript_digest: transcript_evidence.transcript_digest().to_string(),
         handle_contract_digest: digest_parts(&[
             "handle:named-durable-surface".to_string(),
             "handle:dependency-digests".to_string(),
@@ -273,6 +314,8 @@ fn bundle(
             "lane:effect-delivery-state".to_string(),
             "lane:pending-write-intent".to_string(),
             "lane:bridge-external-state".to_string(),
+            "lane:temporal-execution-state".to_string(),
+            "lane:async-resource-state".to_string(),
         ]),
         inspection_contract_digest: digest_parts(&[
             "inspection:declaration".to_string(),
@@ -286,16 +329,25 @@ fn bundle(
         deferred_temporal_async_gate_digest: deferred_gate_digest(&contract),
         failure_digest: "none".to_string(),
         counter_snapshot: format!(
-            "stable={};deferred={};unsupported={};assertions={meaningful_assertion_count};plumbing=0",
+            "stable={};deferred={};unsupported={};preferred_names={};compat_names={};assertions={meaningful_assertion_count};plumbing=0;denials={};residue={}",
             contract.stable_family_count(),
             contract.deferred_family_count(),
-            contract.unsupported_family_count()
+            contract.unsupported_family_count(),
+            naming_contract.preferred_entrypoint_count(),
+            naming_contract.compatibility_name_count(),
+            transcript_evidence.unsupported_neighbor_denial_digests().len(),
+            transcript_evidence.delivery_residue_count()
         ),
         compile_fail_boundary_digest: compile_fail_boundary_digest(),
-        transcript_family: transcript_family.to_string(),
+        transcript_family,
         public_facade_only: true,
         lower_runtime_plumbing_count: 0,
-        meaningful_assertion_count,
+        meaningful_assertion_count: meaningful_assertion_count
+            .max(transcript_evidence.meaningful_assertion_count()),
+        unsupported_neighbor_denial_count: transcript_evidence
+            .unsupported_neighbor_denial_digests()
+            .len(),
+        delivery_residue_count: transcript_evidence.delivery_residue_count(),
         stable_family_count: contract.stable_family_count(),
         deferred_family_count: contract.deferred_family_count(),
         unsupported_family_count: contract.unsupported_family_count(),
@@ -339,7 +391,12 @@ fn deferred_gate_digest(contract: &ForgeQueryRuntimePublicApiContract) -> String
 fn compile_fail_boundary_digest() -> String {
     digest_parts(&[
         "runtime-public-api-contract-private-fields".to_string(),
+        "runtime-public-api-naming-contract-private-fields".to_string(),
         "runtime-state-snapshot-private-fields".to_string(),
+        "runtime-public-api-transcript-evidence-private-fields".to_string(),
+        "runtime-handle-contract-private-fields".to_string(),
+        "runtime-workspace-dynamic-surface-shortcut-forbidden".to_string(),
+        "runtime-workspace-handle-value-shortcut-forbidden".to_string(),
         "lower-runtime-plumbing-shortcut-forbidden".to_string(),
     ])
 }

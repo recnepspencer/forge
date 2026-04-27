@@ -1,5 +1,7 @@
 mod builders;
 mod tests;
+mod transcript_runtime;
+mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
 use crate::runtime::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
@@ -41,7 +43,9 @@ pub enum RuntimeApiStabilizationFailureClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RuntimeApiStabilizationBundle {
     pub public_api_surface_digest: String,
+    pub public_api_naming_contract_digest: String,
     pub golden_transcript_digest: String,
+    pub executable_transcript_digest: String,
     pub handle_contract_digest: String,
     pub state_contract_digest: String,
     pub aspect_contract_digest: String,
@@ -56,6 +60,8 @@ pub struct RuntimeApiStabilizationBundle {
     pub public_facade_only: bool,
     pub lower_runtime_plumbing_count: usize,
     pub meaningful_assertion_count: usize,
+    pub unsupported_neighbor_denial_count: usize,
+    pub delivery_residue_count: usize,
     pub stable_family_count: usize,
     pub deferred_family_count: usize,
     pub unsupported_family_count: usize,
@@ -64,7 +70,9 @@ pub struct RuntimeApiStabilizationBundle {
 impl RuntimeApiStabilizationBundle {
     pub(super) fn has_required_outputs(&self) -> bool {
         !self.public_api_surface_digest.is_empty()
+            && !self.public_api_naming_contract_digest.is_empty()
             && !self.golden_transcript_digest.is_empty()
+            && !self.executable_transcript_digest.is_empty()
             && !self.handle_contract_digest.is_empty()
             && !self.state_contract_digest.is_empty()
             && !self.aspect_contract_digest.is_empty()
@@ -76,12 +84,15 @@ impl RuntimeApiStabilizationBundle {
             && !self.counter_snapshot.is_empty()
             && !self.compile_fail_boundary_digest.is_empty()
             && !self.transcript_family.is_empty()
+            && self.unsupported_neighbor_denial_count >= 1
     }
 
     pub(super) fn semantic_signature(&self) -> String {
         digest_parts(&[
             format!("surface:{}", self.public_api_surface_digest),
+            format!("naming:{}", self.public_api_naming_contract_digest),
             format!("transcript:{}", self.golden_transcript_digest),
+            format!("executable:{}", self.executable_transcript_digest),
             format!("handle:{}", self.handle_contract_digest),
             format!("state:{}", self.state_contract_digest),
             format!("aspect:{}", self.aspect_contract_digest),
@@ -92,6 +103,8 @@ impl RuntimeApiStabilizationBundle {
             format!("family:{}", self.transcript_family),
             format!("facade_only:{}", self.public_facade_only),
             format!("plumbing:{}", self.lower_runtime_plumbing_count),
+            format!("denials:{}", self.unsupported_neighbor_denial_count),
+            format!("residue:{}", self.delivery_residue_count),
         ])
     }
 }
