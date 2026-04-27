@@ -225,7 +225,13 @@ pub struct ForgeQueryMemoryApp {
 }
 
 impl ForgeQueryMemoryApp {
-    pub fn new(
+    pub fn compatibility_backend(
+        collections: impl IntoIterator<Item = ForgeQueryCollection>,
+    ) -> Result<Self, ForgeQueryWorkspaceError> {
+        Self::new(collections)
+    }
+
+    pub(crate) fn new(
         collections: impl IntoIterator<Item = ForgeQueryCollection>,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         let mut registry = RelationalSchemaRegistry::new();
@@ -726,11 +732,14 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
     fn execute_intent(
         &mut self,
         declaration: &crate::runtime::ForgeQueryIntentDeclaration,
-    ) -> Result<crate::runtime::ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
-        Err(ForgeQueryWorkspaceError::new(format!(
-            "intent `{}` is not supported by the memory compatibility backend",
-            declaration.name()
-        )))
+    ) -> Result<crate::runtime::ForgeQueryIntentExecution, crate::runtime::ForgeQueryRuntimeError>
+    {
+        Err(crate::runtime::ForgeQueryRuntimeError::Workspace(
+            ForgeQueryWorkspaceError::new(format!(
+                "intent `{}` is not supported by the memory compatibility backend",
+                declaration.name()
+            )),
+        ))
     }
 
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {

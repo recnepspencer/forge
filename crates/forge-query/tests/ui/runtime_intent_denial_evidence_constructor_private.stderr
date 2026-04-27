@@ -1,0 +1,37 @@
+error[E0451]: fields `intent_name`, `stage`, `message`, `strategy_identity`, `strategy_version`, `returned_strategy_identity`, `returned_strategy_version`, `returned_strategy_descriptor_digest`, `canonical_input_digest`, `source_lane`, `target_lane`, `execution_kind`, `attempt_digest`, `invariant_evidence`, `snapshot_token` and `denial_digest` of struct `ForgeQueryIntentDenialEvidence` are private
+  --> tests/ui/runtime_intent_denial_evidence_constructor_private.rs:8:9
+   |
+ 7 |     let _forged = ForgeQueryIntentDenialEvidence {
+   |                   ------------------------------ in this type
+ 8 |         intent_name: "intent".to_string(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         stage: "invariant-admission",
+   |         ^^^^^ private field
+10 |         message: "denied".to_string(),
+   |         ^^^^^^^ private field
+11 |         strategy_identity: "strategy".to_string(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+12 |         strategy_version: "1.0".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+13 |         returned_strategy_identity: Some("returned".to_string()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         returned_strategy_version: Some("1.0".to_string()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         returned_strategy_descriptor_digest: Some("descriptor".to_string()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         canonical_input_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
+   |         ^^^^^^^^^^^ private field
+18 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+19 |         execution_kind: Some(ForgeQueryIntentExecutionKind::InvariantViolation),
+   |         ^^^^^^^^^^^^^^ private field
+20 |         attempt_digest: Some(String::new()),
+   |         ^^^^^^^^^^^^^^ private field
+21 |         invariant_evidence: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+22 |         snapshot_token: Some(String::new()),
+   |         ^^^^^^^^^^^^^^ private field
+23 |         denial_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

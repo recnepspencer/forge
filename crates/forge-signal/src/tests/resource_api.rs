@@ -24,10 +24,21 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/resource_replay_reconstruction_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_certification_record_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_certification_record_passing_is_private.rs");
+    cases.compile_fail("tests/ui/resource_certification_artifacts_cannot_be_deserialized.rs");
+    cases.compile_fail(
+        "tests/ui/resource_milestone_b_hostile_scenario_evidence_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/resource_milestone_b_performance_closeout_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_milestone_b_scenario_row_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_milestone_b_scenario_matrix_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_milestone_b_certification_run_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_expansion_budget_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_expansion_denial_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_summary_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_runtime_summary_read_report_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/resource_lifecycle_retention_compaction_report_fields_are_private.rs",
+    );
     cases.compile_fail("tests/ui/denied_resource_completion_cannot_be_staged.rs");
     cases.compile_fail("tests/ui/staged_resource_completion_effect_fields_are_private.rs");
     cases.compile_fail("tests/ui/staged_denied_resource_completion_effect_fields_are_private.rs");
@@ -39,4 +50,15 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/committed_resource_completion_artifact_cannot_be_cloned.rs");
     cases.compile_fail("tests/ui/resource_runtime_summary_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_policy_descriptor_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_initial_lifecycle_class_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_lifecycle_policy_rejects_pending_initial_class.rs");
+    cases.compile_fail("tests/ui/resource_lifecycle_policy_rejects_terminal_initial_class.rs");
+    cases.compile_fail("tests/ui/raw_resource_completion_cannot_be_staged.rs");
+    cases.compile_fail("tests/ui/raw_resource_completion_cannot_be_committed.rs");
+    cases.compile_fail("tests/ui/admitted_resource_completion_cannot_commit_without_staging.rs");
+    cases.compile_fail(
+        "tests/ui/admitted_resource_completion_cannot_transaction_commit_without_staging.rs",
+    );
+    cases.compile_fail("tests/ui/cancelled_resource_request_cannot_be_staged_as_completion.rs");
+    cases.compile_fail("tests/ui/resource_runtime_internals_are_not_public.rs");
 }

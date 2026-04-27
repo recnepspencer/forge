@@ -198,7 +198,71 @@ impl ForgeQueryPreviewOptions {
         Self::default()
     }
 
-    pub fn with_effect_policy(mut self, effect_policy: ForgeQueryEffectPolicy) -> Self {
+    pub fn muted() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::Muted,
+        }
+    }
+
+    pub fn redirected_delivery() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::Redirected,
+        }
+    }
+
+    pub fn sandboxed_write_intent() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(in crate::runtime) fn with_effect_policy(
+        mut self,
+        effect_policy: ForgeQueryEffectPolicy,
+    ) -> Self {
+        self.effect_policy = effect_policy;
+        self
+    }
+
+    pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
+        self.effect_policy
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ForgeQueryBranchOptions {
+    effect_policy: ForgeQueryEffectPolicy,
+}
+
+impl ForgeQueryBranchOptions {
+    pub fn derive_only() -> Self {
+        Self::default()
+    }
+
+    pub fn muted() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::Muted,
+        }
+    }
+
+    pub fn redirected_delivery() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::Redirected,
+        }
+    }
+
+    pub fn sandboxed_write_intent() -> Self {
+        Self {
+            effect_policy: ForgeQueryEffectPolicy::SandboxedWriteIntent,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(in crate::runtime) fn with_effect_policy(
+        mut self,
+        effect_policy: ForgeQueryEffectPolicy,
+    ) -> Self {
         self.effect_policy = effect_policy;
         self
     }

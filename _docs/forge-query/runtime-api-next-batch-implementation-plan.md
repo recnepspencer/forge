@@ -624,7 +624,8 @@ Tests:
 - effect-triggered intent cannot loop indefinitely and exposes loop-prevention
   evidence.
 - replay or independent reference lane can verify strategy identity and
-  produced mutation digest where the lower runtime supports it.
+  outcome digest, with a produced mutation digest only for mutating executions
+  where the lower runtime supports it.
 
 ## Batch 8: Artifact Inspector Becomes Handle Explanation
 

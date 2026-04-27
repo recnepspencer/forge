@@ -110,6 +110,7 @@ pub struct ResourceDiagnosticsSummary {
     runtime_summary: ResourceRuntimeSummary,
     latest_branch_restore_report: Option<ResourceBranchRestoreReport>,
     replay_reconstruction: ResourceReplayReconstructionReport,
+    expansion_budget: ResourceDiagnosticsExpansionBudget,
     performance: ResourceBoundaryPerformanceEnvelope,
     provenance_digest: String,
 }
@@ -119,6 +120,7 @@ impl ResourceDiagnosticsSummary {
         runtime_summary: ResourceRuntimeSummary,
         latest_branch_restore_report: Option<ResourceBranchRestoreReport>,
         replay_reconstruction: ResourceReplayReconstructionReport,
+        expansion_budget: ResourceDiagnosticsExpansionBudget,
         performance: ResourceBoundaryPerformanceEnvelope,
     ) -> Self {
         let provenance_digest =
@@ -127,6 +129,7 @@ impl ResourceDiagnosticsSummary {
                 runtime_summary,
                 latest_branch_restore_report,
                 replay_reconstruction: &replay_reconstruction,
+                expansion_budget,
                 performance,
             });
         Self {
@@ -134,6 +137,7 @@ impl ResourceDiagnosticsSummary {
             runtime_summary,
             latest_branch_restore_report,
             replay_reconstruction,
+            expansion_budget,
             performance,
             provenance_digest,
         }
@@ -155,6 +159,10 @@ impl ResourceDiagnosticsSummary {
         &self.replay_reconstruction
     }
 
+    pub fn expansion_budget(&self) -> ResourceDiagnosticsExpansionBudget {
+        self.expansion_budget
+    }
+
     pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
         self.performance
     }
@@ -170,6 +178,7 @@ struct ResourceDiagnosticsSummaryDigestBasis<'a> {
     runtime_summary: ResourceRuntimeSummary,
     latest_branch_restore_report: Option<ResourceBranchRestoreReport>,
     replay_reconstruction: &'a ResourceReplayReconstructionReport,
+    expansion_budget: ResourceDiagnosticsExpansionBudget,
     performance: ResourceBoundaryPerformanceEnvelope,
 }
 

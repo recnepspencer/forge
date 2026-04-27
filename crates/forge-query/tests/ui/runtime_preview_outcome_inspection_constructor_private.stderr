@@ -1,0 +1,53 @@
+error[E0451]: fields `label`, `closeout_kind`, `effect_policy`, `promoted`, `discarded`, `write_count`, `preview_binding_count`, `live_binding_count`, `computed_binding_count`, `effect_binding_count`, `subscription_residue_count`, `derived_runtime_residue_count`, `effect_delivery_residue_count`, `pending_write_intent_residue_count`, `preview_write_staging_count`, `promoted_write_count`, `authoritative_residue_count`, `source_lane`, `target_lane`, `basis_evidence`, `basis_digest`, `closeout_digest`, `residue_digest` and `inspection_digest` of struct `ForgeQueryPreviewOutcomeInspection` are private
+  --> tests/ui/runtime_preview_outcome_inspection_constructor_private.rs:8:9
+   |
+ 7 |     let _forged = ForgeQueryPreviewOutcomeInspection {
+   |                   ---------------------------------- in this type
+ 8 |         label: String::new(),
+   |         ^^^^^ private field
+ 9 |         closeout_kind: ForgeQueryPreviewCloseoutKind::Discarded,
+   |         ^^^^^^^^^^^^^ private field
+10 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+   |         ^^^^^^^^^^^^^ private field
+11 |         promoted: false,
+   |         ^^^^^^^^ private field
+12 |         discarded: true,
+   |         ^^^^^^^^^ private field
+13 |         write_count: 0,
+   |         ^^^^^^^^^^^ private field
+14 |         preview_binding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         live_binding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+16 |         computed_binding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         effect_binding_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+18 |         subscription_residue_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         derived_runtime_residue_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         effect_delivery_residue_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         pending_write_intent_residue_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+22 |         preview_write_staging_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |         promoted_write_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+24 |         authoritative_residue_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+25 |         source_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^ private field
+26 |         target_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^ private field
+27 |         basis_evidence: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+28 |         basis_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+29 |         closeout_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+30 |         residue_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+31 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::resource::{ResourceBoundaryPerformanceEnvelope, ResourceDensityStrategy};
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvaluationTelemetry {
     pub evaluation_calls: u64,
@@ -262,6 +264,11 @@ pub struct ResourceTelemetry {
     pub resource_replay_reconstruction_denial_width: u64,
     pub resource_replay_reconstruction_in_flight_width: u64,
     pub resource_retained_history_unavailable_count: u64,
+    pub resource_hot_in_flight_compaction_count: u64,
+    pub resource_in_flight_retired_record_count: u64,
+    pub resource_in_flight_reclaimed_record_count: u64,
+    pub resource_retained_lifecycle_history_write_count: u64,
+    pub resource_retained_lifecycle_history_pruned_count: u64,
     pub resource_retained_summary_read_count: u64,
     pub resource_diagnostics_expansion_count: u64,
     pub resource_diagnostics_expansion_input_width: u64,
@@ -295,6 +302,7 @@ pub struct ResourceTelemetry {
     pub resource_contradictory_completion_denial_count: u64,
     pub resource_duplicate_completion_denial_count: u64,
     pub resource_unknown_request_completion_denial_count: u64,
+    pub resource_retained_history_unavailable_completion_denial_count: u64,
     pub resource_cancelled_completion_denial_count: u64,
     pub resource_timed_out_completion_denial_count: u64,
     pub resource_timeout_temporal_wake_footprint: u64,
@@ -302,6 +310,61 @@ pub struct ResourceTelemetry {
     pub resource_boundary_performance_envelope_count: u64,
     pub resource_broad_scan_denial_count: u64,
     pub resource_hot_in_flight_lookup_count: u64,
+    pub resource_operational_allocation_count: u64,
+    pub resource_retained_history_allocation_count: u64,
+    pub resource_diagnostics_allocation_count: u64,
+    pub resource_facade_report_allocation_count: u64,
+    pub resource_density_strategy_selection_count: u64,
+    pub resource_sparse_density_strategy_count: u64,
+    pub resource_bursty_density_strategy_count: u64,
+    pub resource_dense_density_strategy_count: u64,
+}
+
+impl ResourceTelemetry {
+    pub fn record_boundary_performance_envelope(
+        &mut self,
+        envelope: ResourceBoundaryPerformanceEnvelope,
+    ) {
+        self.record_boundary_allocation_posture(envelope);
+        self.record_density_strategy(envelope.density_strategy());
+        self.resource_boundary_performance_envelope_count += 1;
+    }
+
+    fn record_density_strategy(&mut self, density_strategy: ResourceDensityStrategy) {
+        match density_strategy {
+            ResourceDensityStrategy::NotApplicable => {}
+            ResourceDensityStrategy::SparseIndexedLookup => {
+                self.resource_density_strategy_selection_count += 1;
+                self.resource_sparse_density_strategy_count += 1;
+            }
+            ResourceDensityStrategy::BurstySortedDeduplicated => {
+                self.resource_density_strategy_selection_count += 1;
+                self.resource_bursty_density_strategy_count += 1;
+            }
+            ResourceDensityStrategy::DenseSortedDeduplicated => {
+                self.resource_density_strategy_selection_count += 1;
+                self.resource_dense_density_strategy_count += 1;
+            }
+        }
+    }
+
+    pub fn record_boundary_allocation_posture(
+        &mut self,
+        envelope: ResourceBoundaryPerformanceEnvelope,
+    ) {
+        self.resource_operational_allocation_count = self
+            .resource_operational_allocation_count
+            .saturating_add(envelope.operational_allocation_count() as u64);
+        self.resource_retained_history_allocation_count = self
+            .resource_retained_history_allocation_count
+            .saturating_add(envelope.retained_history_allocation_count() as u64);
+        self.resource_diagnostics_allocation_count = self
+            .resource_diagnostics_allocation_count
+            .saturating_add(envelope.diagnostics_allocation_count() as u64);
+        self.resource_facade_report_allocation_count = self
+            .resource_facade_report_allocation_count
+            .saturating_add(envelope.facade_report_allocation_count() as u64);
+    }
 }
 
 /// Lightweight runtime telemetry for signal orchestration internals.

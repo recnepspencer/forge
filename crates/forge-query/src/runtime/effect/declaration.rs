@@ -202,11 +202,19 @@ impl ForgeQueryEffectDeclaration {
         self.condition = condition;
         self
     }
-    pub fn with_effect_policy(mut self, effect_policy: ForgeQueryEffectPolicy) -> Self {
+    #[allow(dead_code)]
+    pub(in crate::runtime) fn with_effect_policy(
+        mut self,
+        effect_policy: ForgeQueryEffectPolicy,
+    ) -> Self {
         self.effect_policy = effect_policy;
         self
     }
-    pub fn with_target_lane(mut self, target_lane: ForgeQueryAuthorityLane) -> Self {
+    #[allow(dead_code)]
+    pub(in crate::runtime) fn with_target_lane(
+        mut self,
+        target_lane: ForgeQueryAuthorityLane,
+    ) -> Self {
         self.target_lane = target_lane;
         self
     }

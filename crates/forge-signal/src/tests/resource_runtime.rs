@@ -183,6 +183,69 @@ fn resource_policy_registry_rejects_duplicate_descriptor_ids() {
     );
 }
 
+#[test]
+fn resource_lifecycle_policy_initial_class_is_compile_time_constrained_to_unrequested() {
+    let policy =
+        ResourceLifecyclePolicyDeclaration::new(ResourceInitialLifecycleClass::unrequested());
+    assert_eq!(policy.initial(), ResourceLifecycleClass::Unrequested);
+
+    let encoded = serde_json::to_string(&ResourceInitialLifecycleClass::unrequested()).unwrap();
+    assert_eq!(encoded, "\"Unrequested\"");
+    let decoded: ResourceInitialLifecycleClass = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(decoded.lifecycle(), ResourceLifecycleClass::Unrequested);
+
+    let rejected = serde_json::from_str::<ResourceInitialLifecycleClass>("\"Pending\"");
+    assert!(rejected
+        .expect_err("runtime lifecycle classes must not deserialize as initial policy")
+        .to_string()
+        .contains("Unrequested"));
+    let policy_encoded = serde_json::to_string(&policy).unwrap();
+    assert_eq!(policy_encoded, "{\"initial\":\"Unrequested\"}");
+    let policy_decoded: ResourceLifecyclePolicyDeclaration =
+        serde_json::from_str(&policy_encoded).unwrap();
+    assert_eq!(
+        policy_decoded.initial(),
+        ResourceLifecycleClass::Unrequested
+    );
+    let rejected_policy =
+        serde_json::from_str::<ResourceLifecyclePolicyDeclaration>("{\"initial\":\"Fulfilled\"}");
+    assert!(rejected_policy
+        .expect_err("policy declarations must reject terminal initial lifecycle data")
+        .to_string()
+        .contains("Unrequested"));
+    let mut declaration_graph = SignalGraph::new();
+    let declaration_node = declaration_graph.node().build();
+    let declaration = resource_declaration(declaration_node);
+    let mut declaration_value =
+        serde_json::to_value(&declaration).expect("resource declaration should serialize");
+    declaration_value["lifecycle_policy"]["initial"] = serde_json::json!("TimedOut");
+    let rejected_declaration = serde_json::from_value::<ResourceNodeDeclaration>(declaration_value);
+    assert!(rejected_declaration
+        .expect_err("resource declarations must reject impossible initial lifecycle policy data")
+        .to_string()
+        .contains("Unrequested"));
+
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    let report = runtime
+        .declare_resource_node(resource_declaration(node).with_lifecycle_policy(policy))
+        .expect("resource declaration should accept the constrained initial policy");
+
+    assert_eq!(
+        report.lifecycle().lifecycle(),
+        ResourceLifecycleClass::Unrequested
+    );
+    assert_eq!(
+        report.transition().from(),
+        ResourceLifecycleClass::Unrequested
+    );
+    assert_eq!(
+        report.transition().to(),
+        ResourceLifecycleClass::Unrequested
+    );
+}
+
 fn raw_completion(
     runtime: &TestRuntime,
     node: NodeId,
@@ -357,6 +420,10 @@ fn resource_request_admission_creates_pending_in_flight_truth() {
         ResourceBoundaryKind::RequestAdmission
     );
     assert_eq!(report.performance().lifecycle_transition_count(), 1);
+    assert_eq!(
+        report.performance().density_strategy(),
+        ResourceDensityStrategy::SparseIndexedLookup
+    );
 
     let in_flight = runtime
         .in_flight_resource_request(handle)
@@ -456,6 +523,10 @@ fn resource_request_admission_supersedes_prior_active_request_for_node() {
     );
     assert_eq!(second_handle.request_id(), ResourceRequestId::new(1));
     assert_eq!(second.performance().lifecycle_transition_count(), 2);
+    assert_eq!(
+        second.performance().density_strategy(),
+        ResourceDensityStrategy::BurstySortedDeduplicated
+    );
     let superseded = runtime
         .in_flight_resource_request(first)
         .expect("superseded request remains retained for later denial");
@@ -1761,9 +1832,293 @@ fn resource_certification_bundle_reports_missing_duplicate_and_parity_drift() {
     assert!(format!("{builder_err}").contains("duplicate certification family evidence"));
 }
 
+#[test]
+fn resource_milestone_b_certification_run_requires_complete_passing_bundle() {
+    let (complete, hostile_evidence, summary_read, diagnostics_summary, diagnostics_denial) =
+        resource_certification_fixture_artifacts(ResourceRequestId::new(9_999));
+    let scenario_matrix = resource_milestone_b_scenario_matrix(&complete, &hostile_evidence)
+        .expect("complete passing resource bundle should produce scenario matrix");
+    let performance_closeout = resource_milestone_b_performance_closeout(
+        &scenario_matrix,
+        summary_read,
+        diagnostics_summary,
+        diagnostics_denial,
+    )
+    .expect("complete passing resource evidence should produce performance closeout");
+    let run = resource_milestone_b_certification_run(
+        complete.clone(),
+        scenario_matrix.clone(),
+        performance_closeout.clone(),
+    )
+    .expect("complete passing resource bundle should close milestone B certification");
+
+    assert!(run.passed());
+    assert!(scenario_matrix.passed());
+    assert!(performance_closeout.passed());
+    assert_eq!(
+        run.schema_version(),
+        RESOURCE_MILESTONE_B_CERTIFICATION_RUN_SCHEMA_VERSION
+    );
+    assert_eq!(run.bundle().bundle_digest(), complete.bundle_digest());
+    assert_eq!(run.scenario_matrix(), &scenario_matrix);
+    assert_eq!(run.performance_closeout(), &performance_closeout);
+    assert_eq!(
+        scenario_matrix.schema_version(),
+        RESOURCE_MILESTONE_B_SCENARIO_MATRIX_SCHEMA_VERSION
+    );
+    assert_eq!(scenario_matrix.bundle_digest(), complete.bundle_digest());
+    assert_eq!(
+        scenario_matrix.rows().len(),
+        REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS.len()
+    );
+    assert_eq!(
+        hostile_evidence.rows().len(),
+        REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len()
+    );
+    assert_eq!(
+        hostile_evidence.schema_version(),
+        RESOURCE_MILESTONE_B_HOSTILE_SCENARIO_EVIDENCE_SCHEMA_VERSION
+    );
+    assert_eq!(
+        performance_closeout.schema_version(),
+        RESOURCE_MILESTONE_B_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION
+    );
+    assert_eq!(
+        performance_closeout.scenario_matrix_digest(),
+        scenario_matrix.matrix_digest()
+    );
+    assert_eq!(
+        performance_closeout.rows().len(),
+        REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len()
+    );
+    assert!(REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS
+        .iter()
+        .all(|scenario| scenario_matrix
+            .rows()
+            .iter()
+            .any(|row| row.id() == *scenario
+                && row.certification_family() == scenario.certification_family()
+                && row.completion_denial_class() == scenario.completion_denial_class()
+                && row.passed())));
+    assert!(REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS
+        .iter()
+        .all(|scenario| scenario_matrix
+            .rows()
+            .iter()
+            .any(|row| row.id() == *scenario
+                && row.evidence_kind()
+                    == ResourceMilestoneBScenarioEvidenceKind::HostileCompletionDenial
+                && row.completion_denial_class() == scenario.completion_denial_class()
+                && row.certification_family().is_none()
+                && row.passed())));
+    assert!(REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS
+        .iter()
+        .all(|claim| performance_closeout
+            .rows()
+            .iter()
+            .any(|row| row.id() == *claim && row.passed() && !row.evidence_digest().is_empty())));
+    let replay_claim = performance_closeout
+        .rows()
+        .iter()
+        .find(|row| {
+            row.id() == ResourceMilestoneBPerformanceClaimId::LifecycleReplayParityDebtBounded
+        })
+        .expect("replay performance claim should be present");
+    assert_eq!(
+        replay_claim.performance().boundary(),
+        ResourceBoundaryKind::ReplayReconstruction
+    );
+    assert_eq!(
+        replay_claim.performance().cost_posture(),
+        ResourceCostPosture::Debt
+    );
+    assert_eq!(
+        replay_claim.performance().diagnostics_allocation_count(),
+        replay_claim.performance().input_width()
+    );
+    let supersession_claim = performance_closeout
+        .rows()
+        .iter()
+        .find(|row| {
+            row.id() == ResourceMilestoneBPerformanceClaimId::OutOfOrderSupersessionAdmissionBounded
+        })
+        .expect("supersession performance claim should be present");
+    assert_eq!(
+        supersession_claim.performance().boundary(),
+        ResourceBoundaryKind::RequestAdmission
+    );
+    assert_eq!(
+        supersession_claim.performance().density_strategy(),
+        ResourceDensityStrategy::BurstySortedDeduplicated
+    );
+    assert_eq!(
+        supersession_claim
+            .performance()
+            .lifecycle_transition_count(),
+        2
+    );
+    let summary_read_claim = performance_closeout
+        .rows()
+        .iter()
+        .find(|row| {
+            row.id()
+                == ResourceMilestoneBPerformanceClaimId::RuntimeSummaryReadZeroColdReconstruction
+        })
+        .expect("summary read claim should be present");
+    assert_eq!(
+        summary_read_claim.performance().boundary(),
+        ResourceBoundaryKind::SummaryRead
+    );
+    assert_eq!(
+        summary_read_claim
+            .performance()
+            .diagnostics_allocation_count(),
+        0
+    );
+    let hostile_claim = performance_closeout
+        .rows()
+        .iter()
+        .find(|row| {
+            row.id() == ResourceMilestoneBPerformanceClaimId::HostileCompletionDenialsScalarBounded
+        })
+        .expect("hostile performance claim should be present");
+    assert_eq!(
+        hostile_claim.performance().denied_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len() as u32
+    );
+    assert_eq!(hostile_claim.performance().lifecycle_transition_count(), 0);
+    assert_eq!(
+        run.summary().required_family_count(),
+        REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_family_count(),
+        REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(run.summary().failed_family_count(), 0);
+    assert_eq!(run.summary().bundle_digest(), complete.bundle_digest());
+    assert_eq!(
+        run.summary().required_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS.len() as u32
+    );
+    assert_eq!(
+        run.summary().scenario_matrix_digest(),
+        scenario_matrix.matrix_digest()
+    );
+    assert_eq!(
+        run.summary().required_performance_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_performance_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(
+        run.summary().performance_closeout_digest(),
+        performance_closeout.closeout_digest()
+    );
+    assert!(!run.run_digest().is_empty());
+    let serialized_run =
+        serde_json::to_value(&run).expect("closeout certification run should serialize");
+    assert_eq!(
+        serialized_run["scenarioMatrix"]["matrixDigest"],
+        scenario_matrix.matrix_digest()
+    );
+    assert_eq!(
+        serialized_run["summary"]["scenarioMatrixDigest"],
+        scenario_matrix.matrix_digest()
+    );
+    assert_eq!(
+        serialized_run["summary"]["performanceCloseoutDigest"],
+        performance_closeout.closeout_digest()
+    );
+
+    let incomplete = resource_certification_bundle([]);
+    let err = resource_milestone_b_scenario_matrix(&incomplete, &hostile_evidence)
+        .expect_err("incomplete certification bundle must not become scenario evidence");
+    assert!(format!("{err}").contains("resource certification bundle failed"));
+    let err = resource_milestone_b_certification_run(
+        incomplete,
+        scenario_matrix.clone(),
+        performance_closeout.clone(),
+    )
+    .expect_err("incomplete certification bundle must not become a milestone run");
+    assert!(format!("{err}").contains("resource certification bundle failed"));
+    let misclassified_hostile = resource_milestone_b_hostile_scenario_evidence(
+        resource_late_cancelled_completion_report(),
+        resource_late_cancelled_completion_report(),
+        resource_late_timed_out_completion_report(),
+        resource_malformed_completion_report(),
+    )
+    .expect_err("hostile scenario evidence must reject the wrong denial class per row");
+    assert!(format!("{misclassified_hostile}").contains("requires Superseded denial evidence"));
+
+    let (
+        drifted,
+        drifted_hostile_evidence,
+        drifted_summary_read,
+        drifted_diagnostics_summary,
+        drifted_diagnostics_denial,
+    ) = resource_certification_fixture_artifacts(ResourceRequestId::new(9_998));
+    let drifted_matrix = resource_milestone_b_scenario_matrix(&drifted, &drifted_hostile_evidence)
+        .expect("drifted but complete bundle should produce its own scenario matrix");
+    let drifted_performance_closeout = resource_milestone_b_performance_closeout(
+        &drifted_matrix,
+        drifted_summary_read,
+        drifted_diagnostics_summary,
+        drifted_diagnostics_denial,
+    )
+    .expect("drifted but complete evidence should produce performance closeout");
+    let wrong_matrix_err = resource_milestone_b_certification_run(
+        complete,
+        drifted_matrix.clone(),
+        drifted_performance_closeout.clone(),
+    )
+    .expect_err("scenario matrix from a different bundle must not close the run");
+    assert!(format!("{wrong_matrix_err}").contains("same bundle"));
+    let wrong_performance_err = resource_milestone_b_certification_run(
+        drifted.clone(),
+        drifted_matrix.clone(),
+        performance_closeout,
+    )
+    .expect_err("performance closeout from a different matrix must not close the run");
+    assert!(format!("{wrong_performance_err}").contains("same scenario matrix"));
+    let drifted_run = resource_milestone_b_certification_run(
+        drifted,
+        drifted_matrix,
+        drifted_performance_closeout,
+    )
+    .expect("drifted but complete bundle should still produce its own run");
+    assert_ne!(
+        run.bundle().bundle_digest(),
+        drifted_run.bundle().bundle_digest()
+    );
+    assert_ne!(
+        run.scenario_matrix().matrix_digest(),
+        drifted_run.scenario_matrix().matrix_digest()
+    );
+    assert_ne!(run.run_digest(), drifted_run.run_digest());
+}
+
 fn resource_certification_fixture_bundle(
     retained_denial_request_id: ResourceRequestId,
 ) -> ResourceCertificationBundle {
+    resource_certification_fixture_artifacts(retained_denial_request_id).0
+}
+
+fn resource_certification_fixture_artifacts(
+    retained_denial_request_id: ResourceRequestId,
+) -> (
+    ResourceCertificationBundle,
+    ResourceMilestoneBHostileScenarioEvidence,
+    ResourceRuntimeSummaryReadReport,
+    ResourceDiagnosticsSummary,
+    ResourceDiagnosticsExpansionDenial,
+) {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
@@ -1816,7 +2171,7 @@ fn resource_certification_fixture_bundle(
         .expect("resource restore should publish branch evidence");
     let replay = runtime.reconstruct_resource_replay_summary();
 
-    resource_certification_builder()
+    let bundle = resource_certification_builder()
         .with_async_resource_lifecycle_parity(&replay)
         .expect("lifecycle evidence should be accepted")
         .with_out_of_order_completion_supersession(second_admission)
@@ -1831,7 +2186,118 @@ fn resource_certification_fixture_bundle(
         )
         .expect("boundedness evidence should be accepted")
         .build()
-        .expect("complete fixture bundle should pass")
+        .expect("complete fixture bundle should pass");
+    let summary_read = runtime.resource_runtime_summary_read_report();
+    let diagnostics_summary =
+        runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+    let diagnostics_denial = runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::retained_summary_only(),
+        )
+        .expect_err("retained-only diagnostics budget should deny cold reconstruction");
+    let hostile_evidence = resource_milestone_b_hostile_scenario_evidence(
+        resource_late_superseded_completion_report(),
+        resource_late_cancelled_completion_report(),
+        resource_late_timed_out_completion_report(),
+        resource_malformed_completion_report(),
+    )
+    .expect("hostile completion evidence should cover required denial lanes");
+    (
+        bundle,
+        hostile_evidence,
+        summary_read,
+        diagnostics_summary,
+        diagnostics_denial,
+    )
+}
+
+fn resource_late_superseded_completion_report() -> ResourceCompletionAdmissionReport {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let first = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("first request should admit")
+        .admitted_request();
+    let stale_first = raw_completion(&runtime, node, first.handle(), first.attempt(), 64);
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("second request should supersede first");
+    runtime.admit_resource_completion(stale_first)
+}
+
+fn resource_late_cancelled_completion_report() -> ResourceCompletionAdmissionReport {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let late = raw_completion(&runtime, node, admitted.handle(), admitted.attempt(), 64);
+    runtime
+        .cancel_resource_request(admitted.handle(), ResourceCancellationReason::HostRequested)
+        .expect("cancellation should retire request");
+    runtime.admit_resource_completion(late)
+}
+
+fn resource_late_timed_out_completion_report() -> ResourceCompletionAdmissionReport {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(timeout_resource_declaration(node, 3))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let late = raw_completion(&runtime, node, admitted.handle(), admitted.attempt(), 64);
+    let wake_id = runtime
+        .in_flight_resource_request(admitted.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("timeout wake should be attached");
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(3),
+        ))
+        .expect("authoritative clock should advance");
+    let ready = runtime
+        .promote_temporal_wake_ready(wake_id)
+        .expect("timeout wake should promote");
+    runtime
+        .admit_resource_timeout(admitted.handle(), ready)
+        .expect("timeout admission should consume wake");
+    runtime.admit_resource_completion(late)
+}
+
+fn resource_malformed_completion_report() -> ResourceCompletionAdmissionReport {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let handle = admitted.handle();
+    runtime.admit_resource_completion(RawCompletionEnvelope::new(
+        handle.request_id(),
+        handle.generation(),
+        handle.branch_epoch(),
+        admitted.attempt(),
+        ResourcePayloadContractDigest::new("payload-contract:999:1024"),
+        64,
+    ))
 }
 
 #[test]
@@ -1864,6 +2330,7 @@ fn resource_diagnostics_summary_preserves_truth_and_exposes_replay_debt() {
         .telemetry()
         .resource
         .resource_replay_reconstruction_count;
+    let allocation_telemetry_before = runtime.telemetry().resource;
     let diagnostics = runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
 
     assert_eq!(
@@ -1890,9 +2357,43 @@ fn resource_diagnostics_summary_preserves_truth_and_exposes_replay_debt() {
     );
     assert_eq!(
         diagnostics
+            .expansion_budget()
+            .max_replay_reconstruction_width(),
+        u32::MAX
+    );
+    assert_eq!(
+        diagnostics
             .replay_reconstruction()
             .denied_completion_width(),
         1
+    );
+    assert_eq!(
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .diagnostics_allocation_count(),
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .input_width()
+    );
+    assert_eq!(
+        diagnostics.performance().diagnostics_allocation_count(),
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .input_width()
+    );
+    assert_eq!(
+        diagnostics.performance().facade_report_allocation_count(),
+        1
+    );
+    assert_eq!(diagnostics.performance().operational_allocation_count(), 0);
+    assert_eq!(
+        diagnostics
+            .performance()
+            .retained_history_allocation_count(),
+        0
     );
     assert!(!diagnostics.provenance_digest().is_empty());
     assert_eq!(
@@ -1916,6 +2417,44 @@ fn resource_diagnostics_summary_preserves_truth_and_exposes_replay_debt() {
             .resource_diagnostics_cold_reconstruction_count,
         1
     );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_allocation_count
+            - allocation_telemetry_before.resource_diagnostics_allocation_count,
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .diagnostics_allocation_count() as u64
+            + diagnostics.performance().diagnostics_allocation_count() as u64
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_facade_report_allocation_count
+            - allocation_telemetry_before.resource_facade_report_allocation_count,
+        diagnostics
+            .replay_reconstruction()
+            .performance()
+            .facade_report_allocation_count() as u64
+            + diagnostics.performance().facade_report_allocation_count() as u64
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_operational_allocation_count,
+        allocation_telemetry_before.resource_operational_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_history_allocation_count,
+        allocation_telemetry_before.resource_retained_history_allocation_count
+    );
 }
 
 #[test]
@@ -1935,6 +2474,7 @@ fn resource_runtime_summary_read_report_is_zero_cold_reconstruction() {
         .telemetry()
         .resource
         .resource_diagnostics_expansion_count;
+    let allocation_telemetry_before = runtime.telemetry().resource;
     let report = runtime.resource_runtime_summary_read_report();
 
     assert_eq!(
@@ -1945,6 +2485,10 @@ fn resource_runtime_summary_read_report_is_zero_cold_reconstruction() {
         report.performance().cost_posture(),
         ResourceCostPosture::Verified
     );
+    assert_eq!(report.performance().operational_allocation_count(), 0);
+    assert_eq!(report.performance().retained_history_allocation_count(), 0);
+    assert_eq!(report.performance().diagnostics_allocation_count(), 0);
+    assert_eq!(report.performance().facade_report_allocation_count(), 1);
     assert_eq!(report.performance().broad_scan_denial_count(), 0);
     assert_eq!(report.summary(), runtime.resource_runtime_summary());
     assert_eq!(
@@ -1975,6 +2519,35 @@ fn resource_runtime_summary_read_report_is_zero_cold_reconstruction() {
             .resource_diagnostics_cold_reconstruction_count,
         0
     );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_operational_allocation_count,
+        allocation_telemetry_before.resource_operational_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_history_allocation_count,
+        allocation_telemetry_before.resource_retained_history_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_allocation_count,
+        allocation_telemetry_before.resource_diagnostics_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_facade_report_allocation_count
+            - allocation_telemetry_before.resource_facade_report_allocation_count,
+        1
+    );
 }
 
 #[test]
@@ -1985,6 +2558,7 @@ fn resource_diagnostics_summary_respects_cold_reconstruction_budget() {
     runtime
         .declare_resource_node(resource_declaration(node))
         .expect("resource declaration should lower");
+    let allocation_telemetry_before = runtime.telemetry().resource;
 
     let err = runtime
         .try_resource_diagnostics_summary(
@@ -2006,6 +2580,10 @@ fn resource_diagnostics_summary_respects_cold_reconstruction_budget() {
         err.performance().cost_posture(),
         ResourceCostPosture::DeniedFallback
     );
+    assert_eq!(err.performance().operational_allocation_count(), 0);
+    assert_eq!(err.performance().retained_history_allocation_count(), 0);
+    assert_eq!(err.performance().diagnostics_allocation_count(), 0);
+    assert_eq!(err.performance().facade_report_allocation_count(), 1);
     assert_eq!(
         runtime
             .telemetry()
@@ -2034,7 +2612,37 @@ fn resource_diagnostics_summary_respects_cold_reconstruction_budget() {
             .resource_boundary_performance_envelope_count,
         2
     );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_operational_allocation_count,
+        allocation_telemetry_before.resource_operational_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_history_allocation_count,
+        allocation_telemetry_before.resource_retained_history_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_allocation_count,
+        allocation_telemetry_before.resource_diagnostics_allocation_count
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_facade_report_allocation_count
+            - allocation_telemetry_before.resource_facade_report_allocation_count,
+        1
+    );
 
+    let allocation_telemetry_before_admission = runtime.telemetry().resource;
     let admitted = runtime
         .try_resource_diagnostics_summary(
             ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(2),
@@ -2046,11 +2654,34 @@ fn resource_diagnostics_summary_respects_cold_reconstruction_budget() {
         ResourceBoundaryKind::DiagnosticsExpansion
     );
     assert_eq!(
+        admitted
+            .expansion_budget()
+            .max_replay_reconstruction_width(),
+        2
+    );
+    assert_eq!(
         runtime
             .telemetry()
             .resource
             .resource_replay_reconstruction_count,
         1
+    );
+    assert_eq!(admitted.performance().diagnostics_allocation_count(), 2);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_diagnostics_allocation_count
+            - allocation_telemetry_before_admission.resource_diagnostics_allocation_count,
+        4
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_facade_report_allocation_count
+            - allocation_telemetry_before_admission.resource_facade_report_allocation_count,
+        2
     );
 }
 
@@ -2096,6 +2727,37 @@ fn resource_diagnostics_summary_digest_tracks_retained_denial_drift() {
         right.replay_reconstruction().denied_completion_digest()
     );
     assert_eq!(left.runtime_summary(), right.runtime_summary());
+}
+
+#[test]
+fn resource_diagnostics_summary_digest_tracks_expansion_budget() {
+    let strict = resource_diagnostics_summary_for_budget(
+        ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(2),
+    );
+    let loose = resource_diagnostics_summary_for_budget(
+        ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(8),
+    );
+
+    assert_ne!(strict.provenance_digest(), loose.provenance_digest());
+    assert_eq!(
+        strict.replay_reconstruction().replay_digest(),
+        loose.replay_reconstruction().replay_digest()
+    );
+    assert_eq!(strict.runtime_summary(), loose.runtime_summary());
+}
+
+fn resource_diagnostics_summary_for_budget(
+    budget: ResourceDiagnosticsExpansionBudget,
+) -> ResourceDiagnosticsSummary {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    runtime
+        .try_resource_diagnostics_summary(budget)
+        .expect("budget should admit descriptor plus lifecycle reconstruction")
 }
 
 fn resource_diagnostics_summary_for_unknown_completion(
@@ -2167,6 +2829,10 @@ fn resource_completion_admission_accepts_matching_active_request_without_committ
     assert_eq!(report.performance().admitted_count(), 1);
     assert_eq!(report.performance().denied_count(), 0);
     assert_eq!(report.performance().lifecycle_transition_count(), 1);
+    assert_eq!(
+        report.performance().density_strategy(),
+        ResourceDensityStrategy::SparseIndexedLookup
+    );
     let completion = report
         .admitted_completion()
         .expect("matching envelope should admit");
@@ -2563,6 +3229,281 @@ fn resource_completion_transaction_rollback_suppresses_observation_and_restores_
 }
 
 #[test]
+fn resource_lifecycle_retention_compaction_moves_terminal_records_out_of_hot_lookup() {
+    let mut graph = SignalGraph::new();
+    let cancelled_node = graph.node().build();
+    let fulfilled_node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(cancelled_node))
+        .expect("cancelled resource declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(fulfilled_node))
+        .expect("fulfilled resource declaration should lower");
+    let cancelled = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancelled_node,
+        )))
+        .expect("cancelled request should admit")
+        .admitted_request();
+    let fulfilled = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            fulfilled_node,
+        )))
+        .expect("fulfilled request should admit")
+        .admitted_request();
+    runtime
+        .cancel_resource_request(
+            cancelled.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should admit");
+    let admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            fulfilled_node,
+            fulfilled.handle(),
+            fulfilled.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("completion should admit");
+    let staged = runtime
+        .stage_admitted_resource_completion(admitted_completion)
+        .expect("completion should stage")
+        .staged_effect();
+    runtime
+        .commit_staged_resource_completion(staged)
+        .expect("completion should commit");
+    assert_eq!(
+        runtime.resource_runtime_summary().in_flight_request_count(),
+        2
+    );
+    assert_eq!(
+        runtime
+            .resource_runtime_summary()
+            .retained_lifecycle_history_count(),
+        0
+    );
+
+    let report = runtime.compact_resource_lifecycle_history(1);
+
+    assert_eq!(
+        report.performance().boundary(),
+        ResourceBoundaryKind::LifecycleRetentionCompaction
+    );
+    assert_eq!(report.selected_terminal_count(), 1);
+    assert_eq!(report.reclaimed_in_flight_count(), 1);
+    assert_eq!(report.retained_history_write_count(), 1);
+    assert_eq!(report.retained_history_pruned_count(), 0);
+    assert_eq!(report.retained_history_width(), 1);
+    assert_eq!(report.hot_in_flight_width(), 1);
+    assert_eq!(report.performance().input_width(), 1);
+    assert_eq!(report.performance().admitted_count(), 1);
+    assert_eq!(report.performance().retained_history_allocation_count(), 1);
+    assert!(runtime
+        .in_flight_resource_request(cancelled.handle())
+        .is_none());
+    assert!(runtime
+        .in_flight_resource_request(fulfilled.handle())
+        .is_some());
+    assert_eq!(
+        runtime.resource_runtime_summary().in_flight_request_count(),
+        1
+    );
+    assert_eq!(
+        runtime
+            .resource_runtime_summary()
+            .retained_lifecycle_history_count(),
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_hot_in_flight_compaction_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_in_flight_reclaimed_record_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_lifecycle_history_write_count,
+        1
+    );
+}
+
+#[test]
+fn resource_lifecycle_retention_compaction_prunes_retained_history_by_explicit_limit() {
+    let mut graph = SignalGraph::new();
+    let first_node = graph.node().build();
+    let second_node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(first_node))
+        .expect("first resource declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(second_node))
+        .expect("second resource declaration should lower");
+    let first = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            first_node,
+        )))
+        .expect("first request should admit")
+        .admitted_request();
+    let second = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            second_node,
+        )))
+        .expect("second request should admit")
+        .admitted_request();
+    runtime
+        .cancel_resource_request(first.handle(), ResourceCancellationReason::HostRequested)
+        .expect("first cancellation should admit");
+    runtime
+        .cancel_resource_request(second.handle(), ResourceCancellationReason::HostRequested)
+        .expect("second cancellation should admit");
+
+    let report = runtime.compact_resource_lifecycle_history_with_retained_limit(2, 1);
+
+    assert_eq!(report.selected_terminal_count(), 2);
+    assert_eq!(report.reclaimed_in_flight_count(), 2);
+    assert_eq!(report.retained_history_write_count(), 2);
+    assert_eq!(report.retained_history_pruned_count(), 1);
+    assert_eq!(report.retained_history_width(), 1);
+    assert_eq!(report.hot_in_flight_width(), 0);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_lifecycle_history_pruned_count,
+        1
+    );
+    let denied = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            first_node,
+            first.handle(),
+            first.attempt(),
+            64,
+        ))
+        .denied_completion()
+        .expect("pruned retained history completion should deny explicitly");
+    assert_eq!(
+        denied.class(),
+        CompletionDenialClass::RetainedHistoryUnavailable
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_retained_history_unavailable_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_unknown_request_completion_denial_count,
+        0
+    );
+}
+
+#[test]
+fn resource_branch_restore_accounts_for_retained_lifecycle_history_width() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    runtime
+        .cancel_resource_request(admitted.handle(), ResourceCancellationReason::HostRequested)
+        .expect("cancellation should admit");
+    let compaction = runtime.compact_resource_lifecycle_history(1);
+    assert_eq!(compaction.retained_history_width(), 1);
+    let snapshot = runtime.capture_snapshot();
+
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("post-snapshot request should mutate resource state");
+    runtime
+        .restore_snapshot(&snapshot)
+        .expect("restore should reinstate retained lifecycle history");
+    let restore = runtime
+        .latest_resource_branch_restore_report()
+        .expect("restore should publish resource branch evidence");
+
+    assert_eq!(restore.restored_in_flight_width(), 0);
+    assert_eq!(restore.retained_summary_width(), 2);
+    assert_eq!(restore.performance().input_width(), 2);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_branch_restore_retained_summary_width,
+        2
+    );
+}
+
+#[test]
+fn resource_lifecycle_retention_compaction_preserves_late_completion_denial_class() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    runtime
+        .cancel_resource_request(admitted.handle(), ResourceCancellationReason::HostRequested)
+        .expect("cancellation should admit");
+    let report = runtime.compact_resource_lifecycle_history(1);
+    assert_eq!(report.reclaimed_in_flight_count(), 1);
+
+    let late = runtime.admit_resource_completion(raw_completion(
+        &runtime,
+        node,
+        admitted.handle(),
+        admitted.attempt(),
+        64,
+    ));
+
+    let denied = late
+        .denied_completion()
+        .expect("late compacted cancelled completion should deny");
+    assert_eq!(denied.class(), CompletionDenialClass::Cancelled);
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_cancelled_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_unknown_request_completion_denial_count,
+        0
+    );
+}
+
+#[test]
 fn resource_completion_duplicate_after_commit_is_retired_without_second_commit() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -2763,6 +3704,10 @@ fn resource_completion_batch_admission_canonicalizes_out_of_order_inputs() {
     assert_eq!(report.performance().admitted_count(), 2);
     assert_eq!(report.performance().denied_count(), 0);
     assert_eq!(
+        report.performance().density_strategy(),
+        ResourceDensityStrategy::BurstySortedDeduplicated
+    );
+    assert_eq!(
         runtime
             .telemetry()
             .resource
@@ -2782,6 +3727,81 @@ fn resource_completion_batch_admission_canonicalizes_out_of_order_inputs() {
             .resource
             .resource_boundary_performance_envelope_count,
         boundary_envelopes_before + 1
+    );
+}
+
+#[test]
+fn resource_completion_batch_admission_reports_dense_strategy_without_truth_drift() {
+    let mut graph = SignalGraph::new();
+    let nodes = [
+        graph.node().build(),
+        graph.node().build(),
+        graph.node().build(),
+        graph.node().build(),
+    ];
+    let mut runtime = TestRuntime::build(graph);
+    for node in nodes {
+        runtime
+            .declare_resource_node(resource_declaration(node))
+            .expect("resource declaration should lower");
+    }
+    let admitted = nodes.map(|node| {
+        runtime
+            .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+            .expect("request should admit")
+            .admitted_request()
+    });
+    let mut completions = admitted
+        .iter()
+        .zip(nodes)
+        .map(|(request, node)| {
+            raw_completion(&runtime, node, request.handle(), request.attempt(), 64)
+        })
+        .collect::<Vec<_>>();
+    completions.reverse();
+    let density_before = runtime
+        .telemetry()
+        .resource
+        .resource_density_strategy_selection_count;
+    let dense_before = runtime
+        .telemetry()
+        .resource
+        .resource_dense_density_strategy_count;
+
+    let report = runtime.admit_resource_completion_batch(completions);
+
+    assert_eq!(report.input_width(), 4);
+    assert_eq!(report.deduplicated_width(), 4);
+    assert_eq!(report.admitted_completions().len(), 4);
+    assert!(report.denied_completions().is_empty());
+    assert_eq!(
+        report.performance().density_strategy(),
+        ResourceDensityStrategy::DenseSortedDeduplicated
+    );
+    assert_eq!(
+        report
+            .admitted_completions()
+            .iter()
+            .map(|completion| completion.handle())
+            .collect::<Vec<_>>(),
+        admitted
+            .iter()
+            .map(|request| request.handle())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_density_strategy_selection_count,
+        density_before + 1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_dense_density_strategy_count,
+        dense_before + 1
     );
 }
 
@@ -2827,6 +3847,10 @@ fn resource_completion_batch_admission_denies_in_batch_duplicate_without_second_
     assert_eq!(report.performance().input_width(), 2);
     assert_eq!(report.performance().admitted_count(), 1);
     assert_eq!(report.performance().denied_count(), 1);
+    assert_eq!(
+        report.performance().density_strategy(),
+        ResourceDensityStrategy::BurstySortedDeduplicated
+    );
     assert_eq!(
         runtime
             .telemetry()

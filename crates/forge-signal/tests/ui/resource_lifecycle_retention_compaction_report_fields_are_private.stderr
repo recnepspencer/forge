@@ -1,0 +1,19 @@
+error[E0451]: fields `selected_terminal_count`, `reclaimed_in_flight_count`, `retained_history_write_count`, `retained_history_pruned_count`, `retained_history_width`, `hot_in_flight_width` and `performance` of struct `ResourceLifecycleRetentionCompactionReport` are private
+  --> tests/ui/resource_lifecycle_retention_compaction_report_fields_are_private.rs:11:9
+   |
+10 |     let _forged = ResourceLifecycleRetentionCompactionReport {
+   |                   ------------------------------------------ in this type
+11 |         selected_terminal_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         reclaimed_in_flight_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         retained_history_write_count: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         retained_history_pruned_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         retained_history_width: 1,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         hot_in_flight_width: 0,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+17 |         performance: forged_performance(),
+   |         ^^^^^^^^^^^ private field

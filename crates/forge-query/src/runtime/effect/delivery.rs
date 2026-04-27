@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use serde_json::Value;
 
+use super::super::ForgeQueryEffectPolicy;
 use super::super::{ForgeQueryAuthorityLane, ForgeQueryEffectAction};
 use super::declaration::{
     ForgeQueryEffectDeclaration, ForgeQueryEffectSuppressionPolicy,
@@ -54,6 +55,7 @@ pub struct ForgeQueryEffectDelivery {
     target: String,
     action: ForgeQueryEffectAction,
     authority_lane: ForgeQueryAuthorityLane,
+    effect_policy: ForgeQueryEffectPolicy,
     aspect_paths: Vec<String>,
     family: ForgeQueryEffectDeliveryFamily,
     suppression_policy: ForgeQueryEffectSuppressionPolicy,
@@ -78,6 +80,7 @@ impl ForgeQueryEffectDelivery {
             target: declaration.target().to_string(),
             action: declaration.action(),
             authority_lane: declaration.target_lane(),
+            effect_policy: declaration.effect_policy(),
             aspect_paths,
             family: ForgeQueryEffectDeliveryFamily::Delivered,
             suppression_policy: declaration.suppression_policy(),
@@ -102,6 +105,7 @@ impl ForgeQueryEffectDelivery {
             target: declaration.target().to_string(),
             action: declaration.action(),
             authority_lane: declaration.target_lane(),
+            effect_policy: declaration.effect_policy(),
             aspect_paths,
             family: ForgeQueryEffectDeliveryFamily::PendingWriteIntent,
             suppression_policy: declaration.suppression_policy(),
@@ -128,6 +132,7 @@ impl ForgeQueryEffectDelivery {
             target: declaration.target().to_string(),
             action: declaration.action(),
             authority_lane: declaration.target_lane(),
+            effect_policy: declaration.effect_policy(),
             aspect_paths: Vec::new(),
             family: ForgeQueryEffectDeliveryFamily::Suppressed,
             suppression_policy: declaration.suppression_policy(),
@@ -152,6 +157,7 @@ impl ForgeQueryEffectDelivery {
             target: declaration.target().to_string(),
             action: declaration.action(),
             authority_lane: declaration.target_lane(),
+            effect_policy: declaration.effect_policy(),
             aspect_paths,
             family: ForgeQueryEffectDeliveryFamily::ExpressionFailed,
             suppression_policy: declaration.suppression_policy(),
@@ -180,6 +186,9 @@ impl ForgeQueryEffectDelivery {
     }
     pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
         self.authority_lane
+    }
+    pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
+        self.effect_policy
     }
     pub fn aspect_paths(&self) -> &[String] {
         &self.aspect_paths

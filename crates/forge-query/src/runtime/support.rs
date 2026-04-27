@@ -15,6 +15,28 @@ impl ForgeQueryRuntimeEvidenceAuthority {
 
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum ForgeQueryRuntimeBackendPosture {
+    Primary,
+    Compatibility,
+}
+
+impl ForgeQueryRuntimeBackendPosture {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Primary => "primary",
+            Self::Compatibility => "compatibility",
+        }
+    }
+}
+
+impl std::fmt::Display for ForgeQueryRuntimeBackendPosture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryRuntimeFacadeFamily {
     Read,
     Live,
@@ -134,12 +156,14 @@ impl ForgeQueryRuntimeFamilySupport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeSupportProfile {
+    posture: ForgeQueryRuntimeBackendPosture,
     rows: BTreeMap<ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport>,
 }
 
 impl ForgeQueryRuntimeSupportProfile {
     pub fn new(rows: impl IntoIterator<Item = ForgeQueryRuntimeFamilySupport>) -> Self {
         Self {
+            posture: ForgeQueryRuntimeBackendPosture::Primary,
             rows: rows.into_iter().map(|row| (row.family(), row)).collect(),
         }
     }
@@ -199,14 +223,17 @@ impl ForgeQueryRuntimeSupportProfile {
                 ForgeQueryRuntimeFacadeFamily::Inspect,
                 [
                     ForgeQueryAuthorityLane::AuthoritativeTruth,
+                    ForgeQueryAuthorityLane::BranchLocalTruth,
                     ForgeQueryAuthorityLane::DerivedRuntimeState,
                     ForgeQueryAuthorityLane::EffectDeliveryState,
+                    ForgeQueryAuthorityLane::PendingWriteIntent,
                     ForgeQueryAuthorityLane::PreviewTruth,
                 ],
                 [],
                 ["retained-runtime-artifact-inspection"],
             ),
         ])
+        .with_posture(ForgeQueryRuntimeBackendPosture::Compatibility)
     }
 
     pub fn bridge_backed(
@@ -249,8 +276,10 @@ impl ForgeQueryRuntimeSupportProfile {
                 ForgeQueryRuntimeFacadeFamily::Inspect,
                 [
                     ForgeQueryAuthorityLane::AuthoritativeTruth,
+                    ForgeQueryAuthorityLane::BranchLocalTruth,
                     ForgeQueryAuthorityLane::DerivedRuntimeState,
                     ForgeQueryAuthorityLane::EffectDeliveryState,
+                    ForgeQueryAuthorityLane::PendingWriteIntent,
                     ForgeQueryAuthorityLane::PreviewTruth,
                 ],
                 [],
@@ -259,6 +288,7 @@ impl ForgeQueryRuntimeSupportProfile {
                     inspector_evidence,
                 ],
             ))
+            .with_posture(ForgeQueryRuntimeBackendPosture::Primary)
     }
 
     pub fn support_for(
@@ -266,6 +296,15 @@ impl ForgeQueryRuntimeSupportProfile {
         family: ForgeQueryRuntimeFacadeFamily,
     ) -> Option<&ForgeQueryRuntimeFamilySupport> {
         self.rows.get(&family)
+    }
+
+    pub fn posture(&self) -> ForgeQueryRuntimeBackendPosture {
+        self.posture
+    }
+
+    pub fn with_posture(mut self, posture: ForgeQueryRuntimeBackendPosture) -> Self {
+        self.posture = posture;
+        self
     }
 
     pub fn with_family_support(mut self, row: ForgeQueryRuntimeFamilySupport) -> Self {
@@ -372,6 +411,46 @@ impl ForgeQueryPreviewBasisAdmission {
             label: label.into(),
             effect_policy,
             authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
+            evidence: evidence.into_iter().map(Into::into).collect(),
+        }
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {
+        self.effect_policy
+    }
+
+    pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
+        self.authority_lane
+    }
+
+    pub fn evidence(&self) -> &[String] {
+        &self.evidence
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryBranchBasisAdmission {
+    label: String,
+    effect_policy: ForgeQueryEffectPolicy,
+    authority_lane: ForgeQueryAuthorityLane,
+    evidence: Vec<String>,
+}
+
+impl ForgeQueryBranchBasisAdmission {
+    pub fn new(
+        _authority: &ForgeQueryRuntimeEvidenceAuthority,
+        label: impl Into<String>,
+        effect_policy: ForgeQueryEffectPolicy,
+        evidence: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        Self {
+            label: label.into(),
+            effect_policy,
+            authority_lane: ForgeQueryAuthorityLane::BranchLocalTruth,
             evidence: evidence.into_iter().map(Into::into).collect(),
         }
     }

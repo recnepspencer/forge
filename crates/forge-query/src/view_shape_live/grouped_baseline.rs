@@ -4,6 +4,7 @@ use crate::view_shape::{ViewShapePlanArtifact, ViewShapePlanDigest};
 
 use super::counters::ViewShapeLiveCounters;
 use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
+#[cfg(test)]
 use super::grouped_execution::GroupedExecutionSurfaceArtifact;
 use super::grouped_state::{desired_state_from_members, GroupedDesiredStateArtifact};
 
@@ -28,6 +29,7 @@ impl AuthoritativeGroupedBaselineArtifact {
     }
 }
 
+#[cfg(test)]
 pub fn materialize_authoritative_grouped_baseline(
     plan: &ViewShapePlanArtifact,
     basis: ResolvedSnapshotBasis,

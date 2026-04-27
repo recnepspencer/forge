@@ -1,0 +1,46 @@
+error: cannot construct `ForgeQueryEffectIntentReceiptInspection` with struct literal syntax due to private fields
+  --> tests/ui/runtime_effect_intent_receipt_inspection_constructor_private.rs:7:13
+   |
+ 7 |     let _ = ForgeQueryEffectIntentReceiptInspection {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         effect_name: String::new(),
+   |         -------------------------- private field
+ 9 |         trigger_commit_identity: String::new(),
+   |         -------------------------------------- private field
+10 |         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
+   |         ------------------------------------------------------------------------------------- private field
+11 |         pending_intent_target: String::new(),
+   |         ------------------------------------ private field
+12 |         source_lane: ForgeQueryIntentSourceLane::EffectTriggered,
+   |         -------------------------------------------------------- private field
+13 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         -------------------------------------------------------- private field
+14 |         effect_policy: ForgeQueryEffectPolicy::AuthoritativeAllowed,
+   |         ----------------------------------------------------------- private field
+15 |         phase_digest: String::new(),
+   |         --------------------------- private field
+16 |         intent_receipt_digest: String::new(),
+   |         ------------------------------------ private field
+17 |         receipt_digest: String::new(),
+   |         ----------------------------- private field
+18 |         inspection_digest: String::new(),
+   |         -------------------------------- private field
+   |
+   = note: ...and other private field `feedback_graph` that was not provided
+help: you might have meant to use the `from_receipt` associated function
+   |
+ 7 -     let _ = ForgeQueryEffectIntentReceiptInspection {
+ 8 -         effect_name: String::new(),
+ 9 -         trigger_commit_identity: String::new(),
+10 -         trigger_source_kind: forge_query::facade::ForgeQueryEffectTriggerSourceKind::LiveView,
+11 -         pending_intent_target: String::new(),
+12 -         source_lane: ForgeQueryIntentSourceLane::EffectTriggered,
+13 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+14 -         effect_policy: ForgeQueryEffectPolicy::AuthoritativeAllowed,
+15 -         phase_digest: String::new(),
+16 -         intent_receipt_digest: String::new(),
+17 -         receipt_digest: String::new(),
+18 -         inspection_digest: String::new(),
+19 -     };
+ 7 +     let _ = ForgeQueryEffectIntentReceiptInspection::from_receipt(_);
+   |

@@ -21,7 +21,17 @@ fn main() {
         suppression_policy: ForgeQueryEffectSuppressionPolicy::None,
         counters: ForgeQueryEffectCounters::default(),
         pending_delivery_count: 0,
+        pending_delivered_count: 0,
+        pending_suppressed_count: 0,
+        pending_expression_failure_count: 0,
         pending_write_intent_count: 0,
+        latest_delivery_family: None,
         latest_phase_evidence: None,
+        trigger_digest: String::new(),
+        condition_digest: String::new(),
+        declaration_digest: String::new(),
+        pending_delivery_digest: String::new(),
+        latest_phase_digest: None,
+        inspection_digest: String::new(),
     };
 }

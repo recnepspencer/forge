@@ -10,12 +10,13 @@ use crate::data::resource::{
     ResourceCompletionCommitReport, ResourceCompletionDenialStagingReport,
     ResourceCompletionRollbackReport, ResourceCompletionStagingReport, ResourceDeclarationReport,
     ResourceDiagnosticsExpansionBudget, ResourceDiagnosticsExpansionDenial,
-    ResourceDiagnosticsSummary, ResourceNodeDeclaration, ResourceNodeId,
-    ResourceReplayReconstructionReport, ResourceRequestAdmissionReport, ResourceRequestHandle,
-    ResourceRequestIntent, ResourceRetryAdmissionReport, ResourceRetryReason,
-    ResourceRetryScheduleReport, ResourceRevalidationIntent, ResourceRevalidationReport,
-    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceTimeoutPolicyDeclaration,
-    ResourceTimeoutReport, StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
+    ResourceDiagnosticsSummary, ResourceLifecycleRetentionCompactionReport,
+    ResourceNodeDeclaration, ResourceNodeId, ResourceReplayReconstructionReport,
+    ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestIntent,
+    ResourceRetryAdmissionReport, ResourceRetryReason, ResourceRetryScheduleReport,
+    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
+    ResourceRuntimeSummaryReadReport, ResourceTimeoutPolicyDeclaration, ResourceTimeoutReport,
+    StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
 };
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::data::temporal::{
@@ -723,6 +724,26 @@ where
             .summary_read_report(&mut self.telemetry.resource)
     }
 
+    pub fn compact_resource_lifecycle_history(
+        &mut self,
+        max_reclaimed: u32,
+    ) -> ResourceLifecycleRetentionCompactionReport {
+        self.resource
+            .compact_lifecycle_history(max_reclaimed, &mut self.telemetry.resource)
+    }
+
+    pub fn compact_resource_lifecycle_history_with_retained_limit(
+        &mut self,
+        max_reclaimed: u32,
+        retained_history_limit: u32,
+    ) -> ResourceLifecycleRetentionCompactionReport {
+        self.resource.compact_lifecycle_history_with_retained_limit(
+            max_reclaimed,
+            Some(retained_history_limit),
+            &mut self.telemetry.resource,
+        )
+    }
+
     pub fn resource_descriptor_for_node(
         &self,
         node: ResourceNodeId,
@@ -779,7 +800,7 @@ where
                 .max(performance.input_width() as u64);
             self.telemetry
                 .resource
-                .resource_boundary_performance_envelope_count += 1;
+                .record_boundary_performance_envelope(performance);
             return Err(ResourceDiagnosticsExpansionDenial::new(
                 class,
                 budget,
@@ -811,11 +832,12 @@ where
             .resource_diagnostics_cold_reconstruction_count += 1;
         self.telemetry
             .resource
-            .resource_boundary_performance_envelope_count += 1;
+            .record_boundary_performance_envelope(performance);
         Ok(ResourceDiagnosticsSummary::new(
             runtime_summary,
             latest_branch_restore_report,
             replay_reconstruction,
+            budget,
             performance,
         ))
     }

@@ -7,6 +7,7 @@ pub(in crate::runtime) struct ForgeQueryEffectRuntime {
     pub(in crate::runtime::effect) declaration: ForgeQueryEffectDeclaration,
     pub(in crate::runtime) deliveries: Vec<ForgeQueryEffectDelivery>,
     pub(in crate::runtime::effect) counters: ForgeQueryEffectCounters,
+    pub(in crate::runtime) latest_delivery: Option<ForgeQueryEffectDelivery>,
 }
 impl ForgeQueryEffectRuntime {
     pub(in crate::runtime::effect) fn new(declaration: ForgeQueryEffectDeclaration) -> Self {
@@ -14,7 +15,32 @@ impl ForgeQueryEffectRuntime {
             declaration,
             deliveries: Vec::new(),
             counters: ForgeQueryEffectCounters::default(),
+            latest_delivery: None,
         }
+    }
+
+    pub(in crate::runtime) fn name(&self) -> &str {
+        self.declaration.name()
+    }
+
+    pub(in crate::runtime) fn effect_policy(&self) -> super::super::ForgeQueryEffectPolicy {
+        self.declaration.effect_policy()
+    }
+
+    pub(in crate::runtime) fn pending_write_intent_count(&self) -> usize {
+        self.counters.pending_write_intents()
+    }
+
+    pub(in crate::runtime::effect) fn record_delivery(
+        &mut self,
+        delivery: ForgeQueryEffectDelivery,
+    ) {
+        self.latest_delivery = Some(delivery.clone());
+        self.deliveries.push(delivery);
+    }
+
+    pub(in crate::runtime) fn latest_delivery(&self) -> Option<&ForgeQueryEffectDelivery> {
+        self.latest_delivery.as_ref()
     }
 }
 #[derive(Default)]
