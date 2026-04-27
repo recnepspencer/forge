@@ -81,6 +81,92 @@ fn runtime_support_profiles_expose_facade_family_posture() {
 }
 
 #[test]
+fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
+    let runtime = task_runtime();
+    let contract = runtime.public_api_contract();
+
+    assert_eq!(
+        contract.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(contract.deferred_family_count(), 5);
+    assert!(!contract.contract_digest().is_empty());
+
+    for (family, expected_reason) in [
+        (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
+        (
+            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            "Milestone 9.5",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+            "Milestone 9.6",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+            "Milestone 10",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
+            "Milestone 11",
+        ),
+    ] {
+        let row = contract
+            .family(family)
+            .expect("future support gate row should exist");
+        assert_eq!(
+            row.status(),
+            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        );
+        assert!(
+            row.reason()
+                .is_some_and(|reason| reason.contains(expected_reason)),
+            "deferred row for {family:?} must name its owning milestone"
+        );
+        assert!(row.authority_lanes().is_empty());
+        assert!(
+            row.evidence().is_empty(),
+            "deferred future gates must not pretend runtime evidence exists"
+        );
+    }
+}
+
+#[test]
+fn runtime_state_snapshot_is_digest_bound_to_basis_shape_lane_and_state() {
+    let ready = ForgeQueryRuntimeStateSnapshot::ready(
+        "basis:current",
+        "shape:table",
+        ForgeQueryAuthorityLane::AuthoritativeTruth,
+        "sync runtime-backed rows are ready",
+    );
+    let pending = ForgeQueryRuntimeStateSnapshot::deferred(
+        ForgeQueryRuntimeStateKind::Pending,
+        "basis:current",
+        "shape:table",
+        ForgeQueryAuthorityLane::BridgeExternalState,
+        "async/resource family is deferred",
+    );
+
+    assert_eq!(ready.kind(), ForgeQueryRuntimeStateKind::Ready);
+    assert_eq!(ready.basis_digest(), "basis:current");
+    assert_eq!(ready.result_shape_digest(), "shape:table");
+    assert_eq!(
+        ready.authority_lane(),
+        ForgeQueryAuthorityLane::AuthoritativeTruth
+    );
+    assert_eq!(pending.kind(), ForgeQueryRuntimeStateKind::Pending);
+    assert_eq!(
+        pending.authority_lane(),
+        ForgeQueryAuthorityLane::BridgeExternalState
+    );
+    assert_ne!(ready.state_digest(), pending.state_digest());
+    assert!(
+        pending.explanation().contains("deferred"),
+        "pending/deferred state must carry a localizable explanation"
+    );
+}
+
+#[test]
 fn compatibility_memory_backend_constructor_is_explicit_and_runtime_builder_matches_it() {
     let backend = ForgeQueryMemoryApp::compatibility_backend([ForgeQueryCollection::new(
         "Task",

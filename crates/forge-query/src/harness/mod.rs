@@ -55,6 +55,8 @@ mod region_live_certification;
 #[cfg(test)]
 mod reporting;
 #[cfg(test)]
+mod runtime_api_stabilization;
+#[cfg(test)]
 mod semantics;
 #[cfg(test)]
 mod typed;

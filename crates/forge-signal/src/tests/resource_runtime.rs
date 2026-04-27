@@ -2,6 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use crate::facade::*;
 
+use super::resource_closeout_assertions::{
+    assert_hostile_evidence_shape, assert_performance_closeout_claim_shape,
+    required_hostile_evidence_row, required_performance_claim_row, required_scenario_row,
+};
+
 type TestRuntime = SignalRuntime<(), (), (), (), ()>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1891,102 +1896,70 @@ fn resource_milestone_b_certification_run_requires_complete_passing_bundle() {
         performance_closeout.rows().len(),
         REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len()
     );
-    assert!(REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS
-        .iter()
-        .all(|scenario| scenario_matrix
-            .rows()
-            .iter()
-            .any(|row| row.id() == *scenario
-                && row.certification_family() == scenario.certification_family()
-                && row.completion_denial_class() == scenario.completion_denial_class()
-                && row.passed())));
-    assert!(REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS
-        .iter()
-        .all(|scenario| scenario_matrix
-            .rows()
-            .iter()
-            .any(|row| row.id() == *scenario
-                && row.evidence_kind()
-                    == ResourceMilestoneBScenarioEvidenceKind::HostileCompletionDenial
-                && row.completion_denial_class() == scenario.completion_denial_class()
-                && row.certification_family().is_none()
-                && row.passed())));
-    assert!(REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS
-        .iter()
-        .all(|claim| performance_closeout
-            .rows()
-            .iter()
-            .any(|row| row.id() == *claim && row.passed() && !row.evidence_digest().is_empty())));
-    let replay_claim = performance_closeout
-        .rows()
-        .iter()
-        .find(|row| {
-            row.id() == ResourceMilestoneBPerformanceClaimId::LifecycleReplayParityDebtBounded
-        })
-        .expect("replay performance claim should be present");
     assert_eq!(
-        replay_claim.performance().boundary(),
-        ResourceBoundaryKind::ReplayReconstruction
+        scenario_matrix.summary().required_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS.len() as u32
     );
     assert_eq!(
-        replay_claim.performance().cost_posture(),
-        ResourceCostPosture::Debt
+        scenario_matrix.summary().certified_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS.len() as u32
+    );
+    assert_eq!(scenario_matrix.summary().failed_scenario_count(), 0);
+    assert_eq!(
+        scenario_matrix.summary().bundle_digest(),
+        complete.bundle_digest()
     );
     assert_eq!(
-        replay_claim.performance().diagnostics_allocation_count(),
-        replay_claim.performance().input_width()
-    );
-    let supersession_claim = performance_closeout
-        .rows()
-        .iter()
-        .find(|row| {
-            row.id() == ResourceMilestoneBPerformanceClaimId::OutOfOrderSupersessionAdmissionBounded
-        })
-        .expect("supersession performance claim should be present");
-    assert_eq!(
-        supersession_claim.performance().boundary(),
-        ResourceBoundaryKind::RequestAdmission
+        performance_closeout.summary().required_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len() as u32
     );
     assert_eq!(
-        supersession_claim.performance().density_strategy(),
-        ResourceDensityStrategy::BurstySortedDeduplicated
+        performance_closeout.summary().certified_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS.len() as u32
     );
+    assert_eq!(performance_closeout.summary().failed_claim_count(), 0);
     assert_eq!(
-        supersession_claim
-            .performance()
-            .lifecycle_transition_count(),
-        2
+        performance_closeout.summary().scenario_matrix_digest(),
+        scenario_matrix.matrix_digest()
     );
-    let summary_read_claim = performance_closeout
-        .rows()
-        .iter()
-        .find(|row| {
-            row.id()
-                == ResourceMilestoneBPerformanceClaimId::RuntimeSummaryReadZeroColdReconstruction
-        })
-        .expect("summary read claim should be present");
-    assert_eq!(
-        summary_read_claim.performance().boundary(),
-        ResourceBoundaryKind::SummaryRead
-    );
-    assert_eq!(
-        summary_read_claim
-            .performance()
-            .diagnostics_allocation_count(),
-        0
-    );
-    let hostile_claim = performance_closeout
-        .rows()
-        .iter()
-        .find(|row| {
-            row.id() == ResourceMilestoneBPerformanceClaimId::HostileCompletionDenialsScalarBounded
-        })
-        .expect("hostile performance claim should be present");
-    assert_eq!(
-        hostile_claim.performance().denied_count(),
-        REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len() as u32
-    );
-    assert_eq!(hostile_claim.performance().lifecycle_transition_count(), 0);
+
+    for scenario in REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS {
+        let row = required_scenario_row(&scenario_matrix, scenario);
+        assert_eq!(row.certification_family(), scenario.certification_family());
+        assert_eq!(
+            row.completion_denial_class(),
+            scenario.completion_denial_class()
+        );
+        assert!(row.passed());
+        assert!(!row.evidence_digest().is_empty());
+    }
+    for scenario in REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS {
+        let evidence_row = required_hostile_evidence_row(&hostile_evidence, scenario);
+        assert_hostile_evidence_shape(evidence_row);
+
+        let matrix_row = required_scenario_row(&scenario_matrix, scenario);
+        assert_eq!(
+            matrix_row.evidence_kind(),
+            ResourceMilestoneBScenarioEvidenceKind::HostileCompletionDenial
+        );
+        assert_eq!(
+            matrix_row.completion_denial_class(),
+            scenario.completion_denial_class()
+        );
+        assert_eq!(
+            matrix_row.performance(),
+            evidence_row.performance(),
+            "hostile matrix row should preserve the source evidence performance envelope"
+        );
+        assert!(matrix_row.certification_family().is_none());
+        assert!(matrix_row.passed());
+    }
+    for claim in REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS {
+        assert_performance_closeout_claim_shape(required_performance_claim_row(
+            &performance_closeout,
+            claim,
+        ));
+    }
     assert_eq!(
         run.summary().required_family_count(),
         REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len() as u32

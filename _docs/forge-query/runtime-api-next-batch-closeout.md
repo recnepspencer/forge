@@ -221,6 +221,12 @@ The final QA passes specifically corrected these closure risks:
   shortcuts needed explicit shortcut-rejection evidence
 - Forge UI's todo example needed to demonstrate the runtime facade path rather
   than depending on lower-level memory-workspace behavior
+- the test suite needed one adversarial composed runtime surface proving live
+  subscriptions, nested computeds, conditional pending-intent effects,
+  authoritative/effect/branch intents, preview isolation, inspection, and phase
+  feedback together instead of only in separate happy-path rows
+- refresh-fallback computed inspection needed to prove actual fallback posture
+  rather than exercising an incremental maintainer while naming fallback
 
 After those corrections, I do not see a remaining meaningful gap for the
 runtime-backed Batch 1 through Batch 9 scope. Remaining gaps are explicitly
@@ -283,7 +289,7 @@ The closeout state is grounded in:
 - `cargo test -p forge-ui`
 - `git diff --check`
 
-The final full `forge-query` test run passed 756 tests. The final `forge-ui`
+The final full `forge-query` test run passed 757 tests. The final `forge-ui`
 test run passed. `git diff --check` passed with only existing CRLF
 normalization warnings in the working tree.
 
@@ -298,3 +304,10 @@ the runtime owns subscription installation, derived computation, effects,
 branch/preview isolation, intents, delivery, inspection, support metadata, and
 typed denial. When future temporal, async, store-backed, or durable work lands,
 it must extend this proof-bearing facade rather than route around it.
+
+The follow-on stabilization spec is
+[runtime-api-public-stabilization-plan.md](./runtime-api-public-stabilization-plan.md).
+It freezes the final ordinary public API vocabulary, golden DX transcript
+tests, async-safe state model, support gates, and inspection contract before
+Milestones 9.4 through 9.7 extend the surface with temporal and async/resource
+semantics.

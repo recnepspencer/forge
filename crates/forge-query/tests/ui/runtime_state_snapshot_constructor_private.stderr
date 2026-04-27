@@ -1,0 +1,17 @@
+error[E0451]: fields `kind`, `basis_digest`, `result_shape_digest`, `authority_lane`, `explanation` and `state_digest` of struct `ForgeQueryRuntimeStateSnapshot` are private
+  --> tests/ui/runtime_state_snapshot_constructor_private.rs:7:9
+   |
+6 |     let _forged = ForgeQueryRuntimeStateSnapshot {
+   |                   ------------------------------ in this type
+7 |         kind: ForgeQueryRuntimeStateKind::Ready,
+   |         ^^^^ private field
+8 |         basis_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+9 |         result_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^^^^ private field
+11 |         explanation: String::new(),
+   |         ^^^^^^^^^^^ private field
+12 |         state_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field

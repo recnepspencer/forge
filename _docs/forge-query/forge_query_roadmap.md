@@ -186,6 +186,11 @@ cross-feature proof gates before final certification:
   path remains bridge-honest, diagnostically sufficient, and
   certification-ready rather than smuggling capabilities above the bridge or
   host runtime
+- the `Runtime API Public Stabilization Gate` must freeze the ordinary public
+  workspace/handle/state/aspect/effect/intent/inspection contract after the
+  runtime API facade consumes 9.1 through 9.3, so domain runtimes can build now
+  and temporal/async milestones extend the same model later rather than adding
+  parallel APIs
 - `Milestone 9.4` must prove temporal query basis binding and time-aware
   subscription lowering preserve canonical query meaning without making Query
   the owner of clocks, wake scheduling, or signal temporal execution
@@ -216,7 +221,8 @@ Critical path:
   `Milestone 5` -> `Milestone 5.1` -> `Milestone 5.2` -> `Milestone 5.3` ->
   `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
   `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
-  `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.4` ->
+  `Milestone 9.2` -> `Milestone 9.3` ->
+  `Runtime API Public Stabilization Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
   `Milestone 10` -> `Milestone 11` -> `Milestone 12` -> `Milestone 13`
 
@@ -256,6 +262,11 @@ Store-gated completion tracks:
   parity, and certification first, but any claims about durable subscription
   replay or store-backed restart parity must remain explicit debt until
   `Milestone 10` and `Milestone 11` close
+- the `Runtime API Public Stabilization Gate` can freeze the stable
+  runtime-backed public facade, golden DX transcripts, handle/state/aspect
+  contracts, inspection contract, and temporal/async support gates without
+  implementing temporal/async behavior; any temporal, async, store-backed, or
+  durable behavior remains deferred to its owning milestone
 - `Milestone 9.4` can ship runtime-backed temporal query basis semantics and
   time-aware subscription lowering first, but durable time-aware replay,
   persisted temporal subscription artifacts, and store-restored clock basis
@@ -2100,6 +2111,59 @@ This milestone is complete only when `forge-query` can prove:
 - diagnostics can distinguish declaration-family changes from ordinary
   lifecycle-instance changes
 
+## Runtime API Public Stabilization Gate
+
+### Goal
+
+Freeze the ordinary public runtime API contract after the runtime facade has
+consumed Milestones 9.1 through 9.3, so downstream domain runtimes can build
+against named surfaces and typed handles now while Milestones 9.4 through 9.7
+later extend the same API model with temporal and async/resource semantics.
+
+### Adversarial Constraint
+
+A serious domain runtime must be able to build workflow, geometry, table, or
+application features against the public Query facade now, without lower-runtime
+plumbing, and without any later temporal/async milestone forcing a parallel API
+or sync-to-async rewrite.
+
+### Specification
+
+The governing stabilization spec is
+[runtime-api-public-stabilization-plan.md](./runtime-api-public-stabilization-plan.md).
+
+### Must Ship
+
+- golden DX transcript tests for workflow, geometry, table, and composed
+  adversarial runtime surfaces
+- final public vocabulary for workspace, durable surfaces, handles, state,
+  aspects, computeds, effects, intents, branch/preview reuse, and inspection
+- support matrix rows distinguishing stable runtime-backed surfaces from
+  deferred temporal/async/store/durable surfaces
+- compile-fail rejection of lower-runtime plumbing and temporal/async pre-claim
+  shortcuts from ordinary public API usage
+
+### Must Preserve
+
+- no domain semantics move into `forge-query`
+- temporal/async behavior remains deferred until Milestones 9.4 through 9.7
+- lower runtimes remain authorities for truth, signal execution, bridge
+  protocol, temporal scheduling, async lifecycle, store parity, and durability
+- later temporal/async milestones extend the stabilized handle/state/aspect
+  contract rather than adding sibling public APIs
+
+### Store Dependency
+
+This gate is not blocked on `forge-store`. It must explicitly mark store-backed
+and durable claims as later milestone debt.
+
+### Acceptance Evidence
+
+This gate is complete only when `forge-query` can prove that the final public
+facade supports the golden DX transcripts through meaningful assertions over
+receipts, lanes, aspects, delivery, residue, support posture, and inspection,
+while unsupported temporal/async neighbors fail typed and early.
+
 ## Milestone 9.4: Temporal Query Basis And Time-Aware Subscriptions
 
 ### Goal
@@ -3098,6 +3162,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 
 - [forge_query_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_vision.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+- [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 - [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 - [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)

@@ -46,6 +46,11 @@ pub enum ForgeQueryRuntimeFacadeFamily {
     Write,
     Intent,
     Inspect,
+    Temporal,
+    AsyncResource,
+    MixedCauseDelivery,
+    StoreBackedExecution,
+    DurableArtifacts,
 }
 
 impl ForgeQueryRuntimeFacadeFamily {
@@ -59,6 +64,11 @@ impl ForgeQueryRuntimeFacadeFamily {
             Self::Write => "write",
             Self::Intent => "intent",
             Self::Inspect => "inspect",
+            Self::Temporal => "temporal",
+            Self::AsyncResource => "async-resource",
+            Self::MixedCauseDelivery => "mixed-cause-delivery",
+            Self::StoreBackedExecution => "store-backed-execution",
+            Self::DurableArtifacts => "durable-artifacts",
         }
     }
 }
@@ -73,6 +83,7 @@ impl std::fmt::Display for ForgeQueryRuntimeFacadeFamily {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryRuntimeFamilySupportStatus {
     Supported,
+    DeferredDebt,
     Unsupported,
 }
 
@@ -80,6 +91,7 @@ impl ForgeQueryRuntimeFamilySupportStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Supported => "supported",
+            Self::DeferredDebt => "deferred-debt",
             Self::Unsupported => "unsupported",
         }
     }
@@ -122,6 +134,17 @@ impl ForgeQueryRuntimeFamilySupport {
         Self {
             family,
             status: ForgeQueryRuntimeFamilySupportStatus::Unsupported,
+            authority_lanes: Vec::new(),
+            effect_policies: Vec::new(),
+            evidence: Vec::new(),
+            denial_reason: Some(reason.into()),
+        }
+    }
+
+    pub fn deferred(family: ForgeQueryRuntimeFacadeFamily, reason: impl Into<String>) -> Self {
+        Self {
+            family,
+            status: ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
             authority_lanes: Vec::new(),
             effect_policies: Vec::new(),
             evidence: Vec::new(),
@@ -232,6 +255,26 @@ impl ForgeQueryRuntimeSupportProfile {
                 [],
                 ["retained-runtime-artifact-inspection"],
             ),
+            ForgeQueryRuntimeFamilySupport::deferred(
+                ForgeQueryRuntimeFacadeFamily::Temporal,
+                "temporal query basis is deferred to Milestone 9.4",
+            ),
+            ForgeQueryRuntimeFamilySupport::deferred(
+                ForgeQueryRuntimeFacadeFamily::AsyncResource,
+                "async/resource query families are deferred to Milestone 9.5",
+            ),
+            ForgeQueryRuntimeFamilySupport::deferred(
+                ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+                "mixed truth/time/async delivery is deferred to Milestone 9.6",
+            ),
+            ForgeQueryRuntimeFamilySupport::deferred(
+                ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+                "store-backed execution parity is deferred to Milestone 10",
+            ),
+            ForgeQueryRuntimeFamilySupport::deferred(
+                ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
+                "durable restart and artifact reload are deferred to Milestone 11",
+            ),
         ])
         .with_posture(ForgeQueryRuntimeBackendPosture::Compatibility)
     }
@@ -327,16 +370,26 @@ impl ForgeQueryRuntimeSupportProfile {
             });
         };
 
-        if row.status() == ForgeQueryRuntimeFamilySupportStatus::Supported {
-            Ok(())
-        } else {
-            Err(ForgeQueryRuntimeSupportDenial {
-                family,
-                reason: row
-                    .denial_reason()
-                    .unwrap_or("backend support profile marks this facade family unsupported")
-                    .to_string(),
-            })
+        match row.status() {
+            ForgeQueryRuntimeFamilySupportStatus::Supported => Ok(()),
+            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt => {
+                Err(ForgeQueryRuntimeSupportDenial {
+                    family,
+                    reason: row
+                        .denial_reason()
+                        .unwrap_or("backend support profile marks this facade family deferred")
+                        .to_string(),
+                })
+            }
+            ForgeQueryRuntimeFamilySupportStatus::Unsupported => {
+                Err(ForgeQueryRuntimeSupportDenial {
+                    family,
+                    reason: row
+                        .denial_reason()
+                        .unwrap_or("backend support profile marks this facade family unsupported")
+                        .to_string(),
+                })
+            }
         }
     }
 

@@ -46,6 +46,7 @@ mod inspection;
 mod intent;
 mod live_subscription;
 mod preview;
+mod public_api;
 mod support;
 mod surface;
 
@@ -128,6 +129,10 @@ pub use preview::{
     ForgeQueryPreviewPromotionDenialEvidence, ForgeQueryPreviewPromotionDenialKind,
     ForgeQueryPreviewResidueClass, ForgeQueryPreviewSession,
 };
+pub use public_api::{
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
+    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot,
+};
 pub use support::{
     ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
@@ -159,6 +164,10 @@ pub struct ForgeQueryRuntime {
 impl ForgeQueryRuntime {
     pub fn builder() -> ForgeQueryRuntimeBuilder {
         ForgeQueryRuntimeBuilder::new()
+    }
+
+    pub fn public_api_contract(&self) -> ForgeQueryRuntimePublicApiContract {
+        ForgeQueryRuntimePublicApiContract::from_support_profile(&self.backend.support_profile())
     }
 
     pub fn declare_live_view<T>(

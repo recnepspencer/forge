@@ -364,13 +364,13 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
     let _: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let computed = runtime
-        .declare_maintained_derived_view::<Value>(
+    let computed_declaration = runtime
+        .declare_derived_view(
             ForgeQueryDerivedView::new("computed.inspect.refresh", ["title".to_string()])
                 .whole_refresh_fallback(),
-            TitleListMaintainer,
         )
         .expect("refresh fallback computed should declare");
+    let computed = ForgeQueryDerivedViewHandle::<Value>::new(computed_declaration.name());
 
     let before = runtime
         .inspect_derived_view(&computed)
@@ -392,11 +392,12 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
 
     assert!(!after.incremental_delivery());
     assert_eq!(after.pending_patch_count(), 1);
-    assert_eq!(after.pending_incremental_patch_count(), 1);
-    assert_eq!(after.pending_refresh_fallback_count(), 0);
-    assert_ne!(
+    assert_eq!(after.pending_incremental_patch_count(), 0);
+    assert_eq!(after.pending_refresh_fallback_count(), 1);
+    assert_eq!(
         after.materialization_digest(),
-        before.materialization_digest()
+        before.materialization_digest(),
+        "fallback inspection must not pretend a full materialization happened"
     );
     assert_ne!(after.pending_patch_digest(), before.pending_patch_digest());
 }
