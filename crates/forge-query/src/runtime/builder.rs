@@ -11,6 +11,9 @@ impl ForgeQueryRuntimeBuilder {
         Self::default()
     }
 
+    #[deprecated(
+        note = "memory-backed runtime assembly is a compatibility backend; use compatibility_in_memory_collections for explicit compatibility posture"
+    )]
     pub fn in_memory_collections(
         self,
         collections: impl IntoIterator<Item = ForgeQueryCollection>,

@@ -1,0 +1,35 @@
+error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryIntentExecution>` is not satisfied
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:21:29
+   |
+21 |     let _ = runtime.inspect(&execution);
+   |                     ------- ^^^^^^^^^^ the trait `From<&ForgeQueryIntentExecution>` is not implemented for `ForgeQueryInspectionTarget<'_>`
+   |                     |
+   |                     required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `From<T>`:
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryBranchIntentReceipt>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryDerivedViewHandle<T>>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryEffectHandle<T>>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryEffectIntentReceipt>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentDenialEvidence>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentReceipt>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryLiveView<T>>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryPreviewHandleBindingEvidence>`
+           and $N others
+   = note: required for `&ForgeQueryIntentExecution` to implement `Into<ForgeQueryInspectionTarget<'_>>`
+note: required by a bound in `ForgeQueryRuntime::inspect`
+  --> src/runtime.rs
+   |
+   |     pub fn inspect<'a, T>(
+   |            ------- required by a bound in this associated function
+...
+   |         T: Into<ForgeQueryInspectionTarget<'a>>,
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `ForgeQueryRuntime::inspect`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:22:40
+   |
+22 |     let _: ForgeQueryMutationReceipt = execution;
+   |            -------------------------   ^^^^^^^^^ expected `ForgeQueryMutationReceipt`, found `ForgeQueryIntentExecution`
+   |            |
+   |            expected due to this

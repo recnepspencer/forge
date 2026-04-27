@@ -30,7 +30,9 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
         .expect("write-intent effect should declare");
 
     let (live_binding, computed_binding, delivery_binding, intent_binding, outcome) = {
-        let mut preview = runtime.preview("derive-only bindings");
+        let mut preview = runtime
+            .preview("derive-only bindings")
+            .expect("preview session should be admitted");
         let live_binding = preview.use_view(&live);
         let computed_binding = preview.use_computed(&computed);
         let delivery_binding = preview
@@ -189,10 +191,12 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
         .expect("delivery effect should declare");
 
     let (execution_evidence, outcome) = {
-        let mut preview = runtime.preview_with_options(
-            "preview execution",
-            ForgeQueryPreviewOptions::redirected_delivery(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "preview execution",
+                ForgeQueryPreviewOptions::redirected_delivery(),
+            )
+            .expect("preview session should be admitted");
         preview.use_view(&live);
         preview.use_computed(&computed);
         preview
@@ -271,10 +275,12 @@ fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue
         .expect("write-intent effect should declare");
 
     let (execution_evidence, outcome) = {
-        let mut preview = runtime.preview_with_options(
-            "preview intent execution",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "preview intent execution",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         preview.use_view(&live);
         preview
             .use_effect(&intent_effect)
@@ -329,10 +335,12 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
         .expect("intent-capable runtime should build");
 
     let (receipt, outcome) = {
-        let mut preview = runtime.preview_with_options(
-            "preview local intent",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "preview local intent",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         let receipt = preview
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
                 "preview-reconcile",
@@ -435,7 +443,9 @@ fn derive_only_preview_intent_denies_before_authoritative_execution() {
         .expect("intent-capable runtime should build");
 
     let error = {
-        let mut preview = runtime.preview("derive-only preview intent");
+        let mut preview = runtime
+            .preview("derive-only preview intent")
+            .expect("preview session should be admitted");
         preview
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
                 "preview-denied",
@@ -501,10 +511,12 @@ fn preview_local_intent_requires_intent_support_for_preview_lane() {
         .expect("runtime can support authoritative-only intents");
 
     let error = {
-        let mut preview = runtime.preview_with_options(
-            "preview lane unsupported",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "preview lane unsupported",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         preview
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
                 "preview-lane-denied",

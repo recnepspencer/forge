@@ -15,10 +15,12 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
         .expect("operation ref should build");
 
     let preview_run = {
-        let mut preview = runtime.preview_with_options(
-            "draft create",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "draft create",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         let run = preview
             .run_operation(
                 operation.clone(),
@@ -46,10 +48,12 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
     );
 
     {
-        let mut preview = runtime.preview_with_options(
-            "promote create",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "promote create",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         preview
             .run_operation(
                 operation,
@@ -96,10 +100,12 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
         .expect("operation ref should build");
 
     {
-        let mut preview = runtime.preview_with_options(
-            "discard create",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "discard create",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         preview
             .run_operation(
                 operation,
@@ -131,10 +137,12 @@ fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
         .operation("create_task")
         .expect("operation ref should build");
 
-    let mut preview = runtime.preview_with_options(
-        "deny declaration effects",
-        ForgeQueryPreviewOptions::sandboxed_write_intent(),
-    );
+    let mut preview = runtime
+        .preview_with_options(
+            "deny declaration effects",
+            ForgeQueryPreviewOptions::sandboxed_write_intent(),
+        )
+        .expect("preview session should be admitted");
     let error = preview
         .run_operation(
             operation,

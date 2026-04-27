@@ -22,11 +22,13 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
         .expect("write-intent effect should declare");
 
     let muted = {
-        let mut preview = runtime.preview_with_options(
-            "muted effect",
-            ForgeQueryPreviewOptions::derive_only()
-                .with_effect_policy(ForgeQueryEffectPolicy::Muted),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "muted effect",
+                ForgeQueryPreviewOptions::derive_only()
+                    .with_effect_policy(ForgeQueryEffectPolicy::Muted),
+            )
+            .expect("preview session should be admitted");
         preview
             .use_effect(&delivery_effect)
             .expect("muted policy should bind but not activate")
@@ -38,11 +40,13 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     assert!(!muted.effect_delivery_admitted());
 
     let redirected = {
-        let mut preview = runtime.preview_with_options(
-            "redirected effect",
-            ForgeQueryPreviewOptions::derive_only()
-                .with_effect_policy(ForgeQueryEffectPolicy::Redirected),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "redirected effect",
+                ForgeQueryPreviewOptions::derive_only()
+                    .with_effect_policy(ForgeQueryEffectPolicy::Redirected),
+            )
+            .expect("preview session should be admitted");
         preview
             .use_effect(&delivery_effect)
             .expect("redirected policy should admit preview delivery")
@@ -54,11 +58,13 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     assert!(redirected.effect_delivery_admitted());
 
     let sandboxed = {
-        let mut preview = runtime.preview_with_options(
-            "sandboxed effect",
-            ForgeQueryPreviewOptions::derive_only()
-                .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "sandboxed effect",
+                ForgeQueryPreviewOptions::derive_only()
+                    .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
+            )
+            .expect("preview session should be admitted");
         preview
             .use_effect(&intent_effect)
             .expect("sandboxed policy should admit preview write intent")
@@ -70,11 +76,13 @@ fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
     assert!(sandboxed.pending_write_intent_admitted());
 
     let denied = {
-        let mut preview = runtime.preview_with_options(
-            "sandboxed delivery denial",
-            ForgeQueryPreviewOptions::derive_only()
-                .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "sandboxed delivery denial",
+                ForgeQueryPreviewOptions::derive_only()
+                    .with_effect_policy(ForgeQueryEffectPolicy::SandboxedWriteIntent),
+            )
+            .expect("preview session should be admitted");
         preview
             .use_effect(&delivery_effect)
             .expect_err("sandboxed write intent policy should not admit delivery effects")

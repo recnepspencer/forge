@@ -67,7 +67,7 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::MissingBackend => {
                 write!(
                     f,
-                    "forge query runtime builder requires a backend, for example in_memory_collections(...)"
+                    "forge query runtime builder requires a backend, for example compatibility_in_memory_collections(...) or backend(...)"
                 )
             }
             Self::MissingRuntimeBridge => write!(

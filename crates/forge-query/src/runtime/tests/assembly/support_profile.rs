@@ -198,3 +198,51 @@ fn runtime_support_denies_unsupported_computed_family_before_registration() {
         other => panic!("expected unsupported facade family denial, got {other:?}"),
     }
 }
+
+#[test]
+fn runtime_support_denies_unsupported_preview_and_branch_sessions_without_panicking() {
+    let mut runtime = bridge_runtime_with_support(
+        ForgeQueryRuntimeSupportProfile::compatibility_backend().with_family_support(
+            ForgeQueryRuntimeFamilySupport::unsupported(
+                ForgeQueryRuntimeFacadeFamily::BranchPreview,
+                "test backend disabled branch and preview sessions",
+            ),
+        ),
+    );
+
+    let preview_error = match runtime.preview("unsupported preview") {
+        Ok(_) => panic!("unsupported preview should return a typed denial"),
+        Err(error) => error,
+    };
+    match preview_error {
+        ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
+            assert_eq!(
+                denial.family(),
+                ForgeQueryRuntimeFacadeFamily::BranchPreview
+            );
+            assert_eq!(
+                denial.reason(),
+                "test backend disabled branch and preview sessions"
+            );
+        }
+        other => panic!("expected unsupported preview family denial, got {other:?}"),
+    }
+
+    let branch_error = match runtime.branch("unsupported branch") {
+        Ok(_) => panic!("unsupported branch should return a typed denial"),
+        Err(error) => error,
+    };
+    match branch_error {
+        ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
+            assert_eq!(
+                denial.family(),
+                ForgeQueryRuntimeFacadeFamily::BranchPreview
+            );
+            assert_eq!(
+                denial.reason(),
+                "test backend disabled branch and preview sessions"
+            );
+        }
+        other => panic!("expected unsupported branch family denial, got {other:?}"),
+    }
+}

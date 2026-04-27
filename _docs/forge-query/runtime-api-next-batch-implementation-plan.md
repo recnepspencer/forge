@@ -2,6 +2,8 @@
 
 > **Parent direction:** Forge Query Runtime API implementation plan
 >
+> **Closeout:** [runtime-api-next-batch-closeout.md](./runtime-api-next-batch-closeout.md)
+>
 > **Purpose:** finish the next runtime facade batch by designing from the
 > non-negotiable public developer experience first, then working backward into
 > the query, runtime-bridge, signal, relational, preview, derived-computation,
@@ -716,6 +718,29 @@ Tests:
 - existing workflow/writeback/live/view-shape/subscription tests remain passing
 - shortcut compile-fail tests prove the non-negotiable DX is enforced rather
   than merely documented
+
+Closeout evidence added during Batch 9 hardening:
+
+- Effect and intent lane override methods are runtime-internal, with
+  compile-fail fixtures for public policy/source/target lane overrides.
+- Preview and branch options expose only named safe effect policies; public
+  callers cannot construct an implicit authoritative preview policy.
+- Preview and branch session constructors now return typed support denials
+  instead of panicking when the backend does not admit the branch/preview
+  facade family.
+- Memory-backed runtime assembly is marked as a compatibility backend, and the
+  ambiguous `in_memory_collections` builder spelling is deprecated with
+  compile-fail coverage under strict consumers.
+- Forge UI's todo workspace uses the runtime facade over an explicit
+  compatibility backend, with a regression covering read/live/write behavior.
+- Grouped baseline helpers are not exported through the ordinary facade.
+- Intent execution artifacts cannot be spent as commit receipts or inspected as
+  admitted runtime receipts without going through runtime admission.
+- Derived-runtime-to-authoritative-truth mutation shortcuts are blocked by the
+  sealed intent source-lane boundary.
+- Existing subscription and active-lane compile-fail fixtures cover raw CDC
+  subscription, raw bridge activation, host observer callbacks, direct active
+  lane mutation, raw preview lane sharing, and lifecycle closeout shortcuts.
 
 ## Suggested Execution Order
 

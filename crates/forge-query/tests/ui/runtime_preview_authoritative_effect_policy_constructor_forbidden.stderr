@@ -1,0 +1,24 @@
+error[E0599]: no function or associated item named `authoritative_allowed` found for struct `ForgeQueryPreviewOptions` in the current scope
+ --> tests/ui/runtime_preview_authoritative_effect_policy_constructor_forbidden.rs:4:39
+  |
+4 |     let _ = ForgeQueryPreviewOptions::authoritative_allowed();
+  |                                       ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ForgeQueryPreviewOptions`
+  |
+note: if you're trying to build a new `ForgeQueryPreviewOptions` consider using one of the following associated functions:
+      ForgeQueryPreviewOptions::derive_only
+      ForgeQueryPreviewOptions::muted
+      ForgeQueryPreviewOptions::redirected_delivery
+      ForgeQueryPreviewOptions::sandboxed_write_intent
+ --> src/runtime/authority.rs
+  |
+  |     pub fn derive_only() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn muted() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn redirected_delivery() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |     pub fn sandboxed_write_intent() -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

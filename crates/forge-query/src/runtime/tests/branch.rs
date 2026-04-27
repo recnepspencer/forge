@@ -22,10 +22,12 @@ fn branch_local_intent_is_policy_admitted_without_authoritative_execution() {
     let attempted = std::rc::Rc::new(std::cell::Cell::new(0));
     let mut runtime = branch_intent_runtime(attempted.clone());
 
-    let mut branch = runtime.branch_with_options(
-        "branch local intent",
-        ForgeQueryBranchOptions::sandboxed_write_intent(),
-    );
+    let mut branch = runtime
+        .branch_with_options(
+            "branch local intent",
+            ForgeQueryBranchOptions::sandboxed_write_intent(),
+        )
+        .expect("branch session should be admitted");
     let receipt = branch
         .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
             "branch-reconcile",
@@ -97,7 +99,9 @@ fn derive_only_branch_intent_denies_before_authoritative_execution() {
     let mut runtime = branch_intent_runtime(attempted.clone());
 
     let error = {
-        let mut branch = runtime.branch("derive-only branch intent");
+        let mut branch = runtime
+            .branch("derive-only branch intent")
+            .expect("branch session should be admitted");
         branch
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
                 "branch-denied",
@@ -163,10 +167,12 @@ fn branch_local_intent_requires_intent_support_for_branch_lane() {
         .expect("runtime can support authoritative-only intents");
 
     let error = {
-        let mut branch = runtime.branch_with_options(
-            "branch lane unsupported",
-            ForgeQueryBranchOptions::sandboxed_write_intent(),
-        );
+        let mut branch = runtime
+            .branch_with_options(
+                "branch lane unsupported",
+                ForgeQueryBranchOptions::sandboxed_write_intent(),
+            )
+            .expect("branch session should be admitted");
         branch
             .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
                 "branch-lane-denied",

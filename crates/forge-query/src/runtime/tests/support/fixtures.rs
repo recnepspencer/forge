@@ -20,7 +20,7 @@ pub(in crate::runtime::tests) fn bridge_runtime_with_support(
 
 pub(in crate::runtime::tests) fn task_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
-        .in_memory_collections([ForgeQueryCollection::new(
+        .compatibility_in_memory_collections([ForgeQueryCollection::new(
             "Task",
             [
                 crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
@@ -33,7 +33,7 @@ pub(in crate::runtime::tests) fn task_runtime() -> ForgeQueryRuntime {
 
 pub(in crate::runtime::tests) fn task_issue_memory_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
-        .in_memory_collections([
+        .compatibility_in_memory_collections([
             ForgeQueryCollection::new(
                 "Task",
                 [
@@ -58,7 +58,7 @@ pub(in crate::runtime::tests) fn task_issue_memory_runtime() -> ForgeQueryRuntim
 
 pub(in crate::runtime::tests) fn grouped_task_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
-        .in_memory_collections([ForgeQueryCollection::new(
+        .compatibility_in_memory_collections([ForgeQueryCollection::new(
             "Task",
             [
                 crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),

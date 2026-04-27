@@ -50,7 +50,9 @@ fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
 #[test]
 fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_preview_local() {
     let mut runtime = task_runtime();
-    let mut preview = runtime.preview("default policy");
+    let mut preview = runtime
+        .preview("default policy")
+        .expect("preview session should be admitted");
 
     assert_eq!(preview.effect_policy(), ForgeQueryEffectPolicy::DeriveOnly);
     assert!(preview
@@ -105,10 +107,12 @@ fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_previ
 #[test]
 fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
     let mut runtime = task_runtime();
-    let preview = runtime.preview_with_options(
-        "sandboxed writes",
-        ForgeQueryPreviewOptions::sandboxed_write_intent(),
-    );
+    let preview = runtime
+        .preview_with_options(
+            "sandboxed writes",
+            ForgeQueryPreviewOptions::sandboxed_write_intent(),
+        )
+        .expect("preview session should be admitted");
 
     let admission = preview
         .admit_effect_action(
@@ -152,7 +156,9 @@ fn derive_only_preview_denies_operation_write_effects() {
         .operation("create_task")
         .expect("operation ref should build");
 
-    let mut preview = runtime.preview("derive-only operation");
+    let mut preview = runtime
+        .preview("derive-only operation")
+        .expect("preview session should be admitted");
     let error = preview
         .run_operation(
             operation,

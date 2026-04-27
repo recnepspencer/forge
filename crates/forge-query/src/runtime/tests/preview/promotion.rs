@@ -8,7 +8,9 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
         .expect("live should declare");
 
     let outcome = {
-        let mut preview = runtime.preview("discard closeout");
+        let mut preview = runtime
+            .preview("discard closeout")
+            .expect("preview session should be admitted");
         preview.use_view(&live);
         preview
             .write(ForgeQueryWriteCommand::Insert {
@@ -66,10 +68,12 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
         .operation("create_task")
         .expect("operation ref should build");
     let outcome = {
-        let mut preview = runtime.preview_with_options(
-            "promotion closeout",
-            ForgeQueryPreviewOptions::sandboxed_write_intent(),
-        );
+        let mut preview = runtime
+            .preview_with_options(
+                "promotion closeout",
+                ForgeQueryPreviewOptions::sandboxed_write_intent(),
+            )
+            .expect("preview session should be admitted");
         preview
             .run_operation(
                 operation,
@@ -126,7 +130,9 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
         .expect("drifting backend should build");
 
     let error = {
-        let mut preview = runtime.preview("stale basis");
+        let mut preview = runtime
+            .preview("stale basis")
+            .expect("preview session should be admitted");
         preview
             .write(ForgeQueryWriteCommand::Insert {
                 collection: "Task".to_string(),
@@ -175,7 +181,9 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
         .expect("denying write backend should build");
 
     let error = {
-        let mut preview = runtime.preview("write failure");
+        let mut preview = runtime
+            .preview("write failure")
+            .expect("preview session should be admitted");
         preview
             .write(ForgeQueryWriteCommand::Insert {
                 collection: "Task".to_string(),
@@ -225,7 +233,9 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
         .expect("counting write backend should build");
 
     let error = {
-        let mut preview = runtime.preview("multi write promotion");
+        let mut preview = runtime
+            .preview("multi write promotion")
+            .expect("preview session should be admitted");
         preview
             .write(ForgeQueryWriteCommand::Insert {
                 collection: "Task".to_string(),

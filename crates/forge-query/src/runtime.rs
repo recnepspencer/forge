@@ -923,11 +923,17 @@ impl ForgeQueryRuntime {
         }
     }
 
-    pub fn preview<'a>(&'a mut self, label: impl Into<String>) -> ForgeQueryPreviewSession<'a> {
+    pub fn preview<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.preview_with_options(label, ForgeQueryPreviewOptions::default())
     }
 
-    pub fn branch<'a>(&'a mut self, label: impl Into<String>) -> ForgeQueryBranchSession<'a> {
+    pub fn branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.branch_with_options(label, ForgeQueryBranchOptions::default())
     }
 
@@ -935,9 +941,8 @@ impl ForgeQueryRuntime {
         &'a mut self,
         label: impl Into<String>,
         options: ForgeQueryBranchOptions,
-    ) -> ForgeQueryBranchSession<'a> {
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
         self.try_branch_with_options(label, options)
-            .expect("branch/preview support must be admitted before creating branch sessions")
     }
 
     pub fn try_branch<'a>(
@@ -980,9 +985,8 @@ impl ForgeQueryRuntime {
         &'a mut self,
         label: impl Into<String>,
         options: ForgeQueryPreviewOptions,
-    ) -> ForgeQueryPreviewSession<'a> {
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.try_preview_with_options(label, options)
-            .expect("branch/preview support must be admitted before creating preview sessions")
     }
 
     pub fn try_preview<'a>(
