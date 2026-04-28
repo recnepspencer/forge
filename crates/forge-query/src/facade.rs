@@ -385,6 +385,7 @@ pub use crate::runtime::{
     ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimePublicApiContract,
     ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicApiNamingContract,
     ForgeQueryRuntimePublicApiNamingRow, ForgeQueryRuntimePublicApiTranscriptEvidence,
+    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot,
     ForgeQueryRuntimeStateTarget, ForgeQueryRuntimeSubscriptionActivationAdapter,

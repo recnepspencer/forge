@@ -1,10 +1,13 @@
 mod builders;
+mod closeout;
 mod tests;
 mod transcript_runtime;
 mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
 use crate::runtime::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
+
+use closeout::RuntimeApiStabilizationCloseout;
 
 pub const RUNTIME_API_STABILIZATION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "workflow-editor-golden-transcript",
@@ -131,15 +134,18 @@ pub struct RuntimeApiStabilizationArtifact {
     pub suite_name: &'static str,
     pub certification_bundle_digest: String,
     pub coverage_matrix_digest: String,
+    pub closeout: RuntimeApiStabilizationCloseout,
     pub matrix: RuntimeApiStabilizationCertificationMatrix,
 }
 
 impl RuntimeApiStabilizationCertificationMatrix {
     pub fn into_runtime_api_stabilization_artifact(self) -> RuntimeApiStabilizationArtifact {
+        let closeout = RuntimeApiStabilizationCloseout::from_matrix(&self);
         RuntimeApiStabilizationArtifact {
             suite_name: self.suite_name,
             certification_bundle_digest: digest_parts(&builders::bundle_digest_parts(&self)),
             coverage_matrix_digest: digest_parts(&builders::coverage_digest_parts(&self)),
+            closeout,
             matrix: self,
         }
     }

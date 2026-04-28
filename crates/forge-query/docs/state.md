@@ -1,0 +1,191 @@
+# State and Readiness Surfaces
+
+## What This Feature Is
+
+`workspace.state(...)` is the typed posture snapshot for a retained runtime
+surface or a public facade family. It lets you ask whether a surface is ready,
+pending, unsupported, or otherwise not in a normal ready posture without
+guessing from incidental behavior.
+
+## Why You Use It
+
+- you need a typed readiness answer for a live or computed surface
+- you need a fail-closed answer for deferred or unsupported public families
+- you want a digest-bound explanation surface rather than an ad hoc boolean
+
+## Stable Entry Points
+
+- `workspace.state(...)`
+
+Stable targets today:
+
+- live view handles
+- computed handles
+- `ForgeQueryRuntimeFacadeFamily` values for support-gated family posture
+
+Related boundaries:
+
+- `workspace.inspect(...)` gives richer retained evidence
+- `workspace.public_support_matrix()` and `workspace.admit_public_api_family(...)`
+  are the source of truth for stable versus deferred family posture
+
+## Core Mental Model
+
+State snapshots are not domain data. They are typed posture reports.
+
+Each snapshot binds:
+
+- `kind`
+- `basis_digest`
+- `result_shape_digest`
+- `authority_lane`
+- `explanation`
+- `state_digest`
+
+The point is to make readiness and support posture explicit and inspectable,
+especially around deferred future families.
+
+## How It Executes
+
+For retained handles:
+
+1. The runtime reconstructs retained installation or materialization posture.
+2. It returns a `Ready` snapshot when the stable surface has concrete retained
+   evidence.
+
+For facade families:
+
+1. The runtime looks at support posture for that family.
+2. It returns a typed deferred or unsupported snapshot instead of pretending
+   the family is ready.
+
+The same API handles both concrete retained surfaces and support-gated family
+questions.
+
+## Small Example
+
+```rust
+use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
+
+let temporal_state = workspace
+    .state(ForgeQueryRuntimeFacadeFamily::Temporal)
+    .unwrap();
+
+assert_eq!(temporal_state.kind().as_str(), "pending");
+```
+
+This is the smallest honest example because it shows the fail-closed posture
+for a deferred family.
+
+## Real Example
+
+```rust
+use forge_query::facade::{
+    ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryWriteCommand,
+};
+use serde_json::{json, Value};
+
+let mut workspace = runtime.workspace("state-workspace").unwrap();
+
+let view: ForgeQueryLiveView<Value> = workspace
+    .live_view("tasks.state-table", |q| {
+        q.from("Task")
+            .select(["identity.id", "title.value"])
+            .schema_basis("runtime-task-state")
+    })
+    .unwrap();
+
+let titles: ForgeQueryDerivedViewHandle<Value> = workspace
+    .computed(
+        "tasks.state-title-list",
+        |c| {
+            c.depends_on_live(&view)
+                .reads(["title.value"])
+                .produces(["runtime.title_list"])
+        },
+        TitleListMaintainer,
+    )
+    .unwrap();
+
+workspace
+    .write(ForgeQueryWriteCommand::Insert {
+        collection: "Task".to_string(),
+        payload: json!({
+            "identity": { "id": "" },
+            "title": { "value": "State DX" },
+        }),
+    })
+    .unwrap();
+
+let live_state = workspace.state(&view).unwrap();
+let computed_state = workspace.state(&titles).unwrap();
+let temporal_state = workspace.state(ForgeQueryRuntimeFacadeFamily::Temporal).unwrap();
+let async_state = workspace.state(ForgeQueryRuntimeFacadeFamily::AsyncResource).unwrap();
+let intent_state = workspace.state(ForgeQueryRuntimeFacadeFamily::Intent).unwrap();
+```
+
+What is ready:
+
+- stable live and computed surfaces with retained evidence
+
+What is pending:
+
+- deferred temporal and async/resource public families
+
+What is unsupported:
+
+- unsupported public families such as intent on a runtime that has not admitted
+  it
+
+What the snapshot tells you:
+
+- which authority lane the posture belongs to
+- which basis and result-shape identity it binds to
+- why the state is in that posture
+
+## How It Relates To Other Features
+
+- Use [Workspace Overview](./workspace-overview.md) for the larger retained
+  surface story.
+- Use [Live Views](./live-views.md) and [Computed](./computed.md) for the
+  handles whose posture you are snapshotting.
+- Use [Branches and Previews](./branches-and-previews.md) when the real
+  question is lane isolation rather than ready versus pending posture.
+
+`state(...)` is the concise typed posture surface. `inspect(...)` is the richer
+explanation surface.
+
+## Inspection And Debugging
+
+Use state snapshots when you need quick answers to questions like:
+
+- is this handle ready?
+- is this family deferred or unsupported?
+- which authority lane owns this posture?
+
+Use inspect when you need the underlying retained evidence that explains the
+snapshot in detail.
+
+## Anti-Patterns
+
+- Treating `state(...)` like domain data access.
+- Reducing state posture to one boolean such as "ready or not".
+- Assuming a future family is usable because a method name exists somewhere.
+- Ignoring the explanation and authority lane on non-ready states.
+
+## Current Limits
+
+- State snapshots are stable for live handles, computed handles, and support
+  families in the runtime-backed facade.
+- Deferred temporal and async/resource families return typed pending state
+  rather than pretending to execute.
+- Future milestones may use additional non-ready kinds such as stale, failed,
+  cancelled, superseded, or denied as those execution families become real.
+
+## Related Docs
+
+- [Workspace Overview](./workspace-overview.md)
+- [Live Views](./live-views.md)
+- [Computed](./computed.md)
+- [Branches and Previews](./branches-and-previews.md)

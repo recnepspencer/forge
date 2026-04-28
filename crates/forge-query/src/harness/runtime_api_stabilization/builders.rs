@@ -5,7 +5,7 @@ use crate::harness::certification::{
 use crate::runtime::{
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
     ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiNamingContract,
-    ForgeQueryRuntimeSupportProfile,
+    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeSupportProfile,
 };
 
 use super::{
@@ -270,6 +270,7 @@ fn bundle(
 ) -> RuntimeApiStabilizationBundle {
     let contract = contract();
     let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
+    let support_matrix = ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&contract);
     let surface_list: Vec<_> = surfaces.into_iter().collect();
     let transcript_family = transcript_evidence.transcript_family().to_string();
     let golden_transcript_digest = digest_parts(
@@ -325,14 +326,18 @@ fn bundle(
             "inspection:feedback-phase-graph".to_string(),
             "inspection:deferred-temporal-async".to_string(),
         ]),
-        support_matrix_digest: support_matrix_digest(&contract),
+        support_matrix_digest: support_matrix.matrix_digest().to_string(),
         deferred_temporal_async_gate_digest: deferred_gate_digest(&contract),
         failure_digest: "none".to_string(),
         counter_snapshot: format!(
-            "stable={};deferred={};unsupported={};preferred_names={};compat_names={};assertions={meaningful_assertion_count};plumbing=0;denials={};residue={}",
+            "stable={};deferred={};unsupported={};support_rows={};support_deferred_rows={};support_fail_closed={};parallel_api_forbidden={};preferred_names={};compat_names={};assertions={meaningful_assertion_count};plumbing=0;denials={};residue={}",
             contract.stable_family_count(),
             contract.deferred_family_count(),
             contract.unsupported_family_count(),
+            support_matrix.rows().len(),
+            support_matrix.deferred_row_count(),
+            support_matrix.fail_closed_row_count(),
+            support_matrix.parallel_api_forbidden_row_count(),
             naming_contract.preferred_entrypoint_count(),
             naming_contract.compatibility_name_count(),
             transcript_evidence.unsupported_neighbor_denial_digests().len(),
@@ -349,7 +354,7 @@ fn bundle(
             .len(),
         delivery_residue_count: transcript_evidence.delivery_residue_count(),
         stable_family_count: contract.stable_family_count(),
-        deferred_family_count: contract.deferred_family_count(),
+        deferred_family_count: support_matrix.deferred_row_count(),
         unsupported_family_count: contract.unsupported_family_count(),
     }
 }
@@ -357,23 +362,6 @@ fn bundle(
 fn contract() -> ForgeQueryRuntimePublicApiContract {
     ForgeQueryRuntimePublicApiContract::from_support_profile(
         &ForgeQueryRuntimeSupportProfile::compatibility_backend(),
-    )
-}
-
-fn support_matrix_digest(contract: &ForgeQueryRuntimePublicApiContract) -> String {
-    digest_parts(
-        &contract
-            .families()
-            .iter()
-            .map(|row| {
-                format!(
-                    "{}:{}:{}",
-                    row.family().as_str(),
-                    row.status().as_str(),
-                    row.contract_digest()
-                )
-            })
-            .collect::<Vec<_>>(),
     )
 }
 
@@ -395,6 +383,7 @@ fn compile_fail_boundary_digest() -> String {
         "runtime-state-snapshot-private-fields".to_string(),
         "runtime-public-api-transcript-evidence-private-fields".to_string(),
         "runtime-handle-contract-private-fields".to_string(),
+        "runtime-public-support-matrix-private-fields".to_string(),
         "runtime-workspace-dynamic-surface-shortcut-forbidden".to_string(),
         "runtime-workspace-handle-value-shortcut-forbidden".to_string(),
         "lower-runtime-plumbing-shortcut-forbidden".to_string(),

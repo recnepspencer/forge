@@ -50,6 +50,7 @@ mod preview;
 mod public_api;
 mod state;
 mod support;
+mod support_matrix;
 mod surface;
 mod workspace;
 mod workspace_declaration;
@@ -150,6 +151,9 @@ pub use support::{
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile,
 };
+pub use support_matrix::{
+    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,
+};
 pub use surface::{
     ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact, ForgeQueryInstalledOperation,
     ForgeQueryInstalledProgram, ForgeQueryLiveView, ForgeQueryPatchBatch, ForgeQueryRunReceipt,
@@ -198,6 +202,25 @@ impl ForgeQueryRuntime {
 
     pub fn public_handle_contract(&self) -> ForgeQueryHandleContract {
         ForgeQueryHandleContract::from_public_api_contract(&self.public_api_contract())
+    }
+
+    pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
+        ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&self.public_api_contract())
+    }
+
+    pub fn admit_public_api_family(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+    ) -> Result<ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimeError> {
+        let contract = self.public_api_contract();
+        let row = contract.family(family).cloned().ok_or_else(|| {
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial::new(
+                family,
+                "runtime support matrix does not declare this public API family",
+            ))
+        })?;
+        self.admit_facade_family(family)?;
+        Ok(row)
     }
 
     pub fn declare_live_view<T>(

@@ -8,9 +8,11 @@ use super::{
     ForgeQueryInstalledProgram, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
     ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryPatchBatch, ForgeQueryPreviewOptions,
     ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimeStateSnapshot,
-    ForgeQueryRuntimeStateTarget, ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt, QuerySchemaView,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
+    ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    QuerySchemaView,
 };
 use crate::program::{ForgeQueryDerivedView, ForgeQueryProgram};
 
@@ -49,6 +51,17 @@ impl ForgeQueryWorkspace {
 
     pub fn public_handle_contract(&self) -> ForgeQueryHandleContract {
         self.runtime.public_handle_contract()
+    }
+
+    pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
+        self.runtime.public_support_matrix()
+    }
+
+    pub fn admit_public_api_family(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+    ) -> Result<ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimeError> {
+        self.runtime.admit_public_api_family(family)
     }
 
     pub fn state<T>(

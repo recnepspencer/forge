@@ -132,6 +132,189 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
 }
 
 #[test]
+fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() {
+    let workspace = task_runtime()
+        .workspace("task.support-matrix")
+        .expect("task runtime should open a named workspace");
+    let matrix = workspace.public_support_matrix();
+    let contract = workspace.public_api_contract();
+
+    assert_eq!(
+        matrix.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(matrix.stable_row_count(), contract.stable_family_count());
+    assert_eq!(
+        matrix.deferred_row_count(),
+        contract.deferred_family_count() + 1
+    );
+    assert_eq!(
+        matrix.unsupported_row_count(),
+        contract.unsupported_family_count()
+    );
+    assert_eq!(
+        matrix.parallel_api_forbidden_row_count(),
+        matrix.rows().len(),
+        "every public support row must forbid sibling facade families"
+    );
+    assert_eq!(
+        matrix.fail_closed_row_count(),
+        matrix.deferred_row_count() + matrix.unsupported_row_count()
+    );
+    assert!(!matrix.matrix_digest().is_empty());
+
+    for family in [
+        ForgeQueryRuntimeFacadeFamily::Read,
+        ForgeQueryRuntimeFacadeFamily::Live,
+        ForgeQueryRuntimeFacadeFamily::Computed,
+        ForgeQueryRuntimeFacadeFamily::Effect,
+        ForgeQueryRuntimeFacadeFamily::BranchPreview,
+        ForgeQueryRuntimeFacadeFamily::Write,
+        ForgeQueryRuntimeFacadeFamily::Inspect,
+    ] {
+        let row = matrix
+            .row_for_family(family)
+            .expect("stable family should have matrix row");
+        assert_eq!(
+            row.status(),
+            ForgeQueryRuntimeFamilySupportStatus::Supported
+        );
+        assert_eq!(row.owner_milestone(), "Milestone 9.3");
+        assert!(!row.admission_fail_closed());
+        assert!(row.parallel_api_forbidden());
+        assert!(row
+            .extension_rule()
+            .contains("handle-state-lane-aspect-inspection"));
+        assert!(row.support_contract_digest().is_some());
+    }
+
+    for (surface, family, owner) in [
+        (
+            "temporal",
+            ForgeQueryRuntimeFacadeFamily::Temporal,
+            "Milestone 9.4",
+        ),
+        (
+            "async-resource",
+            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            "Milestone 9.5",
+        ),
+        (
+            "mixed-cause-delivery",
+            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+            "Milestone 9.6",
+        ),
+        (
+            "store-backed-execution",
+            ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+            "Milestone 10",
+        ),
+        (
+            "durable-artifacts",
+            ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
+            "Milestone 11",
+        ),
+    ] {
+        let by_surface = matrix
+            .row(surface)
+            .expect("deferred family should have a named matrix row");
+        let by_family = matrix
+            .row_for_family(family)
+            .expect("deferred family should have a family matrix row");
+        assert_eq!(by_surface, by_family);
+        assert_eq!(
+            by_family.status(),
+            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        );
+        assert_eq!(by_family.owner_milestone(), owner);
+        assert!(by_family.admission_fail_closed());
+        assert!(by_family.parallel_api_forbidden());
+        assert_eq!(
+            by_family.extension_rule(),
+            "must-extend-stabilized-handle-state-lane-aspect-inspection-facade"
+        );
+        assert!(by_family.support_contract_digest().is_some());
+    }
+
+    let certification = matrix
+        .row("temporal-async-certification")
+        .expect("9.7 certification gate must be explicit");
+    assert_eq!(certification.facade_family(), None);
+    assert_eq!(
+        certification.status(),
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+    );
+    assert_eq!(certification.owner_milestone(), "Milestone 9.7");
+    assert!(certification.admission_fail_closed());
+    assert!(certification.parallel_api_forbidden());
+    assert!(certification.support_contract_digest().is_none());
+
+    let intent = matrix
+        .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
+        .expect("unsupported intent family should still be visible");
+    assert_eq!(
+        intent.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Unsupported
+    );
+    assert!(intent.admission_fail_closed());
+}
+
+#[test]
+fn runtime_public_support_gate_denies_deferred_and_unsupported_families_before_use() {
+    let workspace = task_runtime()
+        .workspace("task.support-gate")
+        .expect("task runtime should open a named workspace");
+
+    let read = workspace
+        .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Read)
+        .expect("supported read family should admit");
+    assert_eq!(read.family(), ForgeQueryRuntimeFacadeFamily::Read);
+    assert_eq!(
+        read.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Supported
+    );
+
+    for (family, expected_reason) in [
+        (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
+        (
+            ForgeQueryRuntimeFacadeFamily::AsyncResource,
+            "Milestone 9.5",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
+            "Milestone 9.6",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
+            "Milestone 10",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::DurableArtifacts,
+            "Milestone 11",
+        ),
+        (
+            ForgeQueryRuntimeFacadeFamily::Intent,
+            "intent commit strategies",
+        ),
+    ] {
+        let error = workspace
+            .admit_public_api_family(family)
+            .expect_err("unsupported or deferred public API family should fail closed");
+        match error {
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(denial) => {
+                assert_eq!(denial.family(), family);
+                assert!(
+                    denial.reason().contains(expected_reason),
+                    "denial for {family:?} should mention {expected_reason}, got {}",
+                    denial.reason()
+                );
+            }
+            other => panic!("expected typed public support denial, got {other:?}"),
+        }
+    }
+}
+
+#[test]
 fn runtime_public_api_naming_contract_prefers_workspace_surface_names() {
     let contract = ForgeQueryRuntime::public_api_naming_contract();
 
