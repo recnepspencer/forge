@@ -126,6 +126,7 @@ impl ForgeQueryRuntimeSourceAdapter for TranscriptSourceAdapter {
 struct TranscriptWriteAuthority;
 
 impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
+    #[allow(deprecated)]
     fn write(
         &mut self,
         _bridge: &RuntimeBridge,
@@ -134,9 +135,26 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let (collection, aspect_paths) = match command {
             ForgeQueryWriteCommand::Insert { collection, .. } => (collection, Vec::new()),
+            ForgeQueryWriteCommand::InsertAspects {
+                collection,
+                aspects,
+            } => (
+                collection,
+                aspects
+                    .iter()
+                    .map(|aspect| aspect.aspect_path().to_string())
+                    .collect(),
+            ),
             ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
                 ("TranscriptEntity".to_string(), vec![aspect_path])
             }
+            ForgeQueryWriteCommand::UpdateAspects { aspects, .. } => (
+                "TranscriptEntity".to_string(),
+                aspects
+                    .iter()
+                    .map(|aspect| aspect.aspect_path().to_string())
+                    .collect(),
+            ),
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
         Ok(ForgeQueryMutationReceipt {

@@ -95,9 +95,8 @@ the call site but typed at the result.
 ```rust
 use forge_query::facade::{
     ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryPreviewOptions,
-    ForgeQueryWriteCommand,
 };
-use serde_json::{json, Value};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
@@ -135,13 +134,10 @@ let effect = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Inspection target" },
-            "status": { "value": "open" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Inspection target")
+            .aspect("status.value", "open")
     })
     .unwrap();
 

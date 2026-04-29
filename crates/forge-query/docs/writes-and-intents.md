@@ -3,9 +3,16 @@
 ## What This Feature Is
 
 This is the authority boundary for changing truth or staging future change.
-`workspace.write(...)` is the stable direct mutation path. Intent surfaces
-exist in the public vocabulary, but they remain support-gated and must not be
-treated as part of the same stable compatibility closure as direct writes.
+`workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`, and
+`workspace.batch(...)` are the preferred direct mutation paths.
+`workspace.write(...)` remains a stable lower-level compatibility seam. Intent
+surfaces exist in the public vocabulary, but they remain support-gated and
+must not be treated as part of the same stable compatibility closure as direct
+writes.
+
+The important posture is simple: ordinary runtime code should not need
+`workspace.write(...)` or `ForgeQueryWriteCommand::*`. Those exist as expert or
+compatibility seams while the substrate is being replaced underneath the facade.
 
 ## Why You Use It
 
@@ -19,7 +26,12 @@ treated as part of the same stable compatibility closure as direct writes.
 
 Stable:
 
+- `workspace.insert(...)`
+- `workspace.update(...)`
+- `workspace.delete(...)`
+- `workspace.batch(...)`
 - `workspace.write(...)`
+- `workspace.public_mutation_api_compatibility_report()`
 
 Vocabulary with support gate:
 
@@ -33,6 +45,8 @@ Important boundary:
 - intent execution is public vocabulary, but not in the stable compatibility
   support set yet
 - callers must treat support admission and backend capability as authoritative
+- the mutation compatibility report is the source of truth for which mutation
+  surfaces are preferred, compatibility-only, or deprecated compatibility
 
 ## Core Mental Model
 
@@ -57,9 +71,20 @@ Do not blur those two models together.
 Direct write path:
 
 1. Declare the live/computed/effect surfaces that care about the truth.
-2. Execute `workspace.write(...)`.
+2. Execute `workspace.insert(...)`, `workspace.update(...)`,
+   `workspace.delete(...)`, `workspace.batch(...)`, or the lower-level
+   `workspace.write(...)` compatibility path.
 3. Receive a canonical write receipt.
 4. Live, computed, and effect consequences route from that write.
+
+Direct write receipts now carry:
+
+- mutation family
+- declared collection or entity target when the surface has one
+- authority lane and basis lane
+- declared aspect operations, including whether each authored aspect was a
+  `set` or a `clear`
+- touched live/computed/effect routing evidence
 
 Intent path:
 
@@ -74,18 +99,12 @@ authority lane.
 ## Small Example
 
 ```rust
-use forge_query::facade::ForgeQueryWriteCommand;
-use serde_json::json;
-
 let mut workspace = runtime.workspace("tasks").unwrap();
 
 let receipt = workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Buy milk" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Buy milk")
     })
     .unwrap();
 ```
@@ -93,12 +112,74 @@ let receipt = workspace
 This is the smallest honest example because it shows the stable authoritative
 write boundary with no extra orchestration story layered on top.
 
+That receipt can be explained and state-snapshotted in the same public
+vocabulary:
+
+```rust
+assert_eq!(receipt.mutation_family().as_str(), "insert");
+assert_eq!(receipt.declared_collection(), Some("Task"));
+assert_eq!(receipt.authority_lane().as_str(), "authoritative-truth");
+assert_eq!(receipt.basis_lane().as_str(), "authoritative-truth");
+
+let state = workspace.state(&receipt).unwrap();
+let inspection = workspace.inspect(&receipt).unwrap();
+```
+
+Ordered multi-entity mutation uses the same aspect vocabulary:
+
+```rust
+let batch = workspace
+    .batch(|ops| {
+        ops.insert("Task", |task| {
+            task.aspect("identity.id", "task-1")
+                .aspect("title.value", "Buy milk")
+        })
+        .insert("Task", |task| {
+            task.aspect("identity.id", "task-2")
+                .aspect("title.value", "Buy bread")
+        })
+    })
+    .unwrap();
+
+assert_eq!(batch.write_count(), 2);
+assert!(batch
+    .touched_aspect_paths()
+    .contains(&"title.value".to_string()));
+```
+
+Typed aspect reset stays in the same mutation surface:
+
+```rust
+let reset = workspace
+    .update("task-1", |task| task.clear("description.value"))
+    .unwrap();
+
+assert_eq!(reset.mutation_family().as_str(), "update");
+assert_eq!(reset.deltas()[0].aspect_paths, vec!["description.value"]);
+assert_eq!(
+    reset
+        .declared_aspect_operations()
+        .iter()
+        .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
+        .collect::<Vec<_>>(),
+    vec!["clear:description.value"]
+);
+
+let inspection = workspace.inspect(&reset).unwrap();
+```
+
+Current limit: the runtime batch surface is an ordered multi-write facade. It
+does not claim cross-write atomic substrate semantics yet. The batch receipt is
+the canonical routing artifact; component write receipts remain available as
+operation evidence, and batch inspection exposes their families, collections,
+entity identities, touched aspects, and declared `set`/`clear` operations.
+
 ## Real Example
 
 ```rust
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryEffectHandle, ForgeQueryIntentDeclaration,
-    ForgeQueryLiveView, ForgeQueryWriteCommand,
+    ForgeQueryLiveView,
 };
 use serde_json::{json, Value};
 
@@ -132,12 +213,9 @@ let effect: ForgeQueryEffectHandle<Value> = workspace
     .unwrap();
 
 let write_receipt = workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Direct write title" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Direct write title")
     })
     .unwrap();
 
@@ -158,7 +236,8 @@ let effect_intent_receipt =
 
 What is authoritative:
 
-- `workspace.write(...)`
+- `workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`
+- `workspace.write(...)` as the lower-level compatibility path
 - admitted `workspace.intent(...)` only when the runtime actually supports it
 
 What is staged:

@@ -50,7 +50,8 @@ state. These methods only let you consume what is already retained.
 ## How It Executes
 
 1. Declare a live view or computed surface first.
-2. Route authoritative writes through `workspace.write(...)`.
+2. Route authoritative writes through `workspace.insert(...)`,
+   `workspace.update(...)`, or `workspace.delete(...)`.
 3. Consume current live rows with `read(...)`.
 4. Drain live patch batches with `observe(...)`.
 5. Consume current derived rows with `materialize(...)`.
@@ -62,8 +63,8 @@ for that live surface since the last drain.
 ## Small Example
 
 ```rust
-use forge_query::facade::{ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::ForgeQueryLiveView;
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
@@ -76,12 +77,9 @@ let table: ForgeQueryLiveView<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Buy milk" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Buy milk")
     })
     .unwrap();
 
@@ -95,10 +93,8 @@ consumption paths on the same handle.
 ## Real Example
 
 ```rust
-use forge_query::facade::{
-    ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryWriteCommand,
-};
-use serde_json::{json, Value};
+use forge_query::facade::{ForgeQueryDerivedViewHandle, ForgeQueryLiveView};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("builder").unwrap();
 
@@ -125,12 +121,9 @@ let titles: ForgeQueryDerivedViewHandle<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Builder DX" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Builder DX")
     })
     .unwrap();
 

@@ -1,7 +1,8 @@
 use super::{
-    ForgeQueryAuthorityLane, ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntime,
-    ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
-    ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeSupportDenial,
+    ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryDerivedViewHandle,
+    ForgeQueryLiveView, ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeStateKind,
+    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeSupportDenial, ForgeQueryWriteReceipt,
 };
 
 pub trait ForgeQueryRuntimeStateTarget {
@@ -102,6 +103,50 @@ impl ForgeQueryRuntimeStateTarget for ForgeQueryRuntimeFacadeFamily {
                 ))
             }
         }
+    }
+}
+
+impl ForgeQueryRuntimeStateTarget for &ForgeQueryWriteReceipt {
+    fn into_state_snapshot(
+        self,
+        _runtime: &ForgeQueryRuntime,
+    ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
+        let result_shape_digest = format!(
+            "mutation-receipt:{}:{}:{}",
+            self.mutation_family(),
+            self.declared_collection().unwrap_or(""),
+            self.declared_entity_identity().unwrap_or("")
+        );
+        Ok(ForgeQueryRuntimeStateSnapshot::ready(
+            self.commit_identity(),
+            result_shape_digest,
+            self.authority_lane(),
+            format!(
+                "mutation receipt `{}` is ready with `{}` family evidence over `{}` basis lane",
+                self.commit_identity(),
+                self.mutation_family(),
+                self.basis_lane()
+            ),
+        ))
+    }
+}
+
+impl ForgeQueryRuntimeStateTarget for &ForgeQueryBatchWriteReceipt {
+    fn into_state_snapshot(
+        self,
+        _runtime: &ForgeQueryRuntime,
+    ) -> Result<ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeError> {
+        Ok(ForgeQueryRuntimeStateSnapshot::ready(
+            self.batch_digest(),
+            format!("batch-write-receipt:{}", self.write_count()),
+            self.authority_lane(),
+            format!(
+                "batch write receipt `{}` is ready with {} component writes over `{}` basis lane",
+                self.batch_digest(),
+                self.write_count(),
+                self.basis_lane()
+            ),
+        ))
     }
 }
 

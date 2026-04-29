@@ -22,6 +22,7 @@ actually available before they build on it.
 - `workspace.public_api_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
+- `workspace.public_mutation_api_compatibility_report()`
 - `workspace.admit_public_api_family(...)`
 - `ForgeQueryRuntimeFacadeFamily`
 - `ForgeQueryRuntimeFamilySupportStatus`
@@ -38,6 +39,8 @@ There are three different questions here:
 - which families are visible only so future work extends the same facade
 
 The support matrix answers those questions row by row.
+For mutation-specific preferred-versus-compatibility posture, pair it with
+`workspace.public_mutation_api_compatibility_report()`.
 
 Each row tells you:
 

@@ -347,6 +347,33 @@ impl ForgeQueryRuntimePublicApiNamingContract {
                 ["branch_with_options"],
                 true,
             ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "insert",
+                "insert",
+                [
+                    "write + ForgeQueryWriteCommand::InsertAspects",
+                    "write + ForgeQueryWriteCommand::Insert (deprecated payload-first compatibility)",
+                ],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "update",
+                "update",
+                ["write + ForgeQueryWriteCommand::UpdateAspect"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "delete",
+                "delete",
+                ["write + ForgeQueryWriteCommand::Delete"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "batch",
+                "batch",
+                ["multiple write(...) calls in declared order"],
+                true,
+            ),
             ForgeQueryRuntimePublicApiNamingRow::new("intent", "intent", ["execute_intent"], true),
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "effect-intent",

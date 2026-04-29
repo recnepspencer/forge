@@ -25,7 +25,11 @@ Stable runtime-backed entry points:
 - `workspace.computed(...)`
 - `workspace.effect(...)`
 - `workspace.preview(...)` / `workspace.branch(...)`
-- `workspace.write(...)`
+- `workspace.insert(...)`
+- `workspace.update(...)`
+- `workspace.delete(...)`
+- `workspace.batch(...)`
+- `workspace.write(...)` as the lower-level compatibility path
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.materialize(...)`
@@ -34,6 +38,7 @@ Stable runtime-backed entry points:
 - `workspace.public_api_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
+- `workspace.public_mutation_api_compatibility_report()`
 - `workspace.admit_public_api_family(...)`
 
 Compatibility entry points still exist, but new code should prefer the names
@@ -45,6 +50,11 @@ Good to know:
   compatibility support set yet.
 - Method presence is not a support claim. Use the support matrix and admission
   gate when you are near deferred or unsupported families.
+- Use the mutation compatibility report when you need explicit preferred versus
+  compatibility posture for mutation surfaces.
+- `workspace.write(...)` stays available as an expert compatibility seam during
+  the lower-crate rewrite, but ordinary downstream runtime APIs should not need
+  it.
 
 ## Core Mental Model
 
@@ -70,7 +80,10 @@ The typical workspace lifecycle looks like this:
 
 1. Open a named workspace from a configured runtime.
 2. Declare live views, computed surfaces, and effects.
-3. Write authoritative changes through `workspace.write(...)`.
+3. Write authoritative changes through `workspace.insert(...)`,
+   `workspace.update(...)`, `workspace.delete(...)`, or `workspace.batch(...)`.
+   Aspect-level reset stays on the same path through builder calls such as
+   `task.clear("description.value")`.
 4. Read current rows, drain patches, or materialize derived rows from retained
    handles.
 5. Inspect handles or snapshot state when you need explanations or readiness.
@@ -83,8 +96,8 @@ runtime's inspection or state APIs.
 ## Small Example
 
 ```rust
-use forge_query::facade::{ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::ForgeQueryLiveView;
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("editor").unwrap();
 
@@ -98,12 +111,9 @@ let tasks: ForgeQueryLiveView<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Buy milk" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Buy milk")
     })
     .unwrap();
 
@@ -119,9 +129,9 @@ declaration, authoritative write, snapshot read, and incremental observation.
 ```rust
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryEffectHandle, ForgeQueryInspection,
-    ForgeQueryLiveView, ForgeQueryWriteCommand,
+    ForgeQueryLiveView,
 };
-use serde_json::{json, Value};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("workflow.editor").unwrap();
 
@@ -160,13 +170,10 @@ let badges: ForgeQueryEffectHandle<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "WorkflowNode".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "layout": { "frame": "0,0,320,80" },
-            "validation": { "state": "ready" },
-        }),
+    .insert("WorkflowNode", |node| {
+        node.aspect("identity.id", "node-1")
+            .aspect("layout.frame", "0,0,320,80")
+            .aspect("validation.state", "ready")
     })
     .unwrap();
 
@@ -184,7 +191,9 @@ match badge_explanation {
 
 What is authoritative:
 
-- `workspace.write(...)` changes authoritative truth
+- `workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`,
+  and `workspace.batch(...)` are the preferred authoritative mutation paths
+- `workspace.write(...)` remains the lower-level expert compatibility path
 
 What is derived:
 
@@ -200,6 +209,8 @@ What gets retained:
 What gets inspected:
 
 - one unified `workspace.inspect(...)` call can explain each retained surface
+- mutation receipts preserve declared aspect operations, so inspection can show
+  whether an authored aspect was a `set` or a `clear`
 
 ## How It Relates To Other Features
 

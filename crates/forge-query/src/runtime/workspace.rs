@@ -1,13 +1,15 @@
 use serde_json::Value;
 
 use super::{
-    DeclarativeLiveQueryRequest, ForgeQueryBranchOptions, ForgeQueryBranchSession,
-    ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryEffectBuilder, ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt,
-    ForgeQueryHandleContract, ForgeQueryInspection, ForgeQueryInspectionTarget,
-    ForgeQueryInstalledProgram, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
-    ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryPatchBatch, ForgeQueryPreviewOptions,
-    ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    DeclarativeLiveQueryRequest, ForgeQueryAspectApiFinalizationCloseout,
+    ForgeQueryAspectMutationBuilder, ForgeQueryBatchWriteReceipt, ForgeQueryBranchOptions,
+    ForgeQueryBranchSession, ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle,
+    ForgeQueryDerivedViewMaintainer, ForgeQueryEffectBuilder, ForgeQueryEffectHandle,
+    ForgeQueryEffectIntentReceipt, ForgeQueryHandleContract, ForgeQueryInspection,
+    ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentReceipt, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
+    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationBatchBuilder, ForgeQueryPatchBatch,
+    ForgeQueryPreviewOptions, ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
     ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
     ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
@@ -55,6 +57,18 @@ impl ForgeQueryWorkspace {
 
     pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
         self.runtime.public_support_matrix()
+    }
+
+    pub fn public_mutation_api_compatibility_report(
+        &self,
+    ) -> ForgeQueryMutationApiCompatibilityReport {
+        self.runtime.public_mutation_api_compatibility_report()
+    }
+
+    pub fn public_aspect_api_finalization_closeout(
+        &self,
+    ) -> ForgeQueryAspectApiFinalizationCloseout {
+        self.runtime.public_aspect_api_finalization_closeout()
     }
 
     pub fn admit_public_api_family(
@@ -198,6 +212,43 @@ impl ForgeQueryWorkspace {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.runtime.write(command)
+    }
+
+    pub fn insert(
+        &mut self,
+        collection: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_insert(collection)?;
+        self.runtime.write(command)
+    }
+
+    pub fn update(
+        &mut self,
+        entity_identity: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_update(entity_identity)?;
+        self.runtime.write(command)
+    }
+
+    pub fn delete(
+        &mut self,
+        entity_identity: impl Into<String>,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        self.runtime.write(ForgeQueryWriteCommand::Delete {
+            entity_identity: entity_identity.into(),
+        })
+    }
+
+    pub fn batch(
+        &mut self,
+        declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
+        self.runtime.write_batch(commands)
     }
 
     pub fn read<T>(

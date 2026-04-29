@@ -7,6 +7,7 @@ error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryI
    |                     required by a bound introduced by this call
    |
    = help: the following other types implement trait `From<T>`:
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryBatchWriteReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryBranchIntentReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryDerivedViewHandle<T>>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryEffectHandle<T>>`
@@ -14,7 +15,6 @@ error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryI
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentDenialEvidence>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryLiveView<T>>`
-             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryPreviewHandleBindingEvidence>`
            and $N others
    = note: required for `&ForgeQueryIntentExecution` to implement `Into<ForgeQueryInspectionTarget<'_>>`
 note: required by a bound in `ForgeQueryRuntime::inspect`

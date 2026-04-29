@@ -82,9 +82,8 @@ for a deferred family.
 ```rust
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryWriteCommand,
 };
-use serde_json::{json, Value};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("state-workspace").unwrap();
 
@@ -109,12 +108,9 @@ let titles: ForgeQueryDerivedViewHandle<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "State DX" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "State DX")
     })
     .unwrap();
 

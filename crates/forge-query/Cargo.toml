@@ -12,6 +12,7 @@ categories = ["data-structures", "science"]
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 forge-signal.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"
 

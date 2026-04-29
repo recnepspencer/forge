@@ -63,8 +63,8 @@ the declared projection or grouping basis.
 ## Small Example
 
 ```rust
-use forge_query::facade::{ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::ForgeQueryLiveView;
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
 
@@ -78,12 +78,9 @@ let table: ForgeQueryLiveView<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Buy milk" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Buy milk")
     })
     .unwrap();
 
@@ -97,8 +94,8 @@ snapshot reads and incremental observation.
 ## Real Example
 
 ```rust
-use forge_query::facade::{ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::{ForgeQueryInspection, ForgeQueryLiveView};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks.grouped").unwrap();
 
@@ -112,13 +109,10 @@ let grouped: ForgeQueryLiveView<Value> = workspace
     .unwrap();
 
 let receipt = workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Seed task" },
-            "status": { "value": "todo" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Seed task")
+            .aspect("status.value", "todo")
     })
     .unwrap();
 

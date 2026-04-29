@@ -105,8 +105,7 @@ state snapshot names the authority lane.
 ## Real Example
 
 ```rust
-use forge_query::facade::{ForgeQueryPreviewOptions, ForgeQueryWriteCommand};
-use serde_json::json;
+use forge_query::facade::ForgeQueryPreviewOptions;
 
 let titles = workspace
     .computed(
@@ -146,13 +145,10 @@ let publish = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Approval form" },
-            "status": { "value": "open" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Approval form")
+            .aspect("status.value", "open")
     })
     .unwrap();
 

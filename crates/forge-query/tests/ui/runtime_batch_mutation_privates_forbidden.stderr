@@ -1,0 +1,45 @@
+warning: unreachable expression
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:12:23
+   |
+11 |         authority_lane: panic!("not constructible"),
+   |                         --------------------------- any code following this expression is unreachable
+12 |         batch_digest: String::new(),
+   |                       ^^^^^^^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `ForgeQueryBatchWriteReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:9:13
+   |
+ 9 |     let _ = ForgeQueryBatchWriteReceipt {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |         write_receipts: Vec::new(),
+   |         -------------------------- private field
+11 |         authority_lane: panic!("not constructible"),
+   |         ------------------------------------------- private field
+12 |         batch_digest: String::new(),
+   |         --------------------------- private field
+13 |         touched_aspect_paths: Vec::new(),
+   |         -------------------------------- private field
+14 |         affected_live_view_ids: Vec::new(),
+   |         ---------------------------------- private field
+15 |         affected_derived_view_ids: Vec::new(),
+   |         ------------------------------------- private field
+16 |         considered_computed_view_count: 0,
+   |         --------------------------------- private field
+17 |         considered_effect_count: 0,
+   |         -------------------------- private field
+18 |         delivered_effect_count: 0,
+   |         ------------------------- private field
+19 |         pending_write_intent_count: 0,
+   |         ----------------------------- private field
+20 |         suppressed_effect_count: 0,
+   |         -------------------------- private field
+21 |         meaningful_effect_suppression_count: 0,
+   |         -------------------------------------- private field
+22 |         effect_expression_failure_count: 0,
+   |         ---------------------------------- private field
+23 |         refresh_fallback: false,
+   |         ----------------------- private field
+   |
+   = note: ...and other private field `basis_lane` that was not provided

@@ -89,8 +89,7 @@ muted unless you explicitly choose a broader policy.
 ## Small Example
 
 ```rust
-use forge_query::facade::{ForgeQueryPreviewOptions, ForgeQueryWriteCommand};
-use serde_json::json;
+use forge_query::facade::ForgeQueryPreviewOptions;
 
 let mut workspace = runtime.workspace("preview").unwrap();
 
@@ -102,12 +101,9 @@ let mut preview = workspace
     .unwrap();
 
 preview
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "preview-1" },
-            "title": { "value": "Preview-only task" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "preview-1")
+            .aspect("title.value", "Preview-only task")
     })
     .unwrap();
 
@@ -123,7 +119,6 @@ truth writes.
 ```rust
 use forge_query::facade::{
     ForgeQueryBranchOptions, ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryPreviewOptions,
-    ForgeQueryWriteCommand,
 };
 use serde_json::{json, Value};
 
@@ -146,12 +141,9 @@ let preview_outcome = {
         .unwrap();
     preview.use_view(&live);
     preview
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "preview-task" },
-                "title": { "value": "Preview execution task" },
-            }),
+        .insert("Task", |task| {
+            task.aspect("identity.id", "preview-task")
+                .aspect("title.value", "Preview execution task")
         })
         .unwrap();
     preview.discard()

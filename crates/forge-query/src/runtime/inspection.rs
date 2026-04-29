@@ -19,5 +19,6 @@ pub use preview::{
     ForgeQueryPreviewOutcomeInspection,
 };
 pub use unified::{
+    ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryInspection, ForgeQueryInspectionTarget, ForgeQueryWriteReceiptInspection,
 };

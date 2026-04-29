@@ -99,8 +99,8 @@ materialization.
 ## Real Example
 
 ```rust
-use forge_query::facade::{ForgeQueryDerivedViewHandle, ForgeQueryInspection, ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::{ForgeQueryDerivedViewHandle, ForgeQueryInspection, ForgeQueryLiveView};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
@@ -137,12 +137,9 @@ let summary: ForgeQueryDerivedViewHandle<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Nested title" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Nested title")
     })
     .unwrap();
 

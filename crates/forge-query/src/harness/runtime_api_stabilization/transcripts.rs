@@ -6,7 +6,7 @@ use crate::facade::{
     ForgeQueryEffectHandle, ForgeQueryInspection, ForgeQueryIntentDeclaration, ForgeQueryLiveView,
     ForgeQueryMutationDelta, ForgeQueryPreviewOptions, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiTranscriptEvidence,
-    ForgeQueryWorkspace, ForgeQueryWriteCommand,
+    ForgeQueryWorkspace,
 };
 use crate::identity::hash_parts;
 
@@ -209,9 +209,14 @@ fn execute_transcript(spec: TranscriptSpec) -> ForgeQueryRuntimePublicApiTranscr
         .intent(intent_declaration(spec.intent_name, spec.collection))
         .expect("authoritative transcript intent should commit");
     let write = workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: spec.collection.to_string(),
-            payload: json!({ "transcript": spec.family }),
+        .insert(spec.collection, |entity| {
+            let entity = entity.aspect("identity.id", format!("{}-entity-1", spec.family));
+            spec.produced_aspects
+                .iter()
+                .enumerate()
+                .fold(entity, |builder, (index, aspect)| {
+                    builder.aspect(*aspect, format!("{}-value-{index}", spec.family))
+                })
         })
         .expect("transcript write should route live, computed, and effect artifacts");
     assert!(
@@ -334,9 +339,14 @@ fn preview_proof(
         .use_effect(effect)
         .expect("effect should bind in preview");
     let preview_write = preview
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: spec.collection.to_string(),
-            payload: json!({ "preview": spec.family }),
+        .insert(spec.collection, |entity| {
+            let entity = entity.aspect("identity.id", format!("{}-preview-1", spec.family));
+            spec.produced_aspects
+                .iter()
+                .enumerate()
+                .fold(entity, |builder, (index, aspect)| {
+                    builder.aspect(*aspect, format!("{}-preview-{index}", spec.family))
+                })
         })
         .expect("preview write should stage");
     let preview_intent = preview

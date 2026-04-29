@@ -1,6 +1,11 @@
 use super::super::support::*;
 use crate::memory_workspace::ForgeQueryAspect;
 
+const ASPECT_API_CLOSEOUT_DOC: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../_docs/forge-query/aspect-api-finalization-closeout.md"
+));
+
 #[test]
 fn runtime_support_profiles_expose_facade_family_posture() {
     let memory_runtime = task_runtime();
@@ -322,6 +327,10 @@ fn runtime_public_api_naming_contract_prefers_workspace_surface_names() {
     assert_eq!(contract.preferred_name_for("live-view"), Some("live_view"));
     assert_eq!(contract.preferred_name_for("computed"), Some("computed"));
     assert_eq!(contract.preferred_name_for("effect"), Some("effect"));
+    assert_eq!(contract.preferred_name_for("insert"), Some("insert"));
+    assert_eq!(contract.preferred_name_for("update"), Some("update"));
+    assert_eq!(contract.preferred_name_for("delete"), Some("delete"));
+    assert_eq!(contract.preferred_name_for("batch"), Some("batch"));
     assert_eq!(contract.preferred_name_for("intent"), Some("intent"));
     assert_eq!(contract.preferred_name_for("read"), Some("read"));
     assert_eq!(contract.preferred_name_for("state"), Some("state"));
@@ -334,6 +343,13 @@ fn runtime_public_api_naming_contract_prefers_workspace_surface_names() {
                 .iter()
                 .any(|name| name == "computed_definition")
     }));
+    assert!(contract.rows().iter().any(|row| {
+        row.concept() == "insert"
+            && row
+                .compatibility_names()
+                .iter()
+                .any(|name| name.contains("deprecated payload-first compatibility"))
+    }));
     assert!(contract.rows().iter().all(|row| {
         row.preferred_name() != "computed_declaration"
             && !row
@@ -345,9 +361,254 @@ fn runtime_public_api_naming_contract_prefers_workspace_surface_names() {
         .rows()
         .iter()
         .all(|row| row.preferred_name() != "surface"));
-    assert!(contract.preferred_entrypoint_count() >= 12);
-    assert!(contract.compatibility_name_count() >= 10);
+    assert!(contract.preferred_entrypoint_count() >= 16);
+    assert!(contract.compatibility_name_count() >= 14);
     assert!(!contract.contract_digest().is_empty());
+}
+
+#[test]
+fn runtime_public_mutation_compatibility_report_marks_payload_insert_deprecated() {
+    let workspace = task_runtime()
+        .workspace("task.mutation-compatibility")
+        .expect("task runtime should open a named workspace");
+    let report = workspace.public_mutation_api_compatibility_report();
+    let naming = ForgeQueryRuntime::public_api_naming_contract();
+    let matrix = workspace.public_support_matrix();
+
+    assert_eq!(
+        report.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(report.support_matrix_digest(), matrix.matrix_digest());
+    assert_eq!(report.naming_contract_digest(), naming.contract_digest());
+    assert!(report.preferred_stable_count() >= 8);
+    assert!(report.stable_compatibility_count() >= 4);
+    assert_eq!(report.deprecated_compatibility_count(), 1);
+    assert_eq!(report.support_gated_count(), 2);
+    assert!(!report.report_digest().is_empty());
+
+    let insert = report
+        .row_by_surface("workspace.insert(...)")
+        .expect("preferred insert row should exist");
+    assert_eq!(
+        insert.posture(),
+        ForgeQueryMutationCompatibilityPosture::PreferredStable
+    );
+    assert!(insert.ordinary_public_story());
+    assert!(insert.preferred_replacement().is_none());
+
+    let direct_write = report
+        .row_by_surface("workspace.write(...)")
+        .expect("lower-level compatibility row should exist");
+    assert_eq!(
+        direct_write.posture(),
+        ForgeQueryMutationCompatibilityPosture::StableCompatibility
+    );
+    assert!(!direct_write.ordinary_public_story());
+    assert_eq!(
+        direct_write.preferred_replacement(),
+        Some("workspace.insert/update/delete/batch")
+    );
+
+    let aspect_insert = report
+        .row_by_surface("ForgeQueryWriteCommand::InsertAspects")
+        .expect("aspect-native insert compatibility row should exist");
+    assert_eq!(
+        aspect_insert.posture(),
+        ForgeQueryMutationCompatibilityPosture::StableCompatibility
+    );
+    assert_eq!(
+        aspect_insert.preferred_replacement(),
+        Some("workspace.insert(...)")
+    );
+    assert!(aspect_insert.reason().contains("aspect-native"));
+
+    let payload_insert = report
+        .row_by_surface("ForgeQueryWriteCommand::Insert")
+        .expect("payload-first insert compatibility row should exist");
+    assert_eq!(
+        payload_insert.posture(),
+        ForgeQueryMutationCompatibilityPosture::DeprecatedCompatibility
+    );
+    assert_eq!(
+        payload_insert.preferred_replacement(),
+        Some("workspace.insert(...)")
+    );
+    assert!(payload_insert.reason().contains("payload-first"));
+
+    let intent = report
+        .row_by_surface("workspace.intent(...)")
+        .expect("support-gated intent row should exist");
+    assert_eq!(
+        intent.posture(),
+        ForgeQueryMutationCompatibilityPosture::SupportGated
+    );
+    assert!(intent.reason().contains("public vocabulary"));
+}
+
+#[test]
+fn runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_questions() {
+    let workspace = task_runtime()
+        .workspace("task.aspect-api-closeout")
+        .expect("task runtime should open a named workspace");
+    let closeout = workspace.public_aspect_api_finalization_closeout();
+    let report = workspace.public_mutation_api_compatibility_report();
+    let matrix = workspace.public_support_matrix();
+    let naming = ForgeQueryRuntime::public_api_naming_contract();
+
+    assert_eq!(
+        closeout.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(closeout.support_matrix_digest(), matrix.matrix_digest());
+    assert_eq!(
+        closeout.mutation_compatibility_digest(),
+        report.report_digest()
+    );
+    assert_eq!(closeout.naming_contract_digest(), naming.contract_digest());
+    assert!(!closeout.closeout_digest().is_empty());
+
+    assert!(closeout
+        .preferred_stable_surfaces()
+        .iter()
+        .any(|row| row == "workspace.insert(...)"));
+    assert!(closeout
+        .preferred_stable_surfaces()
+        .iter()
+        .any(|row| row == "workspace.batch(...)"));
+    assert!(closeout
+        .preferred_stable_surfaces()
+        .iter()
+        .any(|row| row == "preview.insert(...)"));
+    assert!(closeout
+        .stable_compatibility_surfaces()
+        .iter()
+        .any(|row| row == "workspace.write(...)=>workspace.insert/update/delete/batch"));
+    assert!(closeout
+        .deprecated_compatibility_surfaces()
+        .iter()
+        .any(|row| row == "ForgeQueryWriteCommand::Insert=>workspace.insert(...)"));
+    assert!(closeout
+        .support_gated_surfaces()
+        .iter()
+        .any(|row| row == "workspace.intent(...)"));
+
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|row| row.contains("aspect-native authoritative CRUD")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|row| row.contains("wasm-facing")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|row| row.contains("JSON has already been removed")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|row| row.contains("store-backed parity")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|row| row.contains("workspace.insert/update/delete/batch")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|row| row.contains("payload lowering")));
+
+    for required in [
+        "preferred public mutation DX is aspect-native",
+        "payload-first ordinary authoring is closed off",
+        "support-gated mutation neighbors stay fail-closed",
+        "write-family support remains synchronized with the public matrix",
+        "compatibility seams stay explicit rather than co-equal",
+        "downstream runtimes may build on the facade now",
+    ] {
+        assert!(
+            closeout
+                .closeout_self_check_answers()
+                .iter()
+                .any(|answer| answer.contains(required)),
+            "closeout self-check must answer `{required}`"
+        );
+    }
+
+    for command in [
+        "cargo fmt -p forge-query",
+        "cargo check -p forge-query --tests",
+        "cargo test --manifest-path crates/forge-query/Cargo.toml --test phase_boundaries_compile_fail",
+        "cargo test -p forge-query",
+        "cargo test -p forge-query runtime_public_mutation_compatibility_report_marks_payload_insert_deprecated",
+        "cargo test -p forge-query runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_questions",
+        "git diff --check",
+    ] {
+        assert!(
+            closeout
+                .required_verification_commands()
+                .iter()
+                .any(|actual| actual == command),
+            "closeout must require `{command}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_public_aspect_api_finalization_closeout_document_matches_certified_contract() {
+    let workspace = task_runtime()
+        .workspace("task.aspect-api-closeout-doc")
+        .expect("task runtime should open a named workspace");
+    let closeout = workspace.public_aspect_api_finalization_closeout();
+
+    for required in [
+        "`workspace.insert(...)`",
+        "`workspace.update(...)`",
+        "`workspace.delete(...)`",
+        "`workspace.batch(...)`",
+        "`preview.insert(...)`",
+        "`preview.update(...)`",
+        "`preview.delete(...)`",
+        "`preview.batch(...)`",
+        "`workspace.write(...)`",
+        "`ForgeQueryWriteCommand::Insert`",
+        "`workspace.intent(...)`",
+        "`workspace.next_effect_intent(...)`",
+    ] {
+        assert!(
+            ASPECT_API_CLOSEOUT_DOC.contains(required),
+            "closeout doc must include `{required}`"
+        );
+    }
+
+    for line in closeout.safe_to_build_now() {
+        assert!(
+            ASPECT_API_CLOSEOUT_DOC.contains(line),
+            "closeout doc must include safe-to-build line `{line}`"
+        );
+    }
+    for line in closeout.must_not_assume_yet() {
+        assert!(
+            ASPECT_API_CLOSEOUT_DOC.contains(line),
+            "closeout doc must include must-not-assume line `{line}`"
+        );
+    }
+    for line in closeout.migration_guidance() {
+        assert!(
+            ASPECT_API_CLOSEOUT_DOC.contains(line),
+            "closeout doc must include migration line `{line}`"
+        );
+    }
+    for command in closeout.required_verification_commands() {
+        assert!(
+            ASPECT_API_CLOSEOUT_DOC.contains(command),
+            "closeout doc must cite verification command `{command}`"
+        );
+    }
+    assert!(
+        ASPECT_API_CLOSEOUT_DOC.contains("JSON may still exist as an internal lowering adapter"),
+        "closeout doc must preserve the internal JSON-adapter boundary explicitly"
+    );
 }
 
 #[test]
@@ -536,12 +797,9 @@ fn runtime_workspace_declares_observes_and_inspects_with_preferred_names() {
         .expect("workspace live view should declare");
 
     let write = workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Workspace facade" },
-            }),
+        .insert("Task", |task| {
+            task.aspect("identity.id", "task-1")
+                .aspect("title.value", "Workspace facade")
         })
         .expect("workspace write should execute");
     let patches = workspace.observe(&view);
@@ -607,12 +865,9 @@ fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
         .expect("workspace effect builder should lower to an effect");
 
     let write = workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Builder DX" },
-            }),
+        .insert("Task", |task| {
+            task.aspect("identity.id", "task-1")
+                .aspect("title.value", "Builder DX")
         })
         .expect("builder workspace write should route through declared surfaces");
     let live_patches = workspace.observe(&view);
@@ -664,12 +919,9 @@ fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
         .expect("workspace computed builder should lower to a derived view");
 
     workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "State DX" },
-            }),
+        .insert("Task", |task| {
+            task.aspect("identity.id", "task-1")
+                .aspect("title.value", "State DX")
         })
         .expect("write should route through state surfaces");
 

@@ -10,9 +10,8 @@ use crate::declarative_live::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
 use crate::memory_workspace::{
-    ForgeQueryCollection, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMemoryApp, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryWorkspaceError,
+    ForgeQueryCollection, ForgeQueryEntity, ForgeQueryMemoryApp, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
 use crate::program::{
     validate_inputs, ForgeQueryAuthorityRequirement, ForgeQueryDerivedView,
@@ -34,6 +33,7 @@ use crate::subscription::{
 };
 use crate::view_shape_live::LiveViewShapeFamily;
 
+mod aspect_api_closeout;
 mod authority;
 mod backend;
 mod branch;
@@ -46,6 +46,8 @@ mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
+mod mutation;
+mod mutation_compatibility;
 mod preview;
 mod public_api;
 mod state;
@@ -68,6 +70,7 @@ const RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY: &str =
 const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
     "runtime-live-consumer-attachment:fanout=1:pacing=1:allocation=1:retain_within_window";
 
+pub use aspect_api_closeout::ForgeQueryAspectApiFinalizationCloseout;
 pub use authority::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectAction,
     ForgeQueryEffectAdmission, ForgeQueryEffectPolicy, ForgeQueryEffectPolicyDenial,
@@ -113,6 +116,7 @@ pub use handle_contract::{
     ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
 };
 pub use inspection::{
+    ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
     ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
     ForgeQueryFeedbackTermination, ForgeQueryInspection, ForgeQueryInspectionTarget,
@@ -129,6 +133,15 @@ pub use intent::{
     ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
+pub(crate) use mutation::aspect_values_to_payload;
+pub use mutation::{
+    ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
+    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue, ForgeQueryMutationBatchBuilder,
+};
+pub use mutation_compatibility::{
+    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
+    ForgeQueryMutationCompatibilityRow,
+};
 pub use preview::{
     ForgeQueryPreviewCloseoutEvidence, ForgeQueryPreviewCloseoutKind, ForgeQueryPreviewDiff,
     ForgeQueryPreviewEffectBindingDisposition, ForgeQueryPreviewExecutionEvidence,
@@ -155,9 +168,10 @@ pub use support_matrix::{
     ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,
 };
 pub use surface::{
-    ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact, ForgeQueryInstalledOperation,
-    ForgeQueryInstalledProgram, ForgeQueryLiveView, ForgeQueryPatchBatch, ForgeQueryRunReceipt,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryArtifactInspector, ForgeQueryBatchWriteReceipt, ForgeQueryInspectedArtifact,
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveView,
+    ForgeQueryMutationFamily, ForgeQueryPatchBatch, ForgeQueryRunReceipt, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
 };
 pub use workspace::ForgeQueryWorkspace;
 pub use workspace_declaration::{
@@ -178,6 +192,19 @@ pub struct ForgeQueryRuntime {
     effects: BTreeMap<String, ForgeQueryEffectRuntime>,
     effect_index: ForgeQueryEffectIndex,
     next_run_id: u64,
+}
+
+struct ForgeQueryRoutedMutationSummary {
+    affected_live_view_ids: Vec<String>,
+    affected_derived_view_ids: Vec<String>,
+    considered_computed_view_count: usize,
+    considered_effect_count: usize,
+    delivered_effect_count: usize,
+    pending_write_intent_count: usize,
+    suppressed_effect_count: usize,
+    meaningful_effect_suppression_count: usize,
+    effect_expression_failure_count: usize,
+    refresh_fallback: bool,
 }
 
 impl ForgeQueryRuntime {
@@ -206,6 +233,27 @@ impl ForgeQueryRuntime {
 
     pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
         ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&self.public_api_contract())
+    }
+
+    pub fn public_mutation_api_compatibility_report(
+        &self,
+    ) -> ForgeQueryMutationApiCompatibilityReport {
+        ForgeQueryMutationApiCompatibilityReport::derive(
+            self.public_api_contract().backend_posture(),
+            &self.public_support_matrix(),
+            &Self::public_api_naming_contract(),
+        )
+    }
+
+    pub fn public_aspect_api_finalization_closeout(
+        &self,
+    ) -> ForgeQueryAspectApiFinalizationCloseout {
+        ForgeQueryAspectApiFinalizationCloseout::derive(
+            self.public_api_contract().backend_posture(),
+            &self.public_support_matrix(),
+            &self.public_mutation_api_compatibility_report(),
+            &Self::public_api_naming_contract(),
+        )
     }
 
     pub fn admit_public_api_family(
@@ -357,8 +405,84 @@ impl ForgeQueryRuntime {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
+        let mutation_family = command.mutation_family();
+        let declared_collection = command.declared_collection();
+        let declared_entity_identity = command.declared_entity_identity();
+        let declared_aspect_operations = command.declared_aspect_operations();
         let receipt = self.backend.write(command)?;
-        self.route_authoritative_mutation_receipt(receipt)
+        self.route_authoritative_mutation_receipt(
+            receipt,
+            mutation_family,
+            declared_collection,
+            declared_entity_identity,
+            declared_aspect_operations,
+        )
+    }
+
+    pub fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
+        if commands.is_empty() {
+            return Err(ForgeQueryRuntimeError::Workspace(
+                ForgeQueryWorkspaceError::new("mutation batch must declare at least one operation"),
+            ));
+        }
+        let command_summaries = commands
+            .iter()
+            .map(|command| {
+                (
+                    command.mutation_family(),
+                    command.declared_collection(),
+                    command.declared_entity_identity(),
+                    command.declared_aspect_operations(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let receipts = self.backend.write_batch(commands)?;
+        let combined_receipt = combined_batch_mutation_receipt(&receipts)?;
+        let summary = self.route_authoritative_mutation_summary(&combined_receipt)?;
+        let write_receipts = receipts
+            .into_iter()
+            .zip(command_summaries)
+            .map(|(receipt, summary)| {
+                let affected_live_view_ids = self.backend.affected_live_view_ids(&receipt);
+                ForgeQueryWriteReceipt::batch_component(
+                    receipt,
+                    summary.0,
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                    summary.1,
+                    summary.2,
+                    summary.3,
+                    affected_live_view_ids,
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut touched_aspect_paths = combined_receipt
+            .deltas
+            .iter()
+            .flat_map(|delta| delta.aspect_paths.iter().cloned())
+            .collect::<Vec<_>>();
+        touched_aspect_paths.sort();
+        touched_aspect_paths.dedup();
+        ForgeQueryBatchWriteReceipt::new(
+            write_receipts,
+            ForgeQueryAuthorityLane::AuthoritativeTruth,
+            ForgeQueryAuthorityLane::AuthoritativeTruth,
+            touched_aspect_paths,
+            summary.affected_live_view_ids,
+            summary.affected_derived_view_ids,
+            summary.considered_computed_view_count,
+            summary.considered_effect_count,
+            summary.delivered_effect_count,
+            summary.pending_write_intent_count,
+            summary.suppressed_effect_count,
+            summary.meaningful_effect_suppression_count,
+            summary.effect_expression_failure_count,
+            summary.refresh_fallback,
+        )
     }
 
     pub fn execute_intent(
@@ -388,8 +512,14 @@ impl ForgeQueryRuntime {
                 }
             },
         )?;
-        let write_receipt =
-            self.route_authoritative_mutation_receipt(execution.mutation_receipt().clone())?;
+        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
+        let write_receipt = self.route_authoritative_mutation_receipt(
+            execution.mutation_receipt().clone(),
+            summary.0,
+            summary.1,
+            summary.2,
+            Vec::new(),
+        )?;
         Ok(ForgeQueryIntentReceipt::new(
             &declaration,
             execution,
@@ -458,8 +588,14 @@ impl ForgeQueryRuntime {
                 }
             },
         )?;
-        let write_receipt =
-            self.route_authoritative_mutation_receipt(execution.mutation_receipt().clone())?;
+        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
+        let write_receipt = self.route_authoritative_mutation_receipt(
+            execution.mutation_receipt().clone(),
+            summary.0,
+            summary.1,
+            summary.2,
+            Vec::new(),
+        )?;
         let intent_receipt = ForgeQueryIntentReceipt::new(&declaration, execution, &write_receipt);
         if let Some(runtime) = self.effects.get_mut(effect.name()) {
             if runtime
@@ -489,19 +625,47 @@ impl ForgeQueryRuntime {
     fn route_authoritative_mutation_receipt(
         &mut self,
         receipt: ForgeQueryMutationReceipt,
+        mutation_family: ForgeQueryMutationFamily,
+        declared_collection: Option<String>,
+        declared_entity_identity: Option<String>,
+        declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let summary = self.route_authoritative_mutation_summary(&receipt)?;
+        Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
+            receipt,
+            mutation_family,
+            declared_collection,
+            declared_entity_identity,
+            declared_aspect_operations,
+            summary.affected_live_view_ids,
+            summary.affected_derived_view_ids,
+            summary.considered_computed_view_count,
+            summary.considered_effect_count,
+            summary.delivered_effect_count,
+            summary.pending_write_intent_count,
+            summary.suppressed_effect_count,
+            summary.meaningful_effect_suppression_count,
+            summary.effect_expression_failure_count,
+            summary.refresh_fallback,
+        ))
+    }
+
+    fn route_authoritative_mutation_summary(
+        &mut self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<ForgeQueryRoutedMutationSummary, ForgeQueryRuntimeError> {
         let affected_live_view_ids = route_live_subscription_delivery(
             &mut self.active_subscriptions,
             &mut self.live_subscriptions,
             &self.live_subscription_index,
-            &receipt,
+            receipt,
         )?;
-        let computed_candidate_live_views = self.computed_candidate_live_views(&receipt);
+        let computed_candidate_live_views = self.computed_candidate_live_views(receipt);
         let computed_result = route_derived_view_patches(
             &mut self.derived_views,
             &self.derived_dependency_index,
             computed_candidate_live_views,
-            &receipt,
+            receipt,
         );
         let refresh_fallback = computed_result.refresh_fallback();
         let considered_computed_view_count = computed_result.considered_view_count();
@@ -512,23 +676,22 @@ impl ForgeQueryRuntime {
             &self.effect_index,
             &self.derived_views,
             &live_view_targets,
-            &receipt,
+            receipt,
             &affected_live_view_ids,
             &affected_derived_view_ids,
         );
-        Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
-            receipt,
+        Ok(ForgeQueryRoutedMutationSummary {
             affected_live_view_ids,
             affected_derived_view_ids,
             considered_computed_view_count,
-            effect_result.considered_effect_count(),
-            effect_result.delivered_effect_count(),
-            effect_result.pending_write_intent_count(),
-            effect_result.suppressed_effect_count(),
-            effect_result.meaningful_suppression_count(),
-            effect_result.expression_failure_count(),
+            considered_effect_count: effect_result.considered_effect_count(),
+            delivered_effect_count: effect_result.delivered_effect_count(),
+            pending_write_intent_count: effect_result.pending_write_intent_count(),
+            suppressed_effect_count: effect_result.suppressed_effect_count(),
+            meaningful_effect_suppression_count: effect_result.meaningful_suppression_count(),
+            effect_expression_failure_count: effect_result.expression_failure_count(),
             refresh_fallback,
-        ))
+        })
     }
 
     pub fn read_live<T>(&self, view: &ForgeQueryLiveView<T>) -> Vec<ForgeQueryEntity> {
@@ -955,6 +1118,11 @@ impl ForgeQueryRuntime {
                     ForgeQueryWriteReceiptInspection::new(receipt, runtime_evidence),
                 ))
             }
+            ForgeQueryInspectionTarget::BatchWriteReceipt(receipt) => {
+                Ok(ForgeQueryInspection::BatchWriteReceipt(
+                    ForgeQueryBatchWriteReceiptInspection::new(receipt),
+                ))
+            }
             ForgeQueryInspectionTarget::IntentReceipt(receipt) => Ok(
                 ForgeQueryInspection::IntentReceipt(self.inspect_intent_receipt(receipt)?),
             ),
@@ -1306,6 +1474,70 @@ fn live_subscription_error(
         stage,
         message: format!("{error:?}"),
     }
+}
+
+fn combined_batch_mutation_receipt(
+    receipts: &[ForgeQueryMutationReceipt],
+) -> Result<ForgeQueryMutationReceipt, ForgeQueryRuntimeError> {
+    let Some(last_receipt) = receipts.last() else {
+        return Err(ForgeQueryRuntimeError::Workspace(
+            ForgeQueryWorkspaceError::new("mutation batch must produce at least one write receipt"),
+        ));
+    };
+    let commit_identity = format!(
+        "batch:{}",
+        crate::identity::hash_parts(
+            &std::iter::once("forge_query_batch_mutation_receipt_v1".to_string())
+                .chain(
+                    receipts
+                        .iter()
+                        .map(|receipt| format!("commit:{}", receipt.commit_identity)),
+                )
+                .collect::<Vec<_>>(),
+        )
+    );
+    let deltas = receipts
+        .iter()
+        .flat_map(|receipt| receipt.deltas.iter().cloned())
+        .collect::<Vec<_>>();
+    Ok(ForgeQueryMutationReceipt {
+        commit_identity,
+        snapshot_token: last_receipt.snapshot_token.clone(),
+        deltas,
+    })
+}
+
+fn classify_receipt_mutation_summary(
+    receipt: &ForgeQueryMutationReceipt,
+) -> (ForgeQueryMutationFamily, Option<String>, Option<String>) {
+    let mutation_family = receipt
+        .deltas
+        .first()
+        .map(|delta| match delta.kind {
+            ForgeQueryMutationKind::Created => ForgeQueryMutationFamily::Insert,
+            ForgeQueryMutationKind::Updated => ForgeQueryMutationFamily::Update,
+            ForgeQueryMutationKind::Deleted => ForgeQueryMutationFamily::Delete,
+        })
+        .unwrap_or(ForgeQueryMutationFamily::Update);
+    let mut collections = receipt
+        .deltas
+        .iter()
+        .map(|delta| delta.collection.clone())
+        .collect::<Vec<_>>();
+    collections.sort();
+    collections.dedup();
+    let mut entity_identities = receipt
+        .deltas
+        .iter()
+        .map(|delta| delta.entity_identity.clone())
+        .collect::<Vec<_>>();
+    entity_identities.sort();
+    entity_identities.dedup();
+    (
+        mutation_family,
+        (collections.len() == 1).then(|| collections[0].clone()),
+        (entity_identities.len() == 1).then(|| entity_identities[0].clone()),
+    )
 }
 
 fn subscription_dimensions_for_request(

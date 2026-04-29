@@ -34,7 +34,9 @@ derived UI state yourself.
 - `runtime.workspace(...)`
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
-- `workspace.write(...)`
+- `workspace.insert(...)`
+- `workspace.update(...)`
+- `workspace.write(...)` as the lower-level compatibility path
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.materialize(...)`
@@ -69,7 +71,8 @@ Unrelated live views and computeds stay asleep.
 1. Open a workspace.
 2. Declare one live view for cars and one for people.
 3. Declare one computed surface that turns those runtime surfaces into UI rows.
-4. Insert or update authoritative truth through `workspace.write(...)`.
+4. Insert or update authoritative truth through `workspace.insert(...)` or
+   `workspace.update(...)`.
 5. Read live rows with `read(...)`.
 6. Materialize UI rows with `materialize(...)`.
 7. Drain patch batches with `observe(...)`.
@@ -78,8 +81,8 @@ Unrelated live views and computeds stay asleep.
 ## Small Example
 
 ```rust
-use forge_query::facade::{ForgeQueryLiveView, ForgeQueryWriteCommand};
-use serde_json::{json, Value};
+use forge_query::facade::ForgeQueryLiveView;
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("garage").unwrap();
 
@@ -102,24 +105,19 @@ let people: ForgeQueryLiveView<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Car".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "make": { "value": "Honda" },
-            "model": { "value": "Civic" },
-        }),
+    .insert("Car", |car| {
+        car.aspect("identity.id", "car-1")
+            .aspect("make.value", "Honda")
+            .aspect("model.value", "Civic")
     })
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Person".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "name": { "value": "Ava" },
-            "car_id": { "value": "car-1" },
-        }),
+    .insert("Person", |person| {
+        person
+            .aspect("identity.id", "person-1")
+            .aspect("name.value", "Ava")
+            .aspect("car_id.value", "car-1")
     })
     .unwrap();
 
@@ -139,9 +137,8 @@ This is already doing more than it looks like:
 ```rust
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryWorkspace,
-    ForgeQueryWriteCommand,
 };
-use serde_json::{json, Value};
+use serde_json::Value;
 
 struct CreateCarInput<'a> {
     id: &'a str,
@@ -160,13 +157,10 @@ fn create_car(
     input: CreateCarInput<'_>,
 ) {
     workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Car".to_string(),
-            payload: json!({
-                "identity": { "id": input.id },
-                "make": { "value": input.make },
-                "model": { "value": input.model },
-            }),
+        .insert("Car", |car| {
+            car.aspect("identity.id", input.id)
+                .aspect("make.value", input.make)
+                .aspect("model.value", input.model)
         })
         .unwrap();
 }
@@ -176,13 +170,11 @@ fn create_person(
     input: CreatePersonInput<'_>,
 ) {
     workspace
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Person".to_string(),
-            payload: json!({
-                "identity": { "id": input.id },
-                "name": { "value": input.name },
-                "car_id": { "value": input.car_id },
-            }),
+        .insert("Person", |person| {
+            person
+                .aspect("identity.id", input.id)
+                .aspect("name.value", input.name)
+                .aspect("car_id.value", input.car_id)
         })
         .unwrap();
 }
@@ -246,10 +238,8 @@ create_person(
 let ui_rows = workspace.materialize(&people_rows);
 
 let rename_receipt = workspace
-    .write(ForgeQueryWriteCommand::UpdateAspect {
-        entity_identity: "person-1".to_string(),
-        aspect_path: "name.value".to_string(),
-        value: Value::String("Ava Chen".to_string()),
+    .update("person-1", |person| {
+        person.aspect("name.value", "Ava Chen")
     })
     .unwrap();
 

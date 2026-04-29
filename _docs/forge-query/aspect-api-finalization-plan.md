@@ -6,6 +6,8 @@
 >
 > **Companion closeout:** [runtime-api-public-stabilization-closeout.md](./runtime-api-public-stabilization-closeout.md)
 >
+> **Shipped closeout:** [aspect-api-finalization-closeout.md](./aspect-api-finalization-closeout.md)
+>
 > **Purpose:** freeze the public aspect-native authoring surface for writes and
 > authoritative mutation before the deeper JSON-substrate removal begins, so
 > downstream runtimes can build on Forge Query now without deprecating their own

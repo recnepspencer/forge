@@ -105,9 +105,8 @@ trigger, optional expression semantics, and delivery target.
 ```rust
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryEffectHandle, ForgeQueryInspection, ForgeQueryLiveView,
-    ForgeQueryWriteCommand,
 };
-use serde_json::{json, Value};
+use serde_json::Value;
 
 let mut workspace = runtime.workspace("workflow").unwrap();
 
@@ -145,12 +144,9 @@ let effect: ForgeQueryEffectHandle<Value> = workspace
     .unwrap();
 
 workspace
-    .write(ForgeQueryWriteCommand::Insert {
-        collection: "Task".to_string(),
-        payload: json!({
-            "identity": { "id": "" },
-            "title": { "value": "Computed effect task" },
-        }),
+    .insert("Task", |task| {
+        task.aspect("identity.id", "task-1")
+            .aspect("title.value", "Computed effect task")
     })
     .unwrap();
 
