@@ -3,6 +3,7 @@ use crate::data::dependency::CanonicalDependencies;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::data::host_computed::{admit_or_error, HostComputedApiFamily};
 use crate::data::node::AuthorityPolicy;
 use crate::data::node::NodeState;
 use crate::data::output::PartitionSubscription;
@@ -33,9 +34,7 @@ use crate::logic::prepared::{
 use super::super::execution::task_reporting::record_execution_failure;
 use super::super::precompute::PreparedTaskPatch;
 use super::super::types::PlanSummary;
-use super::lowering_support::{
-    build_prepared_dependency_edges, count_dependency_updates, rewiring_summary_from_lowered_edges,
-};
+use super::lowering_support::{count_dependency_updates, rewiring_summary_from_lowered_edges};
 
 #[derive(Debug, Clone, Copy)]
 struct StageTaskOrderWitness;
@@ -393,10 +392,15 @@ fn lower_serial_task_patch(
     graph.refresh_runtime_dependencies_of(node)?;
     let current_dependencies =
         CanonicalDependencies::from_slice(graph.current_runtime_dependencies_of(node)?);
-    let next_dependencies = CanonicalDependencies::new(build_prepared_dependency_edges(
-        graph,
-        &prepared.dependencies,
-    )?);
+    let admitted = admit_or_error(
+        HostComputedApiFamily::CorePreparedEvaluation,
+        node,
+        current_dependencies.as_slice(),
+        prepared,
+        graph.telemetry_mut(),
+    )?;
+    let (prepared, _admitted_reads, dependency_patch) = admitted.into_parts();
+    let next_dependencies = CanonicalDependencies::from_slice(dependency_patch.next_dependencies());
     let before_state = graph.get_state(node)?;
     let before_artifact_state = graph.node_runtime_artifact_finalize_image(node)?;
     let contract = graph.get_contract(node)?;

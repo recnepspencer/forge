@@ -615,6 +615,35 @@ This spec is done when all of these are true:
   collapse back into `any`
 - required adversarial tests and performance certs pass
 
+## Follow-On Milestone: Host Callback Computed Nodes
+
+The app-first runtime spec intentionally made `computed` a first-class product
+concept, but the current concrete surface still uses serialized expression
+recipes as the default authoring form.
+
+That is not the final product shape.
+
+[host_callback_computed_spec.md](./host_callback_computed_spec.md) is the
+follow-on milestone that makes callback-backed computed nodes the normal
+TypeScript authoring path:
+
+```ts
+const doubleCount: Signal<number> = computed(() => count() * 2);
+```
+
+That milestone belongs after this web runtime spec and the React adapter spec
+because it depends on:
+
+- app-first signal handles
+- committed observation
+- diagnostics/latest-flow surfaces
+- React as a runtime-truth consumer rather than a second store engine
+
+It must land before treating the wasm package as polished React state
+infrastructure. Until callback computed nodes support dynamic dependencies and
+diagnostics parity, the package still asks ordinary app code to author internal
+expression recipes for basic derived state.
+
 ## Explicit Non-Goals
 
 To keep this spec honest, it does not attempt to solve:

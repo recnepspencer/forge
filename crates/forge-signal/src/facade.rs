@@ -20,6 +20,15 @@ pub mod core {
     pub use crate::data::error::SignalError;
     pub use crate::data::graph::{NodeBuilder, SignalGraph};
     pub use crate::data::handle::NodeId;
+    pub use crate::data::host_computed::{
+        AdmittedHostComputedReadSet, CommittedHostComputedArtifact, DeniedHostComputedEvaluation,
+        DeniedHostComputedReadSet, HostComputedApiFamily, HostComputedDenialClass,
+        HostComputedDependencyPatch, HostComputedDescriptor, HostComputedDescriptorId,
+        HostComputedDiagnosticsSummary, HostComputedEvaluationOutcome,
+        HostComputedEvaluationRequest, HostComputedEvaluationResponse, HostComputedEvaluator,
+        HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
+        HostComputedPreparedResponse, PreparedHostComputedEvaluation, StagedHostComputedArtifact,
+    };
     pub use crate::data::node::{EvaluationCondition, NodeState};
     pub use crate::data::output::{
         CanonicalChangedRegions, ChangedRegion, NodeEvaluationResult, OutputChange, OutputIdentity,
@@ -391,7 +400,7 @@ pub mod adapters {
         ReuseSource, ReuseStrategy, ReuseStrategyBoundaryAuthority,
     };
     pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
-    pub use crate::data::telemetry::{ResourceTelemetry, RuntimeTelemetry};
+    pub use crate::data::telemetry::{HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry};
     pub use crate::data::tier_policy_table::TierPolicyTable;
     pub use crate::logic::transaction::{
         branch_state_proof_report, canonical_digest, lowered_strategy_bundle_digest,
@@ -509,14 +518,21 @@ pub use self::adapters::*;
 pub use self::core::*;
 #[cfg(not(test))]
 pub use self::core::{
-    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions, AfterCondition,
-    Aspect, AspectMask, AspectVersion, AtOrAfterCondition, CanonicalChangedRegions, ChangedRegion,
-    ClockAdvanceOrdinal, ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain,
-    ClockTick, DebounceCondition, DeferredTemporalEligibility, DependencyEdge, EvaluationCondition,
-    IntervalAnchor, IntervalCondition, IntervalPeriod, LoweredTemporalEligibility,
-    MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId, NodeState, OutputChange,
-    OutputIdentity, PartitionMatchMode, PartitionSubscription, PartitionToken,
-    ReadyTemporalEligibility, RuntimeClockBasis, SignalError, SignalGraph, StaleAfterCondition,
+    mark_changed, mark_changed_with_regions, mark_dirty, mark_dirty_with_regions,
+    AdmittedHostComputedReadSet, AfterCondition, Aspect, AspectMask, AspectVersion,
+    AtOrAfterCondition, CanonicalChangedRegions, ChangedRegion, ClockAdvanceOrdinal,
+    ClockAdvanceRequest, ClockAuthority, ClockCheckpointId, ClockDomain, ClockTick,
+    CommittedHostComputedArtifact, DebounceCondition, DeferredTemporalEligibility,
+    DeniedHostComputedEvaluation, DeniedHostComputedReadSet, DependencyEdge, EvaluationCondition,
+    HostComputedApiFamily, HostComputedDenialClass, HostComputedDependencyPatch,
+    HostComputedDescriptor, HostComputedDescriptorId, HostComputedDiagnosticsSummary,
+    HostComputedEvaluationOutcome, HostComputedEvaluationRequest, HostComputedEvaluationResponse,
+    HostComputedEvaluator, HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
+    HostComputedPreparedResponse, IntervalAnchor, IntervalCondition, IntervalPeriod,
+    LoweredTemporalEligibility, MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId,
+    NodeState, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
+    PartitionToken, PreparedHostComputedEvaluation, ReadyTemporalEligibility, RuntimeClockBasis,
+    SignalError, SignalGraph, StagedHostComputedArtifact, StaleAfterCondition,
     TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
     TemporalExecutionSummary, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
     TemporalWakeOwner, TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance,

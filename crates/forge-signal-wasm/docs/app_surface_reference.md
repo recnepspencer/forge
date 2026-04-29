@@ -117,25 +117,26 @@ transactions.
 If you omit `options` or `producesAspects`, the runtime preserves the default
 single-aspect compatibility lane through aspect `0`.
 
-### `computed(id, spec): ComputedSignal`
+### `computed(...)`
 
 Registers derived internal state.
 
 ```ts
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
+const doubled = signals.computed("doubled", () => count() * 2);
 ```
 
 Use `computed` when the value is part of internal derivation rather than a
 public projection boundary.
+
+Normal package authoring should prefer callback form:
+
+- `computed("doubled", () => count() * 2)`
+- `computed(() => count() * 2, { id: "doubled" })`
+
+The explicit serialized-recipe lane remains available through:
+
+- `computedSpec(id, spec)`
+- `computed(id, spec)`
 
 ### `output(id, spec): OutputSignal`
 
@@ -164,6 +165,14 @@ Use `output` for values that are intended for external consumption:
 
 `output` is not just a naming alias of `computed`. It is the public projection
 concept in the web runtime.
+
+`output` remains spec-authored for now. Callback-shaped output authoring is
+explicitly deferred:
+
+- `output("panel", spec)` works
+- `outputSpec("panel", spec)` works
+- `output("panel", () => ...)` throws `outputCallbackDeferred`
+- `outputCallback("panel", () => ...)` throws `outputCallbackDeferred`
 
 ### `transaction(callback): RunSummary`
 
@@ -271,7 +280,9 @@ diagnostics archive.
 
 ## `ComputedSpec` And `OutputSpec`
 
-Both `computed(...)` and `output(...)` use spec-driven authoring.
+`ComputedSpec` remains the advanced serialized-recipe lane for `computedSpec(...)`
+or `computed(id, spec)`. `OutputSpec` is the current authoring model for
+`output(...)` and `outputSpec(...)`.
 
 Fields:
 

@@ -161,16 +161,7 @@ const store = createReactSignalsStore(signals);
 
 const count = signals.input("count", 1);
 
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
+const doubled = signals.computed("doubled", () => count() * 2);
 
 const panel = signals.output("panel", {
   reads: ["count", "doubled"],
@@ -199,6 +190,10 @@ function Counter() {
   `watch(...)`
 - rollback still suppresses normal delivery
 - the store is a framework adapter, not a second source of truth
+- callback-first `computed(() => ...)` remains runtime-owned derived truth;
+  React never becomes the compute engine
+- `output(...)` is still spec-authored today; callback-shaped output authoring
+  is explicitly deferred
 - current web execution remains serial by default
 
 ## Related Docs

@@ -4,6 +4,7 @@ edition.workspace = true
 version = "0.1.2"
 description = "WebAssembly facade for Forge Signal"
 repository = "https://github.com/recnepspencer/forge"
+license = "UNLICENSED"
 readme = "README.md"
 publish = false
 

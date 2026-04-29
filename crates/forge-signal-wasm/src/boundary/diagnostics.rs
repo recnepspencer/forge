@@ -117,7 +117,7 @@ impl SignalDiagnostics {
     pub(super) fn latest_observation_for_test(
         &self,
     ) -> Result<
-        Option<forge_signal::facade::runtime::ObservationBoundarySummary>,
+        Option<crate::runtime::summaries::ObservationSurfaceSummary>,
         crate::boundary::errors::ForgeSignalJsError,
     > {
         self.core.borrow().latest_observation()

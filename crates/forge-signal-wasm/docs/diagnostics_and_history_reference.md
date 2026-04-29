@@ -178,11 +178,20 @@ const adapters = signals.adapters();
 Methods:
 
 - `export_definitions()`
-- `export_runtime_envelope()`
-- `replace_runtime_envelope(envelope)`
 - `runtime_proof_report()`
 
-This is the main export/import and runtime envelope door for integration work.
+`export_runtime_envelope()` and `replace_runtime_envelope(envelope)` are
+intentionally deferred on the wasm JS boundary until that boundary can produce
+a self-describing portable snapshot artifact instead of a session-local handle.
+
+Callback-authored computed nodes also expose purity posture through
+`why(id).callback`:
+
+- `signalTracked` means the callback remains a live runtime callback node whose
+  captured signal reads drive invalidation.
+- `constantizedNoSignalReads` means the callback captured no signal reads during
+  authoring, was lowered into a constant computed node, and no longer retains a
+  live callback registration.
 
 ## Semantics Notes
 

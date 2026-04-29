@@ -8,6 +8,8 @@ export interface ObservationBoundarySummary {
 export interface WebPerformanceSummary {
   activeHandleCount: number;
   activeCallbackCount: number;
+  activeComputeCallbackCount: number;
+  activeComputeCollectorCount: number;
   matchedWatcherBreadth: number;
   deliveredObservationCount: number;
   rollbackSuppressedDeliveryCount: number;
@@ -17,6 +19,29 @@ export interface WebPerformanceSummary {
   outputSerializationBreadth: number;
   jsCallbackInvocationCount: number;
   jsCallbackFailureCount: number;
+  computeCallbackRegistrationCount: number;
+  computeCallbackDisposalCount: number;
+  computeCallbackInvocationCount: number;
+  computeCallbackFailureCount: number;
+  computeCallbackGenerationMismatchDenialCount: number;
+  computeCallbackSelfReadDenialCount: number;
+  computeCallbackDynamicCycleDenialCount: number;
+  computeCallbackPromiseReturnDenialCount: number;
+  computeCallbackInvalidReturnDenialCount: number;
+  computeCallbackCollectorInstallationCount: number;
+  computeCallbackCaptureCount: number;
+  computeCallbackCapturedReadCount: number;
+  computeCallbackReturnSerializationBreadth: number;
+  computeCallbackAllocationCount: number;
+  computeCallbackReuseCount: number;
+  computeCallbackDependencyPatchCount: number;
+  computeCallbackDependencyPatchAddedCount: number;
+  computeCallbackDependencyPatchRemovedCount: number;
+  computeCallbackDependencyPatchRetainedCount: number;
+  computeCallbackRuntimeReadBreadth: number;
+  computeCallbackConstantNoSignalReadClassificationCount: number;
+  computeCallbackSignalTrackedClassificationCount: number;
+  computeCallbackMissingUnavailabilityCount: number;
   compatibilityReadCount: number;
   compatibilityReadBreadth: number;
 }

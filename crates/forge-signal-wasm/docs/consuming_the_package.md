@@ -104,16 +104,7 @@ const signals = createSignals();
 
 const count = signals.input("count", 1);
 
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
+const doubled = signals.computed("doubled", () => count() * 2);
 
 const panel = signals.output("panel", {
   reads: ["count", "doubled"],
@@ -132,6 +123,13 @@ signals.transaction((tx) => {
 
 console.log(panel.get());
 ```
+
+Notes:
+
+- prefer callback-first `computed(() => ...)` for ordinary app code
+- keep `computedSpec(...)` for portable or explicit recipe authoring
+- `output(...)` is still spec-authored today
+- callback-shaped output authoring currently throws `outputCallbackDeferred`
 
 ## Runtime Behavior Notes
 
