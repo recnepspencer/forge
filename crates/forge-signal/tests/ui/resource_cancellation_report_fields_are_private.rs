@@ -1,6 +1,7 @@
 use forge_signal::facade::{
     CancelledResourceRequest, ResourceBoundaryPerformanceEnvelope, ResourceCancellationReport,
-    ResourceLifecycleSummary, ResourceLifecycleTransition,
+    ResourceDependentCancellationPropagation, ResourceLifecycleSummary,
+    ResourceLifecycleTransition,
 };
 
 fn forged_cancelled() -> CancelledResourceRequest {
@@ -8,6 +9,10 @@ fn forged_cancelled() -> CancelledResourceRequest {
 }
 
 fn forged_lifecycle() -> ResourceLifecycleSummary {
+    loop {}
+}
+
+fn forged_propagation() -> ResourceDependentCancellationPropagation {
     loop {}
 }
 
@@ -22,6 +27,7 @@ fn forged_performance() -> ResourceBoundaryPerformanceEnvelope {
 fn main() {
     let _ = ResourceCancellationReport {
         cancelled_request: Some(forged_cancelled()),
+        dependent_propagation: Some(forged_propagation()),
         denied_cancellation: None,
         lifecycle: Some(forged_lifecycle()),
         transition: Some(forged_transition()),

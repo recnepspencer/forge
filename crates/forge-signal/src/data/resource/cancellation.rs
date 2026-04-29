@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::temporal::TemporalDuration;
+
 use super::lifecycle::ResourceLifecycleTransition;
+use super::policy_registry::ResourcePolicyDigest;
 use super::request::{ResourceCancellationOrdinal, ResourceRequestHandle, ResourceRequestId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,11 +18,30 @@ pub enum ResourceCancellationDenialClass {
     NonActiveRequest,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceHostCancellationAdvisory {
+    policy_decision_digest: ResourcePolicyDigest,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceCancellationGraceWindow {
+    duration: TemporalDuration,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceDependentCancellationPropagation {
+    parent: ResourceRequestHandle,
+    cancelled_dependents: Vec<CancelledResourceRequest>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CancelledResourceRequest {
     handle: ResourceRequestHandle,
     cancellation_ordinal: ResourceCancellationOrdinal,
     reason: ResourceCancellationReason,
+    policy_decision_digest: ResourcePolicyDigest,
+    host_advisory: Option<ResourceHostCancellationAdvisory>,
+    grace_window: Option<ResourceCancellationGraceWindow>,
     lifecycle_transition: ResourceLifecycleTransition,
 }
 
@@ -51,29 +73,93 @@ impl CancelledResourceRequest {
         handle: ResourceRequestHandle,
         cancellation_ordinal: ResourceCancellationOrdinal,
         reason: ResourceCancellationReason,
+        policy_decision_digest: ResourcePolicyDigest,
+        host_advisory: Option<ResourceHostCancellationAdvisory>,
+        grace_window: Option<ResourceCancellationGraceWindow>,
         lifecycle_transition: ResourceLifecycleTransition,
     ) -> Self {
         Self {
             handle,
             cancellation_ordinal,
             reason,
+            policy_decision_digest,
+            host_advisory,
+            grace_window,
             lifecycle_transition,
         }
     }
 
-    pub fn handle(self) -> ResourceRequestHandle {
+    pub fn handle(&self) -> ResourceRequestHandle {
         self.handle
     }
 
-    pub fn cancellation_ordinal(self) -> ResourceCancellationOrdinal {
+    pub fn cancellation_ordinal(&self) -> ResourceCancellationOrdinal {
         self.cancellation_ordinal
     }
 
-    pub fn reason(self) -> ResourceCancellationReason {
+    pub fn reason(&self) -> ResourceCancellationReason {
         self.reason
     }
 
-    pub fn lifecycle_transition(self) -> ResourceLifecycleTransition {
+    pub fn policy_decision_digest(&self) -> &ResourcePolicyDigest {
+        &self.policy_decision_digest
+    }
+
+    pub fn host_advisory(&self) -> Option<&ResourceHostCancellationAdvisory> {
+        self.host_advisory.as_ref()
+    }
+
+    pub fn grace_window(&self) -> Option<&ResourceCancellationGraceWindow> {
+        self.grace_window.as_ref()
+    }
+
+    pub fn lifecycle_transition(&self) -> ResourceLifecycleTransition {
         self.lifecycle_transition
+    }
+}
+
+impl ResourceHostCancellationAdvisory {
+    pub(crate) fn requested(policy_decision_digest: ResourcePolicyDigest) -> Self {
+        Self {
+            policy_decision_digest,
+        }
+    }
+
+    pub fn policy_decision_digest(&self) -> &ResourcePolicyDigest {
+        &self.policy_decision_digest
+    }
+}
+
+impl ResourceCancellationGraceWindow {
+    pub(crate) fn new(duration: TemporalDuration) -> Self {
+        Self { duration }
+    }
+
+    pub fn duration(&self) -> TemporalDuration {
+        self.duration
+    }
+}
+
+impl ResourceDependentCancellationPropagation {
+    pub(crate) fn new(
+        parent: ResourceRequestHandle,
+        cancelled_dependents: Vec<CancelledResourceRequest>,
+    ) -> Self {
+        Self {
+            parent,
+            cancelled_dependents,
+        }
+    }
+
+    pub fn parent(&self) -> ResourceRequestHandle {
+        self.parent
+    }
+
+    pub fn cancelled_dependents(&self) -> &[CancelledResourceRequest] {
+        &self.cancelled_dependents
+    }
+
+    pub fn cancelled_dependent_width(&self) -> u32 {
+        self.cancelled_dependents.len() as u32
     }
 }

@@ -1251,10 +1251,10 @@ impl ResourceMilestoneBPerformanceCloseoutRow {
             ResourceBoundaryKind::DiagnosticsExpansion,
             ResourceCostPosture::DeniedFallback,
         )?;
-        if denial
-            .budget()
-            .denial_class(denial.replay_reconstruction_width())
-            != Some(denial.class())
+        if denial.budget().denial_class(
+            denial.replay_reconstruction_width(),
+            denial.forensic_reconstruction_width(),
+        ) != Some(denial.class())
             || performance.admitted_count() != 0
             || performance.denied_count() != 1
             || performance.diagnostics_allocation_count() != 0

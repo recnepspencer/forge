@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
+use crate::data::temporal::TemporalDuration;
 use crate::state::SignalBranchId;
 
 /// Resource-node identity is distinct from the signal node handle that owns it.
@@ -133,6 +134,21 @@ impl ResourceTimeoutOrdinal {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceRejectionOrdinal(u64);
+
+impl ResourceRejectionOrdinal {
+    pub const ZERO: Self = Self(0);
+
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub fn get(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ResourceSupersessionOrdinal(u64);
 
 impl ResourceSupersessionOrdinal {
@@ -166,15 +182,50 @@ impl ResourceRetryOrdinal {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRequestIntent {
     node: ResourceNodeId,
+    transaction_deadline: Option<TemporalDuration>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ResourceRequestIntentDigest(String);
 
 impl ResourceRequestIntent {
     pub fn new(node: ResourceNodeId) -> Self {
-        Self { node }
+        Self {
+            node,
+            transaction_deadline: None,
+        }
+    }
+
+    pub fn with_transaction_deadline(node: ResourceNodeId, deadline: TemporalDuration) -> Self {
+        Self {
+            node,
+            transaction_deadline: Some(deadline),
+        }
     }
 
     pub fn node(&self) -> ResourceNodeId {
         self.node
+    }
+
+    pub fn transaction_deadline(&self) -> Option<TemporalDuration> {
+        self.transaction_deadline
+    }
+
+    pub fn canonical_digest(&self) -> ResourceRequestIntentDigest {
+        ResourceRequestIntentDigest(format!(
+            "resource-intent:{}:{}:{}",
+            self.node.node().index(),
+            self.node.node().generation(),
+            self.transaction_deadline
+                .map(|deadline| deadline.get().to_string())
+                .unwrap_or_else(|| "no-deadline".to_owned()),
+        ))
+    }
+}
+
+impl ResourceRequestIntentDigest {
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
 

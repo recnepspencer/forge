@@ -8,6 +8,7 @@ use crate::data::node_meta::NodeMetaStore;
 use crate::data::output::{
     ComputationFamily, ComputationKey, NodeEvaluationResult, StructuralMemoKey,
 };
+use crate::data::temporal::TemporalDuration;
 use crate::data::tier::TierPolicy;
 use crate::data::tier_policy_table::TierPolicyTable;
 
@@ -22,6 +23,7 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     computations: BTreeMap<RuntimeStringId, ComputationRegistration<T>>,
     keyed_nodes: BTreeMap<(RuntimeStringId, RuntimeStringId), NodeId>,
     memo_cache: BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
+    resource_runtime_deadline: Option<TemporalDuration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,6 +43,7 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             computations: BTreeMap::new(),
             keyed_nodes: BTreeMap::new(),
             memo_cache: BTreeMap::new(),
+            resource_runtime_deadline: None,
         }
     }
 }
@@ -85,6 +88,18 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
 
     pub fn fallback_comparator(&self) -> &VersionComparatorPolicy {
         &self.fallback_comparator
+    }
+
+    pub fn set_resource_runtime_deadline(&mut self, deadline: TemporalDuration) {
+        self.resource_runtime_deadline = Some(deadline);
+    }
+
+    pub fn clear_resource_runtime_deadline(&mut self) {
+        self.resource_runtime_deadline = None;
+    }
+
+    pub fn resource_runtime_deadline(&self) -> Option<TemporalDuration> {
+        self.resource_runtime_deadline
     }
 
     pub fn define_computation(

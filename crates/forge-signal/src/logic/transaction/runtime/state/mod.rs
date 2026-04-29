@@ -7,6 +7,8 @@ mod observation;
 mod observer;
 mod reconstructability;
 mod resource;
+mod resource_observation;
+mod resource_retry_budget;
 mod runtime_observation;
 mod runtime_state;
 mod temporal;

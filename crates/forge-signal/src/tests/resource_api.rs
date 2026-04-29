@@ -4,24 +4,58 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/admitted_resource_request_fields_are_private.rs");
     cases.compile_fail("tests/ui/admitted_resource_completion_fields_are_private.rs");
     cases.compile_fail("tests/ui/cancelled_resource_request_fields_are_private.rs");
+    cases.compile_fail("tests/ui/rejected_resource_request_fields_are_private.rs");
     cases.compile_fail("tests/ui/denied_resource_cancellation_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_resource_rejection_fields_are_private.rs");
     cases.compile_fail("tests/ui/timed_out_resource_request_fields_are_private.rs");
     cases.compile_fail("tests/ui/denied_resource_timeout_fields_are_private.rs");
     cases.compile_fail("tests/ui/denied_resource_completion_fields_are_private.rs");
     cases.compile_fail("tests/ui/validated_completion_envelope_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_lifecycle_transition_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_supersession_record_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_intent_equivalence_coalescing_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_request_admission_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_cancellation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_rejection_report_fields_are_private.rs");
+    cases
+        .compile_fail("tests/ui/resource_dependent_cancellation_propagation_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_timeout_report_fields_are_private.rs");
+    cases
+        .compile_fail("tests/ui/resource_timeout_heartbeat_extension_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_retry_schedule_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_retry_admission_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_revalidation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_revalidation_freshness_decision_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_revalidation_coalescing_fields_are_private.rs");
+    cases.compile_fail("tests/ui/active_resource_revalidation_proof_fields_are_private.rs");
+    cases.compile_fail("tests/ui/active_resource_revalidation_proof_cannot_be_deserialized.rs");
+    cases.compile_fail(
+        "tests/ui/dependency_change_resource_revalidation_proof_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/dependency_change_resource_revalidation_proof_cannot_be_deserialized.rs",
+    );
+    cases
+        .compile_fail("tests/ui/observer_demand_resource_revalidation_proof_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/observer_demand_resource_revalidation_proof_cannot_be_deserialized.rs",
+    );
+    cases.compile_fail("tests/ui/terminal_state_resource_revalidation_proof_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/terminal_state_resource_revalidation_proof_cannot_be_deserialized.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/fulfilled_lifecycle_resource_revalidation_proof_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/fulfilled_lifecycle_resource_revalidation_proof_cannot_be_deserialized.rs",
+    );
     cases.compile_fail("tests/ui/resource_completion_admission_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_completion_batch_admission_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_completion_batch_admission_report_cannot_be_cloned.rs");
     cases.compile_fail("tests/ui/resource_branch_restore_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_replay_reconstruction_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_replay_availability_report_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_certification_record_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_certification_record_passing_is_private.rs");
     cases.compile_fail("tests/ui/resource_certification_artifacts_cannot_be_deserialized.rs");
@@ -50,6 +84,41 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/committed_resource_completion_artifact_cannot_be_cloned.rs");
     cases.compile_fail("tests/ui/resource_runtime_summary_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_policy_descriptor_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_policy_descriptor_constructor_is_private.rs");
+    cases.compile_fail("tests/ui/frozen_resource_policy_descriptor_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_cancellation_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_overlapping_generation_admission_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retry_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_revalidation_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/observed_resource_node_state_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_observation_batch_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_observation_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_diagnostics_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_output_continuity_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_replay_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retention_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retained_history_availability_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_retention_compaction_budget_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/resource_retained_denied_completion_availability_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/retained_resource_retry_lineage_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/resource_retained_retry_lineage_availability_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/resource_stale_after_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_supersession_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_timeout_decision_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_policy_compatibility_report_fields_are_private.rs");
+    cases
+        .compile_fail("tests/ui/resource_policy_restore_compatibility_proof_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/denied_resource_policy_restore_compatibility_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/resource_policy_proof_artifacts_cannot_be_deserialized.rs");
+    cases.compile_fail("tests/ui/resource_policy_registry_freeze_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/validated_resource_policy_declaration_fields_are_private.rs");
+    cases.compile_fail("tests/ui/lowered_resource_policy_bundle_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_initial_lifecycle_class_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_lifecycle_policy_rejects_pending_initial_class.rs");
     cases.compile_fail("tests/ui/resource_lifecycle_policy_rejects_terminal_initial_class.rs");

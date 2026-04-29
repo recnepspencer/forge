@@ -1,13 +1,19 @@
-error[E0451]: fields `handle`, `cancellation_ordinal`, `reason` and `lifecycle_transition` of struct `CancelledResourceRequest` are private
-  --> tests/ui/cancelled_resource_request_fields_are_private.rs:16:9
+error[E0451]: fields `handle`, `cancellation_ordinal`, `reason`, `policy_decision_digest`, `host_advisory`, `grace_window` and `lifecycle_transition` of struct `CancelledResourceRequest` are private
+  --> tests/ui/cancelled_resource_request_fields_are_private.rs:29:9
    |
-15 |     let _ = CancelledResourceRequest {
+28 |     let _ = CancelledResourceRequest {
    |             ------------------------ in this type
-16 |         handle: forged_handle(),
+29 |         handle: forged_handle(),
    |         ^^^^^^ private field
-17 |         cancellation_ordinal: ResourceCancellationOrdinal::new(0),
+30 |         cancellation_ordinal: ResourceCancellationOrdinal::new(0),
    |         ^^^^^^^^^^^^^^^^^^^^ private field
-18 |         reason: ResourceCancellationReason::HostRequested,
+31 |         reason: ResourceCancellationReason::HostRequested,
    |         ^^^^^^ private field
-19 |         lifecycle_transition: forged_transition(),
+32 |         policy_decision_digest: forged_digest(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+33 |         host_advisory: Some(forged_host_advisory()),
+   |         ^^^^^^^^^^^^^ private field
+34 |         grace_window: Some(forged_grace_window()),
+   |         ^^^^^^^^^^^^ private field
+35 |         lifecycle_transition: forged_transition(),
    |         ^^^^^^^^^^^^^^^^^^^^ private field

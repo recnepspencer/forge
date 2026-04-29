@@ -154,6 +154,7 @@ impl AdmittedResourceCompletion {
 pub struct DeniedResourceCompletion {
     denial_id: AsyncDenialId,
     class: CompletionDenialClass,
+    node: Option<ResourceNodeId>,
     request_id: ResourceRequestId,
     generation: ResourceGeneration,
     branch_epoch: ResourceBranchEpoch,
@@ -165,11 +166,13 @@ impl DeniedResourceCompletion {
     pub(crate) fn new(
         denial_id: AsyncDenialId,
         class: CompletionDenialClass,
+        node: Option<ResourceNodeId>,
         raw: &RawCompletionEnvelope,
     ) -> Self {
         Self {
             denial_id,
             class,
+            node,
             request_id: raw.request_id(),
             generation: raw.generation(),
             branch_epoch: raw.branch_epoch(),
@@ -184,6 +187,10 @@ impl DeniedResourceCompletion {
 
     pub fn class(self) -> CompletionDenialClass {
         self.class
+    }
+
+    pub fn node(self) -> Option<ResourceNodeId> {
+        self.node
     }
 
     pub fn request_id(self) -> ResourceRequestId {

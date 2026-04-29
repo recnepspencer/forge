@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::resource::policy_registry::ResourcePolicyDigest;
+use crate::data::temporal::TemporalDuration;
 use crate::data::temporal::{ReadyTemporalWake, TemporalWakeId};
 
+use super::policy::ResourceRetryBudgetScope;
 use super::proof::AdmittedResourceRequest;
 use super::request::{
     ResourceAttemptId, ResourceRequestHandle, ResourceRequestId, ResourceRetryOrdinal,
@@ -18,19 +21,27 @@ pub enum ResourceRetryDenialClass {
     UnknownOrStaleRequest,
     NonRetryableRequest,
     RetryPolicyDisabled,
+    RetryAttemptLimitReached,
+    RetryBudgetExhausted,
+    RetryTimeoutWindowExhausted,
     RetryAlreadyScheduled,
     MissingRetryBackoffWake,
     WakeMismatch,
     SupersededByNewerRequest,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScheduledResourceRetry {
     previous: ResourceRequestHandle,
     retry_ordinal: ResourceRetryOrdinal,
     reason: ResourceRetryReason,
     next_attempt: ResourceAttemptId,
     backoff_wake_id: TemporalWakeId,
+    scheduled_delay: TemporalDuration,
+    policy_decision_digest: ResourcePolicyDigest,
+    retry_budget_scope: Option<ResourceRetryBudgetScope>,
+    retry_budget_limit: Option<u32>,
+    retry_budget_usage: Option<u32>,
 }
 
 impl ScheduledResourceRetry {
@@ -40,6 +51,11 @@ impl ScheduledResourceRetry {
         reason: ResourceRetryReason,
         next_attempt: ResourceAttemptId,
         backoff_wake_id: TemporalWakeId,
+        scheduled_delay: TemporalDuration,
+        policy_decision_digest: ResourcePolicyDigest,
+        retry_budget_scope: Option<ResourceRetryBudgetScope>,
+        retry_budget_limit: Option<u32>,
+        retry_budget_usage: Option<u32>,
     ) -> Self {
         Self {
             previous,
@@ -47,27 +63,52 @@ impl ScheduledResourceRetry {
             reason,
             next_attempt,
             backoff_wake_id,
+            scheduled_delay,
+            policy_decision_digest,
+            retry_budget_scope,
+            retry_budget_limit,
+            retry_budget_usage,
         }
     }
 
-    pub fn previous(self) -> ResourceRequestHandle {
+    pub fn previous(&self) -> ResourceRequestHandle {
         self.previous
     }
 
-    pub fn retry_ordinal(self) -> ResourceRetryOrdinal {
+    pub fn retry_ordinal(&self) -> ResourceRetryOrdinal {
         self.retry_ordinal
     }
 
-    pub fn reason(self) -> ResourceRetryReason {
+    pub fn reason(&self) -> ResourceRetryReason {
         self.reason
     }
 
-    pub fn next_attempt(self) -> ResourceAttemptId {
+    pub fn next_attempt(&self) -> ResourceAttemptId {
         self.next_attempt
     }
 
-    pub fn backoff_wake_id(self) -> TemporalWakeId {
+    pub fn backoff_wake_id(&self) -> TemporalWakeId {
         self.backoff_wake_id
+    }
+
+    pub fn scheduled_delay(&self) -> TemporalDuration {
+        self.scheduled_delay
+    }
+
+    pub fn policy_decision_digest(&self) -> &ResourcePolicyDigest {
+        &self.policy_decision_digest
+    }
+
+    pub fn retry_budget_scope(&self) -> Option<ResourceRetryBudgetScope> {
+        self.retry_budget_scope
+    }
+
+    pub fn retry_budget_limit(&self) -> Option<u32> {
+        self.retry_budget_limit
+    }
+
+    pub fn retry_budget_usage(&self) -> Option<u32> {
+        self.retry_budget_usage
     }
 
     pub(crate) fn with_previous(self, previous: ResourceRequestHandle) -> Self {
@@ -96,7 +137,7 @@ impl AdmittedResourceRetry {
     }
 
     pub fn scheduled(&self) -> ScheduledResourceRetry {
-        self.scheduled
+        self.scheduled.clone()
     }
 
     pub fn admitted_request(&self) -> AdmittedResourceRequest {
@@ -112,11 +153,26 @@ impl AdmittedResourceRetry {
 pub struct DeniedResourceRetry {
     request_id: ResourceRequestId,
     class: ResourceRetryDenialClass,
+    retry_budget_scope: Option<ResourceRetryBudgetScope>,
+    retry_budget_limit: Option<u32>,
+    retry_budget_usage: Option<u32>,
 }
 
 impl DeniedResourceRetry {
-    pub(crate) fn new(request_id: ResourceRequestId, class: ResourceRetryDenialClass) -> Self {
-        Self { request_id, class }
+    pub(crate) fn new(
+        request_id: ResourceRequestId,
+        class: ResourceRetryDenialClass,
+        retry_budget_scope: Option<ResourceRetryBudgetScope>,
+        retry_budget_limit: Option<u32>,
+        retry_budget_usage: Option<u32>,
+    ) -> Self {
+        Self {
+            request_id,
+            class,
+            retry_budget_scope,
+            retry_budget_limit,
+            retry_budget_usage,
+        }
     }
 
     pub fn request_id(self) -> ResourceRequestId {
@@ -125,5 +181,17 @@ impl DeniedResourceRetry {
 
     pub fn class(self) -> ResourceRetryDenialClass {
         self.class
+    }
+
+    pub fn retry_budget_scope(self) -> Option<ResourceRetryBudgetScope> {
+        self.retry_budget_scope
+    }
+
+    pub fn retry_budget_limit(self) -> Option<u32> {
+        self.retry_budget_limit
+    }
+
+    pub fn retry_budget_usage(self) -> Option<u32> {
+        self.retry_budget_usage
     }
 }
