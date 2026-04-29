@@ -24,7 +24,7 @@ subpath.
   Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
   and why subscriptions remain node-scoped.
 - [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
-  Reference for `@.../forge-signal-wasm/react`.
+  Reference for `forge-signal-wasm/react`.
 
 ## Design And Architecture
 

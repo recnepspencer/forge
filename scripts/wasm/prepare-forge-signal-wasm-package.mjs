@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
-import { access, copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
 import process from "node:process";
 
 const execFileAsync = promisify(execFile);
 const scope = process.env.FORGE_SIGNAL_WASM_SCOPE ?? "aust-group";
+const packageNameOverride = process.env.FORGE_SIGNAL_WASM_PACKAGE_NAME ?? null;
 const publishRegistry = process.env.FORGE_SIGNAL_WASM_REGISTRY
   ?? "https://npm.pkg.github.com";
 const publishAccess = process.env.FORGE_SIGNAL_WASM_PUBLISH_ACCESS ?? null;
@@ -13,14 +14,20 @@ const publishNoticeMode = process.env.FORGE_SIGNAL_WASM_NOTICE_MODE ?? "propriet
 
 const normalizedScope = scope.toLowerCase();
 const repoUrl = process.env.FORGE_SIGNAL_WASM_REPOSITORY_URL
-  ?? "https://github.com/AuST-Group/forge.git";
+  ?? "https://github.com/recnepspencer/forge.git";
 const pkgDir = path.resolve(
   process.argv[2] ?? "crates/forge-signal-wasm/pkg",
 );
 const typedDeclarationsPath = path.resolve(
   "crates/forge-signal-wasm/package/forge_signal_wasm.d.ts",
 );
+const packageIndexDeclarationsPath = path.resolve(
+  "crates/forge-signal-wasm/package/index.d.ts",
+);
 const packageEntryPath = path.resolve("crates/forge-signal-wasm/package/index.js");
+const rawSurfaceEntryPath = path.resolve("crates/forge-signal-wasm/package/raw_surface.js");
+const productDirPath = path.resolve("crates/forge-signal-wasm/package/product");
+const typesDirPath = path.resolve("crates/forge-signal-wasm/package/types");
 const readmePath = path.resolve("crates/forge-signal-wasm/README.md");
 const licensePath = path.resolve("crates/forge-signal-wasm/LICENSE");
 const docsDirPath = path.resolve("crates/forge-signal-wasm/docs");
@@ -97,7 +104,7 @@ async function compileReactEntryPoints() {
   );
 }
 
-packageJson.name = `@${normalizedScope}/forge-signal-wasm`;
+packageJson.name = packageNameOverride ?? `@${normalizedScope}/forge-signal-wasm`;
 packageJson.license = "UNLICENSED";
 packageJson.repository = {
   type: "git",
@@ -116,6 +123,10 @@ packageJson.files = [
   "*.js",
   "*.d.ts",
   "*.wasm",
+  "raw_surface.js",
+  "index.d.ts",
+  "product/**/*.js",
+  "types/**/*.d.ts",
   "README.md",
   "LICENSE",
   "docs/**/*.md",
@@ -156,6 +167,8 @@ This package is unpublished for general public use and is distributed only throu
 No license is granted except as expressly provided in a separate written agreement with the rights holder.
 `;
   await writeFile(noticePath, notice, "utf8");
+} else {
+  await rm(noticePath, { force: true });
 }
 
 const npmrcPath = path.join(pkgDir, ".npmrc");
@@ -175,10 +188,17 @@ await copyFile(
   typedDeclarationsPath,
   path.join(pkgDir, "forge_signal_wasm.d.ts"),
 );
+await copyFile(
+  packageIndexDeclarationsPath,
+  path.join(pkgDir, "index.d.ts"),
+);
 await copyFile(packageEntryPath, path.join(pkgDir, "index.js"));
+await copyFile(rawSurfaceEntryPath, path.join(pkgDir, "raw_surface.js"));
 await copyFile(readmePath, path.join(pkgDir, "README.md"));
 await copyFile(licensePath, path.join(pkgDir, "LICENSE"));
 await copyDirectoryRecursive(docsDirPath, path.join(pkgDir, "docs"));
+await copyDirectoryRecursive(productDirPath, path.join(pkgDir, "product"));
+await copyDirectoryRecursive(typesDirPath, path.join(pkgDir, "types"));
 await mkdir(path.join(pkgDir, "react"), { recursive: true });
 await compileReactEntryPoints();
 await copyFile(

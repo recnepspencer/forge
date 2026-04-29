@@ -8,25 +8,50 @@ import {
   useSignalValue,
   useOutputValue,
   useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+} from "forge-signal-wasm/react";
 ```
 
-This adapter is intentionally thin. React consumes runtime truth; it does not
+The adapter is intentionally thin. React consumes runtime truth; it does not
 become a second state engine.
 
-## Primary Functions
+## Typical Setup
 
-### `createReactSignalsStore(signals)`
+```ts
+import { createSignals } from "forge-signal-wasm";
+import { createReactSignalsStore } from "forge-signal-wasm/react";
 
-Creates a React-domain store wrapper around a `Signals` instance.
+const signals = createSignals();
+const store = createReactSignalsStore(signals);
+```
 
-The store is responsible for:
+## `createReactSignalsStore(signals)`
 
-- subscription glue
-- `useSyncExternalStore` integration
-- per-target listener fanout
-- diagnostics snapshot refresh
-- transaction and batch forwarding
+Creates the React-domain wrapper around a shared `Signals` instance.
+
+Simple:
+
+```ts
+const store = createReactSignalsStore(signals);
+```
+
+Complex:
+
+```ts
+const store = createReactSignalsStore(signals);
+
+const count = signals.input("count", 1);
+const doubled = signals.computed("doubled", () => count() * 2);
+const panel = signals.output("panel", {
+  reads: ["count", "doubled"],
+  expr: {
+    kind: "object",
+    fields: [
+      ["count", { kind: "read", id: "count" }],
+      ["doubled", { kind: "read", id: "doubled" }],
+    ],
+  },
+});
+```
 
 The returned `ReactSignalsStore` exposes:
 
@@ -41,162 +66,214 @@ The returned `ReactSignalsStore` exposes:
 - `performanceSummary()`
 - `dispose()`
 
-### `useSignalValue(signal, store)`
+## `useSignalValue(signal, store)`
 
-Reads an `InputSignal` or `ComputedSignal` through the React store.
+Reads an `InputSignal` or `ComputedSignal`.
 
-Example:
+Simple:
 
-```ts
-const countValue = useSignalValue(count, store);
-const doubledValue = useSignalValue(doubled, store);
+```tsx
+const countValue = useSignalValue<number>(count, store);
 ```
 
-### `useOutputValue(output, store)`
+Complex:
 
-Reads an `OutputSignal` through the React store.
+```tsx
+function Counter() {
+  const countValue = useSignalValue<number>(count, store);
+  const doubledValue = useSignalValue<number>(doubled, store);
 
-Example:
+  return (
+    <button onClick={() => store.transaction((tx) => tx.set(count, countValue + 1))}>
+      {countValue} / {doubledValue}
+    </button>
+  );
+}
+```
 
-```ts
+## `useOutputValue(output, store)`
+
+Reads an `OutputSignal`.
+
+Simple:
+
+```tsx
 const panelValue = useOutputValue(panel, store);
 ```
 
-### `useSignalsDiagnostics(store)`
+Complex:
 
-Returns current diagnostics snapshots:
+```tsx
+function Panel() {
+  const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
+  return <pre>{JSON.stringify(panelValue, null, 2)}</pre>;
+}
+```
+
+## `useSignalsDiagnostics(store)`
+
+Returns:
 
 - `latestObservation`
 - `latestFlow`
 - `performanceSummary`
 
-Example:
+Simple:
 
-```ts
+```tsx
 const diagnostics = useSignalsDiagnostics(store);
 ```
 
-## `SignalsDiagnosticsSnapshot`
+Complex:
 
-`useSignalsDiagnostics(...)` and `store.getDiagnosticsSnapshot()` expose:
+```tsx
+function DiagnosticsBar() {
+  const diagnostics = useSignalsDiagnostics(store);
 
-- `latestObservation`
-- `latestFlow`
-- `performanceSummary`
-
-## `ReactPerformanceSummary`
-
-`store.performanceSummary()` returns React-adapter counters:
-
-- `activeSignalSubscriptionCount`
-- `activeReactSubscriberCount`
-- `activeRuntimeWatchHandleCount`
-- `diagnosticsSubscriberCount`
-- `sharedFanoutRatio`
-
-This surface is useful for checking whether the React adapter is actually
-sharing runtime subscriptions instead of fanning out wastefully.
+  return (
+    <small>
+      deliveries: {diagnostics.latestObservation?.deliveredEventCount ?? 0}
+      {" | "}
+      callback patches: {diagnostics.performanceSummary.computeCallbackDependencyPatchCount}
+    </small>
+  );
+}
+```
 
 ## Store Methods
 
 ### `subscribeSignal(signal, listener)`
 
-Subscribes a React-side listener to a signal or output target and returns an
-unsubscribe function.
+Simple:
+
+```ts
+const unsubscribe = store.subscribeSignal(count, () => {
+  console.log("count changed");
+});
+```
+
+Complex:
+
+```ts
+const unsubscribe = store.subscribeSignal(panel, () => {
+  renderPanel(store.getSignalSnapshot(panel));
+});
+```
 
 ### `getSignalSnapshot(signal)`
 
-Returns the current snapshot value for a signal/output target.
+Simple:
 
-### `subscribeDiagnostics(listener)`
+```ts
+const value = store.getSignalSnapshot(count);
+```
 
-Subscribes a listener to diagnostics snapshot changes and returns an
-unsubscribe function.
+Complex:
 
-### `getDiagnosticsSnapshot()`
+```ts
+const snapshot = store.getSignalSnapshot(panel) as {
+  count: number;
+  doubled: number;
+};
+```
 
-Returns the current diagnostics snapshot without going through a hook.
+### `subscribeDiagnostics(listener)` and `getDiagnosticsSnapshot()`
+
+Simple:
+
+```ts
+const unsubscribe = store.subscribeDiagnostics(() => {
+  console.log(store.getDiagnosticsSnapshot());
+});
+```
+
+Complex:
+
+```ts
+const unsubscribe = store.subscribeDiagnostics(() => {
+  const diagnostics = store.getDiagnosticsSnapshot();
+  queueMicrotask(() => updateDevPanel(diagnostics));
+});
+```
 
 ### `transaction(callback)` and `batch(callback)`
 
-Forward to the shared `Signals` instance and refresh diagnostics snapshots
-after committed writes.
+Simple:
+
+```ts
+store.transaction((tx) => {
+  tx.set(count, 2);
+});
+```
+
+Complex:
+
+```ts
+store.batch((tx) => {
+  tx.set(count, 3);
+  tx.setWithAspects(part, { ...part(), teeth: 30 }, [1]);
+});
+```
 
 ### `refreshDiagnostics()`
 
-Forces a diagnostics snapshot refresh and returns the resulting snapshot.
+Simple:
+
+```ts
+const diagnostics = store.refreshDiagnostics();
+```
+
+Complex:
+
+```ts
+const diagnostics = store.refreshDiagnostics();
+recordDiagnosticsSnapshot(diagnostics);
+```
 
 ### `performanceSummary()`
 
-Returns the adapter-level `ReactPerformanceSummary`.
+Simple:
+
+```ts
+console.log(store.performanceSummary());
+```
+
+Complex:
+
+```ts
+const perf = store.performanceSummary();
+console.log({
+  subscriptions: perf.activeSignalSubscriptionCount,
+  sharedFanoutRatio: perf.sharedFanoutRatio,
+});
+```
 
 ### `dispose()`
 
-Tears down React-side store resources.
-
-## Store Behavior
-
-The React store:
-
-- dedupes subscriptions by signal id
-- refreshes diagnostics snapshots after committed writes
-- instruments the shared `Signals` instance so both:
-  - `store.transaction(...)`
-  - `signals.transaction(...)`
-  update React diagnostics consumers honestly
-
-## Typical Usage
+Simple:
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
-import {
-  createReactSignalsStore,
-  useOutputValue,
-  useSignalValue,
-  useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+store.dispose();
+```
 
-const signals = createSignals();
-const store = createReactSignalsStore(signals);
+Complex:
 
-const count = signals.input("count", 1);
-
-const doubled = signals.computed("doubled", () => count() * 2);
-
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
+```ts
+window.addEventListener("beforeunload", () => {
+  store.dispose();
 });
-
-function Counter() {
-  const countValue = useSignalValue(count, store);
-  const doubledValue = useSignalValue(doubled, store);
-  const panelValue = useOutputValue(panel, store);
-  const diagnostics = useSignalsDiagnostics(store);
-
-  return { countValue, doubledValue, panelValue, diagnostics };
-}
 ```
 
 ## Semantics Notes
 
 - React subscriptions are built on the same committed observation substrate as
-  `watch(...)`
-- rollback still suppresses normal delivery
-- the store is a framework adapter, not a second source of truth
-- callback-first `computed(() => ...)` remains runtime-owned derived truth;
-  React never becomes the compute engine
-- `output(...)` is still spec-authored today; callback-shaped output authoring
-  is explicitly deferred
-- current web execution remains serial by default
+  `watch(...)`.
+- Rollback still suppresses normal delivery.
+- Callback-first `computed(() => ...)` remains runtime-owned derived truth.
+- The store is an adapter, not a second state container.
 
 ## Related Docs
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
 - [consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
+- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
+- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)

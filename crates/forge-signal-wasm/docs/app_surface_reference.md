@@ -1,153 +1,38 @@
 # App Surface Reference
 
-This document is the reference for the primary app-first `forge-signal-wasm`
-surface.
+This is the reference for the primary `forge-signal-wasm` app surface. Every
+major concept includes a simple example and a more realistic one.
 
 ## Entry Point
 
 ### `createSignals(): Signals`
 
-Creates a framework-agnostic web runtime instance.
+Creates a framework-agnostic runtime instance.
+
+Simple:
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 ```
 
-`Signals` is the main app-facing object.
-
-### `start(): void`
-
-The package also exports `start()`.
-
-This is a low-level wasm start hook retained for completeness and compatibility.
-Normal app code should not need to call it directly before `createSignals()`.
+Complex:
 
 ```ts
-import { start } from "@aust-group/forge-signal-wasm";
-```
+import { createSignals } from "forge-signal-wasm";
 
-## Value Types
+const signals = createSignals();
 
-### `SignalValue`
-
-`SignalValue` is the JSON-like value model used by the app-first surface:
-
-- `null`
-- `boolean`
-- `number`
-- `string`
-- arrays of `SignalValue`
-- objects whose values are `SignalValue`
-
-## Handles
-
-### `InputSignal`
-
-Represents mutable source state.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `ComputedSignal`
-
-Represents derived internal state.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `OutputSignal`
-
-Represents a public derived projection intended for host/framework consumption.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `DisposableHandle`
-
-Represents a watcher/effect lifecycle handle returned by `watch(...)` and
-`effect(...)`.
-
-Properties and methods:
-
-- `free()`
-- `[Symbol.dispose]()`
-
-This handle is also accepted by `nuke(...)`.
-
-### `SignalsTransaction`
-
-Represents the write lane inside `transaction(...)` and `batch(...)`.
-
-Methods:
-
-- `set(input: InputSignal, value: SignalValue): void`
-- `setWithAspects(input: InputSignal, value: SignalValue, aspects: ReadonlyArray<number>): void`
-- `setWithRegions(input: InputSignal, value: SignalValue, changedRegions: unknown): void`
-- `setWithRegionsAndAspects(input: InputSignal, value: SignalValue, changedRegions: unknown, aspects: ReadonlyArray<number>): void`
-
-## Core Methods On `Signals`
-
-### `input(id, initial, options?): InputSignal`
-
-Registers mutable source state.
-
-```ts
-const count = signals.input("count", 1, {
-  producesAspects: [1, 2],
-});
-```
-
-Use `input` for app-owned values that are explicitly mutated through
-transactions.
-
-If you omit `options` or `producesAspects`, the runtime preserves the default
-single-aspect compatibility lane through aspect `0`.
-
-### `computed(...)`
-
-Registers derived internal state.
-
-```ts
+const enabled = signals.input("enabled", true);
+const count = signals.input("count", 1);
 const doubled = signals.computed("doubled", () => count() * 2);
-```
-
-Use `computed` when the value is part of internal derivation rather than a
-public projection boundary.
-
-Normal package authoring should prefer callback form:
-
-- `computed("doubled", () => count() * 2)`
-- `computed(() => count() * 2, { id: "doubled" })`
-
-The explicit serialized-recipe lane remains available through:
-
-- `computedSpec(id, spec)`
-- `computed(id, spec)`
-
-### `output(id, spec): OutputSignal`
-
-Registers a public derived projection.
-
-```ts
 const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
+  reads: ["enabled", "count", "doubled"],
   expr: {
     kind: "object",
     fields: [
+      ["enabled", { kind: "read", id: "enabled" }],
       ["count", { kind: "read", id: "count" }],
       ["doubled", { kind: "read", id: "doubled" }],
     ],
@@ -155,28 +40,164 @@ const panel = signals.output("panel", {
 });
 ```
 
-Use `output` for values that are intended for external consumption:
+### `start(): void`
 
-- React/Vue/Angular view models
-- editor panels
-- tables and rows
-- structured trace payloads
-- public app projections
+Low-level wasm start hook retained for completeness. Normal app code should not
+need it.
 
-`output` is not just a naming alias of `computed`. It is the public projection
-concept in the web runtime.
+Simple:
 
-`output` remains spec-authored for now. Callback-shaped output authoring is
-explicitly deferred:
+```ts
+import { start } from "forge-signal-wasm";
+```
 
-- `output("panel", spec)` works
-- `outputSpec("panel", spec)` works
-- `output("panel", () => ...)` throws `outputCallbackDeferred`
-- `outputCallback("panel", () => ...)` throws `outputCallbackDeferred`
+Complex:
 
-### `transaction(callback): RunSummary`
+```ts
+import { start, createSignals } from "forge-signal-wasm";
 
-Executes a committed write boundary.
+start();
+const signals = createSignals();
+```
+
+## Value Model
+
+### `SignalValue`
+
+`SignalValue` is the JSON-like value model:
+
+- `null`
+- `boolean`
+- `number`
+- `string`
+- arrays
+- nested objects
+
+Simple:
+
+```ts
+const count = signals.input("count", 1);
+```
+
+Complex:
+
+```ts
+const part = signals.input("part", {
+  id: "gear-7",
+  dimensions: { teeth: 24, pitch: 1.5 },
+  flags: ["released", "visible"],
+});
+```
+
+## Handles
+
+### `InputSignal`
+
+Mutable source state.
+
+Simple:
+
+```ts
+const count = signals.input("count", 1);
+console.log(count.id, count.get());
+```
+
+Complex:
+
+```ts
+const settings = signals.input("settings", {
+  mode: "advanced",
+  autosave: true,
+});
+
+signals.transaction((tx) => {
+  tx.set(settings, {
+    mode: "advanced",
+    autosave: false,
+  });
+});
+```
+
+### `ComputedSignal`
+
+Derived internal state. Callback authoring is the normal lane.
+
+Simple:
+
+```ts
+const doubled = signals.computed("doubled", () => count() * 2);
+console.log(doubled());
+```
+
+Complex:
+
+```ts
+const label = signals.computed("label", () => {
+  if (!enabled()) return "disabled";
+  return `${name()} x${count()}`;
+});
+```
+
+### `OutputSignal`
+
+Public projection for UI/framework consumption.
+
+Simple:
+
+```ts
+const panel = signals.output("panel", {
+  reads: ["count"],
+  expr: {
+    kind: "object",
+    fields: [["count", { kind: "read", id: "count" }]],
+  },
+});
+```
+
+Complex:
+
+```ts
+const summary = signals.output("summary", {
+  reads: ["part", "label"],
+  expr: {
+    kind: "object",
+    fields: [
+      ["part", { kind: "read", id: "part" }],
+      ["label", { kind: "read", id: "label" }],
+      ["teeth", {
+        kind: "get",
+        target: { kind: "get", target: { kind: "read", id: "part" }, field: "dimensions" },
+        field: "teeth",
+      }],
+    ],
+  },
+});
+```
+
+### `DisposableHandle`
+
+Lifecycle handle from `watch(...)` and `effect(...)`.
+
+Simple:
+
+```ts
+const handle = signals.watch(panel, () => {});
+signals.nuke(handle);
+```
+
+Complex:
+
+```ts
+using handle = signals.effect(summary, () => {
+  queueMicrotask(() => renderSummary(summary()));
+});
+```
+
+### `SignalsTransaction`
+
+Write lane used inside `transaction(...)` and `batch(...)`.
+
+Simple:
 
 ```ts
 signals.transaction((tx) => {
@@ -184,86 +205,235 @@ signals.transaction((tx) => {
 });
 ```
 
-The callback receives a `SignalsTransaction`.
+Complex:
+
+```ts
+signals.transaction((tx) => {
+  tx.setWithAspects(part, {
+    ...part(),
+    dimensions: { ...part().dimensions, teeth: 30 },
+  }, [1]);
+});
+```
+
+## Core Methods On `Signals`
+
+### `input(id, initial, options?): InputSignal`
+
+Simple:
+
+```ts
+const count = signals.input("count", 1);
+```
+
+Complex:
+
+```ts
+const part = signals.input("part", {
+  id: "gear-7",
+  enabled: true,
+}, {
+  producesAspects: [1, 2],
+});
+```
+
+### `computed(...)`
+
+Normal callback form:
+
+```ts
+const doubled = signals.computed("doubled", () => count() * 2);
+```
+
+Generated-id callback form:
+
+```ts
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+```
+
+Complex branchy callback:
+
+```ts
+const label = signals.computed("label", () => {
+  return enabled() ? `${name()} x${count()}` : "disabled";
+});
+```
+
+Advanced recipe form:
+
+```ts
+const doubled = signals.computedSpec("doubled", {
+  reads: ["count"],
+  expr: {
+    kind: "multiply",
+    args: [
+      { kind: "read", id: "count" },
+      { kind: "value", value: 2 },
+    ],
+  },
+});
+```
+
+### `output(id, spec): OutputSignal`
+
+Simple:
+
+```ts
+const panel = signals.output("panel", {
+  reads: ["count"],
+  expr: {
+    kind: "object",
+    fields: [["count", { kind: "read", id: "count" }]],
+  },
+});
+```
+
+Complex:
+
+```ts
+const dashboard = signals.output("dashboard", {
+  reads: ["part", "label", "count"],
+  expr: {
+    kind: "object",
+    fields: [
+      ["part", { kind: "read", id: "part" }],
+      ["label", { kind: "read", id: "label" }],
+      ["count", { kind: "read", id: "count" }],
+    ],
+  },
+});
+```
+
+Notes:
+
+- `output(...)` is the public projection concept.
+- `output(() => ...)` is intentionally deferred today.
+
+### `transaction(callback): RunSummary`
+
+Simple:
+
+```ts
+signals.transaction((tx) => {
+  tx.set(count, count() + 1);
+});
+```
+
+Complex:
+
+```ts
+const summary = signals.transaction((tx) => {
+  tx.set(enabled, true);
+  tx.set(name, "Grace");
+  tx.set(count, 4);
+});
+
+console.log(summary.nodesRecomputed);
+```
 
 ### `batch(callback): RunSummary`
 
-Exact ergonomic alias of `transaction(...)`.
+Ergonomic alias of `transaction(...)`.
 
-It is not a weaker semantic lane. It uses the same committed transaction
-boundary.
+Simple:
+
+```ts
+signals.batch((tx) => {
+  tx.set(count, 5);
+});
+```
+
+Complex:
+
+```ts
+signals.batch((tx) => {
+  tx.set(enabled, false);
+  tx.set(count, 0);
+});
+```
 
 ### `watch(target, callback): DisposableHandle`
 
-Observes committed change for a signal target.
-
-Accepted targets:
-
-- string signal id
-- `InputSignal`
-- `ComputedSignal`
-- `OutputSignal`
-
-Example:
+Simple:
 
 ```ts
 const handle = signals.watch(panel, (notice) => {
-  console.log(notice.signalId, notice.meaningfulChange);
+  console.log(notice.meaningfulChange);
 });
 ```
 
-The callback receives a `WebObservationNotice`.
+Complex:
+
+```ts
+const handle = signals.watch("summary", (notice) => {
+  if (notice.triggerMatched) {
+    enqueueAuditRecord(notice);
+  }
+});
+```
 
 ### `effect(target, callback): DisposableHandle`
 
-Registers a host-side committed reaction.
+Simple:
 
 ```ts
 const handle = signals.effect(panel, () => {
-  console.log("panel changed");
+  console.log(panel());
 });
 ```
 
-Like `watch(...)`, `effect(...)` inherits committed observation semantics from
-the core runtime.
+Complex:
+
+```ts
+const handle = signals.effect(dashboard, () => {
+  queueMicrotask(() => syncInspector(dashboard()));
+});
+```
 
 ### `nuke(handle): boolean`
 
-Tears down future deliveries for a watcher/effect handle.
+Simple:
 
 ```ts
 signals.nuke(handle);
 ```
 
-This affects future deliveries only.
+Complex:
 
-### `diagnostics(): SignalDiagnostics`
+```ts
+const watchHandle = signals.watch(panel, () => {});
+const effectHandle = signals.effect(panel, () => {});
 
-Returns the diagnostics surface.
+signals.nuke(watchHandle);
+signals.nuke(effectHandle);
+```
 
-### `history(): SignalHistory`
+### `diagnostics()`, `history()`, `specialist()`, `adapters()`
 
-Returns the history and branching surface.
+These open the deeper runtime surfaces.
 
-### `specialist(): SignalSpecialist`
+Simple:
 
-Returns specialist and lower-level runtime accessors.
+```ts
+const diagnostics = signals.diagnostics();
+const history = signals.history();
+```
 
-### `adapters(): SignalAdapters`
+Complex:
 
-Returns export/import and runtime envelope helpers.
+```ts
+const diagnostics = signals.diagnostics();
+const adapters = signals.adapters();
+const history = signals.history();
 
-### `compatibilityApp(): SignalApp`
-
-Returns the lower-level compatibility app surface.
-
-### `compatibilityRuntime(): SignalRuntime`
-
-Returns the lower-level compatibility runtime surface.
+console.log(diagnostics.performanceSummary());
+console.log(adapters.exportDefinitions());
+console.log(history.current_branch());
+```
 
 ## `RunSummary`
 
-`transaction(...)` and `batch(...)` return:
+Write boundaries return:
 
 - `touchedNodes`
 - `nodesEvaluated`
@@ -275,125 +445,83 @@ Returns the lower-level compatibility runtime surface.
 - `evaluationNanos`
 - `commitNanos`
 
-This is the first runtime summary for the committed boundary, not the full
-diagnostics archive.
+Simple:
+
+```ts
+const summary = signals.transaction((tx) => tx.set(count, 2));
+console.log(summary.nodesRecomputed);
+```
+
+Complex:
+
+```ts
+const summary = signals.transaction((tx) => {
+  tx.set(enabled, true);
+  tx.set(name, "Grace");
+  tx.set(count, 5);
+});
+
+console.log({
+  touched: summary.touchedNodes,
+  evaluated: summary.nodesEvaluated,
+  total: summary.totalNanos,
+});
+```
 
 ## `ComputedSpec` And `OutputSpec`
 
-`ComputedSpec` remains the advanced serialized-recipe lane for `computedSpec(...)`
-or `computed(id, spec)`. `OutputSpec` is the current authoring model for
-`output(...)` and `outputSpec(...)`.
+Use these when you want explicit recipe authoring.
 
-Fields:
-
-- `reads?: ReadonlyArray<RecipeReadSpec>`
-- `expr: Expr`
-- `when?: ConditionSpec`
-- `identity?: IdentitySpec`
-- `producesAspects?: ReadonlyArray<number>`
-
-### `RecipeReadSpec`
-
-- simple string id
-- or object form:
+Simple:
 
 ```ts
-{ id: "part", scope: ..., aspect: 1 }
+const doubled = signals.computedSpec("doubled", {
+  reads: ["count"],
+  expr: {
+    kind: "multiply",
+    args: [
+      { kind: "read", id: "count" },
+      { kind: "value", value: 2 },
+    ],
+  },
+});
 ```
 
-Or:
+Complex:
 
 ```ts
-{ id: "part", aspects: [1, 2] }
+const partSummary = signals.outputSpec("partSummary", {
+  reads: ["part", "label"],
+  expr: {
+    kind: "object",
+    fields: [
+      ["part", { kind: "read", id: "part" }],
+      ["label", { kind: "read", id: "label" }],
+    ],
+  },
+  identity: { kind: "exact" },
+});
 ```
 
-These aspect filters are how the wasm app-first surface becomes genuinely
-multi-aspect instead of flattening all reads to aspect `0`.
+## Aspect-Aware Reads And Writes
 
-### `ConditionSpec`
+Simple:
 
 ```ts
-{
-  expr: Expr;
-}
+const part = signals.input("part", { teeth: 24 }, {
+  producesAspects: [1],
+});
 ```
 
-### `IdentitySpec`
-
-- `{ kind: "exact" }`
-- `{ kind: "expr", expr: Expr }`
-
-`output(...)` defaults to exact identity behavior so public projections behave
-like real externally observed values.
-
-## Expression Reference
-
-`Expr` supports:
-
-- constants: `value`
-- reads: `read`
-- object/array shaping: `object`, `array`, `mergeObjects`, `pick`, `omit`
-- property/index access: `get`, `at`, `first`, `last`, `slice`
-- collection helpers: `join`, `flatten`, `length`, `contains`, `keys`, `values`, `append`
-- arithmetic: `sum`, `multiply`, `subtract`, `divide`, `abs`, `min`, `max`, `sqrt`, `sin`, `cos`, `floor`, `mod`, `clamp`, `atan2`
-- string/object combination: `concat`, `coalesce`
-- comparisons: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`
-- boolean logic: `and`, `or`, `not`
-- conditional branching: `if`
-
-Example object projection:
+Complex:
 
 ```ts
-{
-  kind: "object",
-  fields: [
-    ["count", { kind: "read", id: "count" }],
-    ["isLarge", {
-      kind: "gt",
-      left: { kind: "read", id: "count" },
-      right: { kind: "value", value: 10 },
-    }],
-  ],
-}
+signals.transaction((tx) => {
+  tx.setWithAspects(part, { teeth: 26 }, [1]);
+});
+
+const summary = signals.output("summary", {
+  reads: [{ id: "part", aspects: [1] }],
+  expr: { kind: "read", id: "part" },
+});
 ```
-
-## Observation Types
-
-### `WebObservationNotice`
-
-Watcher callbacks receive:
-
-- `observerId`
-- `handleId`
-- `signalId`
-- `branchId`
-- `policy`
-- `touched`
-- `recomputed`
-- `meaningfulChange`
-- `triggerMatched`
-
-This is a web-facing observation notice, not the full retained diagnostics
-archive.
-
-## Semantics Summary
-
-- `input` is mutable source state
-- `computed` is derived internal state
-- `output` is a public projection
-- `watch` observes committed change
-- `effect` reacts to committed change
-- rollback suppresses normal delivery
-- `transaction` is the write boundary
-- `batch` is an alias of `transaction`
-- aspects are first-class for node definition, read selection, invalidation,
-  and version reporting
-- subscriptions stay node-scoped by default; aspect precision belongs in
-  derivation, not in the default watch/effect model
-
-## Related Docs
-
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
-- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)

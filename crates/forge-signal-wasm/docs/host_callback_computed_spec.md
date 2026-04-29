@@ -395,7 +395,7 @@ not claim that a JavaScript function body is portable runtime data.
 The target primary authoring surface is:
 
 ```ts
-import { computed, signal, type Signal } from "@aust-group/forge-signal-wasm";
+import { computed, signal, type Signal } from "forge-signal-wasm";
 
 const count = signal(1);
 const doubleCount: Signal<number> = computed(() => count() * 2);
@@ -1393,6 +1393,23 @@ requires all of the following:
 - package docs, examples, and adapter surfaces that reinforce one canonical
   happy path instead of several half-equal ones
 
+### Current Status
+
+At the time of this revision, the callback-computed core is substantially done.
+
+That means the document should no longer speak as though the main remaining work
+is "make `computed(() => ...)` exist at all." The real remaining work is now:
+
+- finish the last public-truth and replay/export surfaces
+- close the package/publication proof lane
+- make diagnostics feel first-class at the product boundary
+- make `input`, `computed`, and `output` read like one coherent product surface
+- harden the type and capability boundaries so the common misuse classes become
+  materially harder or impossible to express
+
+The remaining phases below are therefore practical closeout phases, not
+foundational callback-runtime invention phases.
+
 ## Post-Milestone Crate Hardening
 
 Finishing this milestone honestly is necessary, but it is not the same thing as
@@ -1411,6 +1428,11 @@ just internal tidiness. In the intended end state:
 
 - ordinary React app code should see one obvious product surface for
   `input(...)`, `computed(...)`, `output(...)`, and store consumption
+- those authoring forms should read like one coherent language rather than a
+  mix of registration APIs and callback-first APIs
+- normal app code should be able to organize signal logic into domain
+  controller factories instead of forcing every feature into one monolithic
+  graph declaration object
 - advanced/raw/runtime-adjacent surfaces should remain available but should not
   leak into the default app-authoring path
 - signal handles should be easy to inspect, easy to pass around, and difficult
@@ -1425,6 +1447,11 @@ Priority hardening targets:
 
 - make the raw wasm boundary versus the product-facing package surface
   architecturally explicit rather than merely convenient
+- unify authoring ergonomics so `input`, `computed`, and `output` read as one
+  family of declarations rather than three different styles of runtime call
+- move the primary app-authoring story toward controller-first signal
+  composition with explicit graph publication, instead of giant node-registry
+  objects with embedded compute closures
 - refine callback capability vocabulary, callback id generation, and lifecycle
   ownership so they read as first-class crate concepts instead of leftover
   plumbing
@@ -1454,6 +1481,9 @@ express in normal React application code:
   logic rather than committed runtime truth
 - using compatibility or expert-only lanes by accident because the public API
   does not clearly separate product and raw surfaces
+- teaching users an ID-first or spec-first style by accident because the
+  guided surface does not present one obvious value-first callback-first
+  authoring story
 
 When possible, these protections should be compiler-enforced through branded or
 opaque handle categories, runtime-owned capability construction, and stricter
@@ -1466,15 +1496,102 @@ Deliver:
 
 - one explicit product-facing package surface for ordinary app code
 - one explicit raw/compatibility lane for expert or migration use
+- one coherent authoring story for source state, derived state, and exposed
+  state
+- one coherent controller-first composition story for feature-level signal
+  logic
 - cleaned callback capability vocabulary for registration, identity,
   generation, and disposal
 - removal of accidental overlap where raw and guided surfaces teach competing
   stories
 
+The intended authoring shape should converge toward something like:
+
+```ts
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const label = signals.output(() => `${doubled()}`, { id: "label" });
+```
+
+Exact spellings may vary, but the product requirement does not: `input`,
+`computed`, and `output` should read as sibling declarations, with ids treated
+as metadata rather than as the dominant first impression of the API.
+
+The broader authoring target should also converge toward ordinary composed code
+that looks like this:
+
+```ts
+export function createEditSessionController(signals: SignalNamespace) {
+  const serverItemData = signals.input("serverItemData", null);
+  const draftEdits = signals.input("draftEdits", {});
+
+  const effectiveItemData = signals.computed("effectiveItemData", () => ({
+    ...(serverItemData() ?? {}),
+    ...(draftEdits() ?? {}),
+  }));
+
+  const dirtyState = signals.computed("dirtyState", () => ({
+    isDirty: Object.keys(draftEdits()).length > 0,
+  }));
+
+  return {
+    serverItemData,
+    draftEdits,
+    effectiveItemData,
+    dirtyState,
+  };
+}
+
+export function createWorkflowController(
+  signals: SignalNamespace,
+  editSession: ReturnType<typeof createEditSessionController>,
+) {
+  const submitReadiness = signals.computed("submitReadiness", () => {
+    const item = editSession.effectiveItemData();
+    const dirty = editSession.dirtyState();
+
+    return {
+      enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+      targetStateId: item.workflow_target_state_id ?? null,
+    };
+  });
+
+  return {
+    submitReadiness,
+  };
+}
+
+const signals = createSignals();
+
+const editSession = createEditSessionController(signals);
+const workflow = createWorkflowController(signals, editSession);
+
+export const itemDetailGraph = signals.graph("itemDetail", {
+  outputs: {
+    effectiveItemData: editSession.effectiveItemData,
+    dirtyState: editSession.dirtyState,
+    submitReadiness: workflow.submitReadiness,
+  },
+});
+```
+
+This code shape is not merely an example. It represents the desired product
+direction:
+
+- controllers author inputs and computed nodes as ordinary code
+- controllers compose through returned typed handles rather than string lookup
+- `signals.graph(...)` becomes the explicit publication boundary for outputs
+- graph-shaped node registries remain available as compatibility/import/export
+  lanes, not the default app-authoring story
+
 Must prove:
 
 - a React user can identify the correct authoring surface from the docs and
   types without reading runtime internals
+- a new user can infer the difference between source state, derived state, and
+  exposed state without first learning three unrelated call shapes
+- a feature author can decompose signal logic into multiple controller factories
+  without losing the runtime-owned graph/publication story
 - callback ids and callback lifecycle semantics are explainable through public
   names alone
 - raw surfaces remain available without defining the crate's first impression
@@ -1489,6 +1606,8 @@ Deliver:
   output handles, and disposable resources
 - stronger runtime ownership markers across store, signal, and observation
   surfaces
+- authoring overloads that favor value-first / callback-first guided usage and
+  demote registration-heavy shapes to explicit expert or compatibility lanes
 
 Must prove:
 
@@ -1498,6 +1617,8 @@ Must prove:
   product boundary
 - raw wasm handles cannot silently stand in for product-facing callable handles
   without crossing an intentional conversion boundary
+- the nicest-looking overloads are also the correct overloads for ordinary app
+  code, so users are not nudged toward lower-level forms by aesthetics alone
 
 ### Hardening Phase 3: Diagnostics As A Product Job
 
@@ -1555,6 +1676,176 @@ The sequencing rule is: finish the truth-critical runtime semantics first, then
 perform a deliberate crate-quality pass. Do not mistake "milestone complete"
 for "crate finished."
 
+## Practical Remaining Work Plan
+
+This section is the operational closeout map for the work that remains after
+callback-computed core support is largely working.
+
+These phases are intentionally practical. They should be usable as the
+implementation and QA checklist for getting from "the feature works" to "the
+package is honest, publishable, and mature."
+
+### Phase 1: Public Package Integrity And Release Proof
+
+**Status:** Completed
+
+**Why this phase exists**
+
+The package cannot be treated as done if the prepared npm artifact omits
+required root files, omits declaration files, or ships examples/docs that do
+not match the real import surface.
+
+**Deliver**
+
+- a prepared npm artifact whose root `index.js`, `raw_surface.js`,
+  `product/*`, `types/*`, and React subpath all exist in the packed tarball
+- declaration files that describe the same contract the runtime JS actually
+  exports
+- package metadata and docs that teach the public package name and import paths
+- a release-proof script path that rebuilds, prepares, packs, and verifies the
+  artifact
+
+**Must prove**
+
+- `npm pack` contains every file transitively required by the public entrypoints
+- a clean temp consumer can import:
+  - `forge-signal-wasm`
+  - `forge-signal-wasm/react`
+- a clean temp TypeScript consumer can type-check the canonical happy path
+- package docs do not point users back at obsolete private or scoped package
+  names unless intentionally describing a separate lane
+
+**Closeout note**
+
+This phase is complete only once the release-proof lane is scripted rather than
+remembered. The package must have a mechanical verifier and a release-gate path
+that can rebuild, prepare, pack, and prove the artifact before any real
+`npm publish` step is attempted.
+
+### Phase 2: Diagnostics Product Closeout
+
+**Status:** In progress
+
+**Why this phase exists**
+
+Diagnostics exist, but they still need to feel like a first-class product job
+for normal users rather than an internal capability users can discover only if
+they already know what to ask for.
+
+**Deliver**
+
+- one clear diagnostics story for:
+  - why did this recompute
+  - why did this not recompute
+  - why did this callback fail
+  - why did the dependency set rewire
+  - what just delivered to observers/effects
+  - what is the current runtime cost posture
+- docs and examples that teach diagnostics from the product surface
+- public diagnostics typing that matches the real callback-origin runtime model
+
+**Must prove**
+
+- callback-origin diagnostics are as legible as expression-origin diagnostics
+- the public docs include both simple and richer diagnostics examples
+- React-facing users can discover diagnostics without dropping into raw runtime
+  internals
+
+### Phase 3: Authoring Surface Symmetry
+
+**Status:** Not started
+
+**Why this phase exists**
+
+`computed(() => ...)` now reads like normal code. `input(...)` and `output(...)`
+still carry too much of the older registration-first shape. That leaves the
+crate feeling assembled from different eras instead of designed as one
+language.
+
+**Deliver**
+
+- one coherent authoring family for source, derived, and exposed state
+- simple forms and richer forms that share the same grammar
+- ids treated as metadata rather than as the dominant first impression of the
+  API
+- explicit positioning of spec/compat forms as advanced lanes
+
+**Target shape**
+
+```ts
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const label = signals.output(() => `${doubled()}`, { id: "label" });
+```
+
+Exact spellings may evolve, but the authoring surface must read with this level
+of symmetry and ease.
+
+**Must prove**
+
+- new users do not have to learn three unrelated call styles for `input`,
+  `computed`, and `output`
+- the most attractive-looking API forms are the correct normal usage forms
+- callback-first forms and richer option-bearing forms remain mechanically
+  consistent across the family
+
+### Phase 4: Type, Capability, And Misuse Hardening
+
+**Status:** In progress
+
+**Why this phase exists**
+
+The runtime is already enforcing a lot, but the TypeScript/public package
+surface still allows too much confusion about handle categories, runtime
+ownership, and callback capability identity.
+
+**Deliver**
+
+- stronger branded/opaque handle categories
+- stricter runtime/store ownership cues at the package surface
+- callback capability vocabulary that reads as intentional product semantics
+- tighter separation between guided product surfaces and raw/compatibility
+  surfaces
+
+**Must prove**
+
+- writable inputs cannot be confused with computed or output handles
+- raw wasm handles do not silently substitute for product-facing callable
+  handles
+- callback/stale capability misuse becomes materially harder to express
+- cross-runtime/store confusion is visibly and mechanically constrained
+
+### Phase 5: Documentation, Examples, And Publish-Ready Product Identity
+
+**Status:** In progress
+
+**Why this phase exists**
+
+The package should not merely be technically correct. It should be teachable,
+demoable, and publication-grade.
+
+**Deliver**
+
+- docs organized around real usage, not internal taxonomy alone
+- simple and complex examples for each major public surface
+- diagnostics examples that feel like real debugging workflows
+- README/examples that reinforce one obvious center of gravity
+- release notes / deprecation notes where needed for broken or obsolete
+  published artifacts
+
+**Must prove**
+
+- the docs teach the public package the way a new React/TypeScript user will
+  actually consume it
+- examples cover:
+  - basic state and derivation
+  - callback rewiring
+  - diagnostics
+  - React store usage
+  - advanced/spec compatibility lanes where relevant
+- a release candidate can be installed, imported, and used from another app
+  without tribal knowledge
+
 ## Explicit Deferrals
 
 - portable serialization of JavaScript callback bodies
@@ -1602,6 +1893,11 @@ identified.
 In practice that means:
 
 - the normal path is callback-first, typed, and easy to inspect
+- `input`, `computed`, and `output` read as one coherent authoring language,
+  with simple forms for quick usage and richer forms for explicit ids and
+  options
+- ordinary app code can be organized as controller factories that return signal
+  handles and compose directly through those handles
 - raw and compatibility lanes are explicit expert surfaces rather than ambient
   alternative truths
 - callback ids, callback functions, and callback lifecycle feel productized
@@ -1618,3 +1914,21 @@ In practice that means:
 
 That is the actual finish line for the crate, even though the semantic callback
 milestone should close first.
+
+## Practical Finish Checklist
+
+The crate should not be called finished until all of the following are true at
+the same time:
+
+- callback-computed runtime truth is stable and already certified
+- the public npm artifact is entrypoint-complete and temp-consumer-proven
+- root and React import surfaces both work at runtime and in TypeScript
+- diagnostics are documented and demonstrated as a first-class product surface
+- every major public concept has:
+  - a simple example
+  - a more realistic example
+- `input`, `computed`, and `output` share one guided authoring language
+- raw/spec/compatibility lanes are still available but no longer define the
+  product's first impression
+- the remaining misuse classes are mechanically constrained enough that the
+  crate can be recommended without a giant footnote

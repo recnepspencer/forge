@@ -1,111 +1,231 @@
 # Consuming forge-signal-wasm
 
-This guide explains how to build, prepare, install, and import
-`forge-signal-wasm` into another web application.
+This guide shows how to install the public npm package, how to consume the
+local prepared package, and how to use the main entrypoints in real app code.
 
-## Package Shapes
+## Install Shapes
 
-There are two package shapes to be aware of:
+### Public npm package
 
-- raw `wasm-pack` output in `crates/forge-signal-wasm/pkg`
-- prepared package output after the Forge packaging script rewrites metadata and
-  exports
+```bash
+npm install forge-signal-wasm
+```
 
-For real app consumption, use the prepared package.
+### Public npm package with React adapter
 
-The prepare step:
+```bash
+npm install forge-signal-wasm react
+```
 
-- rewrites the package name into the scoped private package form
-- installs the `./react` subpath export
-- copies the stronger hand-authored TypeScript declarations
-- compiles and includes the React adapter subpath
-- makes the package metadata honest for private registry use
+### Local prepared package during development
 
-## Build And Prepare
-
-From the Forge workspace root:
+Build from the Forge workspace root:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 ```
 
-Then prepare the package:
+Then prepare the package. Public npm example:
+
+```powershell
+$env:FORGE_SIGNAL_WASM_PACKAGE_NAME='forge-signal-wasm'
+$env:FORGE_SIGNAL_WASM_REGISTRY='https://registry.npmjs.org'
+$env:FORGE_SIGNAL_WASM_PUBLISH_ACCESS='public'
+$env:FORGE_SIGNAL_WASM_NOTICE_MODE='none'
+node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+```
+
+Then run the release-proof verifier:
+
+```powershell
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+```
+
+Private scoped example:
 
 ```powershell
 $env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-After preparation, the package is ready to be consumed as:
-
-```text
-@aust-group/forge-signal-wasm
-```
-
-If you use a different scope, set `FORGE_SIGNAL_WASM_SCOPE` accordingly.
-
-## Install Into Another App
-
-### Local File Install
-
-In another app's `package.json`:
+Then consume the local folder:
 
 ```json
 {
   "dependencies": {
-    "@aust-group/forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
+    "forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
   }
 }
 ```
 
-Then install normally with your package manager.
+## Public Publish Flow
 
-### Private Registry Install
+Once the package is built and prepared, the honest publish lane is:
 
-If you publish the prepared package to GitHub Packages or another private
-registry, install it under the scoped package name:
-
-```json
-{
-  "dependencies": {
-    "@aust-group/forge-signal-wasm": "0.1.0"
-  }
-}
+```powershell
+wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
+$env:FORGE_SIGNAL_WASM_PACKAGE_NAME='forge-signal-wasm'
+$env:FORGE_SIGNAL_WASM_REGISTRY='https://registry.npmjs.org'
+$env:FORGE_SIGNAL_WASM_PUBLISH_ACCESS='public'
+$env:FORGE_SIGNAL_WASM_NOTICE_MODE='none'
+node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+cd crates/forge-signal-wasm/pkg
+npm publish --access public
 ```
 
-The prep script writes package metadata and `.npmrc` support for private
-package distribution.
+The verifier is not optional ceremony. It is the mechanical proof that the
+prepared tarball contains the files the public entrypoints actually reference,
+and that a clean consumer can import and type-check the package.
+
+### One-command release gate
+
+Use the publish helper when you want one command that rebuilds, prepares, and
+verifies the public package without actually publishing yet:
+
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
+```
+
+That command now defaults to the public package lane:
+
+- package name: `forge-signal-wasm`
+- registry: `https://registry.npmjs.org`
+- access: `public`
+- notice mode: `none`
+
+If you need a private/scoped lane, pass explicit overrides such as `-Scope`,
+`-Registry`, `-Access`, and `-NoticeMode`.
+
+If you pass `-Scope` without `-PackageName`, the helper now intentionally falls
+back to the scoped naming pattern:
+
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 `
+  -Scope aust-group `
+  -Registry https://npm.pkg.github.com `
+  -NoticeMode proprietary `
+  -SkipPublish
+```
+
+That produces `@aust-group/forge-signal-wasm` instead of silently staying on
+the public unscoped package name.
 
 ## Import Surface
 
-### Core App-First Runtime
+### Core runtime
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 ```
 
-### React Adapter
+### React adapter
 
 ```ts
 import {
   createReactSignalsStore,
-  useSignalValue,
   useOutputValue,
+  useSignalValue,
   useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+} from "forge-signal-wasm/react";
 ```
 
-## Minimal Example
+## Simple App Example
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
 const count = signals.input("count", 1);
-
 const doubled = signals.computed("doubled", () => count() * 2);
 
+signals.transaction((tx) => {
+  tx.set(count, 2);
+});
+
+console.log(doubled());
+```
+
+## More Complete App Example
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const enabled = signals.input("enabled", true);
+const name = signals.input("name", "Ada");
+const count = signals.input("count", 1);
+
+const label = signals.computed("label", () => {
+  return enabled() ? `${name()} x${count()}` : "disabled";
+});
+
+const panel = signals.output("panel", {
+  reads: ["enabled", "name", "count", "label"],
+  expr: {
+    kind: "object",
+    fields: [
+      ["enabled", { kind: "read", id: "enabled" }],
+      ["name", { kind: "read", id: "name" }],
+      ["count", { kind: "read", id: "count" }],
+      ["label", { kind: "read", id: "label" }],
+    ],
+  },
+});
+
+const watchHandle = signals.watch(panel, (notice) => {
+  console.log("panel changed", notice);
+});
+
+signals.transaction((tx) => {
+  tx.set(count, 3);
+});
+
+console.log(panel());
+signals.nuke(watchHandle);
+```
+
+## Diagnostics Example
+
+Simple:
+
+```ts
+const why = signals.diagnostics().why("label");
+console.log(why.callback?.currentReads);
+```
+
+Complex:
+
+```ts
+const diagnostics = signals.diagnostics();
+const perf = diagnostics.performanceSummary();
+const latestObservation = diagnostics.latestObservation();
+
+console.log({
+  deliveries: latestObservation?.deliveredEventCount,
+  callbackCaptures: perf.computeCallbackCaptureCount,
+  dependencyPatches: perf.computeCallbackDependencyPatchCount,
+});
+```
+
+## React Example
+
+```tsx
+import { createSignals } from "forge-signal-wasm";
+import {
+  createReactSignalsStore,
+  useOutputValue,
+  useSignalValue,
+  useSignalsDiagnostics,
+} from "forge-signal-wasm/react";
+
+const signals = createSignals();
+const store = createReactSignalsStore(signals);
+
+const count = signals.input("count", 1);
+const doubled = signals.computed("doubled", () => count() * 2);
 const panel = signals.output("panel", {
   reads: ["count", "doubled"],
   expr: {
@@ -117,28 +237,24 @@ const panel = signals.output("panel", {
   },
 });
 
-signals.transaction((tx) => {
-  tx.set(count, 2);
-});
+function Counter() {
+  const countValue = useSignalValue<number>(count, store);
+  const doubledValue = useSignalValue<number>(doubled, store);
+  const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
+  const diagnostics = useSignalsDiagnostics(store);
 
-console.log(panel.get());
+  return { countValue, doubledValue, panelValue, diagnostics };
+}
 ```
 
-Notes:
+## Practical Notes
 
-- prefer callback-first `computed(() => ...)` for ordinary app code
-- keep `computedSpec(...)` for portable or explicit recipe authoring
-- `output(...)` is still spec-authored today
-- callback-shaped output authoring currently throws `outputCallbackDeferred`
-
-## Runtime Behavior Notes
-
-- current web execution is intentionally serial by default
-- the package does not require a separate user-called wasm bootstrap function
-- `createSignals()` is the primary entrypoint
-- `watch` and `effect` inherit committed observation semantics from
-  `forge-signal`
-- rollback suppresses normal delivery
+- Prefer callback-first `computed(() => ...)` for ordinary app code.
+- Keep `computedSpec(...)` for explicit portable recipe authoring.
+- `output(...)` remains spec-authored today.
+- `output(() => ...)` is intentionally deferred.
+- The React adapter consumes runtime truth; it does not recalculate derived
+  values locally.
 
 ## What To Read Next
 

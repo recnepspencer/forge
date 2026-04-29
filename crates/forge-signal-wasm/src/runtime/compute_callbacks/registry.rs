@@ -11,6 +11,8 @@ use super::types::ComputeCallbackInvocationResult;
 use super::types::{
     ComputeCallbackFailure, ComputeCallbackFailureClass, ComputeCallbackStats, ComputeCallbackToken,
 };
+#[cfg(test)]
+use crate::expression::model::SignalValue;
 
 #[derive(Clone)]
 pub(super) enum RegisteredComputeCallback {

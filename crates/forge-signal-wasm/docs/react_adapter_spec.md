@@ -151,13 +151,13 @@ Normative consequence:
 The intended React-domain surface is:
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 import {
   createReactSignalsStore,
   useOutputValue,
   useSignalValue,
   useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+} from "forge-signal-wasm/react";
 
 const signals = createSignals();
 const store = createReactSignalsStore(signals);
