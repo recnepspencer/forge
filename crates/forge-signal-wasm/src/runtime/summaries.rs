@@ -34,12 +34,72 @@ pub struct RunSummary {
 pub struct WhySummary {
     pub id: String,
     pub node: String,
+    pub api_family: Option<String>,
+    pub recipe_family: Option<String>,
     pub state: String,
     pub upstream: Vec<String>,
     pub changed_regions: Vec<String>,
     pub propagation_suppressed: bool,
     pub output_change: Option<String>,
     pub output_identity: Option<String>,
+    pub callback: Option<CallbackWhySummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallbackWhySummary {
+    pub purity_posture: String,
+    pub current_reads: Vec<String>,
+    pub registered: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unavailable_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_slot: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_generation: Option<u64>,
+    pub last_runtime_read_breadth: u64,
+    pub last_dependency_patch: Option<CallbackDependencyPatchSummary>,
+    pub last_failure: Option<CallbackFailureSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallbackRuntimeNodeSummary {
+    pub id: String,
+    pub node: String,
+    pub api_family: Option<String>,
+    pub recipe_family: Option<String>,
+    pub purity_posture: String,
+    pub current_reads: Vec<String>,
+    pub registered: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unavailable_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_slot: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_generation: Option<u64>,
+    pub last_runtime_read_breadth: u64,
+    pub last_dependency_patch: Option<CallbackDependencyPatchSummary>,
+    pub last_failure: Option<CallbackFailureSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallbackDependencyPatchSummary {
+    pub previous_reads: Vec<String>,
+    pub current_reads: Vec<String>,
+    pub added_count: u64,
+    pub removed_count: u64,
+    pub retained_count: u64,
+    pub runtime_read_breadth: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallbackFailureSummary {
+    pub class: String,
+    pub message: String,
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -62,6 +122,8 @@ pub struct ReplayFrameSummary {
     pub snapshot_id: Option<u64>,
     pub node: Option<String>,
     pub detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub callback: Option<CallbackRuntimeNodeSummary>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -86,6 +148,29 @@ pub struct LineageEventSummary {
     pub subject_artifact_id: Option<u64>,
     pub parent_artifact_id: Option<u64>,
     pub snapshot_id: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub callback: Option<CallbackRuntimeNodeSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionHistorySurfaceSummary {
+    pub history: forge_signal::facade::diagnostics::ExecutionHistorySummary,
+    pub callback_nodes: Vec<CallbackRuntimeNodeSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowSurfaceSummary {
+    pub flow: forge_signal::diagnostics::FlowSummary,
+    pub callback_nodes: Vec<CallbackRuntimeNodeSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObservationSurfaceSummary {
+    pub observation: forge_signal::facade::runtime::ObservationBoundarySummary,
+    pub callback_nodes: Vec<CallbackRuntimeNodeSummary>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -93,6 +178,8 @@ pub struct LineageEventSummary {
 pub struct WebPerformanceSummary {
     pub active_handle_count: u64,
     pub active_callback_count: u64,
+    pub active_compute_callback_count: u64,
+    pub active_compute_collector_count: u64,
     pub matched_watcher_breadth: u64,
     pub delivered_observation_count: u64,
     pub rollback_suppressed_delivery_count: u64,
@@ -102,6 +189,29 @@ pub struct WebPerformanceSummary {
     pub output_serialization_breadth: u64,
     pub js_callback_invocation_count: u64,
     pub js_callback_failure_count: u64,
+    pub compute_callback_registration_count: u64,
+    pub compute_callback_disposal_count: u64,
+    pub compute_callback_invocation_count: u64,
+    pub compute_callback_failure_count: u64,
+    pub compute_callback_generation_mismatch_denial_count: u64,
+    pub compute_callback_self_read_denial_count: u64,
+    pub compute_callback_dynamic_cycle_denial_count: u64,
+    pub compute_callback_promise_return_denial_count: u64,
+    pub compute_callback_invalid_return_denial_count: u64,
+    pub compute_callback_collector_installation_count: u64,
+    pub compute_callback_capture_count: u64,
+    pub compute_callback_captured_read_count: u64,
+    pub compute_callback_return_serialization_breadth: u64,
+    pub compute_callback_allocation_count: u64,
+    pub compute_callback_reuse_count: u64,
+    pub compute_callback_dependency_patch_count: u64,
+    pub compute_callback_dependency_patch_added_count: u64,
+    pub compute_callback_dependency_patch_removed_count: u64,
+    pub compute_callback_dependency_patch_retained_count: u64,
+    pub compute_callback_runtime_read_breadth: u64,
+    pub compute_callback_constant_no_signal_read_classification_count: u64,
+    pub compute_callback_signal_tracked_classification_count: u64,
+    pub compute_callback_missing_unavailability_count: u64,
     pub compatibility_read_count: u64,
     pub compatibility_read_breadth: u64,
 }
@@ -144,6 +254,16 @@ pub struct StoredRecipeSnapshot {
     pub aspect_versions: Vec<AspectVersionSummary>,
     pub initialized: bool,
     pub output_identity: Option<String>,
+    #[serde(default)]
+    pub callback: Option<StoredCallbackRecipeSnapshot>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredCallbackRecipeSnapshot {
+    pub token_slot: u64,
+    pub token_generation: u64,
+    pub reads: Vec<String>,
 }
 
 impl From<GraphSummary> for HealthSummary {
@@ -187,6 +307,7 @@ impl From<ReplayEvent> for ReplayFrameSummary {
                         .execution_record_id
                         .map(|id| format!("executionRecord:{id}"))
                 }),
+            callback: None,
         }
     }
 }
@@ -204,6 +325,7 @@ impl From<Vec<NativeLineageEvent>> for LineageSummary {
                     subject_artifact_id: record.subject_artifact_id().map(|id| id.0),
                     parent_artifact_id: record.parent_artifact_id().map(|id| id.0),
                     snapshot_id: record.snapshot_id().map(|id| id.0),
+                    callback: None,
                 })
                 .collect(),
         }

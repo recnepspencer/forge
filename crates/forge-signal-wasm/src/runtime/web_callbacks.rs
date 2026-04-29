@@ -29,9 +29,9 @@ pub struct WebObservationNotice {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebCallbackStats {
-    pub active_callback_count: u64,
-    pub js_callback_invocation_count: u64,
-    pub js_callback_failure_count: u64,
+    pub active_observation_callback_count: u64,
+    pub observation_callback_invocation_count: u64,
+    pub observation_callback_failure_count: u64,
 }
 
 #[derive(Clone)]
@@ -169,9 +169,9 @@ pub fn callback_stats() -> WebCallbackStats {
     WEB_CALLBACKS.with(|registry| {
         let borrowed = registry.borrow();
         WebCallbackStats {
-            active_callback_count: borrowed.callbacks.len() as u64,
-            js_callback_invocation_count: borrowed.js_callback_invocation_count,
-            js_callback_failure_count: borrowed.js_callback_failure_count,
+            active_observation_callback_count: borrowed.callbacks.len() as u64,
+            observation_callback_invocation_count: borrowed.js_callback_invocation_count,
+            observation_callback_failure_count: borrowed.js_callback_failure_count,
         }
     })
 }

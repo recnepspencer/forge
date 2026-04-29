@@ -1,4 +1,5 @@
 pub mod adapters;
+pub mod compute_callbacks;
 pub mod core;
 pub mod policy;
 pub mod specialist;

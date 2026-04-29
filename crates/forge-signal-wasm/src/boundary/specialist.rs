@@ -1,9 +1,18 @@
 use wasm_bindgen::prelude::*;
 
 use crate::boundary::serde::{from_js, to_js};
-use crate::runtime::adapters::RuntimeEnvelope;
 
 use super::types::{SignalAdapters, SignalSpecialist};
+
+const RUNTIME_ENVELOPE_JS_BOUNDARY_DEFERRED: &str = "runtimeEnvelopeJsBoundaryDeferred";
+
+fn runtime_envelope_js_boundary_deferred_error() -> crate::boundary::errors::ForgeSignalJsError {
+    crate::boundary::errors::ForgeSignalJsError::deferred(
+        RUNTIME_ENVELOPE_JS_BOUNDARY_DEFERRED,
+        "runtime envelope export/import is intentionally deferred on the wasm JS boundary until the boundary can produce a self-describing portable snapshot artifact",
+        None,
+    )
+}
 
 #[wasm_bindgen]
 impl SignalSpecialist {
@@ -37,19 +46,14 @@ impl SignalAdapters {
     pub fn export_definitions(&self) -> Result<JsValue, JsValue> {
         let definitions = self
             .core
-            .borrow()
+            .borrow_mut()
             .export_definitions()
             .map_err(JsValue::from)?;
         to_js(&definitions).map_err(JsValue::from)
     }
 
     pub fn export_runtime_envelope(&self) -> Result<JsValue, JsValue> {
-        let envelope = self
-            .core
-            .borrow_mut()
-            .export_runtime_envelope()
-            .map_err(JsValue::from)?;
-        to_js(&envelope).map_err(JsValue::from)
+        Err(JsValue::from(runtime_envelope_js_boundary_deferred_error()))
     }
 
     pub fn runtime_proof_report(&self) -> Result<JsValue, JsValue> {
@@ -57,11 +61,16 @@ impl SignalAdapters {
         to_js(&report).map_err(JsValue::from)
     }
 
-    pub fn replace_runtime_envelope(&self, envelope: JsValue) -> Result<(), JsValue> {
-        let envelope: RuntimeEnvelope = from_js(envelope)?;
-        self.core
-            .borrow_mut()
-            .replace_runtime_envelope(envelope)
-            .map_err(JsValue::from)
+    pub fn replace_runtime_envelope(&self, _envelope: JsValue) -> Result<(), JsValue> {
+        Err(JsValue::from(runtime_envelope_js_boundary_deferred_error()))
+    }
+}
+
+#[cfg(test)]
+impl SignalAdapters {
+    pub(super) fn runtime_envelope_js_boundary_deferred_error_for_test(
+        &self,
+    ) -> crate::boundary::errors::ForgeSignalJsError {
+        runtime_envelope_js_boundary_deferred_error()
     }
 }

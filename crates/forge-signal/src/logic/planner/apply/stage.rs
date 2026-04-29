@@ -6,6 +6,7 @@ use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::dependency::CanonicalDependencies;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
+use crate::data::host_computed::{admit_or_error, HostComputedApiFamily};
 use crate::data::output::CanonicalChangedRegions;
 use crate::data::performance::{
     AuthorityPolicy, PathClass, ResolvedExecutionStrategy, ResolvedMaintenanceStrategy,
@@ -52,9 +53,7 @@ use super::super::types::{
 };
 #[cfg(feature = "parallel")]
 use super::groups::build_stage_apply_groups;
-use super::lowering_support::{
-    build_prepared_dependency_edges, count_dependency_updates, rewiring_summary_from_lowered_edges,
-};
+use super::lowering_support::{count_dependency_updates, rewiring_summary_from_lowered_edges};
 use super::serial_batch::{LoweredSerialStage, PreparedSerialStageBatch};
 #[cfg(feature = "parallel")]
 use super::workspace::{
@@ -826,10 +825,15 @@ fn lower_task_patch(
     graph.refresh_runtime_dependencies_of(patch.node)?;
     let current_dependencies =
         CanonicalDependencies::from_slice(graph.current_runtime_dependencies_of(patch.node)?);
-    let next_dependencies = CanonicalDependencies::new(build_prepared_dependency_edges(
-        graph,
-        &patch.prepared.dependencies,
-    )?);
+    let admitted = admit_or_error(
+        HostComputedApiFamily::CorePreparedEvaluation,
+        patch.node,
+        current_dependencies.as_slice(),
+        patch.prepared,
+        graph.telemetry_mut(),
+    )?;
+    let (prepared, _admitted_reads, dependency_patch) = admitted.into_parts();
+    let next_dependencies = CanonicalDependencies::from_slice(dependency_patch.next_dependencies());
     let before_state = graph.get_state(patch.node)?;
     let before_artifact_state = graph.node_runtime_artifact_finalize_image(patch.node)?;
     let contract = graph.get_contract(patch.node)?;
@@ -838,12 +842,9 @@ fn lower_task_patch(
         patch.node,
         graph.node_eval_config(patch.node)?.comparator.as_ref(),
     );
-    let recomputed = matches!(patch.prepared.outcome, PreparedEvaluationOutcome::Evaluate)
-        && !matches!(
-            patch.prepared.origin,
-            PreparedEvaluationOrigin::MemoizedReuse
-        );
-    let partition_aware = !patch.prepared.result.changed_regions.is_empty();
+    let recomputed = matches!(prepared.outcome, PreparedEvaluationOutcome::Evaluate)
+        && !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse);
+    let partition_aware = !prepared.result.changed_regions.is_empty();
     let rewiring = rewiring_summary_from_lowered_edges(
         current_dependencies.as_slice(),
         next_dependencies.as_slice(),
@@ -868,7 +869,7 @@ fn lower_task_patch(
         authority_policy,
         footprint,
         LoweredTaskExecution::new(
-            patch.prepared,
+            prepared,
             before_state,
             before_artifact_state,
             dependency_updates,

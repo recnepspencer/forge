@@ -1,0 +1,154 @@
+const CALLBACK_ID_COUNTERS = new WeakMap();
+const ACTIVE_RUNTIME_CALLBACK_READS_KEY = "__forgeSignalActiveRuntimeCallbackReads";
+const ACTIVE_RUNTIME_CALLBACK_READER_KEY = "__forgeSignalActiveRuntimeCallbackReader";
+const ACTIVE_COMPUTED_CALLBACK_FRAMES = [];
+
+function isFunction(value) {
+  return typeof value === "function";
+}
+
+export function buildComputedCallbackError(code, message) {
+  const error = new TypeError(message);
+  error.code = code;
+  return error;
+}
+
+export function denySignalReadsDuringCallbackAuthoring(signalId) {
+  throw buildComputedCallbackError(
+    "computeCallbackSignalReadDenied",
+    `callback computed collector frame was missing when callback attempted to read \`${signalId}\``,
+  );
+}
+
+export function denySignalMutationDuringCallbackAuthoring() {
+  throw buildComputedCallbackError(
+    "computeCallbackMutationDenied",
+    "callback computed authoring cannot mutate signals or transactions while the callback is being invoked",
+  );
+}
+
+export function denySignalReadFromForeignRuntime(signalId) {
+  throw buildComputedCallbackError(
+    "computeCallbackForeignRuntimeReadDenied",
+    `callback computed attempted to read \`${signalId}\` from a different Signals runtime`,
+  );
+}
+
+export function denyUnavailableRuntimeCallbackRead(signalId) {
+  throw buildComputedCallbackError(
+    "computeCallbackRuntimeReadUnavailable",
+    `callback computed attempted to read \`${signalId}\` outside the active runtime callback value map`,
+  );
+}
+
+export function activeComputedCallbackFrame() {
+  return ACTIVE_COMPUTED_CALLBACK_FRAMES[ACTIVE_COMPUTED_CALLBACK_FRAMES.length - 1] ?? null;
+}
+
+export function activeRuntimeCallbackReads() {
+  const reads = globalThis[ACTIVE_RUNTIME_CALLBACK_READS_KEY];
+  if (!reads || typeof reads !== "object") {
+    return null;
+  }
+  return reads;
+}
+
+export function activeRuntimeCallbackReader() {
+  const reader = globalThis[ACTIVE_RUNTIME_CALLBACK_READER_KEY];
+  if (typeof reader !== "function") {
+    return null;
+  }
+  return reader;
+}
+
+export function withComputedCallbackFrame(rawSignals, callback) {
+  return function wrappedComputedCallback() {
+    const frame = {
+      rawSignals,
+      reads: new Set(),
+      runtimeReadIds: new Set(),
+    };
+    ACTIVE_COMPUTED_CALLBACK_FRAMES.push(frame);
+    try {
+      return {
+        __forgeSignalCallbackCapture: true,
+        value: callback(),
+        reads: [...frame.reads],
+        runtimeReadBreadth: frame.runtimeReadIds.size,
+      };
+    } finally {
+      const popped = ACTIVE_COMPUTED_CALLBACK_FRAMES.pop();
+      if (popped !== frame) {
+        throw buildComputedCallbackError(
+          "computeCallbackCollectorCorrupted",
+          "callback computed collector stack was corrupted during evaluation",
+        );
+      }
+    }
+  };
+}
+
+function nextGeneratedCallbackId(rawSignals, family) {
+  const currentCounters = CALLBACK_ID_COUNTERS.get(rawSignals) ?? {
+    computed: 0,
+    output: 0,
+  };
+  const next = (currentCounters[family] ?? 0) + 1;
+  CALLBACK_ID_COUNTERS.set(rawSignals, {
+    ...currentCounters,
+    [family]: next,
+  });
+  return `${family}:${next}`;
+}
+
+function parseCallbackAuthoringArgs(rawSignals, family, idOrCompute, computeOrOptions, maybeOptions) {
+  if (isFunction(idOrCompute)) {
+    if (
+      computeOrOptions !== undefined
+      && (computeOrOptions === null
+        || typeof computeOrOptions !== "object"
+        || Array.isArray(computeOrOptions))
+    ) {
+      throw new TypeError("computed callback options must be an object when provided");
+    }
+    if (maybeOptions !== undefined) {
+      throw new TypeError("computed callback form does not accept a third argument");
+    }
+    return {
+      id: computeOrOptions?.id ?? nextGeneratedCallbackId(rawSignals, family),
+      callback: idOrCompute,
+    };
+  }
+
+  if (typeof idOrCompute === "string" && isFunction(computeOrOptions)) {
+    if (maybeOptions !== undefined) {
+      throw new TypeError("computed callback form does not accept options after an explicit id");
+    }
+    return {
+      id: idOrCompute,
+      callback: computeOrOptions,
+    };
+  }
+
+  return null;
+}
+
+export function parseComputedCallbackArgs(rawSignals, idOrCompute, computeOrOptions, maybeOptions) {
+  return parseCallbackAuthoringArgs(
+    rawSignals,
+    "computed",
+    idOrCompute,
+    computeOrOptions,
+    maybeOptions,
+  );
+}
+
+export function parseOutputCallbackArgs(rawSignals, idOrCompute, computeOrOptions, maybeOptions) {
+  return parseCallbackAuthoringArgs(
+    rawSignals,
+    "output",
+    idOrCompute,
+    computeOrOptions,
+    maybeOptions,
+  );
+}

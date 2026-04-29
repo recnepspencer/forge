@@ -1176,6 +1176,7 @@ fn runtime_telemetry_exposes_performance_counter_surface() {
             resource_descriptor_count: 41,
             ..ResourceTelemetry::default()
         },
+        host_computed: crate::data::telemetry::HostComputedTelemetry::default(),
     };
     let counters = telemetry.performance_counter_surface();
 

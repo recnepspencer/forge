@@ -32,6 +32,9 @@ subpath.
   Web runtime product and architecture spec.
 - [react_adapter_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_spec.md)
   React-domain adapter spec.
+- [host_callback_computed_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/host_callback_computed_spec.md)
+  Callback-first computed-node spec for normal TypeScript authoring with
+  dynamic dependencies and diagnostics parity.
 
 ## Product Model
 
@@ -58,7 +61,10 @@ The package also exposes:
 
 - `input` is mutable source state.
 - `computed` is derived internal state.
+- `computed` is callback-first on the package surface.
 - `output` is a public projection intended for host and framework consumption.
+- `output` callback authoring remains explicitly deferred; use spec authoring
+  for now.
 - `watch` observes committed boundaries.
 - `effect` reacts to committed boundaries.
 - `transaction` is the committed write boundary.

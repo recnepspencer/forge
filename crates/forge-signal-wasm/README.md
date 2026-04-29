@@ -19,6 +19,9 @@ bundlers and private npm distribution.
   Aspect-aware node, read, invalidation, and versioning reference.
 - [docs/react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
   React adapter reference.
+- [docs/host_callback_computed_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/host_callback_computed_spec.md)
+  Proposed callback-first computed-node milestone for normal TypeScript
+  authoring with dynamic dependencies and diagnostics parity.
 
 ## App-First Surface
 
@@ -31,16 +34,7 @@ const signals = createSignals();
 
 const count = signals.input("count", 1);
 
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
+const doubled = signals.computed("doubled", () => count() * 2);
 
 const panel = signals.output("panel", {
   reads: ["count", "doubled"],
@@ -159,8 +153,11 @@ signal profile determines which ids are admitted.
 ## Semantics
 
 - `input` is mutable source state.
-- `computed` is derived internal state.
+- `computed` is derived internal state and supports callback-first authoring
+  through `computed(() => ...)`.
 - `output` is a public projection intended for host/framework consumption.
+- `output` callback authoring is intentionally deferred for now; use
+  `outputSpec(...)` / `output(...)` with an explicit recipe.
 - `watch` and `effect` inherit committed observation semantics from
   `forge-signal`.
 - node definitions, reads, invalidation, and version reporting support real
@@ -194,6 +191,8 @@ Current app-first coverage includes:
 
 - `createSignals()`
 - `input`, `computed`, `output`
+- callback-first `computed(() => ...)`
+- explicit `outputCallbackDeferred` denial for callback-shaped output authoring
 - `watch`, `effect`, `nuke`
 - `transaction` / `batch`
 - diagnostics latest observation / latest flow access

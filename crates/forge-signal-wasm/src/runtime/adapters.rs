@@ -9,16 +9,28 @@ use forge_signal::facade::adapters::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UnavailableCallbackArtifact {
+    pub id: String,
+    pub signal_kind: String,
+    pub reason: String,
+    pub current_reads: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeDefinitionEnvelope {
     pub policy: RuntimePolicySpec,
     pub sources: Vec<SourceSpec>,
     pub recipes: Vec<RecipeSpec>,
     pub source_families: Vec<KeyedSourceFamilySpec>,
     pub recipe_families: Vec<KeyedRecipeFamilySpec>,
+    #[serde(default)]
+    pub unavailable_callbacks: Vec<UnavailableCallbackArtifact>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(not(test), allow(dead_code))]
 pub struct RuntimeEnvelope {
     pub definitions: RuntimeDefinitionEnvelope,
     pub snapshot: RuntimeSnapshotEnvelope,
