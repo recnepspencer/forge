@@ -15,6 +15,7 @@ mod publication;
 mod recovery;
 mod retention;
 mod snapshot;
+mod storage_foundation;
 mod subscription_support;
 mod tiering;
 mod wal;
@@ -273,6 +274,52 @@ pub use snapshot::{
     PublishedSnapshotHandle, SnapshotCaptureRequest, SnapshotId, SnapshotImageBundle,
     SnapshotReadMode, SnapshotReadRequest, SnapshotReadResult, SnapshotRestoreOutcome,
     SnapshotRestorePlan, SnapshotRestoreRequest,
+};
+pub use storage_foundation::s0::{
+    admit_platform_grade_claim, audit_forbidden_claims, bind_platform_grade_evidence,
+    bind_roadmap2_evidence, classify_backend_claim, BackendCapabilityDeclaration,
+    BackendCapabilityMatrix, BackendCapabilityMatrixRow, BackendForbiddenClaim,
+    BackendForbiddenClaimKind, ClassifiedBackendClaim, DeferredPhysicalGuaranteeCategory,
+    DeferredPhysicalGuaranteeMap, DeferredPhysicalGuaranteeRow, EvidenceBundleReadiness,
+    ForbiddenClaimAudited, ForbiddenShortcutDetectionStatus, FoundationEvidenceWitness,
+    HarnessMaturityLevel, HarnessMaturityReport, HarnessMaturityRow, HarnessSubsystemMaturity,
+    MilestoneCloseoutStatus, MilestonePhysicalStatusMatrix, MilestonePhysicalStatusRow,
+    MilestonePrerequisiteEdge, MilestoneSequenceInconsistency, MilestoneSpecStatus,
+    MilestoneStatusDeclaration, PhysicalDebtWitness, PlatformGradeClaimAdmitted,
+    PlatformGradeEvidenceBoundClaim, PlatformGradeEvidenceWitness, PrerequisiteWaiverRationale,
+    PublicClaimRejection, ReleaseClaimReport, ReleaseClaimScanPlan, Roadmap2EvidenceBound,
+    Roadmap2EvidenceBoundClaim, Roadmap2SequenceId, RoadmapGateReadinessWitness,
+    RoadmapSequenceStatusMatrix, S0AcceptedEvidenceBundleWitness, S0AcceptedEvidenceProvenance,
+    S0ArtifactBuildRejection, S0ArtifactEnvelopeMetadata, S0ArtifactKind, S0ArtifactParseRejection,
+    S0ArtifactRowId, S0ArtifactRowStatus, S0ArtifactSchemaCompatibility, S0ArtifactStalenessReport,
+    S0ArtifactSubjectKind, S0ArtifactValidationCostSurface, S0ArtifactValidationReport,
+    S0AuditBreadthSummary, S0AuditInputManifest, S0CanonicalArtifactSpec, S0CertificationMatrixRow,
+    S0CertificationStatus, S0ClaimPromotionRejection, S0ClaimReportBuildRejection,
+    S0ClaimReportParseRejection, S0ComplexityContract, S0ComplexityContractReport,
+    S0ComplexityStatus, S0CounterSnapshot, S0DeclaredScanRoot, S0DeferredGuaranteeBuildRejection,
+    S0DeferredGuaranteeParseRejection, S0EvidenceBundle, S0EvidenceBundleBuildRejection,
+    S0EvidenceBundleParseRejection, S0EvidenceProvenance, S0EvidenceRef, S0FirstAuditBaselineRowId,
+    S0HarnessMaturityBuildRejection, S0HarnessMaturityParseRejection, S0InputFileDigest,
+    S0InputFileKind, S0InputManifestDelta, S0InputManifestWitness, S0MatchedInputFile,
+    S0MilestoneAuditRejection, S0MilestoneMatrixBuildRejection, S0MilestoneMatrixParseRejection,
+    S0NondeterministicMetadata, S0PhysicalStatus, S0RegenerationRequirement, S0RequiredArtifactSet,
+    S0S1HandoffBuildRejection, S0S1HandoffParseRejection, S0ScanCostSurface, S0ScanScopeRejection,
+    S0StableDigest, S0StaleEvidenceRejection, S0TestMigrationBuildRejection,
+    S0TestMigrationParseRejection, S0ValidatedBackendCapabilityMatrixArtifact,
+    S0ValidatedDeferredPhysicalGuaranteeMapArtifact, S0ValidatedEvidenceBundleArtifact,
+    S0ValidatedHarnessMaturityReportArtifact, S0ValidatedMilestonePhysicalStatusMatrixArtifact,
+    S0ValidatedSemanticPhysicalClaimReportArtifact, S0ValidatedStorageFoundationS1HandoffArtifact,
+    S0ValidatedTerminologyRiskReportArtifact, S0ValidatedTestMigrationNotesArtifact,
+    S1BlockingPredicate, S1BlockingPredicateRow, S1BlockingPredicateStatus,
+    S1CompileTimeBoundaryFixture, S1CompileTimeBoundaryFixtureStatusRow,
+    S1CompileTimeBoundaryStatus, S1ForbiddenShortcut, S1NonPlatformGradeDebtRow,
+    SemanticOnlyClaimWitness, SemanticPhysicalClaimFamily, SemanticPhysicalClaimReport,
+    SemanticPhysicalClaimReportRow, SemanticPhysicalClaimStatus, SequenceHarnessDependency,
+    StorageFoundationS1Handoff, StoreBackendCapabilityTier, TerminologyAllowedUse,
+    TerminologyAllowlistEntry, TerminologyCleanupRejection, TerminologyPhraseFinding,
+    TerminologyRequiredQualifier, TerminologyRiskReport, TerminologyScanInputFile,
+    TerminologyScanPlan, TerminologyScanScope, TestMigrationNoteRow, TestMigrationNotes,
+    UnclassifiedBackendClaim, S0_ARTIFACT_SCHEMA_VERSION, S0_CANONICAL_ARTIFACT_DIR,
 };
 pub(crate) use subscription_support::support_maintenance_batch;
 pub use subscription_support::{
