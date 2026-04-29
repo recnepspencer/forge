@@ -1,0 +1,163 @@
+use super::super::super::support::*;
+
+const AUTHORITY_EVIDENCE_CLOSEOUT_DOC: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../_docs/forge-query/runtime-authoritative-mutation-evidence-closeout.md"
+));
+
+#[test]
+fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_families() {
+    let workspace = task_runtime()
+        .workspace("task.authority-evidence-support")
+        .expect("task runtime should open a named workspace");
+    let support = workspace.public_authoritative_mutation_evidence_support();
+    let matrix = workspace.public_support_matrix();
+    let row = matrix
+        .row("authoritative-mutation-evidence-certification")
+        .expect("authority evidence gate row should exist");
+
+    assert_eq!(
+        support.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(
+        support.declared_resolved_target_model(),
+        "declared-resolved-target-evidence-with-touched-fallout"
+    );
+    assert_eq!(
+        support.existing_truth_binding_families(),
+        &["direct_entity_identity".to_string()]
+    );
+    assert_eq!(
+        support.symbolic_target_reference_families(),
+        &["same_batch_declared_target".to_string()]
+    );
+    assert!(support
+        .naming_mutation_families()
+        .iter()
+        .any(|family| family == "remove"));
+    assert!(support
+        .continuity_mutation_families()
+        .iter()
+        .any(|family| family == "split_existing_target"));
+    assert!(support
+        .aggregate_evidence_sections()
+        .iter()
+        .any(|section| section == "aggregate_naming_mutation_digest"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "preview_continuity_requires_authoritative_lane"));
+    assert_eq!(
+        row.support_contract_digest(),
+        Some(support.support_digest())
+    );
+}
+
+#[test]
+fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_contract() {
+    let workspace = task_runtime()
+        .workspace("task.authority-evidence-closeout")
+        .expect("task runtime should open a named workspace");
+    let closeout = workspace.public_authoritative_mutation_evidence_closeout();
+    let query_support = workspace.public_authoritative_mutation_evidence_support();
+    let bridge_support =
+        forge_runtime_bridge::facade::RuntimeBridge::public_authoritative_mutation_evidence_support(
+        );
+    let bridge_closeout =
+        forge_runtime_bridge::facade::RuntimeBridge::public_authoritative_mutation_evidence_closeout();
+
+    assert_eq!(
+        closeout.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Compatibility
+    );
+    assert_eq!(
+        closeout.query_support_digest(),
+        query_support.support_digest()
+    );
+    assert_eq!(
+        closeout.bridge_support_digest(),
+        bridge_support.support_digest()
+    );
+    assert_eq!(
+        closeout.bridge_closeout_digest(),
+        bridge_closeout.closeout_digest()
+    );
+    assert_eq!(
+        query_support.existing_truth_binding_families(),
+        bridge_support.existing_truth_binding_families()
+    );
+    assert_eq!(
+        query_support.symbolic_target_reference_families(),
+        bridge_support.symbolic_target_reference_families()
+    );
+    assert_eq!(
+        query_support.naming_mutation_families(),
+        bridge_support.naming_mutation_families()
+    );
+    assert_eq!(
+        query_support.continuity_mutation_families(),
+        bridge_support.continuity_mutation_families()
+    );
+    assert!(bridge_support
+        .carry_forward_sections()
+        .iter()
+        .any(|section| section == "replay-safe-request-receipt-digests"));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("existing-truth binding")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|line| line.contains("durable restart")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|line| line.contains("remain fail-closed")));
+    assert!(bridge_closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|line| line.contains("existing-truth binding") && line.contains("fail-closed")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("delete local existing-target rebinding")));
+    assert!(closeout
+        .required_verification_commands()
+        .iter()
+        .any(|line| line == "cargo test -p forge-runtime-bridge"));
+}
+
+#[test]
+fn runtime_public_authoritative_mutation_evidence_closeout_document_matches_certified_contract() {
+    let workspace = task_runtime()
+        .workspace("task.authority-evidence-closeout-doc")
+        .expect("task runtime should open a named workspace");
+    let query_support = workspace.public_authoritative_mutation_evidence_support();
+    let closeout = workspace.public_authoritative_mutation_evidence_closeout();
+    let bridge_closeout =
+        forge_runtime_bridge::facade::RuntimeBridge::public_authoritative_mutation_evidence_closeout();
+
+    for line in closeout.safe_to_build_now() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
+    }
+    for line in closeout.must_not_assume_yet() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
+    }
+    for line in closeout.migration_guidance() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
+    }
+    for line in closeout.required_verification_commands() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
+    }
+    for line in bridge_closeout.safe_to_build_now() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
+    }
+    for family in query_support.naming_mutation_families() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+    for family in query_support.continuity_mutation_families() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+}

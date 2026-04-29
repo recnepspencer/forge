@@ -2,14 +2,17 @@ use serde_json::Value;
 
 use super::{
     DeclarativeLiveQueryRequest, ForgeQueryAspectApiFinalizationCloseout,
-    ForgeQueryAspectMutationBuilder, ForgeQueryBatchWriteReceipt, ForgeQueryBranchOptions,
-    ForgeQueryBranchSession, ForgeQueryComputedBuilder, ForgeQueryDerivedViewHandle,
-    ForgeQueryDerivedViewMaintainer, ForgeQueryEffectBuilder, ForgeQueryEffectHandle,
-    ForgeQueryEffectIntentReceipt, ForgeQueryHandleContract, ForgeQueryInspection,
+    ForgeQueryAspectMutationBuilder, ForgeQueryAuthoritativeMutationEvidenceCloseout,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryBatchWriteReceipt,
+    ForgeQueryBranchOptions, ForgeQueryBranchSession, ForgeQueryComputedBuilder,
+    ForgeQueryDeleteMutationBuilder, ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryEffectBuilder, ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryHandleContract, ForgeQueryInspection,
     ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryIntentDeclaration,
     ForgeQueryIntentReceipt, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
-    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationBatchBuilder, ForgeQueryPatchBatch,
-    ForgeQueryPreviewOptions, ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationBatchBuilder,
+    ForgeQueryMutationMetadata, ForgeQueryPatchBatch, ForgeQueryPreviewOptions,
+    ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
     ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
     ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
@@ -65,10 +68,24 @@ impl ForgeQueryWorkspace {
         self.runtime.public_mutation_api_compatibility_report()
     }
 
+    pub fn public_authoritative_mutation_evidence_support(
+        &self,
+    ) -> ForgeQueryAuthoritativeMutationEvidenceSupport {
+        self.runtime
+            .public_authoritative_mutation_evidence_support()
+    }
+
     pub fn public_aspect_api_finalization_closeout(
         &self,
     ) -> ForgeQueryAspectApiFinalizationCloseout {
         self.runtime.public_aspect_api_finalization_closeout()
+    }
+
+    pub fn public_authoritative_mutation_evidence_closeout(
+        &self,
+    ) -> ForgeQueryAuthoritativeMutationEvidenceCloseout {
+        self.runtime
+            .public_authoritative_mutation_evidence_closeout()
     }
 
     pub fn admit_public_api_family(
@@ -94,7 +111,7 @@ impl ForgeQueryWorkspace {
         declaration: impl FnOnce(ForgeQueryLiveViewBuilder) -> ForgeQueryLiveViewBuilder,
     ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
         let name = name.into();
-        let (request, schema_view) = declaration(ForgeQueryLiveViewBuilder::new(&name))
+        let (request, schema_view) = declaration(ForgeQueryLiveViewBuilder::surface(&name))
             .build()?
             .into_parts();
         self.runtime.declare_live_view(name, request, schema_view)
@@ -119,7 +136,7 @@ impl ForgeQueryWorkspace {
         maintainer: impl ForgeQueryDerivedViewMaintainer + 'static,
     ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
         let name = name.into();
-        let view = view(ForgeQueryComputedBuilder::new(&name)).build()?;
+        let view = view(ForgeQueryComputedBuilder::surface(&name)).build()?;
         self.runtime
             .declare_maintained_derived_view(view, maintainer)
     }
@@ -139,7 +156,7 @@ impl ForgeQueryWorkspace {
         view: impl FnOnce(ForgeQueryComputedBuilder) -> ForgeQueryComputedBuilder,
     ) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
         let name = name.into();
-        let view = view(ForgeQueryComputedBuilder::new(&name)).build()?;
+        let view = view(ForgeQueryComputedBuilder::surface(&name)).build()?;
         self.runtime.declare_derived_view(view)
     }
 
@@ -234,6 +251,16 @@ impl ForgeQueryWorkspace {
         self.runtime.write(command)
     }
 
+    pub fn update_existing(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
+        self.runtime.write(command)
+    }
+
     pub fn delete(
         &mut self,
         entity_identity: impl Into<String>,
@@ -241,6 +268,39 @@ impl ForgeQueryWorkspace {
         self.runtime.write(ForgeQueryWriteCommand::Delete {
             entity_identity: entity_identity.into(),
         })
+    }
+
+    pub fn delete_with(
+        &mut self,
+        entity_identity: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete(entity_identity)?;
+        self.runtime.write(command)
+    }
+
+    pub fn delete_existing(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        self.runtime
+            .write(ForgeQueryWriteCommand::DeleteExistingAspects {
+                binding,
+                touched_aspect_paths: Vec::new(),
+                metadata: ForgeQueryMutationMetadata::default(),
+                naming_intent: None,
+            })
+    }
+
+    pub fn delete_existing_with(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete_existing(binding)?;
+        self.runtime.write(command)
     }
 
     pub fn batch(

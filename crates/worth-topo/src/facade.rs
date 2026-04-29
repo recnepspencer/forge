@@ -85,10 +85,25 @@ pub use crate::parity::{
     digest_materialized_topology_view, WorthDerivedEquivalenceContractReport,
     WorthDerivedParityComparisonReport,
 };
-pub use crate::reader::{
-    WorthTopologyReadError, WorthTopologyReader, WorthTracedCertifiedTopologyInterpretation,
-    WorthTracedDerivedEquivalenceContract, WorthTracedDerivedReadDiagnostics,
-    WorthTracedMaterializedTopologyView, WorthTracedTopologyReadArtifact,
+pub use crate::query::{
+    declare_worth_persistent_name_live_view, declare_worth_topology_diagnostics_surface,
+    declare_worth_topology_entity_live_view, declare_worth_topology_equivalence_contract_surface,
+    declare_worth_topology_interpreted_surface, declare_worth_topology_materialized_surface,
+    declare_worth_topology_relation_live_view, declare_worth_topology_validation_surface,
+    derived_read_diagnostics_from_query_rows, equivalence_contract_from_diagnostics_rows,
+    interpreted_topology_from_materialized_rows, materialized_topology_from_query_rows,
+    naming_attachment_report_from_query_rows, validation_report_from_query_rows,
+    worth_persistent_name_live_view_declaration, worth_topology_diagnostics_computed_declaration,
+    worth_topology_entity_live_view_declaration,
+    worth_topology_equivalence_contract_computed_declaration,
+    worth_topology_interpreted_computed_declaration,
+    worth_topology_materialized_computed_declaration, worth_topology_query_workspace,
+    worth_topology_relation_live_view_declaration, worth_topology_validation_computed_declaration,
+    WorthTopologyDiagnosticsMaintainer, WorthTopologyEquivalenceContractMaintainer,
+    WorthTopologyInterpretedMaintainer, WorthTopologyMaterializedMaintainer,
+    WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError, WorthTopologyQueryAssembly,
+    WorthTopologyQueryImportError, WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot,
+    WorthTopologyQuerySurfaceError, WorthTopologyValidationMaintainer,
 };
 pub use crate::runtime_invariants::{
     build_worth_milestone_one_runtime, configure_worth_milestone_one_runtime_builder,

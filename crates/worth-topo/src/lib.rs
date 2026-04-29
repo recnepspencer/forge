@@ -16,6 +16,7 @@ mod fixtures;
 mod interpretation;
 mod materialization;
 mod parity;
+mod query;
 mod reader;
 mod runtime_invariants;
 mod validators;

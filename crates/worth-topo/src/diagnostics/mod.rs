@@ -78,12 +78,17 @@ pub fn build_derived_read_diagnostics(
 pub fn build_derived_invalidation_report(
     read_basis: &DerivedTopologyReadBasis,
 ) -> WorthDerivedInvalidationReport {
-    let topology_touched = read_basis
-        .touched_aspects()
+    build_derived_invalidation_report_from_aspects(read_basis.touched_aspects().iter().copied())
+}
+
+pub fn build_derived_invalidation_report_from_aspects(
+    touched_aspects: impl IntoIterator<Item = WorthAspect>,
+) -> WorthDerivedInvalidationReport {
+    let touched_aspects = touched_aspects.into_iter().collect::<Vec<_>>();
+    let topology_touched = touched_aspects
         .iter()
         .any(|aspect| matches!(aspect, WorthAspect::Topology(_)));
-    let naming_touched = read_basis
-        .touched_aspects()
+    let naming_touched = touched_aspects
         .iter()
         .any(|aspect| matches!(aspect, WorthAspect::Naming(_)));
 
@@ -95,7 +100,8 @@ pub fn build_derived_invalidation_report(
             .push(declaration.declaration_id.to_string());
     }
 
-    let triggered_targets = triggered_invalidation_targets(read_basis);
+    let triggered_targets =
+        triggered_invalidation_targets_from_aspects(touched_aspects.iter().copied());
     let rows = grouped
         .into_iter()
         .map(|(target, declaration_ids)| {
@@ -110,7 +116,7 @@ pub fn build_derived_invalidation_report(
         .collect::<Vec<_>>();
 
     WorthDerivedInvalidationReport {
-        touched_aspect_count: read_basis.touched_aspects().len(),
+        touched_aspect_count: touched_aspects.len(),
         topology_touched,
         naming_touched,
         triggered_target_count: rows.iter().filter(|row| row.triggered).count(),
@@ -121,8 +127,14 @@ pub fn build_derived_invalidation_report(
 pub(crate) fn triggered_invalidation_targets(
     read_basis: &DerivedTopologyReadBasis,
 ) -> Vec<WorthDerivedInvalidationTarget> {
+    triggered_invalidation_targets_from_aspects(read_basis.touched_aspects().iter().copied())
+}
+
+pub(crate) fn triggered_invalidation_targets_from_aspects(
+    touched_aspects: impl IntoIterator<Item = WorthAspect>,
+) -> Vec<WorthDerivedInvalidationTarget> {
     let mut targets = Vec::new();
-    for aspect in read_basis.touched_aspects() {
+    for aspect in touched_aspects {
         match aspect {
             WorthAspect::Topology(topology) => match topology {
                 worth_schema::facade::WorthTopologyAspect::Structure => {
@@ -192,8 +204,18 @@ pub fn build_derived_fallback_report(
     read_basis: &DerivedTopologyReadBasis,
     materialized: &MaterializedTopologyView,
 ) -> WorthDerivedFallbackReport {
-    let precision_fallback_count = read_basis.precision_fallbacks.len();
-    let precision_budget_fallback_count = read_basis.precision_budget_fallbacks.len();
+    build_derived_fallback_report_from_counts(
+        read_basis.precision_fallbacks.len(),
+        read_basis.precision_budget_fallbacks.len(),
+        materialized,
+    )
+}
+
+pub fn build_derived_fallback_report_from_counts(
+    precision_fallback_count: usize,
+    precision_budget_fallback_count: usize,
+    materialized: &MaterializedTopologyView,
+) -> WorthDerivedFallbackReport {
     let explicit_fallback_count = precision_fallback_count
         + precision_budget_fallback_count
         + usize::from(materialized.report().fallback_class.is_some());

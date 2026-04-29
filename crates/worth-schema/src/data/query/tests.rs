@@ -1,10 +1,15 @@
 use std::collections::BTreeSet;
 
 use crate::facade::{
-    worth_query_aspect_path_strings, worth_query_aspect_paths_from_set, WorthAspect,
-    WorthDiagnosticsAspect, WorthGeometryAspect, WorthLineageAspect, WorthNamingAspect,
-    WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection, WorthQuerySchemaBasis,
-    WorthTopologyAspect,
+    admit_worth_query_mutation_batch, worth_query_aspect_path_strings,
+    worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
+    RawWorthTopologyIntent, WorthAspect, WorthDiagnosticsAspect, WorthDiagnosticsRelationKind,
+    WorthEntityKind, WorthGeometryAspect, WorthGeometryEntityKind, WorthLineageAspect,
+    WorthNamingAspect, WorthNamingEntityKind, WorthNamingRelationKind, WorthQueryAspectFamily,
+    WorthQueryAspectPath, WorthQueryCollection, WorthQueryComputedDeclarationBuilder,
+    WorthQueryDeclarationError, WorthQueryLiveDeclarationBuilder, WorthQueryLiveField,
+    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker, WorthQuerySchemaBasis,
+    WorthRelationKind, WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
 };
 
 #[test]
@@ -114,4 +119,286 @@ fn query_aspect_families_preserve_domain_boundaries_without_runtime_behavior() {
         )),
         WorthQueryAspectPath::GEOMETRY_FALLBACK
     );
+}
+
+#[test]
+fn worth_live_query_declarations_lower_with_worth_owned_vocabularies() {
+    let declaration = WorthQueryLiveDeclarationBuilder::new(
+        "worth.topology.entities",
+        WorthQueryCollection::TopologyEntity,
+        WorthQuerySchemaBasis::TopologyEntityLiveView,
+    )
+    .grouped_by(WorthQueryAspectPath::TOPOLOGY_BOUNDARY)
+    .select([
+        WorthQueryAspectPath::TOPOLOGY_STRUCTURE,
+        WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
+    ])
+    .order_by(WorthQueryAspectPath::NAMING_PERSISTENT_NAME)
+    .build()
+    .expect("worth live declaration should lower into forge-query");
+
+    assert_eq!(declaration.request().target(), "WorthTopologyEntity");
+    assert_eq!(
+        declaration.request().view_shape().as_str(),
+        "kanban_grouped"
+    );
+    assert_eq!(declaration.request().projection().len(), 2);
+    assert_eq!(
+        declaration.request().projection()[0].delivered_name(),
+        "topology.structure"
+    );
+    assert_eq!(
+        declaration.request().projection()[1].delivered_name(),
+        "naming.persistent_name"
+    );
+    assert_eq!(
+        declaration
+            .request()
+            .ordering()
+            .expect("worth live declaration should preserve ordering")
+            .delivered_name(),
+        "persistent_name"
+    );
+    assert!(declaration.schema_view().has_aspect("topology"));
+    assert!(declaration.schema_view().has_aspect("naming"));
+}
+
+#[test]
+fn worth_live_query_declarations_can_carry_topology_runtime_metadata_fields() {
+    let declaration = WorthQueryLiveDeclarationBuilder::new(
+        "worth.topology.relations",
+        WorthQueryCollection::TopologyRelation,
+        WorthQuerySchemaBasis::TopologyRelationLiveView,
+    )
+    .select_fields([
+        WorthQueryLiveField::IdentityId,
+        WorthQueryLiveField::TopologyKind,
+        WorthQueryLiveField::TopologySourceIdentity,
+        WorthQueryLiveField::TopologyTargetIdentity,
+    ])
+    .order_by_field(WorthQueryLiveField::IdentityId)
+    .build()
+    .expect("worth relation live declaration should lower runtime metadata fields");
+
+    assert_eq!(declaration.request().target(), "WorthTopologyRelation");
+    assert_eq!(declaration.request().projection().len(), 4);
+    assert_eq!(declaration.request().projection()[0].aspect(), "identity");
+    assert_eq!(declaration.request().projection()[0].field(), "id");
+    assert_eq!(
+        declaration.request().projection()[1].delivered_name(),
+        "topology.kind"
+    );
+    assert!(declaration.schema_view().has_aspect("identity"));
+    assert!(declaration.schema_view().has_aspect("topology"));
+    assert_eq!(
+        declaration
+            .request()
+            .ordering()
+            .expect("metadata declaration should preserve ordering")
+            .delivered_name(),
+        "id"
+    );
+}
+
+#[test]
+fn worth_computed_query_declarations_lower_with_worth_owned_aspect_contracts() {
+    let declaration = WorthQueryComputedDeclarationBuilder::new("worth.topology.validation")
+        .reads([
+            WorthQueryAspectPath::TOPOLOGY_STRUCTURE,
+            WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
+        ])
+        .produces([
+            WorthQueryAspectPath::DIAGNOSTICS_DECISIONS,
+            WorthQueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
+        ])
+        .whole_refresh_fallback()
+        .build()
+        .expect("worth computed declaration should lower into forge-query");
+
+    assert_eq!(declaration.name(), "worth.topology.validation");
+    assert_eq!(
+        declaration.dependency_aspects(),
+        &[
+            "topology.structure".to_string(),
+            "naming.persistent_name".to_string(),
+        ]
+    );
+    assert_eq!(
+        declaration.produced_aspects(),
+        &[
+            "diagnostics.decisions".to_string(),
+            "diagnostics.interpretations".to_string(),
+        ]
+    );
+    assert!(!declaration.incremental());
+}
+
+#[test]
+fn worth_query_declarations_reject_blank_surface_names_early() {
+    let error = WorthQueryLiveDeclarationBuilder::new(
+        "   ",
+        WorthQueryCollection::TopologyEntity,
+        WorthQuerySchemaBasis::TopologyEntityLiveView,
+    )
+    .select([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
+    .build()
+    .expect_err("blank worth live surface names must fail early");
+    assert!(matches!(
+        error,
+        WorthQueryDeclarationError::EmptySurfaceName
+    ));
+
+    let error = WorthQueryComputedDeclarationBuilder::new("")
+        .reads([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
+        .produces([WorthQueryAspectPath::DIAGNOSTICS_DECISIONS])
+        .build()
+        .expect_err("blank worth computed surface names must fail early");
+    assert!(matches!(
+        error,
+        WorthQueryDeclarationError::EmptySurfaceName
+    ));
+}
+
+#[test]
+fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
+    let contract = worth_query_mutation_support_contract()
+        .expect("worth query support contract should derive");
+    assert!(contract
+        .admitted_raw_mutation_families
+        .iter()
+        .any(|family| {
+            family == "create_topology_relation_with_created_entity_refs_via_ordered_receipts"
+        }));
+    assert!(contract
+        .blocked_until_explicit_lowering
+        .iter()
+        .any(|family| family == "raw_naming_truth_requires_projected_naming_writeback"));
+    assert!(!contract.query_support_digest.is_empty());
+    assert!(!contract.query_closeout_digest.is_empty());
+}
+
+#[test]
+fn query_mutation_admission_marks_simple_topology_creates_as_ready() {
+    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+        vec![WorthTopologyMutation::CreateEntity {
+            create_key: crate::facade::WorthCreateKey::new("query-ready.model"),
+            kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
+        }],
+        crate::facade::WorthMutationOrigin::Seed,
+    ));
+
+    assert!(matches!(admission, WorthQueryMutationAdmission::Admitted));
+}
+
+#[test]
+fn query_mutation_admission_marks_same_batch_topology_relation_creation_as_ready() {
+    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+        vec![
+            WorthTopologyMutation::CreateEntity {
+                create_key: crate::facade::WorthCreateKey::new("query-ready.source"),
+                kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+            },
+            WorthTopologyMutation::CreateEntity {
+                create_key: crate::facade::WorthCreateKey::new("query-ready.target"),
+                kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+            },
+            WorthTopologyMutation::CreateRelation {
+                create_key: crate::facade::WorthCreateKey::new("query-ready.edge"),
+                kind: WorthRelationKind::Topology(
+                    crate::facade::WorthTopologyRelationKind::HalfEdgeNext,
+                ),
+                source: crate::facade::created_ref("query-ready.source"),
+                target: crate::facade::created_ref("query-ready.target"),
+            },
+        ],
+        crate::facade::WorthMutationOrigin::LocalEdit,
+    ));
+
+    assert!(matches!(admission, WorthQueryMutationAdmission::Admitted));
+}
+
+#[test]
+fn query_mutation_admission_surfaces_naming_writeback_blockers_literally() {
+    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+        vec![
+            WorthTopologyMutation::CreateEntity {
+                create_key: crate::facade::WorthCreateKey::new("query-gap.name"),
+                kind: WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
+            },
+            WorthTopologyMutation::CreateRelation {
+                create_key: crate::facade::WorthCreateKey::new("query-gap.name.targets"),
+                kind: WorthRelationKind::Naming(
+                    WorthNamingRelationKind::PersistentNameTargetsEntity,
+                ),
+                source: crate::facade::created_ref("query-gap.name"),
+                target: crate::facade::created_ref("query-gap.target"),
+            },
+        ],
+        crate::facade::WorthMutationOrigin::LocalEdit,
+    ));
+
+    let blockers = admission.blockers();
+    assert!(blockers.iter().any(|row| {
+        row.blocker == WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired
+    }));
+    assert!(!blockers.iter().any(|row| {
+        row.blocker == WorthQueryMutationAdmissionBlocker::SymbolicCreateReferenceRequired
+    }));
+}
+
+#[test]
+fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removals() {
+    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+        vec![
+            WorthTopologyMutation::RemoveEntity {
+                entity_id: forge_relational::facade::identity::EntityId::new(
+                    forge_relational::facade::identity::PartitionId::main(),
+                    7,
+                    1,
+                ),
+            },
+            WorthTopologyMutation::RemoveRelation {
+                relation_id: forge_relational::facade::identity::RelationId::new(
+                    forge_relational::facade::identity::PartitionId::main(),
+                    8,
+                    1,
+                ),
+            },
+        ],
+        crate::facade::WorthMutationOrigin::LocalEdit,
+    ));
+
+    assert!(
+        admission.is_admitted(),
+        "topology removals should now lower through imported query binding evidence"
+    );
+}
+
+#[test]
+fn query_mutation_admission_rejects_geometry_and_diagnostics_truth_outside_topology_lane() {
+    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+        vec![
+            WorthTopologyMutation::CreateEntity {
+                create_key: crate::facade::WorthCreateKey::new("query-gap.geometry"),
+                kind: WorthEntityKind::Geometry(WorthGeometryEntityKind::SurfaceBinding),
+            },
+            WorthTopologyMutation::CreateRelation {
+                create_key: crate::facade::WorthCreateKey::new("query-gap.diag-rel"),
+                kind: WorthRelationKind::Diagnostics(
+                    WorthDiagnosticsRelationKind::WireHasInterpretation,
+                ),
+                source: crate::facade::created_ref("query-gap.a"),
+                target: crate::facade::created_ref("query-gap.b"),
+            },
+        ],
+        crate::facade::WorthMutationOrigin::LocalEdit,
+    ));
+
+    let blockers = admission.blockers();
+    assert!(blockers.iter().any(|row| {
+        row.blocker == WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation
+    }));
+    assert!(blockers.iter().any(|row| {
+        row.blocker == WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation
+    }));
 }

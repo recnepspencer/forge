@@ -27,6 +27,11 @@ incremental updates should be delivered back to the consumer.
 Compatibility names such as `declare_live_view` still exist lower in the
 runtime, but ordinary code should prefer the workspace surface.
 
+For downstream crates that need domain-owned declaration vocabularies outside a
+specific workspace instance, `ForgeQueryLiveViewBuilder::surface(...)` is also
+public. That seam exists for declaration reuse, not as a replacement for the
+ordinary workspace DX.
+
 ## Core Mental Model
 
 A live view is not just a query result. It is a retained runtime installation.

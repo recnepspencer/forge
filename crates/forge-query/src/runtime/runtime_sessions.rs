@@ -1,0 +1,292 @@
+use super::*;
+
+impl ForgeQueryRuntime {
+    pub fn preview<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        self.preview_with_options(label, ForgeQueryPreviewOptions::default())
+    }
+
+    pub fn branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.branch_with_options(label, ForgeQueryBranchOptions::default())
+    }
+
+    pub fn branch_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryBranchOptions,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.try_branch_with_options(label, options)
+    }
+
+    pub fn try_branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.try_branch_with_options(label, ForgeQueryBranchOptions::default())
+    }
+
+    pub fn try_branch_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryBranchOptions,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        let label = label.into();
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::BranchPreview)?;
+        let branch_support_evidence = self
+            .backend
+            .support_profile()
+            .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
+            .map(|support| support.evidence().to_vec())
+            .unwrap_or_default();
+        let mut evidence = vec!["runtime-branch-basis-admission".to_string()];
+        evidence.extend(branch_support_evidence);
+        let basis_admission = ForgeQueryBranchBasisAdmission::new(
+            &self.evidence_authority,
+            &label,
+            options.effect_policy(),
+            evidence,
+        );
+        Ok(ForgeQueryBranchSession::new(
+            label,
+            self,
+            options,
+            basis_admission,
+        ))
+    }
+
+    pub fn preview_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryPreviewOptions,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        self.try_preview_with_options(label, options)
+    }
+
+    pub fn try_preview<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        self.try_preview_with_options(label, ForgeQueryPreviewOptions::default())
+    }
+
+    pub fn try_preview_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryPreviewOptions,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
+        let label = label.into();
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::BranchPreview)?;
+        let basis_admission = self.backend.admit_preview_basis(
+            &label,
+            options.effect_policy(),
+            &self.evidence_authority,
+        )?;
+        Ok(ForgeQueryPreviewSession::new(
+            label,
+            self,
+            options.effect_policy(),
+            basis_admission,
+        ))
+    }
+
+    pub fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
+        self.backend.support_profile()
+    }
+
+    pub(super) fn admit_facade_family(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        self.backend
+            .support_profile()
+            .admit(family)
+            .map_err(ForgeQueryRuntimeError::UnsupportedFacadeFamily)
+    }
+
+    pub(in crate::runtime) fn admit_facade_family_lane(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+        authority_lane: ForgeQueryAuthorityLane,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        self.admit_facade_family(family)?;
+        let support_profile = self.backend.support_profile();
+        let Some(row) = support_profile.support_for(family) else {
+            return Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::new(
+                    family,
+                    "backend support profile does not declare this facade family",
+                ),
+            ));
+        };
+        if row.authority_lanes().contains(&authority_lane) {
+            Ok(())
+        } else {
+            Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::new(
+                    family,
+                    format!(
+                        "backend support profile does not admit `{}` lane for `{}` facade family",
+                        authority_lane, family
+                    ),
+                ),
+            ))
+        }
+    }
+
+    pub(super) fn install_live_subscription_for_request(
+        &mut self,
+        view_name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+    ) -> Result<ForgeQueryRuntimeLiveSubscriptionActivation, ForgeQueryRuntimeError> {
+        let grouped_baseline_members =
+            self.backend
+                .grouped_baseline_members(request)
+                .map_err(
+                    |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                        view_name: view_name.to_string(),
+                        stage: "grouped-baseline",
+                        message: error.to_string(),
+                    },
+                )?;
+        let session = declare_runtime_live_query_session_with_grouped_baseline(
+            request.clone(),
+            schema_view,
+            self.backend.snapshot_token(),
+            grouped_baseline_members,
+        )
+        .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
+        let view_family = session.live_view().lowering().family();
+        let dimensions = subscription_dimensions_for_request(request, view_family)?;
+        let live_admission =
+            crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view(
+                session.live_view().core_live_plan().descriptor(),
+                crate::subscription::QuerySubscriptionBasisPosture::CurrentHead,
+                view_family,
+                dimensions,
+            );
+        let selection = select_query_subscription_family(live_admission, runtime_family_budget())
+            .map_err(
+            |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                view_name: view_name.to_string(),
+                stage: "family-selection",
+                message: format!("{error:?}"),
+            },
+        )?;
+        let subscription_family = selection.family().as_str().to_string();
+        let declaration =
+            declare_query_subscription(selection, runtime_slice_budget()).map_err(|error| {
+                ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                    view_name: view_name.to_string(),
+                    stage: "declaration",
+                    message: format!("{error:?}"),
+                }
+            })?;
+        let subscription_declaration_digest = declaration.declaration_digest().as_str().to_string();
+        let lowering =
+            lower_query_subscription_to_bridge(declaration, runtime_bridge_lowering_budget())
+                .map_err(
+                    |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                        view_name: view_name.to_string(),
+                        stage: "bridge-lowering",
+                        message: format!("{error:?}"),
+                    },
+                )?;
+        let admission = admit_query_subscription(lowering, runtime_subscription_admission_budget())
+            .map_err(
+                |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                    view_name: view_name.to_string(),
+                    stage: "subscription-admission",
+                    message: format!("{error:?}"),
+                },
+            )?;
+        let admission_digest = admission.admission_digest().to_string();
+        let bridge_declaration_digest = admission.bridge_declaration_digest().to_string();
+        let basis_binding_digest = admission.basis_binding_digest().to_string();
+        let signal_strategy_digest = admission.signal_strategy_digest().to_string();
+        let activation = prepare_subscription_activation(admission);
+        let activation_digest = activation.activation_digest().to_string();
+        let counters = activation.counters().clone();
+        let support_evidence = self
+            .backend
+            .install_live_subscription(view_name, &activation)
+            .map_err(
+                |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                    view_name: view_name.to_string(),
+                    stage: "activation-admission",
+                    message: error.to_string(),
+                },
+            )?;
+        let active_lane_admission =
+            admit_active_subscription_lane(activation.clone(), runtime_active_lifecycle_budget())
+                .map_err(
+                |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                    view_name: view_name.to_string(),
+                    stage: "active-lane-admission",
+                    message: format!("{error:?}"),
+                },
+            )?;
+        let active_lane_handle =
+            open_active_subscription_lane(&mut self.active_subscriptions, active_lane_admission)
+                .map_err(
+                    |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                        view_name: view_name.to_string(),
+                        stage: "active-lane-open",
+                        message: format!("{error:?}"),
+                    },
+                )?;
+        let active_lane_counters = self.active_subscriptions.counters().clone();
+        let active_lane_digest = active_lane_handle.lane_digest().as_str().to_string();
+        let consumer_attachment = attach_subscription_consumer(
+            &mut self.active_subscriptions,
+            &active_lane_handle,
+            SubscriptionConsumerAttachmentRequest::admitted(
+                format!("runtime-live-view:{view_name}"),
+                activation_digest.clone(),
+            ),
+            runtime_consumer_attachment_budget(),
+        )
+        .map_err(
+            |error| ForgeQueryRuntimeError::LiveSubscriptionInstallation {
+                view_name: view_name.to_string(),
+                stage: "consumer-attachment",
+                message: format!("{error:?}"),
+            },
+        )?;
+        let consumer_attachment_counters = self.active_subscriptions.counters().clone();
+
+        let installation = ForgeQueryRuntimeLiveSubscriptionInstallation::new(
+            view_name,
+            session.canonical().query().digest().as_str(),
+            session.live_view().lowering().digest(),
+            subscription_family,
+            subscription_declaration_digest,
+            bridge_declaration_digest,
+            admission_digest,
+            activation_digest,
+            basis_binding_digest,
+            signal_strategy_digest,
+            active_lane_digest,
+            &consumer_attachment,
+            runtime_subscription_budget_policy(),
+            RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY,
+            RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY,
+            active_lane_counters,
+            consumer_attachment_counters,
+            support_evidence,
+            counters,
+        );
+
+        Ok(ForgeQueryRuntimeLiveSubscriptionActivation {
+            installation,
+            active_lane_handle,
+            consumer_attachment,
+            request: request.clone(),
+        })
+    }
+}

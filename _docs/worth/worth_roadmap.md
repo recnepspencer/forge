@@ -23,7 +23,8 @@ The operating rule is:
 - `Milestone 1`: Complete
 - `Milestone 2`: Complete
 - `Forge Query Runtime Rewrite Gate`: Proposed, blocks further Milestone 3
-  implementation
+  implementation and rewrites Worth runtime mutation onto Forge Query's
+  aspect-native public mutation surface
 - `Milestone 3`: Active, to be rewritten onto the query-native substrate
 - Milestones `4+`: Planned
 

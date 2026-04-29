@@ -1,0 +1,162 @@
+use crate::runtime::{
+    ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationEvidence,
+    ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationCausalityEvidence,
+    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
+    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryWriteReceipt,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryBatchWriteComponentInspection {
+    family: String,
+    commit_identity: String,
+    target_evidence: ForgeQueryMutationTargetEvidence,
+    existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
+    symbolic_target_reference_evidence: Option<ForgeQuerySymbolicTargetReferenceEvidence>,
+    naming_mutation_evidence: Option<ForgeQueryNamingMutationEvidence>,
+    continuity_mutation_evidence: Option<ForgeQueryContinuityMutationEvidence>,
+    causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
+    provenance_evidence: Option<ForgeQueryMutationProvenanceEvidence>,
+    declared_collection: Option<String>,
+    declared_entity_identity: Option<String>,
+    target_collection: Option<String>,
+    target_entity_identity: Option<String>,
+    collections: Vec<String>,
+    entity_identities: Vec<String>,
+    touched_aspect_paths: Vec<String>,
+    declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
+}
+
+impl ForgeQueryBatchWriteComponentInspection {
+    pub(super) fn from_write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
+        let collections = receipt
+            .declared_collection()
+            .map(|collection| vec![collection.to_string()])
+            .unwrap_or_else(|| {
+                let mut collections = receipt
+                    .deltas()
+                    .iter()
+                    .map(|delta| delta.collection.clone())
+                    .collect::<Vec<_>>();
+                collections.sort();
+                collections.dedup();
+                collections
+            });
+
+        let entity_identities = receipt
+            .declared_entity_identity()
+            .map(|entity| vec![entity.to_string()])
+            .unwrap_or_else(|| {
+                let mut entity_identities = receipt
+                    .deltas()
+                    .iter()
+                    .map(|delta| delta.entity_identity.clone())
+                    .collect::<Vec<_>>();
+                entity_identities.sort();
+                entity_identities.dedup();
+                entity_identities
+            });
+
+        let mut touched_aspect_paths = receipt
+            .deltas()
+            .iter()
+            .flat_map(|delta| delta.aspect_paths.iter().cloned())
+            .collect::<Vec<_>>();
+        touched_aspect_paths.sort();
+        touched_aspect_paths.dedup();
+
+        Self {
+            family: receipt.mutation_family().as_str().to_string(),
+            commit_identity: receipt.commit_identity().to_string(),
+            target_evidence: receipt.target_evidence().clone(),
+            existing_truth_binding_evidence: receipt.existing_truth_binding_evidence().cloned(),
+            symbolic_target_reference_evidence: receipt
+                .symbolic_target_reference_evidence()
+                .cloned(),
+            naming_mutation_evidence: receipt.naming_mutation_evidence().cloned(),
+            continuity_mutation_evidence: receipt.continuity_mutation_evidence().cloned(),
+            causality_evidence: receipt.causality_evidence().cloned(),
+            provenance_evidence: receipt.provenance_evidence().cloned(),
+            declared_collection: receipt.declared_collection().map(str::to_string),
+            declared_entity_identity: receipt.declared_entity_identity().map(str::to_string),
+            target_collection: receipt.target_collection().map(str::to_string),
+            target_entity_identity: receipt.target_entity_identity().map(str::to_string),
+            collections,
+            entity_identities,
+            touched_aspect_paths,
+            declared_aspect_operations: receipt.declared_aspect_operations().to_vec(),
+        }
+    }
+
+    pub fn family(&self) -> &str {
+        &self.family
+    }
+
+    pub fn commit_identity(&self) -> &str {
+        &self.commit_identity
+    }
+
+    pub fn target_evidence(&self) -> &ForgeQueryMutationTargetEvidence {
+        &self.target_evidence
+    }
+
+    pub fn causality_evidence(&self) -> Option<&ForgeQueryMutationCausalityEvidence> {
+        self.causality_evidence.as_ref()
+    }
+
+    pub fn existing_truth_binding_evidence(
+        &self,
+    ) -> Option<&ForgeQueryExistingTruthBindingEvidence> {
+        self.existing_truth_binding_evidence.as_ref()
+    }
+
+    pub fn symbolic_target_reference_evidence(
+        &self,
+    ) -> Option<&ForgeQuerySymbolicTargetReferenceEvidence> {
+        self.symbolic_target_reference_evidence.as_ref()
+    }
+
+    pub fn naming_mutation_evidence(&self) -> Option<&ForgeQueryNamingMutationEvidence> {
+        self.naming_mutation_evidence.as_ref()
+    }
+
+    pub fn continuity_mutation_evidence(&self) -> Option<&ForgeQueryContinuityMutationEvidence> {
+        self.continuity_mutation_evidence.as_ref()
+    }
+
+    pub fn provenance_evidence(&self) -> Option<&ForgeQueryMutationProvenanceEvidence> {
+        self.provenance_evidence.as_ref()
+    }
+
+    pub fn collections(&self) -> &[String] {
+        &self.collections
+    }
+
+    pub fn declared_collection(&self) -> Option<&str> {
+        self.declared_collection.as_deref()
+    }
+
+    pub fn declared_entity_identity(&self) -> Option<&str> {
+        self.declared_entity_identity.as_deref()
+    }
+
+    pub fn target_collection(&self) -> Option<&str> {
+        self.target_collection.as_deref()
+    }
+
+    pub fn target_entity_identity(&self) -> Option<&str> {
+        self.target_entity_identity.as_deref()
+    }
+
+    pub fn entity_identities(&self) -> &[String] {
+        &self.entity_identities
+    }
+
+    pub fn touched_aspect_paths(&self) -> &[String] {
+        &self.touched_aspect_paths
+    }
+
+    pub fn declared_aspect_operations(&self) -> &[ForgeQueryAspectMutationOperation] {
+        &self.declared_aspect_operations
+    }
+}

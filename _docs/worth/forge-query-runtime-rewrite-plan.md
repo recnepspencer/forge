@@ -33,6 +33,33 @@ runtime facade while preserving Worth's domain responsibility boundaries:
   authoritative topology meaning as opaque JSON blobs that the runtime has to
   rediscover.
 
+## Why This Rewrite Deletes Code
+
+This gate is not only a dependency migration. It is a code-deletion and
+runtime-ownership rewrite.
+
+Worth should come out of this gate with less local orchestration because Forge
+Query becomes responsible for the generic runtime loops that Worth currently
+has to spell out itself.
+
+The intended leverage is:
+
+- one mutation pipeline instead of separate Worth-local author/apply/fallout/
+  explain pipelines
+- automatic fallout routing from touched aspects into live and computed
+  surfaces instead of manual invalidation or hand-routed recompute
+- retained derived topology state as Forge Query computed surfaces instead of
+  a Worth-owned read/runtime shell
+- branch and preview behavior expressed through Forge Query basis/lane APIs
+  instead of special Worth execution modes
+- receipts, state snapshots, and inspection replacing custom explanation glue
+- eventual query-owned writeback and write-trigger loops shrinking future
+  topology edit-runner code instead of growing another Worth-local runtime
+
+If an implementation batch merely renames Worth calls while preserving the same
+Worth-local orchestration burden, it has not satisfied the spirit of this
+rewrite.
+
 ## Governing Document Summaries
 
 ### `MENTALITY.md`
@@ -112,6 +139,14 @@ work: live views, computed, effects, preview/branch, writes, reads, observe,
 materialize, state, inspection, and support/admission. Worth may build on this
 stable synchronous runtime surface now and must fail closed around deferred
 temporal/async/store/durable features.
+
+### Forge Query Runtime Authoritative Mutation Evidence Plan
+
+Protects the next write-heavy downstream dependency contract: target evidence,
+existing-truth identity binding, batch/session authority evidence, and admitted
+naming/continuity mutation evidence must become first-class Query surfaces so
+Worth does not rebuild authority explanation, causality, lineage, or
+provenance locally during Phase 6.
 
 ## Adversarial Constraint
 
@@ -200,12 +235,15 @@ Forge Query gaps exposed by Worth's current code.
 
 Likely hardening candidates:
 
-- aspect-native domain write commands that carry structured domain mutation
-  payloads and touched aspects without pretending every domain write is simple
-  JSON CRUD
-- query/runtime write APIs that can express aspect patches, entity/relation
-  publication, and domain mutation batches without requiring callers to pack
-  authoritative meaning into `serde_json::Value`
+- public declaration-construction seams that let downstream crates author
+  live/computed declarations with domain-owned vocabulary without reaching into
+  runtime-private builder constructors or rebuilding Query declaration logic
+- aspect-native query/runtime mutation families that let domain code author
+  inserts, updates, deletes, clears, and ordered batches in terms of touched
+  aspects rather than generic payload blobs
+- receipt and inspection contracts that preserve authored mutation meaning,
+  touched aspects, and touched-surface fallout instead of forcing Worth to
+  rediscover meaning from lower-runtime payload lowering
 - write receipts that retain domain authority evidence and expose it through
   `workspace.inspect(...)`
 - relational-runtime-backed live sources whose affected-live-view routing is
@@ -220,19 +258,20 @@ Phase 2 must not add Worth-specific semantics to Forge Query. It should add
 generic runtime/query primitives that Worth then consumes as one downstream
 domain.
 
-### Phase 3: Replace Worth Authority With Query Write Authority
+### Phase 3: Replace Worth Authority With Aspect-Native Query Authority
 
 Remove the public direct authority path for topology commits and make
-`workspace.write(...)` the authoritative mutation entrypoint for Worth topology
-truth.
+aspect-native `workspace.insert(...)`, `workspace.update(...)`,
+`workspace.delete(...)`, and `workspace.batch(...)` the ordinary authoritative
+mutation entrypoints for Worth topology truth.
 
 Implementation shape:
 
-- Worth edit contracts lower into Forge Query write commands or a generic
-  domain-write command family admitted by Phase 2.
-- The lowered command must carry aspect-native mutation meaning. It must not
-  lower into an opaque JSON `Insert` payload when the changed aspects are known
-  statically from the Worth edit contract.
+- Worth edit contracts lower into aspect-native Forge Query mutation families
+  with explicit touched-aspect meaning preserved in the public write surface.
+- If lower-runtime adapters still need compatibility lowering internally, that
+  lowering stays below the Forge Query facade and must not become the Worth
+  authoring model.
 - The Forge Query write authority invokes the underlying relational authority
   path and emits one canonical write receipt.
 - Worth trace envelopes become retained receipt/inspection evidence rather
@@ -249,7 +288,25 @@ Delete or privatize public use of:
   authority
 
 Phase 3 is complete only when admitted topology truth mutation enters through
-Forge Query writes in tests and public examples.
+aspect-native Forge Query mutation surfaces in tests and public examples, with
+`workspace.write(...)` treated only as a compatibility seam rather than the
+target Worth API.
+
+Current literal blocker families that must be eliminated rather than worked
+around:
+
+- batch authoring needs admitted symbolic create-reference support for same-batch
+  topology graph construction
+- existing-truth edits need admitted authoritative identity binding between
+  Worth authority identities and Query entity identities
+- persistent-name truth still needs admitted projected naming writeback so Worth
+  does not reintroduce a shadow runtime just to pair naming entities with their
+  target edges
+
+These are now upstreamed explicitly into the Forge Query side quest in
+[_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md),
+which now spans the Query public contract and the bridge carry-forward contract
+as one end-to-end authority-evidence hardening spec.
 
 ### Phase 4: Replace Worth Reads With Live Views And Materialization
 
@@ -272,6 +329,15 @@ Existing Worth algorithms remain domain algorithms:
 - diagnostics and equivalence contracts remain Worth certification meaning
 
 They must no longer be public runtime orchestration surfaces.
+
+This phase is where Worth should stop owning manual read orchestration.
+Automatic wakeup, retained state, observation, and inspection belong to Forge
+Query once the domain algorithm has been declared.
+
+Phase 4 is complete only when the public `worth-topo` facade no longer
+requires `WorthTopologyReader` as an external runtime entrypoint, and external
+read workflows are expressed through query assembly, certification helpers, or
+direct Forge Query handles instead.
 
 ### Phase 5: Rebuild Derived Topology As Computed Surfaces
 
@@ -297,7 +363,46 @@ If Forge Query's computed maintainer contract cannot honestly express a Worth
 derived phase, Phase 5 pauses and Phase 2 expands Forge Query before Worth
 continues.
 
-### Phase 6: Rewrite Topology Editing Onto Query Receipts
+### Phase 6: Finish Query-Native Authoritative Write Execution
+
+Complete the authority-side break so Worth topology truth mutation enters
+through Forge Query as the real ordinary path, not as migration scaffolding
+beside the old authority API.
+
+This phase is narrower than topology editing. It is about the canonical truth
+write path itself.
+
+Implementation shape:
+
+- topology truth inserts, updates, deletes, clears, and ordered write batches
+  lower into aspect-native Forge Query mutation authoring
+- Query-side authoritative mutation evidence must be admitted strongly enough
+  that existing-truth target binding, projected naming writeback, and later
+  continuity-sensitive mutation do not require Worth-local recovery glue
+- public Worth examples and proof lanes stop teaching direct authority-path
+  commit entrypoints as the ordinary path
+- write receipts remain the canonical authority evidence surface
+- branch-local authoritative writes only use admitted Forge Query branch/basis
+  capability; unsupported branch families still fail closed
+- any remaining generic write-authority gap discovered here gets fixed in
+  `forge-query` before Worth continues
+
+Delete or privatize public use of:
+
+- direct `WorthTopologyAuthority` commit entrypoints as the ordinary
+  application surface
+- public caller construction paths that mint verified topology commits outside
+  the query write authority
+
+Phase 6 is complete only when:
+
+- authoritative topology truth mutation is proven through aspect-native Forge
+  Query mutation surfaces
+- no new proof, example, or runtime path treats direct authority APIs as the
+  preferred public story
+- write receipts and inspection carry the authority evidence Worth needs
+
+### Phase 7: Rewrite Topology Editing Onto Query Receipts
 
 Rebuild Milestone 3 topology editing on the query-native substrate.
 
@@ -311,22 +416,61 @@ The public edit surface should be topology-domain authoring only:
 
 Execution belongs to Forge Query:
 
-- edits commit through `workspace.write(...)`
+- edits commit through aspect-native `workspace.insert(...)`,
+  `workspace.update(...)`, `workspace.delete(...)`, or `workspace.batch(...)`
 - affected live views come from write receipts
 - affected computed surfaces come from write receipts
 - local recompute evidence comes from computed inspection
 - branch/preview behavior uses admitted Forge Query branch/preview APIs only
 
+The intended outcome is not just different call sites. It is that Worth edit
+execution no longer owns its own fallout router. Touched aspects, live wakeup,
+computed wakeup, fallback posture, and explanation should flow from Forge Query
+receipts and retained inspection/state evidence.
+
 Old runner-style APIs must not remain as public convenience surfaces.
 
-### Phase 7: Rewrite Certification Around Query-Native Proof
+Phase 7 is complete only when:
+
+- at least one admitted topology edit family executes entirely through Query
+- edit fallout routing comes from Query receipts / retained computed evidence
+  rather than Worth-local orchestration
+- branch-local edit behavior uses admitted Query branch facilities or fails
+  typed and early
+
+### Phase 8: Cut Legacy Public Runtime Surfaces
+
+Once write authority and edit execution are query-native, remove the old
+public runtime story aggressively rather than preserving a coexistence period.
+
+This phase is the clean-break deletion pass.
+
+Delete or privatize:
+
+- `WorthTopologyReader` as a public runtime orchestrator
+- public read helpers that bypass Query live/computed/state/inspection handles
+- public direct `WorthTopologyAuthority` commit APIs that remain exposed after
+  Phase 6
+- public `WorthTopologyEditRunner` execution APIs in their legacy
+  authority/reader-owned form
+
+This phase is complete only when:
+
+- external Worth users no longer need reader/authority/runner runtime
+  entrypoints to perform admitted work
+- the public facade tells one coherent query-native runtime story
+- compile-time or public-surface tests prove the legacy runtime entrypoints are
+  no longer required
+
+### Phase 9: Rewrite Certification And Closeout Around Query-Native Proof
 
 Rewrite Milestone 1 and Milestone 2 certification, then Milestone 3 edit
 certification, so the query-native surface is the only certified surface.
 
 Certification must assert:
 
-- topology truth writes enter through `workspace.write(...)`
+- topology truth writes enter through aspect-native mutation surfaces rather
+  than payload-first compatibility paths
 - topology live views wake only when their declared aspects are touched
 - derived topology computed surfaces wake only through declared dependencies
 - materialized/interpreted/validated topology digests match the old semantic
@@ -334,10 +478,29 @@ Certification must assert:
 - write receipts expose affected live and derived surfaces
 - `workspace.inspect(...)` exposes Worth authority, derived, and diagnostic
   evidence
+- completed Milestone 1 read certification runs through the canonical Worth
+  query assembly, using live reads plus retained `workspace.state(...)` and
+  `workspace.inspect(...)` evidence instead of the old reader-owned staging
+  path as the real engine
+- completed Milestone 2 derived-read certification runs through the canonical
+  Worth query assembly, using `workspace.state(...)` and `workspace.inspect(...)`
+  on the retained validation/equivalence surfaces rather than treating the old
+  reader-owned staging path as the real engine
 - unsupported Forge Query families fail typed and early
 - no Worth public compatibility entrypoint remains necessary for closeout
+- the query-native path has actually collapsed Worth-local orchestration rather
+  than preserving a second invalidation or explanation runtime under new names
 
-### Phase 8: Update Docs, Roadmaps, And Public Examples
+Phase 9 is complete only when:
+
+- Milestone 1, Milestone 2, and active Milestone 3 proof surfaces certify the
+  query-native path as the only real runtime path
+- any temporary old-vs-new migration parity assertions have been removed or
+  reduced to narrow historical semantic checks rather than runtime
+  coexistence proof
+- closeout evidence no longer depends on old public runtime shapes
+
+### Phase 10: Update Docs, Roadmaps, And Public Examples
 
 Update the Worth roadmap and milestone specs so this rewrite gate is not an
 orphan:
@@ -349,6 +512,41 @@ orphan:
 - update Forge Query docs/tests when Worth hardens a generic capability
 - remove compatibility language from Worth docs where it would preserve old
   public runtime shapes
+
+Phase 10 is complete only when:
+
+- the docs describe the remaining public runtime story honestly
+- old reader/authority/runner examples are gone
+- downstream guidance names the query-native write/read/edit/certification
+  story consistently
+
+## Remaining Breakpoints
+
+This section is the explicit endgame map for the rest of the rewrite.
+
+- `WorthTopologyAuthority` ordinary public commit path:
+  killed by Phase 6 and fully removed from the public runtime story by Phase 8
+- `WorthTopologyEditRunner` legacy execution shape:
+  rewritten in Phase 7 and removed from the old public form in Phase 8
+- `WorthTopologyReader` public orchestration role:
+  functionally bypassed by completed query-native read/certification work and
+  removed as a public runtime dependency in Phase 8
+- legacy runtime coexistence in certification:
+  eliminated in Phase 9
+
+## Endgame Sequence
+
+The remaining work should proceed in this order:
+
+1. finish query-native authoritative write execution
+2. rewrite topology edit execution onto Query
+3. cut legacy public runtime surfaces
+4. close certification and closeout on the query-native path only
+5. clean the docs and examples so they describe only the surviving public story
+
+This order is acceptance-critical. Doing legacy deletion before edit execution
+would strand admitted workflows; doing certification closeout before deletion
+would risk certifying a coexistence architecture we do not want.
 
 ## Must Ship
 
@@ -498,7 +696,8 @@ Once this gate closes, Milestone 3 should be rewritten or amended so topology
 editing is specified in query-native terms from the beginning:
 
 - edit authoring remains Worth topology meaning
-- edit execution is `workspace.write(...)`
+- edit execution uses aspect-native `workspace.insert(...)`,
+  `workspace.update(...)`, `workspace.delete(...)`, and `workspace.batch(...)`
 - edit fallout is receipt-driven and computed-surface-driven
 - edit inspection is `workspace.inspect(...)`
 - edit certification is query-native

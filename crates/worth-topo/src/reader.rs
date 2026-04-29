@@ -513,7 +513,8 @@ mod tests {
         seed_milestone_one_primitive, seed_minimal_topology, WorthMilestoneOnePrimitiveCase,
     };
 
-    use crate::facade::{worth_milestone_one_runtime_builder, WorthTopologyReader};
+    use crate::facade::worth_milestone_one_runtime_builder;
+    use crate::reader::WorthTopologyReader;
 
     #[test]
     fn reader_builds_artifact_and_interpretation_from_persisted_truth() {

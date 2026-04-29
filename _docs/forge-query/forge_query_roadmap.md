@@ -191,6 +191,13 @@ cross-feature proof gates before final certification:
   runtime API facade consumes 9.1 through 9.3, so domain runtimes can build now
   and temporal/async milestones extend the same model later rather than adding
   parallel APIs
+- the `Runtime Authoritative Mutation Evidence Gate` must freeze the ordinary
+  public mutation-evidence contract after aspect-native mutation and runtime
+  facade stabilization are in place, so write-heavy downstream domains do not
+  rebuild target recovery, existing-truth identity binding, causality /
+  provenance recovery, or authority explanation above Query, and so the Query
+  public contract and bridge carry-forward contract remain one end-to-end
+  evidence story rather than two drifting halves
 - `Milestone 9.4` must prove temporal query basis binding and time-aware
   subscription lowering preserve canonical query meaning without making Query
   the owner of clocks, wake scheduling, or signal temporal execution
@@ -222,7 +229,8 @@ Critical path:
   `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
   `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
   `Milestone 9.2` -> `Milestone 9.3` ->
-  `Runtime API Public Stabilization Gate` -> `Milestone 9.4` ->
+  `Runtime API Public Stabilization Gate` ->
+  `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
   `Milestone 10` -> `Milestone 11` -> `Milestone 12` -> `Milestone 13`
 
@@ -267,6 +275,11 @@ Store-gated completion tracks:
   contracts, inspection contract, and temporal/async support gates without
   implementing temporal/async behavior; any temporal, async, store-backed, or
   durable behavior remains deferred to its owning milestone
+- the `Runtime Authoritative Mutation Evidence Gate` can freeze the stable
+  runtime-backed mutation-evidence, existing-truth binding, and admitted
+  naming/continuity evidence contract without claiming temporal, async,
+  store-backed, durable, or lower-runtime semantic completion beyond the
+  admitted public facade
 - `Milestone 9.4` can ship runtime-backed temporal query basis semantics and
   time-aware subscription lowering first, but durable time-aware replay,
   persisted temporal subscription artifacts, and store-restored clock basis
@@ -2164,6 +2177,67 @@ facade supports the golden DX transcripts through meaningful assertions over
 receipts, lanes, aspects, delivery, residue, support posture, and inspection,
 while unsupported temporal/async neighbors fail typed and early.
 
+## Runtime Authoritative Mutation Evidence Gate
+
+### Goal
+
+Freeze the ordinary public mutation-evidence contract after runtime facade
+stabilization so downstream write-heavy domains can build on aspect-native
+authority surfaces without rebuilding target recovery, existing-truth identity
+binding, naming-writeback evidence, or continuity-sensitive inspection locally.
+
+### Adversarial Constraint
+
+Direct writes, ordered batches, authoritative imports, preview-local mutation,
+projected naming attachment, continuity-sensitive updates, and domain-authored
+writeback lowering must preserve the same canonical target-class meaning, the
+same target identity evidence, and the same typed explanation of what was
+actually targeted regardless of whether the target was new, preexisting,
+referenced earlier in the same batch, or bound through admitted naming or
+continuity evidence.
+
+### Specification
+
+The governing hardening spec is
+[runtime-authoritative-mutation-evidence-plan.md](./runtime-authoritative-mutation-evidence-plan.md).
+
+### Must Ship
+
+- explicit declared-versus-resolved target evidence in public receipts and
+  inspection
+- honest aggregate batch/session authority evidence for multi-write mutation
+  sessions
+- first-class runtime-carried causality and provenance so lineage and source
+  explanation come through the public authority lane by construction
+- admitted existing-truth identity binding with typed denial for unresolved or
+  incompatible bindings
+- admitted naming-aware and continuity-aware mutation evidence families that
+  either preserve explicit outcome meaning or fail typed and early
+- support-matrix and certification rows covering the hardened mutation surface
+
+### Must Preserve
+
+- aspect-native CRUD remains the ordinary public mutation story
+- touched-aspect fallout meaning stays explicit and auditable alongside target
+  evidence
+- lower runtimes remain authoritative for truth, naming, writeback, and
+  lineage semantics
+- unsupported identity-binding, naming, or continuity families fail closed
+  rather than degrading into best-effort target recovery
+
+### Store Dependency
+
+This gate is not blocked on `forge-store`. Durable restart, store-backed replay,
+and persisted mutation artifact reload remain later-milestone debt.
+
+### Acceptance Evidence
+
+This gate is complete only when `forge-query` can prove that public receipts,
+inspection bundles, support metadata, and executable admission behavior agree
+on target evidence, existing-truth binding, and admitted naming/continuity
+neighbors, while downstream domains can delete local target-recovery glue
+instead of merely wrapping it.
+
 ## Milestone 9.4: Temporal Query Basis And Time-Aware Subscriptions
 
 ### Goal
@@ -3067,10 +3141,10 @@ would be dishonest without durable storage support.
   semantics, live promotion, region-scoped live narrowing, preview-session
   query contexts, frontier-aware planning, structural correspondence,
   query-authored workflow/mutation lowering, unified facade/configuration,
-  historical reads, lineage traversal, composition, policy-aware narrowing,
-  temporal query basis semantics, async resource query families, mixed
-  truth/time/async delivery semantics, and temporal/async query certification
-  are all shipped
+  authoritative mutation evidence, historical reads, lineage traversal,
+  composition, policy-aware narrowing, temporal query basis semantics, async
+  resource query families, mixed truth/time/async delivery semantics, and
+  temporal/async query certification are all shipped
 - every store-gated completion item is either shipped through `Milestone 12`
   or still explicitly marked as blocked rather than implied
 - runtime-backed and store-backed query execution remain parity-safe for every
@@ -3147,6 +3221,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Query-authored mutation intents | Milestone 5.5 | Mutation-intent declarations, lowered commit-strategy request descriptors, context-derived observation artifacts | Query-authored mutation workflows lower into relational authorities without semantic drift | Milestone 13 workflow/mutation suites |
 | Branch-native workflow orchestration | Milestones 5.2 and 5.5 | Preview/compare/merge workflow declarations, conflict inspection artifacts, post-merge inspection artifacts | Branch workflows stay inside the query framework while preserving lower-crate authority boundaries | Milestone 13 workflow/mutation + branch suites |
 | Query-triggered writeback declarations | Milestone 5.5 | Writeback-trigger declarations, lowered bridge writeback descriptors, causality/admission metadata | Query-triggered writeback stays declaration-owned by query and execution-owned by the bridge | Milestone 13 workflow/mutation + diagnostics suites |
+| Runtime authoritative mutation evidence | Runtime Authoritative Mutation Evidence Gate | Declared/resolved target evidence, batch/session authority evidence, existing-truth binding descriptors, naming/continuity evidence bundles | Downstream write-heavy domains receive authority evidence through the public facade without local target-recovery glue | Milestone 13 workflow/mutation + diagnostics suites |
 | Unified application facade | Milestone 5.6 | Authority-preserving public facade surface, capability registry, support metadata | Domain developers can use query as the daily-driver import without erasing lower-crate ownership | Milestone 13 support-matrix + certification suites |
 | Unified runtime configuration | Milestone 5.6 | Sectioned `ForgeQueryConfig`, subsystem-owned config sections, capability-gated config metadata | Unified config remains architecture-shaped rather than bag-shaped | Milestone 13 support-matrix + diagnostics suites |
 | Store-backed pushdown and execution parity | Milestone 10 | Store-backed plan variants, fallback diagnostics | Store-backed results equal runtime-backed results | Milestone 13 store-backed execution parity |
@@ -3163,6 +3238,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [forge_query_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_vision.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
+- [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
 - [forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 - [forge_store_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/forge_store_roadmap.md)

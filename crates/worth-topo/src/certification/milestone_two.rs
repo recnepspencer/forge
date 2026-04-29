@@ -1,14 +1,22 @@
 use std::collections::BTreeMap;
 
+use forge_query::facade::{
+    ForgeQueryBatchWriteReceiptInspection, ForgeQueryComputedInspectionEvidence,
+    ForgeQueryInspection, ForgeQueryRuntimeStateKind,
+};
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+use forge_relational::facade::transactions::CommitResult;
 use worth_schema::facade::{
-    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthBoundaryEnvelope, WorthBoundaryFailure,
+    DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthAuthorityTraceAnchor,
+    WorthAuthorityTraceEvidence, WorthBoundaryEnvelope, WorthBoundaryFailure, WorthDecisionTrace,
+    WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthNamedCounter,
+    WorthPerformanceAccounting, WorthTraceAvailability,
 };
 
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::corpus::certify_milestone_one_default_primitive_corpus_impl;
 use crate::certification::error::WorthMilestoneOneCertificationError;
-use crate::certification::read_view::WorthMilestoneOneCertificationHarness;
+use crate::certification::read_view::certification_integrity_markers;
 use crate::certification::report::{
     WorthDerivedEquivalenceContractAggregateReport, WorthDerivedEquivalenceContractAggregateRow,
     WorthDerivedFallbackAggregateReport, WorthDerivedFallbackAggregateRow,
@@ -25,9 +33,28 @@ use crate::certification::report::{
 };
 use crate::certification::requirements::milestone_two_closeout_requirements;
 use crate::certification::shared::digest_rows;
+use crate::facade::{
+    build_topology_read_artifact, certify_topology_view, compare_derived_equivalence_contracts,
+    validate_named_topology_truth, worth_topology_query_workspace, WorthReplayParityStatus,
+    WorthTopologyQueryAssembly,
+};
+use crate::parity::build_derived_equivalence_contract_report;
 
 pub type WorthTracedMilestoneTwoDerivedReadReport =
     WorthBoundaryEnvelope<WorthMilestoneTwoDerivedReadReport>;
+
+#[derive(Debug, Clone, Copy)]
+struct WorthMilestoneTwoQueryEvidence {
+    affected_live_view_count: usize,
+    affected_derived_view_count: usize,
+    considered_computed_view_count: usize,
+    validation_materialized_row_count: usize,
+    equivalence_materialized_row_count: usize,
+    validation_pending_refresh_fallback_count: usize,
+    equivalence_pending_refresh_fallback_count: usize,
+    declared_aspect_operation_count: usize,
+    mutation_metadata_key_count: usize,
+}
 
 pub fn certify_milestone_two_read_view_traced_impl(
     read_view: &RelationalReadView,
@@ -36,8 +63,15 @@ pub fn certify_milestone_two_read_view_traced_impl(
     WorthTracedMilestoneTwoDerivedReadReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    WorthMilestoneOneCertificationHarness::certify_read_view_traced(read_view, read_basis)
-        .map(|traced| traced.map_primary_result(|report| build_milestone_two_read_report(&report)))
+    let certified = certify_milestone_two_query_read_view(read_view, read_basis.clone())
+        .map_err(|error| traced_milestone_two_failure(error, &read_basis, None, 0))?;
+    Ok(traced_milestone_two_envelope(
+        certified.report,
+        certified.query_evidence,
+        &read_basis,
+        None,
+        0,
+    ))
 }
 
 pub fn certify_milestone_two_verified_commit_traced_impl(
@@ -47,8 +81,469 @@ pub fn certify_milestone_two_verified_commit_traced_impl(
     WorthTracedMilestoneTwoDerivedReadReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    WorthMilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
-        .map(|traced| traced.map_primary_result(|report| build_milestone_two_read_report(&report)))
+    let read_view = runtime
+        .read_truth()
+        .read_snapshot(&verified.persisted_truth.snapshot)
+        .ok_or_else(|| {
+            traced_milestone_two_failure(
+                WorthMilestoneOneCertificationError::ReadView(format!(
+                    "worth certification could not open verified snapshot {:?}",
+                    verified.persisted_truth.snapshot
+                )),
+                &verified.read_basis,
+                Some(&verified.commits),
+                verified.commits.len(),
+            )
+        })?;
+    let mut certified =
+        certify_milestone_two_query_read_view(&read_view, verified.read_basis.clone()).map_err(
+            |error| {
+                traced_milestone_two_failure(
+                    error,
+                    &verified.read_basis,
+                    Some(&verified.commits),
+                    verified.commits.len(),
+                )
+            },
+        )?;
+    if let Some(replay_commit_id) = verified
+        .commits
+        .last()
+        .map(|commit| commit.outcome.commit.commit_id.clone())
+    {
+        let replay = runtime
+            .replay_authority()
+            .replay_commit(forge_relational::facade::replay::RelationalReplayRequest {
+                branch_id: verified.branch_id.clone(),
+                commit_id: replay_commit_id,
+                execution_mode:
+                    forge_relational::facade::replay::ReplayExecutionMode::SerialDeterministic,
+                verification_mode:
+                    forge_relational::facade::replay::ReplayVerificationMode::NormalRecoveryVerification,
+            });
+        certified
+            .report
+            .derived_replay_parity_report
+            .relational_replay_checked = true;
+        certified
+            .report
+            .derived_replay_parity_report
+            .replayed_commit_id = replay
+            .commit
+            .as_ref()
+            .map(|commit| commit.commit_id.0.to_string());
+        certified
+            .report
+            .derived_replay_parity_report
+            .compared_surfaces = replay.compared_surfaces.clone();
+        if runtime.replay().compare_outcome(&replay) {
+            certified
+                .report
+                .derived_replay_parity_report
+                .relational_replay_verified = true;
+            certified.report.derived_replay_parity_report.parity_status = if certified
+                .report
+                .derived_replay_parity_report
+                .interpretation_digest_match
+                && certified
+                    .report
+                    .derived_replay_parity_report
+                    .truth_digest_match
+                && certified
+                    .report
+                    .derived_replay_parity_report
+                    .validation_digest_match
+            {
+                WorthReplayParityStatus::Match
+            } else {
+                WorthReplayParityStatus::Mismatch
+            };
+        } else {
+            certified.report.derived_replay_parity_report.replay_failure = replay.failure;
+            certified.report.derived_replay_parity_report.mismatch_count = replay.mismatches.len();
+            certified.report.derived_replay_parity_report.parity_status =
+                WorthReplayParityStatus::Mismatch;
+        }
+        certified
+            .report
+            .milestone_2_counter_report
+            .replay_checked_count = 1;
+    }
+    Ok(traced_milestone_two_envelope(
+        certified.report,
+        certified.query_evidence,
+        &verified.read_basis,
+        Some(&verified.commits),
+        verified.commits.len(),
+    ))
+}
+
+#[derive(Debug, Clone)]
+struct WorthMilestoneTwoQueryCertification {
+    report: WorthMilestoneTwoDerivedReadReport,
+    query_evidence: WorthMilestoneTwoQueryEvidence,
+}
+
+fn certify_milestone_two_query_read_view(
+    read_view: &RelationalReadView,
+    read_basis: DerivedTopologyReadBasis,
+) -> Result<WorthMilestoneTwoQueryCertification, WorthMilestoneOneCertificationError> {
+    validate_named_topology_truth(read_view)?;
+
+    let mut workspace = worth_topology_query_workspace("worth.milestone-two.certification")
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?;
+    let assembly = WorthTopologyQueryAssembly::declare(&mut workspace)
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?;
+    let receipt = assembly.import_read_view(&mut workspace, read_view, &read_basis)?;
+    let validation_state = workspace
+        .state(assembly.validation())
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?;
+    ensure_query_surface_ready("worth.topology.validation", &validation_state)?;
+    let equivalence_state = workspace
+        .state(assembly.equivalence_contract())
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?;
+    ensure_query_surface_ready("worth.topology.equivalence_contract", &equivalence_state)?;
+    let validation_inspection = derived_query_inspection(
+        &mut workspace,
+        assembly.validation(),
+        "worth.topology.validation",
+    )?;
+    let equivalence_inspection = derived_query_inspection(
+        &mut workspace,
+        assembly.equivalence_contract(),
+        "worth.topology.equivalence_contract",
+    )?;
+    let receipt_inspection = batch_write_receipt_query_inspection(&mut workspace, &receipt)?;
+    let snapshot = assembly.snapshot(&mut workspace)?;
+    let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
+    let certified_interpretation = certify_topology_view(read_basis.clone(), &snapshot.interpreted);
+    let replay_basis = read_basis.replay_of();
+    let replay_equivalence_contract = build_derived_equivalence_contract_report(
+        replay_basis.snapshot().snapshot_id.0,
+        replay_basis.branch_id().0.clone(),
+        replay_basis.authoritative_mutation_origin(),
+        replay_basis.derivation_origin(),
+        replay_basis
+            .authority
+            .truth_basis_identity
+            .mutation_batch_digest_hex
+            .clone(),
+        replay_basis
+            .authority
+            .truth_basis_identity
+            .touched_aspect_count,
+        crate::diagnostics::triggered_invalidation_targets(&replay_basis),
+        replay_basis.precision_fallbacks.len(),
+        replay_basis.precision_budget_fallbacks.len(),
+        &snapshot.materialized,
+        &snapshot.interpreted,
+        &snapshot.validation,
+    );
+    let replay_comparison = compare_derived_equivalence_contracts(
+        &snapshot.equivalence_contract,
+        &replay_equivalence_contract,
+    );
+    let branch_local_report = crate::certification::report::WorthBranchLocalTopologyReport {
+        mutation_origin: read_basis.derivation_origin(),
+        branch_local: matches!(
+            read_basis.derivation_origin(),
+            worth_schema::facade::WorthMutationOrigin::BranchLocalApplication
+        ),
+        branch_id: read_basis.branch_id().clone(),
+        snapshot_id: read_basis.snapshot().snapshot_id.0,
+        touched_aspect_count: read_basis.touched_aspects().len(),
+    };
+    let replay_report = crate::certification::report::WorthReplayParityReport {
+        mutation_origin: read_basis.derivation_origin(),
+        replay_origin: matches!(
+            read_basis.derivation_origin(),
+            worth_schema::facade::WorthMutationOrigin::Replay
+        ),
+        branch_id: read_basis.branch_id().clone(),
+        parity_status: WorthReplayParityStatus::NotChecked,
+        equivalence_contract: snapshot.equivalence_contract.clone(),
+        replay_equivalence_contract: Some(replay_equivalence_contract),
+        relational_replay_checked: false,
+        relational_replay_verified: false,
+        replayed_commit_id: None,
+        compared_surfaces: Vec::new(),
+        mismatch_count: 0,
+        replay_failure: None,
+        interpretation_digest_match: replay_comparison.interpreted_topology_digest_match,
+        truth_digest_match: read_basis
+            .authority
+            .truth_basis_identity
+            .mutation_batch_digest_hex
+            == replay_basis
+                .authority
+                .truth_basis_identity
+                .mutation_batch_digest_hex,
+        validation_digest_match: replay_comparison.derived_validation_digest_match,
+    };
+    let report = WorthMilestoneTwoDerivedReadReport {
+        materialized_topology_digest: snapshot
+            .equivalence_contract
+            .materialized_topology_digest
+            .clone(),
+        interpreted_topology_digest: snapshot
+            .equivalence_contract
+            .interpreted_topology_digest
+            .clone(),
+        derived_validation_digest: snapshot
+            .equivalence_contract
+            .derived_validation_digest
+            .clone(),
+        derived_invalidation_report: snapshot.diagnostics.invalidation_report.clone(),
+        derived_rebuild_report: snapshot.diagnostics.rebuild_report.clone(),
+        derived_fallback_report: snapshot.diagnostics.fallback_report.clone(),
+        derived_equivalence_contract_report: snapshot.equivalence_contract.clone(),
+        derived_branch_local_parity_report: branch_local_report,
+        derived_replay_parity_report: replay_report,
+        milestone_2_counter_report: WorthMilestoneTwoCounters {
+            derived_read_count: 1,
+            touched_aspect_count: snapshot.equivalence_contract.touched_aspect_count,
+            triggered_invalidation_target_count: snapshot
+                .equivalence_contract
+                .triggered_invalidation_targets
+                .len(),
+            validation_row_count: snapshot.validation.rows.len(),
+            whole_view_rebuild_count: usize::from(
+                snapshot.diagnostics.rebuild_report.whole_view_rebuild,
+            ),
+            explicit_fallback_count: snapshot.diagnostics.fallback_report.explicit_fallback_count,
+            replay_checked_count: 0,
+            branch_local_case_count: usize::from(matches!(
+                read_basis.derivation_origin(),
+                worth_schema::facade::WorthMutationOrigin::BranchLocalApplication
+            )),
+        },
+        read_artifact,
+        certified_interpretation,
+    };
+    Ok(WorthMilestoneTwoQueryCertification {
+        report,
+        query_evidence: WorthMilestoneTwoQueryEvidence {
+            affected_live_view_count: receipt.affected_live_view_ids().len(),
+            affected_derived_view_count: receipt.affected_derived_view_ids().len(),
+            considered_computed_view_count: receipt.considered_computed_view_count(),
+            validation_materialized_row_count: validation_inspection.materialized_row_count(),
+            equivalence_materialized_row_count: equivalence_inspection.materialized_row_count(),
+            validation_pending_refresh_fallback_count: validation_inspection
+                .pending_refresh_fallback_count(),
+            equivalence_pending_refresh_fallback_count: equivalence_inspection
+                .pending_refresh_fallback_count(),
+            declared_aspect_operation_count: receipt_inspection
+                .component_operations()
+                .iter()
+                .map(|component| component.declared_aspect_operations().len())
+                .sum(),
+            mutation_metadata_key_count: receipt
+                .write_receipts()
+                .iter()
+                .map(|write| write.mutation_metadata().entries().len())
+                .sum(),
+        },
+    })
+}
+
+fn ensure_query_surface_ready(
+    surface_name: &str,
+    state: &forge_query::facade::ForgeQueryRuntimeStateSnapshot,
+) -> Result<(), WorthMilestoneOneCertificationError> {
+    if state.kind() != ForgeQueryRuntimeStateKind::Ready {
+        return Err(WorthMilestoneOneCertificationError::Query(format!(
+            "query certification surface `{surface_name}` is `{}` instead of `ready`: {}",
+            state.kind(),
+            state.explanation()
+        )));
+    }
+    Ok(())
+}
+
+fn derived_query_inspection<T>(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
+    expected_name: &str,
+) -> Result<ForgeQueryComputedInspectionEvidence, WorthMilestoneOneCertificationError> {
+    match workspace
+        .inspect(view)
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?
+    {
+        ForgeQueryInspection::DerivedView(inspection) => {
+            if inspection.name() != expected_name {
+                return Err(WorthMilestoneOneCertificationError::Query(format!(
+                    "query inspection returned derived surface `{}` while `{expected_name}` was expected",
+                    inspection.name()
+                )));
+            }
+            Ok(inspection)
+        }
+        other => Err(WorthMilestoneOneCertificationError::Query(format!(
+            "query inspection for `{expected_name}` returned wrong artifact family: {other:?}"
+        ))),
+    }
+}
+
+fn batch_write_receipt_query_inspection(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    receipt: &forge_query::facade::ForgeQueryBatchWriteReceipt,
+) -> Result<ForgeQueryBatchWriteReceiptInspection, WorthMilestoneOneCertificationError> {
+    match workspace
+        .inspect(receipt)
+        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?
+    {
+        ForgeQueryInspection::BatchWriteReceipt(inspection) => Ok(inspection),
+        other => Err(WorthMilestoneOneCertificationError::Query(format!(
+            "query inspection for batch write receipt returned wrong artifact family: {other:?}"
+        ))),
+    }
+}
+
+fn traced_milestone_two_envelope(
+    report: WorthMilestoneTwoDerivedReadReport,
+    query_evidence: WorthMilestoneTwoQueryEvidence,
+    read_basis: &DerivedTopologyReadBasis,
+    commit_results: Option<&[CommitResult]>,
+    replay_history_length: usize,
+) -> WorthTracedMilestoneTwoDerivedReadReport {
+    WorthBoundaryEnvelope::success(
+        report.clone(),
+        Vec::new(),
+        WorthDecisionTrace {
+            authority_anchor: commit_results.map(|commits| {
+                WorthAuthorityTraceAnchor::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )
+            }),
+            bridge_anchor: None,
+            derived_anchor: Some(WorthDerivedTraceAnchor::from_read_basis(read_basis)),
+            signal_anchor: None,
+            authority: commit_results.map(|commits| {
+                WorthAuthorityTraceEvidence::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )
+            }),
+            bridge: None,
+            derived: Some(milestone_two_derived_trace(&report)),
+            signal: None,
+        },
+        certification_integrity_markers(read_basis, commit_results),
+        milestone_two_performance_accounting(&report, query_evidence, replay_history_length),
+    )
+}
+
+fn milestone_two_derived_trace(
+    report: &WorthMilestoneTwoDerivedReadReport,
+) -> WorthDerivedTraceEvidence {
+    WorthDerivedTraceEvidence {
+        availability: WorthTraceAvailability::Present,
+        invalidation_target_count: report.derived_invalidation_report.triggered_target_count,
+        fallback_classes: report
+            .derived_fallback_report
+            .materialization_fallback_class
+            .map(|_| "WholeViewRebuild".to_string())
+            .into_iter()
+            .collect(),
+        equivalence_digest: Some(
+            report
+                .derived_equivalence_contract_report
+                .materialized_topology_digest
+                .digest_hex
+                .clone(),
+        ),
+    }
+}
+
+fn traced_milestone_two_failure(
+    error: WorthMilestoneOneCertificationError,
+    read_basis: &DerivedTopologyReadBasis,
+    commit_results: Option<&[CommitResult]>,
+    replay_history_length: usize,
+) -> WorthBoundaryFailure<WorthMilestoneOneCertificationError> {
+    WorthBoundaryFailure::failure(
+        error,
+        Vec::new(),
+        WorthDecisionTrace {
+            authority_anchor: commit_results.map(|commits| {
+                WorthAuthorityTraceAnchor::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )
+            }),
+            bridge_anchor: None,
+            derived_anchor: Some(WorthDerivedTraceAnchor::from_read_basis(read_basis)),
+            signal_anchor: None,
+            authority: commit_results.map(|commits| {
+                WorthAuthorityTraceEvidence::from_commit_results(
+                    read_basis.branch_id().clone(),
+                    commits,
+                )
+            }),
+            bridge: None,
+            derived: None,
+            signal: None,
+        },
+        certification_integrity_markers(read_basis, commit_results),
+        WorthPerformanceAccounting::new([WorthNamedCounter::new(
+            "certification.replay_history_length",
+            replay_history_length as u64,
+        )]),
+    )
+}
+
+fn milestone_two_performance_accounting(
+    report: &WorthMilestoneTwoDerivedReadReport,
+    query_evidence: WorthMilestoneTwoQueryEvidence,
+    replay_history_length: usize,
+) -> WorthPerformanceAccounting {
+    WorthPerformanceAccounting::new([
+        WorthNamedCounter::new(
+            "certification.replay_history_length",
+            replay_history_length as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.derived_invalidation_target_count",
+            report.derived_invalidation_report.triggered_target_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.affected_live_view_count",
+            query_evidence.affected_live_view_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.affected_derived_view_count",
+            query_evidence.affected_derived_view_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.considered_computed_view_count",
+            query_evidence.considered_computed_view_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.validation_materialized_row_count",
+            query_evidence.validation_materialized_row_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.equivalence_materialized_row_count",
+            query_evidence.equivalence_materialized_row_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.validation_pending_refresh_fallback_count",
+            query_evidence.validation_pending_refresh_fallback_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.equivalence_pending_refresh_fallback_count",
+            query_evidence.equivalence_pending_refresh_fallback_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.declared_aspect_operation_count",
+            query_evidence.declared_aspect_operation_count as u64,
+        ),
+        WorthNamedCounter::new(
+            "certification.query.mutation_metadata_key_count",
+            query_evidence.mutation_metadata_key_count as u64,
+        ),
+    ])
 }
 
 pub fn certify_milestone_two_default_derived_corpus_impl<F>(
@@ -162,49 +657,6 @@ where
     ensure_milestone_two_required_output_closure(&closeout, &requirements)?;
 
     Ok(closeout)
-}
-
-fn build_milestone_two_read_report(
-    report: &WorthMilestoneOneCertificationReport,
-) -> WorthMilestoneTwoDerivedReadReport {
-    WorthMilestoneTwoDerivedReadReport {
-        materialized_topology_digest: report
-            .derived_equivalence_contract_report
-            .materialized_topology_digest
-            .clone(),
-        interpreted_topology_digest: report
-            .derived_equivalence_contract_report
-            .interpreted_topology_digest
-            .clone(),
-        derived_validation_digest: report
-            .derived_equivalence_contract_report
-            .derived_validation_digest
-            .clone(),
-        derived_invalidation_report: report.derived_invalidation_report.clone(),
-        derived_rebuild_report: report.derived_rebuild_report.clone(),
-        derived_fallback_report: report.derived_fallback_report.clone(),
-        derived_equivalence_contract_report: report.derived_equivalence_contract_report.clone(),
-        derived_branch_local_parity_report: report.branch_local_topology_report.clone(),
-        derived_replay_parity_report: report.milestone_1_replay_parity_report.clone(),
-        milestone_2_counter_report: WorthMilestoneTwoCounters {
-            derived_read_count: 1,
-            touched_aspect_count: report.derived_invalidation_report.touched_aspect_count,
-            triggered_invalidation_target_count: report
-                .derived_invalidation_report
-                .triggered_target_count,
-            validation_row_count: report.topology_validation_report.rows.len(),
-            whole_view_rebuild_count: usize::from(report.derived_rebuild_report.whole_view_rebuild),
-            explicit_fallback_count: report.derived_fallback_report.explicit_fallback_count,
-            replay_checked_count: usize::from(
-                report
-                    .milestone_1_replay_parity_report
-                    .relational_replay_checked,
-            ),
-            branch_local_case_count: usize::from(report.branch_local_topology_report.branch_local),
-        },
-        read_artifact: report.read_artifact.clone(),
-        certified_interpretation: report.certified_interpretation.clone(),
-    }
 }
 
 fn aggregate_derived_digest(

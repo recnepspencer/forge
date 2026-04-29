@@ -138,6 +138,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             ForgeQueryWriteCommand::InsertAspects {
                 collection,
                 aspects,
+                ..
             } => (
                 collection,
                 aspects
@@ -155,6 +156,56 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                     .map(|aspect| aspect.aspect_path().to_string())
                     .collect(),
             ),
+            ForgeQueryWriteCommand::UpdateExistingAspects {
+                aspects, binding, ..
+            } => (
+                binding
+                    .target_collection()
+                    .unwrap_or("TranscriptEntity")
+                    .to_string(),
+                aspects
+                    .iter()
+                    .map(|aspect| aspect.aspect_path().to_string())
+                    .collect(),
+            ),
+            ForgeQueryWriteCommand::UpdateSymbolicAspects {
+                aspects, reference, ..
+            } => (
+                reference
+                    .target_collection()
+                    .unwrap_or("TranscriptEntity")
+                    .to_string(),
+                aspects
+                    .iter()
+                    .map(|aspect| aspect.aspect_path().to_string())
+                    .collect(),
+            ),
+            ForgeQueryWriteCommand::DeleteAspects {
+                touched_aspect_paths,
+                ..
+            } => ("TranscriptEntity".to_string(), touched_aspect_paths),
+            ForgeQueryWriteCommand::DeleteExistingAspects {
+                binding,
+                touched_aspect_paths,
+                ..
+            } => (
+                binding
+                    .target_collection()
+                    .unwrap_or("TranscriptEntity")
+                    .to_string(),
+                touched_aspect_paths,
+            ),
+            ForgeQueryWriteCommand::DeleteSymbolicAspects {
+                reference,
+                touched_aspect_paths,
+                ..
+            } => (
+                reference
+                    .target_collection()
+                    .unwrap_or("TranscriptEntity")
+                    .to_string(),
+                touched_aspect_paths,
+            ),
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
         Ok(ForgeQueryMutationReceipt {
@@ -166,6 +217,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                 kind: ForgeQueryMutationKind::Updated,
                 aspect_paths,
             }],
+            bridge_authority: None,
         })
     }
 }
@@ -194,6 +246,7 @@ impl ForgeQueryIntentAuthorityAdapter for TranscriptIntentAuthority {
                 kind: ForgeQueryMutationKind::Updated,
                 aspect_paths: Vec::new(),
             }],
+            bridge_authority: None,
         };
         Ok(ForgeQueryIntentExecution::admitted(
             declaration.strategy_name(),

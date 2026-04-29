@@ -23,6 +23,7 @@ This document defines the certification-grade query test requirements for:
 - Milestone 9.2
 - Milestone 9.3
 - Runtime API Public Stabilization Gate
+- Runtime Authoritative Mutation Evidence Gate
 - Milestone 9.4
 - Milestone 9.5
 - Milestone 9.6
@@ -1277,6 +1278,73 @@ The public runtime API is stable enough for domain runtimes to build on now,
 while temporal, async/resource, mixed-cause, store-backed, and durable claims
 remain explicit deferred or unsupported surfaces until their owning milestones
 close.
+
+## Runtime Authoritative Mutation Evidence Gate Named Certification Suites
+
+### Runtime Authoritative Mutation Evidence And Existing-Truth Binding Test
+
+Purpose
+
+Prove that the public mutation facade preserves enough authored and resolved
+authority meaning that write-heavy domains do not need local target recovery,
+existing-truth rebinding, causality/provenance reconstruction, or
+naming/continuity explanation glue.
+
+Scenario
+
+- execute direct authoritative and preview-local mutation sessions covering:
+  - insert of new truth
+  - update of existing truth through admitted existing-target binding
+  - delete of existing truth with explicit touched-aspect meaning
+  - ordered batch mixing same-batch symbolic references and existing-truth
+    references
+  - authoritative import/session aggregation where the session cannot honestly
+    be summarized as one scalar write
+  - admitted naming-aware mutation evidence
+  - admitted continuity-aware mutation evidence
+- exercise unsupported-neighbor requests for:
+  - unresolved existing-truth binding
+  - incompatible target class binding
+  - unsupported naming-writeback family
+  - unsupported continuity-sensitive family
+
+Must verify
+
+- receipts preserve declared-versus-resolved target evidence together with
+  touched-aspect fallout evidence
+- receipts preserve first-class causality and provenance bundles rather than
+  flattening source lineage into incidental metadata
+- preview and authoritative receipts use the same target-evidence model
+- batch/session inspection exposes per-component and aggregate authority
+  evidence honestly, including causality/provenance summaries
+- same-batch symbolic targets, existing authoritative targets, and denied
+  bindings are distinguished explicitly
+- naming-aware and continuity-aware families either preserve explicit outcome
+  evidence or deny typed and early
+- support metadata and executable admission behavior agree for all admitted and
+  denied mutation-evidence neighbors
+
+Required verification output
+
+- `mutation_receipt_digest`
+- `mutation_target_evidence_digest`
+- `batch_authority_evidence_digest`
+- `mutation_causality_digest`
+- `mutation_provenance_digest`
+- `existing_truth_binding_digest`
+- `naming_mutation_evidence_digest`
+- `continuity_mutation_evidence_digest`
+- `support_matrix_digest`
+- `failure_digest`
+- `counter_snapshot`
+
+Pass condition
+
+The public mutation surface preserves target, authority, and admitted
+naming/continuity evidence strongly enough that downstream domains can rely on
+Query receipts and inspection instead of rebuilding the same explanation layer
+locally, and the bridge-side replay/provenance artifacts remain compatible with
+that same public evidence story.
 
 ## Milestone 9.4 Named Certification Suites
 

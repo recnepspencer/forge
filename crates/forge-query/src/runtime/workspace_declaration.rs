@@ -50,6 +50,10 @@ pub struct ForgeQueryLiveViewBuilder {
 }
 
 impl ForgeQueryLiveViewBuilder {
+    pub fn surface(surface_name: impl Into<String>) -> Self {
+        Self::new(surface_name)
+    }
+
     pub(in crate::runtime) fn new(surface_name: impl Into<String>) -> Self {
         Self {
             surface_name: surface_name.into(),
@@ -158,6 +162,10 @@ pub struct ForgeQueryComputedBuilder {
 }
 
 impl ForgeQueryComputedBuilder {
+    pub fn surface(view_name: impl Into<String>) -> Self {
+        Self::new(view_name)
+    }
+
     pub(in crate::runtime) fn new(view_name: impl Into<String>) -> Self {
         Self {
             view_name: view_name.into(),

@@ -46,6 +46,7 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
 
 pub(in crate::runtime::tests) struct TitleListMaintainer;
 pub(in crate::runtime::tests) struct SummaryMaintainer;
+pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
     fn maintain(
@@ -90,6 +91,55 @@ impl ForgeQueryDerivedViewMaintainer for SummaryMaintainer {
             },
             row,
         )
+    }
+}
+
+impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
+    fn maintain(
+        &mut self,
+        view: &ForgeQueryDerivedView,
+        delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+        materialization: &mut ForgeQueryDerivedViewMaterialization,
+    ) -> ForgeQueryDerivedPatch {
+        let row = Value::String(format!("incremental:{}", delta.entity_identity));
+        materialization.replace_rows([row.clone()]);
+        ForgeQueryDerivedPatch::incremental(
+            view.name(),
+            "refresh-count-incremental",
+            delta.entity_identity.clone(),
+            if view.produced_aspects().is_empty() {
+                delta.aspect_paths.clone()
+            } else {
+                view.produced_aspects().to_vec()
+            },
+            row,
+        )
+    }
+
+    fn refresh_from_upstreams(
+        &mut self,
+        view: &ForgeQueryDerivedView,
+        _mutation: &ForgeQueryRetainedMutationContext,
+        upstreams: &ForgeQueryRetainedUpstreamInputs,
+        materialization: &mut ForgeQueryDerivedViewMaterialization,
+    ) -> Option<ForgeQueryDerivedPatch> {
+        let count = upstreams
+            .live_view_names()
+            .flat_map(|view_name| upstreams.live_rows(view_name).into_iter().flatten())
+            .count();
+        let row = Value::String(format!("count:{count}"));
+        materialization.replace_rows([row.clone()]);
+        Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+            view.name(),
+            "refresh-count-rebuild",
+            if view.produced_aspects().is_empty() {
+                view.dependency_aspects().to_vec()
+            } else {
+                view.produced_aspects().to_vec()
+            },
+            row,
+            "retained-live-snapshot-rebuild",
+        ))
     }
 }
 

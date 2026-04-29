@@ -18,7 +18,7 @@ pub use types::{
 use crate::materialization::entity_catalog::collect_entity_kinds;
 use crate::materialization::relation_wiring::{apply_relation, finalize_topology_membership};
 use crate::materialization::view_builder::{has_topology_content, push_entity_record};
-use forge_relational::facade::runtime::RelationalReadView;
+use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct WorthTopologyMaterializer;
@@ -27,14 +27,21 @@ impl WorthTopologyMaterializer {
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,
     ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
-        let mut view = crate::data::topology_view::WorthTopologyView::default();
-        let entity_kind_map = collect_entity_kinds(read_view);
+        Self::materialize_from_records(read_view.entities(), read_view.relations())
+    }
 
-        for record in read_view.entities() {
+    pub(crate) fn materialize_from_records(
+        entities: &[EntityReadRecord],
+        relations: &[RelationReadRecord],
+    ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
+        let mut view = crate::data::topology_view::WorthTopologyView::default();
+        let entity_kind_map = collect_entity_kinds(entities);
+
+        for record in entities {
             push_entity_record(&mut view, record);
         }
 
-        for relation in read_view.relations() {
+        for relation in relations {
             apply_relation(&mut view, &entity_kind_map, relation)?;
         }
 
@@ -57,8 +64,7 @@ impl WorthTopologyMaterializer {
             + view.half_edges.len()
             + view.edges.len()
             + view.vertices.len();
-        let topology_relation_count = read_view
-            .relations()
+        let topology_relation_count = relations
             .iter()
             .filter(|relation| {
                 worth_schema::facade::WorthRelationKind::from_kind_id(relation.kind.kind_id)
@@ -72,8 +78,8 @@ impl WorthTopologyMaterializer {
             view,
             MaterializationReport {
                 breadth: MaterializationBreadthReport {
-                    entity_count: read_view.entities().len(),
-                    relation_count: read_view.relations().len(),
+                    entity_count: entities.len(),
+                    relation_count: relations.len(),
                     topology_entity_count,
                     topology_relation_count,
                 },

@@ -30,17 +30,18 @@ use forge_relational::facade::{
 };
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeDiagnosticsTier,
-    BridgeExecutionPolicyClass, BridgeMappingId, BridgeMappingRegistration,
-    BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRequestKind,
-    BridgeRuntimePolicy, BridgeSignalInvalidationDelivery, BridgeWritebackCausalityBasis,
+    BridgeExecutionPolicyClass, BridgeExistingTruthBindingBundle, BridgeMappingId,
+    BridgeMappingRegistration, BridgeMutationAuthorityBundle, BridgePolicyDeclaration,
+    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeRuntimePolicy,
+    BridgeSignalInvalidationDelivery, BridgeWritebackCausalityBasis,
     BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity,
-    BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
-    BridgeWritebackOutcomeClass, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RawCommittedPatchEnvelope, RelationalBridgeSourceError, RelationalCommittedPatchRequest,
-    RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
-    TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
+    BridgeWritebackFeedbackProvenance, BridgeWritebackIdempotenceClass,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackOutcomeClass, CoarseRoutingMode,
+    InvalidationSink, MappingSelector, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
+    TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
     TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 use serde_json::{Map, Value};
@@ -86,6 +87,7 @@ pub struct ForgeQueryMutationReceipt {
     pub commit_identity: String,
     pub snapshot_token: String,
     pub deltas: Vec<ForgeQueryMutationDelta>,
+    pub bridge_authority: Option<BridgeMutationAuthorityBundle>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -211,9 +213,11 @@ enum ForgeQueryPendingOperation {
     Update {
         entity_id: EntityId,
         payload: Value,
+        existing_truth_binding: Option<crate::runtime::ForgeQueryExistingTruthTargetBinding>,
     },
     Delete {
         entity_id: EntityId,
+        existing_truth_binding: Option<crate::runtime::ForgeQueryExistingTruthTargetBinding>,
     },
 }
 
@@ -418,6 +422,7 @@ impl ForgeQueryMemoryApp {
             ForgeQueryPendingOperation::Update {
                 entity_id,
                 payload: next.clone(),
+                existing_truth_binding: None,
             },
         )?;
         self.deliver_live_patches(&receipt);
@@ -452,6 +457,43 @@ impl ForgeQueryMemoryApp {
             ForgeQueryPendingOperation::Update {
                 entity_id,
                 payload: next.clone(),
+                existing_truth_binding: None,
+            },
+        )?;
+        self.deliver_live_patches(&receipt);
+        Ok(receipt)
+    }
+
+    pub fn update_aspects_existing(
+        &mut self,
+        binding: crate::runtime::ForgeQueryExistingTruthTargetBinding,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let entity_identity = binding.resolved_entity_identity().to_string();
+        let entity_id = parse_entity_identity(&entity_identity)?;
+        let current = self
+            .latest_entity_payload(entity_id)?
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity not found"))?;
+        let mut next = current;
+        let mut aspect_paths = Vec::with_capacity(aspects.len());
+        for aspect in aspects {
+            aspect_paths.push(aspect.aspect_path().to_string());
+            set_json_path(&mut next, aspect.aspect_path(), aspect.value().clone())?;
+        }
+        let collection = self
+            .entity_collections
+            .get(&entity_identity)
+            .cloned()
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity collection not tracked"))?;
+        let receipt = self.execute_query_writeback(
+            &collection,
+            ForgeQueryMutationKind::Updated,
+            aspect_paths,
+            &next,
+            ForgeQueryPendingOperation::Update {
+                entity_id,
+                payload: next.clone(),
+                existing_truth_binding: Some(binding),
             },
         )?;
         self.deliver_live_patches(&receipt);
@@ -462,20 +504,74 @@ impl ForgeQueryMemoryApp {
         &mut self,
         entity_identity: &str,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        self.delete_with(entity_identity, Vec::new())
+    }
+
+    pub fn delete_with(
+        &mut self,
+        entity_identity: &str,
+        touched_aspect_paths: Vec<String>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let entity_id = parse_entity_identity(entity_identity)?;
         let collection = self
             .entity_collections
             .get(entity_identity)
             .cloned()
             .ok_or_else(|| ForgeQueryWorkspaceError::new("entity collection not tracked"))?;
-        let receipt = self.execute_query_writeback(
+        let mut receipt = self.execute_query_writeback(
             &collection,
             ForgeQueryMutationKind::Deleted,
-            Vec::new(),
+            touched_aspect_paths.clone(),
             &Value::String(entity_identity.to_string()),
-            ForgeQueryPendingOperation::Delete { entity_id },
+            ForgeQueryPendingOperation::Delete {
+                entity_id,
+                existing_truth_binding: None,
+            },
         )?;
+        if receipt.deltas.is_empty() {
+            receipt.deltas.push(ForgeQueryMutationDelta {
+                collection: collection.clone(),
+                entity_identity: entity_identity.to_string(),
+                kind: ForgeQueryMutationKind::Deleted,
+                aspect_paths: touched_aspect_paths,
+            });
+        }
         self.entity_collections.remove(entity_identity);
+        self.deliver_live_patches(&receipt);
+        Ok(receipt)
+    }
+
+    pub fn delete_existing_with(
+        &mut self,
+        binding: crate::runtime::ForgeQueryExistingTruthTargetBinding,
+        touched_aspect_paths: Vec<String>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let entity_identity = binding.resolved_entity_identity().to_string();
+        let entity_id = parse_entity_identity(&entity_identity)?;
+        let collection = self
+            .entity_collections
+            .get(&entity_identity)
+            .cloned()
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity collection not tracked"))?;
+        let mut receipt = self.execute_query_writeback(
+            &collection,
+            ForgeQueryMutationKind::Deleted,
+            touched_aspect_paths.clone(),
+            &Value::String(entity_identity.clone()),
+            ForgeQueryPendingOperation::Delete {
+                entity_id,
+                existing_truth_binding: Some(binding),
+            },
+        )?;
+        if receipt.deltas.is_empty() {
+            receipt.deltas.push(ForgeQueryMutationDelta {
+                collection: collection.clone(),
+                entity_identity: entity_identity.clone(),
+                kind: ForgeQueryMutationKind::Deleted,
+                aspect_paths: touched_aspect_paths,
+            });
+        }
+        self.entity_collections.remove(&entity_identity);
         self.deliver_live_patches(&receipt);
         Ok(receipt)
     }
@@ -684,6 +780,7 @@ impl ForgeQueryMemoryApp {
             BridgeWritebackEffectIdentity::new(format!("effect:{effect_digest}")),
             format!("effect:{effect_digest}"),
         );
+        let feedback_provenance = BridgeWritebackFeedbackProvenance::new(&effect);
         let idempotence = self.bridge.classify_writeback_idempotence(
             &effect,
             &lowered_policy,
@@ -702,19 +799,40 @@ impl ForgeQueryMemoryApp {
                     collection: collection.to_string(),
                     kind,
                     aspect_paths,
-                    operation,
+                    operation: operation.clone(),
                 },
             );
         }
-        let (_, truth_receipt) = self
+        let (outcome, truth_receipt) = self
             .bridge
             .execute_writeback_authority(&contract, &effect, &idempotence)
             .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
+        let execution_record = self
+            .bridge
+            .diagnostics()
+            .last_writeback_execution_record()
+            .ok_or_else(|| {
+                ForgeQueryWorkspaceError::new(
+                    "writeback authority did not retain a diagnostics execution record",
+                )
+            })?;
+        let bridge_authority = BridgeMutationAuthorityBundle::from_writeback_artifacts(
+            &causality,
+            &effect,
+            &feedback_provenance,
+            &execution_record,
+            Some(&outcome),
+        );
+        let bridge_authority = attach_existing_truth_binding(bridge_authority, &operation);
         self.authority_state
             .lock()
             .map_err(|_| ForgeQueryWorkspaceError::new("query memory authority lock poisoned"))?
             .completed
             .remove(truth_receipt.authoritative_artifact_digest())
+            .map(|mut receipt| {
+                receipt.bridge_authority = Some(bridge_authority);
+                receipt
+            })
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new(format!(
                     "writeback authority did not publish receipt `{}`",
@@ -748,6 +866,33 @@ impl ForgeQueryMemoryApp {
             }
         }
     }
+}
+
+fn attach_existing_truth_binding(
+    bridge_authority: BridgeMutationAuthorityBundle,
+    operation: &ForgeQueryPendingOperation,
+) -> BridgeMutationAuthorityBundle {
+    let binding = match operation {
+        ForgeQueryPendingOperation::Update {
+            existing_truth_binding,
+            ..
+        }
+        | ForgeQueryPendingOperation::Delete {
+            existing_truth_binding,
+            ..
+        } => existing_truth_binding.as_ref(),
+        ForgeQueryPendingOperation::Insert { .. } => None,
+    };
+
+    binding.map_or(bridge_authority.clone(), |binding| {
+        bridge_authority.with_existing_truth_binding(
+            BridgeExistingTruthBindingBundle::direct_entity(
+                binding.authoritative_identity(),
+                binding.resolved_entity_identity(),
+                binding.target_collection(),
+            ),
+        )
+    })
 }
 
 impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
@@ -793,6 +938,7 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
             crate::runtime::ForgeQueryWriteCommand::InsertAspects {
                 collection,
                 aspects,
+                ..
             } => self.insert_aspects(&collection, aspects),
             crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
                 entity_identity,
@@ -802,7 +948,35 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
             crate::runtime::ForgeQueryWriteCommand::UpdateAspects {
                 entity_identity,
                 aspects,
+                ..
             } => self.update_aspects(&entity_identity, aspects),
+            crate::runtime::ForgeQueryWriteCommand::UpdateExistingAspects {
+                binding,
+                aspects,
+                ..
+            } => self.update_aspects_existing(binding, aspects),
+            crate::runtime::ForgeQueryWriteCommand::UpdateSymbolicAspects { reference, .. } => {
+                Err(ForgeQueryWorkspaceError::new(format!(
+                    "same-batch symbolic target `{}` must be resolved before backend write execution",
+                    reference.symbol()
+                )))
+            }
+            crate::runtime::ForgeQueryWriteCommand::DeleteAspects {
+                entity_identity,
+                touched_aspect_paths,
+                ..
+            } => self.delete_with(&entity_identity, touched_aspect_paths),
+            crate::runtime::ForgeQueryWriteCommand::DeleteExistingAspects {
+                binding,
+                touched_aspect_paths,
+                ..
+            } => self.delete_existing_with(binding, touched_aspect_paths),
+            crate::runtime::ForgeQueryWriteCommand::DeleteSymbolicAspects { reference, .. } => {
+                Err(ForgeQueryWorkspaceError::new(format!(
+                    "same-batch symbolic target `{}` must be resolved before backend delete execution",
+                    reference.symbol()
+                )))
+            }
             crate::runtime::ForgeQueryWriteCommand::Delete { entity_identity } => {
                 self.delete(&entity_identity)
             }
@@ -818,6 +992,50 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
             receipts.push(self.write(command)?);
         }
         Ok(receipts)
+    }
+
+    fn admit_existing_truth_binding(
+        &self,
+        binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
+    ) -> Result<(), crate::runtime::ForgeQueryExistingTruthBindingDenial> {
+        match binding.family() {
+            crate::runtime::ForgeQueryExistingTruthBindingFamily::DirectEntityIdentity => {}
+        }
+        if let Some(collection) = binding.target_collection() {
+            let Some(_rows) = self.collections.get(collection) else {
+                return Err(crate::runtime::ForgeQueryExistingTruthBindingDenial::new(
+                    binding,
+                    crate::runtime::ForgeQueryExistingTruthBindingDenialKind::CollectionMismatch,
+                    format!("declared target collection `{collection}` is not installed"),
+                ));
+            };
+        }
+        let Some(actual_collection) = self
+            .entity_collections
+            .get(binding.resolved_entity_identity())
+        else {
+            return Err(crate::runtime::ForgeQueryExistingTruthBindingDenial::new(
+                binding,
+                crate::runtime::ForgeQueryExistingTruthBindingDenialKind::ResolvedTargetMissing,
+                format!(
+                    "resolved target `{}` is not present in authoritative truth",
+                    binding.resolved_entity_identity()
+                ),
+            ));
+        };
+        if let Some(expected_collection) = binding.target_collection() {
+            if actual_collection != expected_collection {
+                return Err(crate::runtime::ForgeQueryExistingTruthBindingDenial::new(
+                    binding,
+                    crate::runtime::ForgeQueryExistingTruthBindingDenialKind::CollectionMismatch,
+                    format!(
+                        "resolved target `{}` belongs to collection `{actual_collection}`, not `{expected_collection}`",
+                        binding.resolved_entity_identity()
+                    ),
+                ));
+            }
+        }
+        Ok(())
     }
 
     fn execute_intent(
@@ -1056,15 +1274,15 @@ impl TruthWritebackAuthority for ForgeQueryWritebackAuthority {
                     payload: RecordPayload::StructuredJson(payload),
                 })),
             ),
-            ForgeQueryPendingOperation::Update { entity_id, payload } => {
-                WorkerIntentBatch::new("query-memory-authority-update").push(
-                    MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                        entity_id,
-                        payload: RecordPayload::StructuredJson(payload),
-                    })),
-                )
-            }
-            ForgeQueryPendingOperation::Delete { entity_id } => WorkerIntentBatch::new(
+            ForgeQueryPendingOperation::Update {
+                entity_id, payload, ..
+            } => WorkerIntentBatch::new("query-memory-authority-update").push(
+                MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id,
+                    payload: RecordPayload::StructuredJson(payload),
+                })),
+            ),
+            ForgeQueryPendingOperation::Delete { entity_id, .. } => WorkerIntentBatch::new(
                 "query-memory-authority-delete",
             )
             .push(MutationIntent::Entity(EntityMutationIntent::Delete(
@@ -1130,6 +1348,7 @@ fn receipt_from_runtime_commit(
         commit_identity: format!("commit-{}", result.commit.commit_id.0),
         snapshot_token: snapshot_token_from_runtime(runtime),
         deltas,
+        bridge_authority: None,
     }
 }
 
@@ -1316,7 +1535,17 @@ impl ForgeQueryMemoryWorkspace {
         let result = txn
             .commit()
             .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
-        Ok(self.receipt_from_commit(result, ForgeQueryMutationKind::Deleted, Vec::new()))
+        let mut receipt =
+            self.receipt_from_commit(result, ForgeQueryMutationKind::Deleted, Vec::new());
+        if receipt.deltas.is_empty() {
+            receipt.deltas.push(ForgeQueryMutationDelta {
+                collection: self.kind_name.clone(),
+                entity_identity: entity_identity.to_string(),
+                kind: ForgeQueryMutationKind::Deleted,
+                aspect_paths: Vec::new(),
+            });
+        }
+        Ok(receipt)
     }
 
     pub fn entities(&self) -> Vec<ForgeQueryEntity> {
@@ -1403,6 +1632,7 @@ impl ForgeQueryMemoryWorkspace {
             commit_identity: format!("commit-{}", result.commit.commit_id.0),
             snapshot_token,
             deltas,
+            bridge_authority: None,
         }
     }
 }

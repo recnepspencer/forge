@@ -7,6 +7,74 @@ use crate::data::aspects::{
     WorthNamingAspect, WorthTopologyAspect,
 };
 
+mod declarations;
+mod mutation_admission;
+
+pub use declarations::{
+    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
+    WorthQueryLiveDeclarationBuilder,
+};
+pub use mutation_admission::{
+    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
+    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker,
+    WorthQueryMutationAdmissionReport, WorthQueryMutationSupportContract,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum WorthQueryLiveField {
+    Aspect(WorthQueryAspectPath),
+    IdentityId,
+    LineageProvenance,
+    TopologyKind,
+    TopologySourceIdentity,
+    TopologyTargetIdentity,
+    NamingTargetIdentity,
+}
+
+impl WorthQueryLiveField {
+    pub fn aspect(self) -> &'static str {
+        match self {
+            Self::Aspect(path) => path.section(),
+            Self::IdentityId => "identity",
+            Self::LineageProvenance => "lineage",
+            Self::TopologyKind | Self::TopologySourceIdentity | Self::TopologyTargetIdentity => {
+                "topology"
+            }
+            Self::NamingTargetIdentity => "naming",
+        }
+    }
+
+    pub fn field(self) -> &'static str {
+        match self {
+            Self::Aspect(path) => path.field(),
+            Self::IdentityId => "id",
+            Self::LineageProvenance => "provenance",
+            Self::TopologyKind => "kind",
+            Self::TopologySourceIdentity => "source_identity",
+            Self::TopologyTargetIdentity => "target_identity",
+            Self::NamingTargetIdentity => "target_identity",
+        }
+    }
+
+    pub fn delivered_name(self) -> &'static str {
+        match self {
+            Self::Aspect(path) => path.as_str(),
+            Self::IdentityId => "identity.id",
+            Self::LineageProvenance => "lineage.provenance",
+            Self::TopologyKind => "topology.kind",
+            Self::TopologySourceIdentity => "topology.source_identity",
+            Self::TopologyTargetIdentity => "topology.target_identity",
+            Self::NamingTargetIdentity => "naming.target_identity",
+        }
+    }
+}
+
+impl From<WorthQueryAspectPath> for WorthQueryLiveField {
+    fn from(value: WorthQueryAspectPath) -> Self {
+        Self::Aspect(value)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum WorthQueryCollection {
     TopologyEntity,
@@ -192,6 +260,12 @@ impl WorthQueryAspectPath {
         self.path
     }
 
+    pub fn from_str(path: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|candidate| candidate.as_str() == path)
+    }
+
     pub fn section(self) -> &'static str {
         self.path
             .split_once('.')
@@ -230,6 +304,34 @@ impl WorthQueryAspectPath {
             WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations) => {
                 Self::DIAGNOSTICS_INTERPRETATIONS
             }
+        }
+    }
+
+    pub fn into_worth_aspect(self) -> WorthAspect {
+        match self {
+            Self::TOPOLOGY_STRUCTURE => WorthAspect::Topology(WorthTopologyAspect::Structure),
+            Self::TOPOLOGY_OWNERSHIP => WorthAspect::Topology(WorthTopologyAspect::Ownership),
+            Self::TOPOLOGY_BOUNDARY => WorthAspect::Topology(WorthTopologyAspect::Boundary),
+            Self::TOPOLOGY_RADIAL => WorthAspect::Topology(WorthTopologyAspect::Radial),
+            Self::GEOMETRY_BINDING => WorthAspect::Geometry(WorthGeometryAspect::Binding),
+            Self::GEOMETRY_EMBEDDING => WorthAspect::Geometry(WorthGeometryAspect::Embedding),
+            Self::GEOMETRY_PROVENANCE => WorthAspect::Geometry(WorthGeometryAspect::Provenance),
+            Self::GEOMETRY_APPROXIMATION => {
+                WorthAspect::Geometry(WorthGeometryAspect::Approximation)
+            }
+            Self::GEOMETRY_UV_ANCHORING => WorthAspect::Geometry(WorthGeometryAspect::UvAnchoring),
+            Self::GEOMETRY_CARRIER => WorthAspect::Geometry(WorthGeometryAspect::Carrier),
+            Self::GEOMETRY_PRECISION => WorthAspect::Geometry(WorthGeometryAspect::Precision),
+            Self::GEOMETRY_FALLBACK => WorthAspect::Geometry(WorthGeometryAspect::Fallback),
+            Self::LINEAGE_PROVENANCE => WorthAspect::Lineage(WorthLineageAspect::Provenance),
+            Self::NAMING_PERSISTENT_NAME => WorthAspect::Naming(WorthNamingAspect::PersistentName),
+            Self::DIAGNOSTICS_DECISIONS => {
+                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions)
+            }
+            Self::DIAGNOSTICS_INTERPRETATIONS => {
+                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations)
+            }
+            _ => unreachable!("worth query aspect paths must be one of the declared constants"),
         }
     }
 }
