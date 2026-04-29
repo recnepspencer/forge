@@ -22,13 +22,17 @@ The operating rule is:
 
 - `Milestone 1`: Complete
 - `Milestone 2`: Complete
-- `Milestone 3`: Active
+- `Forge Query Runtime Rewrite Gate`: Proposed, blocks further Milestone 3
+  implementation
+- `Milestone 3`: Active, to be rewritten onto the query-native substrate
 - Milestones `4+`: Planned
 
 Milestone 1 closeout record:
 - [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 Milestone 2 closeout record:
 - [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+Forge Query runtime rewrite gate:
+- [forge-query-runtime-rewrite-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/forge-query-runtime-rewrite-plan.md)
 
 ## Global Adversarial Constraint
 
@@ -77,6 +81,9 @@ then Worth has failed.
   manual invalidation or manual continuity as substitute boundaries.
 - Every Worth state family must be classified as authoritative, derived,
   certification-only, or interaction-only.
+- Worth runtime/query work must enter through Forge Query. If Worth exposes a
+  missing generic query/runtime capability, `forge-query` must be hardened
+  rather than Worth inventing a local workaround.
 - Persistent naming is first-class from day one rather than a later add-on.
 - Non-manifold topology support must be explicit about what is admitted,
   denied, interpreted, or only certified.
@@ -425,11 +432,12 @@ These should be widened across `Milestone 18` through `Milestone 20`:
 
 Critical path:
 
-- `Milestone 1` -> `Milestone 2` -> `Milestone 3` -> `Milestone 4` ->
-  `Milestone 5` -> `Milestone 6` -> `Milestone 7` -> `Milestone 8` ->
-  `Milestone 9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
-  `Milestone 13` -> `Milestone 14` -> `Milestone 15` -> `Milestone 16` ->
-  `Milestone 17` -> `Milestone 18` -> `Milestone 19` -> `Milestone 20`
+- `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
+  `Milestone 3` -> `Milestone 4` -> `Milestone 5` -> `Milestone 6` ->
+  `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 10` ->
+  `Milestone 11` -> `Milestone 12` -> `Milestone 13` -> `Milestone 14` ->
+  `Milestone 15` -> `Milestone 16` -> `Milestone 17` -> `Milestone 18` ->
+  `Milestone 19` -> `Milestone 20`
 
 Parallel tracks:
 

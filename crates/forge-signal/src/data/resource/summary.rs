@@ -37,6 +37,7 @@ pub enum ResourceBoundaryKind {
     ReplayReconstruction,
     SummaryRead,
     DiagnosticsExpansion,
+    LifecycleRetentionCompaction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,6 +45,40 @@ pub enum ResourceCostPosture {
     Verified,
     Debt,
     DeniedFallback,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResourceDensityStrategy {
+    NotApplicable,
+    SparseIndexedLookup,
+    BurstySortedDeduplicated,
+    DenseSortedDeduplicated,
+}
+
+impl ResourceDensityStrategy {
+    pub(crate) fn request_pressure(in_flight_width: u32) -> Self {
+        if in_flight_width <= 1 {
+            Self::SparseIndexedLookup
+        } else if in_flight_width <= 8 {
+            Self::BurstySortedDeduplicated
+        } else {
+            Self::DenseSortedDeduplicated
+        }
+    }
+
+    pub(crate) fn scalar_completion() -> Self {
+        Self::SparseIndexedLookup
+    }
+
+    pub(crate) fn completion_batch(input_width: u32, in_flight_width: u32) -> Self {
+        if input_width <= 1 {
+            Self::SparseIndexedLookup
+        } else if input_width >= 4 && input_width >= in_flight_width.max(1) {
+            Self::DenseSortedDeduplicated
+        } else {
+            Self::BurstySortedDeduplicated
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -68,23 +103,75 @@ pub struct ResourceBoundaryPerformanceEnvelope {
     denied_count: u32,
     broad_scan_denial_count: u32,
     temporal_wake_footprint: u32,
+    operational_allocation_count: u32,
+    retained_history_allocation_count: u32,
+    diagnostics_allocation_count: u32,
+    facade_report_allocation_count: u32,
+    density_strategy: ResourceDensityStrategy,
     cost_contract: ResourceCostContractId,
     cost_posture: ResourceCostPosture,
 }
 
 impl ResourceBoundaryPerformanceEnvelope {
-    pub(crate) fn declaration_lowering(input_width: u32) -> Self {
+    fn new(
+        boundary: ResourceBoundaryKind,
+        input_width: u32,
+        lifecycle_transition_count: u32,
+        admitted_count: u32,
+        denied_count: u32,
+        broad_scan_denial_count: u32,
+        temporal_wake_footprint: u32,
+        operational_allocation_count: u32,
+        retained_history_allocation_count: u32,
+        diagnostics_allocation_count: u32,
+        facade_report_allocation_count: u32,
+        density_strategy: ResourceDensityStrategy,
+        cost_contract: ResourceCostContractId,
+        cost_posture: ResourceCostPosture,
+    ) -> Self {
         Self {
-            boundary: ResourceBoundaryKind::DeclarationLowering,
+            boundary,
             input_width,
-            lifecycle_transition_count: input_width,
-            admitted_count: input_width,
-            denied_count: 0,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(0),
-            cost_posture: ResourceCostPosture::Verified,
+            lifecycle_transition_count,
+            admitted_count,
+            denied_count,
+            broad_scan_denial_count,
+            temporal_wake_footprint,
+            operational_allocation_count,
+            retained_history_allocation_count,
+            diagnostics_allocation_count,
+            facade_report_allocation_count,
+            density_strategy,
+            cost_contract,
+            cost_posture,
         }
+    }
+
+    pub(crate) fn with_density_strategy(
+        mut self,
+        density_strategy: ResourceDensityStrategy,
+    ) -> Self {
+        self.density_strategy = density_strategy;
+        self
+    }
+
+    pub(crate) fn declaration_lowering(input_width: u32) -> Self {
+        Self::new(
+            ResourceBoundaryKind::DeclarationLowering,
+            input_width,
+            input_width,
+            input_width,
+            0,
+            0,
+            0,
+            input_width,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(0),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn request_admission(
@@ -92,17 +179,22 @@ impl ResourceBoundaryPerformanceEnvelope {
         denied_count: u32,
         lifecycle_transition_count: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::RequestAdmission,
-            input_width: admitted_count.saturating_add(denied_count),
+        Self::new(
+            ResourceBoundaryKind::RequestAdmission,
+            admitted_count.saturating_add(denied_count),
             lifecycle_transition_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(1),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            0,
+            admitted_count,
+            lifecycle_transition_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(1),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_admission(
@@ -110,17 +202,22 @@ impl ResourceBoundaryPerformanceEnvelope {
         denied_count: u32,
         lifecycle_transition_count: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionAdmission,
-            input_width: admitted_count.saturating_add(denied_count),
+        Self::new(
+            ResourceBoundaryKind::CompletionAdmission,
+            admitted_count.saturating_add(denied_count),
             lifecycle_transition_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(2),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            0,
+            0,
+            denied_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(2),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_batch_admission(
@@ -128,45 +225,60 @@ impl ResourceBoundaryPerformanceEnvelope {
         admitted_count: u32,
         denied_count: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionBatchAdmission,
+        Self::new(
+            ResourceBoundaryKind::CompletionBatchAdmission,
             input_width,
-            lifecycle_transition_count: admitted_count,
+            admitted_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(12),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            0,
+            0,
+            denied_count,
+            0,
+            admitted_count.saturating_add(denied_count),
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(12),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_commit(lifecycle_transition_count: u32) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionCommit,
-            input_width: 1,
+        Self::new(
+            ResourceBoundaryKind::CompletionCommit,
+            1,
             lifecycle_transition_count,
-            admitted_count: 1,
-            denied_count: 0,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(8),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            1,
+            0,
+            0,
+            0,
+            0,
+            lifecycle_transition_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(8),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_staging() -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionStaging,
-            input_width: 1,
-            lifecycle_transition_count: 0,
-            admitted_count: 1,
-            denied_count: 0,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(9),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+        Self::new(
+            ResourceBoundaryKind::CompletionStaging,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(9),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn replay_reconstruction(
@@ -176,34 +288,47 @@ impl ResourceBoundaryPerformanceEnvelope {
         in_flight_width: u32,
         retained_history_unavailable_count: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::ReplayReconstruction,
-            input_width: descriptor_width
+        Self::new(
+            ResourceBoundaryKind::ReplayReconstruction,
+            descriptor_width
                 .saturating_add(lifecycle_summary_width)
                 .saturating_add(denied_completion_width)
                 .saturating_add(in_flight_width),
-            lifecycle_transition_count: lifecycle_summary_width,
-            admitted_count: in_flight_width,
-            denied_count: denied_completion_width,
-            broad_scan_denial_count: retained_history_unavailable_count,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(14),
-            cost_posture: ResourceCostPosture::Debt,
-        }
+            lifecycle_summary_width,
+            in_flight_width,
+            denied_completion_width,
+            retained_history_unavailable_count,
+            0,
+            0,
+            0,
+            descriptor_width
+                .saturating_add(lifecycle_summary_width)
+                .saturating_add(denied_completion_width)
+                .saturating_add(in_flight_width),
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(14),
+            ResourceCostPosture::Debt,
+        )
     }
 
     pub(crate) fn summary_read() -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::SummaryRead,
-            input_width: 1,
-            lifecycle_transition_count: 0,
-            admitted_count: 1,
-            denied_count: 0,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(15),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+        Self::new(
+            ResourceBoundaryKind::SummaryRead,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(15),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn diagnostics_expansion(
@@ -211,19 +336,24 @@ impl ResourceBoundaryPerformanceEnvelope {
         replay_reconstruction_width: u32,
         branch_restore_width: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::DiagnosticsExpansion,
-            input_width: runtime_summary_width
+        Self::new(
+            ResourceBoundaryKind::DiagnosticsExpansion,
+            runtime_summary_width
                 .saturating_add(replay_reconstruction_width)
                 .saturating_add(branch_restore_width),
-            lifecycle_transition_count: 0,
-            admitted_count: runtime_summary_width,
-            denied_count: 0,
-            broad_scan_denial_count: replay_reconstruction_width,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(16),
-            cost_posture: ResourceCostPosture::Debt,
-        }
+            0,
+            runtime_summary_width,
+            0,
+            replay_reconstruction_width,
+            0,
+            0,
+            0,
+            replay_reconstruction_width,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(16),
+            ResourceCostPosture::Debt,
+        )
     }
 
     pub(crate) fn diagnostics_expansion_denied(
@@ -231,47 +361,85 @@ impl ResourceBoundaryPerformanceEnvelope {
         replay_reconstruction_width: u32,
         branch_restore_width: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::DiagnosticsExpansion,
-            input_width: runtime_summary_width
+        Self::new(
+            ResourceBoundaryKind::DiagnosticsExpansion,
+            runtime_summary_width
                 .saturating_add(replay_reconstruction_width)
                 .saturating_add(branch_restore_width),
-            lifecycle_transition_count: 0,
-            admitted_count: 0,
-            denied_count: 1,
-            broad_scan_denial_count: replay_reconstruction_width,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(16),
-            cost_posture: ResourceCostPosture::DeniedFallback,
-        }
+            0,
+            0,
+            1,
+            replay_reconstruction_width,
+            0,
+            0,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(16),
+            ResourceCostPosture::DeniedFallback,
+        )
+    }
+
+    pub(crate) fn lifecycle_retention_compaction(
+        selected_terminal_count: u32,
+        reclaimed_in_flight_count: u32,
+        retained_history_write_count: u32,
+    ) -> Self {
+        Self::new(
+            ResourceBoundaryKind::LifecycleRetentionCompaction,
+            selected_terminal_count,
+            0,
+            reclaimed_in_flight_count,
+            0,
+            0,
+            0,
+            0,
+            retained_history_write_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(17),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_denial_staging() -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionDenialStaging,
-            input_width: 1,
-            lifecycle_transition_count: 0,
-            admitted_count: 0,
-            denied_count: 1,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(10),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+        Self::new(
+            ResourceBoundaryKind::CompletionDenialStaging,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(10),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn completion_rollback(admitted_count: u32, denied_count: u32) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::CompletionRollback,
-            input_width: admitted_count.saturating_add(denied_count),
-            lifecycle_transition_count: 0,
+        Self::new(
+            ResourceBoundaryKind::CompletionRollback,
+            admitted_count.saturating_add(denied_count),
+            0,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(11),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(11),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn branch_restore(
@@ -279,31 +447,41 @@ impl ResourceBoundaryPerformanceEnvelope {
         retained_summary_width: u32,
         broad_rebuild_denial_count: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::BranchRestore,
-            input_width: restored_in_flight_width.saturating_add(retained_summary_width),
-            lifecycle_transition_count: restored_in_flight_width,
-            admitted_count: restored_in_flight_width,
-            denied_count: 0,
-            broad_scan_denial_count: broad_rebuild_denial_count,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(13),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+        Self::new(
+            ResourceBoundaryKind::BranchRestore,
+            restored_in_flight_width.saturating_add(retained_summary_width),
+            restored_in_flight_width,
+            restored_in_flight_width,
+            0,
+            broad_rebuild_denial_count,
+            0,
+            restored_in_flight_width,
+            retained_summary_width,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(13),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn cancellation(admitted_count: u32, denied_count: u32) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::Cancellation,
-            input_width: admitted_count.saturating_add(denied_count),
-            lifecycle_transition_count: admitted_count,
+        Self::new(
+            ResourceBoundaryKind::Cancellation,
+            admitted_count.saturating_add(denied_count),
+            admitted_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: 0,
-            cost_contract: ResourceCostContractId::new(3),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            0,
+            0,
+            admitted_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(3),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn timeout_admission(
@@ -311,31 +489,41 @@ impl ResourceBoundaryPerformanceEnvelope {
         denied_count: u32,
         temporal_wake_footprint: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::TimeoutAdmission,
-            input_width: admitted_count.saturating_add(denied_count),
-            lifecycle_transition_count: admitted_count,
+        Self::new(
+            ResourceBoundaryKind::TimeoutAdmission,
+            admitted_count.saturating_add(denied_count),
+            admitted_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
+            0,
             temporal_wake_footprint,
-            cost_contract: ResourceCostContractId::new(4),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            admitted_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(4),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn retry_schedule(admitted_count: u32, denied_count: u32) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::RetrySchedule,
-            input_width: admitted_count.saturating_add(denied_count),
-            lifecycle_transition_count: 0,
+        Self::new(
+            ResourceBoundaryKind::RetrySchedule,
+            admitted_count.saturating_add(denied_count),
+            0,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
-            temporal_wake_footprint: admitted_count,
-            cost_contract: ResourceCostContractId::new(5),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            0,
+            admitted_count,
+            admitted_count,
+            0,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(5),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn retry_admission(
@@ -344,17 +532,22 @@ impl ResourceBoundaryPerformanceEnvelope {
         lifecycle_transition_count: u32,
         temporal_wake_footprint: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::RetryAdmission,
-            input_width: admitted_count.saturating_add(denied_count),
+        Self::new(
+            ResourceBoundaryKind::RetryAdmission,
+            admitted_count.saturating_add(denied_count),
             lifecycle_transition_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
+            0,
             temporal_wake_footprint,
-            cost_contract: ResourceCostContractId::new(6),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            admitted_count,
+            lifecycle_transition_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(6),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub(crate) fn revalidation_admission(
@@ -363,17 +556,22 @@ impl ResourceBoundaryPerformanceEnvelope {
         lifecycle_transition_count: u32,
         temporal_wake_footprint: u32,
     ) -> Self {
-        Self {
-            boundary: ResourceBoundaryKind::RevalidationAdmission,
-            input_width: admitted_count.saturating_add(denied_count),
+        Self::new(
+            ResourceBoundaryKind::RevalidationAdmission,
+            admitted_count.saturating_add(denied_count),
             lifecycle_transition_count,
             admitted_count,
             denied_count,
-            broad_scan_denial_count: 0,
+            0,
             temporal_wake_footprint,
-            cost_contract: ResourceCostContractId::new(7),
-            cost_posture: ResourceCostPosture::Verified,
-        }
+            admitted_count,
+            lifecycle_transition_count,
+            0,
+            1,
+            ResourceDensityStrategy::NotApplicable,
+            ResourceCostContractId::new(7),
+            ResourceCostPosture::Verified,
+        )
     }
 
     pub fn boundary(self) -> ResourceBoundaryKind {
@@ -402,6 +600,26 @@ impl ResourceBoundaryPerformanceEnvelope {
 
     pub fn temporal_wake_footprint(self) -> u32 {
         self.temporal_wake_footprint
+    }
+
+    pub fn operational_allocation_count(self) -> u32 {
+        self.operational_allocation_count
+    }
+
+    pub fn retained_history_allocation_count(self) -> u32 {
+        self.retained_history_allocation_count
+    }
+
+    pub fn diagnostics_allocation_count(self) -> u32 {
+        self.diagnostics_allocation_count
+    }
+
+    pub fn facade_report_allocation_count(self) -> u32 {
+        self.facade_report_allocation_count
+    }
+
+    pub fn density_strategy(self) -> ResourceDensityStrategy {
+        self.density_strategy
     }
 
     pub fn cost_contract(self) -> ResourceCostContractId {
@@ -1190,6 +1408,7 @@ pub struct ResourceRuntimeSummary {
     declared_resource_node_count: u64,
     in_flight_request_count: u64,
     active_in_flight_node_count: u64,
+    retained_lifecycle_history_count: u64,
     denied_completion_count: u64,
     next_descriptor_id: ResourceDescriptorId,
 }
@@ -1198,6 +1417,67 @@ pub struct ResourceRuntimeSummary {
 pub struct ResourceRuntimeSummaryReadReport {
     summary: ResourceRuntimeSummary,
     performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResourceLifecycleRetentionCompactionReport {
+    selected_terminal_count: u32,
+    reclaimed_in_flight_count: u32,
+    retained_history_write_count: u32,
+    retained_history_pruned_count: u32,
+    retained_history_width: u32,
+    hot_in_flight_width: u32,
+    performance: ResourceBoundaryPerformanceEnvelope,
+}
+
+impl ResourceLifecycleRetentionCompactionReport {
+    pub(crate) fn new(
+        selected_terminal_count: u32,
+        reclaimed_in_flight_count: u32,
+        retained_history_write_count: u32,
+        retained_history_pruned_count: u32,
+        retained_history_width: u32,
+        hot_in_flight_width: u32,
+        performance: ResourceBoundaryPerformanceEnvelope,
+    ) -> Self {
+        Self {
+            selected_terminal_count,
+            reclaimed_in_flight_count,
+            retained_history_write_count,
+            retained_history_pruned_count,
+            retained_history_width,
+            hot_in_flight_width,
+            performance,
+        }
+    }
+
+    pub fn selected_terminal_count(self) -> u32 {
+        self.selected_terminal_count
+    }
+
+    pub fn reclaimed_in_flight_count(self) -> u32 {
+        self.reclaimed_in_flight_count
+    }
+
+    pub fn retained_history_write_count(self) -> u32 {
+        self.retained_history_write_count
+    }
+
+    pub fn retained_history_pruned_count(self) -> u32 {
+        self.retained_history_pruned_count
+    }
+
+    pub fn retained_history_width(self) -> u32 {
+        self.retained_history_width
+    }
+
+    pub fn hot_in_flight_width(self) -> u32 {
+        self.hot_in_flight_width
+    }
+
+    pub fn performance(self) -> ResourceBoundaryPerformanceEnvelope {
+        self.performance
+    }
 }
 
 impl ResourceRuntimeSummaryReadReport {
@@ -1226,6 +1506,7 @@ impl ResourceRuntimeSummary {
         declared_resource_node_count: usize,
         in_flight_request_count: usize,
         active_in_flight_node_count: usize,
+        retained_lifecycle_history_count: usize,
         denied_completion_count: usize,
         next_descriptor_id: ResourceDescriptorId,
     ) -> Self {
@@ -1234,6 +1515,7 @@ impl ResourceRuntimeSummary {
             declared_resource_node_count: declared_resource_node_count as u64,
             in_flight_request_count: in_flight_request_count as u64,
             active_in_flight_node_count: active_in_flight_node_count as u64,
+            retained_lifecycle_history_count: retained_lifecycle_history_count as u64,
             denied_completion_count: denied_completion_count as u64,
             next_descriptor_id,
         }
@@ -1253,6 +1535,10 @@ impl ResourceRuntimeSummary {
 
     pub fn active_in_flight_node_count(self) -> u64 {
         self.active_in_flight_node_count
+    }
+
+    pub fn retained_lifecycle_history_count(self) -> u64 {
+        self.retained_lifecycle_history_count
     }
 
     pub fn denied_completion_count(self) -> u64 {

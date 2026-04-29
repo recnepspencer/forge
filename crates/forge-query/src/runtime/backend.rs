@@ -11,9 +11,10 @@ use crate::subscription::SubscriptionActivationInput;
 
 use super::{
     ForgeQueryEffectPolicy, ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
 };
 
 pub use super::ForgeQueryIntentAuthorityAdapter as ForgeQueryRuntimeIntentAuthorityAdapter;
@@ -40,10 +41,15 @@ pub trait ForgeQueryRuntimeBackend {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
 
+    fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError>;
+
     fn execute_intent(
         &mut self,
         declaration: &ForgeQueryIntentDeclaration,
-    ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError>;
+    ) -> Result<ForgeQueryIntentExecution, ForgeQueryRuntimeError>;
 
     fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity>;
 
@@ -113,6 +119,19 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
+
+    fn write_batch(
+        &mut self,
+        bridge: &RuntimeBridge,
+        mut relational_runtime: Option<&mut RelationalRuntime>,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let mut receipts = Vec::with_capacity(commands.len());
+        for command in commands {
+            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), command)?);
+        }
+        Ok(receipts)
+    }
 }
 
 pub trait ForgeQueryRuntimeSignalSinkAdapter {
@@ -120,6 +139,16 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
         &mut self,
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<(), ForgeQueryWorkspaceError>;
+
+    fn route_write_batch(
+        &mut self,
+        receipts: &[ForgeQueryMutationReceipt],
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        for receipt in receipts {
+            self.route_write_receipt(receipt)?;
+        }
+        Ok(())
+    }
 }
 
 pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
@@ -356,22 +385,50 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         Ok(receipt)
     }
 
+    fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let receipts = self.write_authority.write_batch(
+            &self.runtime_bridge,
+            self.relational_runtime.as_mut(),
+            commands,
+        )?;
+        self.signal_sink.route_write_batch(&receipts)?;
+        Ok(receipts)
+    }
+
     fn execute_intent(
         &mut self,
         declaration: &ForgeQueryIntentDeclaration,
-    ) -> Result<ForgeQueryIntentExecution, ForgeQueryWorkspaceError> {
+    ) -> Result<ForgeQueryIntentExecution, ForgeQueryRuntimeError> {
         let Some(intent_authority) = self.intent_authority.as_mut() else {
-            return Err(ForgeQueryWorkspaceError::new(
-                "intent authority adapter is not configured",
-            ));
+            return Err(ForgeQueryRuntimeError::MissingIntentAuthority);
         };
-        let execution = intent_authority.execute_intent(
-            &self.runtime_bridge,
-            self.relational_runtime.as_mut(),
-            declaration,
+        let execution = intent_authority
+            .execute_intent(
+                &self.runtime_bridge,
+                self.relational_runtime.as_mut(),
+                declaration,
+            )
+            .map_err(ForgeQueryRuntimeError::Workspace)?;
+        super::intent::admit_authoritative_intent_execution(declaration, &execution).map_err(
+            |denial| {
+                let evidence =
+                    ForgeQueryIntentDenialEvidence::new(declaration, &denial, Some(&execution));
+                ForgeQueryRuntimeError::IntentCommitDenied {
+                    intent_name: declaration.name().to_string(),
+                    stage: denial.stage(),
+                    message: denial.message().to_string(),
+                    evidence,
+                }
+            },
         )?;
-        self.signal_sink
-            .route_write_receipt(execution.mutation_receipt())?;
+        if execution.should_route_mutation_receipt() {
+            self.signal_sink
+                .route_write_receipt(execution.mutation_receipt())
+                .map_err(ForgeQueryRuntimeError::Workspace)?;
+        }
         Ok(execution)
     }
 

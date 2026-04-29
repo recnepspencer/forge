@@ -22,6 +22,7 @@ This document defines the certification-grade query test requirements for:
 - Milestone 9.1
 - Milestone 9.2
 - Milestone 9.3
+- Runtime API Public Stabilization Gate
 - Milestone 9.4
 - Milestone 9.5
 - Milestone 9.6
@@ -61,6 +62,8 @@ The query layer makes claims about:
 - subscription family diagnostics, bridge parity, and runtime certification
 - temporal query basis, time-aware subscription lowering, and time-only
   delivery
+- public runtime API stabilization, golden DX transcripts, async-safe state
+  gates, and inspection-as-contract
 - async/resource query families, completion causality, and supersession
 - mixed truth/time/async delivery ordering, coalescing, and replay
 - temporal/async support metadata, diagnostics, and certification closure
@@ -1202,6 +1205,78 @@ Automatic subscription family selection remains bridge-honest, support claims
 remain synchronized with certified runtime behavior, diagnostic bundles remain
 offline-sufficient, and unsupported or uncertified family claims fail-closed
 before store-backed or durable milestones build on top of them.
+
+## Runtime API Public Stabilization Gate Named Certification Suites
+
+### Runtime API Golden DX And Async-Safe Facade Test
+
+Purpose
+
+Prove that the ordinary public runtime API is beautiful enough for serious
+domain runtimes and structurally honest enough for later temporal/async
+extension, without relying on lower-runtime plumbing or sync-only assumptions.
+
+Scenario
+
+- execute golden public-facade transcripts for:
+  - workflow/editor surfaces with live sections, nested computeds, conditional
+    effects, branch preview, branch-local intent, and inspection
+  - geometry/kernel surfaces with topology neighborhood live views, expensive
+    derived outputs, fallback posture, invariant-preserving intent, and branch
+    experiment inspection
+  - table/spreadsheet surfaces with visible rows, formula/dropdown/layout
+    computeds, ordered/grouped delivery, batched edit intent, and async-ready
+    state vocabulary
+  - one composed adversarial surface spanning live subscription evidence,
+    nested computeds, effect pending intents, authoritative/effect/branch
+    intents, preview isolation, inspection, and feedback phase graph evidence
+- exercise unsupported-neighbor requests for temporal basis, async/resource
+  state, mixed-cause delivery, store-backed parity, and durable restart before
+  those milestones are admitted
+
+Must verify
+
+- golden transcripts use the final public facade vocabulary only
+- no transcript manually installs subscription declarations, bridge
+  lowerings, signal observers, grouped baselines, active lanes, or CDC filters
+- every transcript asserts meaningful proof artifacts: receipts, support
+  posture, authority lanes, basis lanes, aspect contracts, dependency handles,
+  delivery batches, residue counters, and inspection sections
+- state/read APIs do not imply always-synchronous values for surfaces that may
+  later admit temporal or async/resource state
+- unsupported temporal/async/store/durable neighbors fail typed and early with
+  zero forbidden delivery or authority residue
+- inspection explains every advertised handle/receipt family from retained
+  artifacts rather than debug strings or re-lowering
+- final public names do not hide query execution, subscription activation,
+  branch/preview binding, intent commit, temporal/async, or diagnostic
+  boundary crossings
+- support metadata and executable admission agree for stable, deferred, and
+  unsupported public API families
+- compile-fail boundaries prove ordinary callers cannot bypass the facade or
+  synthesize proof-bearing handle/inspection/support artifacts externally
+
+Required verification output
+
+- `public_api_surface_digest`
+- `golden_transcript_digest`
+- `handle_contract_digest`
+- `state_contract_digest`
+- `aspect_contract_digest`
+- `authority_lane_digest`
+- `inspection_contract_digest`
+- `support_matrix_digest`
+- `deferred_temporal_async_gate_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+The public runtime API is stable enough for domain runtimes to build on now,
+while temporal, async/resource, mixed-cause, store-backed, and durable claims
+remain explicit deferred or unsupported surfaces until their owning milestones
+close.
 
 ## Milestone 9.4 Named Certification Suites
 

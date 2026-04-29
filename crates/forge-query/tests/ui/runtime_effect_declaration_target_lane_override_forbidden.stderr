@@ -1,0 +1,13 @@
+error[E0624]: method `with_target_lane` is private
+  --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:15:25
+   |
+15 |       let _ = declaration.with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
+   |                           ^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/runtime/effect/declaration.rs
+   |
+   | /     pub(in crate::runtime) fn with_target_lane(
+   | |         mut self,
+   | |         target_lane: ForgeQueryAuthorityLane,
+   | |     ) -> Self {
+   | |_____________- private method defined here

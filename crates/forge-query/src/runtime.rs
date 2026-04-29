@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
 use forge_relational::facade::runtime::RelationalRuntime;
@@ -11,9 +10,8 @@ use crate::declarative_live::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
 use crate::memory_workspace::{
-    ForgeQueryCollection, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
-    ForgeQueryMemoryApp, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryWorkspaceError,
+    ForgeQueryCollection, ForgeQueryEntity, ForgeQueryMemoryApp, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
 use crate::program::{
     validate_inputs, ForgeQueryAuthorityRequirement, ForgeQueryDerivedView,
@@ -21,8 +19,6 @@ use crate::program::{
     ForgeQueryProgramEffect, ForgeQueryProgramError, ForgeQueryProgramTrace,
 };
 use crate::schema_view::QuerySchemaView;
-#[cfg(test)]
-use crate::subscription::QueryPatchGroupKind;
 use crate::subscription::{
     admit_active_subscription_lane, admit_query_subscription, attach_subscription_consumer,
     close_subscription_lifecycle, declare_query_subscription, lower_query_subscription_to_bridge,
@@ -37,15 +33,29 @@ use crate::subscription::{
 };
 use crate::view_shape_live::LiveViewShapeFamily;
 
+mod aspect_api_closeout;
 mod authority;
 mod backend;
+mod branch;
+mod builder;
 mod computed;
 mod delivery;
 mod effect;
+mod error;
+mod handle_contract;
+mod inspection;
 mod intent;
 mod live_subscription;
+mod mutation;
+mod mutation_compatibility;
 mod preview;
+mod public_api;
+mod state;
 mod support;
+mod support_matrix;
+mod surface;
+mod workspace;
+mod workspace_declaration;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
     "runtime-live-subscription-family:scratch_buffer_only:canonical=64:relationship=64:policy=64:projection=512:tenant=1";
@@ -60,9 +70,11 @@ const RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY: &str =
 const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
     "runtime-live-consumer-attachment:fanout=1:pacing=1:allocation=1:retain_within_window";
 
+pub use aspect_api_closeout::ForgeQueryAspectApiFinalizationCloseout;
 pub use authority::{
-    ForgeQueryAuthorityLane, ForgeQueryEffectAction, ForgeQueryEffectAdmission,
-    ForgeQueryEffectPolicy, ForgeQueryEffectPolicyDenial, ForgeQueryPreviewOptions,
+    ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectAction,
+    ForgeQueryEffectAdmission, ForgeQueryEffectPolicy, ForgeQueryEffectPolicyDenial,
+    ForgeQueryPreviewOptions,
 };
 pub use backend::{
     ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
@@ -71,6 +83,8 @@ pub use backend::{
     ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
     ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
 };
+pub use branch::ForgeQueryBranchSession;
+pub use builder::ForgeQueryRuntimeBuilder;
 use computed::{
     admit_derived_view_declaration, insert_derived_runtime, route_derived_view_patches,
     ForgeQueryComputedDependencyIndex, ForgeQueryDerivedViewRuntime,
@@ -97,11 +111,37 @@ pub use effect::{
     ForgeQueryEffectPhaseEvidence, ForgeQueryEffectSuppressionPolicy, ForgeQueryEffectTrigger,
     ForgeQueryEffectTriggerSourceKind,
 };
+pub use error::ForgeQueryRuntimeError;
+pub use handle_contract::{
+    ForgeQueryHandleContract, ForgeQueryHandleContractFamily, ForgeQueryHandleContractRow,
+};
+pub use inspection::{
+    ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
+    ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
+    ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
+    ForgeQueryFeedbackTermination, ForgeQueryInspection, ForgeQueryInspectionTarget,
+    ForgeQueryIntentDenialInspection, ForgeQueryIntentInspectionDeliveryCounters,
+    ForgeQueryIntentReceiptInspection, ForgeQueryLiveSubscriptionInspectionCounters,
+    ForgeQueryLiveViewInspection, ForgeQueryPreviewBindingInspection,
+    ForgeQueryPreviewIntentReceiptInspection, ForgeQueryPreviewOutcomeInspection,
+    ForgeQueryWriteReceiptInspection,
+};
 pub use intent::{
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
+    ForgeQueryBranchIntentReceipt, ForgeQueryEffectIntentReceipt, ForgeQueryIntentAuthorityAdapter,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
+    ForgeQueryIntentExecutionKind, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
+    ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
+pub(crate) use mutation::aspect_values_to_payload;
+pub use mutation::{
+    ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
+    ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue, ForgeQueryMutationBatchBuilder,
+};
+pub use mutation_compatibility::{
+    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
+    ForgeQueryMutationCompatibilityRow,
+};
 pub use preview::{
     ForgeQueryPreviewCloseoutEvidence, ForgeQueryPreviewCloseoutKind, ForgeQueryPreviewDiff,
     ForgeQueryPreviewEffectBindingDisposition, ForgeQueryPreviewExecutionEvidence,
@@ -110,343 +150,34 @@ pub use preview::{
     ForgeQueryPreviewPromotionDenialEvidence, ForgeQueryPreviewPromotionDenialKind,
     ForgeQueryPreviewResidueClass, ForgeQueryPreviewSession,
 };
+pub use public_api::{
+    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
+    ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicApiNamingRow,
+    ForgeQueryRuntimePublicApiTranscriptEvidence, ForgeQueryRuntimeStateKind,
+    ForgeQueryRuntimeStateSnapshot,
+};
+pub use state::ForgeQueryRuntimeStateTarget;
 pub use support::{
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile,
 };
-
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum ForgeQueryRuntimeError {
-    MissingBackend,
-    MissingRuntimeBridge,
-    MissingSchemaAdapter,
-    MissingSourceAdapter,
-    MissingWriteAuthority,
-    MissingSignalSink,
-    MissingSubscriptionActivation,
-    MissingPreviewBasis,
-    MissingInspectorEvidence,
-    MissingIntentAuthority,
-    Workspace(ForgeQueryWorkspaceError),
-    Program(ForgeQueryProgramError),
-    UnknownProgram(String),
-    UnknownOperation {
-        program_id: String,
-        operation_id: String,
-    },
-    MissingLiveView(String),
-    MissingLiveSubscription(String),
-    MissingDerivedView(String),
-    MissingEffect(String),
-    ComputedDeclaration {
-        view_name: String,
-        stage: &'static str,
-        message: String,
-    },
-    EffectDeclaration {
-        effect_name: String,
-        stage: &'static str,
-        message: String,
-    },
-    LiveSubscriptionInstallation {
-        view_name: String,
-        stage: &'static str,
-        message: String,
-    },
-    UnsupportedAuthority(String),
-    IntentCommitDenied {
-        intent_name: String,
-        stage: &'static str,
-        message: String,
-    },
-    EffectPolicyDenied(ForgeQueryEffectPolicyDenial),
-    PreviewPromotionStaleBasis(ForgeQueryPreviewPromotionDenialEvidence),
-    PreviewPromotionAtomicBatchUnsupported(ForgeQueryPreviewPromotionDenialEvidence),
-    PreviewPromotionWriteFailed {
-        evidence: ForgeQueryPreviewPromotionDenialEvidence,
-    },
-    UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial),
-}
-
-impl std::fmt::Display for ForgeQueryRuntimeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MissingBackend => {
-                write!(
-                    f,
-                    "forge query runtime builder requires a backend, for example in_memory_collections(...)"
-                )
-            }
-            Self::MissingRuntimeBridge => write!(
-                f,
-                "forge query runtime backend parts require a RuntimeBridge"
-            ),
-            Self::MissingSchemaAdapter => write!(
-                f,
-                "forge query runtime backend parts require a schema adapter"
-            ),
-            Self::MissingSourceAdapter => write!(
-                f,
-                "forge query runtime backend parts require a source adapter"
-            ),
-            Self::MissingWriteAuthority => write!(
-                f,
-                "forge query runtime backend parts require a write authority adapter"
-            ),
-            Self::MissingSignalSink => write!(
-                f,
-                "forge query runtime backend parts require a signal sink adapter"
-            ),
-            Self::MissingSubscriptionActivation => write!(
-                f,
-                "forge query runtime backend parts require a subscription activation adapter"
-            ),
-            Self::MissingPreviewBasis => write!(
-                f,
-                "forge query runtime backend parts require a preview basis adapter"
-            ),
-            Self::MissingInspectorEvidence => write!(
-                f,
-                "forge query runtime backend parts require an inspector evidence adapter"
-            ),
-            Self::MissingIntentAuthority => write!(
-                f,
-                "forge query runtime backend parts that claim intent support require an intent authority adapter"
-            ),
-            Self::Workspace(error) => write!(f, "{error}"),
-            Self::Program(error) => write!(f, "{error}"),
-            Self::UnknownProgram(program) => write!(f, "unknown query program `{program}`"),
-            Self::UnknownOperation {
-                program_id,
-                operation_id,
-            } => write!(
-                f,
-                "unknown query operation `{operation_id}` in program `{program_id}`"
-            ),
-            Self::MissingLiveView(view) => write!(f, "unknown live view `{view}`"),
-            Self::MissingLiveSubscription(view) => {
-                write!(
-                    f,
-                    "live view `{view}` has no retained subscription installation"
-                )
-            }
-            Self::MissingDerivedView(view) => write!(f, "unknown computed view `{view}`"),
-            Self::MissingEffect(effect) => write!(f, "unknown effect `{effect}`"),
-            Self::ComputedDeclaration {
-                view_name,
-                stage,
-                message,
-            } => write!(
-                f,
-                "computed declaration `{view_name}` failed during {stage}: {message}"
-            ),
-            Self::EffectDeclaration {
-                effect_name,
-                stage,
-                message,
-            } => write!(
-                f,
-                "effect declaration `{effect_name}` failed during {stage}: {message}"
-            ),
-            Self::LiveSubscriptionInstallation {
-                view_name,
-                stage,
-                message,
-            } => write!(
-                f,
-                "live view `{view_name}` subscription installation failed during {stage}: {message}"
-            ),
-            Self::UnsupportedAuthority(authority) => {
-                write!(
-                    f,
-                    "authority requirement `{authority}` is not admitted by this runtime"
-                )
-            }
-            Self::IntentCommitDenied {
-                intent_name,
-                stage,
-                message,
-            } => write!(
-                f,
-                "intent `{intent_name}` commit failed during {stage}: {message}"
-            ),
-            Self::EffectPolicyDenied(denial) => write!(f, "{denial}"),
-            Self::PreviewPromotionStaleBasis(evidence) => write!(
-                f,
-                "preview promotion `{}` failed during {}: {}",
-                evidence.label(),
-                evidence.kind().as_str(),
-                evidence.reason()
-            ),
-            Self::PreviewPromotionAtomicBatchUnsupported(evidence) => write!(
-                f,
-                "preview promotion `{}` failed during {}: {}",
-                evidence.label(),
-                evidence.kind().as_str(),
-                evidence.reason()
-            ),
-            Self::PreviewPromotionWriteFailed { evidence } => write!(
-                f,
-                "preview promotion `{}` failed during {}: {}",
-                evidence.label(),
-                evidence.kind().as_str(),
-                evidence.reason()
-            ),
-            Self::UnsupportedFacadeFamily(denial) => write!(f, "{denial}"),
-        }
-    }
-}
-
-impl std::error::Error for ForgeQueryRuntimeError {}
-
-impl From<ForgeQueryWorkspaceError> for ForgeQueryRuntimeError {
-    fn from(value: ForgeQueryWorkspaceError) -> Self {
-        Self::Workspace(value)
-    }
-}
-
-impl From<ForgeQueryProgramError> for ForgeQueryRuntimeError {
-    fn from(value: ForgeQueryProgramError) -> Self {
-        Self::Program(value)
-    }
-}
-
-#[derive(Default)]
-pub struct ForgeQueryRuntimeBuilder {
-    backend: Option<Result<Box<dyn ForgeQueryRuntimeBackend>, ForgeQueryRuntimeError>>,
-    backend_parts: ForgeQueryRuntimeBackendParts,
-}
-
-impl ForgeQueryRuntimeBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn in_memory_collections(
-        mut self,
-        collections: impl IntoIterator<Item = ForgeQueryCollection>,
-    ) -> Self {
-        self.backend = Some(
-            ForgeQueryMemoryApp::new(collections)
-                .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>)
-                .map_err(ForgeQueryRuntimeError::Workspace),
-        );
-        self
-    }
-
-    pub fn backend(mut self, backend: impl ForgeQueryRuntimeBackend + 'static) -> Self {
-        self.backend = Some(Ok(Box::new(backend)));
-        self
-    }
-
-    pub fn relational_runtime(mut self, runtime: RelationalRuntime) -> Self {
-        self.backend_parts = self.backend_parts.relational_runtime(runtime);
-        self
-    }
-
-    pub fn runtime_bridge(mut self, bridge: RuntimeBridge) -> Self {
-        self.backend_parts = self.backend_parts.runtime_bridge(bridge);
-        self
-    }
-
-    pub fn schema_adapter(
-        mut self,
-        adapter: impl ForgeQueryRuntimeSchemaAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.schema_adapter(adapter);
-        self
-    }
-
-    pub fn source_adapter(
-        mut self,
-        adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.source_adapter(adapter);
-        self
-    }
-
-    pub fn write_authority(
-        mut self,
-        authority: impl ForgeQueryRuntimeWriteAuthorityAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.write_authority(authority);
-        self
-    }
-
-    pub fn signal_sink(mut self, sink: impl ForgeQueryRuntimeSignalSinkAdapter + 'static) -> Self {
-        self.backend_parts = self.backend_parts.signal_sink(sink);
-        self
-    }
-
-    pub fn subscription_activation(
-        mut self,
-        adapter: impl ForgeQueryRuntimeSubscriptionActivationAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.subscription_activation(adapter);
-        self
-    }
-
-    pub fn preview_basis(
-        mut self,
-        adapter: impl ForgeQueryRuntimePreviewBasisAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.preview_basis(adapter);
-        self
-    }
-
-    pub fn inspector_evidence(
-        mut self,
-        adapter: impl ForgeQueryRuntimeInspectorEvidenceAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.inspector_evidence(adapter);
-        self
-    }
-
-    pub fn intent_authority(
-        mut self,
-        adapter: impl ForgeQueryIntentAuthorityAdapter + 'static,
-    ) -> Self {
-        self.backend_parts = self.backend_parts.intent_authority(adapter);
-        self
-    }
-
-    pub fn support_profile(mut self, profile: ForgeQueryRuntimeSupportProfile) -> Self {
-        self.backend_parts = self.backend_parts.support_profile(profile);
-        self
-    }
-
-    pub fn build_backend_from_parts(mut self) -> Self {
-        self.backend = Some(
-            ForgeQueryBridgeBackedRuntimeBackend::from_parts(self.backend_parts)
-                .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>),
-        );
-        self.backend_parts = ForgeQueryRuntimeBackendParts::new();
-        self
-    }
-
-    pub fn build(self) -> Result<ForgeQueryRuntime, ForgeQueryRuntimeError> {
-        let backend = self
-            .backend
-            .ok_or(ForgeQueryRuntimeError::MissingBackend)??;
-        Ok(ForgeQueryRuntime {
-            backend,
-            evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
-            active_subscriptions: ActiveSubscriptionRuntime::new(),
-            live_subscriptions: BTreeMap::new(),
-            live_subscription_index: BTreeMap::new(),
-            installed_programs: BTreeMap::new(),
-            run_traces: BTreeMap::new(),
-            derived_views: BTreeMap::new(),
-            derived_dependency_index: ForgeQueryComputedDependencyIndex::default(),
-            effects: BTreeMap::new(),
-            effect_index: ForgeQueryEffectIndex::default(),
-            next_run_id: 0,
-        })
-    }
-}
+pub use support_matrix::{
+    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,
+};
+pub use surface::{
+    ForgeQueryArtifactInspector, ForgeQueryBatchWriteReceipt, ForgeQueryInspectedArtifact,
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveView,
+    ForgeQueryMutationFamily, ForgeQueryPatchBatch, ForgeQueryRunReceipt, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
+};
+pub use workspace::ForgeQueryWorkspace;
+pub use workspace_declaration::{
+    ForgeQueryComputedBuilder, ForgeQueryEffectBuilder, ForgeQueryLiveViewBuilder,
+    ForgeQueryWorkspaceLiveViewDeclaration,
+};
 
 pub struct ForgeQueryRuntime {
     backend: Box<dyn ForgeQueryRuntimeBackend>,
@@ -463,9 +194,81 @@ pub struct ForgeQueryRuntime {
     next_run_id: u64,
 }
 
+struct ForgeQueryRoutedMutationSummary {
+    affected_live_view_ids: Vec<String>,
+    affected_derived_view_ids: Vec<String>,
+    considered_computed_view_count: usize,
+    considered_effect_count: usize,
+    delivered_effect_count: usize,
+    pending_write_intent_count: usize,
+    suppressed_effect_count: usize,
+    meaningful_effect_suppression_count: usize,
+    effect_expression_failure_count: usize,
+    refresh_fallback: bool,
+}
+
 impl ForgeQueryRuntime {
     pub fn builder() -> ForgeQueryRuntimeBuilder {
         ForgeQueryRuntimeBuilder::new()
+    }
+
+    pub fn workspace(
+        self,
+        name: impl Into<String>,
+    ) -> Result<ForgeQueryWorkspace, ForgeQueryRuntimeError> {
+        ForgeQueryWorkspace::new(name, self)
+    }
+
+    pub fn public_api_naming_contract() -> ForgeQueryRuntimePublicApiNamingContract {
+        ForgeQueryRuntimePublicApiNamingContract::standard()
+    }
+
+    pub fn public_api_contract(&self) -> ForgeQueryRuntimePublicApiContract {
+        ForgeQueryRuntimePublicApiContract::from_support_profile(&self.backend.support_profile())
+    }
+
+    pub fn public_handle_contract(&self) -> ForgeQueryHandleContract {
+        ForgeQueryHandleContract::from_public_api_contract(&self.public_api_contract())
+    }
+
+    pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
+        ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&self.public_api_contract())
+    }
+
+    pub fn public_mutation_api_compatibility_report(
+        &self,
+    ) -> ForgeQueryMutationApiCompatibilityReport {
+        ForgeQueryMutationApiCompatibilityReport::derive(
+            self.public_api_contract().backend_posture(),
+            &self.public_support_matrix(),
+            &Self::public_api_naming_contract(),
+        )
+    }
+
+    pub fn public_aspect_api_finalization_closeout(
+        &self,
+    ) -> ForgeQueryAspectApiFinalizationCloseout {
+        ForgeQueryAspectApiFinalizationCloseout::derive(
+            self.public_api_contract().backend_posture(),
+            &self.public_support_matrix(),
+            &self.public_mutation_api_compatibility_report(),
+            &Self::public_api_naming_contract(),
+        )
+    }
+
+    pub fn admit_public_api_family(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+    ) -> Result<ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimeError> {
+        let contract = self.public_api_contract();
+        let row = contract.family(family).cloned().ok_or_else(|| {
+            ForgeQueryRuntimeError::UnsupportedFacadeFamily(ForgeQueryRuntimeSupportDenial::new(
+                family,
+                "runtime support matrix does not declare this public API family",
+            ))
+        })?;
+        self.admit_facade_family(family)?;
+        Ok(row)
     }
 
     pub fn declare_live_view<T>(
@@ -602,8 +405,84 @@ impl ForgeQueryRuntime {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
+        let mutation_family = command.mutation_family();
+        let declared_collection = command.declared_collection();
+        let declared_entity_identity = command.declared_entity_identity();
+        let declared_aspect_operations = command.declared_aspect_operations();
         let receipt = self.backend.write(command)?;
-        self.route_authoritative_mutation_receipt(receipt)
+        self.route_authoritative_mutation_receipt(
+            receipt,
+            mutation_family,
+            declared_collection,
+            declared_entity_identity,
+            declared_aspect_operations,
+        )
+    }
+
+    pub fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
+        if commands.is_empty() {
+            return Err(ForgeQueryRuntimeError::Workspace(
+                ForgeQueryWorkspaceError::new("mutation batch must declare at least one operation"),
+            ));
+        }
+        let command_summaries = commands
+            .iter()
+            .map(|command| {
+                (
+                    command.mutation_family(),
+                    command.declared_collection(),
+                    command.declared_entity_identity(),
+                    command.declared_aspect_operations(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let receipts = self.backend.write_batch(commands)?;
+        let combined_receipt = combined_batch_mutation_receipt(&receipts)?;
+        let summary = self.route_authoritative_mutation_summary(&combined_receipt)?;
+        let write_receipts = receipts
+            .into_iter()
+            .zip(command_summaries)
+            .map(|(receipt, summary)| {
+                let affected_live_view_ids = self.backend.affected_live_view_ids(&receipt);
+                ForgeQueryWriteReceipt::batch_component(
+                    receipt,
+                    summary.0,
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                    summary.1,
+                    summary.2,
+                    summary.3,
+                    affected_live_view_ids,
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut touched_aspect_paths = combined_receipt
+            .deltas
+            .iter()
+            .flat_map(|delta| delta.aspect_paths.iter().cloned())
+            .collect::<Vec<_>>();
+        touched_aspect_paths.sort();
+        touched_aspect_paths.dedup();
+        ForgeQueryBatchWriteReceipt::new(
+            write_receipts,
+            ForgeQueryAuthorityLane::AuthoritativeTruth,
+            ForgeQueryAuthorityLane::AuthoritativeTruth,
+            touched_aspect_paths,
+            summary.affected_live_view_ids,
+            summary.affected_derived_view_ids,
+            summary.considered_computed_view_count,
+            summary.considered_effect_count,
+            summary.delivered_effect_count,
+            summary.pending_write_intent_count,
+            summary.suppressed_effect_count,
+            summary.meaningful_effect_suppression_count,
+            summary.effect_expression_failure_count,
+            summary.refresh_fallback,
+        )
     }
 
     pub fn execute_intent(
@@ -611,29 +490,36 @@ impl ForgeQueryRuntime {
         declaration: ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentReceipt, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
-        if declaration.target_lane() != ForgeQueryAuthorityLane::AuthoritativeTruth {
-            return Err(ForgeQueryRuntimeError::IntentCommitDenied {
+        intent::admit_authoritative_intent_declaration(&declaration).map_err(|denial| {
+            let evidence = ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None);
+            ForgeQueryRuntimeError::IntentCommitDenied {
                 intent_name: declaration.name().to_string(),
-                stage: "authority-admission",
-                message: format!(
-                    "Batch 7A admits only authoritative truth targets, got `{}`",
-                    declaration.target_lane()
-                ),
-            });
-        }
-        let execution = self
-            .backend
-            .execute_intent(&declaration)
-            .map_err(ForgeQueryRuntimeError::Workspace)?;
-        if execution.canonical_input_digest() != declaration.input_digest() {
-            return Err(ForgeQueryRuntimeError::IntentCommitDenied {
-                intent_name: declaration.name().to_string(),
-                stage: "input-digest-admission",
-                message: "intent authority returned a canonical input digest that does not match the declaration".to_string(),
-            });
-        }
-        let write_receipt =
-            self.route_authoritative_mutation_receipt(execution.mutation_receipt().clone())?;
+                stage: denial.stage(),
+                message: denial.message().to_string(),
+                evidence,
+            }
+        })?;
+        let execution = self.backend.execute_intent(&declaration)?;
+        intent::admit_authoritative_intent_execution(&declaration, &execution).map_err(
+            |denial| {
+                let evidence =
+                    ForgeQueryIntentDenialEvidence::new(&declaration, &denial, Some(&execution));
+                ForgeQueryRuntimeError::IntentCommitDenied {
+                    intent_name: declaration.name().to_string(),
+                    stage: denial.stage(),
+                    message: denial.message().to_string(),
+                    evidence,
+                }
+            },
+        )?;
+        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
+        let write_receipt = self.route_authoritative_mutation_receipt(
+            execution.mutation_receipt().clone(),
+            summary.0,
+            summary.1,
+            summary.2,
+            Vec::new(),
+        )?;
         Ok(ForgeQueryIntentReceipt::new(
             &declaration,
             execution,
@@ -641,22 +527,145 @@ impl ForgeQueryRuntime {
         ))
     }
 
+    pub fn execute_next_effect_write_intent<T>(
+        &mut self,
+        effect: &ForgeQueryEffectHandle<T>,
+        strategy_version: impl Into<String>,
+        input_contract: impl Into<String>,
+    ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
+        let strategy_version = strategy_version.into();
+        let input_contract = input_contract.into();
+        let (pending_index, pending_delivery) = {
+            let runtime = self
+                .effects
+                .get(effect.name())
+                .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect.name().to_string()))?;
+            runtime
+                .deliveries
+                .iter()
+                .enumerate()
+                .find(|(_, delivery)| {
+                    delivery.family() == &ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+                })
+                .map(|(index, delivery)| (index, delivery.clone()))
+                .ok_or_else(|| {
+                    ForgeQueryRuntimeError::MissingPendingWriteIntent(effect.name().to_string())
+                })?
+        };
+        let declaration = ForgeQueryIntentDeclaration::strategy_commit(
+            format!(
+                "effect:{}:{}",
+                pending_delivery.effect_name(),
+                pending_delivery.commit_identity()
+            ),
+            pending_delivery.target().to_string(),
+            strategy_version,
+            input_contract,
+            pending_delivery.payload().clone(),
+        )
+        .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
+        intent::admit_effect_triggered_intent_declaration(&declaration).map_err(|denial| {
+            let evidence = ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None);
+            ForgeQueryRuntimeError::IntentCommitDenied {
+                intent_name: declaration.name().to_string(),
+                stage: denial.stage(),
+                message: denial.message().to_string(),
+                evidence,
+            }
+        })?;
+        let execution = self.backend.execute_intent(&declaration)?;
+        intent::admit_authoritative_intent_execution(&declaration, &execution).map_err(
+            |denial| {
+                let evidence =
+                    ForgeQueryIntentDenialEvidence::new(&declaration, &denial, Some(&execution));
+                ForgeQueryRuntimeError::IntentCommitDenied {
+                    intent_name: declaration.name().to_string(),
+                    stage: denial.stage(),
+                    message: denial.message().to_string(),
+                    evidence,
+                }
+            },
+        )?;
+        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
+        let write_receipt = self.route_authoritative_mutation_receipt(
+            execution.mutation_receipt().clone(),
+            summary.0,
+            summary.1,
+            summary.2,
+            Vec::new(),
+        )?;
+        let intent_receipt = ForgeQueryIntentReceipt::new(&declaration, execution, &write_receipt);
+        if let Some(runtime) = self.effects.get_mut(effect.name()) {
+            if runtime
+                .deliveries
+                .get(pending_index)
+                .is_some_and(|delivery| {
+                    delivery.family() == &ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+                        && delivery.effect_name() == pending_delivery.effect_name()
+                        && delivery.commit_identity() == pending_delivery.commit_identity()
+                })
+            {
+                runtime.deliveries.remove(pending_index);
+            } else if let Some(index) = runtime.deliveries.iter().position(|delivery| {
+                delivery.family() == &ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+                    && delivery.effect_name() == pending_delivery.effect_name()
+                    && delivery.commit_identity() == pending_delivery.commit_identity()
+            }) {
+                runtime.deliveries.remove(index);
+            }
+        }
+        Ok(ForgeQueryEffectIntentReceipt::new(
+            &pending_delivery,
+            intent_receipt,
+        ))
+    }
+
     fn route_authoritative_mutation_receipt(
         &mut self,
         receipt: ForgeQueryMutationReceipt,
+        mutation_family: ForgeQueryMutationFamily,
+        declared_collection: Option<String>,
+        declared_entity_identity: Option<String>,
+        declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let summary = self.route_authoritative_mutation_summary(&receipt)?;
+        Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
+            receipt,
+            mutation_family,
+            declared_collection,
+            declared_entity_identity,
+            declared_aspect_operations,
+            summary.affected_live_view_ids,
+            summary.affected_derived_view_ids,
+            summary.considered_computed_view_count,
+            summary.considered_effect_count,
+            summary.delivered_effect_count,
+            summary.pending_write_intent_count,
+            summary.suppressed_effect_count,
+            summary.meaningful_effect_suppression_count,
+            summary.effect_expression_failure_count,
+            summary.refresh_fallback,
+        ))
+    }
+
+    fn route_authoritative_mutation_summary(
+        &mut self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<ForgeQueryRoutedMutationSummary, ForgeQueryRuntimeError> {
         let affected_live_view_ids = route_live_subscription_delivery(
             &mut self.active_subscriptions,
             &mut self.live_subscriptions,
             &self.live_subscription_index,
-            &receipt,
+            receipt,
         )?;
-        let computed_candidate_live_views = self.computed_candidate_live_views(&receipt);
+        let computed_candidate_live_views = self.computed_candidate_live_views(receipt);
         let computed_result = route_derived_view_patches(
             &mut self.derived_views,
             &self.derived_dependency_index,
             computed_candidate_live_views,
-            &receipt,
+            receipt,
         );
         let refresh_fallback = computed_result.refresh_fallback();
         let considered_computed_view_count = computed_result.considered_view_count();
@@ -667,23 +676,22 @@ impl ForgeQueryRuntime {
             &self.effect_index,
             &self.derived_views,
             &live_view_targets,
-            &receipt,
+            receipt,
             &affected_live_view_ids,
             &affected_derived_view_ids,
         );
-        Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
-            receipt,
+        Ok(ForgeQueryRoutedMutationSummary {
             affected_live_view_ids,
             affected_derived_view_ids,
             considered_computed_view_count,
-            effect_result.considered_effect_count(),
-            effect_result.delivered_effect_count(),
-            effect_result.pending_write_intent_count(),
-            effect_result.suppressed_effect_count(),
-            effect_result.meaningful_suppression_count(),
-            effect_result.expression_failure_count(),
+            considered_effect_count: effect_result.considered_effect_count(),
+            delivered_effect_count: effect_result.delivered_effect_count(),
+            pending_write_intent_count: effect_result.pending_write_intent_count(),
+            suppressed_effect_count: effect_result.suppressed_effect_count(),
+            meaningful_effect_suppression_count: effect_result.meaningful_suppression_count(),
+            effect_expression_failure_count: effect_result.expression_failure_count(),
             refresh_fallback,
-        ))
+        })
     }
 
     pub fn read_live<T>(&self, view: &ForgeQueryLiveView<T>) -> Vec<ForgeQueryEntity> {
@@ -949,6 +957,16 @@ impl ForgeQueryRuntime {
             .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string()))
     }
 
+    pub fn inspect_live_view_explanation<T>(
+        &self,
+        view: &ForgeQueryLiveView<T>,
+    ) -> Result<ForgeQueryLiveViewInspection, ForgeQueryRuntimeError> {
+        let installation = self.inspect_live_view(view)?;
+        Ok(ForgeQueryLiveViewInspection::from_installation(
+            installation,
+        ))
+    }
+
     pub fn inspect_receipt<'a>(
         &'a self,
         receipt: &'a ForgeQueryWriteReceipt,
@@ -971,17 +989,234 @@ impl ForgeQueryRuntime {
         })
     }
 
-    pub fn preview<'a>(&'a mut self, label: impl Into<String>) -> ForgeQueryPreviewSession<'a> {
+    pub fn inspect_intent_receipt(
+        &self,
+        receipt: &ForgeQueryIntentReceipt,
+    ) -> Result<ForgeQueryIntentReceiptInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryIntentReceiptInspection::from_receipt(receipt))
+    }
+
+    pub fn inspect_effect_intent_receipt(
+        &self,
+        receipt: &ForgeQueryEffectIntentReceipt,
+    ) -> Result<ForgeQueryEffectIntentReceiptInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryEffectIntentReceiptInspection::from_receipt(
+            receipt,
+        ))
+    }
+
+    pub fn inspect_intent_denial(
+        &self,
+        evidence: &ForgeQueryIntentDenialEvidence,
+    ) -> Result<ForgeQueryIntentDenialInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryIntentDenialInspection::from_evidence(evidence))
+    }
+
+    pub fn inspect_preview_binding(
+        &self,
+        binding: &ForgeQueryPreviewHandleBindingEvidence,
+    ) -> Result<ForgeQueryPreviewBindingInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryPreviewBindingInspection::from_binding(binding))
+    }
+
+    pub fn inspect_preview_outcome(
+        &self,
+        outcome: &ForgeQueryPreviewOutcome,
+    ) -> Result<ForgeQueryPreviewOutcomeInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryPreviewOutcomeInspection::from_outcome(outcome))
+    }
+
+    pub fn inspect_preview_intent_receipt(
+        &self,
+        receipt: &ForgeQueryPreviewIntentReceipt,
+    ) -> Result<ForgeQueryPreviewIntentReceiptInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryPreviewIntentReceiptInspection::from_receipt(
+            receipt,
+        ))
+    }
+
+    pub fn inspect_branch_intent_receipt(
+        &self,
+        receipt: &ForgeQueryBranchIntentReceipt,
+    ) -> Result<ForgeQueryBranchIntentReceiptInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryBranchIntentReceiptInspection::from_receipt(
+            receipt,
+        ))
+    }
+
+    pub fn inspect_feedback_path<T>(
+        &self,
+        effect: &ForgeQueryEffectHandle<T>,
+    ) -> Result<ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        let runtime = self
+            .effects
+            .get(effect.name())
+            .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect.name().to_string()))?;
+        ForgeQueryFeedbackPhaseGraphInspection::from_effect_runtime(runtime).ok_or_else(|| {
+            ForgeQueryRuntimeError::MissingEffect(format!(
+                "{} has no retained feedback delivery",
+                effect.name()
+            ))
+        })
+    }
+
+    pub fn inspect_effect_feedback_receipt(
+        &self,
+        receipt: &ForgeQueryEffectIntentReceipt,
+    ) -> Result<ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryRuntimeError> {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        Ok(ForgeQueryFeedbackPhaseGraphInspection::from_effect_intent_receipt(receipt))
+    }
+
+    pub fn inspect<'a, T>(
+        &'a self,
+        target: T,
+    ) -> Result<ForgeQueryInspection, ForgeQueryRuntimeError>
+    where
+        T: Into<ForgeQueryInspectionTarget<'a>>,
+    {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
+        match target.into() {
+            ForgeQueryInspectionTarget::LiveView { name } => {
+                let installation = self
+                    .live_subscriptions
+                    .get(name)
+                    .map(|state| &state.installation)
+                    .ok_or_else(|| {
+                        ForgeQueryRuntimeError::MissingLiveSubscription(name.to_string())
+                    })?;
+                Ok(ForgeQueryInspection::LiveView(
+                    ForgeQueryLiveViewInspection::from_installation(installation),
+                ))
+            }
+            ForgeQueryInspectionTarget::DerivedView { name } => {
+                Ok(ForgeQueryInspection::DerivedView(
+                    self.derived_views
+                        .get(name)
+                        .map(ForgeQueryComputedInspectionEvidence::from_runtime)
+                        .ok_or_else(|| {
+                            ForgeQueryRuntimeError::MissingDerivedView(name.to_string())
+                        })?,
+                ))
+            }
+            ForgeQueryInspectionTarget::Effect { name } => Ok(ForgeQueryInspection::Effect(
+                self.inspect_effect_by_name(name)?,
+            )),
+            ForgeQueryInspectionTarget::WriteReceipt(receipt) => {
+                let runtime_evidence = self
+                    .backend
+                    .inspect_write_receipt(receipt, &self.evidence_authority)?;
+                Ok(ForgeQueryInspection::WriteReceipt(
+                    ForgeQueryWriteReceiptInspection::new(receipt, runtime_evidence),
+                ))
+            }
+            ForgeQueryInspectionTarget::BatchWriteReceipt(receipt) => {
+                Ok(ForgeQueryInspection::BatchWriteReceipt(
+                    ForgeQueryBatchWriteReceiptInspection::new(receipt),
+                ))
+            }
+            ForgeQueryInspectionTarget::IntentReceipt(receipt) => Ok(
+                ForgeQueryInspection::IntentReceipt(self.inspect_intent_receipt(receipt)?),
+            ),
+            ForgeQueryInspectionTarget::IntentDenial(evidence) => Ok(
+                ForgeQueryInspection::IntentDenial(self.inspect_intent_denial(evidence)?),
+            ),
+            ForgeQueryInspectionTarget::EffectIntentReceipt(receipt) => {
+                Ok(ForgeQueryInspection::EffectIntentReceipt(
+                    self.inspect_effect_intent_receipt(receipt)?,
+                ))
+            }
+            ForgeQueryInspectionTarget::PreviewBinding(binding) => Ok(
+                ForgeQueryInspection::PreviewBinding(self.inspect_preview_binding(binding)?),
+            ),
+            ForgeQueryInspectionTarget::PreviewOutcome(outcome) => Ok(
+                ForgeQueryInspection::PreviewOutcome(self.inspect_preview_outcome(outcome)?),
+            ),
+            ForgeQueryInspectionTarget::PreviewIntentReceipt(receipt) => {
+                Ok(ForgeQueryInspection::PreviewIntentReceipt(
+                    self.inspect_preview_intent_receipt(receipt)?,
+                ))
+            }
+            ForgeQueryInspectionTarget::BranchIntentReceipt(receipt) => {
+                Ok(ForgeQueryInspection::BranchIntentReceipt(
+                    self.inspect_branch_intent_receipt(receipt)?,
+                ))
+            }
+        }
+    }
+
+    pub fn preview<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.preview_with_options(label, ForgeQueryPreviewOptions::default())
+    }
+
+    pub fn branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.branch_with_options(label, ForgeQueryBranchOptions::default())
+    }
+
+    pub fn branch_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryBranchOptions,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.try_branch_with_options(label, options)
+    }
+
+    pub fn try_branch<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        self.try_branch_with_options(label, ForgeQueryBranchOptions::default())
+    }
+
+    pub fn try_branch_with_options<'a>(
+        &'a mut self,
+        label: impl Into<String>,
+        options: ForgeQueryBranchOptions,
+    ) -> Result<ForgeQueryBranchSession<'a>, ForgeQueryRuntimeError> {
+        let label = label.into();
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::BranchPreview)?;
+        let branch_support_evidence = self
+            .backend
+            .support_profile()
+            .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
+            .map(|support| support.evidence().to_vec())
+            .unwrap_or_default();
+        let mut evidence = vec!["runtime-branch-basis-admission".to_string()];
+        evidence.extend(branch_support_evidence);
+        let basis_admission = ForgeQueryBranchBasisAdmission::new(
+            &self.evidence_authority,
+            &label,
+            options.effect_policy(),
+            evidence,
+        );
+        Ok(ForgeQueryBranchSession::new(
+            label,
+            self,
+            options,
+            basis_admission,
+        ))
     }
 
     pub fn preview_with_options<'a>(
         &'a mut self,
         label: impl Into<String>,
         options: ForgeQueryPreviewOptions,
-    ) -> ForgeQueryPreviewSession<'a> {
+    ) -> Result<ForgeQueryPreviewSession<'a>, ForgeQueryRuntimeError> {
         self.try_preview_with_options(label, options)
-            .expect("branch/preview support must be admitted before creating preview sessions")
     }
 
     pub fn try_preview<'a>(
@@ -1023,6 +1258,36 @@ impl ForgeQueryRuntime {
             .support_profile()
             .admit(family)
             .map_err(ForgeQueryRuntimeError::UnsupportedFacadeFamily)
+    }
+
+    pub(in crate::runtime) fn admit_facade_family_lane(
+        &self,
+        family: ForgeQueryRuntimeFacadeFamily,
+        authority_lane: ForgeQueryAuthorityLane,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        self.admit_facade_family(family)?;
+        let support_profile = self.backend.support_profile();
+        let Some(row) = support_profile.support_for(family) else {
+            return Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::new(
+                    family,
+                    "backend support profile does not declare this facade family",
+                ),
+            ));
+        };
+        if row.authority_lanes().contains(&authority_lane) {
+            Ok(())
+        } else {
+            Err(ForgeQueryRuntimeError::UnsupportedFacadeFamily(
+                ForgeQueryRuntimeSupportDenial::new(
+                    family,
+                    format!(
+                        "backend support profile does not admit `{}` lane for `{}` facade family",
+                        authority_lane, family
+                    ),
+                ),
+            ))
+        }
     }
 
     fn install_live_subscription_for_request(
@@ -1211,6 +1476,70 @@ fn live_subscription_error(
     }
 }
 
+fn combined_batch_mutation_receipt(
+    receipts: &[ForgeQueryMutationReceipt],
+) -> Result<ForgeQueryMutationReceipt, ForgeQueryRuntimeError> {
+    let Some(last_receipt) = receipts.last() else {
+        return Err(ForgeQueryRuntimeError::Workspace(
+            ForgeQueryWorkspaceError::new("mutation batch must produce at least one write receipt"),
+        ));
+    };
+    let commit_identity = format!(
+        "batch:{}",
+        crate::identity::hash_parts(
+            &std::iter::once("forge_query_batch_mutation_receipt_v1".to_string())
+                .chain(
+                    receipts
+                        .iter()
+                        .map(|receipt| format!("commit:{}", receipt.commit_identity)),
+                )
+                .collect::<Vec<_>>(),
+        )
+    );
+    let deltas = receipts
+        .iter()
+        .flat_map(|receipt| receipt.deltas.iter().cloned())
+        .collect::<Vec<_>>();
+    Ok(ForgeQueryMutationReceipt {
+        commit_identity,
+        snapshot_token: last_receipt.snapshot_token.clone(),
+        deltas,
+    })
+}
+
+fn classify_receipt_mutation_summary(
+    receipt: &ForgeQueryMutationReceipt,
+) -> (ForgeQueryMutationFamily, Option<String>, Option<String>) {
+    let mutation_family = receipt
+        .deltas
+        .first()
+        .map(|delta| match delta.kind {
+            ForgeQueryMutationKind::Created => ForgeQueryMutationFamily::Insert,
+            ForgeQueryMutationKind::Updated => ForgeQueryMutationFamily::Update,
+            ForgeQueryMutationKind::Deleted => ForgeQueryMutationFamily::Delete,
+        })
+        .unwrap_or(ForgeQueryMutationFamily::Update);
+    let mut collections = receipt
+        .deltas
+        .iter()
+        .map(|delta| delta.collection.clone())
+        .collect::<Vec<_>>();
+    collections.sort();
+    collections.dedup();
+    let mut entity_identities = receipt
+        .deltas
+        .iter()
+        .map(|delta| delta.entity_identity.clone())
+        .collect::<Vec<_>>();
+    entity_identities.sort();
+    entity_identities.dedup();
+    (
+        mutation_family,
+        (collections.len() == 1).then(|| collections[0].clone()),
+        (entity_identities.len() == 1).then(|| entity_identities[0].clone()),
+    )
+}
+
 fn subscription_dimensions_for_request(
     request: &DeclarativeLiveQueryRequest,
     view_family: LiveViewShapeFamily,
@@ -1304,361 +1633,6 @@ fn runtime_subscription_budget_digest() -> String {
         RUNTIME_ACTIVE_LIFECYCLE_BUDGET_POLICY.to_string(),
         RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY.to_string(),
     ])
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ForgeQueryWriteCommand {
-    Insert {
-        collection: String,
-        payload: Value,
-    },
-    UpdateAspect {
-        entity_identity: String,
-        aspect_path: String,
-        value: Value,
-    },
-    Delete {
-        entity_identity: String,
-    },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryWriteReceipt {
-    inner: ForgeQueryMutationReceipt,
-    authority_lane: ForgeQueryAuthorityLane,
-    affected_live_view_ids: Vec<String>,
-    affected_derived_view_ids: Vec<String>,
-    considered_computed_view_count: usize,
-    considered_effect_count: usize,
-    delivered_effect_count: usize,
-    pending_write_intent_count: usize,
-    suppressed_effect_count: usize,
-    meaningful_effect_suppression_count: usize,
-    effect_expression_failure_count: usize,
-    refresh_fallback: bool,
-}
-
-impl ForgeQueryWriteReceipt {
-    fn from_mutation_receipt(
-        inner: ForgeQueryMutationReceipt,
-        affected_live_view_ids: Vec<String>,
-        affected_derived_view_ids: Vec<String>,
-        considered_computed_view_count: usize,
-        considered_effect_count: usize,
-        delivered_effect_count: usize,
-        pending_write_intent_count: usize,
-        suppressed_effect_count: usize,
-        meaningful_effect_suppression_count: usize,
-        effect_expression_failure_count: usize,
-        refresh_fallback: bool,
-    ) -> Self {
-        Self {
-            inner,
-            authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-            affected_live_view_ids,
-            affected_derived_view_ids,
-            considered_computed_view_count,
-            considered_effect_count,
-            delivered_effect_count,
-            pending_write_intent_count,
-            suppressed_effect_count,
-            meaningful_effect_suppression_count,
-            effect_expression_failure_count,
-            refresh_fallback,
-        }
-    }
-
-    fn preview(
-        label: &str,
-        sequence: usize,
-        command: &ForgeQueryWriteCommand,
-        snapshot_token: String,
-    ) -> Self {
-        let delta = match command {
-            ForgeQueryWriteCommand::Insert {
-                collection,
-                payload: _,
-            } => crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: collection.clone(),
-                entity_identity: format!("preview:{label}:{sequence}"),
-                kind: ForgeQueryMutationKind::Created,
-                aspect_paths: Vec::new(),
-            },
-            ForgeQueryWriteCommand::UpdateAspect {
-                entity_identity,
-                aspect_path,
-                value: _,
-            } => crate::memory_workspace::ForgeQueryMutationDelta {
-                collection: "preview".to_string(),
-                entity_identity: entity_identity.clone(),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths: vec![aspect_path.clone()],
-            },
-            ForgeQueryWriteCommand::Delete { entity_identity } => {
-                crate::memory_workspace::ForgeQueryMutationDelta {
-                    collection: "preview".to_string(),
-                    entity_identity: entity_identity.clone(),
-                    kind: ForgeQueryMutationKind::Deleted,
-                    aspect_paths: Vec::new(),
-                }
-            }
-        };
-        Self {
-            inner: ForgeQueryMutationReceipt {
-                commit_identity: format!("preview:{label}:{sequence}"),
-                snapshot_token,
-                deltas: vec![delta],
-            },
-            authority_lane: ForgeQueryAuthorityLane::PreviewTruth,
-            affected_live_view_ids: Vec::new(),
-            affected_derived_view_ids: Vec::new(),
-            considered_computed_view_count: 0,
-            considered_effect_count: 0,
-            delivered_effect_count: 0,
-            pending_write_intent_count: 0,
-            suppressed_effect_count: 0,
-            meaningful_effect_suppression_count: 0,
-            effect_expression_failure_count: 0,
-            refresh_fallback: false,
-        }
-    }
-
-    pub fn commit_identity(&self) -> &str {
-        &self.inner.commit_identity
-    }
-
-    pub fn snapshot_token(&self) -> &str {
-        &self.inner.snapshot_token
-    }
-
-    pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
-        self.authority_lane
-    }
-
-    pub fn deltas(&self) -> &[crate::memory_workspace::ForgeQueryMutationDelta] {
-        &self.inner.deltas
-    }
-
-    pub fn affected_live_view_ids(&self) -> &[String] {
-        &self.affected_live_view_ids
-    }
-
-    pub fn affected_derived_view_ids(&self) -> &[String] {
-        &self.affected_derived_view_ids
-    }
-
-    pub fn considered_computed_view_count(&self) -> usize {
-        self.considered_computed_view_count
-    }
-
-    pub fn considered_effect_count(&self) -> usize {
-        self.considered_effect_count
-    }
-
-    pub fn delivered_effect_count(&self) -> usize {
-        self.delivered_effect_count
-    }
-
-    pub fn pending_write_intent_count(&self) -> usize {
-        self.pending_write_intent_count
-    }
-
-    pub fn suppressed_effect_count(&self) -> usize {
-        self.suppressed_effect_count
-    }
-
-    pub fn meaningful_effect_suppression_count(&self) -> usize {
-        self.meaningful_effect_suppression_count
-    }
-
-    pub fn effect_expression_failure_count(&self) -> usize {
-        self.effect_expression_failure_count
-    }
-
-    pub fn refresh_fallback(&self) -> bool {
-        self.refresh_fallback
-    }
-
-    pub fn into_inner(self) -> ForgeQueryMutationReceipt {
-        self.inner
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ForgeQueryPatchBatch {
-    pub view_name: String,
-    pub live_patches: Vec<ForgeQueryLivePatch>,
-    pub query_delivery_batches: Vec<ForgeQueryRuntimeDeliveryBatch>,
-    pub derived_patch_notes: Vec<String>,
-    pub derived_patches: Vec<ForgeQueryDerivedPatch>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryLiveView<T = Value> {
-    handle: ForgeQueryLiveViewHandle,
-    authority_lane: ForgeQueryAuthorityLane,
-    subscription_installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
-    marker: PhantomData<T>,
-}
-
-impl<T> ForgeQueryLiveView<T> {
-    fn new(
-        handle: ForgeQueryLiveViewHandle,
-        subscription_installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
-    ) -> Self {
-        Self {
-            handle,
-            authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-            subscription_installation,
-            marker: PhantomData,
-        }
-    }
-
-    pub fn name(&self) -> &str {
-        self.handle.name()
-    }
-
-    pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
-        self.authority_lane
-    }
-
-    pub fn subscription_installation(&self) -> &ForgeQueryRuntimeLiveSubscriptionInstallation {
-        &self.subscription_installation
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryInstalledProgram {
-    program_id: String,
-}
-
-impl ForgeQueryInstalledProgram {
-    pub fn program_id(&self) -> &str {
-        &self.program_id
-    }
-
-    pub fn operation(
-        &self,
-        operation_id: impl Into<String>,
-    ) -> Result<ForgeQueryInstalledOperation, ForgeQueryRuntimeError> {
-        Ok(ForgeQueryInstalledOperation {
-            program_id: self.program_id.clone(),
-            operation_id: operation_id.into(),
-        })
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryInstalledOperation {
-    program_id: String,
-    operation_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ForgeQueryRunReceipt {
-    run_id: String,
-    operation: ForgeQueryInstalledOperation,
-    outputs: Vec<ForgeQueryOperationOutput>,
-    write_receipts: Vec<ForgeQueryWriteReceipt>,
-    patch_batches: Vec<ForgeQueryPatchBatch>,
-}
-
-impl ForgeQueryRunReceipt {
-    pub fn run_id(&self) -> &str {
-        &self.run_id
-    }
-
-    pub fn outputs(&self) -> &[ForgeQueryOperationOutput] {
-        &self.outputs
-    }
-
-    pub fn write_receipts(&self) -> &[ForgeQueryWriteReceipt] {
-        &self.write_receipts
-    }
-
-    pub fn patch_batches(&self) -> &[ForgeQueryPatchBatch] {
-        &self.patch_batches
-    }
-}
-
-pub struct ForgeQueryArtifactInspector<'a> {
-    receipt: &'a ForgeQueryWriteReceipt,
-    runtime_evidence: ForgeQueryRuntimeInspectionEvidence,
-}
-
-impl<'a> ForgeQueryArtifactInspector<'a> {
-    pub fn canonical(&self) -> ForgeQueryInspectedArtifact {
-        ForgeQueryInspectedArtifact::new(
-            "canonical",
-            self.receipt.commit_identity(),
-            self.receipt.snapshot_token(),
-        )
-    }
-
-    pub fn workflow(&self) -> ForgeQueryInspectedArtifact {
-        ForgeQueryInspectedArtifact::new(
-            "workflow",
-            self.receipt.commit_identity(),
-            self.receipt.snapshot_token(),
-        )
-    }
-
-    pub fn bridge_authority(&self) -> ForgeQueryInspectedArtifact {
-        ForgeQueryInspectedArtifact::new(
-            "bridge-authority",
-            self.receipt.commit_identity(),
-            self.receipt.snapshot_token(),
-        )
-    }
-
-    pub fn authority_lane(&self) -> ForgeQueryAuthorityLane {
-        self.receipt.authority_lane()
-    }
-
-    pub fn runtime_evidence(&self) -> &ForgeQueryRuntimeInspectionEvidence {
-        &self.runtime_evidence
-    }
-
-    pub fn live_patch_artifacts(&self) -> Vec<String> {
-        self.receipt
-            .deltas()
-            .iter()
-            .map(|delta| format!("{}:{}", delta.collection, delta.entity_identity))
-            .collect()
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryInspectedArtifact {
-    family: String,
-    identity: String,
-    basis: String,
-}
-
-impl ForgeQueryInspectedArtifact {
-    fn new(
-        family: impl Into<String>,
-        identity: impl Into<String>,
-        basis: impl Into<String>,
-    ) -> Self {
-        Self {
-            family: family.into(),
-            identity: identity.into(),
-            basis: basis.into(),
-        }
-    }
-
-    pub fn family(&self) -> &str {
-        &self.family
-    }
-
-    pub fn identity(&self) -> &str {
-        &self.identity
-    }
-
-    pub fn basis(&self) -> &str {
-        &self.basis
-    }
 }
 
 #[cfg(test)]

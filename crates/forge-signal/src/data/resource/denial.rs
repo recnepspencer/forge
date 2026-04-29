@@ -23,6 +23,7 @@ pub enum CompletionDenialClass {
     Duplicate,
     UnknownRequest,
     Retired,
+    RetainedHistoryUnavailable,
     Cancelled,
     TimedOut,
     Impossible,

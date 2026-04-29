@@ -1,4 +1,4 @@
-error[E0451]: fields `name`, `authority_lane`, `upstream_live_views`, `upstream_derived_views`, `dependency_aspects`, `produced_aspects`, `materialized_row_count` and `pending_patch_count` of struct `ForgeQueryComputedInspectionEvidence` are private
+error[E0451]: fields `name`, `authority_lane`, `upstream_live_views`, `upstream_derived_views`, `dependency_aspects`, `produced_aspects`, `incremental_delivery`, `materialized_row_count`, `pending_patch_count`, `pending_incremental_patch_count`, `pending_refresh_fallback_count`, `declaration_digest`, `dependency_digest`, `produced_aspect_digest`, `materialization_digest`, `pending_patch_digest` and `inspection_digest` of struct `ForgeQueryComputedInspectionEvidence` are private
   --> tests/ui/runtime_computed_inspection_evidence_constructor_private.rs:5:9
    |
  4 |     let _forged = ForgeQueryComputedInspectionEvidence {
@@ -15,7 +15,25 @@ error[E0451]: fields `name`, `authority_lane`, `upstream_live_views`, `upstream_
    |         ^^^^^^^^^^^^^^^^^^ private field
 10 |         produced_aspects: Vec::new(),
    |         ^^^^^^^^^^^^^^^^ private field
-11 |         materialized_row_count: 0,
+11 |         incremental_delivery: true,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+12 |         materialized_row_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         pending_patch_count: 0,
+13 |         pending_patch_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^ private field
+14 |         pending_incremental_patch_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         pending_refresh_fallback_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+17 |         dependency_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+18 |         produced_aspect_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         materialization_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         pending_patch_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+21 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

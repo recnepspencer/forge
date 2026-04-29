@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::data::temporal::TemporalDuration;
 
@@ -130,23 +130,65 @@ impl Default for ResourceRetentionPolicyDeclaration {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct ResourceInitialLifecycleClass {
+    lifecycle: ResourceLifecycleClass,
+}
+
+impl ResourceInitialLifecycleClass {
+    pub const UNREQUESTED: Self = Self {
+        lifecycle: ResourceLifecycleClass::Unrequested,
+    };
+
+    pub fn unrequested() -> Self {
+        Self::UNREQUESTED
+    }
+
+    pub fn lifecycle(self) -> ResourceLifecycleClass {
+        self.lifecycle
+    }
+}
+
+impl Default for ResourceInitialLifecycleClass {
+    fn default() -> Self {
+        Self::UNREQUESTED
+    }
+}
+
+impl<'de> Deserialize<'de> for ResourceInitialLifecycleClass {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let lifecycle = ResourceLifecycleClass::deserialize(deserializer)?;
+        if lifecycle == ResourceLifecycleClass::Unrequested {
+            Ok(Self::UNREQUESTED)
+        } else {
+            Err(serde::de::Error::custom(
+                "resource initial lifecycle policy must deserialize to Unrequested",
+            ))
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceLifecyclePolicyDeclaration {
-    initial: ResourceLifecycleClass,
+    initial: ResourceInitialLifecycleClass,
 }
 
 impl ResourceLifecyclePolicyDeclaration {
-    pub fn new(initial: ResourceLifecycleClass) -> Self {
+    pub fn new(initial: ResourceInitialLifecycleClass) -> Self {
         Self { initial }
     }
 
     pub fn initial(self) -> ResourceLifecycleClass {
-        self.initial
+        self.initial.lifecycle()
     }
 }
 
 impl Default for ResourceLifecyclePolicyDeclaration {
     fn default() -> Self {
-        Self::new(ResourceLifecycleClass::Unrequested)
+        Self::new(ResourceInitialLifecycleClass::UNREQUESTED)
     }
 }

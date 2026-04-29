@@ -1,6 +1,8 @@
 # Milestone B Engineering Spec: Async And Resource Node Runtime Substrate
 
-> **Status:** Planned
+> **Status:** Closed
+>
+> **Closeout:** [milestone-b-closeout.md](./milestone-b-closeout.md)
 >
 > **Roadmap parent:** [forge_signal_temporal_async_roadmap.md](./forge_signal_temporal_async_roadmap.md)
 >

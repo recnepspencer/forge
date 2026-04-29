@@ -3,6 +3,8 @@ mod adapter;
 #[cfg(test)]
 mod admission;
 #[cfg(test)]
+mod aspect_api_finalization_certification;
+#[cfg(test)]
 mod binding;
 #[cfg(test)]
 mod certification;
@@ -54,6 +56,8 @@ mod profiles;
 mod region_live_certification;
 #[cfg(test)]
 mod reporting;
+#[cfg(test)]
+mod runtime_api_stabilization;
 #[cfg(test)]
 mod semantics;
 #[cfg(test)]

@@ -41,6 +41,10 @@ pub use crate::data::invariants::{
     WorthDiagnosticsInvariantGroup, WorthGeometryInvariantGroup, WorthInvariantGroup,
     WorthLineageInvariantGroup, WorthNamingInvariantGroup, WorthTopologyInvariantGroup,
 };
+pub use crate::data::query::{
+    worth_query_aspect_path_strings, worth_query_aspect_paths, worth_query_aspect_paths_from_set,
+    WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection, WorthQuerySchemaBasis,
+};
 pub use crate::data::relations::{
     WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
     WorthRelationKind, WorthTopologyRelationKind,

@@ -38,7 +38,9 @@ This roadmap extends the direction already named in:
 - [signal_architecture2.md](./signal_architecture2.md)
 - [milestone-11-closeout.md](./milestone-11-closeout.md)
 - [milestone-a-plan.md](./milestone-a-plan.md)
+- [milestone-a-closeout.md](./milestone-a-closeout.md)
 - [milestone-b-plan.md](./milestone-b-plan.md)
+- [milestone-b-closeout.md](./milestone-b-closeout.md)
 - [milestone-c-plan.md](./milestone-c-plan.md)
 - [test-requirements.md](./test-requirements.md)
 
@@ -269,7 +271,9 @@ with canonical machine-checkable artifacts for:
 ## Phase 2: Async And Resource Node Runtime Substrate
 
 See [milestone-b-plan.md](./milestone-b-plan.md) for the concrete engineering
-specification for this phase.
+specification for this phase and
+[milestone-b-closeout.md](./milestone-b-closeout.md) for the formal closeout
+acceptance map.
 
 ### Goal
 
@@ -385,6 +389,15 @@ with canonical machine-checkable artifacts for:
 - replay/restore digests
 - diagnostics/explanation digests
 
+### Closeout Status
+
+Phase 2 is closed by
+[milestone-b-closeout.md](./milestone-b-closeout.md).
+
+The closeout gate is the sealed `ResourceMilestoneBCertificationRun`, which
+requires a complete certification bundle, scenario matrix, hostile completion
+evidence, and performance closeout before the phase can be treated as passed.
+
 ## Phase 3: Async Resource Policy Families
 
 See [milestone-c-plan.md](./milestone-c-plan.md) for the concrete engineering
@@ -494,6 +507,8 @@ This roadmap is complete only when all of the following are true:
 - [forge_signal_vision.md](./forge_signal_vision.md)
 - [signal_architecture2.md](./signal_architecture2.md)
 - [milestone-11-closeout.md](./milestone-11-closeout.md)
+- [milestone-a-closeout.md](./milestone-a-closeout.md)
+- [milestone-b-closeout.md](./milestone-b-closeout.md)
 - [test-requirements.md](./test-requirements.md)
 - [MENTALITY.md](../coding_guidelines/MENTALITY.md)
 - [arch_laws.md](../coding_guidelines/arch_laws.md)

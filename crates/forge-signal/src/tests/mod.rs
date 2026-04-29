@@ -39,6 +39,7 @@ mod phase5_state;
 mod phase5_workflows;
 mod reentrancy;
 mod resource_api;
+mod resource_closeout_assertions;
 mod resource_runtime;
 mod rollback_integrity;
 mod rollback_leakage;

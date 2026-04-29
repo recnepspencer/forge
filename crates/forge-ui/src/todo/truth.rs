@@ -57,7 +57,7 @@ impl TodoWorkspace {
 
     fn new() -> Result<Self, ForgeQueryRuntimeError> {
         let mut query = ForgeQueryRuntime::builder()
-            .in_memory_collections([
+            .compatibility_in_memory_collections([
                 ForgeQueryCollection::new(
                     TASKS,
                     [
@@ -348,4 +348,39 @@ fn string_path(payload: &Value, path: &[&str]) -> Option<String> {
 
 fn non_empty_string_path(payload: &Value, path: &[&str]) -> Option<String> {
     string_path(payload, path).filter(|value| !value.trim().is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use forge_query::facade::ForgeQueryRuntimeBackendPosture;
+
+    use super::*;
+
+    #[test]
+    fn todo_workspace_uses_explicit_compatibility_backend_through_runtime_facade() {
+        let mut workspace = TodoWorkspace::seeded();
+
+        assert_eq!(
+            workspace.query.support_profile().posture(),
+            ForgeQueryRuntimeBackendPosture::Compatibility
+        );
+        assert_eq!(workspace.live_columns().len(), 3);
+        assert!(workspace.live_tasks().is_empty());
+
+        workspace
+            .submit(TodoCommand::CreateTask(Task {
+                id: "task-1".to_string(),
+                title: "Batch 9 audit".to_string(),
+                column_id: workspace.live_columns()[0].id.clone(),
+                assignee_id: None,
+                priority: "P1".to_string(),
+                due_date: None,
+                tag: "runtime-api".to_string(),
+            }))
+            .expect("facade write should mutate compatibility backend");
+
+        let tasks = workspace.live_tasks();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].title, "Batch 9 audit");
+    }
 }

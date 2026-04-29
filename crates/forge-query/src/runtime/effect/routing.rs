@@ -177,7 +177,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                 effect.declaration.trigger().source_kind(),
                 reason,
             );
-            effect.deliveries.push(suppressed);
+            effect.record_delivery(suppressed);
             effect.counters.suppressed += 1;
             result.suppressed_effect_count += 1;
             if effect.declaration.suppression_policy()
@@ -199,7 +199,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                         trigger.aspect_paths,
                         payload,
                     );
-                    effect.deliveries.push(delivery);
+                    effect.record_delivery(delivery);
                     effect.counters.delivered += 1;
                     result.delivered_effect_count += 1;
                 }
@@ -212,7 +212,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                         trigger.aspect_paths,
                         payload,
                     );
-                    effect.deliveries.push(delivery);
+                    effect.record_delivery(delivery);
                     effect.counters.pending_write_intents += 1;
                     result.pending_write_intent_count += 1;
                 }
@@ -224,7 +224,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                             trigger.source_kind,
                             "derive-only effects are admitted by policy but not executable as runtime deliveries",
                         );
-                    effect.deliveries.push(delivery);
+                    effect.record_delivery(delivery);
                     effect.counters.suppressed += 1;
                     result.suppressed_effect_count += 1;
                 }
@@ -237,7 +237,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                     trigger.source_kind,
                     reason,
                 );
-                effect.deliveries.push(delivery);
+                effect.record_delivery(delivery);
                 effect.counters.suppressed += 1;
                 result.suppressed_effect_count += 1;
             }
@@ -250,7 +250,7 @@ pub(in crate::runtime) fn route_effect_deliveries(
                     trigger.aspect_paths,
                     reason,
                 );
-                effect.deliveries.push(delivery);
+                effect.record_delivery(delivery);
                 effect.counters.expression_failures += 1;
                 result.expression_failure_count += 1;
             }

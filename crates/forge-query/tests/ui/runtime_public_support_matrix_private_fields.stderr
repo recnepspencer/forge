@@ -1,0 +1,45 @@
+error[E0451]: fields `surface`, `facade_family`, `status`, `owner_milestone`, `extension_rule`, `parallel_api_forbidden`, `admission_fail_closed`, `support_contract_digest` and `row_digest` of struct `ForgeQueryRuntimePublicSupportMatrixRow` are private
+  --> tests/ui/runtime_public_support_matrix_private_fields.rs:9:9
+   |
+ 8 |     let _row = ForgeQueryRuntimePublicSupportMatrixRow {
+   |                --------------------------------------- in this type
+ 9 |         surface: String::from("temporal"),
+   |         ^^^^^^^ private field
+10 |         facade_family: Some(ForgeQueryRuntimeFacadeFamily::Temporal),
+   |         ^^^^^^^^^^^^^ private field
+11 |         status: ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+   |         ^^^^^^ private field
+12 |         owner_milestone: String::from("Milestone 9.4"),
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         extension_rule: String::from("shortcut"),
+   |         ^^^^^^^^^^^^^^ private field
+14 |         parallel_api_forbidden: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         admission_fail_closed: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         support_contract_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field
+
+error[E0451]: fields `backend_posture`, `rows`, `stable_row_count`, `deferred_row_count`, `unsupported_row_count`, `fail_closed_row_count`, `parallel_api_forbidden_row_count` and `matrix_digest` of struct `ForgeQueryRuntimePublicSupportMatrix` are private
+  --> tests/ui/runtime_public_support_matrix_private_fields.rs:21:9
+   |
+20 |     let _matrix = ForgeQueryRuntimePublicSupportMatrix {
+   |                   ------------------------------------ in this type
+21 |         backend_posture: ForgeQueryRuntimeBackendPosture::Compatibility,
+   |         ^^^^^^^^^^^^^^^ private field
+22 |         rows: Vec::new(),
+   |         ^^^^ private field
+23 |         stable_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^ private field
+24 |         deferred_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+25 |         unsupported_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+26 |         fail_closed_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+27 |         parallel_api_forbidden_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+28 |         matrix_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field

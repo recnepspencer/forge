@@ -1,6 +1,6 @@
 use forge_signal::facade::{
     ResourceBoundaryPerformanceEnvelope, ResourceDiagnosticsSummary,
-    ResourceReplayReconstructionReport, ResourceRuntimeSummary,
+    ResourceDiagnosticsExpansionBudget, ResourceReplayReconstructionReport, ResourceRuntimeSummary,
 };
 
 fn forged_replay() -> ResourceReplayReconstructionReport {
@@ -17,6 +17,7 @@ fn main() {
         runtime_summary: ResourceRuntimeSummary::default(),
         latest_branch_restore_report: None,
         replay_reconstruction: forged_replay(),
+        expansion_budget: ResourceDiagnosticsExpansionBudget::retained_summary_only(),
         performance: forged_performance(),
         provenance_digest: String::new(),
     };

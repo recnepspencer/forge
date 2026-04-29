@@ -1,0 +1,13 @@
+error[E0624]: method `with_effect_policy` is private
+ --> tests/ui/runtime_branch_options_policy_override_forbidden.rs:5:10
+  |
+5 |           .with_effect_policy(ForgeQueryEffectPolicy::AuthoritativeAllowed);
+  |            ^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/runtime/authority.rs
+  |
+  | /     pub(in crate::runtime) fn with_effect_policy(
+  | |         mut self,
+  | |         effect_policy: ForgeQueryEffectPolicy,
+  | |     ) -> Self {
+  | |_____________- private method defined here

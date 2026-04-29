@@ -4,6 +4,7 @@ pub mod bootstrap;
 pub mod entities;
 pub mod explanation;
 pub mod invariants;
+pub mod query;
 pub mod relations;
 pub mod seed;
 pub mod tracing;

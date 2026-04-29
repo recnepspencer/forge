@@ -1,0 +1,17 @@
+error[E0451]: fields `backend_posture`, `families`, `stable_family_count`, `deferred_family_count`, `unsupported_family_count` and `contract_digest` of struct `ForgeQueryRuntimePublicApiContract` are private
+  --> tests/ui/runtime_public_api_contract_constructor_private.rs:7:9
+   |
+ 6 |     let _forged = ForgeQueryRuntimePublicApiContract {
+   |                   ---------------------------------- in this type
+ 7 |         backend_posture: ForgeQueryRuntimeBackendPosture::Primary,
+   |         ^^^^^^^^^^^^^^^ private field
+ 8 |         families: Vec::new(),
+   |         ^^^^^^^^ private field
+ 9 |         stable_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         deferred_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         unsupported_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field

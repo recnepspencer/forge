@@ -23,12 +23,27 @@ pub use cancellation::{
 };
 pub use certification::{
     resource_certification_builder, resource_certification_bundle,
-    resource_certification_bundle_parity_report, ResourceCertificationBuilder,
+    resource_certification_bundle_parity_report, resource_milestone_b_certification_run,
+    resource_milestone_b_hostile_scenario_evidence, resource_milestone_b_performance_closeout,
+    resource_milestone_b_scenario_matrix, ResourceCertificationBuilder,
     ResourceCertificationBundle, ResourceCertificationBundleMismatchClass,
     ResourceCertificationBundleParityReport, ResourceCertificationFailure,
     ResourceCertificationFamily, ResourceCertificationRecord, ResourceCertificationSummary,
-    REQUIRED_RESOURCE_CERTIFICATION_FAMILIES, RESOURCE_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
+    ResourceMilestoneBCertificationRun, ResourceMilestoneBCertificationRunSummary,
+    ResourceMilestoneBHostileScenarioEvidence, ResourceMilestoneBHostileScenarioEvidenceRow,
+    ResourceMilestoneBPerformanceClaimId, ResourceMilestoneBPerformanceCloseout,
+    ResourceMilestoneBPerformanceCloseoutRow, ResourceMilestoneBPerformanceCloseoutSummary,
+    ResourceMilestoneBScenarioEvidenceKind, ResourceMilestoneBScenarioId,
+    ResourceMilestoneBScenarioMatrix, ResourceMilestoneBScenarioMatrixSummary,
+    ResourceMilestoneBScenarioRow, REQUIRED_RESOURCE_CERTIFICATION_FAMILIES,
+    REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS,
+    REQUIRED_RESOURCE_MILESTONE_B_PERFORMANCE_CLAIMS, REQUIRED_RESOURCE_MILESTONE_B_SCENARIOS,
+    RESOURCE_CERTIFICATION_BUNDLE_PARITY_SCHEMA_VERSION,
     RESOURCE_CERTIFICATION_BUNDLE_SCHEMA_VERSION,
+    RESOURCE_MILESTONE_B_CERTIFICATION_RUN_SCHEMA_VERSION,
+    RESOURCE_MILESTONE_B_HOSTILE_SCENARIO_EVIDENCE_SCHEMA_VERSION,
+    RESOURCE_MILESTONE_B_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION,
+    RESOURCE_MILESTONE_B_SCENARIO_MATRIX_SCHEMA_VERSION,
 };
 pub use completion::{
     AdmittedResourceCompletion, CommittedResourceCompletionArtifact, DeniedResourceCompletion,
@@ -55,9 +70,10 @@ pub use lifecycle::{
     ResourceLifecycleTransitionKind, ResourceOutputContinuity,
 };
 pub use policy::{
-    ResourceCancellationPolicyDeclaration, ResourceLifecyclePolicyDeclaration,
-    ResourceObservationPolicyDeclaration, ResourceOutputContinuityPolicyDeclaration,
-    ResourcePolicyName, ResourceRetentionPolicyDeclaration, ResourceRetryPolicyDeclaration,
+    ResourceCancellationPolicyDeclaration, ResourceInitialLifecycleClass,
+    ResourceLifecyclePolicyDeclaration, ResourceObservationPolicyDeclaration,
+    ResourceOutputContinuityPolicyDeclaration, ResourcePolicyName,
+    ResourceRetentionPolicyDeclaration, ResourceRetryPolicyDeclaration,
     ResourceRevalidationPolicyDeclaration, ResourceStaleAfterPolicyDeclaration,
     ResourceSupersessionPolicyDeclaration, ResourceTimeoutPolicyDeclaration,
 };
@@ -89,10 +105,10 @@ pub use summary::{
     ResourceCompletionBatchAdmissionReport, ResourceCompletionCommitReport,
     ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
     ResourceCompletionStagingReport, ResourceCostContractId, ResourceCostPosture,
-    ResourceDeclarationReport, ResourceLifecycleSummary, ResourceReplayReconstructionReport,
-    ResourceRequestAdmissionReport, ResourceRetryAdmissionReport, ResourceRetryScheduleReport,
-    ResourceRevalidationReport, ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport,
-    ResourceTimeoutReport,
+    ResourceDeclarationReport, ResourceDensityStrategy, ResourceLifecycleRetentionCompactionReport,
+    ResourceLifecycleSummary, ResourceReplayReconstructionReport, ResourceRequestAdmissionReport,
+    ResourceRetryAdmissionReport, ResourceRetryScheduleReport, ResourceRevalidationReport,
+    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceTimeoutReport,
 };
 pub use supersession::ResourceSupersessionRecord;
 pub use timeout::{DeniedResourceTimeout, ResourceTimeoutDenialClass, TimedOutResourceRequest};

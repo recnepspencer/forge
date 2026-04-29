@@ -1,0 +1,33 @@
+error[E0451]: fields `label`, `handle_name`, `family`, `source_lane`, `preview_lane`, `effect_policy`, `effect_disposition`, `basis_evidence`, `basis_digest`, `effect_delivery_admitted`, `pending_write_intent_admitted`, `authoritative_side_effect_admitted`, `admission_digest` and `inspection_digest` of struct `ForgeQueryPreviewBindingInspection` are private
+  --> tests/ui/runtime_preview_binding_inspection_constructor_private.rs:8:9
+   |
+ 7 |     let _forged = ForgeQueryPreviewBindingInspection {
+   |                   ---------------------------------- in this type
+ 8 |         label: String::new(),
+   |         ^^^^^ private field
+ 9 |         handle_name: String::new(),
+   |         ^^^^^^^^^^^ private field
+10 |         family: ForgeQueryPreviewHandleBindingFamily::LiveView,
+   |         ^^^^^^ private field
+11 |         source_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+12 |         preview_lane: ForgeQueryAuthorityLane::PreviewTruth,
+   |         ^^^^^^^^^^^^ private field
+13 |         effect_policy: ForgeQueryEffectPolicy::DeriveOnly,
+   |         ^^^^^^^^^^^^^ private field
+14 |         effect_disposition: Some(String::new()),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+15 |         basis_evidence: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+16 |         basis_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+17 |         effect_delivery_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         pending_write_intent_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         authoritative_side_effect_admitted: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+21 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
