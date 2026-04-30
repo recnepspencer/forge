@@ -191,6 +191,7 @@ fn callback_snapshot_restore_denies_missing_callback_registrations() {
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })
@@ -227,6 +228,7 @@ fn callback_replay_and_lineage_surfaces_report_callback_availability() {
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })

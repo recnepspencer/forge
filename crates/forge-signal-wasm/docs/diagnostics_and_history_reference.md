@@ -160,6 +160,72 @@ console.log({
 });
 ```
 
+### `latestHostCapabilityEvent()` And `recentHostCapabilityEvents()`
+
+Use these when the important question is not just "what callback reran?" but
+"what host-capability event dirtied or denied this lane?"
+
+Simple:
+
+```ts
+const latestHostEvent = diagnostics.latestHostCapabilityEvent();
+console.log(latestHostEvent?.kind);
+```
+
+Complex:
+
+```ts
+const latestHostEvent = diagnostics.latestHostCapabilityEvent();
+const recentHostEvents = diagnostics.recentHostCapabilityEvents();
+
+console.log({
+  latestKind: latestHostEvent?.kind,
+  queuedInvalidations: latestHostEvent?.queuedInvalidationCount,
+  deniedCallbacks: latestHostEvent?.deniedCallbackIds,
+  recentEventCount: recentHostEvents.length,
+});
+```
+
+### `hostCapabilityReport()`
+
+Use `hostCapabilityReport()` when you want a canonical digest plus:
+
+- one family-grouped summary of host-capability lifecycle and denial behavior
+- a bounded event-lineage report with its own digest
+- a breadth report for queued invalidation, touched-node, and reevaluation
+  maxima
+
+Simple:
+
+```ts
+const hostReport = diagnostics.hostCapabilityReport();
+console.log(hostReport.digest);
+```
+
+Complex:
+
+```ts
+const hostReport = diagnostics.hostCapabilityReport();
+
+console.log({
+  digest: hostReport.digest,
+  lineageDigest: hostReport.lineageDigest,
+  breadthDigest: hostReport.breadthDigest,
+  unavailabilityArtifacts: hostReport.totals.unavailabilityArtifactCount,
+  compatibilityDenials: hostReport.totals.compatibilityDenialCount,
+  maxTouchedNodes: hostReport.breadth.maxTouchedNodes,
+  maxReevaluatedNodes: hostReport.breadth.maxReevaluatedNodes,
+  families: hostReport.families.map((family) => ({
+    family: family.family,
+    latestKind: family.latestKind,
+    latestCompatibility: family.latestCompatibility,
+    invalidationModes: family.invalidationModes,
+    maxTouchedNodes: family.maxTouchedNodes,
+    deniedCallbacks: family.deniedCallbackIds,
+  })),
+});
+```
+
 ### `performanceSummary(): WebPerformanceSummary`
 
 Use `performanceSummary()` for counters and boundedness signals.
@@ -177,6 +243,12 @@ Complex:
 const perf = diagnostics.performanceSummary();
 
 console.log({
+  hostReads: perf.hostCapabilityReadCount,
+  hostInvalidations: perf.hostCapabilityInvalidationCount,
+  hostReevaluations: perf.hostCapabilityReevaluationCount,
+  hostCompatibilityDenials: perf.hostCapabilityCompatibilityDenialCount,
+  hostUnavailabilityArtifacts: perf.hostCapabilityUnavailabilityArtifactCount,
+  hostBroadFanoutDenials: perf.hostCapabilityBroadFanoutDenialCount,
   callbackInvocations: perf.computeCallbackInvocationCount,
   callbackCaptures: perf.computeCallbackCaptureCount,
   callbackReadBreadth: perf.computeCallbackRuntimeReadBreadth,
@@ -246,6 +318,13 @@ console.log({
   branchReplay,
 });
 ```
+
+This is also the right place to inspect host-capability cost honesty:
+
+- how many typed host reads happened at the product facade
+- how many host invalidations were observed and batched
+- how much reevaluation breadth those invalidations caused
+- whether portability denials were recorded explicitly
 
 ### Snapshot And Restore
 
@@ -428,6 +507,7 @@ Methods:
 - `export_runtime_envelope()`
 - `replace_runtime_envelope(envelope)`
 - `runtime_proof_report()`
+- `hostCapabilityTransportReport(envelope?)`
 
 Simple:
 
@@ -447,6 +527,28 @@ console.log({
   unavailableCallbacks: definitions.unavailableCallbacks,
   proofVersion: proof.proofSchemaVersion,
   proofDigest: proof.registryBundleDigest,
+});
+```
+
+Use `hostCapabilityTransportReport(...)` when you want the exported
+host-capability transport posture grouped by family with a canonical digest.
+
+```ts
+const envelope = adapters.exportRuntimeEnvelope();
+const transportReport = adapters.hostCapabilityTransportReport(envelope);
+
+console.log({
+  digest: transportReport.digest,
+  unavailableArtifacts: transportReport.totals.unavailableArtifactCount,
+  deniedFamilies: transportReport.totals.deniedFamilyCount,
+  unavailableFamilies: transportReport.totals.unavailableFamilyCount,
+  families: transportReport.families.map((family) => ({
+    family: family.family,
+    compatibilities: family.compatibilities,
+    portableOutcomes: family.portableImportOutcomes,
+    deniedCallbacks: family.deniedCallbackIds,
+    unavailableCallbacks: family.unavailableCallbackIds,
+  })),
 });
 ```
 

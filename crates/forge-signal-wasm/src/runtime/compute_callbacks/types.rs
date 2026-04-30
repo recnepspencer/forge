@@ -2,6 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::expression::model::SignalValue;
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CapturedHostCapabilityRead {
+    pub family: String,
+    pub registration_id: String,
+    pub compatibility: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ComputeCallbackToken {
@@ -35,6 +43,7 @@ pub struct ComputeCallbackFailure {
 pub struct ComputeCallbackInvocationResult {
     pub value: SignalValue,
     pub captured_read_ids: Vec<String>,
+    pub captured_host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub runtime_read_breadth: u64,
     pub return_serialization_breadth: u64,
 }

@@ -14,6 +14,12 @@ subpath.
 - [app_surface_reference.md](app_surface_reference.md)
   Reference for `createSignals()`, `input`, `computed`, `output`, `watch`,
   `effect`, `transaction`, `batch`, and `nuke`.
+- [host_capabilities.md](host_capabilities.md)
+  Feature guide for `hostCapabilityPlan(...)`, admitted capability families,
+  `signals.host.*`, and host-capability diagnostics and transport posture.
+- [host_capability_closeout.md](host_capability_closeout.md)
+  Acceptance ledger for the closed host-capability milestone, including
+  hostile certification and package-proof evidence.
 - [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
   Reference for diagnostics, latest observation, latest flow, history, branch,
   snapshot, replay, and adapter/export surfaces.
@@ -35,6 +41,8 @@ subpath.
 - [host_callback_computed_spec.md](host_callback_computed_spec.md)
   Callback-first computed-node spec for normal TypeScript authoring with
   dynamic dependencies and diagnostics parity.
+- [host_capability_spec.md](host_capability_spec.md)
+  Closed engineering spec for the typed host-capability lane.
 
 ## Product Model
 
@@ -51,6 +59,7 @@ The primary web concepts are:
 
 The package also exposes:
 
+- typed host capability families for browser/runtime-local facts
 - diagnostics and latest observation summaries
 - history, branching, replay, merge planning, and snapshots
 - adapter/export helpers
@@ -70,6 +79,8 @@ The package also exposes:
 - `transaction` is the committed write boundary.
 - `batch` is an exact alias of `transaction`.
 - `nuke` tears down future deliveries for an observation handle.
+- host capabilities are the typed lane for browser/runtime-local facts and are
+  registered explicitly through `hostCapabilityPlan(...)`.
 - rollback suppresses normal watcher/effect delivery.
 - latest observation and latest flow remain inspectable through diagnostics.
 - aspects are first-class for node definitions, reads, invalidation, and

@@ -13,8 +13,8 @@ use crate::expression::model::SignalValue;
 
 use super::registry::{registered_callback, with_registry_mut, RegisteredComputeCallback};
 use super::types::{
-    ComputeCallbackFailure, ComputeCallbackFailureClass, ComputeCallbackInvocationResult,
-    ComputeCallbackToken,
+    CapturedHostCapabilityRead, ComputeCallbackFailure, ComputeCallbackFailureClass,
+    ComputeCallbackInvocationResult, ComputeCallbackToken,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -167,6 +167,7 @@ fn invocation_result_from_js(
                     return_serialization_breadth: breadth,
                     value,
                     captured_read_ids: Vec::new(),
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 0,
                 }
             })
@@ -206,10 +207,42 @@ fn invocation_result_from_js(
         };
         captured_read_ids.push(read_id);
     }
+    let host_reads_value = Reflect::get(&js_value, &JsValue::from_str("hostCapabilityReads"))
+        .unwrap_or(JsValue::UNDEFINED);
+    let host_reads_array = Array::from(&host_reads_value);
+    let mut captured_host_capability_reads = Vec::with_capacity(host_reads_array.length() as usize);
+    for entry in host_reads_array.iter() {
+        let family = Reflect::get(&entry, &JsValue::from_str("family"))
+            .ok()
+            .and_then(|value| value.as_string());
+        let registration_id = Reflect::get(&entry, &JsValue::from_str("registrationId"))
+            .ok()
+            .and_then(|value| value.as_string());
+        let compatibility = Reflect::get(&entry, &JsValue::from_str("compatibility"))
+            .ok()
+            .and_then(|value| value.as_string());
+        let (Some(family), Some(registration_id), Some(compatibility)) =
+            (family, registration_id, compatibility)
+        else {
+            return Err(ComputeCallbackFailure {
+                class: ComputeCallbackFailureClass::InvalidReturnValue,
+                message:
+                    "compute callback capture envelope must contain only typed host capability read artifacts"
+                        .to_owned(),
+                code: Some("computeCallbackInvalidCapture".to_owned()),
+            });
+        };
+        captured_host_capability_reads.push(CapturedHostCapabilityRead {
+            family,
+            registration_id,
+            compatibility,
+        });
+    }
     Ok(ComputeCallbackInvocationResult {
         return_serialization_breadth: super::types::serialized_breadth(&value),
         value,
         captured_read_ids,
+        captured_host_capability_reads,
         runtime_read_breadth: Reflect::get(&js_value, &JsValue::from_str("runtimeReadBreadth"))
             .ok()
             .and_then(|value| value.as_f64())

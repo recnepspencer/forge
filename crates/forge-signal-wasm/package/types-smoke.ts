@@ -1,17 +1,110 @@
 import {
+  clockCapability,
   createSignals,
+  hostCapabilityPlan,
+  onlineCapability,
+  persistenceCapability,
+  viewportCapability,
   type ComputedSpec,
   type InputSignalHandle,
   type OutputSpec,
   type Signal,
+  visibilityCapability,
 } from "./index.js";
 
-const signals = createSignals();
+let visibilityState: "visible" | "hidden" = "visible";
+let viewportState = { width: 1280, height: 720 };
+let onlineState: "online" | "offline" = "online";
+let clockTick = 0;
+let persistedDraft = { mode: "draft", revision: 1 };
+
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return visibilityState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+      compatibility: "LiveOnly",
+    }),
+    viewport: viewportCapability({
+      source: {
+        current() {
+          return viewportState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+    }),
+    online: onlineCapability({
+      source: {
+        current() {
+          return onlineState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+    }),
+    clock: clockCapability({
+      source: {
+        current() {
+          return clockTick;
+        },
+      },
+      pollMs: 5,
+    }),
+    persistence: persistenceCapability({
+      source: {
+        current() {
+          return persistedDraft;
+        },
+      },
+    }),
+  }),
+});
 
 const count: InputSignalHandle<number> = signals.input(1, { id: "count" });
+const viewport = signals.host.viewport;
+const visibility = signals.host.visibility;
+const online = signals.host.online;
+const clock = signals.host.clock;
+const persistence = signals.host.persistence;
+// @ts-expect-error host capability lifecycle stays framework-owned
+viewport?.free();
+// @ts-expect-error host capability lifecycle stays framework-owned
+visibility?.free();
+// @ts-expect-error host capability lifecycle stays framework-owned
+online?.free();
+// @ts-expect-error host capability lifecycle stays framework-owned
+clock?.free();
+// @ts-expect-error host capability lifecycle stays framework-owned
+persistence?.free();
 const next: number = count();
 const alsoNext: number = count.get();
 const commit = count.set(next + alsoNext);
+const viewportSize = viewport?.size() ?? { width: 0, height: 0 };
+const viewportWidth = viewport?.width() ?? 0;
+const viewportHeight = viewport?.height() ?? 0;
+const viewportDescriptor = viewport?.descriptor();
+const visibilityStateNow = visibility?.state() ?? "hidden";
+const visibilityFlag = visibility?.isVisible() ?? false;
+const visibilityDescriptor = visibility?.descriptor();
+const onlineStateNow = online?.state() ?? "offline";
+const onlineFlag = online?.isOnline() ?? false;
+const onlineDescriptor = online?.descriptor();
+const clockNow = clock?.now() ?? 0;
+const clockDescriptor = clock?.descriptor();
+const persistenceValue = persistence?.value() ?? { mode: "draft", revision: 0 };
+const persistenceMode: "draft" = persistenceValue.mode;
+const persistenceRevision: number = persistenceValue.revision;
+const persistenceDescriptor = persistence?.descriptor();
+const persistenceCommit = persistence?.commit();
 
 const doubledSpec: ComputedSpec = {
   reads: ["count"],
@@ -34,6 +127,21 @@ const constantFromCallback: Signal<number> = signals.computed<number>(
   () => 2,
 );
 const generatedFromCallback: Signal<number> = signals.computed<number>(() => 3, { id: "three" });
+const gatedFromHostCapability: Signal<string> = signals.computed<string>(() => (
+  visibility?.isVisible() ? "onscreen" : "hidden"
+), { id: "gatedFromHostCapability" });
+const viewportLabel: Signal<string> = signals.computed<string>(() => (
+  `${viewport?.width() ?? 0}x${viewport?.height() ?? 0}`
+), { id: "viewportLabel" });
+const onlineLabel: Signal<string> = signals.computed<string>(() => (
+  online?.isOnline() ? "online" : "offline"
+), { id: "onlineLabel" });
+const clockLabel: Signal<number> = signals.computed<number>(() => (
+  (clock?.now() ?? 0) + count()
+), { id: "clockLabel" });
+const persistenceLabel: Signal<number> = signals.computed<number>(() => (
+  persistence?.value().revision ?? 0
+), { id: "persistenceLabel" });
 const legacyDoubledFromSpecAlias: Signal<number> = signals.computedSpec<number>(
   "legacyDoubled",
   doubledSpec,
@@ -70,8 +178,10 @@ const explicitCallbackPanel = signals.outputCallback<{ count: number; doubled: n
 const adapters = signals.adapters();
 const definitions = adapters.exportDefinitions();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
-adapters.replaceRuntimeEnvelope(runtimeEnvelope);
+adapters.restoreExactRuntimeEnvelope(runtimeEnvelope);
+const transportReport = adapters.hostCapabilityTransportReport(runtimeEnvelope);
 const proof = adapters.runtimeProofReport();
+const runtimeEnvelopeRestoreMode = runtimeEnvelope.runtimeEnvelopeRestoreMode;
 const restoredBranchId = runtimeEnvelope.snapshot.snapshot.meta.branch_id;
 const snapshotExplanationRetention =
   runtimeEnvelope.snapshot.snapshot.meta.artifact_retention.explanation_retention;
@@ -90,8 +200,10 @@ const previewBranch = history.create_branch("preview");
 const branchReplay = history.replay_for_branch(currentBranch.id);
 const branchSnapshot = history.branch_snapshot(currentBranch.id);
 const branchEnvelope = history.branch_snapshot_envelope(currentBranch.id);
-history.restore_snapshot(branchEnvelope);
-history.restore_branch_snapshot(currentBranch.id, branchSnapshot);
+const branchSnapshotRestoreMode = branchSnapshot.snapshotRestoreMode;
+const branchEnvelopeRestoreMode = branchEnvelope.snapshotEnvelopeRestoreMode;
+history.restore_exact_snapshot(branchEnvelope);
+history.restore_exact_branch_snapshot(currentBranch.id, branchSnapshot);
 const branchProof = history.branch_state_proof(currentBranch.id);
 const parityProof = history.replay_parity_proof(currentBranch.id, currentBranch.id);
 const artifactProof = history.replay_artifact_proof({
@@ -122,11 +234,26 @@ const previewResultProof = history.merge_branches_policy_preview_with_proof({
 const graphSummary = diagnostics.summaryNow();
 const specialistGraphSummary = specialist.graphSummary();
 const specialistEvaluateDirty = specialist.evaluateDirty();
+const performanceSummary = diagnostics.performanceSummary();
 const latestFlow = diagnostics.latestFlow();
 const latestObservation = diagnostics.latestObservation();
+const latestHostCapabilityEvent = diagnostics.latestHostCapabilityEvent();
+const recentHostCapabilityEvents = diagnostics.recentHostCapabilityEvents();
+const hostCapabilityReport = diagnostics.hostCapabilityReport();
+const hostCapabilityLineageDigest = hostCapabilityReport.lineageDigest;
+const hostCapabilityBreadthDigest = hostCapabilityReport.breadthDigest;
+const hostCapabilityLineageEntry = hostCapabilityReport.lineage[0] ?? null;
+const hostCapabilityBreadthFamily = hostCapabilityReport.breadth.families[0] ?? null;
 const latestFailure = diagnostics.latestFailure();
 const latestFrontierExecution = diagnostics.latestFrontierExecution();
 const recentHistory = diagnostics.recentHistory();
+const latestHostCapabilityRead =
+  latestFlow?.callbackNodes[0]?.hostCapabilityReads[0]?.compatibility ??
+  latestObservation?.callbackNodes[0]?.hostCapabilityReads[0]?.compatibility ??
+  null;
+const unavailableHostCapabilityTransport =
+  runtimeEnvelope.definitions.unavailableCallbacks[0]?.hostCapabilityTransports[0] ?? null;
+const latestCallbackCurrentReads = latestFlow?.callbackNodes[0]?.currentReads ?? [];
 
 const callbackNodeIds =
   latestFlow?.callbackNodes.map((node) => node.id) ??
@@ -138,6 +265,23 @@ const specialistGraphProfile = specialistGraphSummary.profile;
 const specialistTouchedNodes = specialistEvaluateDirty.touchedNodes;
 const latestFailureMessage = latestFailure?.message ?? null;
 const latestFrontierSeedCount = latestFrontierExecution?.seed_count ?? 0;
+const latestHostCapabilityEventKind = latestHostCapabilityEvent?.kind ?? null;
+const latestHostCapabilityEventQueuedCount = latestHostCapabilityEvent?.queuedInvalidationCount ?? 0;
+const latestHostCapabilityDeniedIds = latestHostCapabilityEvent?.deniedCallbackIds ?? [];
+const hostCapabilityInvalidationCount = performanceSummary.hostCapabilityInvalidationCount ?? 0;
+const hostCapabilityReadCount = performanceSummary.hostCapabilityReadCount ?? 0;
+const hostCapabilityPollCount = performanceSummary.hostCapabilityPollCount ?? 0;
+const hostCapabilityNoOpPollCount = performanceSummary.hostCapabilityNoOpPollCount ?? 0;
+const hostCapabilityManualCommitCount = performanceSummary.hostCapabilityManualCommitCount ?? 0;
+const hostCapabilityNoOpManualCommitCount =
+  performanceSummary.hostCapabilityNoOpManualCommitCount ?? 0;
+const hostCapabilityReevaluationCount = performanceSummary.hostCapabilityReevaluationCount ?? 0;
+const hostCapabilityCompatibilityDenialCount =
+  performanceSummary.hostCapabilityCompatibilityDenialCount ?? 0;
+const hostCapabilityUnavailabilityArtifactCount =
+  performanceSummary.hostCapabilityUnavailabilityArtifactCount ?? 0;
+const hostCapabilityBroadFanoutDenialCount =
+  performanceSummary.hostCapabilityBroadFanoutDenialCount ?? 0;
 const branchReplayCallback = branchReplay.frames[0]?.callback?.registered ?? null;
 const branchSnapshotBranchId = branchSnapshot.meta.branch_id;
 const branchEnvelopeSnapshotId = branchEnvelope.snapshot.meta.snapshot_id;
@@ -176,6 +320,11 @@ const forgedSignal: InputSignalHandle<number> = {
 void constantFromCallback;
 void doubledFromCallback;
 void generatedFromCallback;
+void gatedFromHostCapability;
+void viewportLabel;
+void onlineLabel;
+void clockLabel;
+void persistenceLabel;
 void legacyDoubledFromSpecAlias;
 void legacyPanelFromSpecAlias;
 void callbackPanelSnapshot;
@@ -184,6 +333,8 @@ void panelSnapshotFromRead;
 void countSnapshotFromRead;
 void definitions;
 void runtimeEnvelope;
+void runtimeEnvelopeRestoreMode;
+void transportReport;
 void restoredBranchId;
 void snapshotExplanationRetention;
 void checkpointImage;
@@ -200,6 +351,8 @@ void previewBranch;
 void branchReplay;
 void branchSnapshot;
 void branchEnvelope;
+void branchSnapshotRestoreMode;
+void branchEnvelopeRestoreMode;
 void branchProof;
 void parityProof;
 void artifactProof;
@@ -214,6 +367,28 @@ void callbackNodeIds;
 void latestHistoryNode;
 void latestFailureMessage;
 void latestFrontierSeedCount;
+void latestHostCapabilityEventKind;
+void latestHostCapabilityEventQueuedCount;
+void latestHostCapabilityDeniedIds;
+void hostCapabilityReport;
+void hostCapabilityLineageDigest;
+void hostCapabilityBreadthDigest;
+void hostCapabilityLineageEntry;
+void hostCapabilityBreadthFamily;
+void hostCapabilityInvalidationCount;
+void hostCapabilityReadCount;
+void hostCapabilityPollCount;
+void hostCapabilityNoOpPollCount;
+void hostCapabilityManualCommitCount;
+void hostCapabilityNoOpManualCommitCount;
+void hostCapabilityReevaluationCount;
+void hostCapabilityCompatibilityDenialCount;
+void hostCapabilityUnavailabilityArtifactCount;
+void hostCapabilityBroadFanoutDenialCount;
+void latestHostCapabilityRead;
+void recentHostCapabilityEvents;
+void unavailableHostCapabilityTransport;
+void latestCallbackCurrentReads;
 void branchReplayCallback;
 void branchSnapshotBranchId;
 void branchEnvelopeSnapshotId;
@@ -231,4 +406,26 @@ void previewResultTarget;
 void previewResultRecordNode;
 void previewResultCounter;
 void previewResultDigest;
+void viewportState;
+void viewportSize;
+void viewportWidth;
+void viewportHeight;
+void viewportDescriptor;
+void visibilityState;
+void visibilityStateNow;
+void visibilityFlag;
+void visibilityDescriptor;
+void onlineState;
+void onlineStateNow;
+void onlineFlag;
+void onlineDescriptor;
+void clockTick;
+void clockNow;
+void clockDescriptor;
+void persistedDraft;
+void persistenceValue;
+void persistenceMode;
+void persistenceRevision;
+void persistenceDescriptor;
+void persistenceCommit;
 void forgedSignal;

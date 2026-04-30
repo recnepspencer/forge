@@ -30,6 +30,16 @@ The current shipped baseline includes:
 
 - app-first `createSignals()` runtime product surface
 - callback-first `computed(() => ...)` as a real runtime-owned derived lane
+- typed host capability product lane with:
+  - `hostCapabilityPlan(...)`
+  - admitted first families:
+    - `visibility`
+    - `viewport`
+    - `online`
+    - `clock`
+    - `persistence`
+  - diagnostics-visible lineage, breadth, and transport reports
+  - hostile certification and package-proof closeout
 - coherent `input`, `computed`, and `output` product surfaces
 - runtime-scoped callback lifecycle and generation-aware callback ownership
 - React consumption as a disciplined consumer of runtime truth
@@ -40,6 +50,9 @@ The current shipped baseline includes:
 
 The shipped closeout reference for the latest major wasm milestone is
 [host_callback_computed_spec.md](./host_callback_computed_spec.md).
+
+The shipped closeout reference for the first follow-on product milestone is
+[host_capability_closeout.md](./host_capability_closeout.md).
 
 ## Roadmap Rules
 
@@ -115,7 +128,11 @@ Before Milestone 1 begins, the following must already be true:
 If those conditions are not true, this roadmap must pause rather than coding
 against moving semantic targets.
 
-## Milestone 1: Host Capability Product Lane
+## Milestone 1: Host Capability Product Lane (Completed)
+
+Engineering spec: [host_capability_spec.md](./host_capability_spec.md)
+
+Formal closeout: [host_capability_closeout.md](./host_capability_closeout.md)
 
 ### Goal
 
@@ -157,15 +174,9 @@ than being grandfathered in as convenience behavior.
 
 ### Acceptance Evidence
 
-This milestone is complete only when the wasm product surface can prove:
-
-- host-derived callback code does not rely on ambient closure folklore
-- supported host capabilities are typed, lifecycle-owned, and diagnostics-
-  visible
-- restore, replay, and import behavior is explicit for each admitted capability
-  family
-- host-capability invalidation stays bounded and explainable at the public
-  product boundary
+This milestone is now closed. The admitted first-family lane ships as part of
+the wasm baseline, and later milestones should treat host capability as an
+existing product dependency rather than future exploratory work.
 
 ## Milestone 2: Forms Product Surface
 

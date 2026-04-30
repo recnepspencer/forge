@@ -61,12 +61,33 @@ export function activeRuntimeCallbackReader() {
   return reader;
 }
 
+export function recordHostCapabilityRead(rawSignals, descriptor) {
+  const frame = activeComputedCallbackFrame();
+  if (!frame) {
+    return;
+  }
+  if (frame.rawSignals !== rawSignals) {
+    denySignalReadFromForeignRuntime(descriptor.registrationId);
+  }
+  const key = `${descriptor.family}:${descriptor.registrationId}:${descriptor.compatibility}`;
+  if (!frame.hostCapabilityReadKeys.has(key)) {
+    frame.hostCapabilityReadKeys.add(key);
+    frame.hostCapabilityReads.push({
+      family: descriptor.family,
+      registrationId: descriptor.registrationId,
+      compatibility: descriptor.compatibility,
+    });
+  }
+}
+
 export function withComputedCallbackFrame(rawSignals, callback) {
   return function wrappedComputedCallback() {
     const frame = {
       rawSignals,
       reads: new Set(),
       runtimeReadIds: new Set(),
+      hostCapabilityReadKeys: new Set(),
+      hostCapabilityReads: [],
     };
     ACTIVE_COMPUTED_CALLBACK_FRAMES.push(frame);
     try {
@@ -74,6 +95,7 @@ export function withComputedCallbackFrame(rawSignals, callback) {
         __forgeSignalCallbackCapture: true,
         value: callback(),
         reads: [...frame.reads],
+        hostCapabilityReads: frame.hostCapabilityReads,
         runtimeReadBreadth: frame.runtimeReadIds.size,
       };
     } finally {

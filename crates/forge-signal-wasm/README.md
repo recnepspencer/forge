@@ -1,7 +1,7 @@
 # forge-signal-wasm
 
 Framework-agnostic browser bindings for Forge Signal, with a callback-first
-app surface and an optional React adapter.
+app surface, a typed host-capability lane, and an optional React adapter.
 
 ## Install
 
@@ -49,6 +49,65 @@ signals.transaction((tx) => {
 
 console.log(panel());
 ```
+
+## Host Capabilities
+
+Use host capabilities when callback-authored derived state needs approved
+browser/runtime-local facts.
+
+```ts
+import {
+  createSignals,
+  hostCapabilityPlan,
+  visibilityCapability,
+  viewportCapability,
+} from "forge-signal-wasm";
+
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return document.visibilityState;
+        },
+        subscribe(listener) {
+          document.addEventListener("visibilitychange", listener);
+          return () => document.removeEventListener("visibilitychange", listener);
+        },
+      },
+      compatibility: "LiveOnly",
+    }),
+    viewport: viewportCapability({
+      source: {
+        current() {
+          return { width: window.innerWidth, height: window.innerHeight };
+        },
+        subscribe(listener) {
+          window.addEventListener("resize", listener);
+          return () => window.removeEventListener("resize", listener);
+        },
+      },
+    }),
+  }),
+});
+
+const layout = signals.computed(() => (
+  signals.host.visibility.isVisible() && signals.host.viewport.width() > 900
+    ? "wide"
+    : "narrow"
+), { id: "layout" });
+```
+
+Good to know:
+
+- host capability reads are typed `signals.host.*` reads, not ambient closure
+  reads
+- unsupported host reads stay non-reactive by contract
+- diagnostics and transport surfaces preserve denied vs unavailable family
+  posture
+
+For the full guide, see
+[docs/host_capabilities.md](./docs/host_capabilities.md).
 
 ## Core Concepts
 
@@ -230,6 +289,13 @@ Simple:
 ```ts
 const why = diagnostics.why("doubled");
 console.log(why.recipeFamily, why.callback?.currentReads);
+```
+
+Host-capability-specific inspection is also available:
+
+```ts
+const hostReport = diagnostics.hostCapabilityReport();
+const latestHostEvent = diagnostics.latestHostCapabilityEvent();
 ```
 
 Complex:

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::recipe::model::{KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeSpec, SourceSpec};
+use crate::runtime::compute_callbacks::CapturedHostCapabilityRead;
 use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 use forge_signal::facade::adapters::{
@@ -12,11 +13,26 @@ use forge_signal::facade::NodeId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct HostCapabilityTransportArtifact {
+    pub family: String,
+    pub registration_id: String,
+    pub compatibility: String,
+    pub exact_restore_outcome: String,
+    pub portable_import_outcome: String,
+    pub portable_import_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UnavailableCallbackArtifact {
     pub id: String,
     pub signal_kind: String,
     pub reason: String,
     pub current_reads: Vec<String>,
+    #[serde(default)]
+    pub host_capability_reads: Vec<CapturedHostCapabilityRead>,
+    #[serde(default)]
+    pub host_capability_transports: Vec<HostCapabilityTransportArtifact>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

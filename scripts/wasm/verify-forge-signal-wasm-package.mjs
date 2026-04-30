@@ -52,13 +52,115 @@ async function installSmokeDependencies(tempDir, tarballPath) {
 
 async function runRuntimeSmoke(tempDir, packageName) {
   const smokeRuntimePath = path.join(tempDir, "smoke.mjs");
-  const source = `import init, { createSignals } from "${packageName}";
+  const source = `import init, { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, viewportCapability, visibilityCapability } from "${packageName}";
 import * as reactApi from "${packageName}/react";
 
 await init();
-const signals = createSignals();
+let visibilityState = "visible";
+let visibilityListener = null;
+let viewportState = { width: 1280, height: 720 };
+let viewportListener = null;
+let onlineState = "online";
+let onlineListener = null;
+let clockTick = 0;
+let persistedDraft = { mode: "draft", revision: 1 };
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return visibilityState;
+        },
+        subscribe(listener) {
+          visibilityListener = listener;
+          return () => {
+            visibilityListener = null;
+          };
+        },
+      },
+      compatibility: "LiveOnly",
+    }),
+    viewport: viewportCapability({
+      source: {
+        current() {
+          return viewportState;
+        },
+        subscribe(listener) {
+          viewportListener = listener;
+          return () => {
+            viewportListener = null;
+          };
+        },
+      },
+    }),
+    online: onlineCapability({
+      source: {
+        current() {
+          return onlineState;
+        },
+        subscribe(listener) {
+          onlineListener = listener;
+          return () => {
+            onlineListener = null;
+          };
+        },
+      },
+    }),
+    clock: clockCapability({
+      source: {
+        current() {
+          return clockTick;
+        },
+      },
+      pollMs: 5,
+    }),
+    persistence: persistenceCapability({
+      source: {
+        current() {
+          return persistedDraft;
+        },
+      },
+    }),
+  }),
+});
 const count = signals.input(1, { id: "count" });
 const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const visibleLabel = signals.computed(
+  () => (signals.host.visibility?.isVisible() ? "visible" : "hidden"),
+  { id: "visibleLabel" },
+);
+const viewportLabel = signals.computed(
+  () => (signals.host.viewport?.width() ?? 0) + "x" + (signals.host.viewport?.height() ?? 0),
+  { id: "viewportLabel" },
+);
+const onlineLabel = signals.computed(
+  () => (signals.host.online?.isOnline() ? "online" : "offline"),
+  { id: "onlineLabel" },
+);
+const clockLabel = signals.computed(
+  () => (signals.host.clock?.now() ?? 0) + count(),
+  { id: "clockLabel" },
+);
+const persistenceLabel = signals.computed(
+  () => signals.host.persistence?.value().revision ?? 0,
+  { id: "persistenceLabel" },
+);
+  visibleLabel();
+  viewportLabel();
+  onlineLabel();
+  clockLabel();
+  viewportState = { width: 1440, height: 900 };
+  viewportListener?.();
+  visibilityState = "hidden";
+  visibilityListener?.();
+  onlineState = "offline";
+  onlineListener?.();
+  clockTick = 5;
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  persistedDraft = { mode: "draft", revision: 2 };
+  signals.host.persistence?.commit();
+  signals.host.persistence?.commit();
+  await Promise.resolve();
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
@@ -68,13 +170,50 @@ const previewBranch = history.create_branch("preview");
 const replay = history.replay_for_branch(branch.id);
 const snapshot = history.snapshot();
 const branchSnapshot = history.branch_snapshot(branch.id);
+const branchEnvelope = history.branch_snapshot_envelope(branch.id);
 const adapters = signals.adapters();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
-const restored = createSignals();
-restored.adapters().replaceRuntimeEnvelope(runtimeEnvelope);
+const transportReport = adapters.hostCapabilityTransportReport(runtimeEnvelope);
+const restoredExact = createSignals();
+restoredExact.adapters().restoreExactRuntimeEnvelope(runtimeEnvelope);
+const portableImport = createSignals();
+let portableImportError = null;
+try {
+  portableImport.adapters().replaceRuntimeEnvelope(runtimeEnvelope);
+} catch (error) {
+  portableImportError = {
+    code: error?.code ?? null,
+    message: error?.message ?? String(error),
+  };
+}
+const portableImportDiagnostics = portableImport.diagnostics();
+const portableImportLatestHostCapabilityEvent =
+  portableImportDiagnostics.latestHostCapabilityEvent();
+const portableImportRecentHostCapabilityEvents =
+  portableImportDiagnostics.recentHostCapabilityEvents();
+const portableImportHostCapabilityReport =
+  portableImportDiagnostics.hostCapabilityReport();
+const portableImportDeniedCallbackIds =
+  portableImportRecentHostCapabilityEvents.flatMap((event) => event?.deniedCallbackIds ?? []);
+const portableImportPerformanceSummary = portableImportDiagnostics.performanceSummary();
+const unavailableVisibleLabel =
+  runtimeEnvelope.definitions.unavailableCallbacks.find((artifact) => artifact.id === "visibleLabel");
+const unavailableViewportLabel =
+  runtimeEnvelope.definitions.unavailableCallbacks.find((artifact) => artifact.id === "viewportLabel");
+const unavailableOnlineLabel =
+  runtimeEnvelope.definitions.unavailableCallbacks.find((artifact) => artifact.id === "onlineLabel");
+const unavailableClockLabel =
+  runtimeEnvelope.definitions.unavailableCallbacks.find((artifact) => artifact.id === "clockLabel");
+const unavailablePersistenceLabel =
+  runtimeEnvelope.definitions.unavailableCallbacks.find((artifact) => artifact.id === "persistenceLabel");
 const specialist = signals.specialist();
 const specialistGraphSummary = specialist.graphSummary();
 const specialistEvaluateDirty = specialist.evaluateDirty();
+const diagnostics = signals.diagnostics();
+const performanceSummary = diagnostics.performanceSummary();
+const hostCapabilityReport = diagnostics.hostCapabilityReport();
+const latestHostCapabilityEvent = diagnostics.latestHostCapabilityEvent();
+const recentHostCapabilityEvents = diagnostics.recentHostCapabilityEvents();
 const previewPlan = history.plan_merge_policy_preview({
   source_branch_id: previewBranch.id,
   target_branch_id: branch.id,
@@ -93,16 +232,112 @@ const summary = {
   hasCreateSignals: typeof createSignals === "function",
   reactKeys: Object.keys(reactApi).sort(),
   doubled: doubled(),
+  visibleLabel: visibleLabel(),
+  viewportLabel: viewportLabel(),
+  onlineLabel: onlineLabel(),
+  clockLabel: clockLabel(),
+  persistenceLabel: persistenceLabel(),
+  visibilityState: signals.host.visibility?.state() ?? null,
+  visibilityCompatibility: signals.host.visibility?.descriptor().compatibility ?? null,
+  viewportSize: signals.host.viewport?.size() ?? null,
+  viewportCompatibility: signals.host.viewport?.descriptor().compatibility ?? null,
+  onlineState: signals.host.online?.state() ?? null,
+  onlineCompatibility: signals.host.online?.descriptor().compatibility ?? null,
+  clockNow: signals.host.clock?.now() ?? null,
+  clockCompatibility: signals.host.clock?.descriptor().compatibility ?? null,
+  persistenceValue: signals.host.persistence?.value() ?? null,
+  persistenceCompatibility: signals.host.persistence?.descriptor().compatibility ?? null,
+  runtimeEnvelopeRestoreMode: runtimeEnvelope.runtimeEnvelopeRestoreMode,
+  runtimeEnvelopeUnavailableHostCapabilityCompatibility:
+    unavailableVisibleLabel?.hostCapabilityReads[0]?.compatibility ?? null,
+  runtimeEnvelopeUnavailablePortableOutcome:
+    unavailableVisibleLabel?.hostCapabilityTransports[0]?.portableImportOutcome ?? null,
+  runtimeEnvelopeUnavailableExactRestoreOutcome:
+    unavailableVisibleLabel?.hostCapabilityTransports[0]?.exactRestoreOutcome ?? null,
+  runtimeEnvelopeUnavailablePortableReason:
+    unavailableVisibleLabel?.hostCapabilityTransports[0]?.portableImportReason ?? null,
+  runtimeEnvelopeUnavailableOnlineCompatibility:
+    unavailableOnlineLabel?.hostCapabilityReads[0]?.compatibility ?? null,
+  runtimeEnvelopeUnavailableViewportCompatibility:
+    unavailableViewportLabel?.hostCapabilityReads[0]?.compatibility ?? null,
+  runtimeEnvelopeUnavailableViewportPortableOutcome:
+    unavailableViewportLabel?.hostCapabilityTransports[0]?.portableImportOutcome ?? null,
+  runtimeEnvelopeUnavailableViewportPortableReason:
+    unavailableViewportLabel?.hostCapabilityTransports[0]?.portableImportReason ?? null,
+  runtimeEnvelopeUnavailableOnlinePortableOutcome:
+    unavailableOnlineLabel?.hostCapabilityTransports[0]?.portableImportOutcome ?? null,
+  runtimeEnvelopeUnavailableOnlinePortableReason:
+    unavailableOnlineLabel?.hostCapabilityTransports[0]?.portableImportReason ?? null,
+  runtimeEnvelopeUnavailableClockCompatibility:
+    unavailableClockLabel?.hostCapabilityReads[0]?.compatibility ?? null,
+  runtimeEnvelopeUnavailableClockPortableOutcome:
+    unavailableClockLabel?.hostCapabilityTransports[0]?.portableImportOutcome ?? null,
+  runtimeEnvelopeUnavailableClockPortableReason:
+    unavailableClockLabel?.hostCapabilityTransports[0]?.portableImportReason ?? null,
+  runtimeEnvelopeUnavailablePersistenceCompatibility:
+    unavailablePersistenceLabel?.hostCapabilityReads[0]?.compatibility ?? null,
+  runtimeEnvelopeUnavailablePersistencePortableOutcome:
+    unavailablePersistenceLabel?.hostCapabilityTransports[0]?.portableImportOutcome ?? null,
+  runtimeEnvelopeUnavailableCallbackCount:
+    runtimeEnvelope.definitions.unavailableCallbacks.length,
+  runtimeEnvelopeUnavailableCurrentReads: unavailableVisibleLabel?.currentReads ?? [],
+  latestHostCapabilityEventKind: latestHostCapabilityEvent?.kind ?? null,
+  latestHostCapabilityEventQueuedCount: latestHostCapabilityEvent?.queuedInvalidationCount ?? null,
+  recentHostCapabilityEventCount: recentHostCapabilityEvents.length,
+  hostCapabilityReadCount: performanceSummary.hostCapabilityReadCount ?? null,
+  hostCapabilityPollCount: performanceSummary.hostCapabilityPollCount ?? null,
+  hostCapabilityNoOpPollCount: performanceSummary.hostCapabilityNoOpPollCount ?? null,
+  hostCapabilityManualCommitCount: performanceSummary.hostCapabilityManualCommitCount ?? null,
+  hostCapabilityNoOpManualCommitCount: performanceSummary.hostCapabilityNoOpManualCommitCount ?? null,
+  hostCapabilityInvalidationCount: performanceSummary.hostCapabilityInvalidationCount ?? null,
+  hostCapabilityInvalidationBatchFlushCount: performanceSummary.hostCapabilityInvalidationBatchFlushCount ?? null,
+  hostCapabilityReevaluationCount: performanceSummary.hostCapabilityReevaluationCount ?? null,
+  hostCapabilityInvalidationTouchedNodeCount: performanceSummary.hostCapabilityInvalidationTouchedNodeCount ?? null,
+  hostCapabilityCompatibilityDenialCount: performanceSummary.hostCapabilityCompatibilityDenialCount ?? null,
+  hostCapabilityUnavailabilityArtifactCount: performanceSummary.hostCapabilityUnavailabilityArtifactCount ?? null,
+  hostCapabilityBroadFanoutDenialCount: performanceSummary.hostCapabilityBroadFanoutDenialCount ?? null,
+  hostCapabilityReportDigest: hostCapabilityReport.digest,
+  hostCapabilityReportLineageDigest: hostCapabilityReport.lineageDigest,
+  hostCapabilityReportBreadthDigest: hostCapabilityReport.breadthDigest,
+  hostCapabilityReportFamilyCount: hostCapabilityReport.families.length,
+  hostCapabilityReportLineageCount: hostCapabilityReport.lineage.length,
+  hostCapabilityReportMaxTouchedNodes: hostCapabilityReport.breadth.maxTouchedNodes,
+  hostCapabilityReportMaxReevaluatedNodes: hostCapabilityReport.breadth.maxReevaluatedNodes,
+  transportReportDigest: transportReport.digest,
+  transportReportUnavailableArtifactCount: transportReport.totals.unavailableArtifactCount,
+  transportReportDeniedFamilyCount: transportReport.totals.deniedFamilyCount,
+  transportReportUnavailableFamilyCount: transportReport.totals.unavailableFamilyCount,
+  portableImportLatestHostCapabilityEventKind:
+    portableImportLatestHostCapabilityEvent?.kind ?? null,
+  portableImportLatestHostCapabilityEventQueuedCount:
+    portableImportLatestHostCapabilityEvent?.queuedInvalidationCount ?? null,
+  portableImportLatestHostCapabilityEventDeniedIds:
+    portableImportLatestHostCapabilityEvent?.deniedCallbackIds ?? [],
+  portableImportDeniedCallbackIds,
+  portableImportRecentHostCapabilityEventCount:
+    portableImportRecentHostCapabilityEvents.length,
+  portableImportHostCapabilityCompatibilityDenialCount:
+    portableImportPerformanceSummary.hostCapabilityCompatibilityDenialCount ?? null,
+  portableImportHostCapabilityReportDigest:
+    portableImportHostCapabilityReport.digest,
+  portableImportHostCapabilityReportLineageDigest:
+    portableImportHostCapabilityReport.lineageDigest,
+  portableImportHostCapabilityReportFamilyCount:
+    portableImportHostCapabilityReport.families.length,
   branchIdType: typeof branch.id,
   replayFrameCount: replay.frames.length,
   replayHasCallback: replay.frames.some((frame) => frame.callback?.id === "doubled"),
   snapshotBranchId: snapshot.snapshot.meta.branch_id,
   branchSnapshotBranchId: branchSnapshot.meta.branch_id,
+  branchSnapshotRestoreMode: branchSnapshot.snapshotRestoreMode,
+  branchEnvelopeRestoreMode: branchEnvelope.snapshotEnvelopeRestoreMode,
   exportedPolicyPreset: runtimeEnvelope.definitions.policy.preset,
   snapshotPolicyTier: snapshot.snapshot.meta.runtime_policy.tier,
   snapshotReplayHead: snapshot.snapshot.meta.replay_head,
   snapshotExplanationRetention: snapshot.snapshot.meta.artifact_retention.explanation_retention,
-  restoredDoubled: restored.read("doubled"),
+  restoredExactDoubled: restoredExact.read("doubled"),
+  portableImportErrorCode: portableImportError?.code ?? null,
+  portableImportErrorMessage: portableImportError?.message ?? null,
   specialistGraphProfile: specialistGraphSummary.profile,
   specialistTouchedNodes: specialistEvaluateDirty.touchedNodes,
   previewBranchId: previewBranch.id,
@@ -147,11 +382,161 @@ console.log(JSON.stringify(summary));
     "react subpath should export the expected public API",
   );
   assert.equal(result.doubled, 4, "runtime smoke should evaluate callback-first computed values");
+  assert.equal(result.visibleLabel, "hidden", "runtime smoke should reevaluate host capability-backed computed values after capability invalidation");
+  assert.equal(result.viewportLabel, "1440x900", "runtime smoke should reevaluate viewport-backed computed values after push-driven invalidation");
+  assert.equal(result.onlineLabel, "offline", "runtime smoke should reevaluate the second admitted host-capability family after invalidation");
+  assert.equal(result.clockLabel, 7, "runtime smoke should reevaluate the polled clock host-capability family after invalidation");
+  assert.equal(result.visibilityState, "hidden", "host capability visibility state should be readable from the product surface");
+  assert.equal(result.visibilityCompatibility, "LiveOnly", "host capability descriptors should expose typed compatibility posture");
+  assert.deepEqual(result.viewportSize, { width: 1440, height: 900 }, "viewport host capability size should be readable from the product surface");
+  assert.equal(result.viewportCompatibility, "Reattachable", "viewport host capability descriptors should expose the reattachable default posture");
+  assert.equal(result.onlineState, "offline", "online host capability state should be readable from the product surface");
+  assert.equal(result.onlineCompatibility, "Reattachable", "online host capability descriptors should expose the reattachable default posture");
+  assert.equal(result.clockNow, 5, "clock host capability state should be readable from the product surface");
+  assert.equal(result.clockCompatibility, "SnapshotPortable", "clock host capability descriptors should expose the snapshot-portable default posture");
+  assert.deepEqual(
+    result.persistenceValue,
+    { mode: "draft", revision: 2 },
+    "persistence host capability state should be readable from the product surface after an explicit manual commit",
+  );
+  assert.equal(
+    result.persistenceCompatibility,
+    "ImportDenied",
+    "persistence host capability descriptors should expose the import-denied default posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeRestoreMode,
+    "SameRuntimeExact",
+    "runtime envelope artifacts should explicitly say that attached restore tokens are same-runtime exact restore lanes",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableHostCapabilityCompatibility,
+    "LiveOnly",
+    "runtime envelope export should expose typed host capability read artifacts for host-backed callbacks",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailablePortableOutcome,
+    "Denied",
+    "portable runtime-envelope import should expose typed denial posture for live-only host capabilities",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableViewportCompatibility,
+    "Reattachable",
+    "runtime envelope export should preserve the viewport family's typed compatibility posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableViewportPortableOutcome,
+    "Unavailable",
+    "reattachable viewport host capabilities should export an unavailable portable-import posture instead of denial",
+  );
+  assert.equal(
+    typeof result.runtimeEnvelopeUnavailableViewportPortableReason,
+    "string",
+    "runtime envelope export should expose a typed portable-import explanation for viewport host capabilities",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableOnlineCompatibility,
+    "Reattachable",
+    "runtime envelope export should preserve the second family's typed compatibility posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableOnlinePortableOutcome,
+    "Unavailable",
+    "reattachable host capabilities should export an unavailable portable-import posture instead of denial",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableClockCompatibility,
+    "SnapshotPortable",
+    "runtime envelope export should preserve the clock family's typed compatibility posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableClockPortableOutcome,
+    "Unavailable",
+    "snapshot-portable host capabilities should export an unavailable portable-import posture instead of denial",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailablePersistenceCompatibility,
+    "ImportDenied",
+    "runtime envelope export should preserve the persistence family's typed compatibility posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailablePersistencePortableOutcome,
+    "Denied",
+    "import-denied host capabilities should export a denied portable-import posture",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableExactRestoreOutcome,
+    "Live",
+    "attached exact restore tokens should keep same-runtime exact restore distinct from portable import denial",
+  );
+  assert.equal(
+    typeof result.runtimeEnvelopeUnavailablePortableReason,
+    "string",
+    "runtime envelope export should expose a typed portable-import explanation for unavailable host capabilities",
+  );
+  assert.equal(
+    typeof result.runtimeEnvelopeUnavailableOnlinePortableReason,
+    "string",
+    "runtime envelope export should expose a typed portable-import explanation for reattachable host capabilities",
+  );
+  assert.equal(
+    result.runtimeEnvelopeUnavailableCurrentReads.some((read) => String(read).startsWith("__forgeSignal.host.")),
+    false,
+    "runtime envelope export should not leak hidden framework host backing ids through public callback currentReads",
+  );
+  assert.equal(result.hostCapabilityInvalidationCount, 5, "performanceSummary should expose host capability invalidation count");
+  assert.equal(result.hostCapabilityReadCount >= 15, true, "performanceSummary should expose host capability read count across callback and direct host reads");
+  assert.equal(result.hostCapabilityPollCount > 0, true, "performanceSummary should expose polling activity for polled host families");
+  assert.equal(result.hostCapabilityNoOpPollCount >= 0, true, "performanceSummary should expose no-op poll count for polled host families");
+  assert.equal(
+    result.hostCapabilityManualCommitCount,
+    2,
+    "performanceSummary should expose manual-commit activity for manually committed host families",
+  );
+  assert.equal(
+    result.hostCapabilityNoOpManualCommitCount,
+    1,
+    "performanceSummary should expose no-op manual commit suppression for manually committed host families",
+  );
+  assert.equal(result.hostCapabilityUnavailabilityArtifactCount, 5, "performanceSummary should expose exported host capability unavailability artifact count");
+  assert.equal(result.hostCapabilityBroadFanoutDenialCount, 0, "performanceSummary should expose host capability broad-fanout denial count even when no denial mode is active");
+  assert.equal(typeof result.hostCapabilityReportDigest, "string", "diagnostics should expose a canonical host capability report digest");
+  assert.equal(typeof result.hostCapabilityReportLineageDigest, "string", "diagnostics should expose a canonical host capability lineage digest");
+  assert.equal(typeof result.hostCapabilityReportBreadthDigest, "string", "diagnostics should expose a canonical host capability breadth digest");
+  assert.equal(result.hostCapabilityReportFamilyCount >= 5, true, "diagnostics host capability reports should preserve mixed-family event attribution");
+  assert.equal(result.hostCapabilityReportLineageCount >= 5, true, "diagnostics host capability reports should retain a mixed-family event lineage in short package smoke runs");
+  assert.equal(result.hostCapabilityReportLineageCount <= 32, true, "diagnostics host capability reports should keep lineage retention bounded");
+  assert.equal(result.hostCapabilityReportMaxTouchedNodes >= 1, true, "diagnostics host capability breadth reports should expose touched-node breadth");
+  assert.equal(result.hostCapabilityReportMaxReevaluatedNodes >= 1, true, "diagnostics host capability breadth reports should expose reevaluation breadth");
+  assert.equal(typeof result.transportReportDigest, "string", "adapters should expose a canonical host capability transport report digest");
+  assert.equal(result.transportReportUnavailableArtifactCount, result.runtimeEnvelopeUnavailableCallbackCount, "transport reports should count all unavailable callback artifacts in the exported runtime envelope");
+  assert.equal(result.transportReportDeniedFamilyCount, 2, "transport reports should distinguish denied host-capability families");
+  assert.equal(result.transportReportUnavailableFamilyCount, 3, "transport reports should distinguish unavailable host-capability families");
+  assert.equal(result.hostCapabilityInvalidationBatchFlushCount, 5, "performanceSummary should expose batched host invalidation flush count");
+  assert.equal(result.hostCapabilityReevaluationCount, 10, "performanceSummary should expose reevaluation breadth driven by host invalidation");
+  assert.equal(
+    typeof result.hostCapabilityInvalidationTouchedNodeCount,
+    "number",
+    "performanceSummary should expose host invalidation touched-node breadth",
+  );
+  assert.equal(result.latestHostCapabilityEventKind, "InvalidationNoOpSuppressed", "the exporting runtime should retain the latest host-capability lifecycle event, including no-op manual commits");
+  assert.equal(result.latestHostCapabilityEventQueuedCount, 1, "host invalidation events should retain queued batch breadth per family");
+  assert.equal(result.recentHostCapabilityEventCount >= 6, true, "the exporting runtime should retain host invalidation event history across push, polled, and manual-commit families");
   assert.equal(result.branchIdType, "number", "branch handles should expose numeric ids");
   assert.equal(result.replayFrameCount > 0, true, "branch replay should expose retained frames");
   assert.equal(result.replayHasCallback, true, "branch replay should preserve callback metadata");
   assert.equal(result.snapshotBranchId, 0, "snapshot envelope should serialize structured snapshot metadata");
   assert.equal(result.branchSnapshotBranchId, 0, "branch snapshot should serialize structured snapshot metadata");
+  assert.equal(
+    result.branchSnapshotRestoreMode,
+    "SameRuntimeExact",
+    "branch snapshot artifacts should explicitly mark same-runtime exact restore posture",
+  );
+  assert.equal(
+    result.branchEnvelopeRestoreMode,
+    "SameRuntimeExact",
+    "branch snapshot envelope artifacts should explicitly mark same-runtime exact restore posture",
+  );
   assert.equal(typeof result.exportedPolicyPreset, "string", "runtime envelope definitions should expose typed policy presets");
   assert.equal(typeof result.snapshotPolicyTier, "string", "snapshot metadata should expose typed runtime policy tiers");
   assert.equal(
@@ -160,7 +545,55 @@ console.log(JSON.stringify(summary));
     "snapshot metadata should expose a typed replay-head cursor or null",
   );
   assert.equal(typeof result.snapshotExplanationRetention, "string", "snapshot artifact retention policy should expose typed retention categories");
-  assert.equal(result.restoredDoubled, 4, "runtime envelope round-trip should restore callback-computed committed truth through the JS boundary");
+  assert.equal(result.restoredExactDoubled, 4, "exact runtime-envelope restore should restore callback-computed committed truth through the JS boundary");
+  assert.equal(
+    result.portableImportErrorCode,
+    "computeCallbackUnavailableForRuntimeEnvelopeImport",
+    "portable runtime-envelope import should surface a typed denial code for unavailable callback-backed host capability state",
+  );
+  assert.equal(
+    typeof result.portableImportErrorMessage,
+    "string",
+    "portable runtime-envelope import denial should stay self-describing",
+  );
+  assert.equal(
+    result.portableImportErrorMessage.includes("runtime envelope import cannot restore callback-backed nodes without live callback registrations"),
+    true,
+    "portable runtime-envelope import denial should explain why live callback-backed host capability state cannot travel",
+  );
+  assert.equal(
+    result.portableImportLatestHostCapabilityEventKind,
+    "PortableImportDenied",
+    "the importing runtime should record a typed host-capability denial event",
+  );
+  assert.equal(
+    result.portableImportLatestHostCapabilityEventQueuedCount,
+    0,
+    "portable import denial events should not masquerade as queued invalidations",
+  );
+  assert.deepEqual(
+    result.portableImportLatestHostCapabilityEventDeniedIds,
+    ["visibleLabel"],
+    "the latest portable import denial event should stay family-scoped instead of flattening denied families together",
+  );
+  assert.deepEqual(
+    result.portableImportDeniedCallbackIds.sort(),
+    ["persistenceLabel", "visibleLabel"],
+    "portable import denial event history should identify all denied callback nodes across denied host-capability families",
+  );
+  assert.equal(
+    result.portableImportRecentHostCapabilityEventCount,
+    2,
+    "the importing runtime should retain its host-capability denial event history",
+  );
+  assert.equal(
+    result.portableImportHostCapabilityCompatibilityDenialCount,
+    2,
+    "the importing runtime performance summary should expose host capability compatibility denial count",
+  );
+  assert.equal(typeof result.portableImportHostCapabilityReportDigest, "string", "import-side diagnostics should expose a canonical host capability report digest");
+  assert.equal(typeof result.portableImportHostCapabilityReportLineageDigest, "string", "import-side diagnostics should expose a canonical host capability lineage digest");
+  assert.equal(result.portableImportHostCapabilityReportFamilyCount, 2, "import-side host capability reports should remain family-scoped to denied families");
   assert.equal(typeof result.specialistGraphProfile, "string", "specialist graph summaries should expose typed graph profiles");
   assert.equal(typeof result.specialistTouchedNodes, "number", "specialist evaluateDirty should expose typed run summaries");
   assert.equal(
@@ -181,7 +614,7 @@ console.log(JSON.stringify(summary));
 async function runTypeSmoke(tempDir, packageName) {
   const smokeTypePath = path.join(tempDir, "smoke.ts");
   const tscJsPath = path.join(tempDir, "node_modules", "typescript", "bin", "tsc");
-  const source = `import { createSignals } from "${packageName}";
+  const source = `import { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, viewportCapability, visibilityCapability } from "${packageName}";
 import {
   createReactSignalsStore,
   useOutputValue,
@@ -189,14 +622,82 @@ import {
   useSignalsDiagnostics,
 } from "${packageName}/react";
 
-const signals = createSignals();
+let visibilityState: "visible" | "hidden" = "visible";
+let viewportState = { width: 1280, height: 720 };
+let onlineState: "online" | "offline" = "online";
+let clockTick = 0;
+let persistedDraft = { mode: "draft" as const, revision: 1 };
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return visibilityState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+    }),
+    viewport: viewportCapability({
+      source: {
+        current() {
+          return viewportState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+    }),
+    online: onlineCapability({
+      source: {
+        current() {
+          return onlineState;
+        },
+        subscribe() {
+          return () => {};
+        },
+      },
+    }),
+    clock: clockCapability({
+      source: {
+        current() {
+          return clockTick;
+        },
+      },
+      pollMs: 5,
+    }),
+    persistence: persistenceCapability({
+      source: {
+        current() {
+          return persistedDraft;
+        },
+      },
+    }),
+  }),
+});
 const count = signals.input(1, { id: "count" });
+const hostViewport = signals.host.viewport;
 const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const hostVisibility = signals.host.visibility;
+const hostOnline = signals.host.online;
+const hostClock = signals.host.clock;
+const hostPersistence = signals.host.persistence;
+const viewportLabel = signals.computed(
+  () => (hostViewport?.width() ?? 0) + "x" + (hostViewport?.height() ?? 0),
+  { id: "viewportLabel" },
+);
+const persistenceLabel = signals.computed(
+  () => hostPersistence?.value().revision ?? 0,
+  { id: "persistenceLabel" },
+);
 const panel = signals.output(() => ({
   count: count(),
   doubled: doubled(),
 }), { id: "panel" });
 const store = createReactSignalsStore(signals);
+persistedDraft = { mode: "draft", revision: 2 };
+const persistenceCommit = hostPersistence?.commit();
 const adapters = signals.adapters();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
 adapters.replaceRuntimeEnvelope(runtimeEnvelope);
@@ -247,8 +748,42 @@ const previewResultProof = history.merge_branches_policy_preview_with_proof({
 const diagnostics = signals.diagnostics();
 const latestObservation = diagnostics.latestObservation();
 const latestFlow = diagnostics.latestFlow();
+const latestHostCapabilityEvent = diagnostics.latestHostCapabilityEvent();
+const recentHostCapabilityEvents = diagnostics.recentHostCapabilityEvents();
+const hostCapabilityReport = diagnostics.hostCapabilityReport();
+const performanceSummary = diagnostics.performanceSummary();
 const delivered = latestObservation?.observation.delivered_event_count;
 const callbackNodeIds = latestFlow?.callbackNodes.map((node) => node.id) ?? [];
+const callbackHostCapabilityCompatibility =
+  latestFlow?.callbackNodes[0]?.hostCapabilityReads[0]?.compatibility ??
+  latestObservation?.callbackNodes[0]?.hostCapabilityReads[0]?.compatibility ??
+  null;
+const latestHostCapabilityEventKind = latestHostCapabilityEvent?.kind ?? null;
+const latestHostCapabilityQueuedCount = latestHostCapabilityEvent?.queuedInvalidationCount ?? 0;
+const latestHostCapabilityDeniedIds = latestHostCapabilityEvent?.deniedCallbackIds ?? [];
+const hostCapabilityLineageDigest = hostCapabilityReport.lineageDigest;
+const hostCapabilityBreadthDigest = hostCapabilityReport.breadthDigest;
+const hostCapabilityLineageEntry = hostCapabilityReport.lineage[0] ?? null;
+const hostCapabilityBreadthFamily = hostCapabilityReport.breadth.families[0] ?? null;
+const hostCapabilityReadCount = performanceSummary.hostCapabilityReadCount ?? 0;
+const hostCapabilityReevaluationCount = performanceSummary.hostCapabilityReevaluationCount ?? 0;
+const hostCapabilityCompatibilityDenialCount =
+  performanceSummary.hostCapabilityCompatibilityDenialCount ?? 0;
+const hostCapabilityPollCount = performanceSummary.hostCapabilityPollCount ?? 0;
+const hostCapabilityNoOpPollCount = performanceSummary.hostCapabilityNoOpPollCount ?? 0;
+const visibilityMode = hostVisibility?.state() ?? "hidden";
+const visibilityDescriptor = hostVisibility?.descriptor();
+const viewportSize = hostViewport?.size() ?? { width: 0, height: 0 };
+const viewportWidth = hostViewport?.width() ?? 0;
+const viewportHeight = hostViewport?.height() ?? 0;
+const viewportDescriptor = hostViewport?.descriptor();
+const onlineMode = hostOnline?.state() ?? "offline";
+const onlineDescriptor = hostOnline?.descriptor();
+const onlineFlag = hostOnline?.isOnline() ?? false;
+const clockNow = hostClock?.now() ?? 0;
+const clockDescriptor = hostClock?.descriptor();
+const persistenceValue = hostPersistence?.value() ?? { mode: "draft", revision: 0 };
+const persistenceDescriptor = hostPersistence?.descriptor();
 const proofVersion = runtimeProof.proofSchemaVersion;
 const exportedPolicyPreset = runtimeEnvelope.definitions.policy.preset;
 const snapshotPolicyTier = runtimeEnvelope.snapshot.snapshot.meta.runtime_policy.tier;
@@ -277,6 +812,36 @@ const diagnosticsView = useSignalsDiagnostics(store);
 
 void delivered;
 void callbackNodeIds;
+void callbackHostCapabilityCompatibility;
+void latestHostCapabilityEventKind;
+void latestHostCapabilityQueuedCount;
+void latestHostCapabilityDeniedIds;
+void recentHostCapabilityEvents;
+void hostCapabilityLineageDigest;
+void hostCapabilityBreadthDigest;
+void hostCapabilityLineageEntry;
+void hostCapabilityBreadthFamily;
+void hostCapabilityReadCount;
+void hostCapabilityReevaluationCount;
+void hostCapabilityCompatibilityDenialCount;
+void hostCapabilityPollCount;
+void hostCapabilityNoOpPollCount;
+void visibilityState;
+void visibilityMode;
+void visibilityDescriptor;
+void onlineState;
+void onlineMode;
+void onlineDescriptor;
+void onlineFlag;
+void clockTick;
+void clockNow;
+void clockDescriptor;
+void persistedDraft;
+void hostPersistence;
+void persistenceLabel;
+void persistenceCommit;
+void persistenceValue;
+void persistenceDescriptor;
 void runtimeEnvelope;
 void runtimeProof;
 void restoredBranchId;
@@ -322,6 +887,13 @@ void panelView;
 void countView;
 void doubledView;
 void diagnosticsView;
+void viewportState;
+void hostViewport;
+void viewportLabel;
+void viewportSize;
+void viewportWidth;
+void viewportHeight;
+void viewportDescriptor;
 `;
   await writeFile(smokeTypePath, source, "utf8");
   const args = [
@@ -392,6 +964,7 @@ async function main() {
     "package/index.d.ts",
     "package/raw_surface.js",
     "package/product/signals.js",
+    "package/product/host_capabilities.js",
     "package/product/handles.js",
     "package/product/specialist.js",
     "package/product/transactions.js",

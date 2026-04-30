@@ -20,6 +20,13 @@ fn signals_phase7_diagnostics_surfaces_expose_callback_metadata() {
                 Ok(ComputeCallbackInvocationResult {
                     value: SignalValue::Number(*count_state_for_callback.borrow() * 2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: vec![
+                        crate::runtime::compute_callbacks::CapturedHostCapabilityRead {
+                            family: "visibility".to_owned(),
+                            registration_id: "visibility".to_owned(),
+                            compatibility: "LiveOnly".to_owned(),
+                        },
+                    ],
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })
@@ -66,6 +73,14 @@ fn signals_phase7_diagnostics_surfaces_expose_callback_metadata() {
         latest_flow["callbackNodes"][0]["purityPosture"],
         "signalTracked"
     );
+    assert_eq!(
+        latest_flow["callbackNodes"][0]["hostCapabilityReads"][0]["family"],
+        "visibility"
+    );
+    assert_eq!(
+        latest_flow["callbackNodes"][0]["hostCapabilityReads"][0]["compatibility"],
+        "LiveOnly"
+    );
 
     let latest_observation: JsonValue =
         serde_json::to_value(signals.core.borrow().latest_observation().unwrap().unwrap()).unwrap();
@@ -77,6 +92,10 @@ fn signals_phase7_diagnostics_surfaces_expose_callback_metadata() {
     );
     assert!(latest_observation["callbackNodes"].is_array());
     assert_eq!(latest_observation["callbackNodes"][0]["id"], "doubled");
+    assert_eq!(
+        latest_observation["callbackNodes"][0]["hostCapabilityReads"][0]["registrationId"],
+        "visibility"
+    );
     assert_eq!(
         notices
             .lock()
@@ -154,6 +173,7 @@ fn signals_phase7_runtime_envelope_boundary_rejects_callback_unavailable_imports
                 Ok(ComputeCallbackInvocationResult {
                     value: SignalValue::Number(*count_state_for_callback.borrow() * 2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })
