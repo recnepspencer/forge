@@ -77,6 +77,10 @@ pub struct ResourceObservationEvent {
     handle_id: ObservationHandleId,
     policy: ObservationPolicy,
     outcome: ObservationBoundaryOutcome,
+    touched: bool,
+    recomputed: bool,
+    meaningful_change: bool,
+    trigger_matched: bool,
     matched_resource_nodes: Vec<ObservedResourceNodeState>,
 }
 
@@ -86,6 +90,10 @@ impl ResourceObservationEvent {
         handle_id: ObservationHandleId,
         policy: ObservationPolicy,
         outcome: ObservationBoundaryOutcome,
+        touched: bool,
+        recomputed: bool,
+        meaningful_change: bool,
+        trigger_matched: bool,
         matched_resource_nodes: Vec<ObservedResourceNodeState>,
     ) -> Self {
         Self {
@@ -93,6 +101,10 @@ impl ResourceObservationEvent {
             handle_id,
             policy,
             outcome,
+            touched,
+            recomputed,
+            meaningful_change,
+            trigger_matched,
             matched_resource_nodes,
         }
     }
@@ -111,6 +123,22 @@ impl ResourceObservationEvent {
 
     pub fn outcome(&self) -> ObservationBoundaryOutcome {
         self.outcome
+    }
+
+    pub fn touched(&self) -> bool {
+        self.touched
+    }
+
+    pub fn recomputed(&self) -> bool {
+        self.recomputed
+    }
+
+    pub fn meaningful_change(&self) -> bool {
+        self.meaningful_change
+    }
+
+    pub fn trigger_matched(&self) -> bool {
+        self.trigger_matched
     }
 
     pub fn matched_resource_nodes(&self) -> &[ObservedResourceNodeState] {

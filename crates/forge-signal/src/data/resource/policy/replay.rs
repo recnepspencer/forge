@@ -15,6 +15,10 @@ const COMPATIBLE_RETENTION_NARROWING_NAME: &str =
     "signal.resource.replay.compatible-retention-narrowing";
 const COMPATIBLE_DIAGNOSTICS_RICHNESS_CHANGE_NAME: &str =
     "signal.resource.replay.compatible-diagnostics-richness-change";
+const COMPATIBLE_PARAMETER_AND_RETENTION_NAME: &str =
+    "signal.resource.replay.compatible-parameter-expansion-and-retention-narrowing";
+const COMPATIBLE_PARAMETER_AND_DIAGNOSTICS_NAME: &str =
+    "signal.resource.replay.compatible-parameter-expansion-and-diagnostics-richness-change";
 const COMPATIBLE_PARAMETER_RETENTION_AND_DIAGNOSTICS_NAME: &str =
     "signal.resource.replay.compatible-parameter-expansion-and-retention-narrowing-and-diagnostics-richness-change";
 const COMPATIBLE_RETENTION_AND_DIAGNOSTICS_NAME: &str =
@@ -27,6 +31,8 @@ pub enum ResourceReplayDecisionClass {
     CompatibleParameterExpansion,
     CompatibleRetentionNarrowing,
     CompatibleDiagnosticsRichnessChange,
+    CompatibleParameterExpansionAndRetentionNarrowing,
+    CompatibleParameterExpansionAndDiagnosticsRichnessChange,
     CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange,
     CompatibleRetentionNarrowingAndDiagnosticsRichnessChange,
     DenyOnUnknownOrMissing,
@@ -81,6 +87,28 @@ impl ResourceReplayDecisionPlan {
                 Ok(Self::new(
                     frozen,
                     ResourceReplayDecisionClass::CompatibleDiagnosticsRichnessChange,
+                ))
+            }
+            ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndRetentionNarrowing => {
+                ensure_descriptor_name(
+                    frozen,
+                    COMPATIBLE_PARAMETER_AND_RETENTION_NAME,
+                    "compatible parameter and retention replay policy",
+                )?;
+                Ok(Self::new(
+                    frozen,
+                    ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowing,
+                ))
+            }
+            ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndDiagnosticsRichnessChange => {
+                ensure_descriptor_name(
+                    frozen,
+                    COMPATIBLE_PARAMETER_AND_DIAGNOSTICS_NAME,
+                    "compatible parameter and diagnostics replay policy",
+                )?;
+                Ok(Self::new(
+                    frozen,
+                    ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange,
                 ))
             }
             ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange => {
@@ -162,17 +190,21 @@ impl ResourceReplayDecisionPlan {
             ResourcePolicyCompatibilityClass::CompatibleParameterExpansion => matches!(
                 self.class,
                 ResourceReplayDecisionClass::CompatibleParameterExpansion
+                    | ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowing
+                    | ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange
                     | ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange
             ),
             ResourcePolicyCompatibilityClass::CompatibleRetentionNarrowing => matches!(
                 self.class,
                 ResourceReplayDecisionClass::CompatibleRetentionNarrowing
+                    | ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowing
                     | ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange
                     | ResourceReplayDecisionClass::CompatibleRetentionNarrowingAndDiagnosticsRichnessChange
             ),
             ResourcePolicyCompatibilityClass::CompatibleDiagnosticsRichnessChange => matches!(
                 self.class,
                 ResourceReplayDecisionClass::CompatibleDiagnosticsRichnessChange
+                    | ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange
                     | ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange
                     | ResourceReplayDecisionClass::CompatibleRetentionNarrowingAndDiagnosticsRichnessChange
             ),
@@ -191,6 +223,12 @@ impl ResourceReplayDecisionClass {
             Self::CompatibleParameterExpansion => "compatible-parameter-expansion",
             Self::CompatibleRetentionNarrowing => "compatible-retention-narrowing",
             Self::CompatibleDiagnosticsRichnessChange => "compatible-diagnostics-richness-change",
+            Self::CompatibleParameterExpansionAndRetentionNarrowing => {
+                "compatible-parameter-expansion-and-retention-narrowing"
+            }
+            Self::CompatibleParameterExpansionAndDiagnosticsRichnessChange => {
+                "compatible-parameter-expansion-and-diagnostics-richness-change"
+            }
             Self::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange => {
                 "compatible-parameter-expansion-and-retention-narrowing-and-diagnostics-richness-change"
             }

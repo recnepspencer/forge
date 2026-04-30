@@ -1480,6 +1480,24 @@ impl FrozenResourcePolicyRegistry {
                     ResourcePolicySelectionBasis::DeclaredBuiltIn,
                     ResourcePolicyDigest::new("replay:compatible-diagnostics-richness-change"),
                 )?,
+            ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndRetentionNarrowing => self
+                .built_in_policy(
+                    ResourcePolicyKind::Replay,
+                    "signal.resource.replay.compatible-parameter-expansion-and-retention-narrowing",
+                    ResourcePolicySelectionBasis::DeclaredBuiltIn,
+                    ResourcePolicyDigest::new(
+                        "replay:compatible-parameter-expansion-and-retention-narrowing",
+                    ),
+                )?,
+            ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndDiagnosticsRichnessChange => self
+                .built_in_policy(
+                    ResourcePolicyKind::Replay,
+                    "signal.resource.replay.compatible-parameter-expansion-and-diagnostics-richness-change",
+                    ResourcePolicySelectionBasis::DeclaredBuiltIn,
+                    ResourcePolicyDigest::new(
+                        "replay:compatible-parameter-expansion-and-diagnostics-richness-change",
+                    ),
+                )?,
             ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange => self
                 .built_in_policy(
                     ResourcePolicyKind::Replay,
@@ -1859,6 +1877,18 @@ pub(crate) fn built_in_policy_registrations() -> Vec<ResourcePolicyRegistration>
             55,
             ResourcePolicyKind::Replay,
             "signal.resource.replay.compatible-diagnostics-richness-change",
+            21,
+        ),
+        (
+            61,
+            ResourcePolicyKind::Replay,
+            "signal.resource.replay.compatible-parameter-expansion-and-retention-narrowing",
+            21,
+        ),
+        (
+            62,
+            ResourcePolicyKind::Replay,
+            "signal.resource.replay.compatible-parameter-expansion-and-diagnostics-richness-change",
             21,
         ),
         (

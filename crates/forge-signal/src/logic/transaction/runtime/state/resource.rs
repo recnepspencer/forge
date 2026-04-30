@@ -2,6 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
+use super::merge::canonical_digest;
+use super::resource_retry_budget::{ResourceRetryBudgetCharge, ResourceRetryBudgetLedger};
 use crate::data::node::NodeState;
 use crate::data::resource::{
     ActiveResourceRevalidationProof, AdmittedResourceCompletion, AdmittedResourceRequest,
@@ -39,11 +41,12 @@ use crate::data::resource::{
     ResourceRetainedRetryLineageAvailabilityClass, ResourceRetentionCompactionBudget,
     ResourceRetryAdmissionReport, ResourceRetryDenialClass, ResourceRetryOrdinal,
     ResourceRetryReason, ResourceRetryScheduleReport, ResourceRevalidationCoalescing,
-    ResourceRevalidationDenialClass, ResourceRevalidationFreshnessDecision,
-    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
-    ResourceRuntimeSummaryReadReport, ResourceSupersessionOrdinal, ResourceSupersessionRecord,
-    ResourceTimeoutDenialClass, ResourceTimeoutHeartbeatExtensionDenialClass,
-    ResourceTimeoutHeartbeatExtensionReport, ResourceTimeoutOrdinal, ResourceTimeoutReport,
+    ResourceRevalidationDenialClass, ResourceRevalidationFreshnessClass,
+    ResourceRevalidationFreshnessDecision, ResourceRevalidationIntent, ResourceRevalidationReport,
+    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceSupersessionOrdinal,
+    ResourceSupersessionRecord, ResourceTimeoutDeadlineAuthority, ResourceTimeoutDenialClass,
+    ResourceTimeoutHeartbeatExtensionDenialClass, ResourceTimeoutHeartbeatExtensionReport,
+    ResourceTimeoutOrdinal, ResourceTimeoutOutcomeClass, ResourceTimeoutReport,
     RetainedResourceRetryLineage, RolledBackResourceCompletionArtifact, ScheduledResourceRetry,
     StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
     TerminalStateResourceRevalidationProof, TimedOutResourceRequest, ValidatedCompletionEnvelope,
@@ -52,9 +55,6 @@ use crate::data::resource::{
 use crate::data::telemetry::ResourceTelemetry;
 use crate::data::temporal::{ReadyTemporalWake, ScheduledTemporalWake, TemporalWakeId};
 use crate::state::SignalBranchId;
-
-use super::merge::canonical_digest;
-use super::resource_retry_budget::{ResourceRetryBudgetCharge, ResourceRetryBudgetLedger};
 
 const RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION: &str =
     "forge.resource.replay-reconstruction.v1";
@@ -224,8 +224,8 @@ struct ResourceReplayDescriptorDigestBasis<'a> {
 #[derive(Debug, Serialize)]
 struct ResourceReplayDenialDigestBasis<'a> {
     schema_version: &'static str,
-    denied_completions: &'a [DeniedResourceCompletion],
-    unavailable_denied_completions: &'a [ResourceRetainedDeniedCompletionAvailability],
+    denied_completions: &'a [ResourceReplayDeniedCompletionEntryDigestBasis],
+    unavailable_denied_completions: &'a [ResourceReplayUnavailableDeniedCompletionDigestBasis],
 }
 
 #[derive(Debug, Serialize)]
@@ -238,8 +238,56 @@ struct ResourceReplayRetryLineageDigestBasis<'a> {
 #[derive(Debug, Serialize)]
 struct ResourceReplayInFlightDigestBasis<'a> {
     schema_version: &'static str,
-    in_flight_requests: &'a [InFlightResourceRequest],
+    in_flight_requests: &'a [ResourceReplayInFlightEntryDigestBasis<'a>],
     retained_history_availability: &'a [ResourceRetainedHistoryAvailability],
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayHandleDigestBasis {
+    request_id: ResourceRequestId,
+    generation: ResourceGeneration,
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayDeniedCompletionEntryDigestBasis {
+    class: CompletionDenialClass,
+    node: Option<ResourceNodeId>,
+    request_id: ResourceRequestId,
+    generation: ResourceGeneration,
+    restore_epoch: u64,
+    attempt: ResourceAttemptId,
+    payload_byte_len: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayUnavailableDeniedCompletionDigestBasis {
+    request_id: ResourceRequestId,
+    node: Option<ResourceNodeId>,
+    denial_class: CompletionDenialClass,
+    class: ResourceRetainedDeniedCompletionAvailabilityClass,
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceReplayInFlightEntryDigestBasis<'a> {
+    handle: ResourceReplayHandleDigestBasis,
+    node: ResourceNodeId,
+    descriptor_id: ResourceDescriptorId,
+    attempt: ResourceAttemptId,
+    request_intent_digest: &'a str,
+    generation_started_tick: crate::data::temporal::ClockTick,
+    lifecycle: ResourceLifecycleClass,
+    lifecycle_ordinal: ResourceLifecycleOrdinal,
+    status: ResourceInFlightStatus,
+    has_timeout_wake: bool,
+    timeout_duration: Option<crate::data::temporal::TemporalDuration>,
+    timeout_due_tick: Option<crate::data::temporal::ClockTick>,
+    timeout_outcome_class: ResourceTimeoutOutcomeClass,
+    timeout_deadline_authority: ResourceTimeoutDeadlineAuthority,
+    timeout_decision_digest: &'a ResourcePolicyDigest,
+    revalidation_freshness_class: Option<ResourceRevalidationFreshnessClass>,
+    revalidation_freshness_digest: Option<String>,
+    revalidation_policy_decision_digest: Option<ResourcePolicyDigest>,
+    superseded_by: Option<ResourceReplayHandleDigestBasis>,
 }
 
 #[derive(Debug, Serialize)]
@@ -254,6 +302,13 @@ struct ResourceReplayDigestBasis<'a> {
     retained_history_unavailable_count: u32,
     denied_completion_unavailable_count: u32,
     retry_lineage_unavailable_count: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct ResourceRetentionCompactionPolicyProvenanceDigestBasis<'a> {
+    schema_version: &'static str,
+    retained_history_decision_digests: &'a [String],
+    retry_lineage_decision_digests: &'a [String],
 }
 
 #[derive(Debug, Serialize)]
@@ -836,10 +891,33 @@ impl ResourceRuntimeState {
             .values()
             .copied()
             .collect::<Vec<_>>();
+        let denied_completion_entries = denied_completions
+            .iter()
+            .map(|denied| ResourceReplayDeniedCompletionEntryDigestBasis {
+                class: denied.class(),
+                node: denied.node(),
+                request_id: denied.request_id(),
+                generation: denied.generation(),
+                restore_epoch: denied.branch_epoch().restore_epoch(),
+                attempt: denied.attempt(),
+                payload_byte_len: denied.payload_byte_len(),
+            })
+            .collect::<Vec<_>>();
         let unavailable_denied_completions = self
             .pruned_denied_completions_by_id
             .values()
             .copied()
+            .collect::<Vec<_>>();
+        let unavailable_denied_completion_entries = unavailable_denied_completions
+            .iter()
+            .map(
+                |availability| ResourceReplayUnavailableDeniedCompletionDigestBasis {
+                    request_id: availability.request_id(),
+                    node: availability.node(),
+                    denial_class: availability.denial_class(),
+                    class: availability.class(),
+                },
+            )
             .collect::<Vec<_>>();
         let retained_retry_lineages = self
             .retained_retry_lineage_by_ordinal
@@ -893,17 +971,58 @@ impl ResourceRuntimeState {
             });
         let denied_completion_digest = canonical_digest(&ResourceReplayDenialDigestBasis {
             schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
-            denied_completions: &denied_completions,
-            unavailable_denied_completions: &unavailable_denied_completions,
+            denied_completions: &denied_completion_entries,
+            unavailable_denied_completions: &unavailable_denied_completion_entries,
         });
         let retry_lineage_digest = canonical_digest(&ResourceReplayRetryLineageDigestBasis {
             schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
             retained_retry_lineages: &retained_retry_lineages,
             unavailable_retry_lineages: &unavailable_retry_lineages,
         });
+        let in_flight_entries = in_flight_requests
+            .iter()
+            .map(|request| {
+                let revalidation_freshness_decision = request.revalidation_freshness_decision();
+                ResourceReplayInFlightEntryDigestBasis {
+                    handle: ResourceReplayHandleDigestBasis {
+                        request_id: request.handle().request_id(),
+                        generation: request.handle().generation(),
+                    },
+                    node: request.node(),
+                    descriptor_id: request.descriptor_id(),
+                    attempt: request.attempt(),
+                    request_intent_digest: request.request_intent_digest().as_str(),
+                    generation_started_tick: request.generation_started_tick(),
+                    lifecycle: request.lifecycle(),
+                    lifecycle_ordinal: request.lifecycle_ordinal(),
+                    status: request.status(),
+                    has_timeout_wake: request.timeout_wake_id().is_some(),
+                    timeout_duration: request.timeout_duration(),
+                    timeout_due_tick: request.timeout_due_tick(),
+                    timeout_outcome_class: request.timeout_outcome_class(),
+                    timeout_deadline_authority: request.timeout_deadline_authority(),
+                    timeout_decision_digest: request.timeout_decision_digest(),
+                    revalidation_freshness_class: revalidation_freshness_decision
+                        .as_ref()
+                        .map(|decision| decision.class()),
+                    revalidation_freshness_digest: revalidation_freshness_decision
+                        .as_ref()
+                        .map(|decision| decision.freshness_digest().to_owned()),
+                    revalidation_policy_decision_digest: revalidation_freshness_decision
+                        .as_ref()
+                        .map(|decision| decision.policy_decision_digest().clone()),
+                    superseded_by: request.superseded_by().map(|handle| {
+                        ResourceReplayHandleDigestBasis {
+                            request_id: handle.request_id(),
+                            generation: handle.generation(),
+                        }
+                    }),
+                }
+            })
+            .collect::<Vec<_>>();
         let in_flight_digest = canonical_digest(&ResourceReplayInFlightDigestBasis {
             schema_version: RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION,
-            in_flight_requests: &in_flight_requests,
+            in_flight_requests: &in_flight_entries,
             retained_history_availability: &retained_history_availability,
         });
         let replay_digest = canonical_digest(&ResourceReplayDigestBasis {
@@ -1592,6 +1711,21 @@ impl ResourceRuntimeState {
             .map(|scheduled| scheduled.backoff_wake_id())
     }
 
+    fn retry_policy_decision_digest_for_request(
+        &self,
+        request_id: ResourceRequestId,
+    ) -> ResourcePolicyDigest {
+        if let Some(scheduled) = self.pending_retry_by_request.get(&request_id) {
+            return scheduled.policy_decision_digest().clone();
+        }
+        if let Some(in_flight) = self.in_flight_by_request.get(&request_id) {
+            if let Some(descriptor) = self.descriptors.get(&in_flight.descriptor_id()) {
+                return descriptor.retry_decision_plan().decision_digest().clone();
+            }
+        }
+        ResourcePolicyDigest::new("resource-retry-policy-unavailable")
+    }
+
     pub fn clear_pending_retry_for_node(
         &mut self,
         node: ResourceNodeId,
@@ -1630,7 +1764,15 @@ impl ResourceRuntimeState {
         } else {
             None
         };
-        self.deny_retry_schedule(handle.request_id(), class, retry_budget_charge, telemetry)
+        let retry_decision_digest =
+            self.retry_policy_decision_digest_for_request(handle.request_id());
+        self.deny_retry_schedule(
+            handle.request_id(),
+            class,
+            retry_decision_digest,
+            retry_budget_charge,
+            telemetry,
+        )
     }
 
     pub fn deny_resource_retry_admission_for_report(
@@ -1639,7 +1781,9 @@ impl ResourceRuntimeState {
         class: ResourceRetryDenialClass,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceRetryAdmissionReport {
-        self.deny_retry_admission(handle.request_id(), class, telemetry)
+        let retry_decision_digest =
+            self.retry_policy_decision_digest_for_request(handle.request_id());
+        self.deny_retry_admission(handle.request_id(), class, retry_decision_digest, telemetry)
     }
 
     pub fn deny_forced_revalidation_for_report(
@@ -2445,6 +2589,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_schedule(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
+                retry_decision_digest.clone(),
                 None,
                 telemetry,
             );
@@ -2454,6 +2599,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_schedule(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
+                retry_decision_digest.clone(),
                 None,
                 telemetry,
             );
@@ -2464,6 +2610,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_schedule(
                 request_id,
                 ResourceRetryDenialClass::NonRetryableRequest,
+                retry_decision_digest.clone(),
                 None,
                 telemetry,
             );
@@ -2472,6 +2619,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_schedule(
                 request_id,
                 ResourceRetryDenialClass::RetryAlreadyScheduled,
+                retry_decision_digest.clone(),
                 retry_budget_charge,
                 telemetry,
             );
@@ -2481,6 +2629,7 @@ impl ResourceRuntimeState {
                 return self.deny_retry_schedule(
                     request_id,
                     ResourceRetryDenialClass::RetryBudgetExhausted,
+                    retry_decision_digest.clone(),
                     Some(charge),
                     telemetry,
                 );
@@ -2542,6 +2691,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::MissingRetryBackoffWake,
+                self.retry_policy_decision_digest_for_request(request_id),
                 telemetry,
             );
         };
@@ -2549,6 +2699,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
+                scheduled.policy_decision_digest().clone(),
                 telemetry,
             );
         }
@@ -2556,6 +2707,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::WakeMismatch,
+                scheduled.policy_decision_digest().clone(),
                 telemetry,
             );
         }
@@ -2564,6 +2716,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
+                scheduled.policy_decision_digest().clone(),
                 telemetry,
             );
         };
@@ -2571,6 +2724,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
+                scheduled.policy_decision_digest().clone(),
                 telemetry,
             );
         }
@@ -2582,6 +2736,7 @@ impl ResourceRuntimeState {
             return self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::SupersededByNewerRequest,
+                scheduled.policy_decision_digest().clone(),
                 telemetry,
             );
         }
@@ -3227,6 +3382,22 @@ impl ResourceRuntimeState {
         let retained_denied_completion_width = self.denied_completions.len() as u32;
         let retained_retry_lineage_width = self.retained_retry_lineage_by_ordinal.len() as u32;
         let hot_in_flight_width = self.in_flight_by_request.len() as u32;
+        let retained_history_decision_digests = self
+            .pruned_in_flight_history_by_request
+            .values()
+            .map(|availability| availability.retention_decision_digest().as_str().to_owned())
+            .collect::<Vec<_>>();
+        let retry_lineage_decision_digests = self
+            .pruned_retry_lineage_by_ordinal
+            .values()
+            .map(|availability| availability.policy_decision_digest().as_str().to_owned())
+            .collect::<Vec<_>>();
+        let policy_provenance_digest =
+            canonical_digest(&ResourceRetentionCompactionPolicyProvenanceDigestBasis {
+                schema_version: "forge.resource.retention-compaction-policy-provenance.v1",
+                retained_history_decision_digests: &retained_history_decision_digests,
+                retry_lineage_decision_digests: &retry_lineage_decision_digests,
+            });
         let performance = Self::record_boundary_performance(
             telemetry,
             ResourceBoundaryPerformanceEnvelope::lifecycle_retention_compaction(
@@ -3251,6 +3422,7 @@ impl ResourceRuntimeState {
             compacted_superseded_count,
             compacted_cancelled_count,
             compacted_timed_out_count,
+            policy_provenance_digest,
             performance,
         )
     }
@@ -4017,6 +4189,7 @@ impl ResourceRuntimeState {
         &mut self,
         request_id: ResourceRequestId,
         class: ResourceRetryDenialClass,
+        retry_decision_digest: ResourcePolicyDigest,
         retry_budget_charge: Option<ResourceRetryBudgetCharge>,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceRetryScheduleReport {
@@ -4033,6 +4206,7 @@ impl ResourceRuntimeState {
             DeniedResourceRetry::new(
                 request_id,
                 class,
+                retry_decision_digest,
                 retry_budget_charge.map(|charge| charge.scope()),
                 retry_budget_charge.map(|charge| charge.limit()),
                 retry_budget_charge.map(|charge| charge.spent_before()),
@@ -4045,6 +4219,7 @@ impl ResourceRuntimeState {
         &mut self,
         request_id: ResourceRequestId,
         class: ResourceRetryDenialClass,
+        retry_decision_digest: ResourcePolicyDigest,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceRetryAdmissionReport {
         self.record_retry_denial(class, telemetry);
@@ -4058,7 +4233,7 @@ impl ResourceRuntimeState {
             ),
         );
         ResourceRetryAdmissionReport::denied(
-            DeniedResourceRetry::new(request_id, class, None, None, None),
+            DeniedResourceRetry::new(request_id, class, retry_decision_digest, None, None, None),
             performance,
         )
     }

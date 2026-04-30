@@ -1,6 +1,8 @@
 # Milestone C Engineering Spec: Async Resource Policy Families
 
-> **Status:** Planned
+> **Status:** Closed
+>
+> **Closeout:** [milestone-c-closeout.md](./milestone-c-closeout.md)
 >
 > **Roadmap parent:** [forge_signal_temporal_async_roadmap.md](./forge_signal_temporal_async_roadmap.md)
 >
@@ -1397,6 +1399,8 @@ Deliver:
 - policy scenario matrix
 - policy performance closeout
 - final Milestone C certification run
+- final adversarial closeout suites for the crucial mixed temporal and async
+  runtime grammars
 - compile-fail fixtures for private descriptor constructors, policy decision
   constructors, force tokens, budget proofs, compatibility proofs, and facade
   boundaries
@@ -1420,6 +1424,69 @@ Phase 8 implementation rails:
   digest, not only family name
 - trybuild must prove final run, scenario matrix, hostile rows, and performance
   closeout are proof objects, not deserializable truth
+
+### Phase 9: Adversarial Confidence Prioritization And Final Runtime Torture
+
+Deliver:
+
+- one unified async nightmare grammar certification lane
+- one strong async branch-restore-and-replay equivalence lane
+- one strong temporal parity-and-boundedness lane
+- explicit spec language distinguishing crucial closeout coverage from
+  non-blocking exhaustive certification expansion
+
+This phase exists to keep Milestone C honest against the full
+`test-requirements.md` ambition without pretending every enumerated sub-bullet
+needs its own heavyweight standalone suite before the milestone is production
+grade.
+
+The governing prioritization for final closeout is:
+
+- **crucial and blocking**
+  - the unified async nightmare grammar from `19A` / `19B`
+  - async branch restore and replay equivalence from `18`
+  - async resource lifecycle parity from `15`
+  - async rollback and observation equivalence from `17`
+  - temporal wake boundedness from `13`
+- **important, but acceptable to satisfy through stronger combined suites**
+  - temporal eligibility replay parity from `11`
+  - temporal branch restore equivalence from `12`
+  - previous-value and time-gated node equivalence from `14`
+  - out-of-order completion supersession from `16`
+  - broad async policy family workload parity from `20`
+- **non-blocking for Milestone C closeout unless a concrete gap appears**
+  - exhaustive one-suite-per-sub-bullet coverage for every clause in sections
+    `11` through `20A`
+  - full policy-permutation matrices where sampled hostile families and the
+    unified nightmare grammar already prove the same invariant
+  - new certification artifact layers that do not buy a missing behavioral
+    guarantee
+
+Must prove:
+
+- the runtime survives one mixed hostile async grammar that instantiates
+  completion-ordering, completion-integrity, request-identity, liveness, and
+  async-pressure failures together
+- equivalent async branch histories converge to identical canonical lifecycle,
+  denial, inflight, and explanation digests after restore and replay
+- temporal parity and boundedness remain honest under mixed timing policies,
+  branch restore, long idle gaps, sparse frontiers, and threshold oscillation
+- the milestone does not claim exhaustive certification where a smaller number
+  of stronger workload suites already provide the production-grade guarantee
+
+Phase 9 implementation rails:
+
+- prefer fewer mixed hostile suites with stronger invariants over a larger
+  number of decorative scenario-specific tests
+- any suite used to satisfy multiple requirements must assert the exact digests,
+  denial classes, and boundedness counters those requirements care about
+- if a requirement from sections `11` through `20A` is treated as indirectly
+  covered, the owning suite must name that coverage explicitly in the test body
+  or certification helper
+- do not add new proof artifacts in this phase unless an existing artifact
+  cannot honestly carry the required runtime truth
+- the milestone is not allowed to call itself production-grade while the
+  `19A` nightmare grammar is still absent
 
 ### 12.1 Phase Ordering Rationale
 
@@ -1448,6 +1515,9 @@ The ordering is intentionally strict.
   comparing during replay.
 - `Phase 8` comes last because certification must assemble proof from every
   prior phase rather than defining the policy model itself.
+- `Phase 9` follows certification assembly because the final production-grade
+  bar is not "all artifact types exist", it is "the hardest mixed temporal and
+  async failure grammars are actually survived by real workload suites."
 
 If a future edit tries to merge non-adjacent phases, it must prove that no real
 structural dependency, proof boundary, or performance boundary is being hidden
@@ -1482,6 +1552,9 @@ It is done only when `forge-signal` ships:
   decisions without exposing internal constructors
 - compile-fail fixtures for policy proof constructors and facade boundaries
 - final Milestone C certification run
+- explicit mapping from the crucial remaining requirements in
+  `test-requirements.md` to either a direct owning suite or a stronger combined
+  suite that satisfies them
 
 ### 13.1 Required Named Test Families
 
@@ -2023,6 +2096,9 @@ variation through a frozen, typed, replay-honest substrate that:
 - integrates with temporal policy, async/resource lifecycle, branch, restore,
   replay, diagnostics, and certification without inventing a second semantic
   story
+- proves the crucial mixed temporal and async nightmare workloads directly,
+  while allowing less critical requirement bullets to close through stronger
+  combined suites instead of one bespoke suite per clause
 
 At that point, higher-level wasm, route-resource, form, query, and app resource
 surfaces can finally inherit one trustworthy policy model instead of turning

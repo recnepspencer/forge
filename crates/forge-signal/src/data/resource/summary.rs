@@ -845,7 +845,7 @@ impl ResourceRetryScheduleReport {
     }
 
     pub fn denied_retry(&self) -> Option<DeniedResourceRetry> {
-        self.denied_retry
+        self.denied_retry.clone()
     }
 
     pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
@@ -954,8 +954,8 @@ impl ResourceRetryAdmissionReport {
         self.admitted_retry.as_ref()
     }
 
-    pub fn denied_retry(self) -> Option<DeniedResourceRetry> {
-        self.denied_retry
+    pub fn denied_retry(&self) -> Option<DeniedResourceRetry> {
+        self.denied_retry.clone()
     }
 
     pub fn lifecycle(&self) -> Option<ResourceLifecycleSummary> {
@@ -1758,7 +1758,7 @@ pub struct ResourceRuntimeSummaryReadReport {
     performance: ResourceBoundaryPerformanceEnvelope,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceLifecycleRetentionCompactionReport {
     selected_terminal_count: u32,
     reclaimed_in_flight_count: u32,
@@ -1775,6 +1775,7 @@ pub struct ResourceLifecycleRetentionCompactionReport {
     compacted_superseded_count: u32,
     compacted_cancelled_count: u32,
     compacted_timed_out_count: u32,
+    policy_provenance_digest: String,
     performance: ResourceBoundaryPerformanceEnvelope,
 }
 
@@ -1795,6 +1796,7 @@ impl ResourceLifecycleRetentionCompactionReport {
         compacted_superseded_count: u32,
         compacted_cancelled_count: u32,
         compacted_timed_out_count: u32,
+        policy_provenance_digest: String,
         performance: ResourceBoundaryPerformanceEnvelope,
     ) -> Self {
         Self {
@@ -1813,71 +1815,76 @@ impl ResourceLifecycleRetentionCompactionReport {
             compacted_superseded_count,
             compacted_cancelled_count,
             compacted_timed_out_count,
+            policy_provenance_digest,
             performance,
         }
     }
 
-    pub fn selected_terminal_count(self) -> u32 {
+    pub fn selected_terminal_count(&self) -> u32 {
         self.selected_terminal_count
     }
 
-    pub fn reclaimed_in_flight_count(self) -> u32 {
+    pub fn reclaimed_in_flight_count(&self) -> u32 {
         self.reclaimed_in_flight_count
     }
 
-    pub fn retained_history_write_count(self) -> u32 {
+    pub fn retained_history_write_count(&self) -> u32 {
         self.retained_history_write_count
     }
 
-    pub fn retained_history_pruned_count(self) -> u32 {
+    pub fn retained_history_pruned_count(&self) -> u32 {
         self.retained_history_pruned_count
     }
 
-    pub fn retained_history_unavailable_count(self) -> u32 {
+    pub fn retained_history_unavailable_count(&self) -> u32 {
         self.retained_history_unavailable_count
     }
 
-    pub fn retained_denied_completion_pruned_count(self) -> u32 {
+    pub fn retained_denied_completion_pruned_count(&self) -> u32 {
         self.retained_denied_completion_pruned_count
     }
 
-    pub fn retained_retry_lineage_pruned_count(self) -> u32 {
+    pub fn retained_retry_lineage_pruned_count(&self) -> u32 {
         self.retained_retry_lineage_pruned_count
     }
 
-    pub fn retained_history_width(self) -> u32 {
+    pub fn retained_history_width(&self) -> u32 {
         self.retained_history_width
     }
 
-    pub fn retained_denied_completion_width(self) -> u32 {
+    pub fn retained_denied_completion_width(&self) -> u32 {
         self.retained_denied_completion_width
     }
 
-    pub fn retained_retry_lineage_width(self) -> u32 {
+    pub fn retained_retry_lineage_width(&self) -> u32 {
         self.retained_retry_lineage_width
     }
 
-    pub fn hot_in_flight_width(self) -> u32 {
+    pub fn hot_in_flight_width(&self) -> u32 {
         self.hot_in_flight_width
     }
 
-    pub fn compacted_terminal_summary_count(self) -> u32 {
+    pub fn compacted_terminal_summary_count(&self) -> u32 {
         self.compacted_terminal_summary_count
     }
 
-    pub fn compacted_superseded_count(self) -> u32 {
+    pub fn compacted_superseded_count(&self) -> u32 {
         self.compacted_superseded_count
     }
 
-    pub fn compacted_cancelled_count(self) -> u32 {
+    pub fn compacted_cancelled_count(&self) -> u32 {
         self.compacted_cancelled_count
     }
 
-    pub fn compacted_timed_out_count(self) -> u32 {
+    pub fn compacted_timed_out_count(&self) -> u32 {
         self.compacted_timed_out_count
     }
 
-    pub fn performance(self) -> ResourceBoundaryPerformanceEnvelope {
+    pub fn policy_provenance_digest(&self) -> &str {
+        &self.policy_provenance_digest
+    }
+
+    pub fn performance(&self) -> ResourceBoundaryPerformanceEnvelope {
         self.performance
     }
 }

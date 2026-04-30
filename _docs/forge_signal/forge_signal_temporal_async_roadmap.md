@@ -12,13 +12,14 @@ adapters, forms APIs, or query-replacement product surfaces directly. Its job
 is narrower and more foundational:
 
 - make time a first-class runtime primitive
-- make async and resource nodes first-class runtime primitives
+- make async/resource lifecycle first-class and then broaden it into an
+  attachable node capability
 
 The operating rule for this roadmap is:
 
 `admit temporal and async meaning once, lower it once, execute it against canonical runtime truth`
 
-That rule governs both phases:
+That rule governs every phase in this roadmap:
 
 1. time and async semantics must be runtime-owned artifacts rather than host
    callback conventions
@@ -42,6 +43,7 @@ This roadmap extends the direction already named in:
 - [milestone-b-plan.md](./milestone-b-plan.md)
 - [milestone-b-closeout.md](./milestone-b-closeout.md)
 - [milestone-c-plan.md](./milestone-c-plan.md)
+- [milestone-c-closeout.md](./milestone-c-closeout.md)
 - [test-requirements.md](./test-requirements.md)
 
 The key continuity is:
@@ -62,7 +64,7 @@ or application-layer convenience APIs.
 
 > A branchable, replayable runtime with deterministic execution, rollback-safe
 > observation, time-gated nodes, previous-value-sensitive nodes, and
-> async/resource-backed nodes must converge to the same committed derived truth,
+> async-capable nodes must converge to the same committed derived truth,
 > the same lifecycle classifications, and the same diagnostic explanation
 > regardless of whether work was driven by direct invalidation, logical time
 > advance, async completion, retry/cancellation, snapshot restore, or branch
@@ -78,6 +80,8 @@ If any supported path:
   re-entry
 - treats pending/fulfilled/rejected/cancelled as adapter-local UI states rather
   than runtime truth
+- forces async capability to live in a separate conceptual node species instead
+  of composing with the ordinary node model
 - hides broad timer scans, broad inflight scans, or per-node allocation churn
   behind cheap-looking APIs
 - forces later wasm or query layers to define their own time or async truth
@@ -87,7 +91,7 @@ then `forge-signal` has failed.
 
 ## Roadmap Rules
 
-Rules for both remaining signal phases:
+Rules for the temporal/async roadmap phases:
 
 - each phase must define a real runtime capability boundary, not just new
   builder methods
@@ -136,6 +140,7 @@ There is one strict dependency order:
 - `Phase 1: Temporal Runtime Substrate`
 - `Phase 2: Async And Resource Node Runtime Substrate`
 - `Phase 3: Async Resource Policy Families`
+- `Phase 4: Async Capability On Arbitrary Nodes`
 
 The order is intentional.
 
@@ -154,6 +159,10 @@ Async resource policy families come after the async/resource substrate because
 policy variation must consume canonical lifecycle truth, request identity,
 temporal wake proof, transaction apply, and replay artifacts rather than define
 them.
+
+The capability-generalization phase comes after policy-family closeout because
+it broadens how the substrate is expressed. It must reuse the closed lifecycle
+and policy truth rather than redefining them.
 
 ## Phase 1: Temporal Runtime Substrate
 
@@ -277,9 +286,9 @@ acceptance map.
 
 ### Goal
 
-Make async and resource nodes first-class runtime concepts so pending,
-fulfilled, rejected, cancelled, stale, and superseded states are owned by
-`forge-signal` itself rather than by adapters layered above it.
+Make async/resource lifecycle first-class runtime truth so pending, fulfilled,
+rejected, cancelled, stale, and superseded states are owned by `forge-signal`
+itself rather than by adapters layered above it.
 
 ### Adversarial Constraint
 
@@ -401,7 +410,9 @@ evidence, and performance closeout before the phase can be treated as passed.
 ## Phase 3: Async Resource Policy Families
 
 See [milestone-c-plan.md](./milestone-c-plan.md) for the concrete engineering
-specification for this phase.
+specification for this phase and
+[milestone-c-closeout.md](./milestone-c-closeout.md) for the formal closeout
+acceptance map.
 
 ### Goal
 
@@ -468,6 +479,74 @@ with canonical machine-checkable artifacts for policy descriptors, selection
 bases, decision outcomes, replay compatibility, diagnostics, and boundary
 performance envelopes.
 
+### Closeout Status
+
+Phase 3 is closed by
+[milestone-c-closeout.md](./milestone-c-closeout.md).
+
+The closeout gate is the sealed `ResourceMilestoneCCertificationRun`, which
+requires a complete policy certification bundle, scenario matrix, performance
+closeout, replay compatibility evidence, compile-fail proof boundaries, and
+the crucial mixed hostile workload suites before the phase can be treated as
+passed.
+
+## Phase 4: Async Capability On Arbitrary Nodes
+
+See [milestone-d-plan.md](./milestone-d-plan.md) for the concrete engineering
+specification for this phase.
+
+### Goal
+
+Make async a first-class capability attachable to ordinary nodes so the runtime
+keeps one graph model while preserving separate graph dirtiness and async
+lifecycle truth.
+
+### Adversarial Constraint
+
+The same node, when viewed through capability-first and legacy
+resource-shaped APIs, and when combined with conditions, previous-value logic,
+aspects, partitions, branch restore, and replay, must converge to the same
+committed truth and the same denial/explanation artifacts.
+
+### Why This Phase Exists
+
+Milestones B and C correctly closed lifecycle and policy truth in
+resource-shaped terms, but the long-term product vision is broader:
+
+- async should be a capability nodes can opt into
+- conditions and aspects should compose with async capability directly
+- future query, route, form, and refresh APIs should not need to explain a
+  second node species
+
+### Must Ship
+
+- explicit async-capability attachment on ordinary nodes
+- capability-aware node declaration and builder vocabulary
+- condition-, temporal-, and previous-value-aware async admission on ordinary
+  nodes
+- aspect-/partition-aware async-capable nodes
+- async-capable keyed/query/computed families
+- compatibility vocabulary that keeps legacy resource-shaped APIs lowering
+  through the same substrate
+
+### Must Preserve
+
+- node dirtiness remains `Clean | MaybeStale | Dirty`
+- async lifecycle remains orthogonal runtime truth
+- lifecycle law and policy law remain the Milestone B/C substrate, not a new
+  abstraction layer
+- capability attachment may broaden expression, but may not broaden legality
+
+### Acceptance Evidence
+
+This phase is complete only when `forge-signal` can prove:
+
+- the `Async Capability Attachment Equivalence Test`
+- the `Condition-Gated Async Admission Parity Test`
+- the `Aspect-Scoped Async Capability Test`
+- the `Previous-Value And Temporal Async Capability Parity Test`
+- the `Legacy Resource Alias Compatibility Test`
+
 ## Per-Phase Format
 
 Each phase in this roadmap is intentionally small in count but heavy in
@@ -491,6 +570,8 @@ This roadmap is complete only when all of the following are true:
 - previous-value-sensitive and time-gated nodes are replay- and branch-honest
 - async/resource lifecycle is runtime-owned rather than adapter-local
 - async/resource policy variation is descriptor-owned rather than adapter-local
+- async capability is attachable to arbitrary nodes without inventing a second
+  semantic species
 - pending, fulfilled, rejected, cancelled, stale, and superseded states are
   canonical runtime truths
 - branch, snapshot, restore, replay, rollback, diagnostics, and observation all
@@ -509,6 +590,8 @@ This roadmap is complete only when all of the following are true:
 - [milestone-11-closeout.md](./milestone-11-closeout.md)
 - [milestone-a-closeout.md](./milestone-a-closeout.md)
 - [milestone-b-closeout.md](./milestone-b-closeout.md)
+- [milestone-c-closeout.md](./milestone-c-closeout.md)
+- [milestone-d-plan.md](./milestone-d-plan.md)
 - [test-requirements.md](./test-requirements.md)
 - [MENTALITY.md](../coding_guidelines/MENTALITY.md)
 - [arch_laws.md](../coding_guidelines/arch_laws.md)

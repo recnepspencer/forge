@@ -267,6 +267,8 @@ pub enum ResourceReplayPolicyDeclaration {
     CompatibleParameterExpansion,
     CompatibleRetentionNarrowing,
     CompatibleDiagnosticsRichnessChange,
+    CompatibleParameterExpansionAndRetentionNarrowing,
+    CompatibleParameterExpansionAndDiagnosticsRichnessChange,
     CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange,
     CompatibleRetentionNarrowingAndDiagnosticsRichnessChange,
     DenyOnUnknownOrMissing,

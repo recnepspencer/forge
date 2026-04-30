@@ -1,5 +1,325 @@
+use crate::data::telemetry::TemporalTelemetry;
 use crate::facade::*;
 use std::sync::atomic::{AtomicU32, Ordering};
+
+type TestRuntime = SignalRuntime<(), (), (), (), ()>;
+
+#[derive(Debug, Clone)]
+struct TemporalPhase9MixedBranchState {
+    branch_id: SignalBranchId,
+    restored_snapshot_id: SignalSnapshotId,
+    head_snapshot_before_restore: Option<SignalSnapshotId>,
+    head_snapshot_after_restore: Option<SignalSnapshotId>,
+    replay_before_restore: ReplaySlice,
+    replay_after_snapshot_drift: ReplaySlice,
+    replay_after_restore: ReplaySlice,
+    temporal_telemetry_after_restore: TemporalTelemetry,
+    reconstructability_before_restore: TemporalReconstructabilityArtifact,
+    reconstructability_after_snapshot_drift: TemporalReconstructabilityArtifact,
+    reconstructability_after_restore: TemporalReconstructabilityArtifact,
+    restore_parity: TemporalReplayParityReport,
+}
+
+#[derive(Debug, Clone)]
+struct TemporalPhase9MixedWorkloadOutcome {
+    bundle: TemporalCertificationBundle,
+    eligibility_artifact: TemporalReconstructabilityArtifact,
+    eligibility_parity: TemporalReplayParityReport,
+    boundedness_artifact: TemporalReconstructabilityArtifact,
+    previous_value_artifact: TemporalReconstructabilityArtifact,
+    feature: TemporalPhase9MixedBranchState,
+    sibling: TemporalPhase9MixedBranchState,
+    diagnostics_operational: TemporalDiagnosticsSummary,
+    diagnostics_forensic: TemporalDiagnosticsSummary,
+    temporal_telemetry: TemporalTelemetry,
+}
+
+fn exercise_temporal_phase9_hostile_suffix_on_active_branch(
+    runtime: &mut TestRuntime,
+) -> TemporalPhase9MixedBranchState {
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(5),
+        ))
+        .unwrap();
+    let ready = runtime.promote_due_temporal_wakes_ready().unwrap();
+    assert!(
+        ready.len() >= 3,
+        "hostile branch suffix should admit after, throttle, and interval wakes at tick 5"
+    );
+
+    let snapshot = runtime.capture_snapshot();
+    let restored_snapshot_id = snapshot.meta().snapshot_id;
+    let reconstructability_before_restore = snapshot
+        .reconstructability
+        .clone()
+        .expect("temporal hostile branch snapshot should carry reconstructability");
+    let head_snapshot_before_restore = runtime
+        .observe()
+        .branch_head_snapshot_id(runtime.observe().current_branch().id);
+    let replay_before_restore = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
+
+    for wake in ready.iter().take(2) {
+        runtime
+            .retire_temporal_wake(wake.id(), TemporalWakeRetirementReason::Consumed)
+            .unwrap();
+    }
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(9),
+        ))
+        .unwrap();
+    let reconstructability_after_snapshot_drift = runtime
+        .capture_snapshot()
+        .reconstructability
+        .expect("post-drift temporal snapshot should carry reconstructability")
+        .temporal;
+    let replay_after_snapshot_drift = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
+
+    runtime.restore_snapshot(&snapshot).unwrap();
+    let head_snapshot_after_restore = runtime
+        .observe()
+        .branch_head_snapshot_id(runtime.observe().current_branch().id);
+    let replay_after_restore = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
+    let reconstructability_after_restore = runtime
+        .capture_snapshot()
+        .reconstructability
+        .expect("restored temporal snapshot should carry reconstructability")
+        .temporal;
+    let restore_parity = temporal_replay_parity_report(
+        &reconstructability_before_restore.temporal,
+        &reconstructability_after_restore,
+    );
+
+    TemporalPhase9MixedBranchState {
+        branch_id: runtime.observe().current_branch().id,
+        restored_snapshot_id,
+        head_snapshot_before_restore,
+        head_snapshot_after_restore,
+        replay_before_restore,
+        replay_after_snapshot_drift,
+        replay_after_restore,
+        temporal_telemetry_after_restore: runtime.telemetry().temporal,
+        reconstructability_before_restore: reconstructability_before_restore.temporal,
+        reconstructability_after_snapshot_drift,
+        reconstructability_after_restore,
+        restore_parity,
+    }
+}
+
+fn temporal_phase9_mixed_workload() -> TemporalPhase9MixedWorkloadOutcome {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let output_aspect = Aspect::new(3);
+    let source = runtime.graph_mut().node().build();
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                        output_aspect,
+                        41,
+                    )]))
+                    .with_output_identity("phase9-temporal-previous"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let after = runtime.graph_mut().node().after(3).unwrap().build();
+    let debounce = runtime.graph_mut().node().debounce(5).unwrap().build();
+    let throttle = runtime.graph_mut().node().throttle(5).unwrap().build();
+    let stale_after = runtime.graph_mut().node().stale_after(7).unwrap().build();
+    let interval = runtime.graph_mut().node().interval(5).unwrap().build();
+    let temporal_nodes = [after, debounce, throttle, stale_after, interval];
+
+    let initial = runtime
+        .transaction(&mut (), |tx| {
+            for node in temporal_nodes {
+                tx.evaluate_with_plan(
+                    node,
+                    &|_ctx| {
+                        Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
+                            AspectVersion::from_updates([(output_aspect, 1)]),
+                        ))
+                    },
+                    EvaluationRequestMode::Default,
+                )?;
+            }
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(initial.temporal_summary.deferred_count(), 5);
+    assert_eq!(initial.temporal_summary.resolver_fallback_count(), 0);
+    assert_eq!(initial.temporal_evidence.scheduled_wakes.len(), 5);
+    assert_eq!(initial.temporal_evidence.eligibility_facts.len(), 5);
+    let eligibility_artifact = initial.reconstructability.temporal.clone();
+    let eligibility_parity = runtime
+        .temporal_replay_parity_report(&initial.reconstructability, &initial.reconstructability);
+
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(2),
+        ))
+        .unwrap();
+    let burst = runtime
+        .transaction(&mut (), |tx| {
+            tx.evaluate_with_plan(
+                debounce,
+                &|_ctx| {
+                    Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
+                        AspectVersion::from_updates([(output_aspect, 2)]),
+                    ))
+                },
+                EvaluationRequestMode::Default,
+            )?;
+            tx.evaluate_with_plan(
+                throttle,
+                &|_ctx| {
+                    Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
+                        AspectVersion::from_updates([(output_aspect, 3)]),
+                    ))
+                },
+                EvaluationRequestMode::Default,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(burst.temporal_evidence.rescheduled_wakes.len(), 1);
+    assert_eq!(burst.temporal_evidence.reused_wakes.len(), 1);
+    assert_eq!(
+        runtime.temporal_wake_summary().scheduled_count(),
+        5,
+        "debounce supersession and throttle reuse must not widen the live frontier"
+    );
+
+    let main = runtime.current_branch();
+    let feature = runtime.create_branch("phase9-temporal-feature").unwrap();
+    let sibling = runtime.create_branch("phase9-temporal-sibling").unwrap();
+
+    runtime.switch_branch(feature.clone()).unwrap();
+    let feature = exercise_temporal_phase9_hostile_suffix_on_active_branch(&mut runtime);
+
+    runtime.switch_branch(sibling.clone()).unwrap();
+    let sibling = exercise_temporal_phase9_hostile_suffix_on_active_branch(&mut runtime);
+
+    runtime.switch_branch(main).unwrap();
+    let collapse = IntervalCondition::try_new(5)
+        .unwrap()
+        .with_missed_tick_policy(MissedTickPolicy::CollapseToOne);
+    let skip = IntervalCondition::try_new(5)
+        .unwrap()
+        .with_missed_tick_policy(MissedTickPolicy::SkipToLatest);
+    let catch_up = IntervalCondition::try_new(5)
+        .unwrap()
+        .with_missed_tick_policy(MissedTickPolicy::CatchUpAll);
+    let bounded_wakes = [
+        runtime
+            .schedule_temporal_wake(TemporalCondition::interval(collapse), ClockTick::new(10))
+            .unwrap(),
+        runtime
+            .schedule_temporal_wake(TemporalCondition::interval(skip), ClockTick::new(10))
+            .unwrap(),
+        runtime
+            .schedule_temporal_wake(TemporalCondition::interval(catch_up), ClockTick::new(10))
+            .unwrap(),
+    ];
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(1_010),
+        ))
+        .unwrap();
+    runtime.promote_due_temporal_wakes_ready().unwrap();
+    let mut wake_boundedness_evidence = TemporalTransactionEvidence::default();
+    wake_boundedness_evidence.clock_basis = runtime.clock_basis();
+    for wake in bounded_wakes {
+        let regeneration = runtime.regenerate_interval_wake(wake.id()).unwrap();
+        wake_boundedness_evidence
+            .interval_regenerations
+            .push(regeneration);
+    }
+    let boundedness_artifact = TemporalReconstructabilityArtifact::from_evidence(
+        runtime.temporal_wake_summary(),
+        &wake_boundedness_evidence,
+    );
+
+    let previous_wake = runtime
+        .schedule_temporal_wake(TemporalCondition::after(1).unwrap(), ClockTick::new(1_011))
+        .unwrap();
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(1_011),
+        ))
+        .unwrap();
+    runtime.promote_due_temporal_wakes_ready().unwrap();
+    let previous_access = runtime
+        .grant_temporal_previous_value_access(previous_wake.id())
+        .unwrap();
+    let previous_reference = runtime
+        .previous_temporal_value(&previous_access, source)
+        .unwrap();
+    let mut previous_evidence = TemporalTransactionEvidence::default();
+    previous_evidence.clock_basis = runtime.clock_basis();
+    previous_evidence
+        .previous_value_references
+        .push(previous_reference);
+    let previous_value_artifact = TemporalReconstructabilityArtifact::from_evidence(
+        runtime.temporal_wake_summary(),
+        &previous_evidence,
+    );
+
+    let bundle = runtime
+        .temporal_certification_builder()
+        .with_temporal_eligibility_replay_parity(
+            eligibility_artifact.clone(),
+            eligibility_parity.clone(),
+        )
+        .unwrap()
+        .with_temporal_branch_restore_equivalence(
+            feature.reconstructability_after_restore.clone(),
+            feature.restore_parity.clone(),
+        )
+        .unwrap()
+        .with_temporal_wake_boundedness(boundedness_artifact.clone())
+        .unwrap()
+        .with_previous_value_time_gated_equivalence(previous_value_artifact.clone())
+        .unwrap()
+        .build()
+        .unwrap();
+
+    let diagnostics_operational = runtime
+        .observe()
+        .temporal_diagnostics_summary(DiagnosticsLevel::Operational);
+    let diagnostics_forensic = runtime
+        .observe()
+        .temporal_diagnostics_summary(DiagnosticsLevel::Forensic);
+
+    TemporalPhase9MixedWorkloadOutcome {
+        bundle,
+        eligibility_artifact,
+        eligibility_parity,
+        boundedness_artifact,
+        previous_value_artifact,
+        feature,
+        sibling,
+        diagnostics_operational,
+        diagnostics_forensic,
+        temporal_telemetry: runtime.telemetry().temporal,
+    }
+}
 
 #[test]
 fn clock_advance_rejects_metadata_only_domains() {
@@ -3136,270 +3456,261 @@ fn temporal_certification_builder_requires_distinct_family_evidence_lanes() {
 }
 
 #[test]
-fn milestone_a_closeout_bundle_covers_hostile_temporal_certification_paths() {
-    let mut runtime = SignalRuntime::builder(SignalGraph::new())
-        .with_kernel_defaults()
-        .build();
-    let output_aspect = Aspect::new(3);
-    let source = runtime.graph_mut().node().build();
-    runtime
-        .transaction(&mut (), |tx| {
-            tx.read(source, &|view| {
-                Ok(view.finish(
-                    NodeEvaluationResult::from_version(AspectVersion::from_updates([(
-                        output_aspect,
-                        41,
-                    )]))
-                    .with_output_identity("milestone-a-closeout-previous"),
-                ))
-            })?;
-            Ok(())
-        })
-        .unwrap();
+fn temporal_phase9_mixed_workload_preserves_parity_and_boundedness_across_branch_restore() {
+    let outcome = temporal_phase9_mixed_workload();
 
-    let after = runtime.graph_mut().node().after(3).unwrap().build();
-    let debounce = runtime.graph_mut().node().debounce(5).unwrap().build();
-    let throttle = runtime.graph_mut().node().throttle(5).unwrap().build();
-    let stale_after = runtime.graph_mut().node().stale_after(7).unwrap().build();
-    let interval = runtime.graph_mut().node().interval(5).unwrap().build();
-    let temporal_nodes = [after, debounce, throttle, stale_after, interval];
+    assert!(outcome.bundle.passed, "{:?}", outcome.bundle.failures);
+    assert_eq!(outcome.bundle.summary.passed_family_count, 4);
 
-    let initial = runtime
-        .transaction(&mut (), |tx| {
-            for node in temporal_nodes {
-                tx.evaluate_with_plan(
-                    node,
-                    &|_ctx| {
-                        Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
-                            AspectVersion::from_updates([(output_aspect, 1)]),
-                        ))
-                    },
-                    EvaluationRequestMode::Default,
-                )?;
-            }
-            Ok(())
-        })
-        .unwrap();
-    assert_eq!(initial.temporal_summary.deferred_count(), 5);
-    assert_eq!(initial.temporal_summary.resolver_fallback_count(), 0);
-    assert_eq!(initial.temporal_evidence.scheduled_wakes.len(), 5);
-    assert_eq!(initial.temporal_evidence.eligibility_facts.len(), 5);
-    let eligibility_parity = runtime
-        .temporal_replay_parity_report(&initial.reconstructability, &initial.reconstructability);
-
-    runtime
-        .advance_clock(ClockAdvanceRequest::new(
-            ClockDomain::MonotonicExecution,
-            ClockTick::new(2),
-        ))
-        .unwrap();
-    let burst = runtime
-        .transaction(&mut (), |tx| {
-            tx.evaluate_with_plan(
-                debounce,
-                &|_ctx| {
-                    Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
-                        AspectVersion::from_updates([(output_aspect, 2)]),
-                    ))
-                },
-                EvaluationRequestMode::Default,
-            )?;
-            tx.evaluate_with_plan(
-                throttle,
-                &|_ctx| {
-                    Ok::<NodeEvaluationResult, SignalError>(NodeEvaluationResult::from_version(
-                        AspectVersion::from_updates([(output_aspect, 3)]),
-                    ))
-                },
-                EvaluationRequestMode::Default,
-            )?;
-            Ok(())
-        })
-        .unwrap();
-    assert_eq!(burst.temporal_evidence.rescheduled_wakes.len(), 1);
-    assert_eq!(burst.temporal_evidence.reused_wakes.len(), 1);
-    assert_eq!(
-        runtime.temporal_wake_summary().scheduled_count(),
-        5,
-        "debounce supersession and throttle reuse must not widen the live frontier"
-    );
-
-    let main = runtime.current_branch();
-    let feature = runtime
-        .create_branch("milestone-a-closeout-temporal")
-        .unwrap();
-    runtime.switch_branch(feature).unwrap();
-    runtime
-        .advance_clock(ClockAdvanceRequest::new(
-            ClockDomain::MonotonicExecution,
-            ClockTick::new(5),
-        ))
-        .unwrap();
-    let feature_ready = runtime.promote_due_temporal_wakes_ready().unwrap();
     assert!(
-        feature_ready.len() >= 3,
-        "feature branch should admit after, throttle, and interval wakes at tick 5"
-    );
-    let feature_snapshot = runtime.capture_snapshot();
-    let expected_restore = feature_snapshot
-        .reconstructability
-        .clone()
-        .expect("feature snapshot should carry temporal reconstructability");
-    assert!(expected_restore.temporal.ready_wake_count >= 3);
-
-    for ready in feature_ready.iter().take(2) {
-        runtime
-            .retire_temporal_wake(ready.id(), TemporalWakeRetirementReason::Consumed)
-            .unwrap();
-    }
-    runtime
-        .advance_clock(ClockAdvanceRequest::new(
-            ClockDomain::MonotonicExecution,
-            ClockTick::new(9),
-        ))
-        .unwrap();
-    runtime.restore_snapshot(&feature_snapshot).unwrap();
-    assert_eq!(
-        runtime
-            .telemetry()
-            .temporal
-            .branch_restore_temporal_rebuild_denial_count,
-        1,
-        "feature restore must consume retained temporal state before returning to main"
-    );
-    let replayed_restore = runtime
-        .capture_snapshot()
-        .reconstructability
-        .expect("restored feature snapshot should carry temporal reconstructability");
-    let restore_parity =
-        runtime.temporal_replay_parity_report(&expected_restore, &replayed_restore);
-    assert!(
-        restore_parity.parity,
+        outcome.eligibility_parity.parity,
         "{:?}",
-        restore_parity.mismatch_classes
+        outcome.eligibility_parity.mismatch_classes
     );
-
-    runtime.switch_branch(main).unwrap();
-    let collapse = IntervalCondition::try_new(5)
-        .unwrap()
-        .with_missed_tick_policy(MissedTickPolicy::CollapseToOne);
-    let skip = IntervalCondition::try_new(5)
-        .unwrap()
-        .with_missed_tick_policy(MissedTickPolicy::SkipToLatest);
-    let catch_up = IntervalCondition::try_new(5)
-        .unwrap()
-        .with_missed_tick_policy(MissedTickPolicy::CatchUpAll);
-    let bounded_wakes = [
-        runtime
-            .schedule_temporal_wake(TemporalCondition::interval(collapse), ClockTick::new(10))
-            .unwrap(),
-        runtime
-            .schedule_temporal_wake(TemporalCondition::interval(skip), ClockTick::new(10))
-            .unwrap(),
-        runtime
-            .schedule_temporal_wake(TemporalCondition::interval(catch_up), ClockTick::new(10))
-            .unwrap(),
-    ];
-    runtime
-        .advance_clock(ClockAdvanceRequest::new(
-            ClockDomain::MonotonicExecution,
-            ClockTick::new(1_010),
-        ))
-        .unwrap();
-    runtime.promote_due_temporal_wakes_ready().unwrap();
-    let mut wake_boundedness_evidence = TemporalTransactionEvidence::default();
-    wake_boundedness_evidence.clock_basis = runtime.clock_basis();
-    for wake in bounded_wakes {
-        let regeneration = runtime.regenerate_interval_wake(wake.id()).unwrap();
-        wake_boundedness_evidence
-            .interval_regenerations
-            .push(regeneration);
-    }
-    let wake_boundedness_artifact = TemporalReconstructabilityArtifact::from_evidence(
-        runtime.temporal_wake_summary(),
-        &wake_boundedness_evidence,
+    assert_eq!(
+        outcome.feature.reconstructability_before_restore.clock_checkpoint_digest,
+        outcome.sibling.reconstructability_before_restore.clock_checkpoint_digest,
+        "equivalent sibling branches must share the same checkpoint-honest clock basis before restore"
     );
-    assert_eq!(wake_boundedness_artifact.interval_regeneration_count, 3);
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_before_restore
+            .scheduled_wake_digest,
+        outcome
+            .sibling
+            .reconstructability_before_restore
+            .scheduled_wake_digest,
+        "equivalent sibling branches must share the same scheduled wake frontier before restore"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_before_restore
+            .ready_wake_digest,
+        outcome
+            .sibling
+            .reconstructability_before_restore
+            .ready_wake_digest,
+        "equivalent sibling branches must share the same ready frontier before restore"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_before_restore
+            .temporal_eligibility_digest,
+        outcome
+            .sibling
+            .reconstructability_before_restore
+            .temporal_eligibility_digest,
+        "equivalent sibling branches must share the same temporal eligibility truth before restore"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_after_restore
+            .clock_checkpoint_digest,
+        outcome
+            .sibling
+            .reconstructability_after_restore
+            .clock_checkpoint_digest,
+        "equivalent restored sibling branches must converge to the same clock checkpoint digest"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_after_restore
+            .scheduled_wake_digest,
+        outcome
+            .sibling
+            .reconstructability_after_restore
+            .scheduled_wake_digest,
+        "equivalent restored sibling branches must converge to the same scheduled wake digest"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_after_restore
+            .ready_wake_digest,
+        outcome
+            .sibling
+            .reconstructability_after_restore
+            .ready_wake_digest,
+        "equivalent restored sibling branches must converge to the same ready queue digest"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_after_restore
+            .temporal_eligibility_digest,
+        outcome
+            .sibling
+            .reconstructability_after_restore
+            .temporal_eligibility_digest,
+        "equivalent restored sibling branches must converge to the same eligibility digest"
+    );
+    assert_eq!(
+        outcome
+            .feature
+            .reconstructability_after_restore
+            .previous_value_reference_digest,
+        outcome
+            .sibling
+            .reconstructability_after_restore
+            .previous_value_reference_digest,
+        "equivalent restored sibling branches must converge to the same previous-value basis"
+    );
+    assert_ne!(
+        outcome
+            .feature
+            .reconstructability_before_restore
+            .ready_wake_digest,
+        outcome
+            .feature
+            .reconstructability_after_snapshot_drift
+            .ready_wake_digest,
+        "hostile branch-local churn should perturb ready-frontier truth before restore"
+    );
     assert!(
-        runtime.telemetry().temporal.missed_interval_count >= 399,
-        "large interval jumps must be charged as missed policy outcomes"
+        outcome.feature.replay_after_snapshot_drift.frames.len()
+            >= outcome.feature.replay_before_restore.frames.len(),
+        "hostile branch-local churn may append replay evidence before restore, but it must not erase prior feature replay history"
     );
-
-    let previous_wake = runtime
-        .schedule_temporal_wake(TemporalCondition::after(1).unwrap(), ClockTick::new(1_011))
-        .unwrap();
-    runtime
-        .advance_clock(ClockAdvanceRequest::new(
-            ClockDomain::MonotonicExecution,
-            ClockTick::new(1_011),
-        ))
-        .unwrap();
-    runtime.promote_due_temporal_wakes_ready().unwrap();
-    let previous_access = runtime
-        .grant_temporal_previous_value_access(previous_wake.id())
-        .unwrap();
-    let previous_reference = runtime
-        .previous_temporal_value(&previous_access, source)
-        .unwrap();
-    assert_eq!(previous_reference.revision(), PreviousValueRevision::new(1));
     assert_eq!(
-        previous_reference
-            .output_identity()
-            .map(OutputIdentity::as_str),
-        Some("milestone-a-closeout-previous")
+        outcome.feature.head_snapshot_before_restore,
+        Some(outcome.feature.restored_snapshot_id),
+        "capturing the hostile branch checkpoint must advance the branch head to that checkpoint"
     );
-    let mut previous_evidence = TemporalTransactionEvidence::default();
-    previous_evidence.clock_basis = runtime.clock_basis();
-    previous_evidence
-        .previous_value_references
-        .push(previous_reference);
-    let previous_artifact = TemporalReconstructabilityArtifact::from_evidence(
-        runtime.temporal_wake_summary(),
-        &previous_evidence,
-    );
-
-    let bundle = runtime
-        .temporal_certification_builder()
-        .with_temporal_eligibility_replay_parity(
-            initial.reconstructability.temporal,
-            eligibility_parity,
-        )
-        .unwrap()
-        .with_temporal_branch_restore_equivalence(replayed_restore.temporal, restore_parity)
-        .unwrap()
-        .with_temporal_wake_boundedness(wake_boundedness_artifact)
-        .unwrap()
-        .with_previous_value_time_gated_equivalence(previous_artifact)
-        .unwrap()
-        .build()
-        .unwrap();
-
-    assert!(bundle.passed, "{:?}", bundle.failures);
-    assert_eq!(bundle.summary.passed_family_count, 4);
-    assert_eq!(bundle.summary.failed_family_count, 0);
-    assert_eq!(bundle.summary.missing_family_count, 0);
-
-    let operational = runtime
-        .observe()
-        .temporal_diagnostics_summary(DiagnosticsLevel::Operational);
-    let forensic = runtime
-        .observe()
-        .temporal_diagnostics_summary(DiagnosticsLevel::Forensic);
     assert_eq!(
-        operational.with_profile(DiagnosticsLevel::Forensic),
-        forensic
+        outcome.feature.head_snapshot_after_restore,
+        Some(outcome.feature.restored_snapshot_id),
+        "restoring a hostile branch checkpoint must reinstate the captured branch head"
     );
-    assert!(operational
+    assert_eq!(
+        outcome.sibling.head_snapshot_before_restore,
+        Some(outcome.sibling.restored_snapshot_id),
+        "capturing the sibling hostile branch checkpoint must advance the branch head to that checkpoint"
+    );
+    assert_eq!(
+        outcome.sibling.head_snapshot_after_restore,
+        Some(outcome.sibling.restored_snapshot_id),
+        "restoring the sibling hostile branch checkpoint must reinstate the captured branch head"
+    );
+    assert!(
+        outcome.feature.restore_parity.parity,
+        "{:?}",
+        outcome.feature.restore_parity.mismatch_classes
+    );
+    assert!(
+        outcome.sibling.restore_parity.parity,
+        "{:?}",
+        outcome.sibling.restore_parity.mismatch_classes
+    );
+    assert!(
+        outcome.feature.replay_after_restore.frames.len()
+            >= outcome.feature.replay_before_restore.frames.len(),
+        "restore may append replay evidence but must not erase prior feature branch replay history"
+    );
+    assert!(
+        outcome.sibling.replay_after_restore.frames.len()
+            >= outcome.sibling.replay_before_restore.frames.len(),
+        "restore may append replay evidence but must not erase prior sibling branch replay history"
+    );
+    assert!(
+        outcome
+            .feature
+            .replay_after_restore
+            .frames
+            .iter()
+            .all(|frame| frame.branch_id == outcome.feature.branch_id),
+        "feature replay history must stay branch-local after restore"
+    );
+    assert!(
+        outcome
+            .sibling
+            .replay_after_restore
+            .frames
+            .iter()
+            .all(|frame| frame.branch_id == outcome.sibling.branch_id),
+        "sibling replay history must stay branch-local after restore"
+    );
+    assert!(
+        outcome.temporal_telemetry.temporal_broad_scan_denial_count >= 4,
+        "mixed temporal torture should exercise ready-frontier promotion enough to charge broad temporal scan denial counters"
+    );
+    assert!(
+        outcome
+            .feature
+            .temporal_telemetry_after_restore
+            .branch_local_temporal_restore_count
+            >= 1,
+        "feature branch restore must charge branch-local temporal restore work"
+    );
+    assert!(
+        outcome
+            .sibling
+            .temporal_telemetry_after_restore
+            .branch_local_temporal_restore_count
+            >= 1,
+        "sibling branch restore must charge branch-local temporal restore work"
+    );
+    assert!(
+        outcome
+            .feature
+            .temporal_telemetry_after_restore
+            .branch_restore_temporal_rebuild_denial_count
+            >= 1,
+        "feature branch restore must consume retained frontier truth instead of rebuilding from node conditions"
+    );
+    assert!(
+        outcome
+            .sibling
+            .temporal_telemetry_after_restore
+            .branch_restore_temporal_rebuild_denial_count
+            >= 1,
+        "sibling branch restore must consume retained frontier truth instead of rebuilding from node conditions"
+    );
+    assert!(
+        outcome.temporal_telemetry.missed_interval_count >= 399,
+        "large interval jumps must charge missed policy outcomes rather than hiding elapsed timer work"
+    );
+    assert_eq!(outcome.boundedness_artifact.interval_regeneration_count, 3);
+    assert_ne!(
+        outcome.eligibility_artifact.temporal_eligibility_digest,
+        TemporalReconstructabilityArtifact::default().temporal_eligibility_digest
+    );
+    assert_ne!(
+        outcome
+            .previous_value_artifact
+            .previous_value_reference_digest,
+        TemporalReconstructabilityArtifact::default().previous_value_reference_digest
+    );
+}
+
+#[test]
+fn milestone_a_closeout_bundle_covers_hostile_temporal_certification_paths() {
+    let outcome = temporal_phase9_mixed_workload();
+
+    assert!(outcome.bundle.passed, "{:?}", outcome.bundle.failures);
+    assert_eq!(outcome.bundle.summary.passed_family_count, 4);
+    assert_eq!(outcome.bundle.summary.failed_family_count, 0);
+    assert_eq!(outcome.bundle.summary.missing_family_count, 0);
+
+    assert_eq!(
+        outcome
+            .diagnostics_operational
+            .with_profile(DiagnosticsLevel::Forensic),
+        outcome.diagnostics_forensic
+    );
+    assert!(outcome
+        .diagnostics_operational
         .cost_contracts
         .prohibited_failure_modes
         .contains(&TemporalPerformanceFailureMode::TemporalBroadScan));
     assert_eq!(
-        runtime
-            .telemetry()
-            .temporal
-            .temporal_replay_parity_check_count,
+        outcome.temporal_telemetry.temporal_replay_parity_check_count,
         1,
-        "switching back to main should restore main-branch telemetry rather than feature restore counters"
+        "returning to main must restore main-branch telemetry instead of smearing branch-local parity counters across branches"
     );
 }
 

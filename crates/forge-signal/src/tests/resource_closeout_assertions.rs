@@ -66,6 +66,26 @@ pub(super) fn required_performance_claim_row(
         .expect("required performance claim should exist after uniqueness assertion")
 }
 
+pub(super) fn required_milestone_c_policy_performance_claim_row(
+    closeout: &ResourceMilestoneCPolicyPerformanceCloseout,
+    claim: ResourceMilestoneCPolicyPerformanceClaimId,
+) -> &ResourceMilestoneCPolicyPerformanceCloseoutRow {
+    let matches = closeout
+        .rows()
+        .iter()
+        .filter(|row| row.id() == claim)
+        .count();
+    assert_eq!(
+        matches,
+        1,
+        "milestone C policy claim {} must appear exactly once",
+        claim.label()
+    );
+    closeout.rows().iter().find(|row| row.id() == claim).expect(
+        "required milestone C policy performance claim should exist after uniqueness assertion",
+    )
+}
+
 fn assert_boundary_shape(
     performance: ResourceBoundaryPerformanceEnvelope,
     boundary: ResourceBoundaryKind,
@@ -94,20 +114,42 @@ pub(super) fn assert_hostile_evidence_shape(row: &ResourceMilestoneBHostileScena
     assert!(!row.evidence_digest().is_empty());
 
     let performance = row.performance();
-    assert_boundary_shape(
-        performance,
-        ResourceBoundaryKind::CompletionAdmission,
-        2,
-        ResourceCostPosture::Verified,
-        ResourceDensityStrategy::SparseIndexedLookup,
-    );
-    assert_eq!(performance.input_width(), 1);
-    assert_eq!(performance.admitted_count(), 0);
-    assert_eq!(performance.denied_count(), 1);
-    assert_eq!(performance.lifecycle_transition_count(), 0);
-    assert_eq!(performance.operational_allocation_count(), 0);
-    assert_eq!(performance.retained_history_allocation_count(), 1);
-    assert_eq!(performance.diagnostics_allocation_count(), 0);
+    match row.id() {
+        ResourceMilestoneBScenarioId::DuplicateCompletionRejected
+        | ResourceMilestoneBScenarioId::ContradictoryCompletionRejected
+        | ResourceMilestoneBScenarioId::UnknownRequestCompletionRejected => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::CompletionBatchAdmission,
+                12,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::BurstySortedDeduplicated,
+            );
+            assert_eq!(performance.input_width(), 4);
+            assert_eq!(performance.admitted_count(), 1);
+            assert_eq!(performance.denied_count(), 3);
+            assert_eq!(performance.lifecycle_transition_count(), 1);
+            assert_eq!(performance.operational_allocation_count(), 3);
+            assert_eq!(performance.retained_history_allocation_count(), 0);
+            assert_eq!(performance.diagnostics_allocation_count(), 4);
+        }
+        _ => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::CompletionAdmission,
+                2,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::SparseIndexedLookup,
+            );
+            assert_eq!(performance.input_width(), 1);
+            assert_eq!(performance.admitted_count(), 0);
+            assert_eq!(performance.denied_count(), 1);
+            assert_eq!(performance.lifecycle_transition_count(), 0);
+            assert_eq!(performance.operational_allocation_count(), 0);
+            assert_eq!(performance.retained_history_allocation_count(), 1);
+            assert_eq!(performance.diagnostics_allocation_count(), 0);
+        }
+    }
 }
 
 pub(super) fn assert_performance_closeout_claim_shape(
@@ -190,18 +232,18 @@ pub(super) fn assert_performance_closeout_claim_shape(
         ResourceMilestoneBPerformanceClaimId::InflightBoundednessAdmissionBounded => {
             assert_boundary_shape(
                 performance,
-                ResourceBoundaryKind::RequestAdmission,
-                1,
+                ResourceBoundaryKind::CompletionBatchAdmission,
+                12,
                 ResourceCostPosture::Verified,
-                ResourceDensityStrategy::SparseIndexedLookup,
+                ResourceDensityStrategy::BurstySortedDeduplicated,
             );
-            assert_eq!(performance.input_width(), 1);
+            assert_eq!(performance.input_width(), 4);
             assert_eq!(performance.admitted_count(), 1);
-            assert_eq!(performance.denied_count(), 0);
+            assert_eq!(performance.denied_count(), 3);
             assert_eq!(performance.lifecycle_transition_count(), 1);
-            assert_eq!(performance.operational_allocation_count(), 1);
-            assert_eq!(performance.retained_history_allocation_count(), 1);
-            assert_eq!(performance.diagnostics_allocation_count(), 0);
+            assert_eq!(performance.operational_allocation_count(), 3);
+            assert_eq!(performance.retained_history_allocation_count(), 0);
+            assert_eq!(performance.diagnostics_allocation_count(), 4);
         }
         ResourceMilestoneBPerformanceClaimId::RuntimeSummaryReadZeroColdReconstruction => {
             assert_boundary_shape(
@@ -259,15 +301,9 @@ pub(super) fn assert_performance_closeout_claim_shape(
                 ResourceCostPosture::Verified,
                 ResourceDensityStrategy::NotApplicable,
             );
-            assert_eq!(
-                performance.input_width(),
-                REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len() as u32
-            );
+            assert_eq!(performance.input_width(), 4);
             assert_eq!(performance.admitted_count(), 0);
-            assert_eq!(
-                performance.denied_count(),
-                REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len() as u32
-            );
+            assert_eq!(performance.denied_count(), 4);
             assert_eq!(performance.lifecycle_transition_count(), 0);
             assert_eq!(performance.operational_allocation_count(), 0);
             assert_eq!(
@@ -275,6 +311,85 @@ pub(super) fn assert_performance_closeout_claim_shape(
                 performance.denied_count()
             );
             assert_eq!(performance.diagnostics_allocation_count(), 0);
+        }
+    }
+}
+
+pub(super) fn assert_milestone_c_policy_performance_closeout_claim_shape(
+    row: &ResourceMilestoneCPolicyPerformanceCloseoutRow,
+) {
+    assert!(row.passed());
+    assert!(!row.evidence_digest().is_empty());
+    assert!(!row.policy_provenance_digest().is_empty());
+    let performance = row.performance();
+
+    match row.id() {
+        ResourceMilestoneCPolicyPerformanceClaimId::RegistryFreezeOrderBounded => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::PolicyCompatibility,
+                18,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::NotApplicable,
+            );
+            assert!(performance.input_width() > 0);
+            assert_eq!(performance.admitted_count(), performance.input_width());
+            assert_eq!(performance.denied_count(), 0);
+            assert_eq!(performance.temporal_wake_footprint(), 0);
+            assert_eq!(performance.retained_history_allocation_count(), 0);
+            assert_eq!(performance.diagnostics_allocation_count(), 1);
+        }
+        ResourceMilestoneCPolicyPerformanceClaimId::RetryBudgetDenialZeroWake => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::RetrySchedule,
+                5,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::NotApplicable,
+            );
+            assert_eq!(performance.admitted_count(), 0);
+            assert_eq!(performance.denied_count(), 1);
+            assert_eq!(performance.temporal_wake_footprint(), 0);
+            assert!(performance.retry_budget_scope_touch_count() > 0);
+        }
+        ResourceMilestoneCPolicyPerformanceClaimId::RetentionCompactionAvailabilityBounded => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::LifecycleRetentionCompaction,
+                17,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::NotApplicable,
+            );
+            assert_eq!(performance.denied_count(), 0);
+            assert!(performance.retained_history_allocation_count() > 0);
+            assert_eq!(performance.temporal_wake_footprint(), 0);
+        }
+        ResourceMilestoneCPolicyPerformanceClaimId::DiagnosticsBudgetDenialZeroCold => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::DiagnosticsExpansion,
+                16,
+                ResourceCostPosture::DeniedFallback,
+                ResourceDensityStrategy::NotApplicable,
+            );
+            assert_eq!(performance.admitted_count(), 0);
+            assert_eq!(performance.denied_count(), 1);
+            assert_eq!(performance.diagnostics_allocation_count(), 0);
+            assert!(performance.broad_scan_denial_count() > 0);
+        }
+        ResourceMilestoneCPolicyPerformanceClaimId::ReplayCompatibilityDescriptorBounded => {
+            assert_boundary_shape(
+                performance,
+                ResourceBoundaryKind::PolicyCompatibility,
+                18,
+                ResourceCostPosture::Verified,
+                ResourceDensityStrategy::NotApplicable,
+            );
+            assert!(performance.input_width() >= 3);
+            assert!(performance.admitted_count() >= 1);
+            assert!(performance.denied_count() >= 2);
+            assert_eq!(performance.temporal_wake_footprint(), 0);
+            assert_eq!(performance.diagnostics_allocation_count(), 1);
         }
     }
 }

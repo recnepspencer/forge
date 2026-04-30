@@ -66,6 +66,13 @@ fn resource_compile_fail_boundaries_hold() {
     cases.compile_fail("tests/ui/resource_milestone_b_scenario_row_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_milestone_b_scenario_matrix_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_milestone_b_certification_run_fields_are_private.rs");
+    cases.compile_fail("tests/ui/resource_milestone_c_policy_scenario_row_fields_are_private.rs");
+    cases
+        .compile_fail("tests/ui/resource_milestone_c_policy_scenario_matrix_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/resource_milestone_c_policy_performance_closeout_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/resource_milestone_c_certification_run_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_expansion_budget_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_expansion_denial_fields_are_private.rs");
     cases.compile_fail("tests/ui/resource_diagnostics_summary_fields_are_private.rs");

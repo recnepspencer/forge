@@ -149,10 +149,11 @@ impl AdmittedResourceRetry {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeniedResourceRetry {
     request_id: ResourceRequestId,
     class: ResourceRetryDenialClass,
+    policy_decision_digest: ResourcePolicyDigest,
     retry_budget_scope: Option<ResourceRetryBudgetScope>,
     retry_budget_limit: Option<u32>,
     retry_budget_usage: Option<u32>,
@@ -162,6 +163,7 @@ impl DeniedResourceRetry {
     pub(crate) fn new(
         request_id: ResourceRequestId,
         class: ResourceRetryDenialClass,
+        policy_decision_digest: ResourcePolicyDigest,
         retry_budget_scope: Option<ResourceRetryBudgetScope>,
         retry_budget_limit: Option<u32>,
         retry_budget_usage: Option<u32>,
@@ -169,29 +171,34 @@ impl DeniedResourceRetry {
         Self {
             request_id,
             class,
+            policy_decision_digest,
             retry_budget_scope,
             retry_budget_limit,
             retry_budget_usage,
         }
     }
 
-    pub fn request_id(self) -> ResourceRequestId {
+    pub fn request_id(&self) -> ResourceRequestId {
         self.request_id
     }
 
-    pub fn class(self) -> ResourceRetryDenialClass {
+    pub fn class(&self) -> ResourceRetryDenialClass {
         self.class
     }
 
-    pub fn retry_budget_scope(self) -> Option<ResourceRetryBudgetScope> {
+    pub fn policy_decision_digest(&self) -> &ResourcePolicyDigest {
+        &self.policy_decision_digest
+    }
+
+    pub fn retry_budget_scope(&self) -> Option<ResourceRetryBudgetScope> {
         self.retry_budget_scope
     }
 
-    pub fn retry_budget_limit(self) -> Option<u32> {
+    pub fn retry_budget_limit(&self) -> Option<u32> {
         self.retry_budget_limit
     }
 
-    pub fn retry_budget_usage(self) -> Option<u32> {
+    pub fn retry_budget_usage(&self) -> Option<u32> {
         self.retry_budget_usage
     }
 }

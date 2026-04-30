@@ -64,6 +64,10 @@ where
                 event.handle_id,
                 event.policy,
                 event.outcome,
+                event.touched,
+                event.recomputed,
+                event.meaningful_change,
+                event.trigger_matched,
                 matched_resource_nodes,
             ));
         }

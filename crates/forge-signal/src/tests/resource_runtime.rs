@@ -10,8 +10,10 @@ use crate::facade::*;
 use crate::tests::support::version_ab;
 
 use super::resource_closeout_assertions::{
-    assert_hostile_evidence_shape, assert_performance_closeout_claim_shape,
-    required_hostile_evidence_row, required_performance_claim_row, required_scenario_row,
+    assert_hostile_evidence_shape, assert_milestone_c_policy_performance_closeout_claim_shape,
+    assert_performance_closeout_claim_shape, required_hostile_evidence_row,
+    required_milestone_c_policy_performance_claim_row, required_performance_claim_row,
+    required_scenario_row,
 };
 
 type TestRuntime = SignalRuntime<(), (), (), (), ()>;
@@ -49,6 +51,762 @@ impl ObservationListener<(), (), (), (), ()> for ResourceObservationListener {
                 meaningful_change: notice.meaningful_change(),
                 trigger_matched: notice.trigger_matched(),
             });
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ResourceBranchReplayWorkloadBranchState {
+    branch_id: SignalBranchId,
+    head_snapshot_before_restore: Option<SignalSnapshotId>,
+    head_snapshot_after_restore: Option<SignalSnapshotId>,
+    replay_before_restore: ResourceReplayReconstructionReport,
+    replay_after_snapshot_drift: ResourceReplayReconstructionReport,
+    replay_after_restore: ResourceReplayReconstructionReport,
+    replay_history_before_restore: ReplaySlice,
+    replay_history_after_restore: ReplaySlice,
+    diagnostics_after_restore: ResourceDiagnosticsSummary,
+    restore_report: ResourceBranchRestoreReport,
+}
+
+#[derive(Debug, Clone)]
+struct ResourceBranchReplayWorkloadOutcome {
+    feature: ResourceBranchReplayWorkloadBranchState,
+    sibling: ResourceBranchReplayWorkloadBranchState,
+}
+
+#[derive(Debug)]
+struct ResourceAsyncLifecycleRollbackWorkloadOutcome {
+    pre_rollback_replay: ResourceReplayReconstructionReport,
+    post_rollback_replay: ResourceReplayReconstructionReport,
+    control_path_replay: ResourceReplayReconstructionReport,
+    diagnostics_after_rollback: ResourceDiagnosticsSummary,
+    rollback_report: ResourceCompletionRollbackReport,
+    rollback_observation: ResourceObservationBatchReport,
+    control_commit_observation: ResourceObservationBatchReport,
+    delivered_observations_after_rollback: Vec<ResourceObservationRecord>,
+    delivered_observations_after_control_commit: Vec<ResourceObservationRecord>,
+}
+
+#[derive(Debug)]
+struct ResourceAsyncInflightPressureWorkloadOutcome {
+    runtime_summary: ResourceRuntimeSummary,
+    replay_after_restore: ResourceReplayReconstructionReport,
+    telemetry: crate::data::telemetry::ResourceTelemetry,
+    pressure_performance: ResourceBoundaryPerformanceEnvelope,
+    pressure_batch: ResourceCompletionBatchAdmissionReport,
+    branch_restore_report: ResourceBranchRestoreReport,
+    drifted_branch_handle_live_after_restore: bool,
+    zombie_completion_after_restore: ResourceCompletionAdmissionReport,
+    pre_restore_completion_after_restore: ResourceCompletionAdmissionReport,
+}
+
+fn resource_async_lifecycle_rollback_workload() -> ResourceAsyncLifecycleRollbackWorkloadOutcome {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(timeout_resource_declaration(node, 5))
+        .expect("resource declaration should lower");
+    let calls = Arc::new(Mutex::new(Vec::<ResourceObservationRecord>::new()));
+    runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [node],
+        Box::new(ResourceObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+
+    let admitted_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let handle = admitted_request.handle();
+    let pre_rollback_replay = runtime.reconstruct_resource_replay_summary();
+    let admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            node,
+            handle,
+            admitted_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("matching completion should admit");
+
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    let staging = tx
+        .stage_admitted_resource_completion(admitted_completion)
+        .expect("completion should stage inside transaction");
+    tx.commit_staged_resource_completion(staging.staged_effect())
+        .expect("completion should mutate transaction-local resource state");
+    tx.rollback()
+        .expect("rollback should restore resource and temporal state");
+
+    let rollback_observation = runtime
+        .latest_resource_observation_batch_report()
+        .expect("rollback should publish a suppressed observation packet");
+    let delivered_observations_after_rollback = calls
+        .lock()
+        .expect("resource observation mutex poisoned")
+        .clone();
+    let post_rollback_replay = runtime.reconstruct_resource_replay_summary();
+    let diagnostics_after_rollback =
+        runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+    let rollback_admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            node,
+            handle,
+            admitted_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("restored active request should admit a second completion proof");
+    let rollback_staging = runtime
+        .stage_admitted_resource_completion(rollback_admitted_completion)
+        .expect("runtime rollback completion should stage");
+    let rollback_report =
+        runtime.rollback_staged_resource_completion(rollback_staging.staged_effect());
+
+    let committed_completion = runtime
+        .admit_resource_completion(raw_completion(
+            &runtime,
+            node,
+            handle,
+            admitted_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("same completion should still admit after rollback");
+    let mut control_ctx = ();
+    let mut control_tx = runtime.begin(&mut control_ctx);
+    let committed_staging = control_tx
+        .stage_admitted_resource_completion(committed_completion)
+        .expect("post-rollback control completion should stage");
+    control_tx
+        .commit_staged_resource_completion(committed_staging.staged_effect())
+        .expect("post-rollback control completion should mutate transaction-local state");
+    control_tx
+        .commit()
+        .expect("post-rollback control completion transaction should commit");
+    let control_commit_observation = runtime
+        .latest_resource_observation_batch_report()
+        .expect("control commit should publish a delivered observation packet");
+    let delivered_observations_after_control_commit = calls
+        .lock()
+        .expect("resource observation mutex poisoned")
+        .clone();
+    let control_path_replay = runtime.reconstruct_resource_replay_summary();
+
+    ResourceAsyncLifecycleRollbackWorkloadOutcome {
+        pre_rollback_replay,
+        post_rollback_replay,
+        control_path_replay,
+        diagnostics_after_rollback,
+        rollback_report,
+        rollback_observation,
+        control_commit_observation,
+        delivered_observations_after_rollback,
+        delivered_observations_after_control_commit,
+    }
+}
+
+fn resource_async_inflight_pressure_workload() -> ResourceAsyncInflightPressureWorkloadOutcome {
+    let mut graph = SignalGraph::new();
+    let retry_node = graph.node().build();
+    let supersede_node = graph.node().build();
+    let batch_node = graph.node().build();
+    let cancel_node = graph.node().build();
+    let branch_node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(retry_timeout_resource_declaration(retry_node, 3, 7))
+        .expect("retry node should lower");
+    runtime
+        .declare_resource_node(resource_declaration(supersede_node))
+        .expect("supersede node should lower");
+    runtime
+        .declare_resource_node(resource_declaration(batch_node))
+        .expect("batch node should lower");
+    runtime
+        .declare_resource_node(resource_declaration(cancel_node))
+        .expect("cancel node should lower");
+    runtime
+        .declare_resource_node(resource_declaration(branch_node))
+        .expect("branch node should lower");
+
+    let retry_admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            retry_node,
+        )))
+        .expect("retry request should admit")
+        .admitted_request();
+    let retry_timeout_wake = runtime
+        .in_flight_resource_request(retry_admitted.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("retry timeout wake should attach");
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(3),
+        ))
+        .expect("clock should reach retry timeout");
+    let ready_timeout = runtime
+        .promote_temporal_wake_ready(retry_timeout_wake)
+        .expect("retry timeout wake should become ready");
+    runtime
+        .admit_resource_timeout(retry_admitted.handle(), ready_timeout)
+        .expect("retry timeout admission should consume the wake");
+    let first_retry_schedule = runtime
+        .schedule_resource_retry(retry_admitted.handle(), ResourceRetryReason::TimedOut)
+        .expect("first retry scheduling should admit");
+    let scheduled_retry = first_retry_schedule
+        .scheduled_retry()
+        .expect("retry policy should schedule a backoff wake");
+    let duplicate_retry_schedule = runtime
+        .schedule_resource_retry(retry_admitted.handle(), ResourceRetryReason::TimedOut)
+        .expect("duplicate retry scheduling should stay report-shaped");
+    assert_eq!(
+        duplicate_retry_schedule
+            .denied_retry()
+            .expect("duplicate retry should deny explicitly")
+            .class(),
+        ResourceRetryDenialClass::RetryAlreadyScheduled
+    );
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(10),
+        ))
+        .expect("clock should reach retry backoff");
+    let ready_retry = runtime
+        .promote_temporal_wake_ready(scheduled_retry.backoff_wake_id())
+        .expect("scheduled retry wake should become ready");
+    runtime
+        .admit_scheduled_resource_retry(retry_admitted.handle(), ready_retry)
+        .expect("scheduled retry admission should consume the backoff wake");
+
+    let first_superseded = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            supersede_node,
+        )))
+        .expect("first supersession request should admit")
+        .admitted_request();
+    let stale_superseded = raw_completion(
+        &runtime,
+        supersede_node,
+        first_superseded.handle(),
+        first_superseded.attempt(),
+        64,
+    );
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            supersede_node,
+        )))
+        .expect("second supersession request should admit");
+    let stale_supersession_report = runtime.admit_resource_completion(stale_superseded);
+    assert_eq!(
+        stale_supersession_report
+            .denied_completion()
+            .expect("late superseded completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Superseded
+    );
+
+    let batch_admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            batch_node,
+        )))
+        .expect("batch request should admit")
+        .admitted_request();
+    let accepted_completion = raw_completion(
+        &runtime,
+        batch_node,
+        batch_admitted.handle(),
+        batch_admitted.attempt(),
+        64,
+    );
+    let contradictory_completion = raw_completion(
+        &runtime,
+        batch_node,
+        batch_admitted.handle(),
+        batch_admitted.attempt(),
+        96,
+    );
+    let batch_digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(batch_node))
+        .expect("batch descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    let unknown_completion = RawCompletionEnvelope::new(
+        ResourceRequestId::new(88_001),
+        ResourceGeneration::new(1),
+        ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+        ResourceAttemptId::ZERO,
+        batch_digest,
+        32,
+    );
+    let pressure_batch = runtime.admit_resource_completion_batch([
+        contradictory_completion,
+        accepted_completion.clone(),
+        accepted_completion,
+        unknown_completion,
+    ]);
+    assert_eq!(pressure_batch.input_width(), 4);
+    assert_eq!(pressure_batch.admitted_completions().len(), 1);
+    assert_eq!(pressure_batch.denied_completions().len(), 3);
+
+    let cancelled = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancel_node,
+        )))
+        .expect("cancel request should admit")
+        .admitted_request();
+    runtime
+        .cancel_resource_request(
+            cancelled.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should retire active request");
+
+    let branch_admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            branch_node,
+        )))
+        .expect("branch request should admit")
+        .admitted_request();
+    let retained_branch_completion = raw_completion(
+        &runtime,
+        branch_node,
+        branch_admitted.handle(),
+        branch_admitted.attempt(),
+        64,
+    );
+    let snapshot = runtime.capture_snapshot();
+    let drifted_branch_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            branch_node,
+        )))
+        .expect("post-snapshot drift should mutate branch inflight state")
+        .admitted_request();
+    let zombie_branch_completion = raw_completion(
+        &runtime,
+        branch_node,
+        drifted_branch_request.handle(),
+        drifted_branch_request.attempt(),
+        64,
+    );
+    runtime
+        .restore_snapshot(&snapshot)
+        .expect("restore should reinstate the original branch inflight story");
+    let branch_restore_report = runtime
+        .latest_resource_branch_restore_report()
+        .expect("restore should publish branch restore evidence");
+    let drifted_branch_handle_live_after_restore = runtime
+        .in_flight_resource_request(drifted_branch_request.handle())
+        .is_some();
+    let zombie_completion_after_restore =
+        runtime.admit_resource_completion(zombie_branch_completion);
+    let pre_restore_completion_after_restore =
+        runtime.admit_resource_completion(retained_branch_completion);
+
+    let runtime_summary = runtime.resource_runtime_summary();
+    let replay_after_restore = runtime.reconstruct_resource_replay_summary();
+    let telemetry = runtime.telemetry().resource;
+
+    ResourceAsyncInflightPressureWorkloadOutcome {
+        runtime_summary,
+        replay_after_restore,
+        telemetry,
+        pressure_performance: pressure_batch.performance(),
+        pressure_batch,
+        branch_restore_report,
+        drifted_branch_handle_live_after_restore,
+        zombie_completion_after_restore,
+        pre_restore_completion_after_restore,
+    }
+}
+
+fn exercise_resource_async_hostile_suffix_on_active_branch(
+    runtime: &mut TestRuntime,
+    lifecycle_node: NodeId,
+    cancel_node: NodeId,
+    timeout_node: NodeId,
+    malformed_node: NodeId,
+    retained_denial_request_id: ResourceRequestId,
+) -> (
+    SignalSnapshotV1,
+    Option<SignalSnapshotId>,
+    ResourceReplayReconstructionReport,
+    ReplaySlice,
+    ResourceReplayReconstructionReport,
+) {
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(lifecycle_node))
+        .expect("resource descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    runtime
+        .admit_resource_completion(RawCompletionEnvelope::new(
+            retained_denial_request_id,
+            ResourceGeneration::new(1),
+            ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+            ResourceAttemptId::ZERO,
+            digest,
+            32,
+        ))
+        .denied_completion()
+        .expect("unknown request should produce retained denial evidence");
+
+    let first_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
+        .expect("first lifecycle request should admit");
+    let stale_first = raw_completion(
+        runtime,
+        lifecycle_node,
+        first_admission.admitted_request().handle(),
+        first_admission.admitted_request().attempt(),
+        64,
+    );
+    let second_admission = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
+        .expect("second lifecycle request should supersede first request");
+    let second_request = second_admission.admitted_request();
+    let tx_admitted_completion = runtime
+        .admit_resource_completion(raw_completion(
+            runtime,
+            lifecycle_node,
+            second_request.handle(),
+            second_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("current lifecycle completion should admit");
+    let mut ctx = ();
+    let mut tx = runtime.begin(&mut ctx);
+    let tx_staging = tx
+        .stage_admitted_resource_completion(tx_admitted_completion)
+        .expect("transactional lifecycle completion should stage");
+    tx.commit_staged_resource_completion(tx_staging.staged_effect())
+        .expect("transactional lifecycle completion should mutate transaction-local state");
+    tx.rollback()
+        .expect("transaction rollback should restore the active lifecycle request");
+    let rollback_completion = runtime
+        .admit_resource_completion(raw_completion(
+            runtime,
+            lifecycle_node,
+            second_request.handle(),
+            second_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("restored lifecycle request should admit a second completion proof");
+    let rollback_staging = runtime
+        .stage_admitted_resource_completion(rollback_completion)
+        .expect("runtime rollback completion should stage");
+    runtime.rollback_staged_resource_completion(rollback_staging.staged_effect());
+    let superseded_completion_report = runtime.admit_resource_completion(stale_first);
+    assert_eq!(
+        superseded_completion_report
+            .denied_completion()
+            .expect("late superseded completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Superseded
+    );
+
+    let cancel_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancel_node,
+        )))
+        .expect("cancel request should admit")
+        .admitted_request();
+    let late_cancelled = raw_completion(
+        runtime,
+        cancel_node,
+        cancel_request.handle(),
+        cancel_request.attempt(),
+        64,
+    );
+    runtime
+        .cancel_resource_request(
+            cancel_request.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should retire the active request");
+    let cancelled_completion_report = runtime.admit_resource_completion(late_cancelled);
+    assert_eq!(
+        cancelled_completion_report
+            .denied_completion()
+            .expect("late cancelled completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Cancelled
+    );
+
+    let timeout_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            timeout_node,
+        )))
+        .expect("timeout request should admit")
+        .admitted_request();
+    let late_timed_out = raw_completion(
+        runtime,
+        timeout_node,
+        timeout_request.handle(),
+        timeout_request.attempt(),
+        64,
+    );
+    let timeout_wake = runtime
+        .in_flight_resource_request(timeout_request.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("timeout wake should attach");
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(3),
+        ))
+        .expect("authoritative clock should advance");
+    let ready_timeout = runtime
+        .promote_temporal_wake_ready(timeout_wake)
+        .expect("timeout wake should become ready");
+    runtime
+        .admit_resource_timeout(timeout_request.handle(), ready_timeout)
+        .expect("timeout admission should consume the wake");
+    let timed_out_completion_report = runtime.admit_resource_completion(late_timed_out);
+    assert_eq!(
+        timed_out_completion_report
+            .denied_completion()
+            .expect("late timed out completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::TimedOut
+    );
+
+    let malformed_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            malformed_node,
+        )))
+        .expect("malformed request should admit")
+        .admitted_request();
+    let malformed_completion_report =
+        runtime.admit_resource_completion(RawCompletionEnvelope::new(
+            malformed_request.handle().request_id(),
+            malformed_request.handle().generation(),
+            malformed_request.handle().branch_epoch(),
+            malformed_request.attempt(),
+            ResourcePayloadContractDigest::new("payload-contract:999:1024"),
+            64,
+        ));
+    assert_eq!(
+        malformed_completion_report
+            .denied_completion()
+            .expect("malformed completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Malformed
+    );
+
+    let snapshot = runtime
+        .capture_branch_snapshot(runtime.observe().current_branch())
+        .expect("branch snapshot should capture the hostile suffix checkpoint");
+    let head_snapshot_before_restore = runtime
+        .observe()
+        .branch_head_snapshot_id(runtime.observe().current_branch().id);
+    let replay_before_restore = runtime.reconstruct_resource_replay_summary();
+    let replay_history_before_restore = runtime
+        .observe()
+        .replay_for_branch(runtime.observe().current_branch().id);
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
+        .expect("post-snapshot request should drift branch state before restore");
+    let replay_after_snapshot_drift = runtime.reconstruct_resource_replay_summary();
+    assert_ne!(
+        replay_after_snapshot_drift.replay_digest(),
+        replay_before_restore.replay_digest(),
+        "branch drift after the checkpoint must perturb replay truth before restore"
+    );
+    assert_eq!(
+        runtime
+            .observe()
+            .branch_head_snapshot_id(runtime.observe().current_branch().id),
+        head_snapshot_before_restore,
+        "post-checkpoint branch drift must not rewrite the captured head snapshot"
+    );
+
+    (
+        snapshot,
+        head_snapshot_before_restore,
+        replay_before_restore,
+        replay_history_before_restore,
+        replay_after_snapshot_drift,
+    )
+}
+
+fn resource_branch_replay_workload(
+    retained_denial_request_id: ResourceRequestId,
+) -> ResourceBranchReplayWorkloadOutcome {
+    let mut graph = SignalGraph::new();
+    let lifecycle_node = graph.node().build();
+    let cancel_node = graph.node().build();
+    let timeout_node = graph.node().build();
+    let malformed_node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(lifecycle_node))
+        .expect("lifecycle declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(cancel_node))
+        .expect("cancel declaration should lower");
+    runtime
+        .declare_resource_node(timeout_resource_declaration(timeout_node, 3))
+        .expect("timeout declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(malformed_node))
+        .expect("malformed declaration should lower");
+
+    let main = runtime.observe().current_branch();
+    let feature = runtime
+        .create_branch("resource-branch-feature")
+        .expect("feature branch should create");
+    let sibling = runtime
+        .create_branch("resource-branch-sibling")
+        .expect("sibling branch should create");
+
+    runtime
+        .switch_branch(feature.clone())
+        .expect("feature branch should activate");
+    let (
+        feature_snapshot,
+        feature_head_before_restore,
+        feature_before_restore,
+        feature_replay_history_before_restore,
+        feature_after_snapshot_drift,
+    ) = exercise_resource_async_hostile_suffix_on_active_branch(
+        &mut runtime,
+        lifecycle_node,
+        cancel_node,
+        timeout_node,
+        malformed_node,
+        retained_denial_request_id,
+    );
+
+    runtime
+        .switch_branch(sibling.clone())
+        .expect("sibling branch should activate");
+    let (
+        sibling_snapshot,
+        sibling_head_before_restore,
+        sibling_before_restore,
+        sibling_replay_history_before_restore,
+        sibling_after_snapshot_drift,
+    ) = exercise_resource_async_hostile_suffix_on_active_branch(
+        &mut runtime,
+        lifecycle_node,
+        cancel_node,
+        timeout_node,
+        malformed_node,
+        retained_denial_request_id,
+    );
+
+    runtime
+        .switch_branch(main.clone())
+        .expect("main branch should reactivate before inactive restores");
+    runtime
+        .restore_branch_snapshot(feature.clone(), &feature_snapshot)
+        .expect("inactive feature branch restore should succeed");
+
+    runtime
+        .switch_branch(sibling.clone())
+        .expect("sibling branch should still be independently accessible before its restore");
+    let sibling_still_drifted = runtime.reconstruct_resource_replay_summary();
+    assert_eq!(
+        sibling_still_drifted.replay_digest(),
+        sibling_after_snapshot_drift.replay_digest(),
+        "restoring feature must not mutate sibling branch-local replay truth"
+    );
+
+    runtime
+        .switch_branch(feature.clone())
+        .expect("feature branch should activate after restore");
+    let feature_head_after_restore = runtime.observe().branch_head_snapshot_id(feature.id);
+    let feature_after_restore = runtime.reconstruct_resource_replay_summary();
+    let feature_replay_history_after_restore = runtime.observe().replay_for_branch(feature.id);
+    let feature_diagnostics_after_restore =
+        runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+    runtime
+        .restore_snapshot(&feature_snapshot)
+        .expect("active feature restore should publish resource evidence");
+    let feature_restore_report = runtime
+        .latest_resource_branch_restore_report()
+        .expect("active feature restore should publish resource evidence");
+    let feature_after_reported_restore = runtime.reconstruct_resource_replay_summary();
+    assert_eq!(
+        feature_after_reported_restore.replay_digest(),
+        feature_after_restore.replay_digest(),
+        "report-emitting active restore must preserve feature replay truth"
+    );
+
+    runtime
+        .restore_branch_snapshot(sibling.clone(), &sibling_snapshot)
+        .expect("inactive sibling branch restore should succeed");
+
+    let feature_still_restored = runtime.reconstruct_resource_replay_summary();
+    assert_eq!(
+        feature_still_restored.replay_digest(),
+        feature_after_restore.replay_digest(),
+        "restoring sibling must not perturb already-restored feature truth"
+    );
+
+    runtime
+        .switch_branch(sibling.clone())
+        .expect("sibling branch should activate after restore");
+    let sibling_head_after_restore = runtime.observe().branch_head_snapshot_id(sibling.id);
+    let sibling_after_restore = runtime.reconstruct_resource_replay_summary();
+    let sibling_replay_history_after_restore = runtime.observe().replay_for_branch(sibling.id);
+    let sibling_diagnostics_after_restore =
+        runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+    runtime
+        .restore_snapshot(&sibling_snapshot)
+        .expect("active sibling restore should publish resource evidence");
+    let sibling_restore_report = runtime
+        .latest_resource_branch_restore_report()
+        .expect("active sibling restore should publish resource evidence");
+    let sibling_after_reported_restore = runtime.reconstruct_resource_replay_summary();
+    assert_eq!(
+        sibling_after_reported_restore.replay_digest(),
+        sibling_after_restore.replay_digest(),
+        "report-emitting active restore must preserve sibling replay truth"
+    );
+
+    ResourceBranchReplayWorkloadOutcome {
+        feature: ResourceBranchReplayWorkloadBranchState {
+            branch_id: feature.id,
+            head_snapshot_before_restore: feature_head_before_restore,
+            head_snapshot_after_restore: feature_head_after_restore,
+            replay_before_restore: feature_before_restore,
+            replay_after_snapshot_drift: feature_after_snapshot_drift,
+            replay_after_restore: feature_after_restore,
+            replay_history_before_restore: feature_replay_history_before_restore,
+            replay_history_after_restore: feature_replay_history_after_restore,
+            diagnostics_after_restore: feature_diagnostics_after_restore,
+            restore_report: feature_restore_report,
+        },
+        sibling: ResourceBranchReplayWorkloadBranchState {
+            branch_id: sibling.id,
+            head_snapshot_before_restore: sibling_head_before_restore,
+            head_snapshot_after_restore: sibling_head_after_restore,
+            replay_before_restore: sibling_before_restore,
+            replay_after_snapshot_drift: sibling_after_snapshot_drift,
+            replay_after_restore: sibling_after_restore,
+            replay_history_before_restore: sibling_replay_history_before_restore,
+            replay_history_after_restore: sibling_replay_history_after_restore,
+            diagnostics_after_restore: sibling_diagnostics_after_restore,
+            restore_report: sibling_restore_report,
+        },
     }
 }
 
@@ -161,6 +919,18 @@ fn parameter_expansion_only_replay_resource_declaration(node: NodeId) -> Resourc
         .with_replay_policy(ResourceReplayPolicyDeclaration::CompatibleParameterExpansion)
 }
 
+fn parameter_and_retention_replay_resource_declaration(node: NodeId) -> ResourceNodeDeclaration {
+    resource_declaration(node).with_replay_policy(
+        ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndRetentionNarrowing,
+    )
+}
+
+fn parameter_and_diagnostics_replay_resource_declaration(node: NodeId) -> ResourceNodeDeclaration {
+    resource_declaration(node).with_replay_policy(
+        ResourceReplayPolicyDeclaration::CompatibleParameterExpansionAndDiagnosticsRichnessChange,
+    )
+}
+
 fn deny_on_unknown_or_missing_replay_resource_declaration(node: NodeId) -> ResourceNodeDeclaration {
     resource_declaration(node)
         .with_replay_policy(ResourceReplayPolicyDeclaration::DenyOnUnknownOrMissing)
@@ -175,11 +945,19 @@ fn compatible_policy_registry_for(
     kind: ResourcePolicyKind,
     semantic_name: &str,
 ) -> FrozenResourcePolicyRegistry {
+    compatible_policy_registry_for_entries([(kind, semantic_name)])
+}
+
+fn compatible_policy_registry_for_entries<const N: usize>(
+    entries: [(ResourcePolicyKind, &str); N],
+) -> FrozenResourcePolicyRegistry {
     let registrations = built_in_policy_registrations()
         .into_iter()
         .map(|registration| {
-            if registration.kind() == kind && registration.semantic_name().as_str() == semantic_name
-            {
+            if entries.iter().any(|(kind, semantic_name)| {
+                registration.kind() == *kind
+                    && registration.semantic_name().as_str() == *semantic_name
+            }) {
                 ResourcePolicyRegistration::new(
                     registration.id(),
                     registration.kind(),
@@ -2620,6 +3398,256 @@ fn resource_policy_restore_compatibility_admits_parameter_expansion_and_names_de
 }
 
 #[test]
+fn resource_policy_restore_compatibility_parameter_and_retention_replay_policy_admits_mixed_drift()
+{
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compatible_registry = compatible_policy_registry_for_entries([
+        (
+            ResourcePolicyKind::Retention,
+            "signal.resource.retention.terminal-summaries-only",
+        ),
+        (
+            ResourcePolicyKind::Diagnostics,
+            "signal.resource.diagnostics.forensic-expansion-budget",
+        ),
+    ]);
+    let mut runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(compatible_registry)
+        .build();
+    runtime
+        .declare_resource_node(
+            retain_all_transitions_resource_declaration(node).with_diagnostics_policy(
+                ResourceDiagnosticsPolicyDeclaration::BudgetedExpansion {
+                    max_replay_reconstruction_width: 5,
+                },
+            ),
+        )
+        .expect("historical declaration should lower");
+
+    let proof = runtime
+        .admit_resource_policy_restore_compatibility(
+            &parameter_and_retention_replay_resource_declaration(node)
+                .with_retention_policy(ResourceRetentionPolicyDeclaration::TerminalSummariesOnly)
+                .with_diagnostics_policy(
+                    ResourceDiagnosticsPolicyDeclaration::ForensicExpansionBudget {
+                        max_replay_reconstruction_width: 5,
+                        max_forensic_reconstruction_width: 5,
+                    },
+                ),
+        )
+        .expect("declared node should classify")
+        .expect("parameter-and-retention replay policy should admit both compatible drifts");
+
+    assert_eq!(
+        proof.replay_decision_class(),
+        ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowing
+    );
+    assert_eq!(proof.retained_history_unavailable_width(), 1);
+    assert_eq!(proof.diagnostics_details_unavailable_width(), 0);
+    assert_eq!(
+        proof
+            .compatibility()
+            .family(ResourcePolicyKind::Retention)
+            .expect("retention family report should exist")
+            .class(),
+        ResourcePolicyCompatibilityClass::CompatibleRetentionNarrowing
+    );
+    let diagnostics = proof
+        .compatibility()
+        .family(ResourcePolicyKind::Diagnostics)
+        .expect("diagnostics family report should exist");
+    assert_eq!(
+        diagnostics.class(),
+        ResourcePolicyCompatibilityClass::CompatibleParameterExpansion
+    );
+    assert_eq!(
+        diagnostics.defaulted_parameter_names(),
+        ["max_forensic_reconstruction_width"]
+    );
+}
+
+#[test]
+fn resource_policy_restore_compatibility_parameter_and_retention_replay_policy_still_denies_diagnostics_richness_change(
+) {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compatible_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Diagnostics,
+        "signal.resource.diagnostics.retained-only",
+    );
+    let mut runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(compatible_registry)
+        .build();
+    runtime
+        .declare_resource_node(budgeted_diagnostics_resource_declaration(node, 5))
+        .expect("historical declaration should lower");
+
+    let denial = runtime
+        .admit_resource_policy_restore_compatibility(
+            &parameter_and_retention_replay_resource_declaration(node)
+                .with_diagnostics_policy(ResourceDiagnosticsPolicyDeclaration::RetainedOnly),
+        )
+        .expect("declared node should classify")
+        .expect_err("parameter-and-retention replay policy should deny diagnostics richness drift");
+
+    assert_eq!(
+        denial.class(),
+        ResourcePolicyRestoreCompatibilityDenialClass::ReplayPolicyDisallowsCompatibleDrift
+    );
+    assert_eq!(
+        denial.replay_decision_class(),
+        ResourceReplayDecisionClass::CompatibleParameterExpansionAndRetentionNarrowing
+    );
+    assert_eq!(
+        denial.primary_incompatible_kind(),
+        Some(ResourcePolicyKind::Diagnostics)
+    );
+    assert_eq!(
+        denial
+            .compatibility()
+            .family(ResourcePolicyKind::Diagnostics)
+            .expect("diagnostics family report should exist")
+            .class(),
+        ResourcePolicyCompatibilityClass::CompatibleDiagnosticsRichnessChange
+    );
+}
+
+#[test]
+fn resource_policy_restore_compatibility_parameter_and_diagnostics_replay_policy_admits_parameter_expansion(
+) {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compatible_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Diagnostics,
+        "signal.resource.diagnostics.forensic-expansion-budget",
+    );
+    let mut runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(compatible_registry)
+        .build();
+    runtime
+        .declare_resource_node(budgeted_diagnostics_resource_declaration(node, 5))
+        .expect("historical declaration should lower");
+
+    let proof = runtime
+        .admit_resource_policy_restore_compatibility(
+            &parameter_and_diagnostics_replay_resource_declaration(node).with_diagnostics_policy(
+                ResourceDiagnosticsPolicyDeclaration::ForensicExpansionBudget {
+                    max_replay_reconstruction_width: 5,
+                    max_forensic_reconstruction_width: 5,
+                },
+            ),
+        )
+        .expect("declared node should classify")
+        .expect("parameter-and-diagnostics replay policy should admit parameter expansion");
+
+    assert_eq!(
+        proof.replay_decision_class(),
+        ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange
+    );
+    assert_eq!(
+        proof
+            .compatibility()
+            .family(ResourcePolicyKind::Diagnostics)
+            .expect("diagnostics family report should exist")
+            .class(),
+        ResourcePolicyCompatibilityClass::CompatibleParameterExpansion
+    );
+}
+
+#[test]
+fn resource_policy_restore_compatibility_parameter_and_diagnostics_replay_policy_admits_diagnostics_richness_change(
+) {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compatible_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Diagnostics,
+        "signal.resource.diagnostics.retained-only",
+    );
+    let mut runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(compatible_registry)
+        .build();
+    runtime
+        .declare_resource_node(budgeted_diagnostics_resource_declaration(node, 5))
+        .expect("historical declaration should lower");
+
+    let proof = runtime
+        .admit_resource_policy_restore_compatibility(
+            &parameter_and_diagnostics_replay_resource_declaration(node)
+                .with_diagnostics_policy(ResourceDiagnosticsPolicyDeclaration::RetainedOnly),
+        )
+        .expect("declared node should classify")
+        .expect("parameter-and-diagnostics replay policy should admit diagnostics richness drift");
+
+    assert_eq!(
+        proof.replay_decision_class(),
+        ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange
+    );
+    assert_eq!(
+        proof
+            .compatibility()
+            .family(ResourcePolicyKind::Diagnostics)
+            .expect("diagnostics family report should exist")
+            .class(),
+        ResourcePolicyCompatibilityClass::CompatibleDiagnosticsRichnessChange
+    );
+    assert_eq!(proof.diagnostics_details_unavailable_width(), 1);
+}
+
+#[test]
+fn resource_policy_restore_compatibility_parameter_and_diagnostics_replay_policy_still_denies_retention_narrowing(
+) {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let compatible_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Retention,
+        "signal.resource.retention.terminal-summaries-only",
+    );
+    let mut runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(compatible_registry)
+        .build();
+    runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(node))
+        .expect("historical declaration should lower");
+
+    let denial = runtime
+        .admit_resource_policy_restore_compatibility(
+            &parameter_and_diagnostics_replay_resource_declaration(node)
+                .with_retention_policy(ResourceRetentionPolicyDeclaration::TerminalSummariesOnly),
+        )
+        .expect("declared node should classify")
+        .expect_err(
+            "parameter-and-diagnostics replay policy should still deny retention narrowing",
+        );
+
+    assert_eq!(
+        denial.class(),
+        ResourcePolicyRestoreCompatibilityDenialClass::ReplayPolicyDisallowsCompatibleDrift
+    );
+    assert_eq!(
+        denial.replay_decision_class(),
+        ResourceReplayDecisionClass::CompatibleParameterExpansionAndDiagnosticsRichnessChange
+    );
+    assert_eq!(
+        denial.primary_incompatible_kind(),
+        Some(ResourcePolicyKind::Retention)
+    );
+    assert_eq!(
+        denial
+            .compatibility()
+            .family(ResourcePolicyKind::Retention)
+            .expect("retention family report should exist")
+            .class(),
+        ResourcePolicyCompatibilityClass::CompatibleRetentionNarrowing
+    );
+}
+
+#[test]
 fn resource_policy_restore_compatibility_replay_policy_can_deny_parameter_expansion() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -3025,6 +4053,70 @@ fn resource_replay_availability_digest_includes_replay_decision_provenance() {
         diagnostics_only_report.availability_digest(),
         combined_report.availability_digest(),
         "availability digest must reflect replay-decision provenance"
+    );
+}
+
+#[test]
+fn resource_replay_availability_distinguishes_pair_replay_adapter_provenance() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+
+    let parameter_and_retention_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Diagnostics,
+        "signal.resource.diagnostics.forensic-expansion-budget",
+    );
+    let mut parameter_and_retention_runtime = TestRuntime::builder(graph.clone())
+        .with_kernel_defaults()
+        .resource_policy_registry(parameter_and_retention_registry)
+        .build();
+    parameter_and_retention_runtime
+        .declare_resource_node(budgeted_diagnostics_resource_declaration(node, 5))
+        .expect("historical declaration should lower");
+    let parameter_and_retention_report = parameter_and_retention_runtime
+        .resource_replay_availability(
+            &parameter_and_retention_replay_resource_declaration(node).with_diagnostics_policy(
+                ResourceDiagnosticsPolicyDeclaration::ForensicExpansionBudget {
+                    max_replay_reconstruction_width: 5,
+                    max_forensic_reconstruction_width: 5,
+                },
+            ),
+        )
+        .expect("parameter-and-retention replay availability should classify");
+
+    let parameter_and_diagnostics_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Diagnostics,
+        "signal.resource.diagnostics.forensic-expansion-budget",
+    );
+    let mut parameter_and_diagnostics_runtime = TestRuntime::builder(graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(parameter_and_diagnostics_registry)
+        .build();
+    parameter_and_diagnostics_runtime
+        .declare_resource_node(budgeted_diagnostics_resource_declaration(node, 5))
+        .expect("historical declaration should lower");
+    let parameter_and_diagnostics_report = parameter_and_diagnostics_runtime
+        .resource_replay_availability(
+            &parameter_and_diagnostics_replay_resource_declaration(node).with_diagnostics_policy(
+                ResourceDiagnosticsPolicyDeclaration::ForensicExpansionBudget {
+                    max_replay_reconstruction_width: 5,
+                    max_forensic_reconstruction_width: 5,
+                },
+            ),
+        )
+        .expect("parameter-and-diagnostics replay availability should classify");
+
+    assert_eq!(
+        parameter_and_retention_report.class(),
+        ResourceReplayAvailabilityClass::Retained
+    );
+    assert_eq!(
+        parameter_and_diagnostics_report.class(),
+        ResourceReplayAvailabilityClass::Retained
+    );
+    assert_ne!(
+        parameter_and_retention_report.availability_digest(),
+        parameter_and_diagnostics_report.availability_digest(),
+        "pair replay adapters must remain digest-distinct even when they admit the same compatible drift"
     );
 }
 
@@ -8565,23 +9657,9 @@ fn resource_certification_bundle_requires_all_named_phase10_families() {
         .superseded_request()
         .expect("second admission should retain supersession evidence");
     assert_eq!(superseded_request, first_request.handle());
-    let second_request = second_admission.admitted_request();
     let snapshot = runtime.capture_snapshot();
 
-    let admitted_completion = runtime
-        .admit_resource_completion(raw_completion(
-            &runtime,
-            node,
-            second_request.handle(),
-            second_request.attempt(),
-            64,
-        ))
-        .admitted_completion()
-        .expect("current completion should admit");
-    let staging = runtime
-        .stage_admitted_resource_completion(admitted_completion)
-        .expect("admitted completion should stage");
-    let rollback = runtime.rollback_staged_resource_completion(staging.staged_effect());
+    let lifecycle_rollback = resource_async_lifecycle_rollback_workload();
 
     runtime
         .restore_snapshot(&snapshot)
@@ -8590,19 +9668,30 @@ fn resource_certification_bundle_requires_all_named_phase10_families() {
         .latest_resource_branch_restore_report()
         .expect("resource restore should publish branch evidence");
     let replay = runtime.reconstruct_resource_replay_summary();
+    let diagnostics = runtime.resource_diagnostics_summary_with_unbounded_cold_reconstruction();
+    let inflight_pressure = resource_async_inflight_pressure_workload();
 
     let bundle = resource_certification_builder()
-        .with_async_resource_lifecycle_parity(&replay)
+        .with_async_resource_lifecycle_parity(&replay, &replay, &diagnostics, &diagnostics)
         .expect("lifecycle parity evidence should be accepted")
         .with_out_of_order_completion_supersession(second_admission)
         .expect("supersession evidence should be accepted")
-        .with_async_rollback_observation_equivalence(rollback)
+        .with_async_rollback_observation_equivalence(
+            lifecycle_rollback.rollback_report,
+            lifecycle_rollback.rollback_observation,
+            lifecycle_rollback.control_commit_observation,
+            &lifecycle_rollback.pre_rollback_replay,
+            &lifecycle_rollback.post_rollback_replay,
+            &lifecycle_rollback.diagnostics_after_rollback,
+        )
         .expect("rollback evidence should be accepted")
         .with_async_branch_restore_replay_equivalence(restore_report, &replay)
         .expect("branch/replay evidence should be accepted")
         .with_async_inflight_boundedness(
-            runtime.resource_runtime_summary(),
-            first_admission.performance(),
+            inflight_pressure.runtime_summary,
+            &inflight_pressure.replay_after_restore,
+            inflight_pressure.telemetry,
+            inflight_pressure.pressure_performance,
         )
         .expect("boundedness evidence should be accepted")
         .build()
@@ -8684,6 +9773,7 @@ fn resource_certification_bundle_reports_missing_duplicate_and_parity_drift() {
     assert!(parity
         .mismatch_classes()
         .contains(&ResourceCertificationBundleMismatchClass::RecordSetMismatch));
+    let inflight_pressure = resource_async_inflight_pressure_workload();
     assert!(ResourceCertificationRecord::passing(
         ResourceCertificationFamily::AsyncInflightBoundedness,
         "",
@@ -8691,9 +9781,19 @@ fn resource_certification_bundle_reports_missing_duplicate_and_parity_drift() {
     )
     .is_err());
     let builder_err = resource_certification_builder()
-        .with_async_inflight_boundedness(runtime.resource_runtime_summary(), performance)
+        .with_async_inflight_boundedness(
+            inflight_pressure.runtime_summary,
+            &inflight_pressure.replay_after_restore,
+            inflight_pressure.telemetry,
+            inflight_pressure.pressure_performance,
+        )
         .expect("first lifecycle record should be accepted")
-        .with_async_inflight_boundedness(runtime.resource_runtime_summary(), performance)
+        .with_async_inflight_boundedness(
+            inflight_pressure.runtime_summary,
+            &inflight_pressure.replay_after_restore,
+            inflight_pressure.telemetry,
+            inflight_pressure.pressure_performance,
+        )
         .expect_err("duplicate builder family must reject before bundle construction");
     assert!(format!("{builder_err}").contains("duplicate certification family evidence"));
 }
@@ -8887,6 +9987,7 @@ fn resource_milestone_b_certification_run_requires_complete_passing_bundle() {
         resource_late_cancelled_completion_report(),
         resource_late_timed_out_completion_report(),
         resource_malformed_completion_report(),
+        &resource_async_inflight_pressure_workload().pressure_batch,
     )
     .expect_err("hostile scenario evidence must reject the wrong denial class per row");
     assert!(format!("{misclassified_hostile}").contains("requires Superseded denial evidence"));
@@ -8944,6 +10045,817 @@ fn resource_certification_fixture_bundle(
     resource_certification_fixture_artifacts(retained_denial_request_id).0
 }
 
+#[test]
+fn resource_async_branch_restore_replay_equivalence_converges_for_equivalent_hostile_suffixes() {
+    // Phase 9 branch-local async restore/replay torture coverage:
+    // - 18: async branch restore and replay equivalence
+    // - reinforces 15 and 17 under branch-local hostile async suffixes
+    let outcome = resource_branch_replay_workload(ResourceRequestId::new(50_001));
+    let feature = &outcome.feature;
+    let sibling = &outcome.sibling;
+
+    for (name, branch) in [("feature", feature), ("sibling", sibling)] {
+        assert_ne!(
+            branch.replay_after_snapshot_drift.replay_digest(),
+            branch.replay_before_restore.replay_digest(),
+            "{name} branch drift must perturb replay truth before restore"
+        );
+        assert_eq!(
+            branch.head_snapshot_after_restore, branch.head_snapshot_before_restore,
+            "{name} restore must preserve the branch head snapshot checkpoint"
+        );
+        assert!(
+            branch.replay_history_after_restore.frames.len()
+                >= branch.replay_history_before_restore.frames.len(),
+            "{name} restore may append restore evidence, but it must not erase prior branch replay history"
+        );
+        assert!(
+            branch
+                .replay_history_after_restore
+                .frames
+                .iter()
+                .all(|frame| frame.branch_id == branch.branch_id),
+            "{name} replay history must stay branch-local after restore"
+        );
+        assert_eq!(
+            branch
+                .replay_history_after_restore
+                .frames
+                .iter()
+                .filter(|frame| frame.kind == ReplayEventKind::TransactionCommitted)
+                .count(),
+            branch
+                .replay_history_before_restore
+                .frames
+                .iter()
+                .filter(|frame| frame.kind == ReplayEventKind::TransactionCommitted)
+                .count(),
+            "{name} restore must not invent or erase committed async replay history"
+        );
+        assert_eq!(
+            branch.replay_after_restore.descriptor_digest(),
+            branch.replay_before_restore.descriptor_digest(),
+            "{name} restore must preserve descriptor truth"
+        );
+        assert_eq!(
+            branch.replay_after_restore.lifecycle_digest(),
+            branch.replay_before_restore.lifecycle_digest(),
+            "{name} restore must preserve lifecycle truth"
+        );
+        assert_eq!(
+            branch.replay_after_restore.denied_completion_digest(),
+            branch.replay_before_restore.denied_completion_digest(),
+            "{name} restore must preserve denial history"
+        );
+        assert_eq!(
+            branch.replay_after_restore.in_flight_digest(),
+            branch.replay_before_restore.in_flight_digest(),
+            "{name} restore must reconstruct the same in-flight story"
+        );
+        assert_eq!(
+            branch.replay_after_restore.retry_lineage_digest(),
+            branch.replay_before_restore.retry_lineage_digest(),
+            "{name} restore must preserve retry lineage truth"
+        );
+        assert_eq!(
+            branch.replay_after_restore.replay_digest(),
+            branch.replay_before_restore.replay_digest(),
+            "{name} equivalent restored suffix must converge exactly"
+        );
+        assert_eq!(
+            branch.restore_report.performance().boundary(),
+            ResourceBoundaryKind::BranchRestore,
+            "{name} restore must report branch-restore boundary truth"
+        );
+        assert_eq!(
+            branch.restore_report.restored_in_flight_width(),
+            branch.replay_after_restore.in_flight_width(),
+            "{name} restore report must match replayed in-flight width"
+        );
+        assert_eq!(
+            branch
+                .diagnostics_after_restore
+                .replay_reconstruction()
+                .replay_digest(),
+            branch.replay_after_restore.replay_digest(),
+            "{name} diagnostics replay provenance must agree with replay reconstruction"
+        );
+    }
+
+    assert_eq!(
+        feature.replay_after_restore.descriptor_digest(),
+        sibling.replay_after_restore.descriptor_digest(),
+        "equivalent branch restores must converge on identical descriptor truth"
+    );
+    assert_eq!(
+        feature.replay_after_restore.lifecycle_digest(),
+        sibling.replay_after_restore.lifecycle_digest(),
+        "equivalent branch restores must converge on identical lifecycle truth"
+    );
+    assert_eq!(
+        feature.replay_after_restore.denied_completion_digest(),
+        sibling.replay_after_restore.denied_completion_digest(),
+        "equivalent branch restores must converge on identical denial truth"
+    );
+    assert_eq!(
+        feature.replay_after_restore.in_flight_digest(),
+        sibling.replay_after_restore.in_flight_digest(),
+        "equivalent branch restores must converge on identical inflight truth"
+    );
+    assert_eq!(
+        feature.replay_after_restore.replay_digest(),
+        sibling.replay_after_restore.replay_digest(),
+        "equivalent branch restores must converge on identical replay truth"
+    );
+    assert_eq!(
+        feature.diagnostics_after_restore.provenance_digest(),
+        sibling.diagnostics_after_restore.provenance_digest(),
+        "equivalent restored suffixes must preserve branch-local diagnostics explanations"
+    );
+    assert_eq!(
+        feature
+            .replay_history_after_restore
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::SnapshotRestored)
+            .count(),
+        sibling
+            .replay_history_after_restore
+            .frames
+            .iter()
+            .filter(|frame| frame.kind == ReplayEventKind::SnapshotRestored)
+            .count(),
+        "equivalent restored suffixes must preserve identical restore replay causality"
+    );
+}
+
+#[test]
+fn resource_async_nightmare_grammar_preserves_canonical_truth_across_restore_and_replay() {
+    // Phase 9 async nightmare grammar coverage:
+    // - 15: async resource lifecycle parity
+    // - 16: out-of-order completion supersession
+    // - 17: async rollback and observation equivalence
+    // - 18: async branch restore and replay equivalence
+    // - 19A / 19B: mixed completion-ordering, completion-integrity,
+    //   request-identity, liveness, and async-pressure failures in one lane
+    let (bundle, hostile_evidence, summary_read, diagnostics_summary, diagnostics_denial) =
+        resource_certification_fixture_artifacts(ResourceRequestId::new(9_999));
+
+    assert!(bundle.passed());
+    assert_eq!(
+        bundle.summary().passed_family_count(),
+        REQUIRED_RESOURCE_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(bundle.summary().failed_family_count(), 0);
+
+    let scenario_matrix = resource_milestone_b_scenario_matrix(&bundle, &hostile_evidence)
+        .expect("nightmare grammar fixture should satisfy milestone B scenario matrix");
+    let performance_closeout = resource_milestone_b_performance_closeout(
+        &scenario_matrix,
+        summary_read,
+        diagnostics_summary,
+        diagnostics_denial.clone(),
+    )
+    .expect("nightmare grammar fixture should satisfy performance closeout");
+    let run = resource_milestone_b_certification_run(
+        bundle.clone(),
+        scenario_matrix.clone(),
+        performance_closeout.clone(),
+    )
+    .expect("nightmare grammar fixture should satisfy milestone B certification run");
+
+    assert!(scenario_matrix.passed());
+    assert!(performance_closeout.passed());
+    assert!(run.passed());
+    assert_eq!(
+        hostile_evidence.rows().len(),
+        REQUIRED_RESOURCE_MILESTONE_B_HOSTILE_SCENARIOS.len()
+    );
+
+    let superseded_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::LateCompletionAfterSupersessionRejected,
+    );
+    let cancelled_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::LateCompletionAfterCancellationRejected,
+    );
+    let timed_out_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::LateCompletionAfterTimeoutRejected,
+    );
+    let malformed_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::MalformedCompletionRejected,
+    );
+    let duplicate_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::DuplicateCompletionRejected,
+    );
+    let contradictory_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::ContradictoryCompletionRejected,
+    );
+    let unknown_row = required_hostile_evidence_row(
+        &hostile_evidence,
+        ResourceMilestoneBScenarioId::UnknownRequestCompletionRejected,
+    );
+    assert_hostile_evidence_shape(superseded_row);
+    assert_hostile_evidence_shape(cancelled_row);
+    assert_hostile_evidence_shape(timed_out_row);
+    assert_hostile_evidence_shape(malformed_row);
+    assert_hostile_evidence_shape(duplicate_row);
+    assert_hostile_evidence_shape(contradictory_row);
+    assert_hostile_evidence_shape(unknown_row);
+    assert_eq!(
+        superseded_row.expected_denial_class(),
+        CompletionDenialClass::Superseded
+    );
+    assert_eq!(
+        cancelled_row.expected_denial_class(),
+        CompletionDenialClass::Cancelled
+    );
+    assert_eq!(
+        timed_out_row.expected_denial_class(),
+        CompletionDenialClass::TimedOut
+    );
+    assert_eq!(
+        malformed_row.expected_denial_class(),
+        CompletionDenialClass::Malformed
+    );
+    assert_eq!(
+        duplicate_row.expected_denial_class(),
+        CompletionDenialClass::Duplicate
+    );
+    assert_eq!(
+        contradictory_row.expected_denial_class(),
+        CompletionDenialClass::Contradictory
+    );
+    assert_eq!(
+        unknown_row.expected_denial_class(),
+        CompletionDenialClass::UnknownRequest
+    );
+    assert_ne!(
+        superseded_row.evidence_digest(),
+        cancelled_row.evidence_digest(),
+        "mixed async denial families must stay provenance-distinct"
+    );
+    assert_ne!(
+        superseded_row.evidence_digest(),
+        timed_out_row.evidence_digest(),
+        "timeout truth must not collapse into supersession truth"
+    );
+    assert_ne!(
+        cancelled_row.evidence_digest(),
+        malformed_row.evidence_digest(),
+        "completion-integrity failures must stay distinct from lifecycle denial truth"
+    );
+    assert_ne!(
+        duplicate_row.evidence_digest(),
+        contradictory_row.evidence_digest(),
+        "duplicate delivery and contradictory delivery must remain distinct nightmare grammar evidence"
+    );
+    assert_ne!(
+        contradictory_row.evidence_digest(),
+        unknown_row.evidence_digest(),
+        "request-identity failures must not collapse into contradictory payload drift"
+    );
+
+    let rollback_row = required_scenario_row(
+        &scenario_matrix,
+        ResourceMilestoneBScenarioId::RollbackObservationEquivalence,
+    );
+    let replay_row = required_scenario_row(
+        &scenario_matrix,
+        ResourceMilestoneBScenarioId::LifecycleReplayParity,
+    );
+    let branch_row = required_scenario_row(
+        &scenario_matrix,
+        ResourceMilestoneBScenarioId::BranchRestoreReplayEquivalence,
+    );
+    let inflight_row = required_scenario_row(
+        &scenario_matrix,
+        ResourceMilestoneBScenarioId::InflightBoundedness,
+    );
+    assert_eq!(
+        rollback_row.evidence_kind(),
+        ResourceMilestoneBScenarioEvidenceKind::CertificationFamily
+    );
+    assert_eq!(
+        replay_row.evidence_kind(),
+        ResourceMilestoneBScenarioEvidenceKind::CertificationFamily
+    );
+    assert_eq!(
+        branch_row.evidence_kind(),
+        ResourceMilestoneBScenarioEvidenceKind::CertificationFamily
+    );
+    assert_eq!(
+        inflight_row.evidence_kind(),
+        ResourceMilestoneBScenarioEvidenceKind::CertificationFamily
+    );
+
+    let rollback_claim = required_performance_claim_row(
+        &performance_closeout,
+        ResourceMilestoneBPerformanceClaimId::RollbackObservationRollbackBounded,
+    );
+    let branch_claim = required_performance_claim_row(
+        &performance_closeout,
+        ResourceMilestoneBPerformanceClaimId::BranchRestoreReplayRestoreBounded,
+    );
+    let inflight_claim = required_performance_claim_row(
+        &performance_closeout,
+        ResourceMilestoneBPerformanceClaimId::InflightBoundednessAdmissionBounded,
+    );
+    let hostile_claim = required_performance_claim_row(
+        &performance_closeout,
+        ResourceMilestoneBPerformanceClaimId::HostileCompletionDenialsScalarBounded,
+    );
+    assert_performance_closeout_claim_shape(rollback_claim);
+    assert_performance_closeout_claim_shape(branch_claim);
+    assert_performance_closeout_claim_shape(inflight_claim);
+    assert_performance_closeout_claim_shape(hostile_claim);
+    assert_eq!(hostile_claim.performance().input_width(), 4);
+    assert_eq!(hostile_claim.performance().denied_count(), 4);
+    assert_eq!(
+        diagnostics_denial
+            .performance()
+            .diagnostics_allocation_count(),
+        0,
+        "strict diagnostics denial must stay zero-cold inside the nightmare grammar workload"
+    );
+
+    assert_eq!(run.bundle().bundle_digest(), bundle.bundle_digest());
+    assert_eq!(
+        run.scenario_matrix().matrix_digest(),
+        scenario_matrix.matrix_digest()
+    );
+    assert_eq!(
+        run.performance_closeout().closeout_digest(),
+        performance_closeout.closeout_digest()
+    );
+}
+
+#[test]
+fn resource_milestone_b_hostile_scenario_evidence_rejects_non_hostile_batch_denials() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit")
+        .admitted_request();
+    let accepted = raw_completion(
+        &runtime,
+        node,
+        admitted_request.handle(),
+        admitted_request.attempt(),
+        64,
+    );
+    let contradictory = raw_completion(
+        &runtime,
+        node,
+        admitted_request.handle(),
+        admitted_request.attempt(),
+        96,
+    );
+    let digest = runtime
+        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .expect("descriptor should exist")
+        .payload_contract_digest()
+        .clone();
+    let unknown = RawCompletionEnvelope::new(
+        ResourceRequestId::new(77_001),
+        ResourceGeneration::new(1),
+        ResourceBranchEpoch::new(runtime.graph().current_branch().id, 0),
+        ResourceAttemptId::ZERO,
+        digest,
+        32,
+    );
+    let malformed = RawCompletionEnvelope::new(
+        admitted_request.handle().request_id(),
+        admitted_request.handle().generation(),
+        admitted_request.handle().branch_epoch(),
+        admitted_request.attempt(),
+        ResourcePayloadContractDigest::new("payload-contract:999:1024"),
+        64,
+    );
+    let oversized_batch = runtime.admit_resource_completion_batch([
+        contradictory,
+        accepted.clone(),
+        accepted,
+        unknown,
+        malformed,
+    ]);
+
+    let err = resource_milestone_b_hostile_scenario_evidence(
+        resource_late_superseded_completion_report(),
+        resource_late_cancelled_completion_report(),
+        resource_late_timed_out_completion_report(),
+        resource_malformed_completion_report(),
+        &oversized_batch,
+    )
+    .expect_err("nightmare hostile rows must reject arbitrary completion batches");
+
+    assert!(err
+        .to_string()
+        .contains("requires hostile mixed batch denial evidence"));
+}
+
+#[test]
+fn resource_async_lifecycle_and_rollback_workload_preserves_committed_truth_and_suppresses_observation(
+) {
+    let outcome = resource_async_lifecycle_rollback_workload();
+
+    assert_eq!(
+        outcome.pre_rollback_replay.descriptor_digest(),
+        outcome.post_rollback_replay.descriptor_digest(),
+        "rollback lane must preserve descriptor truth exactly"
+    );
+    assert_eq!(
+        outcome.pre_rollback_replay.lifecycle_digest(),
+        outcome.post_rollback_replay.lifecycle_digest(),
+        "rollback lane must preserve lifecycle truth exactly"
+    );
+    assert_eq!(
+        outcome.pre_rollback_replay.output_continuity_digest(),
+        outcome.post_rollback_replay.output_continuity_digest(),
+        "rollback lane must preserve output continuity truth exactly"
+    );
+    assert_eq!(
+        outcome.pre_rollback_replay.in_flight_digest(),
+        outcome.post_rollback_replay.in_flight_digest(),
+        "rollback lane must restore the same in-flight story"
+    );
+    assert_eq!(
+        outcome.pre_rollback_replay.retry_lineage_digest(),
+        outcome.post_rollback_replay.retry_lineage_digest(),
+        "rollback lane must not leak retry-lineage drift"
+    );
+    assert_eq!(
+        outcome.pre_rollback_replay.replay_digest(),
+        outcome.post_rollback_replay.replay_digest(),
+        "rollback lane must be indistinguishable from the control path where the failed completion never committed"
+    );
+    assert!(
+        outcome.delivered_observations_after_rollback.is_empty(),
+        "rollback-suppressed completion must not deliver observer packets"
+    );
+    assert_eq!(outcome.rollback_observation.events().len(), 1);
+    assert_eq!(
+        outcome.rollback_observation.events()[0].outcome(),
+        ObservationBoundaryOutcome::RollbackSuppressed
+    );
+    assert_eq!(outcome.control_commit_observation.events().len(), 1);
+    assert_eq!(
+        outcome.control_commit_observation.events()[0].outcome(),
+        ObservationBoundaryOutcome::Delivered
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].observer_id(),
+        outcome.control_commit_observation.events()[0].observer_id(),
+        "rollback suppression must preserve observer identity exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].handle_id(),
+        outcome.control_commit_observation.events()[0].handle_id(),
+        "rollback suppression must preserve observation handle identity exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].policy(),
+        outcome.control_commit_observation.events()[0].policy(),
+        "rollback suppression must preserve observation policy exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].touched(),
+        outcome.control_commit_observation.events()[0].touched(),
+        "rollback suppression must preserve touched classification exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].recomputed(),
+        outcome.control_commit_observation.events()[0].recomputed(),
+        "rollback suppression must preserve recomputed classification exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].meaningful_change(),
+        outcome.control_commit_observation.events()[0].meaningful_change(),
+        "rollback suppression must preserve meaningful-change classification exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].trigger_matched(),
+        outcome.control_commit_observation.events()[0].trigger_matched(),
+        "rollback suppression must preserve trigger-match classification exactly"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0]
+            .matched_resource_nodes()
+            .iter()
+            .map(|node| node.node())
+            .collect::<Vec<_>>(),
+        outcome.control_commit_observation.events()[0]
+            .matched_resource_nodes()
+            .iter()
+            .map(|node| node.node())
+            .collect::<Vec<_>>(),
+        "rollback suppression must preserve the same matched resource scope the no-failure control path would deliver"
+    );
+    assert_eq!(
+        outcome.rollback_observation.events()[0].matched_resource_nodes()[0].lifecycle(),
+        ResourceLifecycleClass::Pending
+    );
+    assert_eq!(
+        outcome
+            .delivered_observations_after_control_commit
+        .len(),
+        1,
+        "the same completion should still deliver one observer packet on the no-failure control path"
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].observer_id,
+        outcome.control_commit_observation.events()[0]
+            .observer_id()
+            .get()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].handle_id,
+        outcome.control_commit_observation.events()[0]
+            .handle_id()
+            .get()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].matched_node_count,
+        outcome.control_commit_observation.events()[0]
+            .matched_resource_nodes()
+            .len()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].touched,
+        outcome.control_commit_observation.events()[0].touched()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].recomputed,
+        outcome.control_commit_observation.events()[0].recomputed()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].meaningful_change,
+        outcome.control_commit_observation.events()[0].meaningful_change()
+    );
+    assert_eq!(
+        outcome.delivered_observations_after_control_commit[0].trigger_matched,
+        outcome.control_commit_observation.events()[0].trigger_matched()
+    );
+    assert_ne!(
+        outcome.post_rollback_replay.lifecycle_digest(),
+        outcome.control_path_replay.lifecycle_digest(),
+        "control-path commit should move lifecycle truth beyond the rollback-preserved state"
+    );
+    assert_ne!(
+        outcome.post_rollback_replay.replay_digest(),
+        outcome.control_path_replay.replay_digest(),
+        "control-path commit should append committed replay truth beyond the rollback-preserved lane"
+    );
+    assert!(!outcome
+        .diagnostics_after_rollback
+        .provenance_digest()
+        .is_empty());
+}
+
+#[test]
+fn resource_lifecycle_certification_rejects_non_equivalent_replay_truth() {
+    let outcome = resource_branch_replay_workload(ResourceRequestId::new(9_991));
+
+    let err = resource_certification_builder()
+        .with_async_resource_lifecycle_parity(
+            &outcome.feature.replay_after_restore,
+            &outcome.feature.replay_after_snapshot_drift,
+            &outcome.feature.diagnostics_after_restore,
+            &outcome.feature.diagnostics_after_restore,
+        )
+        .expect_err("non-equivalent replay truth must not certify lifecycle parity");
+
+    assert!(err
+        .to_string()
+        .contains("equivalent replay and diagnostics truth"));
+}
+
+#[test]
+fn resource_rollback_certification_rejects_control_observation_mismatch() {
+    let outcome = resource_async_lifecycle_rollback_workload();
+
+    let err = resource_certification_builder()
+        .with_async_rollback_observation_equivalence(
+            outcome.rollback_report,
+            outcome.rollback_observation.clone(),
+            outcome.rollback_observation,
+            &outcome.pre_rollback_replay,
+            &outcome.post_rollback_replay,
+            &outcome.diagnostics_after_rollback,
+        )
+        .expect_err(
+            "rollback certification must reject a control path that is not a delivered packet",
+        );
+
+    assert!(err
+        .to_string()
+        .contains("requires only delivered events on the no-failure control path"));
+}
+
+#[test]
+fn resource_async_inflight_pressure_workload_keeps_matching_local_and_bounded() {
+    let outcome = resource_async_inflight_pressure_workload();
+
+    assert_eq!(
+        outcome.pressure_performance.boundary(),
+        ResourceBoundaryKind::CompletionBatchAdmission
+    );
+    assert_eq!(outcome.pressure_performance.input_width(), 4);
+    assert_eq!(outcome.pressure_performance.admitted_count(), 1);
+    assert_eq!(outcome.pressure_performance.denied_count(), 3);
+    assert_eq!(outcome.pressure_performance.lifecycle_transition_count(), 1);
+    assert_eq!(
+        outcome.pressure_performance.operational_allocation_count(),
+        3
+    );
+    assert_eq!(
+        outcome
+            .pressure_performance
+            .retained_history_allocation_count(),
+        0
+    );
+    assert_eq!(
+        outcome.pressure_performance.diagnostics_allocation_count(),
+        4
+    );
+    assert_eq!(
+        outcome
+            .pressure_performance
+            .facade_report_allocation_count(),
+        1
+    );
+    assert_eq!(
+        outcome.pressure_performance.density_strategy(),
+        ResourceDensityStrategy::BurstySortedDeduplicated
+    );
+    assert_eq!(outcome.pressure_batch.denied_completions().len(), 3);
+    assert!(outcome
+        .pressure_batch
+        .denied_completions()
+        .iter()
+        .any(|denied| denied.class() == CompletionDenialClass::Duplicate));
+    assert!(outcome
+        .pressure_batch
+        .denied_completions()
+        .iter()
+        .any(|denied| denied.class() == CompletionDenialClass::Contradictory));
+    assert!(outcome
+        .pressure_batch
+        .denied_completions()
+        .iter()
+        .any(|denied| denied.class() == CompletionDenialClass::UnknownRequest));
+    assert_eq!(outcome.telemetry.resource_retry_admission_count, 1);
+    assert_eq!(outcome.telemetry.resource_retry_schedule_count, 1);
+    assert_eq!(
+        outcome
+            .telemetry
+            .resource_retry_already_scheduled_denial_count,
+        1
+    );
+    assert_eq!(
+        outcome
+            .telemetry
+            .resource_superseded_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        outcome.telemetry.resource_duplicate_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        outcome
+            .telemetry
+            .resource_contradictory_completion_denial_count,
+        1
+    );
+    assert_eq!(
+        outcome
+            .telemetry
+            .resource_unknown_request_completion_denial_count,
+        2
+    );
+    assert_eq!(outcome.telemetry.resource_stale_completion_denial_count, 1);
+    assert_eq!(outcome.telemetry.resource_branch_restore_count, 1);
+    assert!(
+        outcome.branch_restore_report.broad_rebuild_denial_count() > 0,
+        "branch restore under async pressure must report bounded broad-rebuild denial evidence"
+    );
+    assert!(
+        outcome.branch_restore_report.restored_in_flight_width() > 0,
+        "branch restore should carry live inflight width under pressure"
+    );
+    assert_eq!(
+        outcome.runtime_summary.in_flight_request_count(),
+        outcome.replay_after_restore.in_flight_width() as u64,
+        "runtime summary and replay reconstruction must agree on retained inflight width after pressure churn"
+    );
+    assert!(
+        !outcome.drifted_branch_handle_live_after_restore,
+        "restore must not leave post-snapshot drift as ghost inflight state"
+    );
+    assert_eq!(
+        outcome
+            .zombie_completion_after_restore
+            .denied_completion()
+            .expect("restored-away zombie completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::UnknownRequest
+    );
+    assert_eq!(
+        outcome
+            .pre_restore_completion_after_restore
+            .denied_completion()
+            .expect("pre-restore completion should deny under the restored branch epoch")
+            .class(),
+        CompletionDenialClass::Stale
+    );
+    assert!(
+        outcome
+            .pre_restore_completion_after_restore
+            .admitted_completion()
+            .is_none(),
+        "restore must preserve inflight truth without letting pre-restore completion authority survive branch-epoch rotation"
+    );
+    assert!(
+        outcome.telemetry.resource_hot_in_flight_lookup_count >= 4,
+        "completion matching and churn should remain attributable through hot inflight lookups"
+    );
+}
+
+#[test]
+fn resource_async_liveness_failures_preserve_inflight_truth_and_reject_zombie_completion() {
+    let outcome = resource_async_inflight_pressure_workload();
+
+    assert!(
+        !outcome.drifted_branch_handle_live_after_restore,
+        "restored-away drift must not survive as ghost inflight state"
+    );
+    assert_eq!(
+        outcome
+            .zombie_completion_after_restore
+            .denied_completion()
+            .expect("zombie completion after restore should deny explicitly")
+            .class(),
+        CompletionDenialClass::UnknownRequest
+    );
+    assert_eq!(
+        outcome
+            .pre_restore_completion_after_restore
+            .denied_completion()
+            .expect("pre-restore completion should be stale after restore rekeys the branch epoch")
+            .class(),
+        CompletionDenialClass::Stale
+    );
+    assert!(
+        outcome
+            .pre_restore_completion_after_restore
+            .admitted_completion()
+            .is_none(),
+        "restore must not let pre-restore completion authority survive even while it preserves live inflight truth"
+    );
+    assert_eq!(
+        outcome.runtime_summary.in_flight_request_count(),
+        outcome.replay_after_restore.in_flight_width() as u64,
+        "runtime summary and replay reconstruction must stay aligned after zombie denial"
+    );
+}
+
+#[test]
+fn resource_inflight_certification_rejects_non_hostile_pressure_evidence() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let admitted = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("request should admit");
+
+    let err = resource_certification_builder()
+        .with_async_inflight_boundedness(
+            runtime.resource_runtime_summary(),
+            &runtime.reconstruct_resource_replay_summary(),
+            runtime.telemetry().resource,
+            admitted.performance(),
+        )
+        .expect_err("trivial one-request evidence must not certify hostile inflight boundedness");
+
+    assert!(err
+        .to_string()
+        .contains("requires hostile async pressure evidence"));
+}
+
 fn resource_certification_fixture_artifacts(
     retained_denial_request_id: ResourceRequestId,
 ) -> (
@@ -8953,14 +10865,28 @@ fn resource_certification_fixture_artifacts(
     ResourceDiagnosticsSummary,
     ResourceDiagnosticsExpansionDenial,
 ) {
+    let lifecycle_rollback = resource_async_lifecycle_rollback_workload();
+    let inflight_pressure = resource_async_inflight_pressure_workload();
     let mut graph = SignalGraph::new();
-    let node = graph.node().build();
+    let lifecycle_node = graph.node().build();
+    let cancel_node = graph.node().build();
+    let timeout_node = graph.node().build();
+    let malformed_node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
     runtime
-        .declare_resource_node(resource_declaration(node))
-        .expect("resource declaration should lower");
+        .declare_resource_node(resource_declaration(lifecycle_node))
+        .expect("lifecycle declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(cancel_node))
+        .expect("cancel declaration should lower");
+    runtime
+        .declare_resource_node(timeout_resource_declaration(timeout_node, 3))
+        .expect("timeout declaration should lower");
+    runtime
+        .declare_resource_node(resource_declaration(malformed_node))
+        .expect("malformed declaration should lower");
     let digest = runtime
-        .resource_descriptor_for_node(ResourceNodeId::from_node(node))
+        .resource_descriptor_for_node(ResourceNodeId::from_node(lifecycle_node))
         .expect("resource descriptor should exist")
         .payload_contract_digest()
         .clone();
@@ -8976,47 +10902,196 @@ fn resource_certification_fixture_artifacts(
         .denied_completion()
         .expect("unknown request should produce retained denial evidence");
     let first_admission = runtime
-        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
         .expect("first request should admit");
+    let stale_first = raw_completion(
+        &runtime,
+        lifecycle_node,
+        first_admission.admitted_request().handle(),
+        first_admission.admitted_request().attempt(),
+        64,
+    );
     let second_admission = runtime
-        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
         .expect("second request should supersede first request");
-    let second_request = second_admission.admitted_request();
-    let snapshot = runtime.capture_snapshot();
-    let admitted_completion = runtime
-        .admit_resource_completion(raw_completion(
-            &runtime,
-            node,
-            second_request.handle(),
-            second_request.attempt(),
-            64,
+    let superseded_completion_report = runtime.admit_resource_completion(stale_first);
+    assert_eq!(
+        superseded_completion_report
+            .denied_completion()
+            .expect("late superseded completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Superseded
+    );
+
+    let cancel_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancel_node,
+        )))
+        .expect("cancel request should admit")
+        .admitted_request();
+    let late_cancelled = raw_completion(
+        &runtime,
+        cancel_node,
+        cancel_request.handle(),
+        cancel_request.attempt(),
+        64,
+    );
+    runtime
+        .cancel_resource_request(
+            cancel_request.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should retire the active request");
+    let cancelled_completion_report = runtime.admit_resource_completion(late_cancelled);
+    assert_eq!(
+        cancelled_completion_report
+            .denied_completion()
+            .expect("late cancelled completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Cancelled
+    );
+
+    let timeout_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            timeout_node,
+        )))
+        .expect("timeout request should admit")
+        .admitted_request();
+    let late_timed_out = raw_completion(
+        &runtime,
+        timeout_node,
+        timeout_request.handle(),
+        timeout_request.attempt(),
+        64,
+    );
+    let timeout_wake = runtime
+        .in_flight_resource_request(timeout_request.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("timeout wake should attach");
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(3),
         ))
-        .admitted_completion()
-        .expect("current completion should admit");
-    let staging = runtime
-        .stage_admitted_resource_completion(admitted_completion)
-        .expect("admitted completion should stage");
-    let rollback = runtime.rollback_staged_resource_completion(staging.staged_effect());
+        .expect("authoritative clock should advance");
+    let ready_timeout = runtime
+        .promote_temporal_wake_ready(timeout_wake)
+        .expect("timeout wake should become ready");
+    runtime
+        .admit_resource_timeout(timeout_request.handle(), ready_timeout)
+        .expect("timeout admission should consume the wake");
+    let timed_out_completion_report = runtime.admit_resource_completion(late_timed_out);
+    assert_eq!(
+        timed_out_completion_report
+            .denied_completion()
+            .expect("late timed out completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::TimedOut
+    );
+
+    let malformed_request = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            malformed_node,
+        )))
+        .expect("malformed request should admit")
+        .admitted_request();
+    let malformed_completion_report =
+        runtime.admit_resource_completion(RawCompletionEnvelope::new(
+            malformed_request.handle().request_id(),
+            malformed_request.handle().generation(),
+            malformed_request.handle().branch_epoch(),
+            malformed_request.attempt(),
+            ResourcePayloadContractDigest::new("payload-contract:999:1024"),
+            64,
+        ));
+    assert_eq!(
+        malformed_completion_report
+            .denied_completion()
+            .expect("malformed completion should deny explicitly")
+            .class(),
+        CompletionDenialClass::Malformed
+    );
+
+    let snapshot = runtime.capture_snapshot();
+    let replay_before_restore = runtime.reconstruct_resource_replay_summary();
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            lifecycle_node,
+        )))
+        .expect("post-snapshot request should mutate state before restore");
     runtime
         .restore_snapshot(&snapshot)
         .expect("restore should reinstate resource state");
-    let restore = runtime
+    let _restore = runtime
         .latest_resource_branch_restore_report()
         .expect("resource restore should publish branch evidence");
     let replay = runtime.reconstruct_resource_replay_summary();
+    assert_eq!(
+        replay.descriptor_digest(),
+        replay_before_restore.descriptor_digest(),
+        "restore must preserve descriptor truth"
+    );
+    assert_eq!(
+        replay.lifecycle_digest(),
+        replay_before_restore.lifecycle_digest(),
+        "restore must preserve lifecycle truth"
+    );
+    assert_eq!(
+        replay.denied_completion_digest(),
+        replay_before_restore.denied_completion_digest(),
+        "restore must not invent or erase retained denial history"
+    );
+    assert_eq!(
+        replay.in_flight_digest(),
+        replay_before_restore.in_flight_digest(),
+        "restore must reconstruct the same in-flight story"
+    );
+    assert_eq!(
+        replay.replay_digest(),
+        replay_before_restore.replay_digest(),
+        "equivalent suffix after restore must preserve replay truth: lifecycle={} vs {}, denial={} vs {}, inflight={} vs {}",
+        replay.lifecycle_digest(),
+        replay_before_restore.lifecycle_digest(),
+        replay.denied_completion_digest(),
+        replay_before_restore.denied_completion_digest(),
+        replay.in_flight_digest(),
+        replay_before_restore.in_flight_digest()
+    );
+    let branch_replay_outcome = resource_branch_replay_workload(retained_denial_request_id);
 
     let bundle = resource_certification_builder()
-        .with_async_resource_lifecycle_parity(&replay)
+        .with_async_resource_lifecycle_parity(
+            &branch_replay_outcome.feature.replay_after_restore,
+            &branch_replay_outcome.sibling.replay_after_restore,
+            &branch_replay_outcome.feature.diagnostics_after_restore,
+            &branch_replay_outcome.sibling.diagnostics_after_restore,
+        )
         .expect("lifecycle evidence should be accepted")
         .with_out_of_order_completion_supersession(second_admission)
         .expect("supersession evidence should be accepted")
-        .with_async_rollback_observation_equivalence(rollback)
+        .with_async_rollback_observation_equivalence(
+            lifecycle_rollback.rollback_report,
+            lifecycle_rollback.rollback_observation,
+            lifecycle_rollback.control_commit_observation,
+            &lifecycle_rollback.pre_rollback_replay,
+            &lifecycle_rollback.post_rollback_replay,
+            &lifecycle_rollback.diagnostics_after_rollback,
+        )
         .expect("rollback evidence should be accepted")
-        .with_async_branch_restore_replay_equivalence(restore, &replay)
+        .with_async_branch_restore_replay_equivalence(
+            branch_replay_outcome.feature.restore_report,
+            &branch_replay_outcome.feature.replay_after_restore,
+        )
         .expect("branch/replay evidence should be accepted")
         .with_async_inflight_boundedness(
-            runtime.resource_runtime_summary(),
-            first_admission.performance(),
+            inflight_pressure.runtime_summary,
+            &inflight_pressure.replay_after_restore,
+            inflight_pressure.telemetry,
+            inflight_pressure.pressure_performance,
         )
         .expect("boundedness evidence should be accepted")
         .build()
@@ -9030,10 +11105,11 @@ fn resource_certification_fixture_artifacts(
         )
         .expect_err("retained-only diagnostics budget should deny cold reconstruction");
     let hostile_evidence = resource_milestone_b_hostile_scenario_evidence(
-        resource_late_superseded_completion_report(),
-        resource_late_cancelled_completion_report(),
-        resource_late_timed_out_completion_report(),
-        resource_malformed_completion_report(),
+        superseded_completion_report,
+        cancelled_completion_report,
+        timed_out_completion_report,
+        malformed_completion_report,
+        &inflight_pressure.pressure_batch,
     )
     .expect("hostile completion evidence should cover required denial lanes");
     (
@@ -9043,24 +11119,6 @@ fn resource_certification_fixture_artifacts(
         diagnostics_summary,
         diagnostics_denial,
     )
-}
-
-fn resource_late_superseded_completion_report() -> ResourceCompletionAdmissionReport {
-    let mut graph = SignalGraph::new();
-    let node = graph.node().build();
-    let mut runtime = TestRuntime::build(graph);
-    runtime
-        .declare_resource_node(resource_declaration(node))
-        .expect("resource declaration should lower");
-    let first = runtime
-        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
-        .expect("first request should admit")
-        .admitted_request();
-    let stale_first = raw_completion(&runtime, node, first.handle(), first.attempt(), 64);
-    runtime
-        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
-        .expect("second request should supersede first");
-    runtime.admit_resource_completion(stale_first)
 }
 
 fn resource_late_cancelled_completion_report() -> ResourceCompletionAdmissionReport {
@@ -9078,6 +11136,24 @@ fn resource_late_cancelled_completion_report() -> ResourceCompletionAdmissionRep
     runtime
         .cancel_resource_request(admitted.handle(), ResourceCancellationReason::HostRequested)
         .expect("cancellation should retire request");
+    runtime.admit_resource_completion(late)
+}
+
+fn resource_late_superseded_completion_report() -> ResourceCompletionAdmissionReport {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(resource_declaration(node))
+        .expect("resource declaration should lower");
+    let first = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("first request should admit")
+        .admitted_request();
+    let late = raw_completion(&runtime, node, first.handle(), first.attempt(), 64);
+    runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("second request should supersede first");
     runtime.admit_resource_completion(late)
 }
 
@@ -9110,6 +11186,1005 @@ fn resource_late_timed_out_completion_report() -> ResourceCompletionAdmissionRep
         .admit_resource_timeout(admitted.handle(), ready)
         .expect("timeout admission should consume wake");
     runtime.admit_resource_completion(late)
+}
+
+#[test]
+fn resource_milestone_c_policy_certification_bundle_and_scenario_matrix_use_production_reports() {
+    let freeze_report = FrozenResourcePolicyRegistry::built_in()
+        .freeze_report()
+        .clone();
+
+    let mut retry_graph = SignalGraph::new();
+    let retry_first = retry_graph.node().build();
+    let retry_second = retry_graph.node().build();
+    let mut retry_runtime = TestRuntime::build(retry_graph);
+    retry_runtime
+        .declare_resource_node(retry_budgeted_timeout_resource_declaration(
+            retry_first,
+            3,
+            7,
+            ResourceRetryBudgetScope::Runtime,
+            1,
+        ))
+        .expect("first retry declaration should lower");
+    retry_runtime
+        .declare_resource_node(retry_budgeted_timeout_resource_declaration(
+            retry_second,
+            3,
+            7,
+            ResourceRetryBudgetScope::Runtime,
+            1,
+        ))
+        .expect("second retry declaration should lower");
+    let _scheduled_retry = schedule_timed_out_retry(&mut retry_runtime, retry_first);
+    let denied_retry_report = schedule_timed_out_retry(&mut retry_runtime, retry_second);
+
+    let mut timeout_graph = SignalGraph::new();
+    let timeout_node = timeout_graph.node().build();
+    let mut timeout_runtime = TestRuntime::build(timeout_graph);
+    timeout_runtime
+        .declare_resource_node(heartbeat_extension_timeout_resource_declaration(
+            timeout_node,
+            5,
+            2,
+        ))
+        .expect("timeout declaration should lower");
+    let timeout_admitted = timeout_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            timeout_node,
+        )))
+        .expect("timeout request should admit")
+        .admitted_request();
+    let timeout_wake = timeout_runtime
+        .in_flight_resource_request(timeout_admitted.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("timeout wake should attach");
+    timeout_runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(5),
+        ))
+        .expect("clock should reach timeout");
+    let ready_timeout = timeout_runtime
+        .promote_temporal_wake_ready(timeout_wake)
+        .expect("timeout wake should become ready");
+    let timeout_report = timeout_runtime
+        .admit_resource_timeout(timeout_admitted.handle(), ready_timeout)
+        .expect("timeout admission should succeed");
+    let heartbeat_denial_report = timeout_runtime
+        .extend_resource_timeout_heartbeat(timeout_admitted.handle())
+        .expect("terminal heartbeat extension should still report denial");
+
+    let mut cancellation_graph = SignalGraph::new();
+    let cancel_node = cancellation_graph.node().build();
+    let overlap_node = cancellation_graph.node().build();
+    let coalesce_node = cancellation_graph.node().build();
+    let mut cancellation_runtime = TestRuntime::build(cancellation_graph);
+    cancellation_runtime
+        .declare_resource_node(resource_declaration(cancel_node))
+        .expect("cancellation declaration should lower");
+    cancellation_runtime
+        .declare_resource_node(overlap_cancelled_host_work_resource_declaration(
+            overlap_node,
+        ))
+        .expect("overlap declaration should lower");
+    cancellation_runtime
+        .declare_resource_node(intent_equivalent_coalescing_resource_declaration(
+            coalesce_node,
+        ))
+        .expect("coalescing declaration should lower");
+    let cancelled_request = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancel_node,
+        )))
+        .expect("cancel request should admit")
+        .admitted_request();
+    let cancellation_report = cancellation_runtime
+        .cancel_resource_request(
+            cancelled_request.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should admit");
+    let _first_overlap = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            overlap_node,
+        )))
+        .expect("first overlap request should admit");
+    let second_overlap = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            overlap_node,
+        )))
+        .expect("second overlap request should admit");
+    let overlap_admission = second_overlap
+        .supersession_record()
+        .and_then(|record| record.overlap_admission().cloned())
+        .expect("overlap policy should retain overlap admission evidence");
+    let _first_coalesced = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            coalesce_node,
+        )))
+        .expect("first coalescing request should admit");
+    let second_coalesced = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            coalesce_node,
+        )))
+        .expect("second coalescing request should coalesce");
+    let intent_coalescing = second_coalesced
+        .intent_equivalence_coalescing()
+        .expect("coalescing policy should retain lineage evidence");
+
+    let mut revalidation_graph = SignalGraph::new();
+    let revalidation_node = revalidation_graph.node().build();
+    let mut revalidation_runtime = TestRuntime::build(revalidation_graph);
+    revalidation_runtime
+        .declare_resource_node(resource_declaration(revalidation_node))
+        .expect("revalidation declaration should lower");
+    let revalidation_report = revalidation_runtime
+        .revalidate_resource_node(ResourceRevalidationIntent::new(ResourceNodeId::from_node(
+            revalidation_node,
+        )))
+        .expect("explicit revalidation should admit");
+
+    let mut observation_graph = SignalGraph::new();
+    let observation_node = observation_graph.node().build();
+    let mut observation_runtime = TestRuntime::build(observation_graph);
+    observation_runtime
+        .declare_resource_node(resource_declaration(observation_node))
+        .expect("observation declaration should lower");
+    let observation_request = observation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            observation_node,
+        )))
+        .expect("observation request should admit")
+        .admitted_request();
+    let observation_completion = observation_runtime
+        .admit_resource_completion(raw_completion(
+            &observation_runtime,
+            observation_node,
+            observation_request.handle(),
+            observation_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("observation completion should admit");
+    let calls = Arc::new(Mutex::new(Vec::<ResourceObservationRecord>::new()));
+    observation_runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [observation_node],
+        Box::new(ResourceObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+    let mut ctx = ();
+    observation_runtime
+        .transaction(&mut ctx, |tx| {
+            let staged = tx.stage_admitted_resource_completion(observation_completion)?;
+            tx.commit_staged_resource_completion(staged.staged_effect())?;
+            Ok(())
+        })
+        .expect("observation completion should commit");
+    let observation_report = observation_runtime
+        .latest_resource_observation_batch_report()
+        .expect("observation batch report should materialize");
+
+    let mut replay_graph = SignalGraph::new();
+    let first_replay_node = replay_graph.node().build();
+    let second_replay_node = replay_graph.node().build();
+    let mut replay_runtime = TestRuntime::build(replay_graph);
+    replay_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            first_replay_node,
+        ))
+        .expect("first replay declaration should lower");
+    replay_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            second_replay_node,
+        ))
+        .expect("second replay declaration should lower");
+    let first_replay = replay_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            first_replay_node,
+        )))
+        .expect("first replay request should admit")
+        .admitted_request();
+    let second_replay = replay_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            second_replay_node,
+        )))
+        .expect("second replay request should admit")
+        .admitted_request();
+    replay_runtime
+        .cancel_resource_request(
+            first_replay.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("first replay cancellation should admit");
+    replay_runtime
+        .cancel_resource_request(
+            second_replay.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("second replay cancellation should admit");
+    let retention_report =
+        replay_runtime.compact_resource_lifecycle_history_with_retained_limit(2, 1);
+    let replay_availability = replay_runtime
+        .resource_replay_availability(&resource_declaration(first_replay_node))
+        .expect("default replay availability should classify");
+    let diagnostics_denial = replay_runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::retained_summary_only(),
+        )
+        .expect_err("retained-summary-only diagnostics budget should deny cold reconstruction");
+
+    let mut retention_restore_graph = SignalGraph::new();
+    let retention_restore_node = retention_restore_graph.node().build();
+    let retention_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Retention,
+        "signal.resource.retention.terminal-summaries-only",
+    );
+    let mut retention_restore_runtime = TestRuntime::builder(retention_restore_graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(retention_registry)
+        .build();
+    retention_restore_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            retention_restore_node,
+        ))
+        .expect("historical retention declaration should lower");
+    let compatible_restore = retention_restore_runtime
+        .admit_resource_policy_restore_compatibility(&terminal_summaries_only_resource_declaration(
+            retention_restore_node,
+        ))
+        .expect("compatible retention drift should classify")
+        .expect("compatible retention drift should admit");
+
+    let mut incompatible_restore_graph = SignalGraph::new();
+    let incompatible_restore_node = incompatible_restore_graph.node().build();
+    let historical_incompatible_timeout =
+        timeout_resource_declaration(incompatible_restore_node, 3);
+    let historical_incompatible_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &historical_incompatible_timeout,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should validate");
+    let historical_incompatible_frozen =
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            &historical_incompatible_validated,
+            &FrozenResourcePolicyRegistry::built_in(),
+        )
+        .expect("historical timeout declaration should freeze");
+    let historical_incompatible_lowered =
+        LoweredResourcePolicyBundle::from_frozen_descriptors(&historical_incompatible_frozen);
+    let incompatible_registrations = built_in_policy_registrations()
+        .into_iter()
+        .map(|registration| {
+            if matches!(
+                (registration.kind(), registration.semantic_name().as_str()),
+                (
+                    ResourcePolicyKind::Timeout,
+                    "signal.resource.timeout.fixed-timeout"
+                )
+            ) {
+                ResourcePolicyRegistration::new(
+                    registration.id(),
+                    registration.kind(),
+                    registration.semantic_name().clone(),
+                    ResourcePolicyVersion::new(2, 0),
+                    registration.cost_contract(),
+                    ResourcePolicyCompatibilityPosture::IncompatibleVersion,
+                )
+            } else {
+                registration
+            }
+        })
+        .collect();
+    let incompatible_registry = FrozenResourcePolicyRegistry::new(incompatible_registrations)
+        .expect("incompatible registry should freeze");
+    let current_incompatible_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &resource_declaration(incompatible_restore_node),
+        &incompatible_registry,
+    )
+    .expect("current declaration should validate against the incompatible registry");
+    let incompatible_report =
+        ResourcePolicyCompatibilityReport::classify_against_validated_declaration(
+            ResourceDescriptorId::new(127),
+            ResourceNodeId::from_node(incompatible_restore_node),
+            &historical_incompatible_lowered,
+            &current_incompatible_validated,
+            &incompatible_registry,
+        )
+        .expect("incompatible-version compatibility classification should succeed");
+    let current_incompatible_frozen =
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            &current_incompatible_validated,
+            &incompatible_registry,
+        )
+        .expect("current declaration should freeze against the incompatible registry");
+    let incompatible_replay_plan = ResourceReplayDecisionPlan::lower(
+        current_incompatible_validated.declaration().replay_policy(),
+        current_incompatible_frozen.replay(),
+    )
+    .expect("default replay policy should lower for incompatible-version denial");
+    let incompatible_restore = DeniedResourcePolicyRestoreCompatibility::from_compatibility(
+        incompatible_report,
+        &incompatible_replay_plan,
+    );
+
+    let mut missing_restore_graph = SignalGraph::new();
+    let missing_restore_node = missing_restore_graph.node().build();
+    let missing_registry = FrozenResourcePolicyRegistry::new(
+        built_in_policy_registrations()
+            .into_iter()
+            .filter(|registration| {
+                !matches!(
+                    (registration.kind(), registration.semantic_name().as_str()),
+                    (
+                        ResourcePolicyKind::Timeout,
+                        "signal.resource.timeout.fixed-timeout"
+                    )
+                )
+            })
+            .collect(),
+    )
+    .expect("missing registry should still freeze");
+    let historical_missing_timeout = timeout_resource_declaration(missing_restore_node, 3);
+    let historical_missing_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &historical_missing_timeout,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should validate against the built-in registry");
+    let historical_missing_frozen = FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+        &historical_missing_validated,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should freeze against the built-in registry");
+    let historical_missing_lowered =
+        LoweredResourcePolicyBundle::from_frozen_descriptors(&historical_missing_frozen);
+    let current_missing_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &resource_declaration(missing_restore_node),
+        &missing_registry,
+    )
+    .expect("current declaration should validate against the reduced registry");
+    let missing_report = ResourcePolicyCompatibilityReport::classify_against_validated_declaration(
+        ResourceDescriptorId::new(177),
+        ResourceNodeId::from_node(missing_restore_node),
+        &historical_missing_lowered,
+        &current_missing_validated,
+        &missing_registry,
+    )
+    .expect("missing-descriptor compatibility classification should succeed");
+    let current_missing_frozen = FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+        &current_missing_validated,
+        &missing_registry,
+    )
+    .expect("current declaration should freeze against the reduced registry");
+    let missing_replay_plan = ResourceReplayDecisionPlan::lower(
+        current_missing_validated.declaration().replay_policy(),
+        current_missing_frozen.replay(),
+    )
+    .expect("default replay policy should lower for missing-descriptor denial");
+    let missing_restore = DeniedResourcePolicyRestoreCompatibility::from_compatibility(
+        missing_report,
+        &missing_replay_plan,
+    );
+
+    let bundle = resource_milestone_c_policy_certification_builder()
+        .with_async_resource_policy_family_certification(&freeze_report)
+        .expect("policy family certification should accept freeze evidence")
+        .with_async_retry_budget_and_backoff_certification(&denied_retry_report)
+        .expect("retry family certification should accept retry evidence")
+        .with_async_timeout_deadline_certification(&timeout_report, &heartbeat_denial_report)
+        .expect("timeout family certification should accept timeout evidence")
+        .with_async_cancellation_supersession_policy_certification(
+            &cancellation_report,
+            &overlap_admission,
+            &intent_coalescing,
+        )
+        .expect("cancellation/supersession family certification should accept evidence")
+        .with_async_revalidation_freshness_certification(&revalidation_report)
+        .expect("revalidation family certification should accept evidence")
+        .with_async_observation_output_continuity_certification(&observation_report)
+        .expect("observation family certification should accept evidence")
+        .with_async_retention_replay_policy_certification(&retention_report, &replay_availability)
+        .expect("retention/replay family certification should accept evidence")
+        .build()
+        .expect("complete milestone C policy certification bundle should pass");
+
+    let matrix = resource_milestone_c_policy_scenario_matrix(
+        &bundle,
+        &freeze_report,
+        &denied_retry_report,
+        &heartbeat_denial_report,
+        &retention_report,
+        &diagnostics_denial,
+        &compatible_restore,
+        &incompatible_restore,
+        &missing_restore,
+    )
+    .expect("complete milestone C policy scenario evidence should admit matrix");
+
+    assert_eq!(
+        bundle.summary().required_family_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(
+        bundle.summary().certified_family_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert!(bundle.passed());
+    assert_eq!(
+        matrix.summary().required_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_SCENARIOS.len() as u32
+    );
+    assert_eq!(
+        matrix.summary().certified_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_SCENARIOS.len() as u32
+    );
+    assert_eq!(matrix.summary().failed_scenario_count(), 0);
+    assert_eq!(matrix.summary().bundle_digest(), bundle.bundle_digest());
+    assert!(matrix.passed());
+    assert!(matrix
+        .rows()
+        .iter()
+        .all(|row| row.passed() && !row.evidence_digest().is_empty()));
+
+    let closeout = resource_milestone_c_policy_performance_closeout(&matrix)
+        .expect("passing milestone C policy scenario matrix should yield a performance closeout");
+    assert_eq!(
+        closeout.schema_version(),
+        RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION
+    );
+    assert_eq!(closeout.scenario_matrix_digest(), matrix.matrix_digest());
+    assert_eq!(
+        closeout.summary().required_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(
+        closeout.summary().certified_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(closeout.summary().failed_claim_count(), 0);
+    assert_eq!(
+        closeout.summary().scenario_matrix_digest(),
+        matrix.matrix_digest()
+    );
+    assert_eq!(
+        closeout.rows().len(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS.len()
+    );
+    assert!(closeout.passed());
+    assert!(!closeout.closeout_digest().is_empty());
+    for claim in REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS {
+        let row = required_milestone_c_policy_performance_claim_row(&closeout, claim);
+        assert_milestone_c_policy_performance_closeout_claim_shape(row);
+    }
+
+    let run =
+        resource_milestone_c_certification_run(bundle.clone(), matrix.clone(), closeout.clone())
+            .expect(
+            "passing milestone C bundle, matrix, and closeout should yield final certification run",
+        );
+    assert_eq!(
+        run.schema_version(),
+        RESOURCE_MILESTONE_C_CERTIFICATION_RUN_SCHEMA_VERSION
+    );
+    assert_eq!(run.bundle().bundle_digest(), bundle.bundle_digest());
+    assert_eq!(
+        run.scenario_matrix().matrix_digest(),
+        matrix.matrix_digest()
+    );
+    assert_eq!(
+        run.performance_closeout().closeout_digest(),
+        closeout.closeout_digest()
+    );
+    assert_eq!(
+        run.summary().required_family_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_family_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_CERTIFICATION_FAMILIES.len() as u32
+    );
+    assert_eq!(run.summary().failed_family_count(), 0);
+    assert_eq!(run.summary().bundle_digest(), bundle.bundle_digest());
+    assert_eq!(
+        run.summary().required_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_SCENARIOS.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_scenario_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_SCENARIOS.len() as u32
+    );
+    assert_eq!(
+        run.summary().scenario_matrix_digest(),
+        matrix.matrix_digest()
+    );
+    assert_eq!(
+        run.summary().required_performance_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(
+        run.summary().certified_performance_claim_count(),
+        REQUIRED_RESOURCE_MILESTONE_C_POLICY_PERFORMANCE_CLAIMS.len() as u32
+    );
+    assert_eq!(
+        run.summary().performance_closeout_digest(),
+        closeout.closeout_digest()
+    );
+    assert!(run.passed());
+    assert!(!run.run_digest().is_empty());
+
+    let reordered_bundle =
+        resource_milestone_c_policy_certification_bundle(bundle.records().iter().cloned().rev());
+    assert_eq!(
+        reordered_bundle.bundle_digest(),
+        bundle.bundle_digest(),
+        "equivalent certification-family evidence order must not perturb bundle identity"
+    );
+    let reordered_matrix = resource_milestone_c_policy_scenario_matrix(
+        &reordered_bundle,
+        &freeze_report,
+        &denied_retry_report,
+        &heartbeat_denial_report,
+        &retention_report,
+        &diagnostics_denial,
+        &compatible_restore,
+        &incompatible_restore,
+        &missing_restore,
+    )
+    .expect("equivalent certification-family evidence order should preserve scenario matrix");
+    assert_eq!(
+        reordered_matrix.matrix_digest(),
+        matrix.matrix_digest(),
+        "equivalent policy scenario evidence order must not perturb matrix identity"
+    );
+    let reordered_closeout = resource_milestone_c_policy_performance_closeout(&reordered_matrix)
+        .expect("equivalent scenario evidence order should preserve performance closeout");
+    assert_eq!(
+        reordered_closeout.closeout_digest(),
+        closeout.closeout_digest(),
+        "equivalent performance claim evidence order must not perturb closeout identity"
+    );
+    let reordered_run = resource_milestone_c_certification_run(
+        reordered_bundle,
+        reordered_matrix,
+        reordered_closeout,
+    )
+    .expect("equivalent milestone C certification evidence order should preserve final run");
+    assert_eq!(
+        reordered_run.run_digest(),
+        run.run_digest(),
+        "equivalent certification evidence order must not perturb final milestone C run identity"
+    );
+
+    let incomplete_bundle = resource_milestone_c_policy_certification_bundle(
+        bundle.records()[..bundle.records().len() - 1]
+            .iter()
+            .cloned(),
+    );
+    let err = resource_milestone_c_certification_run(incomplete_bundle, matrix, closeout)
+        .expect_err("final certification run should deny incomplete bundle coverage");
+    assert!(
+        err.to_string().contains("failed completeness checks"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn resource_milestone_c_policy_scenario_matrix_rejects_wrong_restore_denial_class() {
+    let freeze_report = FrozenResourcePolicyRegistry::built_in()
+        .freeze_report()
+        .clone();
+
+    let mut retry_graph = SignalGraph::new();
+    let retry_first = retry_graph.node().build();
+    let retry_second = retry_graph.node().build();
+    let mut retry_runtime = TestRuntime::build(retry_graph);
+    retry_runtime
+        .declare_resource_node(retry_budgeted_timeout_resource_declaration(
+            retry_first,
+            3,
+            7,
+            ResourceRetryBudgetScope::Runtime,
+            1,
+        ))
+        .expect("first retry declaration should lower");
+    retry_runtime
+        .declare_resource_node(retry_budgeted_timeout_resource_declaration(
+            retry_second,
+            3,
+            7,
+            ResourceRetryBudgetScope::Runtime,
+            1,
+        ))
+        .expect("second retry declaration should lower");
+    let _scheduled_retry = schedule_timed_out_retry(&mut retry_runtime, retry_first);
+    let denied_retry_report = schedule_timed_out_retry(&mut retry_runtime, retry_second);
+
+    let mut timeout_graph = SignalGraph::new();
+    let timeout_node = timeout_graph.node().build();
+    let mut timeout_runtime = TestRuntime::build(timeout_graph);
+    timeout_runtime
+        .declare_resource_node(heartbeat_extension_timeout_resource_declaration(
+            timeout_node,
+            5,
+            2,
+        ))
+        .expect("timeout declaration should lower");
+    let timeout_admitted = timeout_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            timeout_node,
+        )))
+        .expect("timeout request should admit")
+        .admitted_request();
+    let timeout_wake = timeout_runtime
+        .in_flight_resource_request(timeout_admitted.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("timeout wake should attach");
+    timeout_runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(5),
+        ))
+        .expect("clock should reach timeout");
+    let ready_timeout = timeout_runtime
+        .promote_temporal_wake_ready(timeout_wake)
+        .expect("timeout wake should become ready");
+    let timeout_report = timeout_runtime
+        .admit_resource_timeout(timeout_admitted.handle(), ready_timeout)
+        .expect("timeout admission should succeed");
+    let heartbeat_denial_report = timeout_runtime
+        .extend_resource_timeout_heartbeat(timeout_admitted.handle())
+        .expect("terminal heartbeat extension should still report denial");
+
+    let mut cancellation_graph = SignalGraph::new();
+    let cancel_node = cancellation_graph.node().build();
+    let overlap_node = cancellation_graph.node().build();
+    let coalesce_node = cancellation_graph.node().build();
+    let mut cancellation_runtime = TestRuntime::build(cancellation_graph);
+    cancellation_runtime
+        .declare_resource_node(resource_declaration(cancel_node))
+        .expect("cancellation declaration should lower");
+    cancellation_runtime
+        .declare_resource_node(overlap_cancelled_host_work_resource_declaration(
+            overlap_node,
+        ))
+        .expect("overlap declaration should lower");
+    cancellation_runtime
+        .declare_resource_node(intent_equivalent_coalescing_resource_declaration(
+            coalesce_node,
+        ))
+        .expect("coalescing declaration should lower");
+    let cancelled_request = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            cancel_node,
+        )))
+        .expect("cancel request should admit")
+        .admitted_request();
+    let cancellation_report = cancellation_runtime
+        .cancel_resource_request(
+            cancelled_request.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("cancellation should admit");
+    let _first_overlap = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            overlap_node,
+        )))
+        .expect("first overlap request should admit");
+    let second_overlap = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            overlap_node,
+        )))
+        .expect("second overlap request should admit");
+    let overlap_admission = second_overlap
+        .supersession_record()
+        .and_then(|record| record.overlap_admission().cloned())
+        .expect("overlap policy should retain overlap admission evidence");
+    let _first_coalesced = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            coalesce_node,
+        )))
+        .expect("first coalescing request should admit");
+    let second_coalesced = cancellation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            coalesce_node,
+        )))
+        .expect("second coalescing request should coalesce");
+    let intent_coalescing = second_coalesced
+        .intent_equivalence_coalescing()
+        .expect("coalescing policy should retain lineage evidence");
+
+    let mut revalidation_graph = SignalGraph::new();
+    let revalidation_node = revalidation_graph.node().build();
+    let mut revalidation_runtime = TestRuntime::build(revalidation_graph);
+    revalidation_runtime
+        .declare_resource_node(resource_declaration(revalidation_node))
+        .expect("revalidation declaration should lower");
+    let revalidation_report = revalidation_runtime
+        .revalidate_resource_node(ResourceRevalidationIntent::new(ResourceNodeId::from_node(
+            revalidation_node,
+        )))
+        .expect("explicit revalidation should admit");
+
+    let mut observation_graph = SignalGraph::new();
+    let observation_node = observation_graph.node().build();
+    let mut observation_runtime = TestRuntime::build(observation_graph);
+    observation_runtime
+        .declare_resource_node(resource_declaration(observation_node))
+        .expect("observation declaration should lower");
+    let observation_request = observation_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            observation_node,
+        )))
+        .expect("observation request should admit")
+        .admitted_request();
+    let observation_completion = observation_runtime
+        .admit_resource_completion(raw_completion(
+            &observation_runtime,
+            observation_node,
+            observation_request.handle(),
+            observation_request.attempt(),
+            64,
+        ))
+        .admitted_completion()
+        .expect("observation completion should admit");
+    let calls = Arc::new(Mutex::new(Vec::<ResourceObservationRecord>::new()));
+    observation_runtime.observe_nodes(
+        ObservationPolicy::meaningful_change(),
+        [observation_node],
+        Box::new(ResourceObservationListener {
+            calls: Arc::clone(&calls),
+        }),
+    );
+    let mut ctx = ();
+    observation_runtime
+        .transaction(&mut ctx, |tx| {
+            let staged = tx.stage_admitted_resource_completion(observation_completion)?;
+            tx.commit_staged_resource_completion(staged.staged_effect())?;
+            Ok(())
+        })
+        .expect("observation completion should commit");
+    let observation_report = observation_runtime
+        .latest_resource_observation_batch_report()
+        .expect("observation batch report should materialize");
+
+    let mut replay_graph = SignalGraph::new();
+    let first_replay_node = replay_graph.node().build();
+    let second_replay_node = replay_graph.node().build();
+    let mut replay_runtime = TestRuntime::build(replay_graph);
+    replay_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            first_replay_node,
+        ))
+        .expect("first replay declaration should lower");
+    replay_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            second_replay_node,
+        ))
+        .expect("second replay declaration should lower");
+    let first_replay = replay_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            first_replay_node,
+        )))
+        .expect("first replay request should admit")
+        .admitted_request();
+    let second_replay = replay_runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
+            second_replay_node,
+        )))
+        .expect("second replay request should admit")
+        .admitted_request();
+    replay_runtime
+        .cancel_resource_request(
+            first_replay.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("first replay cancellation should admit");
+    replay_runtime
+        .cancel_resource_request(
+            second_replay.handle(),
+            ResourceCancellationReason::HostRequested,
+        )
+        .expect("second replay cancellation should admit");
+    let retention_report =
+        replay_runtime.compact_resource_lifecycle_history_with_retained_limit(2, 1);
+    let replay_availability = replay_runtime
+        .resource_replay_availability(&resource_declaration(first_replay_node))
+        .expect("default replay availability should classify");
+    let diagnostics_denial = replay_runtime
+        .try_resource_diagnostics_summary(
+            ResourceDiagnosticsExpansionBudget::retained_summary_only(),
+        )
+        .expect_err("retained-summary-only diagnostics budget should deny cold reconstruction");
+
+    let mut retention_restore_graph = SignalGraph::new();
+    let retention_restore_node = retention_restore_graph.node().build();
+    let retention_registry = compatible_policy_registry_for(
+        ResourcePolicyKind::Retention,
+        "signal.resource.retention.terminal-summaries-only",
+    );
+    let mut retention_restore_runtime = TestRuntime::builder(retention_restore_graph)
+        .with_kernel_defaults()
+        .resource_policy_registry(retention_registry)
+        .build();
+    retention_restore_runtime
+        .declare_resource_node(retain_all_transitions_resource_declaration(
+            retention_restore_node,
+        ))
+        .expect("historical retention declaration should lower");
+    let compatible_restore = retention_restore_runtime
+        .admit_resource_policy_restore_compatibility(&terminal_summaries_only_resource_declaration(
+            retention_restore_node,
+        ))
+        .expect("compatible retention drift should classify")
+        .expect("compatible retention drift should admit");
+
+    let mut incompatible_restore_graph = SignalGraph::new();
+    let incompatible_restore_node = incompatible_restore_graph.node().build();
+    let historical_incompatible_timeout =
+        timeout_resource_declaration(incompatible_restore_node, 3);
+    let historical_incompatible_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &historical_incompatible_timeout,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should validate");
+    let historical_incompatible_frozen =
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            &historical_incompatible_validated,
+            &FrozenResourcePolicyRegistry::built_in(),
+        )
+        .expect("historical timeout declaration should freeze");
+    let historical_incompatible_lowered =
+        LoweredResourcePolicyBundle::from_frozen_descriptors(&historical_incompatible_frozen);
+    let incompatible_registrations = built_in_policy_registrations()
+        .into_iter()
+        .map(|registration| {
+            if matches!(
+                (registration.kind(), registration.semantic_name().as_str()),
+                (
+                    ResourcePolicyKind::Timeout,
+                    "signal.resource.timeout.fixed-timeout"
+                )
+            ) {
+                ResourcePolicyRegistration::new(
+                    registration.id(),
+                    registration.kind(),
+                    registration.semantic_name().clone(),
+                    ResourcePolicyVersion::new(2, 0),
+                    registration.cost_contract(),
+                    ResourcePolicyCompatibilityPosture::IncompatibleVersion,
+                )
+            } else {
+                registration
+            }
+        })
+        .collect();
+    let incompatible_registry = FrozenResourcePolicyRegistry::new(incompatible_registrations)
+        .expect("incompatible registry should freeze");
+    let current_incompatible_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &resource_declaration(incompatible_restore_node),
+        &incompatible_registry,
+    )
+    .expect("current declaration should validate against the incompatible registry");
+    let incompatible_report =
+        ResourcePolicyCompatibilityReport::classify_against_validated_declaration(
+            ResourceDescriptorId::new(227),
+            ResourceNodeId::from_node(incompatible_restore_node),
+            &historical_incompatible_lowered,
+            &current_incompatible_validated,
+            &incompatible_registry,
+        )
+        .expect("incompatible-version compatibility classification should succeed");
+    let current_incompatible_frozen =
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            &current_incompatible_validated,
+            &incompatible_registry,
+        )
+        .expect("current declaration should freeze against the incompatible registry");
+    let incompatible_replay_plan = ResourceReplayDecisionPlan::lower(
+        current_incompatible_validated.declaration().replay_policy(),
+        current_incompatible_frozen.replay(),
+    )
+    .expect("default replay policy should lower for incompatible-version denial");
+    let _incompatible_restore = DeniedResourcePolicyRestoreCompatibility::from_compatibility(
+        incompatible_report,
+        &incompatible_replay_plan,
+    );
+
+    let mut missing_restore_graph = SignalGraph::new();
+    let missing_restore_node = missing_restore_graph.node().build();
+    let missing_registry = FrozenResourcePolicyRegistry::new(
+        built_in_policy_registrations()
+            .into_iter()
+            .filter(|registration| {
+                !matches!(
+                    (registration.kind(), registration.semantic_name().as_str()),
+                    (
+                        ResourcePolicyKind::Timeout,
+                        "signal.resource.timeout.fixed-timeout"
+                    )
+                )
+            })
+            .collect(),
+    )
+    .expect("missing registry should still freeze");
+    let historical_missing_timeout = timeout_resource_declaration(missing_restore_node, 3);
+    let historical_missing_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &historical_missing_timeout,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should validate against the built-in registry");
+    let historical_missing_frozen = FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+        &historical_missing_validated,
+        &FrozenResourcePolicyRegistry::built_in(),
+    )
+    .expect("historical timeout declaration should freeze against the built-in registry");
+    let historical_missing_lowered =
+        LoweredResourcePolicyBundle::from_frozen_descriptors(&historical_missing_frozen);
+    let current_missing_validated = ValidatedResourcePolicyDeclaration::from_declaration(
+        &resource_declaration(missing_restore_node),
+        &missing_registry,
+    )
+    .expect("current declaration should validate against the reduced registry");
+    let missing_report = ResourcePolicyCompatibilityReport::classify_against_validated_declaration(
+        ResourceDescriptorId::new(277),
+        ResourceNodeId::from_node(missing_restore_node),
+        &historical_missing_lowered,
+        &current_missing_validated,
+        &missing_registry,
+    )
+    .expect("missing-descriptor compatibility classification should succeed");
+    let current_missing_frozen = FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+        &current_missing_validated,
+        &missing_registry,
+    )
+    .expect("current declaration should freeze against the reduced registry");
+    let missing_replay_plan = ResourceReplayDecisionPlan::lower(
+        current_missing_validated.declaration().replay_policy(),
+        current_missing_frozen.replay(),
+    )
+    .expect("default replay policy should lower for missing-descriptor denial");
+    let missing_restore = DeniedResourcePolicyRestoreCompatibility::from_compatibility(
+        missing_report,
+        &missing_replay_plan,
+    );
+
+    let bundle = resource_milestone_c_policy_certification_builder()
+        .with_async_resource_policy_family_certification(&freeze_report)
+        .expect("policy family certification should accept freeze evidence")
+        .with_async_retry_budget_and_backoff_certification(&denied_retry_report)
+        .expect("retry family certification should accept retry evidence")
+        .with_async_timeout_deadline_certification(&timeout_report, &heartbeat_denial_report)
+        .expect("timeout family certification should accept timeout evidence")
+        .with_async_cancellation_supersession_policy_certification(
+            &cancellation_report,
+            &overlap_admission,
+            &intent_coalescing,
+        )
+        .expect("cancellation/supersession family certification should accept evidence")
+        .with_async_revalidation_freshness_certification(&revalidation_report)
+        .expect("revalidation family certification should accept evidence")
+        .with_async_observation_output_continuity_certification(&observation_report)
+        .expect("observation family certification should accept evidence")
+        .with_async_retention_replay_policy_certification(&retention_report, &replay_availability)
+        .expect("retention/replay family certification should accept evidence")
+        .build()
+        .expect("complete milestone C policy certification bundle should pass");
+
+    let err = resource_milestone_c_policy_scenario_matrix(
+        &bundle,
+        &freeze_report,
+        &denied_retry_report,
+        &heartbeat_denial_report,
+        &retention_report,
+        &diagnostics_denial,
+        &compatible_restore,
+        &missing_restore,
+        &missing_restore,
+    )
+    .expect_err("wrong restore denial class should reject the matrix");
+    assert!(format!("{err}").contains("requires VersionIncompatible denial evidence"));
 }
 
 fn resource_malformed_completion_report() -> ResourceCompletionAdmissionReport {
