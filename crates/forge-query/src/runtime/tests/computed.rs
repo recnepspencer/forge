@@ -364,13 +364,13 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
     let _: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
-    let computed_declaration = runtime
+    let computed_definition = runtime
         .declare_derived_view(
             ForgeQueryDerivedView::new("computed.inspect.refresh", ["title".to_string()])
                 .whole_refresh_fallback(),
         )
         .expect("refresh fallback computed should declare");
-    let computed = ForgeQueryDerivedViewHandle::<Value>::new(computed_declaration.name());
+    let computed = ForgeQueryDerivedViewHandle::<Value>::new(computed_definition.name());
 
     let before = runtime
         .inspect_derived_view(&computed)

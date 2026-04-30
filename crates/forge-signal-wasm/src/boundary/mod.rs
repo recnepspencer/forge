@@ -6,6 +6,7 @@ pub mod errors;
 pub mod facade;
 pub mod history;
 pub mod observation;
+pub mod restore_tokens;
 pub mod runtime;
 pub mod serde;
 pub mod signals;

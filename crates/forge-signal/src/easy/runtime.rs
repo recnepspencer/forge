@@ -3,11 +3,11 @@ use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::sync::Mutex;
 
+use crate::data::host_computed::{admit_or_error, HostComputedApiFamily};
 use crate::data::trace::{RuntimeArtifactHot, RuntimeArtifactState, RuntimeArtifactWarm};
 use crate::facade::runtime::mark_dirty_batch;
 use crate::facade::{
-    AspectMask, BatchChange, ChangedRegion, DependencyEdge, NodeId, NodeState, SignalError,
-    SignalGraph,
+    AspectMask, BatchChange, ChangedRegion, NodeId, NodeState, SignalError, SignalGraph,
 };
 use crate::logic::prepared::PreparedEvaluation;
 use crate::logic::transaction::RuntimeObservationRegistry;
@@ -186,6 +186,11 @@ impl SignalApp {
         Ok(())
     }
 
+    #[cfg(test)]
+    pub(crate) fn graph(&self) -> &SignalGraph {
+        &self.graph
+    }
+
     pub(super) fn ensure_evaluated(
         &mut self,
         node: NodeId,
@@ -211,11 +216,17 @@ impl SignalApp {
                     .get_entry(current)?
                     .get_aspect_version()
                     .get(DEFAULT_ASPECT);
+                let current_dependencies = view.graph().dependencies_of(current)?.to_vec();
                 let staged_guard = staged_values
                     .lock()
                     .map_err(|_| SignalError::internal("easy path staged value mutex poisoned"))?;
-                let (value, prepared, meaningful_change) =
-                    computed.precompute(current, values, &staged_guard, current_version)?;
+                let (value, prepared, meaningful_change) = computed.precompute(
+                    current,
+                    values,
+                    &staged_guard,
+                    current_dependencies.as_slice(),
+                    current_version,
+                )?;
                 drop(staged_guard);
                 staged_values
                     .lock()
@@ -252,20 +263,41 @@ impl SignalApp {
             return Ok(());
         };
         let staged = HashMap::new();
-        let Ok((value, prepared, _meaningful_change)) =
-            computed.precompute(node, &self.values, &staged, 0)
-        else {
+        let current_dependencies = self.graph.dependencies_of(node)?.to_vec();
+        let Ok((value, prepared, _meaningful_change)) = computed.precompute(
+            node,
+            &self.values,
+            &staged,
+            current_dependencies.as_slice(),
+            0,
+        ) else {
             return Ok(());
         };
+        let host_prepared = match admit_or_error(
+            HostComputedApiFamily::EasyClosure,
+            node,
+            current_dependencies.as_slice(),
+            prepared,
+            self.graph.telemetry_mut(),
+        ) {
+            Ok(host_prepared) => host_prepared,
+            Err(_) => return Ok(()),
+        };
+        let (prepared, admitted_reads, dependency_patch) = host_prepared.into_parts();
         self.values.insert(node, value);
         let mut dep_snapshot = crate::data::dependency::DependencySnapshot::empty();
-        for dependency in prepared.dependencies.as_slice() {
+        for dependency in admitted_reads.dependencies() {
             let current_version = self
                 .graph
-                .get_entry(dependency.source)?
+                .get_entry(dependency.source())?
                 .get_aspect_version()
-                .get(dependency.aspect);
-            dep_snapshot.record(dependency.source, dependency.aspect, current_version, None);
+                .get(dependency.aspect());
+            dep_snapshot.record(
+                dependency.source(),
+                dependency.aspect(),
+                current_version,
+                dependency.scope_ref().cloned(),
+            );
         }
         {
             let mut entry = self.graph.get_entry_mut(node)?;
@@ -275,25 +307,12 @@ impl SignalApp {
             entry.clear_dirty_partition_scopes();
             entry.set_runtime_artifact_state(Some(easy_seed_runtime_artifact_state(
                 prepared.result.aspect_version,
-                prepared.dependencies.len() as u32,
+                dependency_patch.next_dependencies().len() as u32,
                 true,
             )));
         }
-        self.graph.set_dependencies(
-            node,
-            prepared
-                .dependencies
-                .as_slice()
-                .iter()
-                .map(|dependency| match &dependency.scope {
-                    Some(scope) => DependencyEdge::with_partition_scope(
-                        dependency.source,
-                        dependency.aspect,
-                        scope.clone(),
-                    ),
-                    None => DependencyEdge::new(dependency.source, dependency.aspect),
-                }),
-        )?;
+        self.graph
+            .set_dependencies(node, admitted_reads.dependencies().iter().cloned())?;
         self.graph.set_dep_snapshot(node, dep_snapshot)?;
         Ok(())
     }

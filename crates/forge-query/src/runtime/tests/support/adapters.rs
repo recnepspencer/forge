@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_workspace::{ForgeQueryLivePatch, ForgeQueryLiveViewHandle};
 
 impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
     fn admit_live_view(
@@ -126,15 +127,19 @@ impl ForgeQueryRuntimeSourceAdapter for DriftingSnapshotSourceAdapter {
 pub(in crate::runtime::tests) struct TestWriteAuthority;
 
 impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
+    #[allow(deprecated)]
     fn write(
         &mut self,
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let aspect_paths = command.declared_aspect_paths();
         let collection = match command {
             ForgeQueryWriteCommand::Insert { collection, .. } => collection,
+            ForgeQueryWriteCommand::InsertAspects { collection, .. } => collection,
             ForgeQueryWriteCommand::UpdateAspect { .. } => "Task".to_string(),
+            ForgeQueryWriteCommand::UpdateAspects { .. } => "Task".to_string(),
             ForgeQueryWriteCommand::Delete { .. } => "Task".to_string(),
         };
         Ok(ForgeQueryMutationReceipt {
@@ -144,7 +149,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
                 collection,
                 entity_identity: "external-entity-1".to_string(),
                 kind: ForgeQueryMutationKind::Created,
-                aspect_paths: Vec::new(),
+                aspect_paths,
             }],
         })
     }

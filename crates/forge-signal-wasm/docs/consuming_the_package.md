@@ -1,149 +1,265 @@
 # Consuming forge-signal-wasm
 
-This guide explains how to build, prepare, install, and import
-`forge-signal-wasm` into another web application.
+This guide shows how to install the public npm package, how to consume the
+local prepared package, and how to use the main entrypoints in real app code.
 
-## Package Shapes
+## Install Shapes
 
-There are two package shapes to be aware of:
+### Public npm package
 
-- raw `wasm-pack` output in `crates/forge-signal-wasm/pkg`
-- prepared package output after the Forge packaging script rewrites metadata and
-  exports
+```bash
+npm install forge-signal-wasm
+```
 
-For real app consumption, use the prepared package.
+### Public npm package with React adapter
 
-The prepare step:
+```bash
+npm install forge-signal-wasm react
+```
 
-- rewrites the package name into the scoped private package form
-- installs the `./react` subpath export
-- copies the stronger hand-authored TypeScript declarations
-- compiles and includes the React adapter subpath
-- makes the package metadata honest for private registry use
+### Local prepared package during development
 
-## Build And Prepare
-
-From the Forge workspace root:
+Build from the Forge workspace root:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 ```
 
-Then prepare the package:
+Then prepare the package. Public npm example:
 
 ```powershell
-$env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-After preparation, the package is ready to be consumed as:
+The prepare script now defaults to the public package lane:
 
-```text
-@aust-group/forge-signal-wasm
+- package name: `forge-signal-wasm`
+- registry: `https://registry.npmjs.org`
+- access: `public`
+- notice mode: `none`
+
+Then run the release-proof verifier:
+
+```powershell
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-If you use a different scope, set `FORGE_SIGNAL_WASM_SCOPE` accordingly.
+Private scoped example:
 
-## Install Into Another App
+```powershell
+$env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
+$env:FORGE_SIGNAL_WASM_REGISTRY='https://npm.pkg.github.com'
+$env:FORGE_SIGNAL_WASM_NOTICE_MODE='proprietary'
+node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+```
 
-### Local File Install
-
-In another app's `package.json`:
+Then consume the local folder:
 
 ```json
 {
   "dependencies": {
-    "@aust-group/forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
+    "forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
   }
 }
 ```
 
-Then install normally with your package manager.
+## Public Publish Flow
 
-### Private Registry Install
+Once the package is built and prepared, the honest publish lane is:
 
-If you publish the prepared package to GitHub Packages or another private
-registry, install it under the scoped package name:
-
-```json
-{
-  "dependencies": {
-    "@aust-group/forge-signal-wasm": "0.1.0"
-  }
-}
+```powershell
+wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
+node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+cd crates/forge-signal-wasm/pkg
+npm publish --access public
 ```
 
-The prep script writes package metadata and `.npmrc` support for private
-package distribution.
+The verifier is not optional ceremony. It is the mechanical proof that the
+prepared tarball contains the files the public entrypoints actually reference,
+and that a clean consumer can import and type-check the package.
+
+### One-command release gate
+
+Use the publish helper when you want one command that rebuilds, prepares, and
+verifies the public package without actually publishing yet:
+
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
+```
+
+That command now defaults to the public package lane:
+
+- package name: `forge-signal-wasm`
+- registry: `https://registry.npmjs.org`
+- access: `public`
+- notice mode: `none`
+
+If you need a private/scoped lane, pass explicit overrides such as `-Scope`,
+`-Registry`, `-Access`, and `-NoticeMode`.
+
+If you pass `-Scope` without `-PackageName`, the helper now intentionally falls
+back to the scoped naming pattern:
+
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 `
+  -Scope aust-group `
+  -Registry https://npm.pkg.github.com `
+  -NoticeMode proprietary `
+  -SkipPublish
+```
+
+That produces `@aust-group/forge-signal-wasm` instead of silently staying on
+the public unscoped package name.
 
 ## Import Surface
 
-### Core App-First Runtime
+### Core runtime
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 ```
 
-### React Adapter
+### React adapter
 
 ```ts
 import {
   createReactSignalsStore,
-  useSignalValue,
   useOutputValue,
+  useSignalValue,
   useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+} from "forge-signal-wasm/react";
 ```
 
-## Minimal Example
+## Simple App Example
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input("count", 1);
-
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
-
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
 
-console.log(panel.get());
+console.log(doubled());
 ```
 
-## Runtime Behavior Notes
+## More Complete App Example
 
-- current web execution is intentionally serial by default
-- the package does not require a separate user-called wasm bootstrap function
-- `createSignals()` is the primary entrypoint
-- `watch` and `effect` inherit committed observation semantics from
-  `forge-signal`
-- rollback suppresses normal delivery
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const enabled = signals.input(true, { id: "enabled" });
+const name = signals.input("Ada", { id: "name" });
+const count = signals.input(1, { id: "count" });
+
+const label = signals.computed(() => {
+  return enabled() ? `${name()} x${count()}` : "disabled";
+}, { id: "label" });
+
+const panel = signals.output(() => ({
+  enabled: enabled(),
+  name: name(),
+  count: count(),
+  label: label(),
+}), { id: "panel" });
+
+const watchHandle = signals.watch(panel, (notice) => {
+  console.log("panel changed", notice);
+});
+
+signals.transaction((tx) => {
+  tx.set(count, 3);
+});
+
+console.log(panel());
+signals.nuke(watchHandle);
+```
+
+## Diagnostics Example
+
+Simple:
+
+```ts
+const why = signals.diagnostics().why("label");
+console.log(why.callback?.currentReads);
+```
+
+Complex:
+
+```ts
+const diagnostics = signals.diagnostics();
+const perf = diagnostics.performanceSummary();
+const latestObservation = diagnostics.latestObservation();
+const latestFlow = diagnostics.latestFlow();
+
+console.log({
+  deliveries: latestObservation?.observation.delivered_event_count,
+  callbackCaptures: perf.computeCallbackCaptureCount,
+  dependencyPatches: perf.computeCallbackDependencyPatchCount,
+  callbackNodes: latestFlow?.callbackNodes.map((node) => node.id) ?? [],
+});
+```
+
+## React Example
+
+```tsx
+import { createSignals } from "forge-signal-wasm";
+import {
+  createReactSignalsStore,
+  useOutputValue,
+  useSignalValue,
+  useSignalsDiagnostics,
+} from "forge-signal-wasm/react";
+
+const signals = createSignals();
+const store = createReactSignalsStore(signals);
+
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
+
+function Counter() {
+  const countValue = useSignalValue<number>(count, store);
+  const doubledValue = useSignalValue<number>(doubled, store);
+  const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
+  const diagnostics = useSignalsDiagnostics(store);
+
+  return { countValue, doubledValue, panelValue, diagnostics };
+}
+```
+
+## Practical Notes
+
+- Prefer callback-first `computed(() => ...)` for ordinary app code.
+- Prefer callback-first `output(() => ...)` for ordinary public projections.
+- Callback tracking follows callable signal reads only. Ordinary closure
+  variables are not reactive dependencies.
+- Prefer `signals.input(value, { id })` when you want the family to read with
+  one coherent authoring grammar.
+- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
+  authoring.
+- Keep compatibility/runtime surfaces for expert or migration scenarios rather
+  than the default product lane.
+- Keep `adapters().exportRuntimeEnvelope()` /
+  `adapters().replaceRuntimeEnvelope(...)` as the expert rebuild/import lane
+  rather than part of the normal app happy path.
+- Runtime-envelope import denies callback-backed nodes that do not have live
+  callback registrations available in the receiving runtime.
+- The React adapter consumes runtime truth; it does not recalculate derived
+  values locally.
 
 ## What To Read Next
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](react_adapter_reference.md)

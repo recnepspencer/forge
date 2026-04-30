@@ -1,95 +1,198 @@
 # Diagnostics And History Reference
 
-This document covers the `SignalDiagnostics`, `SignalHistory`,
-`SignalSpecialist`, and `SignalAdapters` surfaces.
+This document covers the deeper inspection surfaces:
 
-## `SignalDiagnostics`
+- `SignalDiagnostics`
+- `SignalHistory`
+- `SignalSpecialist`
+- `SignalAdapters`
 
-Get diagnostics through:
+The short version: diagnostics are not an afterthought. They are a first-class
+part of how you debug callback-backed computed nodes, observation behavior,
+history, and replay.
+
+## Getting Started
 
 ```ts
 const diagnostics = signals.diagnostics();
+const history = signals.history();
+const specialist = signals.specialist();
+const adapters = signals.adapters();
 ```
+
+## `SignalDiagnostics`
 
 ### `why(id): WhySummary`
 
-Returns a focused explanation summary for a signal id.
+Use `why(...)` when you want the best single explanation for one signal.
 
-Fields:
+Simple:
 
-- `id`
-- `node`
-- `state`
-- `upstream`
-- `changedRegions`
-- `propagationSuppressed`
-- `outputChange`
-- `outputIdentity`
+```ts
+const why = diagnostics.why("doubled");
+console.log(why.recipeFamily);
+```
+
+Complex:
+
+```ts
+const why = diagnostics.why("label");
+
+console.log({
+  state: why.state,
+  outputChange: why.outputChange,
+  recipeFamily: why.recipeFamily,
+  callbackReads: why.callback?.currentReads,
+  callbackFailure: why.callback?.lastFailure,
+  dependencyPatch: why.callback?.lastDependencyPatch,
+});
+```
+
+This is the first place to look when:
+
+- a callback computed did not rerun
+- a callback reran with the wrong dependency frontier
+- a self-read or dynamic-cycle denial occurred
 
 ### `health(): HealthSummary`
 
-Returns runtime health counters:
+Use `health()` for a high-level runtime health snapshot.
 
-- `activeNodeCount`
-- `cleanNodeCount`
-- `maybeStaleNodeCount`
-- `dirtyNodeCount`
-- `dependencyEdgeCount`
-- `subscriberEdgeCount`
+Simple:
 
-### `summaryNow(): unknown`
+```ts
+console.log(diagnostics.health());
+```
 
-Returns the current summary snapshot from the diagnostics lane.
+Complex:
 
-### `historyNow(): unknown`
+```ts
+const health = diagnostics.health();
 
-Returns the current diagnostics history snapshot.
+console.log({
+  activeNodes: health.activeNodeCount,
+  dirtyNodes: health.dirtyNodeCount,
+  dependencyEdges: health.dependencyEdgeCount,
+  subscriberEdges: health.subscriberEdgeCount,
+});
+```
 
-### `latestFlow(): unknown | null`
+### `summaryNow()`
 
-Returns the latest retained flow summary when available.
+Use `summaryNow()` when you want the broad current graph summary.
 
-### `latestObservation(): ObservationBoundarySummary | null`
+Simple:
 
-Returns the latest committed observation boundary summary.
+```ts
+const summary = diagnostics.summaryNow();
+```
 
-Fields on `ObservationBoundarySummary`:
+Complex:
 
-- `branchId`
-- `deliveredEventCount`
-- `rollbackSuppressedEventCount`
-- `boundaryEvents`
+```ts
+const summary = diagnostics.summaryNow();
+saveDiagnosticsSnapshot(summary);
+```
 
-Each boundary event includes:
+### `historyNow()`
 
-- `observerId`
-- `handleId`
-- `matchedNodes`
-- `touched`
-- `recomputed`
-- `meaningfulChange`
-- `triggerMatched`
+Use `historyNow()` when you want the retained diagnostics history surface.
+
+Simple:
+
+```ts
+const historyNow = diagnostics.historyNow();
+```
+
+Complex:
+
+```ts
+const historyNow = diagnostics.historyNow();
+console.log(historyNow.callbackNodes);
+```
+
+### `latestFlow()`
+
+Use `latestFlow()` when you want the most recent committed invalidation /
+evaluation explanation.
+
+Simple:
+
+```ts
+const flow = diagnostics.latestFlow();
+console.log(flow?.flow.change.changed_nodes);
+```
+
+Complex:
+
+```ts
+const flow = diagnostics.latestFlow();
+if (flow) {
+  console.log({
+    changedNodes: flow.flow.change.changed_nodes,
+    explanation: flow.flow.explanation,
+    callbackNodes: flow.callbackNodes,
+  });
+}
+```
+
+### `latestObservation()`
+
+Use `latestObservation()` when you want the latest committed observation
+boundary that watchers/effects saw.
+
+Simple:
+
+```ts
+const observation = diagnostics.latestObservation();
+console.log(observation?.observation.delivered_event_count);
+```
+
+Complex:
+
+```ts
+const observation = diagnostics.latestObservation();
+
+console.log({
+  delivered: observation?.observation.delivered_event_count,
+  rollbackSuppressed: observation?.observation.rollback_suppressed_event_count,
+  boundaryEvents: observation?.observation.boundary_events,
+});
+```
 
 ### `performanceSummary(): WebPerformanceSummary`
 
-Returns web-layer cert counters:
+Use `performanceSummary()` for counters and boundedness signals.
 
-- `activeHandleCount`
-- `activeCallbackCount`
-- `matchedWatcherBreadth`
-- `deliveredObservationCount`
-- `rollbackSuppressedDeliveryCount`
-- `serialExecutorUsageCount`
-- `parallelExecutorUsageCount`
-- `outputSerializationCount`
-- `outputSerializationBreadth`
-- `jsCallbackInvocationCount`
-- `jsCallbackFailureCount`
-- `compatibilityReadCount`
-- `compatibilityReadBreadth`
+Simple:
 
-This is the best first place to check web runtime boundedness and whether a web
-consumer is using the serial executor path.
+```ts
+const perf = diagnostics.performanceSummary();
+console.log(perf.deliveredObservationCount);
+```
+
+Complex:
+
+```ts
+const perf = diagnostics.performanceSummary();
+
+console.log({
+  callbackInvocations: perf.computeCallbackInvocationCount,
+  callbackCaptures: perf.computeCallbackCaptureCount,
+  callbackReadBreadth: perf.computeCallbackRuntimeReadBreadth,
+  dependencyPatches: perf.computeCallbackDependencyPatchCount,
+  promiseDenials: perf.computeCallbackPromiseReturnDenialCount,
+  invalidReturnDenials: perf.computeCallbackInvalidReturnDenialCount,
+  missingUnavailability: perf.computeCallbackMissingUnavailabilityCount,
+});
+```
+
+This is the best first surface for:
+
+- “did this callback actually rerun?”
+- “are dynamic dependency patches happening?”
+- “are we hitting denials?”
+- “are watchers/effects fanning out more than expected?”
 
 ### Failure And Trace Accessors
 
@@ -99,22 +202,50 @@ consumer is using the serial executor path.
 - `latestInvalidationTraceRecords()`
 - `recentHistory()`
 
-These are richer retained diagnostics doors and may carry more detail than the
-app-first API needs for normal usage.
-
-## `SignalHistory`
-
-Get history access through:
+Simple:
 
 ```ts
-const history = signals.history();
+console.log(diagnostics.latestFailure());
 ```
+
+Complex:
+
+```ts
+console.log({
+  latestFailure: diagnostics.latestFailure(),
+  latestRollback: diagnostics.latestRollback(),
+  latestFrontierExecution: diagnostics.latestFrontierExecution(),
+  invalidationTrace: diagnostics.latestInvalidationTraceRecords(),
+});
+```
+
+## `SignalHistory`
 
 ### Replay And Lineage
 
 - `replay_for(id)`
 - `lineage_for(id)`
 - `replay_for_branch(branchId)`
+
+Simple:
+
+```ts
+const replay = history.replay_for("panel");
+```
+
+Complex:
+
+```ts
+const replay = history.replay_for("label");
+const lineage = history.lineage_for("label");
+const branchReplay = history.replay_for_branch(history.current_branch().id);
+
+console.log({
+  replay,
+  lineage,
+  branchReplay,
+});
+```
 
 ### Snapshot And Restore
 
@@ -126,6 +257,41 @@ const history = signals.history();
 - `restore_branch_snapshot(branchId, snapshot)`
 - `restore_branch_snapshot_by_id(branchId, snapshotId)`
 
+Simple:
+
+```ts
+const snapshot = history.snapshot();
+history.restore_snapshot(snapshot);
+```
+
+Complex:
+
+```ts
+const branchId = history.current_branch().id;
+const snapshot = history.branch_snapshot(branchId);
+const envelope = history.branch_snapshot_envelope(branchId);
+
+signals.transaction((tx) => {
+  tx.set(count, 99);
+});
+
+history.restore_snapshot(envelope);
+history.restore_branch_snapshot(branchId, snapshot);
+```
+
+The callback-bearing history contract is:
+
+- `replay_for(...)` and `replay_for_branch(...)` expose callback metadata on
+  replay frames when callback-backed nodes participate in the history slice.
+- `snapshot()` and `branch_snapshot_envelope(...)` are structured expert
+  artifacts, not plain JSON blobs.
+- callback-backed restore/import lanes still deny missing live callback
+  registrations explicitly rather than silently degrading into callback-free
+  truth.
+- the product-facing `history()` surface accepts the numeric branch ids it
+  already returns from `current_branch()` and `create_branch(...)`; callers do
+  not need `BigInt(...)` ceremony on the normal package lane.
+
 ### Branch Access
 
 - `current_branch()`
@@ -133,16 +299,80 @@ const history = signals.history();
 - `create_branch(name)`
 - `switch_branch(branchId)`
 
+Simple:
+
+```ts
+const branch = history.create_branch("what-if");
+history.switch_branch(branch.id);
+```
+
+Complex:
+
+```ts
+const main = history.current_branch();
+const preview = history.create_branch("preview");
+
+history.switch_branch(preview.id);
+signals.transaction((tx) => tx.set(count, 12));
+
+history.switch_branch(main.id);
+```
+
 ### Merge And Planning
 
-- `merge_branches(sourceBranchId, targetBranchId)`
-- `merge_branches_with_proof(sourceBranchId, targetBranchId)`
-- `plan_merge_branches(sourceBranchId, targetBranchId)`
-- `plan_merge_branches_with_proof(sourceBranchId, targetBranchId)`
-- `plan_merge_policy_preview(request)`
-- `plan_merge_policy_preview_with_proof(request)`
-- `merge_branches_policy_preview(request)`
-- `merge_branches_policy_preview_with_proof(request)`
+- `merge_branches(...)`
+- `merge_branches_with_proof(...)`
+- `plan_merge_branches(...)`
+- `plan_merge_branches_with_proof(...)`
+- `plan_merge_policy_preview(...)`
+- `plan_merge_policy_preview_with_proof(...)`
+- `merge_branches_policy_preview(...)`
+- `merge_branches_policy_preview_with_proof(...)`
+
+Simple:
+
+```ts
+const plan = history.plan_merge_branches(sourceId, targetId);
+```
+
+Complex:
+
+```ts
+const plan = history.plan_merge_branches_with_proof(sourceId, targetId);
+const merge = history.merge_branches_with_proof(sourceId, targetId);
+const preview = history.plan_merge_policy_preview_with_proof({
+  source_branch_id: sourceId,
+  target_branch_id: targetId,
+});
+
+console.log({
+  strategy: preview.plan.selected_semantics.strategy_name,
+  divergence: preview.plan.resolution_plan?.divergence ?? null,
+  mappedNodes: preview.plan.node_map,
+  firstDecision: preview.plan.node_plan[0]?.decision ?? null,
+  firstAdoptionSource: preview.plan.adoption_core[0]?.source_node ?? null,
+  firstCarryPolicy: preview.plan.adoption_policy[0]?.runtime_artifact ?? null,
+  replayEvents: merge.result.counters.replay_event_count,
+  firstMergedNode: merge.result.records[0]?.source_node ?? null,
+});
+```
+
+Notes:
+
+- merge plan and merge result artifacts now expose stable summary fields instead
+  of opaque nested blobs for:
+  - `selected_semantics`
+  - `merge_base` / `lowered_merge_base`
+  - `resolution_plan`
+  - `node_map`
+  - `node_plan`
+  - `adoption_core`
+  - `adoption_policy`
+  - `records`
+  - `counters`
+- merge node identities are surfaced as generational strings like
+  `"12:3"`, not bare numeric ids, so cross-branch merge evidence keeps the
+  real runtime identity shape.
 
 ### Proof Access
 
@@ -150,30 +380,47 @@ const history = signals.history();
 - `replay_parity_proof(expectedBranchId, replayedBranchId)`
 - `replay_artifact_proof(expected, replayedBranchId)`
 
-## `SignalSpecialist`
-
-Get the specialist surface through:
+Simple:
 
 ```ts
-const specialist = signals.specialist();
+const proof = history.branch_state_proof(history.current_branch().id);
 ```
+
+Complex:
+
+```ts
+const proof = history.replay_artifact_proof(expectedArtifact, branchId);
+console.log(proof);
+```
+
+## `SignalSpecialist`
+
+Use the specialist surface for advanced runtime inspection.
 
 Methods:
 
-- `evaluate_dirty()`
-- `graph_summary()`
-- `read_versions(ids)`
+- `evaluateDirty()` / `evaluate_dirty()`
+- `graphSummary()` / `graph_summary()`
+- `readVersions(ids)` / `read_versions(ids)`
 
-This surface is for advanced host/runtime consumers rather than first-line app
-code.
+Simple:
+
+```ts
+console.log(specialist.graphSummary());
+```
+
+Complex:
+
+```ts
+const versions = specialist.readVersions(["count", "label", "panel"]);
+const dirty = specialist.evaluateDirty();
+
+console.log({ versions, dirty });
+```
 
 ## `SignalAdapters`
 
-Get adapters through:
-
-```ts
-const adapters = signals.adapters();
-```
+Use adapters for export/import and proof/report surfaces.
 
 Methods:
 
@@ -182,18 +429,101 @@ Methods:
 - `replace_runtime_envelope(envelope)`
 - `runtime_proof_report()`
 
-This is the main export/import and runtime envelope door for integration work.
+Simple:
 
-## Semantics Notes
+```ts
+const definitions = adapters.export_definitions();
+```
 
-- latest observation and latest flow should remain coherent at the committed
-  boundary
-- rollback suppresses normal watch/effect delivery, but rollback summaries can
-  still be retained and inspected
-- history and branch semantics are inherited from the core runtime, not
-  invented locally in the web package
+Complex:
+
+```ts
+const definitions = adapters.export_definitions();
+const envelope = adapters.export_runtime_envelope();
+adapters.replace_runtime_envelope(envelope);
+const proof = adapters.runtime_proof_report();
+
+console.log({
+  unavailableCallbacks: definitions.unavailableCallbacks,
+  proofVersion: proof.proofSchemaVersion,
+  proofDigest: proof.registryBundleDigest,
+});
+```
+
+Use the runtime-envelope lane as an expert restore/export surface:
+
+- `export_runtime_envelope()` carries definitions plus the captured runtime
+  snapshot envelope for rebuildable runtimes.
+- `replace_runtime_envelope(...)` restores that envelope into a fresh runtime.
+- callback-backed nodes without live callback registrations are a typed denial,
+  not a silent partial restore.
+
+## Callback Diagnostics Notes
+
+Callback-backed computed nodes expose additional detail through `why(id)` and
+the richer retained surfaces:
+
+- callback purity posture
+- current captured reads
+- registration state
+- token slot / generation
+- last dependency patch
+- last callback failure
+
+Two important callback postures:
+
+- `signalTracked`
+- `constantizedNoSignalReads`
+
+Use those to distinguish:
+
+- “this is a live runtime callback node”
+- from
+- “this callback captured no signal reads and was lowered into a constant node”
+
+## Practical Debugging Workflows
+
+### Why did this callback rewire?
+
+```ts
+const why = diagnostics.why("doubled");
+console.log(why.callback?.lastDependencyPatch);
+```
+
+### What just delivered to observers?
+
+```ts
+const latestObservation = diagnostics.latestObservation();
+
+console.log(
+  latestObservation?.observation.boundary_events.map((event) => ({
+    observerId: event.observer_id,
+    matchedNodes: event.matched_nodes.nodes,
+    triggerMatched: event.trigger_matched,
+  })),
+);
+```
+
+### Did a callback fail or get denied?
+
+```ts
+console.log({
+  latestFailure: diagnostics.latestFailure(),
+  latestRollback: diagnostics.latestRollback(),
+  perf: diagnostics.performanceSummary(),
+});
+```
+
+## When To Reach For Which Surface
+
+- Use `why(id)` first for one broken signal.
+- Use `latestFlow()` for “what just caused that?”
+- Use `latestObservation()` for watcher/effect delivery truth.
+- Use `performanceSummary()` for breadth, counts, and denial evidence.
+- Use `history()` for branching, replay, snapshot, and merge questions.
+- Use `adapters()` for export/proof/report surfaces.
 
 ## Related Docs
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [react_adapter_reference.md](react_adapter_reference.md)

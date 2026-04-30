@@ -70,6 +70,7 @@ pub enum ForgeQueryWriteCommandTemplate {
 }
 
 impl ForgeQueryWriteCommandTemplate {
+    #[allow(deprecated)]
     pub(crate) fn bind(
         &self,
         inputs: &BTreeMap<String, Value>,

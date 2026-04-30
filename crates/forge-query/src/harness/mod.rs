@@ -3,6 +3,8 @@ mod adapter;
 #[cfg(test)]
 mod admission;
 #[cfg(test)]
+mod aspect_api_finalization_certification;
+#[cfg(test)]
 mod binding;
 #[cfg(test)]
 mod certification;

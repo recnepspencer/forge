@@ -1423,6 +1423,7 @@ dependencies = [
  "forge-relational",
  "forge-runtime-bridge",
  "forge-signal",
+ "serde",
  "serde_json",
  "sha2",
  "trybuild",
@@ -1484,7 +1485,7 @@ dependencies = [
 
 [[package]]
 name = "forge-signal-wasm"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "console_error_panic_hook",
  "forge-signal",

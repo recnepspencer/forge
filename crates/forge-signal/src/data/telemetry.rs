@@ -401,6 +401,23 @@ pub struct ResourceTelemetry {
     pub resource_dense_density_strategy_count: u64,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HostComputedTelemetry {
+    pub descriptor_registration_count: u64,
+    pub evaluation_request_admission_count: u64,
+    pub evaluation_request_denial_count: u64,
+    pub read_set_admission_count: u64,
+    pub dependency_patch_count: u64,
+    pub committed_artifact_count: u64,
+    pub denied_outcome_count: u64,
+    pub failed_outcome_count: u64,
+    pub self_read_denial_count: u64,
+    pub dependency_patch_added_count: u64,
+    pub dependency_patch_removed_count: u64,
+    pub dependency_patch_retained_count: u64,
+    pub dependency_patch_touched_subscriber_index_count: u64,
+}
+
 impl ResourceTelemetry {
     pub fn record_boundary_performance_envelope(
         &mut self,
@@ -466,4 +483,5 @@ pub struct RuntimeTelemetry {
     pub checkpoint: CheckpointTelemetry,
     pub temporal: TemporalTelemetry,
     pub resource: ResourceTelemetry,
+    pub host_computed: HostComputedTelemetry,
 }

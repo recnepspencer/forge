@@ -1,10 +1,10 @@
 # forge-signal-wasm Web Runtime Spec
 
-> **Status:** Proposed 2026-04-16
+> **Status:** Completed 2026-04-29
 >
-> **Vision parent:** [_docs/forge_signal/forge_signals2.md](/C:/Users/shepworth/Documents/programming/forge/_docs/forge_signal/forge_signals2.md)
+> **Vision parent:** [_docs/forge_signal/forge_signals2.md](../../../_docs/forge_signal/forge_signals2.md)
 >
-> **Core prerequisite:** [_docs/forge_signal/milestone-11-closeout.md](/C:/Users/shepworth/Documents/programming/forge/_docs/forge_signal/milestone-11-closeout.md)
+> **Core prerequisite:** [_docs/forge_signal/milestone-11-closeout.md](../../../_docs/forge_signal/milestone-11-closeout.md)
 >
 > **Primary architectural driver:** ship a framework-agnostic web runtime that
 > feels native in React, Angular, Vue, workers, and plain TypeScript without
@@ -34,12 +34,16 @@ web codebase for state and subscription management.
 
 This spec is not "add a nicer wrapper to the existing wasm bindings."
 
-The current wasm crate already exposes meaningful kernel capability, but it is
-not yet a finished web runtime product:
+This spec was written before the app-first runtime and callback-computed
+closeout were finished. Its main architectural decisions have now landed, and
+the current wasm crate is the implemented web runtime product this document was
+trying to force into existence.
+
+At the time of writing, the risk looked like this:
 
 - the public surface is still kernel-first instead of app-first
 - the main boundary is too collapsed, especially
-  [facade.rs](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/src/boundary/facade.rs)
+  [facade.rs](../src/boundary/facade.rs)
 - observation parity with the newly completed `forge-signal` substrate is
   incomplete
 - `computed`, `effect`, and `output` are not first-class web concepts yet
@@ -246,9 +250,12 @@ The primary product surface is:
 ```ts
 const signals = createSignals();
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", ...);
-const tableTrace = signals.output("tableTrace", ...);
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const tableTrace = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "tableTrace" });
 
 const watchHandle = signals.watch(tableTrace, (notice) => { ... });
 const effectHandle = signals.effect(tableTrace, () => { ... });
@@ -363,7 +370,7 @@ The transition must therefore be explicit:
 
 The current wasm crate has some useful foldering, but the product boundary is
 still too collapsed. The clearest example is
-[facade.rs](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/src/boundary/facade.rs),
+[facade.rs](../src/boundary/facade.rs),
 which currently mixes too many reasons to change:
 
 - app/runtime creation
@@ -614,6 +621,49 @@ This spec is done when all of these are true:
 - TS types are strong enough that handles and semantic categories do not
   collapse back into `any`
 - required adversarial tests and performance certs pass
+
+## Completion Note
+
+This parent spec is complete. The app-first runtime, typed product/package
+surface, observation parity, diagnostics/history lanes, and compatibility
+truth all now exist in the crate.
+
+The follow-on callback-first derived-state milestone that this spec pointed to
+is also complete:
+[host_callback_computed_spec.md](./host_callback_computed_spec.md).
+
+Future wasm product work should now enter through
+[wasm_product_roadmap.md](./wasm_product_roadmap.md), not by reopening the web
+runtime foundation as if it were still unfinished.
+
+## Follow-On Milestone: Host Callback Computed Nodes
+
+The app-first runtime spec intentionally made `computed` a first-class product
+concept, but the current concrete surface still uses serialized expression
+recipes as the default authoring form.
+
+That is not the final product shape.
+
+[host_callback_computed_spec.md](./host_callback_computed_spec.md) is the
+follow-on milestone that makes callback-backed computed nodes the normal
+TypeScript authoring path:
+
+```ts
+const doubleCount: Signal<number> = computed(() => count() * 2);
+```
+
+That milestone belongs after this web runtime spec and the React adapter spec
+because it depends on:
+
+- app-first signal handles
+- committed observation
+- diagnostics/latest-flow surfaces
+- React as a runtime-truth consumer rather than a second store engine
+
+It must land before treating the wasm package as polished React state
+infrastructure. Until callback computed nodes support dynamic dependencies and
+diagnostics parity, the package still asks ordinary app code to author internal
+expression recipes for basic derived state.
 
 ## Explicit Non-Goals
 

@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-use crate::boundary::serde::{from_js, to_js};
+use crate::boundary::restore_tokens::{load_runtime_envelope, store_runtime_envelope};
+use crate::boundary::serde::{from_js, to_js, to_js_structured};
 use crate::runtime::adapters::RuntimeEnvelope;
 
 use super::types::{SignalAdapters, SignalSpecialist};
@@ -37,7 +38,7 @@ impl SignalAdapters {
     pub fn export_definitions(&self) -> Result<JsValue, JsValue> {
         let definitions = self
             .core
-            .borrow()
+            .borrow_mut()
             .export_definitions()
             .map_err(JsValue::from)?;
         to_js(&definitions).map_err(JsValue::from)
@@ -49,7 +50,16 @@ impl SignalAdapters {
             .borrow_mut()
             .export_runtime_envelope()
             .map_err(JsValue::from)?;
-        to_js(&envelope).map_err(JsValue::from)
+        to_js_structured(&envelope).map_err(JsValue::from)
+    }
+
+    pub fn export_runtime_envelope_wire(&self) -> Result<String, JsValue> {
+        let envelope = self
+            .core
+            .borrow_mut()
+            .export_exact_runtime_restore_artifact()
+            .map_err(JsValue::from)?;
+        Ok(store_runtime_envelope(envelope))
     }
 
     pub fn runtime_proof_report(&self) -> Result<JsValue, JsValue> {
@@ -63,5 +73,29 @@ impl SignalAdapters {
             .borrow_mut()
             .replace_runtime_envelope(envelope)
             .map_err(JsValue::from)
+    }
+
+    pub fn replace_runtime_envelope_wire(&self, envelope: String) -> Result<(), JsValue> {
+        let envelope = load_runtime_envelope(&envelope).map_err(JsValue::from)?;
+        self.core
+            .borrow_mut()
+            .replace_runtime_envelope_exact(envelope)
+            .map_err(JsValue::from)
+    }
+}
+
+#[cfg(test)]
+impl SignalAdapters {
+    pub(super) fn export_runtime_envelope_for_test(
+        &self,
+    ) -> Result<RuntimeEnvelope, crate::boundary::errors::ForgeSignalJsError> {
+        self.core.borrow_mut().export_runtime_envelope()
+    }
+
+    pub(super) fn replace_runtime_envelope_for_test(
+        &self,
+        envelope: RuntimeEnvelope,
+    ) -> Result<(), crate::boundary::errors::ForgeSignalJsError> {
+        self.core.borrow_mut().replace_runtime_envelope(envelope)
     }
 }

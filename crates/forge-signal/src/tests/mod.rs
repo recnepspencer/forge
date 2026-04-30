@@ -18,6 +18,7 @@ mod event_epochs;
 mod graph_core;
 mod harness_bridge;
 mod harness_platform;
+mod host_computed_api;
 mod invalidation_bugs;
 mod lifecycle;
 mod lifetime_limits;

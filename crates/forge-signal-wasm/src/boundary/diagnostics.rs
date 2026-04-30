@@ -1,9 +1,10 @@
+use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
 use crate::boundary::serde::to_js;
 use serde::Serialize;
 
-use super::types::SignalDiagnostics;
+use super::types::{DisposableHandle, SignalDiagnostics};
 
 fn to_nullable_js<T>(value: Option<T>) -> Result<JsValue, JsValue>
 where
@@ -69,6 +70,19 @@ impl SignalDiagnostics {
         to_js(&summary).map_err(JsValue::from)
     }
 
+    pub fn subscribe(&self, callback: Function) -> Result<DisposableHandle, JsValue> {
+        let callback_token = self
+            .core
+            .borrow_mut()
+            .register_wasm_diagnostics_callback(callback);
+        Ok(DisposableHandle {
+            core: self.core.clone(),
+            observation_handle: None,
+            callback_token: None,
+            diagnostics_callback_token: Some(callback_token),
+        })
+    }
+
     #[wasm_bindgen(js_name = latestFailure)]
     pub fn latest_failure(&self) -> Result<JsValue, JsValue> {
         let failure = self.core.borrow().latest_failure().map_err(JsValue::from)?;
@@ -117,7 +131,7 @@ impl SignalDiagnostics {
     pub(super) fn latest_observation_for_test(
         &self,
     ) -> Result<
-        Option<forge_signal::facade::runtime::ObservationBoundarySummary>,
+        Option<crate::runtime::summaries::ObservationSurfaceSummary>,
         crate::boundary::errors::ForgeSignalJsError,
     > {
         self.core.borrow().latest_observation()

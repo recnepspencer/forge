@@ -13,6 +13,7 @@ pub mod evaluator;
 pub mod event_subscriber;
 pub mod graph;
 pub mod handle;
+pub mod host_computed;
 pub mod node;
 pub mod node_meta;
 pub mod output;

@@ -164,10 +164,16 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
 
     match receipt_inspection {
         ForgeQueryInspection::WriteReceipt(inspection) => {
+            assert_eq!(inspection.mutation_family(), "insert");
             assert_eq!(
                 inspection.authority_lane(),
                 ForgeQueryAuthorityLane::AuthoritativeTruth
             );
+            assert_eq!(
+                inspection.basis_lane(),
+                ForgeQueryAuthorityLane::AuthoritativeTruth
+            );
+            assert_eq!(inspection.declared_collection(), Some("Task"));
             assert_eq!(inspection.commit_identity(), receipt.commit_identity());
             assert!(!inspection.inspection_digest().is_empty());
         }

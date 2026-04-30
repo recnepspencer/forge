@@ -21,3 +21,13 @@ where
         ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
     })
 }
+
+pub fn to_js_structured<T>(value: &T) -> Result<JsValue, ForgeSignalJsError>
+where
+    T: Serialize,
+{
+    let serializer = serde_wasm_bindgen::Serializer::new();
+    value.serialize(&serializer).map_err(|err| {
+        ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
+    })
+}

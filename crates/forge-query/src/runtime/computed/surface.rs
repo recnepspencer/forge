@@ -72,7 +72,7 @@ impl ForgeQueryComputedInspectionEvidence {
             .filter(|patch| patch.is_refresh_fallback())
             .count();
         let declaration_digest = hash_parts(&[
-            "forge_query_computed_declaration_inspection_v1".to_string(),
+            "forge_query_computed_definition_inspection_v1".to_string(),
             format!("name:{}", view.declaration.name()),
             format!("authority:{}", ForgeQueryAuthorityLane::DerivedRuntimeState),
             format!("incremental:{incremental_delivery}"),

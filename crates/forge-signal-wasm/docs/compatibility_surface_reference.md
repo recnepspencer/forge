@@ -190,6 +190,6 @@ This is the primary low-level way to switch runtime mode from web code:
 
 ## Related Docs
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+- [aspects_reference.md](aspects_reference.md)

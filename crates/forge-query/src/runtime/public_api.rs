@@ -72,7 +72,7 @@ impl ForgeQueryRuntimeStateSnapshot {
         authority_lane: ForgeQueryAuthorityLane,
         explanation: impl Into<String>,
     ) -> Self {
-        debug_assert!(
+        assert!(
             kind != ForgeQueryRuntimeStateKind::Ready,
             "ready state should use ForgeQueryRuntimeStateSnapshot::ready"
         );
@@ -211,6 +211,384 @@ pub struct ForgeQueryRuntimePublicApiContract {
     deferred_family_count: usize,
     unsupported_family_count: usize,
     contract_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryRuntimePublicApiNamingRow {
+    concept: String,
+    preferred_name: String,
+    compatibility_names: Vec<String>,
+    boundary_crossing: bool,
+    naming_digest: String,
+}
+
+impl ForgeQueryRuntimePublicApiNamingRow {
+    fn new(
+        concept: impl Into<String>,
+        preferred_name: impl Into<String>,
+        compatibility_names: impl IntoIterator<Item = impl Into<String>>,
+        boundary_crossing: bool,
+    ) -> Self {
+        let concept = concept.into();
+        let preferred_name = preferred_name.into();
+        let compatibility_names = compatibility_names
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        let mut parts = vec![
+            format!("concept:{concept}"),
+            format!("preferred:{preferred_name}"),
+            format!("boundary:{boundary_crossing}"),
+        ];
+        parts.extend(
+            compatibility_names
+                .iter()
+                .map(|name| format!("compatibility:{name}")),
+        );
+        let naming_digest = hash_parts(&parts);
+        Self {
+            concept,
+            preferred_name,
+            compatibility_names,
+            boundary_crossing,
+            naming_digest,
+        }
+    }
+
+    pub fn concept(&self) -> &str {
+        &self.concept
+    }
+
+    pub fn preferred_name(&self) -> &str {
+        &self.preferred_name
+    }
+
+    pub fn compatibility_names(&self) -> &[String] {
+        &self.compatibility_names
+    }
+
+    pub fn boundary_crossing(&self) -> bool {
+        self.boundary_crossing
+    }
+
+    pub fn naming_digest(&self) -> &str {
+        &self.naming_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryRuntimePublicApiNamingContract {
+    rows: Vec<ForgeQueryRuntimePublicApiNamingRow>,
+    preferred_entrypoint_count: usize,
+    compatibility_name_count: usize,
+    boundary_crossing_name_count: usize,
+    contract_digest: String,
+}
+
+impl ForgeQueryRuntimePublicApiNamingContract {
+    pub fn standard() -> Self {
+        let rows = vec![
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "workspace",
+                "workspace",
+                std::iter::empty::<&str>(),
+                false,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "live-view",
+                "live_view",
+                ["live_view_request", "declare_live_view"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "live-view-builder",
+                "live_view closure",
+                std::iter::empty::<&str>(),
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "computed",
+                "computed",
+                [
+                    "computed_view",
+                    "computed_definition",
+                    "declare_maintained_derived_view",
+                    "declare_derived_view",
+                ],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "computed-builder",
+                "computed closure",
+                std::iter::empty::<&str>(),
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "effect",
+                "effect",
+                ["effect_declaration", "declare_effect"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "effect-builder",
+                "effect closure",
+                std::iter::empty::<&str>(),
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "preview",
+                "preview",
+                ["preview_with_options"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "branch",
+                "branch",
+                ["branch_with_options"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "insert",
+                "insert",
+                [
+                    "write + ForgeQueryWriteCommand::InsertAspects",
+                    "write + ForgeQueryWriteCommand::Insert (deprecated payload-first compatibility)",
+                ],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "update",
+                "update",
+                ["write + ForgeQueryWriteCommand::UpdateAspect"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "delete",
+                "delete",
+                ["write + ForgeQueryWriteCommand::Delete"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "batch",
+                "batch",
+                ["multiple write(...) calls in declared order"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new("intent", "intent", ["execute_intent"], true),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "effect-intent",
+                "next_effect_intent",
+                ["execute_next_effect_write_intent"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new("read", "read", ["read_live"], true),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "state",
+                "state",
+                ["snapshot", "ForgeQueryRuntimeStateSnapshot"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new("observe", "observe", ["drain_patches"], true),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "materialize",
+                "materialize",
+                ["read_derived"],
+                true,
+            ),
+            ForgeQueryRuntimePublicApiNamingRow::new(
+                "inspect",
+                "inspect",
+                std::iter::empty::<&str>(),
+                true,
+            ),
+        ];
+        let preferred_entrypoint_count = rows.len();
+        let compatibility_name_count = rows.iter().map(|row| row.compatibility_names().len()).sum();
+        let boundary_crossing_name_count =
+            rows.iter().filter(|row| row.boundary_crossing()).count();
+        let mut parts = vec![
+            "forge_query_runtime_public_api_naming_contract_v1".to_string(),
+            format!("preferred:{preferred_entrypoint_count}"),
+            format!("compatibility:{compatibility_name_count}"),
+            format!("boundary:{boundary_crossing_name_count}"),
+        ];
+        parts.extend(rows.iter().map(|row| row.naming_digest().to_string()));
+        let contract_digest = hash_parts(&parts);
+        Self {
+            rows,
+            preferred_entrypoint_count,
+            compatibility_name_count,
+            boundary_crossing_name_count,
+            contract_digest,
+        }
+    }
+
+    pub fn rows(&self) -> &[ForgeQueryRuntimePublicApiNamingRow] {
+        &self.rows
+    }
+
+    pub fn preferred_entrypoint_count(&self) -> usize {
+        self.preferred_entrypoint_count
+    }
+
+    pub fn compatibility_name_count(&self) -> usize {
+        self.compatibility_name_count
+    }
+
+    pub fn boundary_crossing_name_count(&self) -> usize {
+        self.boundary_crossing_name_count
+    }
+
+    pub fn contract_digest(&self) -> &str {
+        &self.contract_digest
+    }
+
+    pub fn preferred_name_for(&self, concept: &str) -> Option<&str> {
+        self.rows
+            .iter()
+            .find(|row| row.concept() == concept)
+            .map(ForgeQueryRuntimePublicApiNamingRow::preferred_name)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
+    transcript_family: String,
+    support_contract_digest: String,
+    state_digest: String,
+    live_surface_digest: String,
+    computed_surface_digest: String,
+    effect_surface_digest: String,
+    intent_receipt_digest: String,
+    inspection_digest: String,
+    unsupported_neighbor_denial_digests: Vec<String>,
+    delivery_residue_count: usize,
+    authority_lane_digest: String,
+    meaningful_assertion_count: usize,
+    transcript_digest: String,
+}
+
+impl ForgeQueryRuntimePublicApiTranscriptEvidence {
+    #[allow(dead_code)]
+    pub(crate) fn new(
+        transcript_family: impl Into<String>,
+        support_contract_digest: impl Into<String>,
+        state_digest: impl Into<String>,
+        live_surface_digest: impl Into<String>,
+        computed_surface_digest: impl Into<String>,
+        effect_surface_digest: impl Into<String>,
+        intent_receipt_digest: impl Into<String>,
+        inspection_digest: impl Into<String>,
+        unsupported_neighbor_denial_digests: impl IntoIterator<Item = impl Into<String>>,
+        delivery_residue_count: usize,
+        authority_lane_digest: impl Into<String>,
+        meaningful_assertion_count: usize,
+    ) -> Self {
+        let transcript_family = transcript_family.into();
+        let support_contract_digest = support_contract_digest.into();
+        let state_digest = state_digest.into();
+        let live_surface_digest = live_surface_digest.into();
+        let computed_surface_digest = computed_surface_digest.into();
+        let effect_surface_digest = effect_surface_digest.into();
+        let intent_receipt_digest = intent_receipt_digest.into();
+        let inspection_digest = inspection_digest.into();
+        let unsupported_neighbor_denial_digests = unsupported_neighbor_denial_digests
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        let authority_lane_digest = authority_lane_digest.into();
+        assert!(
+            !unsupported_neighbor_denial_digests.is_empty(),
+            "runtime public API transcript evidence must prove at least one unsupported neighbor denial"
+        );
+        let mut parts = vec![
+            "forge_query_runtime_public_api_transcript_evidence_v1".to_string(),
+            format!("family:{transcript_family}"),
+            format!("support:{support_contract_digest}"),
+            format!("state:{state_digest}"),
+            format!("live:{live_surface_digest}"),
+            format!("computed:{computed_surface_digest}"),
+            format!("effect:{effect_surface_digest}"),
+            format!("intent:{intent_receipt_digest}"),
+            format!("inspection:{inspection_digest}"),
+            format!("residue:{delivery_residue_count}"),
+            format!("lane:{authority_lane_digest}"),
+            format!("assertions:{meaningful_assertion_count}"),
+        ];
+        parts.extend(
+            unsupported_neighbor_denial_digests
+                .iter()
+                .map(|digest| format!("denial:{digest}")),
+        );
+        let transcript_digest = hash_parts(&parts);
+        Self {
+            transcript_family,
+            support_contract_digest,
+            state_digest,
+            live_surface_digest,
+            computed_surface_digest,
+            effect_surface_digest,
+            intent_receipt_digest,
+            inspection_digest,
+            unsupported_neighbor_denial_digests,
+            delivery_residue_count,
+            authority_lane_digest,
+            meaningful_assertion_count,
+            transcript_digest,
+        }
+    }
+
+    pub fn transcript_family(&self) -> &str {
+        &self.transcript_family
+    }
+
+    pub fn support_contract_digest(&self) -> &str {
+        &self.support_contract_digest
+    }
+
+    pub fn state_digest(&self) -> &str {
+        &self.state_digest
+    }
+
+    pub fn live_surface_digest(&self) -> &str {
+        &self.live_surface_digest
+    }
+
+    pub fn computed_surface_digest(&self) -> &str {
+        &self.computed_surface_digest
+    }
+
+    pub fn effect_surface_digest(&self) -> &str {
+        &self.effect_surface_digest
+    }
+
+    pub fn intent_receipt_digest(&self) -> &str {
+        &self.intent_receipt_digest
+    }
+
+    pub fn inspection_digest(&self) -> &str {
+        &self.inspection_digest
+    }
+
+    pub fn unsupported_neighbor_denial_digests(&self) -> &[String] {
+        &self.unsupported_neighbor_denial_digests
+    }
+
+    pub fn delivery_residue_count(&self) -> usize {
+        self.delivery_residue_count
+    }
+
+    pub fn authority_lane_digest(&self) -> &str {
+        &self.authority_lane_digest
+    }
+
+    pub fn meaningful_assertion_count(&self) -> usize {
+        self.meaningful_assertion_count
+    }
+
+    pub fn transcript_digest(&self) -> &str {
+        &self.transcript_digest
+    }
 }
 
 impl ForgeQueryRuntimePublicApiContract {

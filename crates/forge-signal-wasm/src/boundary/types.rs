@@ -6,6 +6,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::recipe::model::TransactionOp;
 use crate::runtime::core::SharedCore;
+use crate::runtime::diagnostics_callbacks::DiagnosticsCallbackToken;
+use crate::runtime::web_callbacks::ObservationCallbackToken;
 
 #[wasm_bindgen(js_name = Signals)]
 pub struct Signals {
@@ -40,7 +42,8 @@ pub struct SignalsTransaction {
 pub struct DisposableHandle {
     pub(crate) core: SharedCore,
     pub(crate) observation_handle: Option<ObservationHandle>,
-    pub(crate) callback_id: Option<u64>,
+    pub(crate) callback_token: Option<ObservationCallbackToken>,
+    pub(crate) diagnostics_callback_token: Option<DiagnosticsCallbackToken>,
 }
 
 #[wasm_bindgen(js_name = SignalApp)]

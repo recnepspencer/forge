@@ -1,8 +1,13 @@
 mod builders;
+mod closeout;
 mod tests;
+mod transcript_runtime;
+mod transcripts;
 
 use crate::harness::certification::{digest_parts, CertificationMatrix};
 use crate::runtime::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
+
+use closeout::RuntimeApiStabilizationCloseout;
 
 pub const RUNTIME_API_STABILIZATION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "workflow-editor-golden-transcript",
@@ -41,7 +46,9 @@ pub enum RuntimeApiStabilizationFailureClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RuntimeApiStabilizationBundle {
     pub public_api_surface_digest: String,
+    pub public_api_naming_contract_digest: String,
     pub golden_transcript_digest: String,
+    pub executable_transcript_digest: String,
     pub handle_contract_digest: String,
     pub state_contract_digest: String,
     pub aspect_contract_digest: String,
@@ -56,6 +63,8 @@ pub struct RuntimeApiStabilizationBundle {
     pub public_facade_only: bool,
     pub lower_runtime_plumbing_count: usize,
     pub meaningful_assertion_count: usize,
+    pub unsupported_neighbor_denial_count: usize,
+    pub delivery_residue_count: usize,
     pub stable_family_count: usize,
     pub deferred_family_count: usize,
     pub unsupported_family_count: usize,
@@ -64,7 +73,9 @@ pub struct RuntimeApiStabilizationBundle {
 impl RuntimeApiStabilizationBundle {
     pub(super) fn has_required_outputs(&self) -> bool {
         !self.public_api_surface_digest.is_empty()
+            && !self.public_api_naming_contract_digest.is_empty()
             && !self.golden_transcript_digest.is_empty()
+            && !self.executable_transcript_digest.is_empty()
             && !self.handle_contract_digest.is_empty()
             && !self.state_contract_digest.is_empty()
             && !self.aspect_contract_digest.is_empty()
@@ -76,12 +87,15 @@ impl RuntimeApiStabilizationBundle {
             && !self.counter_snapshot.is_empty()
             && !self.compile_fail_boundary_digest.is_empty()
             && !self.transcript_family.is_empty()
+            && self.unsupported_neighbor_denial_count >= 1
     }
 
     pub(super) fn semantic_signature(&self) -> String {
         digest_parts(&[
             format!("surface:{}", self.public_api_surface_digest),
+            format!("naming:{}", self.public_api_naming_contract_digest),
             format!("transcript:{}", self.golden_transcript_digest),
+            format!("executable:{}", self.executable_transcript_digest),
             format!("handle:{}", self.handle_contract_digest),
             format!("state:{}", self.state_contract_digest),
             format!("aspect:{}", self.aspect_contract_digest),
@@ -92,6 +106,8 @@ impl RuntimeApiStabilizationBundle {
             format!("family:{}", self.transcript_family),
             format!("facade_only:{}", self.public_facade_only),
             format!("plumbing:{}", self.lower_runtime_plumbing_count),
+            format!("denials:{}", self.unsupported_neighbor_denial_count),
+            format!("residue:{}", self.delivery_residue_count),
         ])
     }
 }
@@ -118,15 +134,18 @@ pub struct RuntimeApiStabilizationArtifact {
     pub suite_name: &'static str,
     pub certification_bundle_digest: String,
     pub coverage_matrix_digest: String,
+    pub closeout: RuntimeApiStabilizationCloseout,
     pub matrix: RuntimeApiStabilizationCertificationMatrix,
 }
 
 impl RuntimeApiStabilizationCertificationMatrix {
     pub fn into_runtime_api_stabilization_artifact(self) -> RuntimeApiStabilizationArtifact {
+        let closeout = RuntimeApiStabilizationCloseout::from_matrix(&self);
         RuntimeApiStabilizationArtifact {
             suite_name: self.suite_name,
             certification_bundle_digest: digest_parts(&builders::bundle_digest_parts(&self)),
             coverage_matrix_digest: digest_parts(&builders::coverage_digest_parts(&self)),
+            closeout,
             matrix: self,
         }
     }

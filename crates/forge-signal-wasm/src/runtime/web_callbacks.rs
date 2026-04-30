@@ -12,6 +12,18 @@ use crate::boundary::serde::to_js;
 #[cfg(test)]
 use std::rc::Rc;
 
+thread_local! {
+    static WEB_RUNTIME_CALLBACKS: RefCell<WebRuntimeCallbackState> =
+        RefCell::new(WebRuntimeCallbackState::default());
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObservationCallbackToken {
+    pub slot: u64,
+    pub generation: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebObservationNotice {
@@ -29,9 +41,14 @@ pub struct WebObservationNotice {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WebCallbackStats {
-    pub active_callback_count: u64,
-    pub js_callback_invocation_count: u64,
-    pub js_callback_failure_count: u64,
+    pub active_observation_callback_count: u64,
+    pub observation_callback_registration_count: u64,
+    pub observation_callback_disposal_count: u64,
+    pub observation_callback_invocation_count: u64,
+    pub observation_callback_failure_count: u64,
+    pub observation_callback_generation_mismatch_denial_count: u64,
+    pub observation_callback_allocation_count: u64,
+    pub observation_callback_reuse_count: u64,
 }
 
 #[derive(Clone)]
@@ -45,106 +62,247 @@ enum RegisteredWebCallback {
 }
 
 #[derive(Default)]
-struct WebCallbackRegistry {
+pub struct WebCallbackRegistry {
     next_id: u64,
+    free_slots: Vec<u64>,
     callbacks: BTreeMap<u64, RegisteredWebCallback>,
-    js_callback_invocation_count: u64,
-    js_callback_failure_count: u64,
+    generations: BTreeMap<u64, u64>,
+    stats: WebCallbackStats,
 }
 
-thread_local! {
-    static WEB_CALLBACKS: RefCell<WebCallbackRegistry> = RefCell::new(WebCallbackRegistry {
-        next_id: 1,
-        callbacks: BTreeMap::new(),
-        js_callback_invocation_count: 0,
-        js_callback_failure_count: 0,
+#[derive(Default)]
+struct WebRuntimeCallbackState {
+    next_runtime_scope_id: u64,
+    registries: BTreeMap<u64, WebCallbackRegistry>,
+}
+
+pub fn allocate_runtime_callback_scope() -> u64 {
+    WEB_RUNTIME_CALLBACKS.with(|state| {
+        let mut state = state.borrow_mut();
+        let scope_id = state.next_runtime_scope_id;
+        state.next_runtime_scope_id = state.next_runtime_scope_id.saturating_add(1);
+        state.registries.entry(scope_id).or_default();
+        scope_id
+    })
+}
+
+pub fn dispose_runtime_callback_scope(scope_id: u64) {
+    WEB_RUNTIME_CALLBACKS.with(|state| {
+        state.borrow_mut().registries.remove(&scope_id);
     });
 }
 
-fn register_callback(callback: RegisteredWebCallback) -> u64 {
-    WEB_CALLBACKS.with(|registry| {
-        let mut borrowed = registry.borrow_mut();
-        let id = borrowed.next_id;
-        borrowed.next_id = borrowed.next_id.saturating_add(1);
-        borrowed.callbacks.insert(id, callback);
-        id
+pub fn register_wasm_watch(scope_id: u64, callback: Function) -> ObservationCallbackToken {
+    with_registry_mut(scope_id, |registry| {
+        registry.allocate_token(RegisteredWebCallback::WasmWatch(callback))
     })
 }
 
-pub fn register_wasm_watch(callback: Function) -> u64 {
-    register_callback(RegisteredWebCallback::WasmWatch(callback))
-}
-
-pub fn register_wasm_effect(callback: Function) -> u64 {
-    register_callback(RegisteredWebCallback::WasmEffect(callback))
-}
-
-pub fn remove_callback(callback_id: u64) -> bool {
-    WEB_CALLBACKS.with(|registry| {
-        registry
-            .borrow_mut()
-            .callbacks
-            .remove(&callback_id)
-            .is_some()
+pub fn register_wasm_effect(scope_id: u64, callback: Function) -> ObservationCallbackToken {
+    with_registry_mut(scope_id, |registry| {
+        registry.allocate_token(RegisteredWebCallback::WasmEffect(callback))
     })
 }
 
-fn record_callback_invocation(success: bool) {
-    WEB_CALLBACKS.with(|registry| {
-        let mut borrowed = registry.borrow_mut();
-        borrowed.js_callback_invocation_count =
-            borrowed.js_callback_invocation_count.saturating_add(1);
+pub fn dispose_callback(scope_id: u64, token: ObservationCallbackToken) -> bool {
+    with_registry_mut(scope_id, |registry| registry.dispose_callback(token))
+}
+
+pub fn invoke_watch(scope_id: u64, token: ObservationCallbackToken, notice: WebObservationNotice) {
+    with_registry_mut(scope_id, |registry| registry.invoke_watch(token, notice));
+}
+
+pub fn invoke_effect(scope_id: u64, token: ObservationCallbackToken) {
+    with_registry_mut(scope_id, |registry| registry.invoke_effect(token));
+}
+
+pub fn callback_stats(scope_id: u64) -> WebCallbackStats {
+    WEB_RUNTIME_CALLBACKS.with(|state| {
+        state
+            .borrow()
+            .registries
+            .get(&scope_id)
+            .map(WebCallbackRegistry::callback_stats)
+            .unwrap_or_default()
+    })
+}
+
+fn with_registry_mut<R>(scope_id: u64, f: impl FnOnce(&mut WebCallbackRegistry) -> R) -> R {
+    WEB_RUNTIME_CALLBACKS.with(|state| {
+        let mut state = state.borrow_mut();
+        let registry = state.registries.entry(scope_id).or_default();
+        f(registry)
+    })
+}
+
+impl WebCallbackRegistry {
+    pub fn dispose_callback(&mut self, token: ObservationCallbackToken) -> bool {
+        let Some(generation) = self.generations.get(&token.slot).copied() else {
+            self.stats
+                .observation_callback_generation_mismatch_denial_count = self
+                .stats
+                .observation_callback_generation_mismatch_denial_count
+                .saturating_add(1);
+            return false;
+        };
+        if generation != token.generation || !self.callbacks.contains_key(&token.slot) {
+            self.stats
+                .observation_callback_generation_mismatch_denial_count = self
+                .stats
+                .observation_callback_generation_mismatch_denial_count
+                .saturating_add(1);
+            return false;
+        }
+        self.callbacks.remove(&token.slot);
+        self.free_slots.push(token.slot);
+        self.stats.observation_callback_disposal_count = self
+            .stats
+            .observation_callback_disposal_count
+            .saturating_add(1);
+        self.stats.active_observation_callback_count = self.callbacks.len() as u64;
+        true
+    }
+
+    pub fn invoke_watch(&mut self, token: ObservationCallbackToken, notice: WebObservationNotice) {
+        let Some(callback) = self.registered_callback(token) else {
+            return;
+        };
+        match callback {
+            RegisteredWebCallback::WasmWatch(function) => {
+                if let Ok(payload) = to_js(&notice) {
+                    self.record_callback_invocation(
+                        function.call1(&JsValue::NULL, &payload).is_ok(),
+                    );
+                }
+            }
+            #[cfg(test)]
+            RegisteredWebCallback::NativeWatch(callback) => {
+                self.record_callback_invocation(
+                    catch_unwind(AssertUnwindSafe(|| callback(notice))).is_ok(),
+                );
+            }
+            RegisteredWebCallback::WasmEffect(_) => {}
+            #[cfg(test)]
+            RegisteredWebCallback::NativeEffect(_) => {}
+        }
+    }
+
+    pub fn invoke_effect(&mut self, token: ObservationCallbackToken) {
+        let Some(callback) = self.registered_callback(token) else {
+            return;
+        };
+        match callback {
+            RegisteredWebCallback::WasmEffect(function) => {
+                self.record_callback_invocation(function.call0(&JsValue::NULL).is_ok());
+            }
+            #[cfg(test)]
+            RegisteredWebCallback::NativeEffect(callback) => {
+                self.record_callback_invocation(
+                    catch_unwind(AssertUnwindSafe(|| callback())).is_ok(),
+                );
+            }
+            RegisteredWebCallback::WasmWatch(_) => {}
+            #[cfg(test)]
+            RegisteredWebCallback::NativeWatch(_) => {}
+        }
+    }
+
+    pub fn callback_stats(&self) -> WebCallbackStats {
+        self.stats
+    }
+
+    fn allocate_token(&mut self, callback: RegisteredWebCallback) -> ObservationCallbackToken {
+        let (slot, generation) = if let Some(slot) = self.free_slots.pop() {
+            let generation = self
+                .generations
+                .get(&slot)
+                .copied()
+                .unwrap_or(0)
+                .saturating_add(1);
+            self.stats.observation_callback_reuse_count = self
+                .stats
+                .observation_callback_reuse_count
+                .saturating_add(1);
+            (slot, generation)
+        } else {
+            let slot = self.next_id;
+            self.next_id = self.next_id.saturating_add(1);
+            self.stats.observation_callback_allocation_count = self
+                .stats
+                .observation_callback_allocation_count
+                .saturating_add(1);
+            (slot, 1)
+        };
+        self.callbacks.insert(slot, callback);
+        self.generations.insert(slot, generation);
+        self.stats.observation_callback_registration_count = self
+            .stats
+            .observation_callback_registration_count
+            .saturating_add(1);
+        self.stats.active_observation_callback_count = self.callbacks.len() as u64;
+        ObservationCallbackToken { slot, generation }
+    }
+
+    fn registered_callback(
+        &mut self,
+        token: ObservationCallbackToken,
+    ) -> Option<RegisteredWebCallback> {
+        let Some(generation) = self.generations.get(&token.slot).copied() else {
+            self.stats
+                .observation_callback_generation_mismatch_denial_count = self
+                .stats
+                .observation_callback_generation_mismatch_denial_count
+                .saturating_add(1);
+            return None;
+        };
+        let Some(callback) = self.callbacks.get(&token.slot).cloned() else {
+            self.stats
+                .observation_callback_generation_mismatch_denial_count = self
+                .stats
+                .observation_callback_generation_mismatch_denial_count
+                .saturating_add(1);
+            return None;
+        };
+        if generation != token.generation {
+            self.stats
+                .observation_callback_generation_mismatch_denial_count = self
+                .stats
+                .observation_callback_generation_mismatch_denial_count
+                .saturating_add(1);
+            return None;
+        }
+        Some(callback)
+    }
+
+    fn record_callback_invocation(&mut self, success: bool) {
+        self.stats.observation_callback_invocation_count = self
+            .stats
+            .observation_callback_invocation_count
+            .saturating_add(1);
         if !success {
-            borrowed.js_callback_failure_count =
-                borrowed.js_callback_failure_count.saturating_add(1);
+            self.stats.observation_callback_failure_count = self
+                .stats
+                .observation_callback_failure_count
+                .saturating_add(1);
         }
-    });
-}
-
-fn invoke_wasm_watch(callback: &Function, notice: &WebObservationNotice) {
-    if let Ok(payload) = to_js(notice) {
-        record_callback_invocation(callback.call1(&JsValue::NULL, &payload).is_ok());
     }
 }
 
-fn invoke_wasm_effect(callback: &Function) {
-    record_callback_invocation(callback.call0(&JsValue::NULL).is_ok());
+#[cfg(test)]
+pub fn register_native_watch(
+    scope_id: u64,
+    callback: Box<dyn Fn(WebObservationNotice)>,
+) -> ObservationCallbackToken {
+    with_registry_mut(scope_id, |registry| {
+        registry.allocate_token(RegisteredWebCallback::NativeWatch(Rc::from(callback)))
+    })
 }
 
-pub fn invoke_watch(callback_id: u64, notice: WebObservationNotice) {
-    let callback =
-        WEB_CALLBACKS.with(|registry| registry.borrow().callbacks.get(&callback_id).cloned());
-    let Some(callback) = callback else {
-        return;
-    };
-    match callback {
-        RegisteredWebCallback::WasmWatch(function) => invoke_wasm_watch(&function, &notice),
-        #[cfg(test)]
-        RegisteredWebCallback::NativeWatch(callback) => {
-            record_callback_invocation(catch_unwind(AssertUnwindSafe(|| callback(notice))).is_ok());
-        }
-        RegisteredWebCallback::WasmEffect(_) => {}
-        #[cfg(test)]
-        RegisteredWebCallback::NativeEffect(_) => {}
-    }
-}
-
-pub fn invoke_effect(callback_id: u64) {
-    let callback =
-        WEB_CALLBACKS.with(|registry| registry.borrow().callbacks.get(&callback_id).cloned());
-    let Some(callback) = callback else {
-        return;
-    };
-    match callback {
-        RegisteredWebCallback::WasmEffect(function) => invoke_wasm_effect(&function),
-        #[cfg(test)]
-        RegisteredWebCallback::NativeEffect(callback) => {
-            record_callback_invocation(catch_unwind(AssertUnwindSafe(|| callback())).is_ok());
-        }
-        RegisteredWebCallback::WasmWatch(_) => {}
-        #[cfg(test)]
-        RegisteredWebCallback::NativeWatch(_) => {}
-    }
+#[cfg(test)]
+pub fn register_native_effect(scope_id: u64, callback: Box<dyn Fn()>) -> ObservationCallbackToken {
+    with_registry_mut(scope_id, |registry| {
+        registry.allocate_token(RegisteredWebCallback::NativeEffect(Rc::from(callback)))
+    })
 }
 
 pub fn notice_from_runtime(
@@ -163,25 +321,4 @@ pub fn notice_from_runtime(
         meaningful_change: notice.meaningful_change(),
         trigger_matched: notice.trigger_matched(),
     }
-}
-
-pub fn callback_stats() -> WebCallbackStats {
-    WEB_CALLBACKS.with(|registry| {
-        let borrowed = registry.borrow();
-        WebCallbackStats {
-            active_callback_count: borrowed.callbacks.len() as u64,
-            js_callback_invocation_count: borrowed.js_callback_invocation_count,
-            js_callback_failure_count: borrowed.js_callback_failure_count,
-        }
-    })
-}
-
-#[cfg(test)]
-pub fn register_native_watch(callback: Box<dyn Fn(WebObservationNotice)>) -> u64 {
-    register_callback(RegisteredWebCallback::NativeWatch(Rc::from(callback)))
-}
-
-#[cfg(test)]
-pub fn register_native_effect(callback: Box<dyn Fn()>) -> u64 {
-    register_callback(RegisteredWebCallback::NativeEffect(Rc::from(callback)))
 }

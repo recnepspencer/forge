@@ -41,6 +41,11 @@ pub trait ForgeQueryRuntimeBackend {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
 
+    fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError>;
+
     fn execute_intent(
         &mut self,
         declaration: &ForgeQueryIntentDeclaration,
@@ -114,6 +119,19 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
         relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
+
+    fn write_batch(
+        &mut self,
+        bridge: &RuntimeBridge,
+        mut relational_runtime: Option<&mut RelationalRuntime>,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let mut receipts = Vec::with_capacity(commands.len());
+        for command in commands {
+            receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), command)?);
+        }
+        Ok(receipts)
+    }
 }
 
 pub trait ForgeQueryRuntimeSignalSinkAdapter {
@@ -121,6 +139,16 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
         &mut self,
         receipt: &ForgeQueryMutationReceipt,
     ) -> Result<(), ForgeQueryWorkspaceError>;
+
+    fn route_write_batch(
+        &mut self,
+        receipts: &[ForgeQueryMutationReceipt],
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        for receipt in receipts {
+            self.route_write_receipt(receipt)?;
+        }
+        Ok(())
+    }
 }
 
 pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
@@ -355,6 +383,19 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         )?;
         self.signal_sink.route_write_receipt(&receipt)?;
         Ok(receipt)
+    }
+
+    fn write_batch(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let receipts = self.write_authority.write_batch(
+            &self.runtime_bridge,
+            self.relational_runtime.as_mut(),
+            commands,
+        )?;
+        self.signal_sink.route_write_batch(&receipts)?;
+        Ok(receipts)
     }
 
     fn execute_intent(

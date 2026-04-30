@@ -1,6 +1,7 @@
 # Forge Query Runtime API Public Stabilization Plan
 
-> **Status:** Draft stabilization spec
+> **Status:** Closeout implemented; see
+> [runtime-api-public-stabilization-closeout.md](./runtime-api-public-stabilization-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >

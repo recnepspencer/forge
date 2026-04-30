@@ -3,15 +3,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 
 use super::{
-    admit_authority_requirements, validate_inputs, ForgeQueryAuthorityLane,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewRuntime, ForgeQueryEffectAction,
-    ForgeQueryEffectAdmission, ForgeQueryEffectHandle, ForgeQueryEffectInspectionEvidence,
-    ForgeQueryEffectPolicy, ForgeQueryEffectTriggerSourceKind, ForgeQueryInstalledOperation,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentSourceLane,
-    ForgeQueryLiveView, ForgeQueryOperationInput, ForgeQueryOperationOutput, ForgeQueryPatchBatch,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryPreviewIntentReceipt, ForgeQueryProgramEffect,
-    ForgeQueryProgramTrace, ForgeQueryRunReceipt, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    admit_authority_requirements, validate_inputs, ForgeQueryAspectMutationBuilder,
+    ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryDerivedViewHandle,
+    ForgeQueryDerivedViewRuntime, ForgeQueryEffectAction, ForgeQueryEffectAdmission,
+    ForgeQueryEffectHandle, ForgeQueryEffectInspectionEvidence, ForgeQueryEffectPolicy,
+    ForgeQueryEffectTriggerSourceKind, ForgeQueryInstalledOperation, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentDenialEvidence, ForgeQueryIntentSourceLane, ForgeQueryLiveView,
+    ForgeQueryMutationBatchBuilder, ForgeQueryOperationInput, ForgeQueryOperationOutput,
+    ForgeQueryPatchBatch, ForgeQueryPreviewBasisAdmission, ForgeQueryPreviewIntentReceipt,
+    ForgeQueryProgramEffect, ForgeQueryProgramTrace, ForgeQueryRunReceipt, ForgeQueryRuntime,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
 };
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::hash_parts;
@@ -111,6 +113,47 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.writes.push(receipt.clone());
         self.route_preview_execution(&receipt);
         Ok(receipt)
+    }
+
+    pub fn insert(
+        &mut self,
+        collection: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_insert(collection)?;
+        self.write(command)
+    }
+
+    pub fn update(
+        &mut self,
+        entity_identity: impl Into<String>,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_update(entity_identity)?;
+        self.write(command)
+    }
+
+    pub fn delete(
+        &mut self,
+        entity_identity: impl Into<String>,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        self.write(ForgeQueryWriteCommand::Delete {
+            entity_identity: entity_identity.into(),
+        })
+    }
+
+    pub fn batch(
+        &mut self,
+        declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
+        let mut receipts = Vec::with_capacity(commands.len());
+        for command in commands {
+            receipts.push(self.write(command)?);
+        }
+        ForgeQueryBatchWriteReceipt::from_write_receipts(receipts)
     }
 
     pub fn use_view<T>(

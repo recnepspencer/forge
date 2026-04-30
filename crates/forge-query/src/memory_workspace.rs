@@ -8,6 +8,7 @@ use crate::declarative_live::{
 };
 use crate::identity::hash_parts;
 use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
+use crate::runtime::{aspect_values_to_payload, ForgeQueryAspectValue};
 use crate::schema_view::QuerySchemaView;
 use crate::view_shape_live::{execute_live_view_shape_change, ViewShapePatchEnvelope};
 use forge_relational::facade::config::RelationalRuntimeProfile;
@@ -356,6 +357,42 @@ impl ForgeQueryMemoryApp {
         Ok(receipt)
     }
 
+    pub fn insert_aspects(
+        &mut self,
+        collection: &str,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let aspect_paths = aspects
+            .iter()
+            .map(|aspect| aspect.aspect_path().to_string())
+            .collect::<Vec<_>>();
+        let payload = aspect_values_to_payload(&aspects)?;
+        let collection_runtime = self.collection_mut(collection)?;
+        collection_runtime.next_client_key += 1;
+        let client_key = InternedString::Raw(format!(
+            "{collection}:{}",
+            collection_runtime.next_client_key
+        ));
+        let kind_id = collection_runtime.kind_id;
+        let receipt = self.execute_query_writeback(
+            collection,
+            ForgeQueryMutationKind::Created,
+            aspect_paths,
+            &payload,
+            ForgeQueryPendingOperation::Insert {
+                kind_id,
+                client_key,
+                payload: payload.clone(),
+            },
+        )?;
+        for entity in receipt.deltas.iter().map(|delta| &delta.entity_identity) {
+            self.entity_collections
+                .insert(entity.clone(), collection.to_string());
+        }
+        self.deliver_live_patches(&receipt);
+        Ok(receipt)
+    }
+
     pub fn update_aspect(
         &mut self,
         entity_identity: &str,
@@ -377,6 +414,40 @@ impl ForgeQueryMemoryApp {
             &collection,
             ForgeQueryMutationKind::Updated,
             vec![aspect_path.to_string()],
+            &next,
+            ForgeQueryPendingOperation::Update {
+                entity_id,
+                payload: next.clone(),
+            },
+        )?;
+        self.deliver_live_patches(&receipt);
+        Ok(receipt)
+    }
+
+    pub fn update_aspects(
+        &mut self,
+        entity_identity: &str,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let entity_id = parse_entity_identity(entity_identity)?;
+        let current = self
+            .latest_entity_payload(entity_id)?
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity not found"))?;
+        let mut next = current;
+        let mut aspect_paths = Vec::with_capacity(aspects.len());
+        for aspect in aspects {
+            aspect_paths.push(aspect.aspect_path().to_string());
+            set_json_path(&mut next, aspect.aspect_path(), aspect.value().clone())?;
+        }
+        let collection = self
+            .entity_collections
+            .get(entity_identity)
+            .cloned()
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity collection not tracked"))?;
+        let receipt = self.execute_query_writeback(
+            &collection,
+            ForgeQueryMutationKind::Updated,
+            aspect_paths,
             &next,
             ForgeQueryPendingOperation::Update {
                 entity_id,
@@ -709,6 +780,7 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
         Self::declare_live_view(self, name, request, schema_view)
     }
 
+    #[allow(deprecated)]
     fn write(
         &mut self,
         command: crate::runtime::ForgeQueryWriteCommand,
@@ -718,15 +790,34 @@ impl crate::runtime::ForgeQueryRuntimeBackend for ForgeQueryMemoryApp {
                 collection,
                 payload,
             } => self.insert(&collection, payload),
+            crate::runtime::ForgeQueryWriteCommand::InsertAspects {
+                collection,
+                aspects,
+            } => self.insert_aspects(&collection, aspects),
             crate::runtime::ForgeQueryWriteCommand::UpdateAspect {
                 entity_identity,
                 aspect_path,
                 value,
             } => self.update_aspect(&entity_identity, &aspect_path, value),
+            crate::runtime::ForgeQueryWriteCommand::UpdateAspects {
+                entity_identity,
+                aspects,
+            } => self.update_aspects(&entity_identity, aspects),
             crate::runtime::ForgeQueryWriteCommand::Delete { entity_identity } => {
                 self.delete(&entity_identity)
             }
         }
+    }
+
+    fn write_batch(
+        &mut self,
+        commands: Vec<crate::runtime::ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        let mut receipts = Vec::with_capacity(commands.len());
+        for command in commands {
+            receipts.push(self.write(command)?);
+        }
+        Ok(receipts)
     }
 
     fn execute_intent(
@@ -1112,6 +1203,38 @@ impl ForgeQueryMemoryWorkspace {
         Ok(self.receipt_from_commit(result, ForgeQueryMutationKind::Created, Vec::new()))
     }
 
+    pub fn insert_aspects(
+        &mut self,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let aspect_paths = aspects
+            .iter()
+            .map(|aspect| aspect.aspect_path().to_string())
+            .collect::<Vec<_>>();
+        let payload = aspect_values_to_payload(&aspects)?;
+        self.next_client_key += 1;
+        let mut txn = self
+            .runtime
+            .begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("query-memory-insert").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: self.kind_id,
+                    client_key: InternedString::Raw(format!(
+                        "{}:{}",
+                        self.kind_name, self.next_client_key
+                    )),
+                    payload: RecordPayload::StructuredJson(payload),
+                }),
+            )),
+        );
+        let result = txn
+            .commit()
+            .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
+        Ok(self.receipt_from_commit(result, ForgeQueryMutationKind::Created, aspect_paths))
+    }
+
     pub fn update_aspect(
         &mut self,
         entity_identity: &str,
@@ -1143,6 +1266,38 @@ impl ForgeQueryMemoryWorkspace {
             ForgeQueryMutationKind::Updated,
             vec![aspect_path.to_string()],
         ))
+    }
+
+    pub fn update_aspects(
+        &mut self,
+        entity_identity: &str,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let entity_id = parse_entity_identity(entity_identity)?;
+        let current = self
+            .latest_entity_payload(entity_id)?
+            .ok_or_else(|| ForgeQueryWorkspaceError::new("entity not found"))?;
+        let mut next = current;
+        let mut aspect_paths = Vec::with_capacity(aspects.len());
+        for aspect in aspects {
+            aspect_paths.push(aspect.aspect_path().to_string());
+            set_json_path(&mut next, aspect.aspect_path(), aspect.value().clone())?;
+        }
+        let mut txn = self
+            .runtime
+            .begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("query-memory-update").push(MutationIntent::Entity(
+                EntityMutationIntent::Update(UpdateEntityIntent {
+                    entity_id,
+                    payload: RecordPayload::StructuredJson(next),
+                }),
+            )),
+        );
+        let result = txn
+            .commit()
+            .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
+        Ok(self.receipt_from_commit(result, ForgeQueryMutationKind::Updated, aspect_paths))
     }
 
     pub fn delete(
