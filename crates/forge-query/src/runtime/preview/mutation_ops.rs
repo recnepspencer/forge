@@ -1,7 +1,26 @@
 use super::*;
 use crate::runtime::mutation::admit_naming_intent;
+use crate::runtime::{ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget};
 
 impl<'a> ForgeQueryPreviewSession<'a> {
+    pub fn bind_existing_entity(
+        &self,
+        target: ForgeQueryExistingEntityTarget,
+    ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
+        Ok(ForgeQueryExistingTruthTargetBinding::from_entity_target(
+            target,
+        )?)
+    }
+
+    pub fn bind_existing_relation(
+        &self,
+        target: ForgeQueryExistingRelationTarget,
+    ) -> Result<ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError> {
+        Ok(ForgeQueryExistingTruthTargetBinding::from_relation_target(
+            target,
+        )?)
+    }
+
     pub fn write(
         &mut self,
         command: ForgeQueryWriteCommand,
@@ -15,6 +34,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                 ),
             ));
         }
+        deny_preview_assertion(&command)?;
         deny_preview_continuity(&command)?;
         admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
         let receipt = ForgeQueryWriteReceipt::preview(
@@ -59,6 +79,39 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.write(command)
     }
 
+    pub fn assert_existing(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_assert_existing(binding)?;
+        self.write(command)
+    }
+
+    pub fn verify_existing(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let command =
+            declaration(ForgeQueryAspectMutationBuilder::new()).build_verify_existing(binding)?;
+        self.write(command)
+    }
+
+    pub fn update_existing_verified(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
+            .finish_existing_truth_verification_aspects("backend-verified existing-truth update")?;
+        let command = update(ForgeQueryAspectMutationBuilder::new())
+            .build_update_existing_verified(binding, asserted_aspects)?;
+        self.write(command)
+    }
+
     pub fn delete(
         &mut self,
         entity_identity: impl Into<String>,
@@ -100,6 +153,19 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         self.write(command)
     }
 
+    pub fn delete_existing_verified(
+        &mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+        delete: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        let asserted_aspects = verify(ForgeQueryAspectMutationBuilder::new())
+            .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")?;
+        let command = delete(ForgeQueryDeleteMutationBuilder::new())
+            .build_delete_existing_verified(binding, asserted_aspects)?;
+        self.write(command)
+    }
+
     pub fn batch(
         &mut self,
         declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
@@ -108,6 +174,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         let mut symbolic_targets = BTreeMap::<String, (String, Option<String>)>::new();
         let mut receipts = Vec::with_capacity(commands.len());
         for command in commands {
+            deny_preview_assertion(&command)?;
             deny_preview_continuity(&command)?;
             let symbolic_target_reference = command.symbolic_target_reference().cloned();
             let receipt = match &command {
@@ -259,4 +326,19 @@ fn deny_preview_continuity(command: &ForgeQueryWriteCommand) -> Result<(), Forge
         "continuity-aware mutation currently requires the authoritative bridge-backed lane",
     );
     Err(ForgeQueryRuntimeError::MutationContinuityDenied(denial))
+}
+
+fn deny_preview_assertion(command: &ForgeQueryWriteCommand) -> Result<(), ForgeQueryRuntimeError> {
+    if matches!(
+        command,
+        ForgeQueryWriteCommand::AssertExistingAspects { .. }
+            | ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { .. }
+            | ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects { .. }
+            | ForgeQueryWriteCommand::VerifyExistingAspects { .. }
+    ) {
+        return Err(ForgeQueryRuntimeError::UnsupportedAuthority(
+            "existing-truth assertion currently requires the authoritative lane".to_string(),
+        ));
+    }
+    Ok(())
 }

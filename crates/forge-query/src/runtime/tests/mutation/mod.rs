@@ -1,4 +1,5 @@
 mod aspect_crud;
+mod assert_existing;
 mod batch;
 mod builders;
 mod continuity;
@@ -7,4 +8,8 @@ mod delete;
 mod existing_binding;
 mod mixed_authority;
 mod naming;
+mod probe_existing;
 mod symbolic_reference;
+mod verified_delete_existing;
+mod verified_update_existing;
+mod verify_existing;

@@ -10,11 +10,13 @@ use crate::schema_view::QuerySchemaView;
 use crate::subscription::SubscriptionActivationInput;
 
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthBindingDenial,
+    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
+    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
     ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub trait ForgeQueryRuntimeBackend {
@@ -49,6 +51,34 @@ pub trait ForgeQueryRuntimeBackend {
         _binding: &ForgeQueryExistingTruthTargetBinding,
     ) -> Result<(), ForgeQueryExistingTruthBindingDenial> {
         Ok(())
+    }
+
+    fn verify_existing_truth_assertion(
+        &self,
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        _aspects: &[crate::runtime::ForgeQueryAspectValue],
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
+        Err(ForgeQueryExistingTruthAssertionDenial::new(
+            binding,
+            crate::runtime::ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported,
+            None,
+            None,
+            None,
+            "this runtime backend does not admit backend-verified existing-truth assertions yet",
+        ))
+    }
+
+    fn probe_existing_truth(
+        &self,
+        request: &ForgeQueryExistingTruthProbeRequest,
+    ) -> Result<ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial> {
+        Err(ForgeQueryExistingTruthProbeDenial::new(
+            request.binding(),
+            crate::runtime::ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported,
+            None,
+            "this runtime backend does not admit backend-verified existing-truth probes yet",
+        ))
     }
 
     fn execute_intent(

@@ -1,3 +1,4 @@
+mod assertion_evidence;
 mod continuity_mutation_evidence;
 mod inspection_artifact;
 mod live;
@@ -7,6 +8,7 @@ mod naming_mutation_evidence;
 mod program;
 mod symbolic_target_reference_evidence;
 
+pub use assertion_evidence::ForgeQueryExistingTruthAssertionEvidence;
 pub use continuity_mutation_evidence::{
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,

@@ -66,6 +66,30 @@ pub(super) fn attach_continuity_mutation_to_receipt(
     receipt
 }
 
+pub(super) fn synthetic_existing_assertion_receipt(
+    binding: &ForgeQueryExistingTruthTargetBinding,
+    snapshot_token: &str,
+    declared_aspect_value_digest: Option<&str>,
+) -> ForgeQueryMutationReceipt {
+    ForgeQueryMutationReceipt {
+        commit_identity: format!(
+            "assertion:{}",
+            crate::identity::hash_parts(&[
+                "forge_query_existing_assertion_receipt_v1".to_string(),
+                format!("binding:{}", binding.binding_digest()),
+                format!("snapshot:{snapshot_token}"),
+                format!(
+                    "aspect-digest:{}",
+                    declared_aspect_value_digest.unwrap_or("none")
+                ),
+            ])
+        ),
+        snapshot_token: snapshot_token.to_string(),
+        deltas: Vec::new(),
+        bridge_authority: None,
+    }
+}
+
 pub(super) fn record_same_batch_symbolic_target(
     symbolic_targets: &mut BTreeMap<String, (String, Option<String>)>,
     reference: Option<&ForgeQuerySymbolicTargetReference>,

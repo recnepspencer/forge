@@ -3,6 +3,7 @@ use forge_runtime_bridge::facade::{
     BridgeAuthoritativeMutationEvidenceCloseout, BridgeAuthoritativeMutationEvidenceSupport,
 };
 
+use super::authoritative_mutation_evidence_bridge_compat::assert_bridge_support_compatibility;
 use super::{
     ForgeQueryMutationApiCompatibilityReport, ForgeQueryRuntimeBackendPosture,
     ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicSupportMatrix,
@@ -13,6 +14,9 @@ pub struct ForgeQueryAuthoritativeMutationEvidenceSupport {
     backend_posture: ForgeQueryRuntimeBackendPosture,
     declared_resolved_target_model: String,
     existing_truth_binding_families: Vec<String>,
+    existing_truth_assertion_modes: Vec<String>,
+    existing_truth_probe_modes: Vec<String>,
+    existing_truth_verified_mutation_modes: Vec<String>,
     symbolic_target_reference_families: Vec<String>,
     naming_mutation_families: Vec<String>,
     continuity_mutation_families: Vec<String>,
@@ -25,7 +29,19 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
     pub fn derive(backend_posture: ForgeQueryRuntimeBackendPosture) -> Self {
         let declared_resolved_target_model =
             "declared-resolved-target-evidence-with-touched-fallout".to_string();
-        let existing_truth_binding_families = vec!["direct_entity_identity".to_string()];
+        let existing_truth_binding_families = vec![
+            "direct_entity_identity".to_string(),
+            "direct_relation_identity".to_string(),
+        ];
+        let existing_truth_assertion_modes = vec![
+            "retained_authoritative_assertion".to_string(),
+            "backend_verified_assertion".to_string(),
+        ];
+        let existing_truth_probe_modes = vec!["backend_verified_probe".to_string()];
+        let existing_truth_verified_mutation_modes = vec![
+            "backend_verified_update".to_string(),
+            "backend_verified_delete".to_string(),
+        ];
         let symbolic_target_reference_families = vec!["same_batch_declared_target".to_string()];
         let naming_mutation_families = vec![
             "attach_new_target".to_string(),
@@ -40,6 +56,7 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
         let aggregate_evidence_sections = vec![
             "batch_mutation_evidence".to_string(),
             "aggregate_existing_truth_binding_digest".to_string(),
+            "aggregate_existing_truth_mode_digest".to_string(),
             "aggregate_symbolic_target_reference_digest".to_string(),
             "aggregate_naming_mutation_digest".to_string(),
             "aggregate_continuity_mutation_digest".to_string(),
@@ -47,12 +64,21 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             "aggregate_provenance_digest".to_string(),
         ];
         let fail_closed_denial_classes = vec![
-            "unresolved_existing_truth_binding".to_string(),
-            "mismatched_target_class_binding".to_string(),
+            "unsupported-family".to_string(),
+            "resolved-target-missing".to_string(),
+            "collection-mismatch".to_string(),
+            "backend_verification_unsupported".to_string(),
+            "missing_asserted_aspect".to_string(),
+            "asserted_value_mismatch".to_string(),
+            "backend_probe_unsupported".to_string(),
+            "resolved_target_unavailable".to_string(),
+            "missing_probed_aspect".to_string(),
             "unsupported_symbolic_target_reference".to_string(),
-            "unsupported_naming_mutation_family".to_string(),
-            "unsupported_continuity_mutation_family".to_string(),
-            "preview_continuity_requires_authoritative_lane".to_string(),
+            "requires_same_batch_target_reference".to_string(),
+            "requires_existing_truth_binding".to_string(),
+            "requires_delete_family".to_string(),
+            "requires_update_family".to_string(),
+            "requires_authoritative_lane".to_string(),
         ];
         let mut parts = vec![
             "forge_query_authoritative_mutation_evidence_support_v1".to_string(),
@@ -63,6 +89,21 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             existing_truth_binding_families
                 .iter()
                 .map(|item| format!("existing-binding:{item}")),
+        );
+        parts.extend(
+            existing_truth_assertion_modes
+                .iter()
+                .map(|item| format!("existing-assertion:{item}")),
+        );
+        parts.extend(
+            existing_truth_probe_modes
+                .iter()
+                .map(|item| format!("existing-probe:{item}")),
+        );
+        parts.extend(
+            existing_truth_verified_mutation_modes
+                .iter()
+                .map(|item| format!("existing-verified-mutation:{item}")),
         );
         parts.extend(
             symbolic_target_reference_families
@@ -94,6 +135,9 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             backend_posture,
             declared_resolved_target_model,
             existing_truth_binding_families,
+            existing_truth_assertion_modes,
+            existing_truth_probe_modes,
+            existing_truth_verified_mutation_modes,
             symbolic_target_reference_families,
             naming_mutation_families,
             continuity_mutation_families,
@@ -117,6 +161,18 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
 
     pub fn symbolic_target_reference_families(&self) -> &[String] {
         &self.symbolic_target_reference_families
+    }
+
+    pub fn existing_truth_assertion_modes(&self) -> &[String] {
+        &self.existing_truth_assertion_modes
+    }
+
+    pub fn existing_truth_probe_modes(&self) -> &[String] {
+        &self.existing_truth_probe_modes
+    }
+
+    pub fn existing_truth_verified_mutation_modes(&self) -> &[String] {
+        &self.existing_truth_verified_mutation_modes
     }
 
     pub fn naming_mutation_families(&self) -> &[String] {
@@ -172,16 +228,30 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let safe_to_build_now = vec![
             "workspace.insert/update/delete/batch receipts preserve declared-versus-resolved target evidence together with touched-aspect fallout".to_string(),
             "existing-truth binding, same-batch symbolic target reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story".to_string(),
+            "existing-truth assertions now distinguish retained authoritative assertions from backend-verified assertions on the public receipt and inspection surface".to_string(),
+            "mixed existing-truth authority sessions now preserve aggregate mode evidence that distinguishes retained assertions, backend-verified assertions, verified updates, and verified deletes without reconstructing that story from component receipts".to_string(),
+            "existing-truth probes now expose a typed backend-verified probe lane for current authoritative values without smuggling that truth through mutation receipts".to_string(),
+            "existing-truth verified updates now expose a typed backend-verified update lane that proves current authoritative values before applying update-family mutation receipts".to_string(),
+            "existing-truth verified deletes now expose a typed backend-verified delete lane that proves current authoritative values before applying delete-family mutation receipts".to_string(),
+            "existing-truth batch receipts, scalar inspection, and probe surfaces keep retained assertions, backend-verified assertions, backend-verified probes, verified updates, and verified deletes semantically distinct under mixed authority sessions".to_string(),
             "batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, naming, continuity, causality, and provenance digests".to_string(),
             "downstream domains may rely on Query receipts and inspection instead of rebuilding target-recovery, naming, or continuity explanation glue locally".to_string(),
+            "downstream domains may rely on `verify_existing(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
+            "downstream domains may rely on `update_existing_verified(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
+            "downstream domains may rely on `delete_existing_verified(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
         ];
         let must_not_assume_yet = vec![
             "authority-mutation evidence closes durable restart, temporal, async, or store-backed mutation semantics".to_string(),
             "unsupported identity-binding, naming, or continuity families remain fail-closed until explicitly admitted".to_string(),
+            "unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort compatibility".to_string(),
             "downstream code may bypass Query receipts and inspect raw bridge/runtime provenance bags directly".to_string(),
         ];
         let migration_guidance = vec![
             "move authoritative mutation onto workspace.insert/update/delete/batch and consume receipts plus inspect output as the domain explanation contract".to_string(),
+            "use `workspace.assert_existing(...)` for retained assertion receipts and `workspace.verify_existing(...)` when the backend must prove current stored truth before returning an assertion receipt".to_string(),
+            "use `workspace.probe_existing(...)` when the domain needs current authoritative aspect values as input rather than a retained assertion receipt".to_string(),
+            "use `workspace.update_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target update-family mutation".to_string(),
+            "use `workspace.delete_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target delete-family mutation".to_string(),
             "delete local existing-target rebinding, naming outcome reconstruction, and continuity breadcrumb glue once equivalent Query evidence is available".to_string(),
             "treat unsupported mutation-evidence neighbors as fail-closed support gates rather than compatibility seams".to_string(),
         ];
@@ -286,101 +356,4 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
     pub fn closeout_digest(&self) -> &str {
         &self.closeout_digest
     }
-}
-
-fn assert_bridge_support_compatibility(
-    query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
-    bridge_support: &BridgeAuthoritativeMutationEvidenceSupport,
-    bridge_closeout: &BridgeAuthoritativeMutationEvidenceCloseout,
-) {
-    let mut failures = Vec::new();
-
-    for section in [
-        "declared-resolved-target-evidence",
-        "batch-session-causality-provenance",
-        "existing-truth-binding",
-        "same-batch-symbolic-target-reference",
-        "naming-mutation-evidence",
-        "continuity-mutation-evidence",
-        "replay-safe-request-receipt-digests",
-    ] {
-        if !bridge_support
-            .carry_forward_sections()
-            .iter()
-            .any(|bridge_section| bridge_section == section)
-        {
-            failures.push(format!("missing carry-forward section `{section}`"));
-        }
-    }
-
-    for family in query_support.existing_truth_binding_families() {
-        if !bridge_support
-            .existing_truth_binding_families()
-            .iter()
-            .any(|bridge_family| bridge_family == family)
-        {
-            failures.push(format!("missing existing-truth binding family `{family}`"));
-        }
-    }
-    for family in query_support.symbolic_target_reference_families() {
-        if !bridge_support
-            .symbolic_target_reference_families()
-            .iter()
-            .any(|bridge_family| bridge_family == family)
-        {
-            failures.push(format!("missing symbolic target family `{family}`"));
-        }
-    }
-    for family in query_support.naming_mutation_families() {
-        if !bridge_support
-            .naming_mutation_families()
-            .iter()
-            .any(|bridge_family| bridge_family == family)
-        {
-            failures.push(format!("missing naming family `{family}`"));
-        }
-    }
-    for family in query_support.continuity_mutation_families() {
-        if !bridge_support
-            .continuity_mutation_families()
-            .iter()
-            .any(|bridge_family| bridge_family == family)
-        {
-            failures.push(format!("missing continuity family `{family}`"));
-        }
-    }
-
-    for section in [
-        "aggregate_existing_truth_binding_digest",
-        "aggregate_symbolic_target_reference_digest",
-        "aggregate_naming_mutation_digest",
-        "aggregate_continuity_mutation_digest",
-        "aggregate_causality_digest",
-        "aggregate_provenance_digest",
-    ] {
-        if !bridge_support
-            .aggregate_evidence_sections()
-            .iter()
-            .any(|bridge_section| bridge_section == section)
-        {
-            failures.push(format!("missing aggregate evidence section `{section}`"));
-        }
-    }
-
-    if !bridge_closeout
-        .must_not_assume_yet()
-        .iter()
-        .any(|line| line.contains("existing-truth binding") && line.contains("fail-closed"))
-    {
-        failures.push(
-            "bridge closeout does not fail-close unsupported existing-truth binding families"
-                .to_string(),
-        );
-    }
-
-    assert!(
-        failures.is_empty(),
-        "bridge/query authoritative mutation evidence drifted: {}",
-        failures.join(", ")
-    );
 }

@@ -56,6 +56,7 @@ impl ForgeQueryWriteReceipt {
                 command.declared_collection(),
                 command.declared_entity_identity(),
             ),
+            existing_truth_assertion_evidence: None,
             existing_truth_binding_evidence: command
                 .existing_truth_binding()
                 .map(ForgeQueryExistingTruthBindingEvidence::from_binding),
@@ -74,6 +75,9 @@ impl ForgeQueryWriteReceipt {
             target_collection,
             target_entity_identity,
             declared_aspect_operations: command.declared_aspect_operations(),
+            declared_aspect_value_digest: crate::runtime::command_declared_aspect_value_digest(
+                command,
+            ),
             mutation_metadata: command.mutation_metadata(),
             affected_live_view_ids: Vec::new(),
             affected_derived_view_ids: Vec::new(),
@@ -132,6 +136,42 @@ pub(super) fn preview_receipt_delta(
             aspect_paths: command.declared_aspect_paths(),
         },
         ForgeQueryWriteCommand::UpdateExistingAspects { binding, .. } => {
+            crate::memory_workspace::ForgeQueryMutationDelta {
+                collection: binding
+                    .target_collection()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| "preview".to_string()),
+                entity_identity: binding.resolved_entity_identity().to_string(),
+                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                aspect_paths: command.declared_aspect_paths(),
+            }
+        }
+        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { binding, .. } => {
+            crate::memory_workspace::ForgeQueryMutationDelta {
+                collection: binding
+                    .target_collection()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| "preview".to_string()),
+                entity_identity: binding.resolved_entity_identity().to_string(),
+                kind: crate::memory_workspace::ForgeQueryMutationKind::Updated,
+                aspect_paths: command.declared_aspect_paths(),
+            }
+        }
+        ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+            binding,
+            touched_aspect_paths,
+            ..
+        } => crate::memory_workspace::ForgeQueryMutationDelta {
+            collection: binding
+                .target_collection()
+                .map(str::to_string)
+                .unwrap_or_else(|| "preview".to_string()),
+            entity_identity: binding.resolved_entity_identity().to_string(),
+            kind: crate::memory_workspace::ForgeQueryMutationKind::Deleted,
+            aspect_paths: touched_aspect_paths.clone(),
+        },
+        ForgeQueryWriteCommand::AssertExistingAspects { binding, .. }
+        | ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
             crate::memory_workspace::ForgeQueryMutationDelta {
                 collection: binding
                     .target_collection()

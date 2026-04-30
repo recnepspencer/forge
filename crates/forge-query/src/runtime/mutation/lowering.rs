@@ -1,6 +1,7 @@
 use serde_json::{Map, Value};
 
 use super::{ForgeQueryAspectMutationOperation, ForgeQueryAspectValue};
+use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryWriteCommand;
 
@@ -31,11 +32,21 @@ pub(crate) fn command_declared_aspect_operations(
         ForgeQueryWriteCommand::InsertAspects { aspects, .. }
         | ForgeQueryWriteCommand::UpdateAspects { aspects, .. }
         | ForgeQueryWriteCommand::UpdateExistingAspects { aspects, .. }
+        | ForgeQueryWriteCommand::AssertExistingAspects { aspects, .. }
+        | ForgeQueryWriteCommand::VerifyExistingAspects { aspects, .. }
         | ForgeQueryWriteCommand::UpdateSymbolicAspects { aspects, .. } => aspects
             .iter()
             .map(ForgeQueryAspectValue::declared_operation)
             .collect(),
+        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { aspects, .. } => aspects
+            .iter()
+            .map(ForgeQueryAspectValue::declared_operation)
+            .collect(),
         ForgeQueryWriteCommand::DeleteAspects {
+            touched_aspect_paths,
+            ..
+        }
+        | ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
             touched_aspect_paths,
             ..
         }
@@ -63,6 +74,107 @@ pub(crate) fn command_declared_aspect_operations(
         }
         ForgeQueryWriteCommand::Delete { .. } => Vec::new(),
     }
+}
+
+#[allow(deprecated)]
+pub(crate) fn command_declared_aspect_value_digest(
+    command: &ForgeQueryWriteCommand,
+) -> Option<String> {
+    let aspects = match command {
+        ForgeQueryWriteCommand::InsertAspects { aspects, .. }
+        | ForgeQueryWriteCommand::UpdateAspects { aspects, .. }
+        | ForgeQueryWriteCommand::UpdateExistingAspects { aspects, .. }
+        | ForgeQueryWriteCommand::AssertExistingAspects { aspects, .. }
+        | ForgeQueryWriteCommand::VerifyExistingAspects { aspects, .. }
+        | ForgeQueryWriteCommand::UpdateSymbolicAspects { aspects, .. } => aspects,
+        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+            asserted_aspects,
+            aspects,
+            ..
+        } => {
+            return Some(hash_parts(
+                &std::iter::once("forge_query_declared_aspect_value_digest_v2".to_string())
+                    .chain(asserted_aspects.iter().map(|aspect| {
+                        format!(
+                            "assert:{}:{}:{}",
+                            aspect.aspect_path(),
+                            if aspect.clears_existing_value() {
+                                "clear"
+                            } else {
+                                "set"
+                            },
+                            serde_json::to_string(aspect.value())
+                                .unwrap_or_else(|_| aspect.value().to_string())
+                        )
+                    }))
+                    .chain(aspects.iter().map(|aspect| {
+                        format!(
+                            "update:{}:{}:{}",
+                            aspect.aspect_path(),
+                            if aspect.clears_existing_value() {
+                                "clear"
+                            } else {
+                                "set"
+                            },
+                            serde_json::to_string(aspect.value())
+                                .unwrap_or_else(|_| aspect.value().to_string())
+                        )
+                    }))
+                    .collect::<Vec<_>>(),
+            ))
+        }
+        ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+            asserted_aspects,
+            touched_aspect_paths,
+            ..
+        } => {
+            return Some(hash_parts(
+                &std::iter::once("forge_query_declared_aspect_value_digest_v2".to_string())
+                    .chain(asserted_aspects.iter().map(|aspect| {
+                        format!(
+                            "assert:{}:{}:{}",
+                            aspect.aspect_path(),
+                            if aspect.clears_existing_value() {
+                                "clear"
+                            } else {
+                                "set"
+                            },
+                            serde_json::to_string(aspect.value())
+                                .unwrap_or_else(|_| aspect.value().to_string())
+                        )
+                    }))
+                    .chain(
+                        touched_aspect_paths
+                            .iter()
+                            .map(|path| format!("delete:{path}")),
+                    )
+                    .collect::<Vec<_>>(),
+            ))
+        }
+        ForgeQueryWriteCommand::Insert { .. }
+        | ForgeQueryWriteCommand::UpdateAspect { .. }
+        | ForgeQueryWriteCommand::DeleteAspects { .. }
+        | ForgeQueryWriteCommand::DeleteExistingAspects { .. }
+        | ForgeQueryWriteCommand::DeleteSymbolicAspects { .. }
+        | ForgeQueryWriteCommand::Delete { .. } => return None,
+    };
+    Some(hash_parts(
+        &std::iter::once("forge_query_declared_aspect_value_digest_v2".to_string())
+            .chain(aspects.iter().map(|aspect| {
+                format!(
+                    "declared:{}:{}:{}",
+                    aspect.aspect_path(),
+                    if aspect.clears_existing_value() {
+                        "clear"
+                    } else {
+                        "set"
+                    },
+                    serde_json::to_string(aspect.value())
+                        .unwrap_or_else(|_| aspect.value().to_string())
+                )
+            }))
+            .collect::<Vec<_>>(),
+    ))
 }
 
 fn set_json_path(

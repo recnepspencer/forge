@@ -12,6 +12,8 @@ use crate::runtime::{
 
 #[path = "aspect_builder_helpers.rs"]
 mod aspect_builder_helpers;
+#[path = "aspect_existing_truth.rs"]
+mod aspect_existing_truth;
 
 use aspect_builder_helpers::finish_aspects;
 
@@ -324,7 +326,6 @@ impl ForgeQueryAspectMutationBuilder {
             continuity_intent,
         })
     }
-
     pub fn build_update_symbolic(
         self,
         reference: ForgeQuerySymbolicTargetReference,

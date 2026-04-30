@@ -137,8 +137,12 @@ pub fn mutation_evidence_for_intent(
                     .kind;
                 touched.extend(relation_touched_aspects(kind));
             }
-            WorthTopologyMutation::UpsertEntity { .. }
-            | WorthTopologyMutation::UpsertRelation { .. } => {}
+            WorthTopologyMutation::UpsertEntity { kind, .. } => {
+                touched.extend(entity_touched_aspects(*kind));
+            }
+            WorthTopologyMutation::UpsertRelation { kind, .. } => {
+                touched.extend(relation_touched_aspects(*kind));
+            }
         }
     }
     evidence.touched_aspect_paths = worth_query_aspect_path_strings(touched);

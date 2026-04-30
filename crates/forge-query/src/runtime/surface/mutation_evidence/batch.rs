@@ -1,14 +1,24 @@
 use forge_runtime_bridge::facade::BridgeBatchMutationAuthorityBundle;
 
+use super::batch_digest_helpers::{
+    batch_continuity_mutation_digest, batch_existing_truth_assertion_digest,
+    batch_existing_truth_binding_digest, batch_naming_mutation_digest,
+    batch_symbolic_target_reference_digest, batch_target_digest,
+};
 use super::{
     binding::ForgeQueryExistingTruthBindingEvidence, target::ForgeQueryMutationTargetClass,
-    ForgeQueryMutationTargetEvidence,
+    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryMutationTargetEvidence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBatchMutationEvidence {
     component_count: usize,
     target_evidence_count: usize,
+    existing_truth_assertion_count: usize,
+    retained_authoritative_assertion_count: usize,
+    backend_verified_assertion_count: usize,
+    backend_verified_update_count: usize,
+    backend_verified_delete_count: usize,
     existing_truth_binding_count: usize,
     symbolic_target_reference_count: usize,
     naming_mutation_count: usize,
@@ -16,6 +26,8 @@ pub struct ForgeQueryBatchMutationEvidence {
     resolved_target_count: usize,
     target_collection_count: usize,
     target_entity_count: usize,
+    aggregate_existing_truth_assertion_digest: Option<String>,
+    aggregate_existing_truth_mode_digest: Option<String>,
     aggregate_existing_truth_binding_digest: Option<String>,
     aggregate_symbolic_target_reference_digest: Option<String>,
     aggregate_naming_mutation_digest: Option<String>,
@@ -32,7 +44,9 @@ pub struct ForgeQueryBatchMutationEvidence {
 
 impl ForgeQueryBatchMutationEvidence {
     pub(in crate::runtime) fn from_components(
+        mutation_families: &[crate::runtime::ForgeQueryMutationFamily],
         components: &[ForgeQueryMutationTargetEvidence],
+        existing_truth_assertions: &[Option<ForgeQueryExistingTruthAssertionEvidence>],
         existing_truth_bindings: &[Option<ForgeQueryExistingTruthBindingEvidence>],
         symbolic_target_references: &[Option<
             crate::runtime::ForgeQuerySymbolicTargetReferenceEvidence,
@@ -44,6 +58,13 @@ impl ForgeQueryBatchMutationEvidence {
         if components.is_empty() {
             return None;
         }
+        let (
+            retained_authoritative_assertion_count,
+            backend_verified_assertion_count,
+            backend_verified_update_count,
+            backend_verified_delete_count,
+            aggregate_existing_truth_mode_digest,
+        ) = summarize_existing_truth_modes(mutation_families, existing_truth_assertions);
 
         let resolved_target_count = components
             .iter()
@@ -66,6 +87,18 @@ impl ForgeQueryBatchMutationEvidence {
         Some(Self {
             component_count: components.len(),
             target_evidence_count: components.len(),
+            existing_truth_assertion_count: existing_truth_assertions
+                .iter()
+                .filter(
+                    |assertion: &&Option<ForgeQueryExistingTruthAssertionEvidence>| {
+                        assertion.is_some()
+                    },
+                )
+                .count(),
+            retained_authoritative_assertion_count,
+            backend_verified_assertion_count,
+            backend_verified_update_count,
+            backend_verified_delete_count,
             existing_truth_binding_count: existing_truth_bindings
                 .iter()
                 .filter(|binding| binding.is_some())
@@ -85,6 +118,10 @@ impl ForgeQueryBatchMutationEvidence {
             resolved_target_count,
             target_collection_count,
             target_entity_count,
+            aggregate_existing_truth_assertion_digest: batch_existing_truth_assertion_digest(
+                existing_truth_assertions,
+            ),
+            aggregate_existing_truth_mode_digest,
             aggregate_existing_truth_binding_digest: aggregate_bridge
                 .and_then(|bundle| bundle.aggregate_existing_truth_binding_digest())
                 .map(str::to_string)
@@ -126,6 +163,26 @@ impl ForgeQueryBatchMutationEvidence {
         self.target_evidence_count
     }
 
+    pub fn existing_truth_assertion_count(&self) -> usize {
+        self.existing_truth_assertion_count
+    }
+
+    pub fn retained_authoritative_assertion_count(&self) -> usize {
+        self.retained_authoritative_assertion_count
+    }
+
+    pub fn backend_verified_assertion_count(&self) -> usize {
+        self.backend_verified_assertion_count
+    }
+
+    pub fn backend_verified_update_count(&self) -> usize {
+        self.backend_verified_update_count
+    }
+
+    pub fn backend_verified_delete_count(&self) -> usize {
+        self.backend_verified_delete_count
+    }
+
     pub fn resolved_target_count(&self) -> usize {
         self.resolved_target_count
     }
@@ -152,6 +209,14 @@ impl ForgeQueryBatchMutationEvidence {
 
     pub fn target_entity_count(&self) -> usize {
         self.target_entity_count
+    }
+
+    pub fn aggregate_existing_truth_assertion_digest(&self) -> Option<&str> {
+        self.aggregate_existing_truth_assertion_digest.as_deref()
+    }
+
+    pub fn aggregate_existing_truth_mode_digest(&self) -> Option<&str> {
+        self.aggregate_existing_truth_mode_digest.as_deref()
     }
 
     pub fn aggregate_existing_truth_binding_digest(&self) -> Option<&str> {
@@ -203,132 +268,67 @@ impl ForgeQueryBatchMutationEvidence {
     }
 }
 
-fn batch_target_digest(components: &[ForgeQueryMutationTargetEvidence]) -> String {
-    crate::identity::hash_parts(
-        &std::iter::once("forge-query-batch-target-evidence-v1".to_string())
-            .chain(components.iter().map(|component| {
-                format!(
-                    "{}:{}:{}:{}:{}:{}",
-                    component.declared().target_class(),
-                    component.declared().collection().unwrap_or(""),
-                    component.declared().entity_identity().unwrap_or(""),
-                    component.resolved().target_class(),
-                    component.resolved().collection().unwrap_or(""),
-                    component.resolved().entity_identity().unwrap_or("")
-                )
-            }))
-            .collect::<Vec<_>>(),
+fn summarize_existing_truth_modes(
+    mutation_families: &[crate::runtime::ForgeQueryMutationFamily],
+    existing_truth_assertions: &[Option<ForgeQueryExistingTruthAssertionEvidence>],
+) -> (usize, usize, usize, usize, Option<String>) {
+    let mut retained_authoritative_assertion_count = 0;
+    let mut backend_verified_assertion_count = 0;
+    let mut backend_verified_update_count = 0;
+    let mut backend_verified_delete_count = 0;
+    let mode_parts = mutation_families
+        .iter()
+        .zip(existing_truth_assertions.iter())
+        .filter_map(|(family, assertion)| {
+            let assertion = assertion.as_ref()?;
+            match (family, assertion.mode()) {
+                (
+                    crate::runtime::ForgeQueryMutationFamily::Assertion,
+                    crate::runtime::ForgeQueryExistingTruthAssertionMode::RetainedAuthoritativeAssertion,
+                ) => retained_authoritative_assertion_count += 1,
+                (
+                    crate::runtime::ForgeQueryMutationFamily::Assertion,
+                    crate::runtime::ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion,
+                ) => backend_verified_assertion_count += 1,
+                (
+                    crate::runtime::ForgeQueryMutationFamily::Update,
+                    crate::runtime::ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion,
+                ) => backend_verified_update_count += 1,
+                (
+                    crate::runtime::ForgeQueryMutationFamily::Delete,
+                    crate::runtime::ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion,
+                ) => backend_verified_delete_count += 1,
+                (
+                    family,
+                    mode,
+                ) => {
+                    panic!(
+                        "invalid existing-truth assertion mode `{mode}` for mutation family `{family}`"
+                    )
+                }
+            }
+            Some(format!(
+                "{}:{}:{}",
+                family,
+                assertion.mode(),
+                assertion.verification_digest()
+            ))
+        })
+        .collect::<Vec<_>>();
+    let digest = (!mode_parts.is_empty()).then(|| {
+        crate::identity::hash_parts(
+            &std::iter::once("forge-query-batch-existing-truth-mode-v1".to_string())
+                .chain(mode_parts)
+                .collect::<Vec<_>>(),
+        )
+    });
+    (
+        retained_authoritative_assertion_count,
+        backend_verified_assertion_count,
+        backend_verified_update_count,
+        backend_verified_delete_count,
+        digest,
     )
-}
-
-fn batch_existing_truth_binding_digest(
-    bindings: &[Option<ForgeQueryExistingTruthBindingEvidence>],
-) -> Option<String> {
-    let bindings = bindings
-        .iter()
-        .flatten()
-        .map(|binding| binding.binding_digest().to_string())
-        .collect::<Vec<_>>();
-    if bindings.is_empty() {
-        return None;
-    }
-    Some(crate::identity::hash_parts(
-        &std::iter::once("forge-query-batch-existing-truth-binding-v1".to_string())
-            .chain(bindings)
-            .collect::<Vec<_>>(),
-    ))
-}
-
-fn batch_symbolic_target_reference_digest(
-    references: &[Option<crate::runtime::ForgeQuerySymbolicTargetReferenceEvidence>],
-) -> Option<String> {
-    let references = references
-        .iter()
-        .flatten()
-        .map(|reference| {
-            format!(
-                "{}:{}:{}:{}",
-                reference.family(),
-                reference.symbol(),
-                reference.resolved_entity_identity(),
-                reference.target_collection().unwrap_or("none")
-            )
-        })
-        .collect::<Vec<_>>();
-    if references.is_empty() {
-        return None;
-    }
-    Some(crate::identity::hash_parts(
-        &std::iter::once("forge-query-batch-symbolic-target-reference-v1".to_string())
-            .chain(references)
-            .collect::<Vec<_>>(),
-    ))
-}
-
-fn batch_continuity_mutation_digest(
-    continuities: &[Option<crate::runtime::ForgeQueryContinuityMutationEvidence>],
-) -> Option<String> {
-    let continuities = continuities
-        .iter()
-        .flatten()
-        .map(|continuity| {
-            format!(
-                "{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}",
-                continuity.family(),
-                continuity.outcome_class(),
-                continuity.prior_authoritative_identity(),
-                if continuity.successor_authoritative_identities().is_empty() {
-                    "none".to_string()
-                } else {
-                    continuity.successor_authoritative_identities().join("|")
-                },
-                continuity.basis_binding_digest().unwrap_or("none"),
-                continuity
-                    .resolved_target_entity_identity()
-                    .unwrap_or("none"),
-                continuity.target_collection().unwrap_or("none"),
-                continuity.lineage_digest(),
-                continuity.continuity_resolution_digest()
-            )
-        })
-        .collect::<Vec<_>>();
-    if continuities.is_empty() {
-        return None;
-    }
-    Some(crate::identity::hash_parts(
-        &std::iter::once("forge-query-batch-continuity-mutation-v1".to_string())
-            .chain(continuities)
-            .collect::<Vec<_>>(),
-    ))
-}
-
-fn batch_naming_mutation_digest(
-    namings: &[Option<crate::runtime::ForgeQueryNamingMutationEvidence>],
-) -> Option<String> {
-    let namings = namings
-        .iter()
-        .flatten()
-        .map(|naming| {
-            format!(
-                "{:?}:{:?}:{}:{}:{}:{}:{}",
-                naming.family(),
-                naming.outcome(),
-                naming.attachment_identity(),
-                naming.prior_authoritative_identity().unwrap_or("none"),
-                naming.target_authoritative_identity().unwrap_or("none"),
-                naming.resolved_target_entity_identity().unwrap_or("none"),
-                naming.target_collection().unwrap_or("none")
-            )
-        })
-        .collect::<Vec<_>>();
-    if namings.is_empty() {
-        return None;
-    }
-    Some(crate::identity::hash_parts(
-        &std::iter::once("forge-query-batch-naming-mutation-v1".to_string())
-            .chain(namings)
-            .collect::<Vec<_>>(),
-    ))
 }
 
 #[cfg(test)]

@@ -25,6 +25,9 @@ impl ForgeQueryExistingTruthBindingEvidence {
                 BridgeExistingTruthBindingFamily::DirectEntityIdentity => {
                     crate::runtime::ForgeQueryExistingTruthBindingFamily::DirectEntityIdentity
                 }
+                BridgeExistingTruthBindingFamily::DirectRelationIdentity => {
+                    crate::runtime::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
+                }
             },
             outcome: match binding.outcome() {
                 BridgeExistingTruthBindingOutcome::ExistingAuthoritativeTarget => {
@@ -32,7 +35,7 @@ impl ForgeQueryExistingTruthBindingEvidence {
                 }
             },
             authoritative_identity: binding.authoritative_identity().to_string(),
-            resolved_entity_identity: binding.resolved_entity_identity().to_string(),
+            resolved_entity_identity: binding.resolved_target_identity().to_string(),
             target_collection: binding.target_collection().map(str::to_string),
             binding_digest: binding.binding_digest().to_string(),
         }
@@ -45,7 +48,7 @@ impl ForgeQueryExistingTruthBindingEvidence {
             family: binding.family(),
             outcome: ForgeQueryExistingTruthBindingOutcome::ExistingAuthoritativeTarget,
             authoritative_identity: binding.authoritative_identity().to_string(),
-            resolved_entity_identity: binding.resolved_entity_identity().to_string(),
+            resolved_entity_identity: binding.resolved_target_identity().to_string(),
             target_collection: binding.target_collection().map(str::to_string),
             binding_digest: binding.binding_digest(),
         }
@@ -63,7 +66,15 @@ impl ForgeQueryExistingTruthBindingEvidence {
         &self.authoritative_identity
     }
 
+    pub fn resolved_target_identity(&self) -> &str {
+        &self.resolved_entity_identity
+    }
+
     pub fn resolved_entity_identity(&self) -> &str {
+        &self.resolved_entity_identity
+    }
+
+    pub fn resolved_relation_identity(&self) -> &str {
         &self.resolved_entity_identity
     }
 

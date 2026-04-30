@@ -5,8 +5,8 @@ use serde::Serialize;
 use super::ForgeQueryMutationMetadata;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::{
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError,
-    ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
+    ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding, ForgeQueryNamingMutationIntent,
+    ForgeQueryRuntimeError, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -140,6 +140,25 @@ impl ForgeQueryDeleteMutationBuilder {
         }
         Ok(ForgeQueryWriteCommand::DeleteExistingAspects {
             binding,
+            touched_aspect_paths: self.touched_aspect_paths,
+            metadata: self.metadata,
+            naming_intent: self.naming_intent,
+        })
+    }
+
+    pub(crate) fn build_delete_existing_verified(
+        self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        asserted_aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
+        if let Some(error) = self.error {
+            return Err(ForgeQueryRuntimeError::Workspace(
+                ForgeQueryWorkspaceError::new(error),
+            ));
+        }
+        Ok(ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+            binding,
+            asserted_aspects,
             touched_aspect_paths: self.touched_aspect_paths,
             metadata: self.metadata,
             naming_intent: self.naming_intent,

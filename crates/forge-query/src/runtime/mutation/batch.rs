@@ -79,6 +79,63 @@ impl ForgeQueryMutationBatchBuilder {
         self
     }
 
+    pub fn assert_existing(
+        mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        match declaration(ForgeQueryAspectMutationBuilder::new()).build_assert_existing(binding) {
+            Ok(command) => self.commands.push(command),
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self
+    }
+
+    pub fn verify_existing(
+        mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        declaration: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        match declaration(ForgeQueryAspectMutationBuilder::new()).build_verify_existing(binding) {
+            Ok(command) => self.commands.push(command),
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self
+    }
+
+    pub fn update_existing_verified(
+        mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+        update: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        let asserted_aspects = match verify(ForgeQueryAspectMutationBuilder::new())
+            .finish_existing_truth_verification_aspects("backend-verified existing-truth update")
+        {
+            Ok(aspects) => aspects,
+            Err(error) => {
+                self.error = Some(error.to_string());
+                return self;
+            }
+        };
+        match update(ForgeQueryAspectMutationBuilder::new())
+            .build_update_existing_verified(binding, asserted_aspects)
+        {
+            Ok(command) => self.commands.push(command),
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self
+    }
+
     pub fn update_symbolic(
         mut self,
         reference: ForgeQuerySymbolicTargetReference,
@@ -160,6 +217,33 @@ impl ForgeQueryMutationBatchBuilder {
             return self;
         }
         match declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete_existing(binding) {
+            Ok(command) => self.commands.push(command),
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self
+    }
+
+    pub fn delete_existing_verified(
+        mut self,
+        binding: ForgeQueryExistingTruthTargetBinding,
+        verify: impl FnOnce(ForgeQueryAspectMutationBuilder) -> ForgeQueryAspectMutationBuilder,
+        delete: impl FnOnce(ForgeQueryDeleteMutationBuilder) -> ForgeQueryDeleteMutationBuilder,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        let asserted_aspects = match verify(ForgeQueryAspectMutationBuilder::new())
+            .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")
+        {
+            Ok(aspects) => aspects,
+            Err(error) => {
+                self.error = Some(error.to_string());
+                return self;
+            }
+        };
+        match delete(ForgeQueryDeleteMutationBuilder::new())
+            .build_delete_existing_verified(binding, asserted_aspects)
+        {
             Ok(command) => self.commands.push(command),
             Err(error) => self.error = Some(error.to_string()),
         }

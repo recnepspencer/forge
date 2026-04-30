@@ -22,7 +22,10 @@ impl BridgeAuthoritativeMutationEvidenceSupport {
             "continuity-mutation-evidence".to_string(),
             "replay-safe-request-receipt-digests".to_string(),
         ];
-        let existing_truth_binding_families = vec!["direct_entity_identity".to_string()];
+        let existing_truth_binding_families = vec![
+            "direct_entity_identity".to_string(),
+            "direct_relation_identity".to_string(),
+        ];
         let symbolic_target_reference_families = vec!["same_batch_declared_target".to_string()];
         let naming_mutation_families = vec![
             "attach_new_target".to_string(),

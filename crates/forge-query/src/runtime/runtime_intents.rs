@@ -38,7 +38,9 @@ impl ForgeQueryRuntime {
             None,
             None,
             None,
+            None,
             Vec::new(),
+            None,
             ForgeQueryMutationMetadata::default(),
         )?;
         Ok(ForgeQueryIntentReceipt::new(
@@ -119,7 +121,9 @@ impl ForgeQueryRuntime {
             None,
             None,
             None,
+            None,
             Vec::new(),
+            None,
             ForgeQueryMutationMetadata::default(),
         )?;
         let intent_receipt = ForgeQueryIntentReceipt::new(&declaration, execution, &write_receipt);
@@ -155,14 +159,26 @@ impl ForgeQueryRuntime {
         declared_collection: Option<String>,
         declared_entity_identity: Option<String>,
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
+        existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
+        declared_aspect_value_digest: Option<String>,
         mutation_metadata: ForgeQueryMutationMetadata,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let (_, target_collection, target_entity_identity) =
+        let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
+        if target_collection.is_none() {
+            target_collection = existing_truth_binding
+                .as_ref()
+                .and_then(|binding| binding.target_collection().map(str::to_string));
+        }
+        if target_entity_identity.is_none() {
+            target_entity_identity = existing_truth_binding
+                .as_ref()
+                .map(|binding| binding.resolved_target_identity().to_string());
+        }
         let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
         Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
             receipt,
@@ -170,12 +186,14 @@ impl ForgeQueryRuntime {
             declared_collection,
             declared_entity_identity,
             existing_truth_binding,
+            existing_truth_assertion,
             symbolic_target_reference,
             naming_intent,
             continuity_intent,
             target_collection,
             target_entity_identity,
             declared_aspect_operations,
+            declared_aspect_value_digest,
             mutation_metadata,
             summary.affected_live_view_ids,
             summary.affected_derived_view_ids,

@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceError,
+    ForgeQueryBatchWriteReceipt, ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use worth_schema::facade::{
@@ -177,11 +177,13 @@ impl WorthTopologyQueryAssembly {
                     let imported = entities.get(&entity_id).ok_or(
                         WorthTopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
                     )?;
-                    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-                        format!("{entity_id:?}"),
-                        imported.query_identity.clone(),
-                    )?
-                    .in_target_collection("WorthTopologyEntity")?;
+                    let binding = workspace.bind_existing_entity(
+                        ForgeQueryExistingEntityTarget::new(
+                            format!("{entity_id:?}"),
+                            imported.query_identity.clone(),
+                        )?
+                        .in_target_collection("WorthTopologyEntity")?,
+                    )?;
                     receipts.push(workspace.delete_existing_with(binding, |delete| {
                         delete
                             .target_collection("WorthTopologyEntity")
@@ -196,11 +198,13 @@ impl WorthTopologyQueryAssembly {
                     let imported = relations.get(&relation_id).ok_or(
                         WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
                     )?;
-                    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-                        format!("{relation_id:?}"),
-                        imported.query_identity.clone(),
-                    )?
-                    .in_target_collection("WorthTopologyRelation")?;
+                    let binding = workspace.bind_existing_relation(
+                        ForgeQueryExistingRelationTarget::new(
+                            format!("{relation_id:?}"),
+                            imported.query_identity.clone(),
+                        )?
+                        .in_target_collection("WorthTopologyRelation")?,
+                    )?;
                     receipts.push(workspace.delete_existing_with(binding, |delete| {
                         delete
                             .target_collection("WorthTopologyRelation")
@@ -213,15 +217,71 @@ impl WorthTopologyQueryAssembly {
                             )
                     })?);
                 }
-                WorthTopologyMutation::UpsertEntity { kind, .. } => {
-                    return Err(WorthTopologyQueryApplyError::UnsupportedMutation(format!(
-                        "{kind:?}"
-                    )));
+                WorthTopologyMutation::UpsertEntity { entity_id, kind } => {
+                    let imported = entities.get(&entity_id).ok_or(
+                        WorthTopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
+                    )?;
+                    let binding = workspace.bind_existing_entity(
+                        ForgeQueryExistingEntityTarget::new(
+                            format!("{entity_id:?}"),
+                            imported.query_identity.clone(),
+                        )?
+                        .in_target_collection("WorthTopologyEntity")?,
+                    )?;
+                    receipts.push(workspace.verify_existing(binding, |assertion| {
+                        assertion
+                            .metadata(
+                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                &mutation_evidence,
+                            )
+                            .aspect("topology.kind", kind.kind_name())
+                    })?);
                 }
-                WorthTopologyMutation::UpsertRelation { kind, .. } => {
-                    return Err(WorthTopologyQueryApplyError::UnsupportedMutation(format!(
-                        "{kind:?}"
-                    )));
+                WorthTopologyMutation::UpsertRelation {
+                    relation_id,
+                    kind,
+                    source,
+                    target,
+                } => {
+                    let imported = relations.get(&relation_id).ok_or(
+                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
+                    )?;
+                    let expected_source = entities
+                        .get(&source)
+                        .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+                            source,
+                        ))?
+                        .query_identity
+                        .clone();
+                    let expected_target = entities
+                        .get(&target)
+                        .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+                            target,
+                        ))?
+                        .query_identity
+                        .clone();
+                    let binding = workspace.bind_existing_relation(
+                        ForgeQueryExistingRelationTarget::new(
+                            format!("{relation_id:?}"),
+                            imported.query_identity.clone(),
+                        )?
+                        .in_target_collection("WorthTopologyRelation")?,
+                    )?;
+                    receipts.push(workspace.verify_existing(binding, |assertion| {
+                        let assertion = assertion
+                            .metadata(
+                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                &mutation_evidence,
+                            )
+                            .aspect("topology.kind", kind.kind_name())
+                            .aspect("topology.source_identity", expected_source)
+                            .aspect("topology.target_identity", expected_target);
+                        if let Some(path) = topology_relation_dependency_path(kind) {
+                            assertion.aspect(path, kind.kind_name())
+                        } else {
+                            assertion
+                        }
+                    })?);
                 }
             }
         }

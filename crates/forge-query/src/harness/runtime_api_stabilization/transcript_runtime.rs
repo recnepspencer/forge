@@ -22,12 +22,15 @@ use crate::facade::{
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeSupportProfile, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt, QuerySchemaView,
-    SubscriptionActivationInput,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspaceError, ForgeQueryWriteReceipt,
+    QuerySchemaView, SubscriptionActivationInput,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
+
+mod transcript_authority;
+
+use transcript_authority::TranscriptWriteAuthority;
 
 pub(super) fn transcript_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
@@ -120,105 +123,6 @@ impl ForgeQueryRuntimeSourceAdapter for TranscriptSourceAdapter {
 
     fn snapshot_token(&self) -> String {
         "transcript-external-snapshot".to_string()
-    }
-}
-
-struct TranscriptWriteAuthority;
-
-impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
-    #[allow(deprecated)]
-    fn write(
-        &mut self,
-        _bridge: &RuntimeBridge,
-        _relational_runtime: Option<&mut RelationalRuntime>,
-        command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let (collection, aspect_paths) = match command {
-            ForgeQueryWriteCommand::Insert { collection, .. } => (collection, Vec::new()),
-            ForgeQueryWriteCommand::InsertAspects {
-                collection,
-                aspects,
-                ..
-            } => (
-                collection,
-                aspects
-                    .iter()
-                    .map(|aspect| aspect.aspect_path().to_string())
-                    .collect(),
-            ),
-            ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
-                ("TranscriptEntity".to_string(), vec![aspect_path])
-            }
-            ForgeQueryWriteCommand::UpdateAspects { aspects, .. } => (
-                "TranscriptEntity".to_string(),
-                aspects
-                    .iter()
-                    .map(|aspect| aspect.aspect_path().to_string())
-                    .collect(),
-            ),
-            ForgeQueryWriteCommand::UpdateExistingAspects {
-                aspects, binding, ..
-            } => (
-                binding
-                    .target_collection()
-                    .unwrap_or("TranscriptEntity")
-                    .to_string(),
-                aspects
-                    .iter()
-                    .map(|aspect| aspect.aspect_path().to_string())
-                    .collect(),
-            ),
-            ForgeQueryWriteCommand::UpdateSymbolicAspects {
-                aspects, reference, ..
-            } => (
-                reference
-                    .target_collection()
-                    .unwrap_or("TranscriptEntity")
-                    .to_string(),
-                aspects
-                    .iter()
-                    .map(|aspect| aspect.aspect_path().to_string())
-                    .collect(),
-            ),
-            ForgeQueryWriteCommand::DeleteAspects {
-                touched_aspect_paths,
-                ..
-            } => ("TranscriptEntity".to_string(), touched_aspect_paths),
-            ForgeQueryWriteCommand::DeleteExistingAspects {
-                binding,
-                touched_aspect_paths,
-                ..
-            } => (
-                binding
-                    .target_collection()
-                    .unwrap_or("TranscriptEntity")
-                    .to_string(),
-                touched_aspect_paths,
-            ),
-            ForgeQueryWriteCommand::DeleteSymbolicAspects {
-                reference,
-                touched_aspect_paths,
-                ..
-            } => (
-                reference
-                    .target_collection()
-                    .unwrap_or("TranscriptEntity")
-                    .to_string(),
-                touched_aspect_paths,
-            ),
-            ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
-        };
-        Ok(ForgeQueryMutationReceipt {
-            commit_identity: format!("transcript-commit:{collection}"),
-            snapshot_token: format!("transcript-snapshot:{collection}"),
-            deltas: vec![ForgeQueryMutationDelta {
-                collection,
-                entity_identity: "transcript-entity-1".to_string(),
-                kind: ForgeQueryMutationKind::Updated,
-                aspect_paths,
-            }],
-            bridge_authority: None,
-        })
     }
 }
 

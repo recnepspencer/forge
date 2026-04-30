@@ -100,16 +100,24 @@ pub fn worth_query_mutation_support_contract(
             .any(|family| family == "direct_entity_identity"),
         "forge-query authoritative mutation evidence must admit direct existing-truth bindings before worth widens existing-truth updates",
     );
+    assert!(
+        query_support
+            .existing_truth_binding_families()
+            .iter()
+            .any(|family| family == "direct_relation_identity"),
+        "forge-query authoritative mutation evidence must admit direct existing-truth relation bindings before worth widens imported topology relation removal",
+    );
 
     let admitted_raw_mutation_families = vec![
         "create_topology_entity".to_string(),
         "create_topology_relation_with_existing_refs".to_string(),
         "create_topology_relation_with_created_entity_refs_via_ordered_receipts".to_string(),
+        "upsert_topology_entity_with_backend_verified_assertion".to_string(),
+        "upsert_topology_relation_with_backend_verified_assertion".to_string(),
         "remove_topology_entity_with_imported_binding".to_string(),
         "remove_topology_relation_with_imported_binding".to_string(),
     ];
     let blocked_until_explicit_lowering = vec![
-        "existing_truth_upsert_requires_explicit_resolved_binding".to_string(),
         "raw_naming_truth_requires_projected_naming_writeback".to_string(),
         "geometry_truth_outside_topology_lane".to_string(),
         "diagnostics_truth_outside_topology_lane".to_string(),
@@ -217,64 +225,48 @@ fn classify_mutation(
                 WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
             ),
         },
-        WorthTopologyMutation::UpsertEntity { kind, .. } => {
-            push_blocker(
+        WorthTopologyMutation::UpsertEntity { kind, .. } => match kind {
+            WorthEntityKind::Topology(_) => {}
+            WorthEntityKind::Naming(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::ExistingIdentityBindingRequired,
-            );
-            match kind {
-                WorthEntityKind::Topology(_) => {}
-                WorthEntityKind::Naming(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
-                ),
-                WorthEntityKind::Geometry(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
-                ),
-                WorthEntityKind::Diagnostics(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
-                ),
-            }
-        }
-        WorthTopologyMutation::UpsertRelation { kind, .. } => {
-            push_blocker(
+                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+            ),
+            WorthEntityKind::Geometry(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::ExistingIdentityBindingRequired,
-            );
-            match kind {
-                WorthRelationKind::Topology(_) => {}
-                WorthRelationKind::Naming(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
-                ),
-                WorthRelationKind::Geometry(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
-                ),
-                WorthRelationKind::Diagnostics(_) => push_blocker(
-                    blockers,
-                    mutation_index,
-                    mutation,
-                    WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
-                ),
-            }
-        }
+                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+            ),
+            WorthEntityKind::Diagnostics(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+            ),
+        },
+        WorthTopologyMutation::UpsertRelation { kind, .. } => match kind {
+            WorthRelationKind::Topology(_) => {}
+            WorthRelationKind::Naming(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+            ),
+            WorthRelationKind::Geometry(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+            ),
+            WorthRelationKind::Diagnostics(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+            ),
+        },
         WorthTopologyMutation::RemoveEntity { .. }
         | WorthTopologyMutation::RemoveRelation { .. } => {}
     }

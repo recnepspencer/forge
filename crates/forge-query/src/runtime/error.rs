@@ -13,6 +13,8 @@ pub enum ForgeQueryRuntimeError {
     MissingPreviewBasis,
     MissingInspectorEvidence,
     MissingIntentAuthority,
+    ExistingTruthAssertionDenied(ForgeQueryExistingTruthAssertionDenial),
+    ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenial),
     MutationBindingDenied(ForgeQueryExistingTruthBindingDenial),
     MutationContinuityDenied(ForgeQueryContinuityMutationDenial),
     MutationNamingDenied(ForgeQueryNamingMutationDenial),
@@ -110,6 +112,8 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "forge query runtime backend parts that claim intent support require an intent authority adapter"
             ),
+            Self::ExistingTruthAssertionDenied(denial) => write!(f, "{denial}"),
+            Self::ExistingTruthProbeDenied(denial) => write!(f, "{denial}"),
             Self::MutationBindingDenied(denial) => write!(f, "{denial}"),
             Self::MutationContinuityDenied(denial) => write!(f, "{denial}"),
             Self::MutationNamingDenied(denial) => write!(f, "{denial}"),

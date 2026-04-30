@@ -333,3 +333,5 @@ pub fn worth_topology_query_workspace(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod upsert_assertion_tests;

@@ -5,11 +5,11 @@ use crate::facade::{
     worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
     RawWorthTopologyIntent, WorthAspect, WorthDiagnosticsAspect, WorthDiagnosticsRelationKind,
     WorthEntityKind, WorthGeometryAspect, WorthGeometryEntityKind, WorthLineageAspect,
-    WorthNamingAspect, WorthNamingEntityKind, WorthNamingRelationKind, WorthQueryAspectFamily,
-    WorthQueryAspectPath, WorthQueryCollection, WorthQueryComputedDeclarationBuilder,
-    WorthQueryDeclarationError, WorthQueryLiveDeclarationBuilder, WorthQueryLiveField,
-    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker, WorthQuerySchemaBasis,
-    WorthRelationKind, WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
+    WorthNamingAspect, WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection,
+    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
+    WorthQueryLiveDeclarationBuilder, WorthQueryLiveField, WorthQueryMutationAdmission,
+    WorthQueryMutationAdmissionBlocker, WorthQuerySchemaBasis, WorthRelationKind,
+    WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
 };
 
 #[test]
@@ -273,6 +273,18 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
         .blocked_until_explicit_lowering
         .iter()
         .any(|family| family == "raw_naming_truth_requires_projected_naming_writeback"));
+    assert!(contract
+        .admitted_raw_mutation_families
+        .iter()
+        .any(|family| family == "upsert_topology_entity_with_backend_verified_assertion"));
+    assert!(contract
+        .admitted_raw_mutation_families
+        .iter()
+        .any(|family| family == "upsert_topology_relation_with_backend_verified_assertion"));
+    assert!(!contract
+        .blocked_until_explicit_lowering
+        .iter()
+        .any(|family| family == "existing_truth_upsert_requires_explicit_resolved_binding"));
     assert!(!contract.query_support_digest.is_empty());
     assert!(!contract.query_closeout_digest.is_empty());
 }
@@ -315,63 +327,6 @@ fn query_mutation_admission_marks_same_batch_topology_relation_creation_as_ready
     ));
 
     assert!(matches!(admission, WorthQueryMutationAdmission::Admitted));
-}
-
-#[test]
-fn query_mutation_admission_surfaces_naming_writeback_blockers_literally() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
-        vec![
-            WorthTopologyMutation::CreateEntity {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.name"),
-                kind: WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
-            },
-            WorthTopologyMutation::CreateRelation {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.name.targets"),
-                kind: WorthRelationKind::Naming(
-                    WorthNamingRelationKind::PersistentNameTargetsEntity,
-                ),
-                source: crate::facade::created_ref("query-gap.name"),
-                target: crate::facade::created_ref("query-gap.target"),
-            },
-        ],
-        crate::facade::WorthMutationOrigin::LocalEdit,
-    ));
-
-    let blockers = admission.blockers();
-    assert!(blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired
-    }));
-    assert!(!blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::SymbolicCreateReferenceRequired
-    }));
-}
-
-#[test]
-fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removals() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
-        vec![
-            WorthTopologyMutation::RemoveEntity {
-                entity_id: forge_relational::facade::identity::EntityId::new(
-                    forge_relational::facade::identity::PartitionId::main(),
-                    7,
-                    1,
-                ),
-            },
-            WorthTopologyMutation::RemoveRelation {
-                relation_id: forge_relational::facade::identity::RelationId::new(
-                    forge_relational::facade::identity::PartitionId::main(),
-                    8,
-                    1,
-                ),
-            },
-        ],
-        crate::facade::WorthMutationOrigin::LocalEdit,
-    ));
-
-    assert!(
-        admission.is_admitted(),
-        "topology removals should now lower through imported query binding evidence"
-    );
 }
 
 #[test]

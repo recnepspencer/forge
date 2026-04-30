@@ -46,11 +46,17 @@ impl ForgeQueryBatchWriteReceiptInspection {
                 .chain(std::iter::once(format!("basis:{}", receipt.basis_lane())))
                 .chain(std::iter::once(format!("batch:{}", receipt.batch_digest())))
                 .chain(std::iter::once(format!(
-                    "batch-evidence:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+                    "batch-evidence:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
                     batch_mutation_evidence.component_count(),
                     batch_mutation_evidence.target_evidence_count(),
+                    batch_mutation_evidence.existing_truth_assertion_count(),
+                    batch_mutation_evidence.retained_authoritative_assertion_count(),
+                    batch_mutation_evidence.backend_verified_assertion_count(),
+                    batch_mutation_evidence.backend_verified_update_count(),
+                    batch_mutation_evidence.backend_verified_delete_count(),
                     batch_mutation_evidence.existing_truth_binding_count(),
                     batch_mutation_evidence.symbolic_target_reference_count(),
+                    batch_mutation_evidence.naming_mutation_count(),
                     batch_mutation_evidence.continuity_mutation_count(),
                     batch_mutation_evidence.resolved_target_count(),
                     batch_mutation_evidence.target_collection_count(),
@@ -61,6 +67,18 @@ impl ForgeQueryBatchWriteReceiptInspection {
                     batch_mutation_evidence.request_digest_count(),
                     batch_mutation_evidence.receipt_digest_count(),
                     batch_mutation_evidence.aggregate_target_digest()
+                )))
+                .chain(std::iter::once(format!(
+                    "batch-assertion:{}",
+                    batch_mutation_evidence
+                        .aggregate_existing_truth_assertion_digest()
+                        .unwrap_or("none")
+                )))
+                .chain(std::iter::once(format!(
+                    "batch-existing-truth-mode:{}",
+                    batch_mutation_evidence
+                        .aggregate_existing_truth_mode_digest()
+                        .unwrap_or("none")
                 )))
                 .chain(std::iter::once(format!(
                     "batch-continuity:{}",
@@ -131,10 +149,29 @@ impl ForgeQueryBatchWriteReceiptInspection {
                                 .unwrap_or("")
                         )))
                         .chain(std::iter::once(format!(
-                            "component-existing-truth:{}",
+                            "component-assertion:{}",
+                            component
+                                .existing_truth_assertion_evidence()
+                                .map_or("none", |evidence| evidence.verification_digest())
+                        )))
+                        .chain(std::iter::once(format!(
+                            "component-existing-truth:{}:{}:{}:{}:{}",
                             component
                                 .existing_truth_binding_evidence()
-                                .map_or("none", |evidence| evidence.authoritative_identity())
+                                .map_or("none", |evidence| evidence.family().as_str()),
+                            component
+                                .existing_truth_binding_evidence()
+                                .map_or("none", |evidence| evidence.authoritative_identity()),
+                            component
+                                .existing_truth_binding_evidence()
+                                .map_or("none", |evidence| evidence.resolved_target_identity()),
+                            component
+                                .existing_truth_binding_evidence()
+                                .and_then(|evidence| evidence.target_collection())
+                                .unwrap_or("none"),
+                            component
+                                .existing_truth_binding_evidence()
+                                .map_or("none", |evidence| evidence.binding_digest())
                         )))
                         .chain(std::iter::once(format!(
                             "component-symbolic:{}",

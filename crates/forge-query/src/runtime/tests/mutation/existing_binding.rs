@@ -20,13 +20,17 @@ fn update_existing_preserves_authoritative_binding_evidence() {
                 .aspect("title.value", "Before existing update")
         })
         .expect("seed insert should execute");
-    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-1",
-        seed.deltas()[0].entity_identity.clone(),
-    )
-    .expect("binding should build")
-    .in_target_collection("Task")
-    .expect("binding collection should build");
+    let binding = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new(
+                "authority:task-1",
+                seed.deltas()[0].entity_identity.clone(),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
+        )
+        .expect("binding should build");
 
     let receipt = workspace
         .update_existing(binding, |task| {
@@ -84,11 +88,14 @@ fn update_existing_denies_missing_target_typed_and_early() {
     let mut workspace = task_runtime()
         .workspace("tasks.update-existing-denial")
         .expect("task runtime should open a named workspace");
-    let binding =
-        ForgeQueryExistingTruthTargetBinding::direct_entity("authority:missing", "task:missing")
-            .expect("binding should build")
-            .in_target_collection("Task")
-            .expect("binding collection should build");
+    let binding = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new("authority:missing", "task:missing")
+                .expect("existing entity target should build")
+                .in_target_collection("Task")
+                .expect("existing entity target collection should build"),
+        )
+        .expect("binding should build");
 
     let error = workspace
         .update_existing(binding, |task| task.aspect("title.value", "No target"))
@@ -133,20 +140,28 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
         })
         .expect("second seed should execute");
 
-    let binding_one = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-1",
-        seed_one.deltas()[0].entity_identity.clone(),
-    )
-    .expect("binding one should build")
-    .in_target_collection("Task")
-    .expect("binding one collection should build");
-    let binding_two = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-2",
-        seed_two.deltas()[0].entity_identity.clone(),
-    )
-    .expect("binding two should build")
-    .in_target_collection("Task")
-    .expect("binding two collection should build");
+    let binding_one = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new(
+                "authority:task-1",
+                seed_one.deltas()[0].entity_identity.clone(),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
+        )
+        .expect("binding one should build");
+    let binding_two = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new(
+                "authority:task-2",
+                seed_two.deltas()[0].entity_identity.clone(),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
+        )
+        .expect("binding two should build");
 
     let receipt = workspace
         .batch(|batch| {
@@ -227,13 +242,17 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
                 .aspect("title.value", "Existing")
         })
         .expect("seed should execute");
-    let binding = ForgeQueryExistingTruthTargetBinding::direct_entity(
-        "authority:task-existing",
-        seed.deltas()[0].entity_identity.clone(),
-    )
-    .expect("binding should build")
-    .in_target_collection("Task")
-    .expect("binding collection should build");
+    let binding = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new(
+                "authority:task-existing",
+                seed.deltas()[0].entity_identity.clone(),
+            )
+            .expect("existing entity target should build")
+            .in_target_collection("Task")
+            .expect("existing entity target collection should build"),
+        )
+        .expect("binding should build");
 
     let receipt = workspace
         .batch(|batch| {
@@ -264,4 +283,70 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
     assert!(batch_evidence
         .aggregate_symbolic_target_reference_digest()
         .is_some());
+}
+
+#[test]
+fn delete_existing_relation_preserves_relation_binding_family() {
+    let runtime = ForgeQueryRuntime::builder()
+        .compatibility_in_memory_collections([ForgeQueryCollection::new(
+            "TaskRelation",
+            [
+                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
+                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
+            ],
+        )])
+        .build()
+        .expect("runtime should build");
+    let mut workspace = runtime
+        .workspace("tasks.delete-existing-relation")
+        .expect("workspace should open");
+    let _: ForgeQueryLiveView<Value> = workspace
+        .live_view("tasks.relation-table", |q| {
+            q.from("TaskRelation")
+                .select(["identity.id", "kind.value"])
+                .order_by("kind.value")
+                .schema_basis("tasks-relation-table")
+        })
+        .expect("relation live view should declare");
+
+    let seed = workspace
+        .insert("TaskRelation", |relation| {
+            relation
+                .aspect("identity.id", "rel-1")
+                .aspect("kind.value", "depends_on")
+        })
+        .expect("seed insert should execute");
+    let binding = workspace
+        .bind_existing_relation(
+            ForgeQueryExistingRelationTarget::new(
+                "authority:rel-1",
+                seed.deltas()[0].entity_identity.clone(),
+            )
+            .expect("existing relation target should build")
+            .in_target_collection("TaskRelation")
+            .expect("existing relation target collection should build"),
+        )
+        .expect("relation binding should build");
+
+    let receipt = workspace
+        .delete_existing(binding)
+        .expect("existing relation delete should execute");
+    let evidence = receipt
+        .existing_truth_binding_evidence()
+        .expect("receipt should retain relation binding evidence");
+
+    assert_eq!(
+        evidence.family(),
+        ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
+    );
+    assert_eq!(evidence.authoritative_identity(), "authority:rel-1");
+    assert_eq!(
+        evidence.resolved_relation_identity(),
+        seed.deltas()[0].entity_identity
+    );
+    assert_eq!(
+        evidence.resolved_target_identity(),
+        seed.deltas()[0].entity_identity
+    );
+    assert_eq!(evidence.target_collection(), Some("TaskRelation"));
 }

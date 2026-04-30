@@ -19,6 +19,18 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
             ForgeQueryWriteCommand::UpdateExistingAspects { binding, .. } => {
                 binding.target_collection().unwrap_or("Task").to_string()
             }
+            ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { binding, .. } => {
+                binding.target_collection().unwrap_or("Task").to_string()
+            }
+            ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects { binding, .. } => {
+                binding.target_collection().unwrap_or("Task").to_string()
+            }
+            ForgeQueryWriteCommand::AssertExistingAspects { binding, .. } => {
+                binding.target_collection().unwrap_or("Task").to_string()
+            }
+            ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
+                binding.target_collection().unwrap_or("Task").to_string()
+            }
             ForgeQueryWriteCommand::UpdateSymbolicAspects { reference, .. } => {
                 reference.target_collection().unwrap_or("Task").to_string()
             }

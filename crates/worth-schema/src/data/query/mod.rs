@@ -367,4 +367,6 @@ pub fn worth_query_aspect_paths_from_set(
 }
 
 #[cfg(test)]
+mod mutation_admission_tests;
+#[cfg(test)]
 mod tests;

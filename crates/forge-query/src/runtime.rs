@@ -37,6 +37,7 @@ use crate::subscription::{
 use crate::view_shape_live::LiveViewShapeFamily;
 
 mod aspect_api_closeout;
+mod authoritative_mutation_evidence_bridge_compat;
 mod authoritative_mutation_evidence_closeout;
 mod authority;
 mod backend;
@@ -69,6 +70,7 @@ mod support_matrix;
 mod surface;
 mod workspace;
 mod workspace_declaration;
+mod workspace_queries;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
     "runtime-live-subscription-family:scratch_buffer_only:canonical=64:relationship=64:policy=64:projection=512:tenant=1";
@@ -152,21 +154,27 @@ pub use intent::{
     ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
-pub(crate) use mutation::aspect_values_to_payload;
+pub(crate) use mutation::ForgeQueryVerifiedExistingTruthAssertion;
 use mutation::{admit_continuity_intent, admit_naming_intent};
+pub(crate) use mutation::{aspect_values_to_payload, command_declared_aspect_value_digest};
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
     ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue,
     ForgeQueryContinuityMutationDenial, ForgeQueryContinuityMutationDenialKind,
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityMutationIntent,
     ForgeQueryContinuityMutationOutcomeClass, ForgeQueryDeleteMutationBuilder,
-    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthBindingDenialKind,
-    ForgeQueryExistingTruthBindingFamily, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial,
-    ForgeQueryNamingMutationDenialKind, ForgeQueryNamingMutationFamily,
-    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicTargetReference,
-    ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
-    ForgeQuerySymbolicTargetReferenceFamily,
+    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthAssertionDenialKind,
+    ForgeQueryExistingTruthAssertionMode, ForgeQueryExistingTruthBindingDenial,
+    ForgeQueryExistingTruthBindingDenialKind, ForgeQueryExistingTruthBindingFamily,
+    ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
+    ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationBatchBuilder,
+    ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
+    ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
+    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
+    ForgeQuerySymbolicTargetReferenceDenialKind, ForgeQuerySymbolicTargetReferenceFamily,
 };
 pub use mutation_compatibility::{
     ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
@@ -196,7 +204,7 @@ use runtime_helpers::{
     runtime_active_lifecycle_budget, runtime_bridge_lowering_budget,
     runtime_consumer_attachment_budget, runtime_family_budget, runtime_slice_budget,
     runtime_subscription_admission_budget, runtime_subscription_budget_policy,
-    subscription_dimensions_for_request,
+    subscription_dimensions_for_request, synthetic_existing_assertion_receipt,
 };
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use support::{
@@ -214,9 +222,10 @@ pub use surface::{
     ForgeQueryArtifactInspector, ForgeQueryBatchMutationEvidence, ForgeQueryBatchWriteReceipt,
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
-    ForgeQueryExistingTruthBindingEvidence, ForgeQueryExistingTruthBindingOutcome,
-    ForgeQueryInspectedArtifact, ForgeQueryInstalledOperation, ForgeQueryInstalledProgram,
-    ForgeQueryLiveView, ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
+    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
+    ForgeQueryExistingTruthBindingOutcome, ForgeQueryInspectedArtifact,
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveView,
+    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,

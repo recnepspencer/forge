@@ -1,17 +1,19 @@
 use crate::identity::hash_parts;
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationEvidence,
-    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationMetadata,
-    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryWriteReceipt,
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionEvidence,
+    ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationCausalityEvidence,
+    ForgeQueryMutationMetadata, ForgeQueryMutationProvenanceEvidence,
+    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryWriteReceipt,
 };
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn build_write_receipt_inspection_digest(
     receipt: &ForgeQueryWriteReceipt,
     target_evidence: &ForgeQueryMutationTargetEvidence,
+    existing_truth_assertion_evidence: Option<&ForgeQueryExistingTruthAssertionEvidence>,
     existing_truth_binding_evidence: Option<&ForgeQueryExistingTruthBindingEvidence>,
     symbolic_target_reference_evidence: Option<&ForgeQuerySymbolicTargetReferenceEvidence>,
     naming_mutation_evidence: Option<&ForgeQueryNamingMutationEvidence>,
@@ -20,6 +22,7 @@ pub(super) fn build_write_receipt_inspection_digest(
     provenance_evidence: Option<&ForgeQueryMutationProvenanceEvidence>,
     runtime_evidence: &ForgeQueryRuntimeInspectionEvidence,
     declared_aspect_operations: &[ForgeQueryAspectMutationOperation],
+    declared_aspect_value_digest: Option<&str>,
     mutation_metadata: &ForgeQueryMutationMetadata,
     live_patch_artifacts: &[String],
 ) -> String {
@@ -54,6 +57,15 @@ pub(super) fn build_write_receipt_inspection_digest(
             target_evidence.resolved().target_class(),
             target_evidence.resolved().collection().unwrap_or(""),
             target_evidence.resolved().entity_identity().unwrap_or("")
+        ),
+        format!(
+            "existing-assertion:{}:{}:{}",
+            existing_truth_assertion_evidence
+                .map_or("none", |evidence| { evidence.mode().as_str() }),
+            existing_truth_assertion_evidence
+                .map_or(0, |evidence| { evidence.asserted_aspect_count() }),
+            existing_truth_assertion_evidence
+                .map_or("none", |evidence| { evidence.verification_digest() })
         ),
         format!(
             "existing-truth:{}:{}:{}:{}:{}",
@@ -214,6 +226,10 @@ pub(super) fn build_write_receipt_inspection_digest(
                 .map(|operation| format!("{}:{}", operation.kind(), operation.aspect_path()))
                 .collect::<Vec<_>>()
                 .join("|")
+        ),
+        format!(
+            "declared-aspect-value-digest:{}",
+            declared_aspect_value_digest.unwrap_or("none")
         ),
         format!(
             "mutation-metadata:{}",

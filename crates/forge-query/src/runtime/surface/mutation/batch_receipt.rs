@@ -91,6 +91,14 @@ impl ForgeQueryBatchWriteReceipt {
             .iter()
             .map(|receipt| receipt.target_evidence().clone())
             .collect::<Vec<_>>();
+        let mutation_families = write_receipts
+            .iter()
+            .map(ForgeQueryWriteReceipt::mutation_family)
+            .collect::<Vec<_>>();
+        let existing_truth_assertions = write_receipts
+            .iter()
+            .map(|receipt| receipt.existing_truth_assertion_evidence().cloned())
+            .collect::<Vec<_>>();
         let existing_truth_bindings = write_receipts
             .iter()
             .map(|receipt| receipt.existing_truth_binding_evidence().cloned())
@@ -109,7 +117,9 @@ impl ForgeQueryBatchWriteReceipt {
             .collect::<Vec<_>>();
         let aggregate_bridge = batch_bridge_evidence_from_receipts(&write_receipts);
         let batch_mutation_evidence = ForgeQueryBatchMutationEvidence::from_components(
+            &mutation_families,
             &target_evidence,
+            &existing_truth_assertions,
             &existing_truth_bindings,
             &symbolic_target_references,
             &naming_mutations,

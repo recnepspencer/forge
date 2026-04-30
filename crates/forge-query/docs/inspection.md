@@ -49,6 +49,9 @@ What the runtime keeps track of automatically:
   components when mutation-family routing needs more than bare touched fallout
 - existing-truth binding evidence on write receipts and batch components when a
   mutation intentionally targeted admitted authoritative preexisting truth
+- existing-truth assertion evidence on write receipts and batch components when
+  a mutation retained or backend-verified authoritative truth without mutating
+  stored values
 - canonical existing-truth binding digests on write receipts and aggregated
   binding digests on batch/session inspection when you need one stable session
   explanation instead of component-by-component reconstruction
@@ -240,6 +243,12 @@ What gets inspected:
   binding artifact the runtime admitted
 - write receipt and batch-component symbolic target evidence when you need to
   prove which same-batch declaration a later mutation resolved through
+- write receipt and batch-component assertion evidence when you need to prove
+  whether an existing-truth assertion was merely retained or actually
+  backend-verified at execution time
+- write receipt and batch-component existing-truth binding family and resolved
+  target identity when you need to distinguish entity-targeted and
+  relation-targeted authoritative writes that touched similar aspect sets
 - write receipt and batch-component continuity evidence when you need to prove
   which authoritative predecessor continued as which successor set, which
   existing-truth binding basis anchored the mutation, and which

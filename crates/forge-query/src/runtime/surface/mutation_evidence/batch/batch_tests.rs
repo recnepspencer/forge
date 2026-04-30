@@ -1,10 +1,11 @@
-use super::{
+use super::super::batch_digest_helpers::{
     batch_continuity_mutation_digest, batch_existing_truth_binding_digest,
     batch_naming_mutation_digest, batch_symbolic_target_reference_digest,
 };
 use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationFamily,
-    ForgeQueryExistingTruthBindingEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
+    ForgeQueryMutationFamily, ForgeQueryNamingMutationEvidence,
     ForgeQuerySymbolicTargetReferenceEvidence,
 };
 use forge_runtime_bridge::facade::{
@@ -185,4 +186,82 @@ fn continuity_batch_digest_changes_with_family() {
         batch_continuity_mutation_digest(&[Some(split)]).expect("split digest should exist");
 
     assert_ne!(rebind_digest, split_digest);
+}
+
+#[test]
+fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
+    let backend_verified = ForgeQueryExistingTruthAssertionEvidence::backend_verified(
+        &crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(
+            &crate::runtime::ForgeQueryExistingTruthTargetBinding::direct_entity(
+                "authority:task-1",
+                "Task:1",
+            )
+            .expect("binding should build"),
+            &[crate::runtime::ForgeQueryAspectValue::new(
+                "title.value",
+                serde_json::json!("Seed title"),
+            )
+            .expect("aspect should build")],
+        )
+        .expect("verified assertion should build"),
+    );
+
+    let update = super::summarize_existing_truth_modes(
+        &[ForgeQueryMutationFamily::Update],
+        &[Some(backend_verified.clone())],
+    );
+    let delete = super::summarize_existing_truth_modes(
+        &[ForgeQueryMutationFamily::Delete],
+        &[Some(backend_verified)],
+    );
+
+    assert_ne!(update.4, delete.4);
+}
+
+#[test]
+fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
+    let retained = ForgeQueryExistingTruthAssertionEvidence::retained_assertion(
+        1,
+        "retained-assertion-digest",
+    );
+    let backend_verified = ForgeQueryExistingTruthAssertionEvidence::backend_verified(
+        &crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(
+            &crate::runtime::ForgeQueryExistingTruthTargetBinding::direct_entity(
+                "authority:task-1",
+                "Task:1",
+            )
+            .expect("binding should build"),
+            &[crate::runtime::ForgeQueryAspectValue::new(
+                "title.value",
+                serde_json::json!("Seed title"),
+            )
+            .expect("aspect should build")],
+        )
+        .expect("verified assertion should build"),
+    );
+
+    let retained_summary = super::summarize_existing_truth_modes(
+        &[ForgeQueryMutationFamily::Assertion],
+        &[Some(retained)],
+    );
+    let verified_summary = super::summarize_existing_truth_modes(
+        &[ForgeQueryMutationFamily::Assertion],
+        &[Some(backend_verified)],
+    );
+
+    assert_ne!(retained_summary.4, verified_summary.4);
+}
+
+#[test]
+#[should_panic(expected = "invalid existing-truth assertion mode")]
+fn existing_truth_mode_summary_panics_on_invalid_family_mode_pair() {
+    let retained = ForgeQueryExistingTruthAssertionEvidence::retained_assertion(
+        1,
+        "retained-assertion-digest",
+    );
+
+    let _ = super::summarize_existing_truth_modes(
+        &[ForgeQueryMutationFamily::Update],
+        &[Some(retained)],
+    );
 }

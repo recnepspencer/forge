@@ -1,9 +1,9 @@
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryContinuityMutationEvidence,
-    ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationCausalityEvidence,
-    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
-    ForgeQueryWriteReceipt,
+    ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
+    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationProvenanceEvidence,
+    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
+    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryWriteReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,6 +11,7 @@ pub struct ForgeQueryBatchWriteComponentInspection {
     family: String,
     commit_identity: String,
     target_evidence: ForgeQueryMutationTargetEvidence,
+    existing_truth_assertion_evidence: Option<ForgeQueryExistingTruthAssertionEvidence>,
     existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
     symbolic_target_reference_evidence: Option<ForgeQuerySymbolicTargetReferenceEvidence>,
     naming_mutation_evidence: Option<ForgeQueryNamingMutationEvidence>,
@@ -69,6 +70,7 @@ impl ForgeQueryBatchWriteComponentInspection {
             family: receipt.mutation_family().as_str().to_string(),
             commit_identity: receipt.commit_identity().to_string(),
             target_evidence: receipt.target_evidence().clone(),
+            existing_truth_assertion_evidence: receipt.existing_truth_assertion_evidence().cloned(),
             existing_truth_binding_evidence: receipt.existing_truth_binding_evidence().cloned(),
             symbolic_target_reference_evidence: receipt
                 .symbolic_target_reference_evidence()
@@ -102,6 +104,12 @@ impl ForgeQueryBatchWriteComponentInspection {
 
     pub fn causality_evidence(&self) -> Option<&ForgeQueryMutationCausalityEvidence> {
         self.causality_evidence.as_ref()
+    }
+
+    pub fn existing_truth_assertion_evidence(
+        &self,
+    ) -> Option<&ForgeQueryExistingTruthAssertionEvidence> {
+        self.existing_truth_assertion_evidence.as_ref()
     }
 
     pub fn existing_truth_binding_evidence(

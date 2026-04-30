@@ -2,8 +2,9 @@ mod digest;
 
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
-    ForgeQueryContinuityMutationEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryInspectedArtifact, ForgeQueryMutationCausalityEvidence, ForgeQueryMutationMetadata,
+    ForgeQueryContinuityMutationEvidence, ForgeQueryExistingTruthAssertionEvidence,
+    ForgeQueryExistingTruthBindingEvidence, ForgeQueryInspectedArtifact,
+    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationMetadata,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryRuntimeInspectionEvidence,
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryWriteReceipt,
@@ -16,6 +17,7 @@ pub struct ForgeQueryWriteReceiptInspection {
     authority_lane: ForgeQueryAuthorityLane,
     basis_lane: ForgeQueryAuthorityLane,
     target_evidence: ForgeQueryMutationTargetEvidence,
+    existing_truth_assertion_evidence: Option<ForgeQueryExistingTruthAssertionEvidence>,
     existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
     symbolic_target_reference_evidence: Option<ForgeQuerySymbolicTargetReferenceEvidence>,
     naming_mutation_evidence: Option<ForgeQueryNamingMutationEvidence>,
@@ -34,6 +36,7 @@ pub struct ForgeQueryWriteReceiptInspection {
     runtime_evidence: ForgeQueryRuntimeInspectionEvidence,
     live_patch_artifacts: Vec<String>,
     declared_aspect_operations: Vec<ForgeQueryAspectMutationOperation>,
+    declared_aspect_value_digest: Option<String>,
     mutation_metadata: ForgeQueryMutationMetadata,
     inspection_digest: String,
 }
@@ -64,8 +67,12 @@ impl ForgeQueryWriteReceiptInspection {
             .map(|delta| format!("{}:{}", delta.collection, delta.entity_identity))
             .collect::<Vec<_>>();
         let declared_aspect_operations = receipt.declared_aspect_operations().to_vec();
+        let declared_aspect_value_digest =
+            receipt.declared_aspect_value_digest().map(str::to_string);
         let mutation_metadata = receipt.mutation_metadata().clone();
         let target_evidence = receipt.target_evidence().clone();
+        let existing_truth_assertion_evidence =
+            receipt.existing_truth_assertion_evidence().cloned();
         let existing_truth_binding_evidence = receipt.existing_truth_binding_evidence().cloned();
         let symbolic_target_reference_evidence =
             receipt.symbolic_target_reference_evidence().cloned();
@@ -76,6 +83,7 @@ impl ForgeQueryWriteReceiptInspection {
         let inspection_digest = build_write_receipt_inspection_digest(
             receipt,
             &target_evidence,
+            existing_truth_assertion_evidence.as_ref(),
             existing_truth_binding_evidence.as_ref(),
             symbolic_target_reference_evidence.as_ref(),
             naming_mutation_evidence.as_ref(),
@@ -84,6 +92,7 @@ impl ForgeQueryWriteReceiptInspection {
             provenance_evidence.as_ref(),
             &runtime_evidence,
             &declared_aspect_operations,
+            declared_aspect_value_digest.as_deref(),
             &mutation_metadata,
             &live_patch_artifacts,
         );
@@ -92,6 +101,7 @@ impl ForgeQueryWriteReceiptInspection {
             authority_lane: receipt.authority_lane(),
             basis_lane: receipt.basis_lane(),
             target_evidence,
+            existing_truth_assertion_evidence,
             existing_truth_binding_evidence,
             symbolic_target_reference_evidence,
             naming_mutation_evidence,
@@ -110,6 +120,7 @@ impl ForgeQueryWriteReceiptInspection {
             runtime_evidence,
             live_patch_artifacts,
             declared_aspect_operations,
+            declared_aspect_value_digest,
             mutation_metadata,
             inspection_digest,
         }
@@ -133,6 +144,12 @@ impl ForgeQueryWriteReceiptInspection {
 
     pub fn causality_evidence(&self) -> Option<&ForgeQueryMutationCausalityEvidence> {
         self.causality_evidence.as_ref()
+    }
+
+    pub fn existing_truth_assertion_evidence(
+        &self,
+    ) -> Option<&ForgeQueryExistingTruthAssertionEvidence> {
+        self.existing_truth_assertion_evidence.as_ref()
     }
 
     pub fn existing_truth_binding_evidence(
@@ -205,6 +222,10 @@ impl ForgeQueryWriteReceiptInspection {
 
     pub fn declared_aspect_operations(&self) -> &[ForgeQueryAspectMutationOperation] {
         &self.declared_aspect_operations
+    }
+
+    pub fn declared_aspect_value_digest(&self) -> Option<&str> {
+        self.declared_aspect_value_digest.as_deref()
     }
 
     pub fn mutation_metadata(&self) -> &ForgeQueryMutationMetadata {

@@ -1,6 +1,76 @@
 use super::*;
 
 impl ForgeQueryRuntime {
+    fn verified_existing_assertion_for_command(
+        &self,
+        command: &ForgeQueryWriteCommand,
+    ) -> Result<Option<ForgeQueryVerifiedExistingTruthAssertion>, ForgeQueryRuntimeError> {
+        match command {
+            ForgeQueryWriteCommand::VerifyExistingAspects {
+                binding, aspects, ..
+            }
+            | ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+                binding,
+                asserted_aspects: aspects,
+                ..
+            }
+            | ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+                binding,
+                asserted_aspects: aspects,
+                ..
+            } => Ok(Some(
+                self.backend
+                    .verify_existing_truth_assertion(binding, aspects)
+                    .map_err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied)?,
+            )),
+            _ => Ok(None),
+        }
+    }
+
+    fn lower_backend_write_command(command: ForgeQueryWriteCommand) -> ForgeQueryWriteCommand {
+        match command {
+            ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+                binding,
+                aspects,
+                metadata,
+                naming_intent,
+                continuity_intent,
+                ..
+            } => ForgeQueryWriteCommand::UpdateExistingAspects {
+                binding,
+                aspects,
+                metadata,
+                naming_intent,
+                continuity_intent,
+            },
+            ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+                binding,
+                touched_aspect_paths,
+                metadata,
+                naming_intent,
+                ..
+            } => ForgeQueryWriteCommand::DeleteExistingAspects {
+                binding,
+                touched_aspect_paths,
+                metadata,
+                naming_intent,
+            },
+            other => other,
+        }
+    }
+
+    pub fn probe_existing(
+        &self,
+        request: ForgeQueryExistingTruthProbeRequest,
+    ) -> Result<ForgeQueryExistingTruthProbe, ForgeQueryRuntimeError> {
+        self.backend
+            .admit_existing_truth_binding(request.binding())
+            .map_err(ForgeQueryRuntimeError::MutationBindingDenied)?;
+        self.backend
+            .probe_existing_truth(&request)
+            .map_err(ForgeQueryRuntimeError::ExistingTruthProbeDenied)
+    }
+
     pub fn write(
         &mut self,
         command: ForgeQueryWriteCommand,
@@ -27,12 +97,33 @@ impl ForgeQueryRuntime {
         let declared_collection = command.declared_collection();
         let declared_entity_identity = command.declared_entity_identity();
         let existing_truth_binding = command.existing_truth_binding().cloned();
+        let verified_existing_truth_assertion =
+            self.verified_existing_assertion_for_command(&command)?;
         let symbolic_target_reference = None;
         let naming_intent = command.naming_intent().cloned();
         let continuity_intent = command.continuity_intent().cloned();
         let declared_aspect_operations = command.declared_aspect_operations();
+        let declared_aspect_value_digest = command_declared_aspect_value_digest(&command);
         let mutation_metadata = command.mutation_metadata();
-        let mut receipt = self.backend.write(command)?;
+        let mut receipt = match &command {
+            ForgeQueryWriteCommand::AssertExistingAspects { binding, .. } => {
+                synthetic_existing_assertion_receipt(
+                    binding,
+                    &self.backend.snapshot_token(),
+                    declared_aspect_value_digest.as_deref(),
+                )
+            }
+            ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
+                synthetic_existing_assertion_receipt(
+                    binding,
+                    &self.backend.snapshot_token(),
+                    declared_aspect_value_digest.as_deref(),
+                )
+            }
+            _ => self
+                .backend
+                .write(Self::lower_backend_write_command(command))?,
+        };
         if let Some(intent) = continuity_intent.as_ref() {
             let (_, target_collection, target_entity_identity) =
                 classify_receipt_mutation_summary(&receipt);
@@ -65,10 +156,12 @@ impl ForgeQueryRuntime {
             declared_collection,
             declared_entity_identity,
             existing_truth_binding,
+            verified_existing_truth_assertion,
             symbolic_target_reference,
             naming_intent,
             continuity_intent,
             declared_aspect_operations,
+            declared_aspect_value_digest,
             mutation_metadata,
         )
     }
@@ -99,12 +192,29 @@ impl ForgeQueryRuntime {
             let declared_collection = command.declared_collection();
             let declared_entity_identity = command.declared_entity_identity();
             let existing_truth_binding = command.existing_truth_binding().cloned();
+            let verified_existing_truth_assertion =
+                self.verified_existing_assertion_for_command(&command)?;
             let declared_aspect_operations = command.declared_aspect_operations();
+            let declared_aspect_value_digest = command_declared_aspect_value_digest(&command);
             let mutation_metadata = command.mutation_metadata();
             let symbolic_target_reference = command.symbolic_target_reference().cloned();
             let naming_intent = command.naming_intent().cloned();
             let continuity_intent = command.continuity_intent().cloned();
             let mut receipt = match command {
+                ForgeQueryWriteCommand::AssertExistingAspects { binding, .. } => {
+                    synthetic_existing_assertion_receipt(
+                        &binding,
+                        &self.backend.snapshot_token(),
+                        declared_aspect_value_digest.as_deref(),
+                    )
+                }
+                ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
+                    synthetic_existing_assertion_receipt(
+                        &binding,
+                        &self.backend.snapshot_token(),
+                        declared_aspect_value_digest.as_deref(),
+                    )
+                }
                 ForgeQueryWriteCommand::UpdateSymbolicAspects {
                     reference,
                     aspects,
@@ -152,7 +262,9 @@ impl ForgeQueryRuntime {
                         ),
                     )
                 }
-                other => self.backend.write(other)?,
+                other => self
+                    .backend
+                    .write(Self::lower_backend_write_command(other))?,
             };
             if let Some(intent) = continuity_intent.as_ref() {
                 let (_, target_collection, target_entity_identity) =
@@ -190,10 +302,12 @@ impl ForgeQueryRuntime {
                 declared_collection,
                 declared_entity_identity,
                 existing_truth_binding,
+                verified_existing_truth_assertion,
                 symbolic_target_reference,
                 naming_intent,
                 continuity_intent,
                 declared_aspect_operations,
+                declared_aspect_value_digest,
                 mutation_metadata,
             ));
             receipts.push(receipt);
@@ -207,23 +321,48 @@ impl ForgeQueryRuntime {
             .into_iter()
             .zip(command_summaries)
             .map(|(receipt, summary)| {
+                let (
+                    mutation_family,
+                    declared_collection,
+                    declared_entity_identity,
+                    existing_truth_binding,
+                    verified_existing_truth_assertion,
+                    symbolic_target_reference,
+                    naming_intent,
+                    continuity_intent,
+                    declared_aspect_operations,
+                    declared_aspect_value_digest,
+                    mutation_metadata,
+                ) = summary;
                 let affected_live_view_ids = self.backend.affected_live_view_ids(&receipt);
-                let (_, target_collection, target_entity_identity) =
+                let (_, mut target_collection, mut target_entity_identity) =
                     classify_receipt_mutation_summary(&receipt);
+                if target_collection.is_none() {
+                    target_collection = existing_truth_binding
+                        .as_ref()
+                        .and_then(|binding| binding.target_collection().map(str::to_string));
+                }
+                if target_entity_identity.is_none() {
+                    target_entity_identity = existing_truth_binding
+                        .as_ref()
+                        .map(|binding| binding.resolved_target_identity().to_string());
+                }
                 ForgeQueryWriteReceipt::batch_component(
                     receipt,
-                    summary.0,
+                    mutation_family,
                     ForgeQueryAuthorityLane::AuthoritativeTruth,
-                    summary.1,
-                    summary.2,
-                    summary.3,
-                    summary.4,
-                    summary.5,
-                    summary.6,
+                    declared_collection,
+                    declared_entity_identity,
+                    existing_truth_binding,
+                    verified_existing_truth_assertion,
+                    symbolic_target_reference,
+                    naming_intent,
+                    continuity_intent,
                     target_collection,
                     target_entity_identity,
-                    summary.7,
-                    summary.8,
+                    declared_aspect_operations,
+                    declared_aspect_value_digest,
+                    mutation_metadata,
                     affected_live_view_ids,
                     ForgeQueryAuthorityLane::AuthoritativeTruth,
                 )

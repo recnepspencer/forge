@@ -26,7 +26,28 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
     );
     assert_eq!(
         support.existing_truth_binding_families(),
-        &["direct_entity_identity".to_string()]
+        &[
+            "direct_entity_identity".to_string(),
+            "direct_relation_identity".to_string(),
+        ]
+    );
+    assert_eq!(
+        support.existing_truth_assertion_modes(),
+        &[
+            "retained_authoritative_assertion".to_string(),
+            "backend_verified_assertion".to_string(),
+        ]
+    );
+    assert_eq!(
+        support.existing_truth_probe_modes(),
+        &["backend_verified_probe".to_string()]
+    );
+    assert_eq!(
+        support.existing_truth_verified_mutation_modes(),
+        &[
+            "backend_verified_update".to_string(),
+            "backend_verified_delete".to_string(),
+        ]
     );
     assert_eq!(
         support.symbolic_target_reference_families(),
@@ -43,11 +64,27 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
     assert!(support
         .aggregate_evidence_sections()
         .iter()
+        .any(|section| section == "aggregate_existing_truth_mode_digest"));
+    assert!(support
+        .aggregate_evidence_sections()
+        .iter()
         .any(|section| section == "aggregate_naming_mutation_digest"));
     assert!(support
         .fail_closed_denial_classes()
         .iter()
-        .any(|kind| kind == "preview_continuity_requires_authoritative_lane"));
+        .any(|kind| kind == "backend_verification_unsupported"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "backend_probe_unsupported"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "missing_probed_aspect"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "requires_authoritative_lane"));
     assert_eq!(
         row.support_contract_digest(),
         Some(support.support_digest())
@@ -108,6 +145,30 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
         .iter()
         .any(|line| line.contains("existing-truth binding")));
     assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("backend-verified assertions")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("aggregate mode evidence")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("existing-truth probes")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("verified updates")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("verified deletes")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("probe surfaces keep retained assertions")));
+    assert!(closeout
         .must_not_assume_yet()
         .iter()
         .any(|line| line.contains("durable restart")));
@@ -115,10 +176,30 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
         .must_not_assume_yet()
         .iter()
         .any(|line| line.contains("remain fail-closed")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|line| line.contains("verified-mutation") && line.contains("probe neighbors")));
     assert!(bridge_closeout
         .must_not_assume_yet()
         .iter()
         .any(|line| line.contains("existing-truth binding") && line.contains("fail-closed")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.assert_existing(...)")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.probe_existing(...)")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.update_existing_verified(...)")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.delete_existing_verified(...)")));
     assert!(closeout
         .migration_guidance()
         .iter()
@@ -159,5 +240,17 @@ fn runtime_public_authoritative_mutation_evidence_closeout_document_matches_cert
     }
     for family in query_support.continuity_mutation_families() {
         assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+    for family in query_support.existing_truth_binding_families() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+    for mode in query_support.existing_truth_assertion_modes() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(mode));
+    }
+    for mode in query_support.existing_truth_probe_modes() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(mode));
+    }
+    for mode in query_support.existing_truth_verified_mutation_modes() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(mode));
     }
 }

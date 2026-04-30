@@ -10,7 +10,10 @@ fn bridge_public_authoritative_mutation_evidence_support_freezes_admitted_famili
         .any(|item| item == "existing-truth-binding"));
     assert_eq!(
         support.existing_truth_binding_families(),
-        &["direct_entity_identity".to_string()]
+        &[
+            "direct_entity_identity".to_string(),
+            "direct_relation_identity".to_string(),
+        ]
     );
     assert_eq!(
         support.symbolic_target_reference_families(),
