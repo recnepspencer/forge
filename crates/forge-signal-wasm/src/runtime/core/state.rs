@@ -13,9 +13,10 @@ use crate::recipe::model::{
     KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeReadSpec, RecipeSpec, WasmAspectId,
 };
 use crate::runtime::compute_callbacks;
+use crate::runtime::compute_callbacks::CapturedHostCapabilityRead;
 use crate::runtime::summaries::{
-    CallbackDependencyPatchSummary, CallbackFailureSummary, RuntimeStoreSnapshot,
-    StoredCallbackRecipeSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot,
+    public_callback_read_ids, CallbackDependencyPatchSummary, CallbackFailureSummary,
+    RuntimeStoreSnapshot, StoredCallbackRecipeSnapshot, StoredRecipeSnapshot, StoredSourceSnapshot,
 };
 
 use super::aspects::{aspect_version_from_summary, aspect_versions_summary};
@@ -87,6 +88,7 @@ pub(super) struct StoredComputeCallbackRecipe {
     pub(super) id: String,
     pub(super) token: compute_callbacks::ComputeCallbackToken,
     pub(super) reads: Vec<RecipeReadSpec>,
+    pub(super) host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub(super) produces_aspects: Option<Vec<WasmAspectId>>,
 }
 
@@ -124,6 +126,7 @@ pub(super) struct PendingCallbackDependencyPatch {
     pub(super) id: String,
     pub(super) previous_reads: Vec<RecipeReadSpec>,
     pub(super) reads: Vec<RecipeReadSpec>,
+    pub(super) host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub(super) dependencies: Vec<DependencyEdge>,
     pub(super) previous_dependency_count: usize,
     pub(super) runtime_read_breadth: usize,
@@ -137,6 +140,7 @@ pub(super) struct StoredRecipeFamily {
 #[derive(Debug, Clone, Default)]
 pub(super) struct CallbackDiagnosticState {
     pub(super) current_reads: Vec<String>,
+    pub(super) host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub(super) purity_posture: Option<String>,
     pub(super) last_runtime_read_breadth: u64,
     pub(super) last_dependency_patch: Option<CallbackDependencyPatchSummary>,
@@ -279,14 +283,16 @@ impl RuntimeStore {
                     callback: match &recipe.definition {
                         StoredRecipeDefinition::Expr(_) => None,
                         StoredRecipeDefinition::Callback(callback) => {
+                            let callback_read_ids = callback
+                                .reads
+                                .iter()
+                                .map(|read| read.id().to_owned())
+                                .collect::<Vec<_>>();
                             Some(StoredCallbackRecipeSnapshot {
                                 token_slot: callback.token.slot,
                                 token_generation: callback.token.generation,
-                                reads: callback
-                                    .reads
-                                    .iter()
-                                    .map(|read| read.id().to_owned())
-                                    .collect(),
+                                reads: public_callback_read_ids(&callback_read_ids),
+                                host_capability_reads: callback.host_capability_reads.clone(),
                             })
                         }
                     },
@@ -334,6 +340,8 @@ impl RuntimeStore {
                 {
                     existing_callback.reads =
                         super::evaluation::canonicalize_callback_reads(callback_snapshot.reads);
+                    existing_callback.host_capability_reads =
+                        callback_snapshot.host_capability_reads;
                 }
             }
         }

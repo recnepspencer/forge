@@ -220,6 +220,7 @@ impl RuntimeCore {
             id: id.clone(),
             token,
             reads: reads.clone(),
+            host_capability_reads: invocation.captured_host_capability_reads.clone(),
             produces_aspects: None,
         });
         self.insert_recipe_definition(
@@ -246,6 +247,7 @@ impl RuntimeCore {
             id.clone(),
             CallbackDiagnosticState {
                 current_reads,
+                host_capability_reads: invocation.captured_host_capability_reads,
                 purity_posture: Some("signalTracked".to_owned()),
                 last_runtime_read_breadth: invocation.runtime_read_breadth,
                 ..CallbackDiagnosticState::default()

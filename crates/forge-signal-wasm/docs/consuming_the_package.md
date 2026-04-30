@@ -117,7 +117,11 @@ the public unscoped package name.
 ### Core runtime
 
 ```ts
-import { createSignals } from "forge-signal-wasm";
+import {
+  createSignals,
+  hostCapabilityPlan,
+  visibilityCapability,
+} from "forge-signal-wasm";
 ```
 
 ### React adapter
@@ -181,6 +185,62 @@ signals.transaction((tx) => {
 console.log(panel());
 signals.nuke(watchHandle);
 ```
+
+## Host Capability Example
+
+Host capability is the typed lane for browser/runtime-local facts. Register
+families when the runtime is created, then read them through `signals.host.*`.
+
+```ts
+import {
+  createSignals,
+  hostCapabilityPlan,
+  onlineCapability,
+  visibilityCapability,
+} from "forge-signal-wasm";
+
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return document.visibilityState;
+        },
+        subscribe(listener) {
+          document.addEventListener("visibilitychange", listener);
+          return () => document.removeEventListener("visibilitychange", listener);
+        },
+      },
+      compatibility: "LiveOnly",
+    }),
+    online: onlineCapability({
+      source: {
+        current() {
+          return navigator.onLine ? "online" : "offline";
+        },
+        subscribe(listener) {
+          window.addEventListener("online", listener);
+          window.addEventListener("offline", listener);
+          return () => {
+            window.removeEventListener("online", listener);
+            window.removeEventListener("offline", listener);
+          };
+        },
+      },
+    }),
+  }),
+});
+
+const availability = signals.computed(() => (
+  signals.host.visibility.isVisible() && signals.host.online.isOnline()
+    ? "ready"
+    : "paused"
+), { id: "availability" });
+```
+
+Use this lane instead of reading `document.visibilityState` or
+`navigator.onLine` directly inside callbacks. Ambient closure reads are not
+tracked dependencies.
 
 ## Diagnostics Example
 

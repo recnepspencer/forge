@@ -11,6 +11,19 @@ function attachSerializedField(value, field, serialized) {
   return value;
 }
 
+function attachLiteralField(value, field, literal) {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  Object.defineProperty(value, field, {
+    value: literal,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  });
+  return value;
+}
+
 function snapshotEnvelopeRestoreToken(snapshot) {
   return snapshot?.snapshotEnvelopeRestoreToken;
 }
@@ -87,18 +100,32 @@ export function wrapHistory(rawHistory) {
       return rawHistory.lineage_for(id);
     },
     snapshot() {
-      return attachSerializedField(
+      const snapshot = attachSerializedField(
         rawHistory.snapshot(),
         "snapshotEnvelopeRestoreToken",
         rawHistory.snapshot_wire(),
       );
+      attachSerializedField(
+        snapshot,
+        "snapshotEnvelopePortableWire",
+        rawHistory.snapshot_portable_wire(),
+      );
+      return attachLiteralField(snapshot, "snapshotEnvelopeRestoreMode", "SameRuntimeExact");
     },
     restore_snapshot(snapshot) {
-      const restoreToken = snapshotEnvelopeRestoreToken(snapshot);
-      if (typeof restoreToken === "string") {
-        return rawHistory.restore_snapshot_wire(restoreToken);
+      if (typeof snapshot?.snapshotEnvelopePortableWire === "string") {
+        return rawHistory.restore_snapshot_portable_wire(snapshot.snapshotEnvelopePortableWire);
       }
       return rawHistory.restore_snapshot(snapshot);
+    },
+    restore_exact_snapshot(snapshot) {
+      const restoreToken = snapshotEnvelopeRestoreToken(snapshot);
+      if (typeof restoreToken !== "string") {
+        throw new TypeError(
+          "history.restore_exact_snapshot expects an artifact returned by history.snapshot() or history.branch_snapshot_envelope()",
+        );
+      }
+      return rawHistory.restore_snapshot_wire(restoreToken);
     },
     current_branch() {
       return rawHistory.current_branch();
@@ -117,33 +144,57 @@ export function wrapHistory(rawHistory) {
     },
     branch_snapshot(branchId) {
       const normalizedBranchId = normalizeBranchId(branchId, "history.branch_snapshot");
-      return attachSerializedField(
+      const snapshot = attachSerializedField(
         rawHistory.branch_snapshot(normalizedBranchId),
         "snapshotRestoreToken",
         rawHistory.branch_snapshot_wire(normalizedBranchId),
       );
+      attachSerializedField(
+        snapshot,
+        "snapshotPortableWire",
+        rawHistory.branch_snapshot_portable_wire(normalizedBranchId),
+      );
+      return attachLiteralField(snapshot, "snapshotRestoreMode", "SameRuntimeExact");
     },
     branch_snapshot_id(branchId) {
       return rawHistory.branch_snapshot_id(normalizeBranchId(branchId, "history.branch_snapshot_id"));
     },
     branch_snapshot_envelope(branchId) {
       const normalizedBranchId = normalizeBranchId(branchId, "history.branch_snapshot_envelope");
-      return attachSerializedField(
+      const envelope = attachSerializedField(
         rawHistory.branch_snapshot_envelope(normalizedBranchId),
         "snapshotEnvelopeRestoreToken",
         rawHistory.branch_snapshot_envelope_wire(normalizedBranchId),
       );
+      attachSerializedField(
+        envelope,
+        "snapshotEnvelopePortableWire",
+        rawHistory.branch_snapshot_envelope_portable_wire(normalizedBranchId),
+      );
+      return attachLiteralField(envelope, "snapshotEnvelopeRestoreMode", "SameRuntimeExact");
     },
     restore_branch_snapshot(branchId, snapshot) {
       const normalizedBranchId = normalizeBranchId(branchId, "history.restore_branch_snapshot");
-      const restoreToken = snapshotRestoreToken(snapshot);
-      if (typeof restoreToken === "string") {
-        return rawHistory.restore_branch_snapshot_wire(normalizedBranchId, restoreToken);
+      if (typeof snapshot?.snapshotPortableWire === "string") {
+        return rawHistory.restore_branch_snapshot_portable_wire(
+          normalizedBranchId,
+          snapshot.snapshotPortableWire,
+        );
       }
       return rawHistory.restore_branch_snapshot(
         normalizedBranchId,
         snapshot,
       );
+    },
+    restore_exact_branch_snapshot(branchId, snapshot) {
+      const normalizedBranchId = normalizeBranchId(branchId, "history.restore_exact_branch_snapshot");
+      const restoreToken = snapshotRestoreToken(snapshot);
+      if (typeof restoreToken !== "string") {
+        throw new TypeError(
+          "history.restore_exact_branch_snapshot expects an artifact returned by history.branch_snapshot()",
+        );
+      }
+      return rawHistory.restore_branch_snapshot_wire(normalizedBranchId, restoreToken);
     },
     restore_branch_snapshot_by_id(branchId, snapshotId) {
       return rawHistory.restore_branch_snapshot_by_id(

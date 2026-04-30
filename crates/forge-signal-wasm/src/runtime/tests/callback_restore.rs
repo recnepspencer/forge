@@ -30,6 +30,7 @@ fn callback_snapshot_restore_recovers_dependency_shape_for_branchy_callbacks() {
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String(name_for_callback.borrow().clone()),
                         captured_read_ids: vec!["name".to_owned(), "enabled".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 2,
                         return_serialization_breadth: 1,
                     })
@@ -37,6 +38,7 @@ fn callback_snapshot_restore_recovers_dependency_shape_for_branchy_callbacks() {
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String("disabled".to_owned()),
                         captured_read_ids: vec!["enabled".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })

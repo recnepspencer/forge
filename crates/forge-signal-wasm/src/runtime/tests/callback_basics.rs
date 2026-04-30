@@ -10,6 +10,7 @@ fn constant_compute_callbacks_lower_to_constant_web_computed_nodes() {
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(42.0),
                     captured_read_ids: Vec::new(),
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 0,
                     return_serialization_breadth: 1,
                 })
@@ -126,6 +127,7 @@ fn stable_dependency_compute_callbacks_recompute_through_runtime_truth() {
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(count * 2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })
@@ -203,6 +205,7 @@ fn callback_recipe_dependency_set_changes_patch_live_graph_and_remove_stale_depe
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String(name_for_callback.borrow().clone()),
                         captured_read_ids: vec!["name".to_owned(), "enabled".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 2,
                         return_serialization_breadth: 1,
                     })
@@ -210,6 +213,7 @@ fn callback_recipe_dependency_set_changes_patch_live_graph_and_remove_stale_depe
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String("disabled".to_owned()),
                         captured_read_ids: vec!["enabled".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })

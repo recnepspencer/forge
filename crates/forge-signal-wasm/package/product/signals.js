@@ -4,6 +4,16 @@ import {
   parseOutputCallbackArgs,
   withComputedCallbackFrame,
 } from "./callback_frames.js";
+import {
+  clockCapability,
+  createHostCapabilities,
+  hostCapabilityPlan,
+  onlineCapability,
+  persistenceCapability,
+  viewportCapability,
+  visibilityCapability,
+} from "./host_capabilities.js";
+import { wrapDiagnostics } from "./diagnostics.js";
 import { wrapHistory } from "./history.js";
 import { unwrapSignalTarget, wrapInputSignal, wrapReadableSignal } from "./handles.js";
 import { wrapSpecialist } from "./specialist.js";
@@ -88,8 +98,20 @@ function outputProjectionSpec(hiddenComputedId) {
   };
 }
 
-export function wrapSignals(rawSignals) {
+export {
+  clockCapability,
+  hostCapabilityPlan,
+  onlineCapability,
+  persistenceCapability,
+  viewportCapability,
+  visibilityCapability,
+};
+
+export function wrapSignals(rawSignals, options) {
+  const hostCapabilities = createHostCapabilities(rawSignals, options);
+  let diagnostics = null;
   return {
+    host: hostCapabilities.host,
     input(idOrInitial, initialOrOptions, maybeOptions) {
       const { id, initial, options } = parseInputArgs(idOrInitial, initialOrOptions, maybeOptions);
       return wrapInputSignal(rawSignals.input(id, initial, options), rawSignals);
@@ -180,7 +202,12 @@ export function wrapSignals(rawSignals) {
       return rawSignals.batch((rawTx) => callback(wrapTransaction(rawTx, rawSignals)));
     },
     nuke: rawSignals.nuke.bind(rawSignals),
-    diagnostics: rawSignals.diagnostics.bind(rawSignals),
+    diagnostics() {
+      if (!diagnostics) {
+        diagnostics = wrapDiagnostics(rawSignals.diagnostics(), hostCapabilities);
+      }
+      return diagnostics;
+    },
     history() {
       return wrapHistory(rawSignals.history());
     },
@@ -188,12 +215,16 @@ export function wrapSignals(rawSignals) {
       return wrapSpecialist(rawSignals.specialist());
     },
     adapters() {
-      return wrapAdapters(rawSignals.adapters());
+      return wrapAdapters(rawSignals.adapters(), hostCapabilities);
     },
     compatibilityApp: rawSignals.compatibilityApp.bind(rawSignals),
     compatibilityRuntime: rawSignals.compatibilityRuntime.bind(rawSignals),
-    free: rawSignals.free.bind(rawSignals),
+    free() {
+      hostCapabilities.dispose();
+      rawSignals.free();
+    },
     [Symbol.dispose]() {
+      hostCapabilities.dispose();
       if (typeof rawSignals[Symbol.dispose] === "function") {
         rawSignals[Symbol.dispose]();
         return;
@@ -203,10 +234,10 @@ export function wrapSignals(rawSignals) {
   };
 }
 
-export function createCallableSignals() {
-  return wrapSignals(createRawSignals());
+export function createCallableSignals(options) {
+  return wrapSignals(createRawSignals(), options);
 }
 
-export function createSignals() {
-  return createCallableSignals();
+export function createSignals(options) {
+  return createCallableSignals(options);
 }

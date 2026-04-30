@@ -2,6 +2,7 @@ import {
   activeComputedCallbackFrame,
   denySignalMutationDuringCallbackAuthoring,
 } from "./callback_frames.js";
+import { buildHostCapabilityTransportReport } from "./host_capability_reports.js";
 import { unwrapInputSignalTarget } from "./handles.js";
 
 function attachSerializedField(value, field, serialized) {
@@ -15,6 +16,35 @@ function attachSerializedField(value, field, serialized) {
     writable: false,
   });
   return value;
+}
+
+function attachLiteralField(value, field, literal) {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  Object.defineProperty(value, field, {
+    value: literal,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  });
+  return value;
+}
+
+function throwPortableImportUnavailableCallbacks(envelope, hostCapabilities) {
+  const unavailableCallbacks = envelope?.definitions?.unavailableCallbacks;
+  if (!Array.isArray(unavailableCallbacks) || unavailableCallbacks.length === 0) {
+    return;
+  }
+  hostCapabilities.recordPortableImportDenial(unavailableCallbacks);
+  const ids = unavailableCallbacks
+    .map((artifact) => artifact?.id)
+    .filter((id) => typeof id === "string" && id.length > 0)
+    .join(", ");
+  throw {
+    code: "computeCallbackUnavailableForRuntimeEnvelopeImport",
+    message: `runtime envelope import cannot restore callback-backed nodes without live callback registrations: ${ids}`,
+  };
 }
 
 export function wrapTransaction(rawTx, rawSignals) {
@@ -69,26 +99,50 @@ export function wrapTransaction(rawTx, rawSignals) {
   });
 }
 
-export function wrapAdapters(rawAdapters) {
+export function wrapAdapters(rawAdapters, hostCapabilities) {
   return Object.freeze({
     exportDefinitions() {
       return rawAdapters.export_definitions();
     },
     exportRuntimeEnvelope() {
-      return attachSerializedField(
+      const envelope = attachSerializedField(
         rawAdapters.export_runtime_envelope(),
         "runtimeEnvelopeRestoreToken",
         rawAdapters.export_runtime_envelope_wire(),
       );
+      hostCapabilities.recordExportedUnavailableCallbacks(
+        envelope?.definitions?.unavailableCallbacks,
+      );
+      attachSerializedField(
+        envelope,
+        "runtimeEnvelopePortableWire",
+        rawAdapters.export_runtime_envelope_portable_wire(),
+      );
+      return attachLiteralField(envelope, "runtimeEnvelopeRestoreMode", "SameRuntimeExact");
     },
     replaceRuntimeEnvelope(envelope) {
-      if (typeof envelope?.runtimeEnvelopeRestoreToken === "string") {
-        return rawAdapters.replace_runtime_envelope_wire(envelope.runtimeEnvelopeRestoreToken);
+      throwPortableImportUnavailableCallbacks(envelope, hostCapabilities);
+      if (typeof envelope?.runtimeEnvelopePortableWire === "string") {
+        return rawAdapters.replace_runtime_envelope_portable_wire(envelope.runtimeEnvelopePortableWire);
       }
       return rawAdapters.replace_runtime_envelope(envelope);
     },
+    restoreExactRuntimeEnvelope(envelope) {
+      if (typeof envelope?.runtimeEnvelopeRestoreToken !== "string") {
+        throw new TypeError(
+          "adapters.restoreExactRuntimeEnvelope expects an artifact returned by adapters.exportRuntimeEnvelope()",
+        );
+      }
+      return rawAdapters.replace_runtime_envelope_wire(envelope.runtimeEnvelopeRestoreToken);
+    },
     runtimeProofReport() {
       return rawAdapters.runtime_proof_report();
+    },
+    hostCapabilityTransportReport(envelope) {
+      const targetEnvelope = envelope ?? this.exportRuntimeEnvelope();
+      return buildHostCapabilityTransportReport(
+        targetEnvelope?.definitions?.unavailableCallbacks,
+      );
     },
     free() {
       rawAdapters.free();

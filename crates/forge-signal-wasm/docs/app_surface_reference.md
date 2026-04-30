@@ -3,6 +3,10 @@
 This is the reference for the primary `forge-signal-wasm` app surface. Every
 major concept includes a simple example and a more realistic one.
 
+For the dedicated host-capability guide, including lifecycle, compatibility
+posture, diagnostics, and anti-patterns, see
+[host_capabilities.md](./host_capabilities.md).
+
 ## Entry Point
 
 ### `createSignals(): Signals`
@@ -33,6 +37,91 @@ const panel = signals.output(() => ({
   doubled: doubled(),
 }), { id: "panel" });
 ```
+
+Host-capability registration is explicit when you want browser-local facts to
+participate in callback-derived state:
+
+```ts
+import {
+  clockCapability,
+  createSignals,
+  hostCapabilityPlan,
+  onlineCapability,
+  persistenceCapability,
+  viewportCapability,
+  visibilityCapability,
+} from "forge-signal-wasm";
+
+let persistedDraft = { mode: "draft", revision: 1 };
+
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return document.visibilityState;
+        },
+        subscribe(listener) {
+          document.addEventListener("visibilitychange", listener);
+          return () => document.removeEventListener("visibilitychange", listener);
+        },
+      },
+      compatibility: "LiveOnly",
+    }),
+    viewport: viewportCapability({
+      source: {
+        current() {
+          return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+        },
+        subscribe(listener) {
+          window.addEventListener("resize", listener);
+          return () => window.removeEventListener("resize", listener);
+        },
+      },
+    }),
+    online: onlineCapability({
+      source: {
+        current() {
+          return navigator.onLine ? "online" : "offline";
+        },
+        subscribe(listener) {
+          window.addEventListener("online", listener);
+          window.addEventListener("offline", listener);
+          return () => {
+            window.removeEventListener("online", listener);
+            window.removeEventListener("offline", listener);
+          };
+        },
+      },
+    }),
+    clock: clockCapability({
+      source: {
+        current() {
+          return Date.now();
+        },
+      },
+      pollMs: 1000,
+    }),
+    persistence: persistenceCapability({
+      source: {
+        current() {
+          return persistedDraft;
+        },
+      },
+    }),
+  }),
+});
+```
+
+Good to know:
+
+- host capability is the typed lane for browser/runtime-local facts
+- `signals.host.*` handles are framework-owned and not user-disposable
+- unsupported ambient host reads remain non-reactive
+- per-family compatibility posture matters during restore/import/export
 
 ### `start(): void`
 
@@ -134,6 +223,36 @@ const label = signals.computed(() => {
   return `${name()} x${count()}`;
 }, { id: "label" });
 ```
+
+Host capability reads stay explicit and typed:
+
+```ts
+const visibilityLabel = signals.computed(() => (
+  signals.host.visibility?.isVisible() ? "visible" : "hidden"
+), { id: "visibilityLabel" });
+
+const viewportLabel = signals.computed(() => (
+  `${signals.host.viewport?.width() ?? 0}x${signals.host.viewport?.height() ?? 0}`
+), { id: "viewportLabel" });
+
+const connectivityLabel = signals.computed(() => (
+  signals.host.online?.isOnline() ? "online" : "offline"
+), { id: "connectivityLabel" });
+
+const secondLabel = signals.computed(() => (
+  Math.floor((signals.host.clock?.now() ?? 0) / 1000)
+), { id: "secondLabel" });
+
+const draftRevision = signals.computed(() => (
+  signals.host.persistence?.value().revision ?? 0
+), { id: "draftRevision" });
+
+persistedDraft = { mode: "published", revision: 2 };
+signals.host.persistence?.commit();
+```
+
+That callback captures only declared signal and host-capability reads. Ordinary
+closure state is still not reactive.
 
 ### `OutputSignal`
 

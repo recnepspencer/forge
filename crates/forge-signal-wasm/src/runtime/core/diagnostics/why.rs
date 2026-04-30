@@ -1,7 +1,9 @@
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::runtime::compute_callbacks;
-use crate::runtime::summaries::CallbackWhySummary;
-use crate::runtime::summaries::WhySummary;
+use crate::runtime::summaries::{
+    public_callback_dependency_patch_summary, public_callback_read_ids, CallbackWhySummary,
+    WhySummary,
+};
 
 use super::super::state::{StoredRecipeDefinition, StoredRecipeOrigin, WebSignalKind};
 use super::super::RuntimeCore;
@@ -40,14 +42,21 @@ impl RuntimeCore {
                         purity_posture: state
                             .purity_posture
                             .unwrap_or_else(|| "signalTracked".to_owned()),
-                        current_reads: state.current_reads,
+                        current_reads: public_callback_read_ids(&state.current_reads),
+                        host_capability_reads: state.host_capability_reads,
                         registered,
                         unavailable_reason: (!registered)
                             .then_some(CALLBACK_UNAVAILABLE_FOR_REPLAY.to_owned()),
                         token_slot: Some(callback_recipe.token.slot),
                         token_generation: Some(callback_recipe.token.generation),
                         last_runtime_read_breadth: state.last_runtime_read_breadth,
-                        last_dependency_patch: state.last_dependency_patch,
+                        last_dependency_patch: state.last_dependency_patch.map(|patch| {
+                            public_callback_dependency_patch_summary(
+                                &patch.previous_reads,
+                                &patch.current_reads,
+                                patch.runtime_read_breadth,
+                            )
+                        }),
                         last_failure: state.last_failure,
                     })
                 }
@@ -61,13 +70,20 @@ impl RuntimeCore {
                         purity_posture: state
                             .purity_posture
                             .unwrap_or_else(|| "constantizedNoSignalReads".to_owned()),
-                        current_reads: state.current_reads,
+                        current_reads: public_callback_read_ids(&state.current_reads),
+                        host_capability_reads: state.host_capability_reads,
                         registered: false,
                         unavailable_reason: None,
                         token_slot: None,
                         token_generation: None,
                         last_runtime_read_breadth: state.last_runtime_read_breadth,
-                        last_dependency_patch: state.last_dependency_patch,
+                        last_dependency_patch: state.last_dependency_patch.map(|patch| {
+                            public_callback_dependency_patch_summary(
+                                &patch.previous_reads,
+                                &patch.current_reads,
+                                patch.runtime_read_breadth,
+                            )
+                        }),
                         last_failure: state.last_failure,
                     })
                 }

@@ -240,6 +240,7 @@ impl RuntimeCore {
                 .iter()
                 .map(|read| read.id().to_owned())
                 .collect();
+            state.host_capability_reads = callback.host_capability_reads.clone();
             state.last_runtime_read_breadth = 0;
             state.last_dependency_patch = None;
             state.last_failure = None;

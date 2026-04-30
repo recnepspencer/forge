@@ -231,6 +231,7 @@ impl RuntimeCore {
             diagnostic_updates.push((
                 patch.id.clone(),
                 current_reads.clone(),
+                patch.host_capability_reads.clone(),
                 CallbackDependencyPatchSummary {
                     previous_reads,
                     current_reads,
@@ -248,9 +249,12 @@ impl RuntimeCore {
         }
         drop(graph);
         let mut diagnostics = self.lock_callback_diagnostics()?;
-        for (id, current_reads, dependency_patch, runtime_read_breadth) in diagnostic_updates {
+        for (id, current_reads, host_capability_reads, dependency_patch, runtime_read_breadth) in
+            diagnostic_updates
+        {
             let state = diagnostics.entry(id).or_default();
             state.current_reads = current_reads;
+            state.host_capability_reads = host_capability_reads;
             state.last_runtime_read_breadth = runtime_read_breadth;
             state.last_dependency_patch = Some(dependency_patch);
         }
