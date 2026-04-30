@@ -302,6 +302,34 @@ intended product model.
 
 ## 10. Architecture Rules For This Milestone
 
+### 10.0 Capability Shape
+
+The architectural target is not:
+
+- "convert every node into an async state machine"
+- "replace nodes with a resource abstraction"
+- "teach callers to step outside the graph when async begins"
+
+The architectural target is:
+
+- ordinary node identity remains the anchor
+- async capability is an explicit attached declaration
+- graph dirtiness remains one axis of truth
+- async lifecycle remains a second axis of truth
+- output continuity, observation, replay, restore, and diagnostics continue to
+  derive from those axes rather than collapsing them into one convenience
+  result
+
+The minimum honest capability shape is:
+
+- a typed async-capability declaration attachable to ordinary node identities
+- a lowered capability descriptor that reuses Milestone B/C lifecycle and
+  policy substrate
+- a node-local runtime artifact surface for lifecycle, request identity,
+  observation, and replay
+- public builder/facade vocabulary that teaches capability attachment rather
+  than a second node species
+
 ### 10.1 Capability Attachment Must Be Explicit
 
 Async capability must be declared on node construction or node-family
@@ -309,6 +337,15 @@ construction through typed capability declarations.
 
 The capability declaration must lower into the same frozen descriptor and
 policy pipeline already used by the resource substrate.
+
+First-ship structural expectation:
+
+- raw node registration must not silently become async-capable by ambient
+  builder state
+- legacy resource-shaped construction must reduce to the same capability
+  declaration, not construct a parallel descriptor path
+- the execution path must consume a lowered async-capability descriptor rather
+  than re-reading builder/declaration intent at hot-path admission time
 
 ### 10.2 Node Dirtiness And Async Lifecycle Must Stay Separate
 
@@ -388,47 +425,134 @@ The milestone may preserve compatibility aliases such as
 
 Public docs and APIs should stop teaching the opposite order.
 
+### 10.9 Compile-Time Enforcement Expectations
+
+This milestone is not allowed to rely mainly on "document the right usage."
+
+At minimum, the implementation must aim for compiler-enforced structure in the
+following places:
+
+- capability-bearing declarations must be distinct types from ordinary
+  node-only declarations
+- lowered capability descriptors must be sealed proof-bearing artifacts
+- lifecycle access surfaces that require async capability must not accept
+  arbitrary plain node declarations without an explicit proof-bearing lowering
+  step
+- legacy resource-shaped compatibility constructors must not be able to bypass
+  capability-first declaration and lowering
+- non-async nodes must fail at compile time or typed-lowering time when callers
+  attempt to use async-only builder or inspection surfaces
+
+If the first-ship implementation cannot make one of these fully
+compiler-enforced, it must:
+
+- expose a typed denial before runtime execution begins
+- mark the gap explicitly as debt in the milestone closeout
+- add compile-fail or typed-boundary tests proving the weaker boundary still
+  fails closed
+
 ## 11. Phase Breakdown
 
 ### Phase 1: Capability Model And Descriptor Unification
 
 - define async-capability declarations for ordinary nodes
+- define the first-ship typed artifact families for:
+  - async-capability declaration
+  - validated capability reference
+  - frozen capability descriptor
+  - lowered capability bundle
+  - compatibility alias lowering proof
 - lower them through the existing resource/policy substrate
 - make legacy resource-shaped declarations compatibility shims over the same
   descriptor truth
+- define the canonical node-first vocabulary for:
+  - capability attachment
+  - lifecycle access
+  - request admission
+  - capability-aware inspection
+- prove that capability-first and legacy resource-shaped declarations lower to
+  identical descriptor truth when they mean the same thing
 
 ### Phase 2: Eligibility And Condition Composition
 
 - define how conditions, temporal policies, and previous-value policies govern
   async admission on ordinary nodes
+- define the typed admission-classification artifacts that distinguish:
+  - ordinary dirtiness
+  - blocked async admission
+  - admitted async lineage
+  - revalidation/refresh eligibility
 - ensure replay/restore parity for those combined gates
+- define explicit admission semantics for:
+  - "condition blocks async admission"
+  - "condition allows async admission"
+  - "condition allows refresh/revalidation but not new lineage"
+- prove that condition and previous-value gates remain admission truth rather
+  than lifecycle truth
 
 ### Phase 3: Aspect, Partition, And Family Composition
 
 - make async-capable keyed/query/computed families first-class
+- define the family-local descriptor and identity shape so keyed/query/computed
+  async capability cannot smuggle in a second request-identity model
 - define aspect-local and partition-local async refresh semantics
 - define interior async-node semantics for lifecycle/output gating in the
   middle of dependency chains
 - certify that family and partition breadth remain bounded
+- define which downstream node facts may depend on an interior async-capable
+  node:
+  - lifecycle class
+  - committed output
+  - output continuity
+  - observation boundary
+- prohibit hidden broadening from family-wide or partition-wide async capability
+  attachment into graph-wide invalidation or replay scans
 
 ### Phase 4: Hierarchical Composition And Graph-Gate Closeout
 
 - certify multi-level async-capable dependency chains
+- define the canonical runtime artifacts for:
+  - interior async gate state
+  - hierarchical cancellation footprint
+  - hierarchical replay/restore summary
+  - downstream admission dependence on upstream lifecycle/output truth
 - define cancellation/retry/revalidation/observation behavior across those
   chains
 - prove replay/restore parity for async-capable interior nodes and hierarchies
+- define the honest semantics for:
+  - parent async node gating child async admission
+  - child async completion changing parent admission legality
+  - dependent cancellation propagation through capability-attached chains
+  - branch-local restore of partially completed async hierarchies
 
 ### Phase 5: Public API And Vocabulary Sweep
 
 - update builders and facades so async capability reads like a node capability
 - preserve compatibility aliases where useful
 - remove wording that implies a second node species
+- add compile-fail or typed-boundary coverage proving ordinary node-only
+  surfaces cannot accidentally construct async-capable declarations by shortcut
+- make the ordinary public story read naturally in terms of:
+  - "this node is async-capable"
+  - "this node exposes lifecycle truth"
+  - "this node refreshes under these policies"
+  rather than
+  - "switch to a different resource subsystem"
 
 ### Phase 6: Diagnostics, Replay, And Historical Closeout
 
 - certify that explanation, replay, restore, branch, and retained history all
   tell the same story for capability-attached async nodes as for legacy
   resource-shaped paths
+- certify that capability-first and legacy compatibility surfaces share:
+  - canonical lifecycle digest
+  - canonical output continuity digest
+  - canonical denial history
+  - canonical explanation lineage
+- certify that capability attachment does not create a second replay or
+  diagnostics truth model
+- close the migration story by proving capability-first and compatibility-first
+  surfaces share canonical lineage and explanation artifacts
 
 ## 12. Must Preserve
 
@@ -443,6 +567,29 @@ Public docs and APIs should stop teaching the opposite order.
   remain distinct
 - lifecycle truth remains distinct from output continuity truth
 - diagnostics richness remains distinct from committed runtime truth
+
+## 12.1 Naive Traps Explicitly Forbidden
+
+The following implementation patterns are explicitly out of spec even if they
+appear to make progress quickly:
+
+- adding a generic `Pending` or `Async` variant to the ordinary node dirtiness
+  enum
+- implementing async capability as a side table keyed by node id but leaving
+  declaration/building/lowering unaware of it
+- making capability-first and legacy resource-shaped APIs lower through
+  different descriptor or replay paths
+- deriving request identity differently for capability-attached computed/query
+  nodes than for legacy resource-shaped nodes
+- treating interior async gates as special runtime-managed pseudo-nodes outside
+  the ordinary dependency graph
+- making hierarchical cancellation or replay correctness depend on host-layer
+  coordination instead of runtime-owned artifacts
+- using diagnostics or observation surfaces as the place where capability
+  semantics are reconstructed
+
+If an implementation needs one of these to "get started," the milestone is
+being approached in the wrong order.
 
 ## 13. Performance Contracts
 
@@ -472,6 +619,15 @@ The milestone must also declare named complexity contracts for:
 - replay/restore reconstruction for capability-attached async nodes
 - compatibility alias lowering and validation
 
+These contracts must be measured at explicit boundaries, not inferred from
+end-to-end throughput:
+
+- capability declaration and lowering boundary
+- async admission / refresh boundary
+- interior async gate coordination boundary
+- hierarchical cancellation / replay / restore boundary
+- compatibility alias lowering boundary
+
 ## 14. Acceptance Evidence
 
 Milestone D is complete only when `forge-signal` can certify all of the
@@ -484,6 +640,48 @@ following with canonical machine-checkable artifacts:
 - `Interior Async Node Gate Equivalence Test`
 - `Hierarchical Async Capability Replay And Cancellation Test`
 - `Legacy Resource Alias Compatibility Test`
+- `Async Capability Compile-Time Boundary Test`
+
+### 14.1 Directly Required Hard Tests
+
+The following are the direct blocking gates for Milestone D:
+
+- `Async Capability Attachment Equivalence Test`
+- `Interior Async Node Gate Equivalence Test`
+- `Hierarchical Async Capability Replay And Cancellation Test`
+
+These are blocking because they prove the main thesis of the milestone:
+async capability can attach to ordinary nodes, can live in the middle of the
+graph, and can compose through dependency hierarchies without creating a
+second truth model.
+
+Each direct blocking gate must certify all of the following categories where
+relevant:
+
+- capability declaration / descriptor digest
+- request identity and lifecycle digest
+- output continuity / observation digest
+- replay / restore digest
+- denial / incompatibility artifact digest
+- boundary performance envelope
+
+### 14.2 Important Tests That May Be Satisfied By Stronger Combined Suites
+
+The following may be satisfied either directly or through a stronger combined
+suite, but the closeout must name the owning suite explicitly:
+
+- `Condition-Gated Async Admission Parity Test`
+- `Aspect-Scoped Async Capability Test`
+- `Previous-Value And Temporal Async Capability Parity Test`
+- `Legacy Resource Alias Compatibility Test`
+
+Normative rule:
+
+- indirect coverage is only acceptable if the stronger suite proves the same
+  semantic boundary more strictly
+- the closeout must state which combined suite owns each indirect requirement
+- a requirement may not disappear into vague "covered by general regression"
+  wording
 
 The final closeout must prove:
 
@@ -511,7 +709,24 @@ Milestone D is the first follow-on that should feel explicitly product-shaping
 again. It does not reopen B/C law. It expresses that law through a better
 capability model.
 
-## 16. Milestone Done When
+## 16. Migration Notes
+
+Milestone D must not strand the existing Milestone B/C substrate.
+
+Required migration posture:
+
+- legacy resource-shaped declarations may remain as compatibility vocabulary
+- capability-first declarations become the architectural source of truth
+- compatibility aliases must lower through the same descriptor, lifecycle,
+  observation, replay, and diagnostics substrate
+- no new feature may land only on the legacy resource-shaped API once
+  capability-first declarations exist
+
+The migration is complete only when future product layers can target the
+capability-first node model directly without losing any Milestone B/C lifecycle
+or policy protections.
+
+## 17. Milestone Done When
 
 Milestone D is done only when `forge-signal` can support async capability on
 arbitrary nodes through a frozen, typed, replay-honest substrate that:

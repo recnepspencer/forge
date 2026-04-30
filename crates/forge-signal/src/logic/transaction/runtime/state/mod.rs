@@ -1,3 +1,4 @@
+mod async_capability;
 mod branching;
 mod builder;
 mod guided;

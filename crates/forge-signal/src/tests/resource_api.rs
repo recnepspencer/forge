@@ -1,6 +1,44 @@
 #[test]
 fn resource_compile_fail_boundaries_hold() {
     let cases = trybuild::TestCases::new();
+    cases
+        .compile_fail("tests/ui/validated_async_node_capability_declaration_fields_are_private.rs");
+    cases.compile_fail("tests/ui/frozen_async_node_capability_descriptor_fields_are_private.rs");
+    cases.compile_fail("tests/ui/lowered_async_node_capability_bundle_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_capability_alias_lowering_proof_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_capable_node_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_keyed_node_capability_binding_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_gate_state_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_hierarchy_replay_summary_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_hierarchy_cancellation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_historical_parity_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_async_node_historical_parity_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_capability_equivalence_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_async_node_capability_equivalence_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_keyed_node_historical_parity_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/denied_async_keyed_node_historical_parity_fields_are_private.rs");
+    cases.compile_fail(
+        "tests/ui/async_keyed_node_capability_equivalence_report_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/denied_async_keyed_node_capability_equivalence_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/async_node_hierarchy_historical_parity_report_fields_are_private.rs",
+    );
+    cases.compile_fail(
+        "tests/ui/denied_async_node_hierarchy_historical_parity_fields_are_private.rs",
+    );
+    cases.compile_fail("tests/ui/async_node_admission_classification_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_request_admission_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_request_intent_constructor_is_private.rs");
+    cases.compile_fail("tests/ui/async_node_revalidation_report_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_revalidation_intent_constructor_is_private.rs");
+    cases.compile_fail("tests/ui/async_node_compile_time_boundary_proof_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_milestone_d_scenario_matrix_fields_are_private.rs");
+    cases
+        .compile_fail("tests/ui/async_node_milestone_d_performance_closeout_fields_are_private.rs");
+    cases.compile_fail("tests/ui/async_node_milestone_d_certification_run_fields_are_private.rs");
     cases.compile_fail("tests/ui/admitted_resource_request_fields_are_private.rs");
     cases.compile_fail("tests/ui/admitted_resource_completion_fields_are_private.rs");
     cases.compile_fail("tests/ui/cancelled_resource_request_fields_are_private.rs");

@@ -15,6 +15,40 @@
 
 pub mod core {
     pub use crate::data::aspect::{Aspect, AspectMask, AspectVersion, MAX_ASPECTS};
+    pub use crate::data::async_node::{
+        async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,
+        async_node_milestone_d_performance_closeout, async_node_milestone_d_scenario_matrix,
+        AsyncCapableNode, AsyncKeyedNodeCapabilityBinding,
+        AsyncKeyedNodeCapabilityEquivalenceDenialClass, AsyncKeyedNodeCapabilityEquivalenceReport,
+        AsyncKeyedNodeHistoricalParityDenialClass, AsyncKeyedNodeHistoricalParityReport,
+        AsyncNodeAdmissionClass, AsyncNodeAdmissionClassification,
+        AsyncNodeCapabilityAliasLoweringProof, AsyncNodeCapabilityDeclaration,
+        AsyncNodeCapabilityEquivalenceDenialClass, AsyncNodeCapabilityEquivalenceReport,
+        AsyncNodeCompileTimeBoundaryProof, AsyncNodeConditionBlockClass,
+        AsyncNodeDownstreamDependenceFact, AsyncNodeGateStateReport,
+        AsyncNodeHierarchyCancellationReport, AsyncNodeHierarchyHistoricalParityDenialClass,
+        AsyncNodeHierarchyHistoricalParityReport, AsyncNodeHierarchyReplaySummary,
+        AsyncNodeHistoricalParityDenialClass, AsyncNodeHistoricalParityReport,
+        AsyncNodeMilestoneDCertificationRun, AsyncNodeMilestoneDCertificationRunSummary,
+        AsyncNodeMilestoneDPerformanceClaimId, AsyncNodeMilestoneDPerformanceCloseout,
+        AsyncNodeMilestoneDPerformanceCloseoutRow, AsyncNodeMilestoneDPerformanceCloseoutSummary,
+        AsyncNodeMilestoneDScenarioEvidenceKind, AsyncNodeMilestoneDScenarioId,
+        AsyncNodeMilestoneDScenarioInputs, AsyncNodeMilestoneDScenarioMatrix,
+        AsyncNodeMilestoneDScenarioMatrixSummary, AsyncNodeMilestoneDScenarioRow,
+        AsyncNodePayloadContract, AsyncNodePayloadContractId, AsyncNodeRequestAdmissionReport,
+        AsyncNodeRequestIntent, AsyncNodeRevalidationIntent, AsyncNodeRevalidationReport,
+        DeniedAsyncKeyedNodeCapabilityEquivalence, DeniedAsyncKeyedNodeHistoricalParity,
+        DeniedAsyncNodeCapabilityEquivalence, DeniedAsyncNodeHierarchyHistoricalParity,
+        DeniedAsyncNodeHistoricalParity, FrozenAsyncNodeCapabilityDescriptor,
+        LoweredAsyncNodeCapabilityBundle, ValidatedAsyncNodeCapabilityDeclaration,
+        ASYNC_NODE_COMPILE_TIME_BOUNDARY_PROOF_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_CERTIFICATION_RUN_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_SCENARIO_MATRIX_SCHEMA_VERSION,
+        REQUIRED_ASYNC_NODE_COMPILE_TIME_FIXTURES,
+        REQUIRED_ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLAIMS,
+        REQUIRED_ASYNC_NODE_MILESTONE_D_SCENARIOS,
+    };
     pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
     pub use crate::data::dependency::DependencyEdge;
     pub use crate::data::error::SignalError;
@@ -236,6 +270,38 @@ pub mod core {
 }
 
 pub mod runtime {
+    pub use crate::data::async_node::{
+        async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,
+        async_node_milestone_d_performance_closeout, async_node_milestone_d_scenario_matrix,
+        AsyncKeyedNodeCapabilityBinding, AsyncKeyedNodeCapabilityEquivalenceDenialClass,
+        AsyncKeyedNodeCapabilityEquivalenceReport, AsyncKeyedNodeHistoricalParityDenialClass,
+        AsyncKeyedNodeHistoricalParityReport, AsyncNodeAdmissionClass,
+        AsyncNodeAdmissionClassification, AsyncNodeCapabilityAliasLoweringProof,
+        AsyncNodeCapabilityDeclaration, AsyncNodeCapabilityEquivalenceDenialClass,
+        AsyncNodeCapabilityEquivalenceReport, AsyncNodeCompileTimeBoundaryProof,
+        AsyncNodeConditionBlockClass, AsyncNodeDownstreamDependenceFact, AsyncNodeGateStateReport,
+        AsyncNodeHierarchyCancellationReport, AsyncNodeHierarchyHistoricalParityDenialClass,
+        AsyncNodeHierarchyHistoricalParityReport, AsyncNodeHierarchyReplaySummary,
+        AsyncNodeMilestoneDCertificationRun, AsyncNodeMilestoneDCertificationRunSummary,
+        AsyncNodeMilestoneDPerformanceClaimId, AsyncNodeMilestoneDPerformanceCloseout,
+        AsyncNodeMilestoneDPerformanceCloseoutRow, AsyncNodeMilestoneDPerformanceCloseoutSummary,
+        AsyncNodeMilestoneDScenarioEvidenceKind, AsyncNodeMilestoneDScenarioId,
+        AsyncNodeMilestoneDScenarioInputs, AsyncNodeMilestoneDScenarioMatrix,
+        AsyncNodeMilestoneDScenarioMatrixSummary, AsyncNodeMilestoneDScenarioRow,
+        AsyncNodePayloadContract, AsyncNodePayloadContractId, AsyncNodeRequestAdmissionReport,
+        AsyncNodeRequestIntent, AsyncNodeRevalidationIntent, AsyncNodeRevalidationReport,
+        DeniedAsyncKeyedNodeCapabilityEquivalence, DeniedAsyncKeyedNodeHistoricalParity,
+        DeniedAsyncNodeCapabilityEquivalence, DeniedAsyncNodeHierarchyHistoricalParity,
+        FrozenAsyncNodeCapabilityDescriptor, LoweredAsyncNodeCapabilityBundle,
+        ValidatedAsyncNodeCapabilityDeclaration,
+        ASYNC_NODE_COMPILE_TIME_BOUNDARY_PROOF_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_CERTIFICATION_RUN_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION,
+        ASYNC_NODE_MILESTONE_D_SCENARIO_MATRIX_SCHEMA_VERSION,
+        REQUIRED_ASYNC_NODE_COMPILE_TIME_FIXTURES,
+        REQUIRED_ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLAIMS,
+        REQUIRED_ASYNC_NODE_MILESTONE_D_SCENARIOS,
+    };
     pub use crate::data::checkpoint::CheckpointBarrier;
     pub use crate::data::checkpoint_policy::CheckpointPolicy as RuntimeCheckpointPolicy;
     pub use crate::data::output::ComputationFamily as RecipeFamily;
@@ -663,6 +729,37 @@ pub use self::specialist::{
 };
 #[cfg(not(test))]
 pub use self::specialist::{EvaluationContext, RunMode};
+#[cfg(not(test))]
+pub use crate::data::async_node::{
+    async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,
+    async_node_milestone_d_performance_closeout, async_node_milestone_d_scenario_matrix,
+    AsyncKeyedNodeCapabilityBinding, AsyncKeyedNodeCapabilityEquivalenceDenialClass,
+    AsyncKeyedNodeCapabilityEquivalenceReport, AsyncKeyedNodeHistoricalParityDenialClass,
+    AsyncKeyedNodeHistoricalParityReport, AsyncNodeAdmissionClass,
+    AsyncNodeAdmissionClassification, AsyncNodeCapabilityAliasLoweringProof,
+    AsyncNodeCapabilityDeclaration, AsyncNodeCapabilityEquivalenceDenialClass,
+    AsyncNodeCapabilityEquivalenceReport, AsyncNodeCompileTimeBoundaryProof,
+    AsyncNodeConditionBlockClass, AsyncNodeDownstreamDependenceFact, AsyncNodeGateStateReport,
+    AsyncNodeHierarchyCancellationReport, AsyncNodeHierarchyHistoricalParityDenialClass,
+    AsyncNodeHierarchyHistoricalParityReport, AsyncNodeHierarchyReplaySummary,
+    AsyncNodeMilestoneDCertificationRun, AsyncNodeMilestoneDCertificationRunSummary,
+    AsyncNodeMilestoneDPerformanceClaimId, AsyncNodeMilestoneDPerformanceCloseout,
+    AsyncNodeMilestoneDPerformanceCloseoutRow, AsyncNodeMilestoneDPerformanceCloseoutSummary,
+    AsyncNodeMilestoneDScenarioEvidenceKind, AsyncNodeMilestoneDScenarioId,
+    AsyncNodeMilestoneDScenarioInputs, AsyncNodeMilestoneDScenarioMatrix,
+    AsyncNodeMilestoneDScenarioMatrixSummary, AsyncNodeMilestoneDScenarioRow,
+    AsyncNodePayloadContract, AsyncNodePayloadContractId, AsyncNodeRequestAdmissionReport,
+    AsyncNodeRequestIntent, AsyncNodeRevalidationIntent, AsyncNodeRevalidationReport,
+    DeniedAsyncKeyedNodeCapabilityEquivalence, DeniedAsyncKeyedNodeHistoricalParity,
+    DeniedAsyncNodeCapabilityEquivalence, DeniedAsyncNodeHierarchyHistoricalParity,
+    FrozenAsyncNodeCapabilityDescriptor, LoweredAsyncNodeCapabilityBundle,
+    ValidatedAsyncNodeCapabilityDeclaration, ASYNC_NODE_COMPILE_TIME_BOUNDARY_PROOF_SCHEMA_VERSION,
+    ASYNC_NODE_MILESTONE_D_CERTIFICATION_RUN_SCHEMA_VERSION,
+    ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLOSEOUT_SCHEMA_VERSION,
+    ASYNC_NODE_MILESTONE_D_SCENARIO_MATRIX_SCHEMA_VERSION,
+    REQUIRED_ASYNC_NODE_COMPILE_TIME_FIXTURES, REQUIRED_ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLAIMS,
+    REQUIRED_ASYNC_NODE_MILESTONE_D_SCENARIOS,
+};
 #[cfg(test)]
 pub use crate::data::comparator::DefaultComparatorPolicyResolver;
 #[cfg(test)]
@@ -673,7 +770,6 @@ pub use crate::data::dependency::CanonicalDependencies;
 pub use crate::data::graph::{GcPressure, ObservationLevel, ParallelismHint};
 #[cfg(test)]
 pub use crate::data::output::MemoizedResultOrigin;
-#[cfg(not(test))]
 pub use crate::data::resource::{
     resource_certification_builder, resource_certification_bundle,
     resource_certification_bundle_parity_report, resource_milestone_b_certification_run,
