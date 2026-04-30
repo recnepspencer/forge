@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
 use forge_signal::facade::adapters::{
     branch_state_proof_report, merge_plan_proof_report, merge_result_proof_report,
     replay_artifact_proof_report, replay_parity_proof_report, runtime_proof_report,
@@ -13,10 +16,30 @@ use crate::recipe::model::SourceSpec;
 use crate::runtime::adapters::{
     RuntimeDefinitionEnvelope, RuntimeEnvelope, UnavailableCallbackArtifact,
 };
+use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 
 use super::merge::build_branch_state_proof_basis;
-use super::state::StoredRecipeDefinition;
+use super::state::{
+    BranchRuntimeState, CallbackDiagnosticState, CatalogEntry, DenseGridFamily, RuntimeStore,
+    StoredRecipeDefinition, WebRuntimeMetrics, WebSignalKind,
+};
 use super::RuntimeCore;
+
+#[derive(Clone)]
+pub(crate) struct ExactRuntimeRestoreArtifact {
+    snapshot: RuntimeSnapshotEnvelope,
+    store: RuntimeStore,
+    callback_diagnostics: BTreeMap<String, CallbackDiagnosticState>,
+    catalog: BTreeMap<String, CatalogEntry>,
+    web_signals: BTreeMap<String, WebSignalKind>,
+    nodes_by_id: BTreeMap<forge_signal::facade::NodeId, String>,
+    dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
+    branch_states: BTreeMap<u64, BranchRuntimeState>,
+    snapshot_states: BTreeMap<u64, BranchRuntimeState>,
+    runtime_snapshots: BTreeMap<u64, forge_signal::facade::history::RuntimeSnapshot>,
+    policy: crate::runtime::policy::RuntimePolicySpec,
+    web_metrics: WebRuntimeMetrics,
+}
 
 const CALLBACK_UNAVAILABLE_FOR_PORTABLE_EXPORT: &str =
     "computeCallbackUnavailableForPortableExport";
@@ -103,6 +126,28 @@ impl RuntimeCore {
         Ok(RuntimeEnvelope {
             definitions: self.export_definitions()?,
             snapshot: self.snapshot()?,
+        })
+    }
+
+    pub(crate) fn export_exact_runtime_restore_artifact(
+        &mut self,
+    ) -> Result<ExactRuntimeRestoreArtifact, ForgeSignalJsError> {
+        let snapshot = self.snapshot()?;
+        let store = self.lock_store()?.clone();
+        let callback_diagnostics = self.lock_callback_diagnostics()?.clone();
+        Ok(ExactRuntimeRestoreArtifact {
+            snapshot,
+            store,
+            callback_diagnostics,
+            catalog: self.catalog.clone(),
+            web_signals: self.web_signals.clone(),
+            nodes_by_id: self.nodes_by_id.clone(),
+            dense_grids: self.dense_grids.clone(),
+            branch_states: self.branch_states.clone(),
+            snapshot_states: self.snapshot_states.clone(),
+            runtime_snapshots: self.runtime_snapshots.clone(),
+            policy: self.policy.clone(),
+            web_metrics: self.web_metrics.clone(),
         })
     }
 
@@ -241,6 +286,26 @@ impl RuntimeCore {
             rebuilt.define_recipe(recipe)?;
         }
         rebuilt.restore_snapshot(envelope.snapshot)?;
+        *self = rebuilt;
+        Ok(())
+    }
+
+    pub(crate) fn replace_runtime_envelope_exact(
+        &mut self,
+        artifact: ExactRuntimeRestoreArtifact,
+    ) -> Result<(), ForgeSignalJsError> {
+        let mut rebuilt = RuntimeCore::new(artifact.policy.clone())?;
+        rebuilt.catalog = artifact.catalog;
+        rebuilt.web_signals = artifact.web_signals;
+        rebuilt.nodes_by_id = artifact.nodes_by_id;
+        rebuilt.dense_grids = artifact.dense_grids;
+        rebuilt.branch_states = artifact.branch_states;
+        rebuilt.snapshot_states = artifact.snapshot_states;
+        rebuilt.runtime_snapshots = artifact.runtime_snapshots;
+        rebuilt.web_metrics = artifact.web_metrics;
+        rebuilt.store = Arc::new(Mutex::new(artifact.store));
+        rebuilt.callback_diagnostics = Arc::new(Mutex::new(artifact.callback_diagnostics));
+        rebuilt.restore_snapshot(artifact.snapshot)?;
         *self = rebuilt;
         Ok(())
     }

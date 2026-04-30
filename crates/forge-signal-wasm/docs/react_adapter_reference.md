@@ -39,18 +39,12 @@ Complex:
 ```ts
 const store = createReactSignalsStore(signals);
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", () => count() * 2);
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 ```
 
 The returned `ReactSignalsStore` exposes:
@@ -132,7 +126,7 @@ function DiagnosticsBar() {
 
   return (
     <small>
-      deliveries: {diagnostics.latestObservation?.deliveredEventCount ?? 0}
+      deliveries: {diagnostics.latestObservation?.observation.delivered_event_count ?? 0}
       {" | "}
       callback patches: {diagnostics.performanceSummary.computeCallbackDependencyPatchCount}
     </small>
@@ -270,10 +264,11 @@ window.addEventListener("beforeunload", () => {
   `watch(...)`.
 - Rollback still suppresses normal delivery.
 - Callback-first `computed(() => ...)` remains runtime-owned derived truth.
+- Callback-first `output(() => ...)` is the normal product projection lane.
 - The store is an adapter, not a second state container.
 
 ## Related Docs
 
-- [consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
+- [consuming_the_package.md](consuming_the_package.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)

@@ -24,20 +24,14 @@ import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const enabled = signals.input("enabled", true);
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", () => count() * 2);
-const panel = signals.output("panel", {
-  reads: ["enabled", "count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["enabled", { kind: "read", id: "enabled" }],
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const enabled = signals.input(true, { id: "enabled" });
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  enabled: enabled(),
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 ```
 
 ### `start(): void`
@@ -76,17 +70,17 @@ const signals = createSignals();
 Simple:
 
 ```ts
-const count = signals.input("count", 1);
+const count = signals.input(1, { id: "count" });
 ```
 
 Complex:
 
 ```ts
-const part = signals.input("part", {
+const part = signals.input({
   id: "gear-7",
   dimensions: { teeth: 24, pitch: 1.5 },
   flags: ["released", "visible"],
-});
+}, { id: "part" });
 ```
 
 ## Handles
@@ -98,17 +92,17 @@ Mutable source state.
 Simple:
 
 ```ts
-const count = signals.input("count", 1);
+const count = signals.input(1, { id: "count" });
 console.log(count.id, count.get());
 ```
 
 Complex:
 
 ```ts
-const settings = signals.input("settings", {
+const settings = signals.input({
   mode: "advanced",
   autosave: true,
-});
+}, { id: "settings" });
 
 signals.transaction((tx) => {
   tx.set(settings, {
@@ -122,20 +116,23 @@ signals.transaction((tx) => {
 
 Derived internal state. Callback authoring is the normal lane.
 
+Only callable signal reads are tracked. Ordinary closure variables are not
+reactive dependencies.
+
 Simple:
 
 ```ts
-const doubled = signals.computed("doubled", () => count() * 2);
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 console.log(doubled());
 ```
 
 Complex:
 
 ```ts
-const label = signals.computed("label", () => {
+const label = signals.computed(() => {
   if (!enabled()) return "disabled";
   return `${name()} x${count()}`;
-});
+}, { id: "label" });
 ```
 
 ### `OutputSignal`
@@ -145,33 +142,19 @@ Public projection for UI/framework consumption.
 Simple:
 
 ```ts
-const panel = signals.output("panel", {
-  reads: ["count"],
-  expr: {
-    kind: "object",
-    fields: [["count", { kind: "read", id: "count" }]],
-  },
-});
+const panel = signals.output(() => ({
+  count: count(),
+}), { id: "panel" });
 ```
 
 Complex:
 
 ```ts
-const summary = signals.output("summary", {
-  reads: ["part", "label"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["part", { kind: "read", id: "part" }],
-      ["label", { kind: "read", id: "label" }],
-      ["teeth", {
-        kind: "get",
-        target: { kind: "get", target: { kind: "read", id: "part" }, field: "dimensions" },
-        field: "teeth",
-      }],
-    ],
-  },
-});
+const summary = signals.output(() => ({
+  part: part(),
+  label: label(),
+  teeth: part().dimensions.teeth,
+}), { id: "summary" });
 ```
 
 ### `DisposableHandle`
@@ -218,45 +201,46 @@ signals.transaction((tx) => {
 
 ## Core Methods On `Signals`
 
-### `input(id, initial, options?): InputSignal`
+### `input(initial, options?): InputSignal`
 
 Simple:
 
 ```ts
-const count = signals.input("count", 1);
+const count = signals.input(1, { id: "count" });
 ```
 
 Complex:
 
 ```ts
-const part = signals.input("part", {
+const part = signals.input({
   id: "gear-7",
   enabled: true,
 }, {
+  id: "part",
   producesAspects: [1, 2],
 });
 ```
 
 ### `computed(...)`
 
-Normal callback form:
-
-```ts
-const doubled = signals.computed("doubled", () => count() * 2);
-```
-
-Generated-id callback form:
+Preferred callback form:
 
 ```ts
 const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 ```
 
+Legacy id-first callback form:
+
+```ts
+const doubled = signals.computed("doubled", () => count() * 2);
+```
+
 Complex branchy callback:
 
 ```ts
-const label = signals.computed("label", () => {
+const label = signals.computed(() => {
   return enabled() ? `${name()} x${count()}` : "disabled";
-});
+}, { id: "label" });
 ```
 
 Advanced recipe form:
@@ -274,24 +258,30 @@ const doubled = signals.computedSpec("doubled", {
 });
 ```
 
-### `output(id, spec): OutputSignal`
+### `output(...)`
 
-Simple:
+Preferred callback form:
 
 ```ts
-const panel = signals.output("panel", {
-  reads: ["count"],
-  expr: {
-    kind: "object",
-    fields: [["count", { kind: "read", id: "count" }]],
-  },
-});
+const panel = signals.output(() => ({
+  count: count(),
+}), { id: "panel" });
 ```
 
-Complex:
+Complex callback form:
 
 ```ts
-const dashboard = signals.output("dashboard", {
+const dashboard = signals.output(() => ({
+  part: part(),
+  label: label(),
+  count: count(),
+}), { id: "dashboard" });
+```
+
+Advanced recipe form:
+
+```ts
+const dashboard = signals.outputSpec("dashboard", {
   reads: ["part", "label", "count"],
   expr: {
     kind: "object",
@@ -307,7 +297,10 @@ const dashboard = signals.output("dashboard", {
 Notes:
 
 - `output(...)` is the public projection concept.
-- `output(() => ...)` is intentionally deferred today.
+- Callback-first `output(() => ..., { id })` is the preferred product lane.
+- `outputSpec(...)` is the explicit portable recipe lane.
+- Aspect-filtered reads and produced-aspect declarations currently belong on
+  the explicit spec lane rather than the callback shorthand.
 
 ### `transaction(callback): RunSummary`
 
@@ -428,8 +421,20 @@ const history = signals.history();
 
 console.log(diagnostics.performanceSummary());
 console.log(adapters.exportDefinitions());
+console.log(adapters.exportRuntimeEnvelope());
 console.log(history.current_branch());
 ```
+
+Notes:
+
+- `adapters().exportRuntimeEnvelope()` / `replaceRuntimeEnvelope(...)` are the
+  expert import/export lane for runtime definitions plus captured snapshot
+  state.
+- restoring callback-backed nodes without live callback registrations is a
+  typed denial rather than a silent degraded import.
+- the product `history()` surface accepts the numeric branch ids it returns
+  from `current_branch()` and `create_branch(...)`, even though the raw wasm
+  layer still speaks in lower-level `u64`/`bigint` terms.
 
 ## `RunSummary`
 
@@ -508,7 +513,8 @@ const partSummary = signals.outputSpec("partSummary", {
 Simple:
 
 ```ts
-const part = signals.input("part", { teeth: 24 }, {
+const part = signals.input({ teeth: 24 }, {
+  id: "part",
   producesAspects: [1],
 });
 ```
@@ -520,7 +526,7 @@ signals.transaction((tx) => {
   tx.setWithAspects(part, { teeth: 26 }, [1]);
 });
 
-const summary = signals.output("summary", {
+const summary = signals.outputSpec("summary", {
   reads: [{ id: "part", aspects: [1] }],
   expr: { kind: "read", id: "part" },
 });

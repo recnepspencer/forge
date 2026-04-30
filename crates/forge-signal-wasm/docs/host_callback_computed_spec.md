@@ -1,6 +1,6 @@
 # Host Callback Computed Nodes Spec
 
-> **Status:** Proposed 2026-04-28
+> **Status:** Completed 2026-04-29
 >
 > **Parent:** [web_runtime_spec.md](./web_runtime_spec.md)
 >
@@ -9,6 +9,8 @@
 > **Core vision:** [_docs/forge_signal/forge_signal_vision.md](../../../_docs/forge_signal/forge_signal_vision.md)
 >
 > **Core test requirements:** [_docs/forge_signal/test-requirements.md](../../../_docs/forge_signal/test-requirements.md)
+>
+> **Wasm follow-on roadmap:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >
 > **Primary architectural driver:** make JavaScript callback-backed computed
 > signals first-class runtime nodes with dynamic dependency capture and
@@ -181,12 +183,16 @@ Why it matters:
 
 Required correction:
 
-- define callback computed as deterministic over captured signal reads plus
-  explicitly declared host capabilities
+- define the milestone callback-computed contract as deterministic over
+  captured signal reads
 - treat undeclared host reads as non-reactive by contract
 - provide diagnostics and development assertions that can identify callback
   evaluations with no captured reads, changing outputs without dependency
   changes, or declared impurity posture
+- if a future explicit host capability lane is added, it must be specified as a
+  separate typed resource family with its own ownership, invalidation,
+  replay/restore, and diagnostics contract rather than being silently folded
+  into ordinary closure capture
 - reserve compiler transforms or linting as future enforcement, not a hidden
   requirement for this milestone
 
@@ -330,8 +336,10 @@ Required correction:
   behavior, not raw uncaught JS exceptions that leave partial state
 - sync callback computed nodes reject `Promise` and non-canonical host object
   returns with typed denials
-- callback computed purity is defined as determinism over captured signal reads
-  plus explicitly declared host capabilities
+- callback computed purity for this milestone is defined as determinism over
+  captured signal reads
+- any future explicit host-capability lane is a separate typed resource family,
+  not an ambient closure-read exception
 - React consumes callback computed nodes through the existing React store and
   committed observation substrate
 - output callback support should use the same substrate once computed callback
@@ -464,7 +472,7 @@ const total = computed(() => price() * quantity());
 ```
 
 This is non-reactive with respect to `taxRate` unless `taxRate` is also a
-signal or an explicitly declared host capability:
+signal:
 
 ```ts
 let taxRate = 0.08;
@@ -478,8 +486,10 @@ The implementation must make that boundary visible:
   inspectable
 - a callback with no captured reads must be classified as constant or
   host-opaque rather than silently treated as signal-reactive
-- any explicit host capability mechanism must produce a typed descriptor and
-  invalidation lane rather than letting arbitrary closure reads become magic
+- this milestone does not admit an ambient "declared host capability" escape
+  hatch for ordinary callback purity; any future host capability lane must
+  introduce typed descriptors, lifecycle ownership, invalidation evidence, and
+  replay/restore honesty as a separately specified resource family
 
 This milestone does not require a TypeScript compiler transform or linter to
 detect hidden closure reads. It does require the runtime and docs to avoid
@@ -515,6 +525,11 @@ This milestone has two implementation ownership lanes.
 - TypeScript handle branding
 - active JS read collector bridge into the core captured-read-set contract
 - package exports and React harness coverage
+
+`forge-signal-wasm` ownership here does not permit ambient process-global
+callback folklore. Watch/effect and compute-callback capability registries must
+still be runtime-scoped, generation-aware, lifecycle-inspectable resources
+rather than bare global id maps that happen to live in wasm glue.
 
 `forge-signal-wasm` must not own:
 
@@ -737,13 +752,21 @@ The runtime must be honest about that boundary:
 - callback ids and descriptor metadata are runtime state
 - JavaScript function bodies are host capabilities
 
-Snapshot, restore, replay, export, and import must preserve callback node
-state, dependency facts, callback descriptor identity, and callback capability
-requirements through one honest runtime story.
+Snapshot, restore, replay, export, and import must not be collapsed into one
+undifferentiated portability claim. These lanes cross different trust and
+capability boundaries and must remain distinct in both artifacts and
+diagnostics:
+
+- live snapshot/restore in a runtime where the required callback capabilities
+  remain registered
+- same-host replay where equivalent callback capabilities are reattached before
+  resumed evaluation
+- export/import or cross-host restore where callback bodies are unavailable and
+  only committed callback-bearing artifacts can be carried forward honestly
 
 Because JavaScript function bodies are host capabilities rather than portable
-runtime data, the runtime must ship a self-describing callback-bearing
-envelope that records:
+runtime data, the runtime must ship self-describing callback-bearing artifacts
+that record:
 
 - committed callback-derived values
 - committed dependency shape
@@ -751,10 +774,20 @@ envelope that records:
 - required callback capability references
 - explicit capability-availability and compatibility markers
 
+The contract must freeze at least these artifact/result variants:
+
+- `live_restore_artifact`: restores committed callback-derived value and
+  dependency shape in a runtime that still owns the callback capability
+- `reattached_replay_artifact`: resumes equivalent callback-bearing runtime
+  truth only after an explicit capability reattachment step succeeds
+- `callback_unavailability_artifact`: carries committed callback-derived
+  snapshots plus the typed reason live reevaluation is unavailable
+
 If a restore, replay, export, or import lane lacks the callback capability
-required to evaluate a host callback node, it must emit an explicit typed
-unavailability artifact rather than silently recomputing from stale values or
-pretending the callback body itself was portable runtime data.
+required to evaluate a host callback node, it must emit the explicit typed
+unavailability artifact rather than silently recomputing from stale values,
+pretending the callback body itself was portable runtime data, or blurring the
+difference between live restore and callback-missing import.
 
 ### React Adapter Boundary
 
@@ -796,6 +829,12 @@ It must not own:
 - TypeScript handle objects
 - React store subscriptions
 - host-specific callback registries
+- semantics that depend on monkey-patching shared public facade objects after
+  construction
+- ordinary app-read behavior that must fall back through compatibility lanes to
+  stay correct
+- public diagnostics truth that exists only as opaque `JsValue` or `unknown`
+  blobs at the package boundary
 
 This substrate must expose a narrow evaluator boundary that a host adapter can
 implement. The evaluator boundary must receive a proof-bearing evaluation
@@ -925,34 +964,19 @@ Must prove:
 - the core runtime can represent host-computed success, denial, and failure
   without knowing JavaScript exists
 
-### Phase 2: Callback Boundary And Authoring Contract
-
-Deliver:
-
-- the public callback-computed authoring contract
-- typed `Signal<T>` callable handle model
-- explicit advanced AST/spec recipe naming
-- callback id and descriptor vocabulary
-- callback mutation denial rule
-
-Must prove:
-
-- callback computed authoring is not a wrapper over React state
-- AST recipes remain available but no longer define the default product story
-- the public types keep input, computed, output, disposable, and transaction
-  categories distinct
-- TypeScript signal handles are branded/opaque enough that ordinary structural
-  objects cannot masquerade as callback-authoring handles
-
-### Phase 3: Callback Registry And Invocation Lane
+### Phase 2: Callback Capability Registries And Invocation Boundaries
 
 Deliver:
 
 - compute callback registry
+- watch/effect callback registry cleanup so observation callbacks follow the
+  same runtime-scoped lifecycle discipline instead of ambient global id maps
 - callback lifecycle and disposal semantics
 - typed callback invocation result and failure artifacts
 - JS/Wasm marshalling for callback return values
 - invocation/failure counters
+- generation-aware callback capability identity for both compute and
+  observation/effect callback families
 
 Must prove:
 
@@ -961,8 +985,10 @@ Must prove:
 - callback invocation cost is counted separately from runtime evaluation cost
 - callback generations prevent stale callback ids from invoking newly
   registered callbacks after disposal/reuse
+- watch/effect callback lifecycles are no longer modeled as ambient process
+  globals unrelated to runtime ownership
 
-### Phase 4: Read Collector And Callable Signal Handles
+### Phase 3: Read Collector And Callable Signal Handles
 
 Deliver:
 
@@ -984,7 +1010,7 @@ Must prove:
 - self-read and dynamic cycle attempts produce typed denials
 - non-canonical callback return values cannot commit
 
-### Phase 5: Host Computed Runtime Recipe Family
+### Phase 4: Host Computed Runtime Recipe Family
 
 Deliver:
 
@@ -1005,7 +1031,7 @@ Must prove:
 - output callback support does not create a second host-callback engine or a
   second diagnostics story
 
-### Phase 6: Dynamic Dependency Patching
+### Phase 5: Dynamic Dependency Patching
 
 Deliver:
 
@@ -1027,7 +1053,32 @@ Must prove:
 - dependency patch counters exactly name added, removed, retained, and touched
   subscriber-index entries
 
-### Phase 7: Diagnostics, History, Snapshot, And Compatibility Parity
+### Phase 6: Callback-Bearing Artifacts, Restore, And Compatibility Truth
+
+Deliver:
+
+- callback-bearing staged/committed artifact projections
+- live snapshot/restore support for callback-bearing runtimes
+- replay/export/import through typed callback-bearing artifacts that distinguish
+  capability-reattached replay from callback-unavailable transport lanes
+- typed unavailability artifacts whenever required callback capabilities are
+  missing or incompatible
+- compatibility reads that return callback computed committed values without
+  redefining app-first truth
+
+Must prove:
+
+- live snapshot restore preserves callback dependency shape and callback
+  capability requirements
+- replay with explicit capability reattachment reconstructs equivalent
+  callback-bearing runtime truth
+- export/import or callback-missing restore lanes fail explicitly with typed
+  capability-unavailability artifacts rather than pretending reevaluation
+  occurred
+- compatibility lanes can observe committed callback truth without becoming the
+  required happy path for ordinary app-first consumers
+
+### Phase 7: Diagnostics And Measurement Boundaries
 
 Deliver:
 
@@ -1035,27 +1086,47 @@ Deliver:
 - callback dependency patch diagnostics
 - callback failure diagnostics
 - latest observation/latest flow parity for callback computed changes
-- snapshot/restore support for callback-bearing runtimes
-- callback-bearing replay, export, and import through a self-describing runtime
-  envelope
-- typed unavailability artifacts whenever required callback capabilities are
-  missing or incompatible
-- compatibility reads that return callback computed committed values
+- typed public diagnostics and adapter artifacts at the package boundary
+- explicit public measurement boundaries for callback costs, patch breadth,
+  lifecycle activity, and observation fanout
 
 Must prove:
 
 - diagnostics can explain callback-computed dirtiness, evaluation, dependency
   replacement, output suppression, and failure
 - diagnostics tier changes retained richness but not canonical dependency truth
-- snapshot restore preserves callback dependency shape and callback capability
-  requirements
-- replay/export/import lanes either reconstruct equivalent callback-bearing
-  runtime truth or fail explicitly with typed capability-unavailability
-  artifacts
 - hidden host-dependency posture is visible through captured read summaries and
   host-opaque/constant classifications
+- typed consumers can inspect callback diagnostics and performance artifacts
+  without reconstructing semantics from `JsValue`/`unknown` blobs
+- acceptance proofs assert against named public measurement surfaces rather than
+  private internal counters
 
-### Phase 8: React Harness, Package Prep, And Public Documentation
+### Phase 8: Public Authoring Contract And Handle Hardening
+
+Deliver:
+
+- the public callback-computed authoring contract
+- typed `Signal<T>` callable handle model
+- explicit advanced AST/spec recipe naming
+- callback id and descriptor vocabulary
+- callback mutation denial rule
+- stronger branded/opaque handle categories
+- stricter runtime/store ownership cues at the package surface
+
+Must prove:
+
+- callback computed authoring is not a wrapper over React state
+- AST recipes remain available but no longer define the default product story
+- the public types keep input, computed, output, disposable, and transaction
+  categories distinct
+- TypeScript signal handles are branded/opaque enough that ordinary structural
+  objects cannot masquerade as callback-authoring handles
+- writable inputs cannot be confused with computed or output handles
+- raw wasm handles do not silently substitute for product-facing callable
+  handles
+
+### Phase 9: React Adapter, Package Prep, And Public Documentation
 
 Deliver:
 
@@ -1065,6 +1136,10 @@ Deliver:
 - docs replacing AST-first examples with callback-first examples where
   appropriate
 - compatibility docs retaining the serialized recipe lane
+- React store integration that does not monkey-patch shared `Signals` facade
+  methods at runtime
+- normal React/package read paths that do not require compatibility-lane reads
+  for ordinary callback-first consumption
 
 Must prove:
 
@@ -1073,6 +1148,10 @@ Must prove:
 - React mount/unmount churn does not resurrect stale callback subscriptions
 - multiple components reading the same callback computed signal use runtime
   observation fanout rather than React-local recomputation
+- installing a React store does not rewrite the behavior of unrelated consumers
+  sharing the same `Signals` instance
+- the normal app-first read path remains correct without routing ordinary reads
+  through compatibility-only APIs
 
 ## Must Ship
 
@@ -1180,15 +1259,12 @@ Create callbacks that read:
 - only signals
 - no signals
 - mutable closure variables
-- declared host capability placeholders
 
 Verify:
 
 - signal-only callbacks expose complete captured read sets
 - no-read callbacks are classified as constant or host-opaque
 - closure-variable changes do not pretend to be reactive signal invalidations
-- declared host capabilities, if implemented, produce typed descriptors and
-  invalidation evidence
 - diagnostics make the purity posture inspectable
 
 ### The Callback Reentrancy And Cycle Test
@@ -1281,6 +1357,24 @@ The milestone must name and expose counters for:
 - callback broad-scan denial count
 - callback allocation count
 - callback reuse count
+
+These counters must not live only in internal tracing. They must be exposed
+through explicit public measurement boundaries whose names match the claim being
+made:
+
+- callback evaluation and dependency-capture counters through the callback
+  diagnostics/explanation surface
+- dependency patch breadth and subscriber-index touch counters through the
+  runtime inspection or boundedness artifact surface
+- callback capability lifecycle counters through registry/lifecycle inspection
+  surfaces
+- replay/restore/import unavailability counters through the callback-bearing
+  envelope or restore result surface
+- React-facing observation fanout counters through the public observation or
+  diagnostics boundary rather than hidden adapter-local instrumentation
+
+Acceptance tests must assert against those named public artifacts or entrypoints
+rather than against private counters harvested from internals after the fact.
 
 The milestone must declare complexity contracts for:
 
@@ -1388,8 +1482,14 @@ requires all of the following:
   plumbing
 - diagnostics that feel first-class at the product boundary, not merely
   available if a user already understands the internals
+- public diagnostics and adapter artifacts that are typed and self-describing at
+  the package boundary rather than leaking critical semantics through
+  `JsValue`/`unknown` blobs
 - TypeScript handle categories strong enough that ordinary misuse becomes
   unrepresentable or materially harder to express
+- legacy ambient callback registries are replaced or contained behind
+  runtime-scoped capability objects with explicit lifecycle and generation
+  semantics
 - package docs, examples, and adapter surfaces that reinforce one canonical
   happy path instead of several half-equal ones
 
@@ -1403,12 +1503,18 @@ is "make `computed(() => ...)` exist at all." The real remaining work is now:
 - finish the last public-truth and replay/export surfaces
 - close the package/publication proof lane
 - make diagnostics feel first-class at the product boundary
+- replace the remaining ambient callback-registry patterns with runtime-owned
+  capability registries
 - make `input`, `computed`, and `output` read like one coherent product surface
+- remove React-store monkey-patching and other shared-facade rewrite shortcuts
+- decouple normal app-first reads from compatibility-lane dependency
 - harden the type and capability boundaries so the common misuse classes become
   materially harder or impossible to express
 
-The remaining phases below are therefore practical closeout phases, not
-foundational callback-runtime invention phases.
+The remaining phases below are therefore not just cosmetic closeout. Some are
+still foundation hardening phases that protect the crate shell from
+convenience-era shortcuts even though the callback-computed core itself is
+substantially working.
 
 ## Post-Milestone Crate Hardening
 
@@ -1667,6 +1773,8 @@ Must prove:
 This hardening pass should happen after the remaining milestone truth-critical
 work is complete, especially:
 
+- runtime-scoped callback capability cleanup
+- React/app-first boundary cleanup
 - diagnostics parity
 - replay/restore honesty
 - output callback support
@@ -1676,16 +1784,16 @@ The sequencing rule is: finish the truth-critical runtime semantics first, then
 perform a deliberate crate-quality pass. Do not mistake "milestone complete"
 for "crate finished."
 
-## Practical Remaining Work Plan
+## Practical Closeout Record
 
-This section is the operational closeout map for the work that remains after
-callback-computed core support is largely working.
+This section records the operational closeout map that carried the milestone
+from "the feature works" to "the package is honest, publishable, and mature."
 
-These phases are intentionally practical. They should be usable as the
-implementation and QA checklist for getting from "the feature works" to "the
-package is honest, publishable, and mature."
+These phases were intentionally practical. They served as the implementation
+and QA checklist for closing the remaining crate-shell and product-boundary
+gaps after callback-computed core support was already largely working.
 
-### Phase 1: Public Package Integrity And Release Proof
+### Phase 0: Public Package Integrity And Release Proof
 
 **Status:** Completed
 
@@ -1722,9 +1830,66 @@ remembered. The package must have a mechanical verifier and a release-gate path
 that can rebuild, prepare, pack, and prove the artifact before any real
 `npm publish` step is attempted.
 
-### Phase 2: Diagnostics Product Closeout
+### Phase 1: Runtime-Scoped Callback Capability Cleanup
 
-**Status:** In progress
+**Status:** Completed
+
+**Why this phase exists**
+
+The crate still contains older callback-management patterns outside the new
+host-computed substrate, especially observation/effect callback registration
+that can drift into ambient global-id folklore if it is not deliberately
+replaced or contained.
+
+**Deliver**
+
+- runtime-scoped callback capability registries for watch/effect and compute
+  families
+- explicit generation/disposal semantics for every callback capability family
+- lifecycle inspection surfaces for callback capability state
+- removal or containment of ambient global callback-id maps that are not tied to
+  runtime ownership
+
+**Must prove**
+
+- watch/effect callback lifecycle follows the same ownership discipline as
+  compute callbacks
+- stale callback ids cannot silently bind to newly registered capabilities
+- callback capability state is inspectable through runtime-owned artifacts
+  rather than ambient globals
+
+### Phase 2: React And App-First Boundary Cleanup
+
+**Status:** Completed
+
+**Why this phase exists**
+
+The React adapter and app-first shell are still where convenience-era shortcuts
+can sneak semantics sideways: monkey-patching shared facades, depending on
+compatibility reads for normal usage, or quietly rewriting behavior once a
+store is installed.
+
+**Deliver**
+
+- React store integration that does not monkey-patch shared `Signals` facade
+  methods
+- an app-first read path that does not require compatibility-lane reads for
+  ordinary callback-first consumption
+- explicit ownership and lifecycle boundaries between React consumer state and
+  runtime truth
+
+**Must prove**
+
+- installing a React store does not rewrite the behavior of unrelated consumers
+  sharing the same `Signals` instance
+- normal app-first reads remain correct without fallback through
+  compatibility-only APIs
+- React remains a pure consumer of runtime truth rather than a second cache or
+  orchestration layer
+
+### Phase 3: Diagnostics Product Closeout
+
+**Status:** Completed
 
 **Why this phase exists**
 
@@ -1743,6 +1908,8 @@ they already know what to ask for.
   - what is the current runtime cost posture
 - docs and examples that teach diagnostics from the product surface
 - public diagnostics typing that matches the real callback-origin runtime model
+- elimination of critical product-boundary diagnostics surfaces that rely on
+  opaque `JsValue`/`unknown` blobs where typed callback artifacts are required
 
 **Must prove**
 
@@ -1750,10 +1917,12 @@ they already know what to ask for.
 - the public docs include both simple and richer diagnostics examples
 - React-facing users can discover diagnostics without dropping into raw runtime
   internals
+- typed consumers can inspect callback diagnostics, latest-flow summaries, and
+  performance artifacts without reconstructing semantics from untyped blobs
 
-### Phase 3: Authoring Surface Symmetry
+### Phase 4: Authoring Surface Symmetry
 
-**Status:** Not started
+**Status:** Completed
 
 **Why this phase exists**
 
@@ -1789,9 +1958,9 @@ of symmetry and ease.
 - callback-first forms and richer option-bearing forms remain mechanically
   consistent across the family
 
-### Phase 4: Type, Capability, And Misuse Hardening
+### Phase 5: Type, Capability, And Misuse Hardening
 
-**Status:** In progress
+**Status:** Completed
 
 **Why this phase exists**
 
@@ -1815,9 +1984,9 @@ ownership, and callback capability identity.
 - callback/stale capability misuse becomes materially harder to express
 - cross-runtime/store confusion is visibly and mechanically constrained
 
-### Phase 5: Documentation, Examples, And Publish-Ready Product Identity
+### Phase 6: Documentation, Examples, And Publish-Ready Product Identity
 
-**Status:** In progress
+**Status:** Completed
 
 **Why this phase exists**
 
@@ -1848,6 +2017,8 @@ demoable, and publication-grade.
 
 ## Explicit Deferrals
 
+- a general host-capability resource lane for callback purity beyond captured
+  signal reads
 - portable serialization of JavaScript callback bodies
 - worker migration of live callback functions
 - async/resource callbacks
@@ -1875,13 +2046,52 @@ and the result is a real Forge runtime computed node with:
 - diagnostics parity
 - callback lifecycle and callback-id/generation semantics that are framework-
   owned and observable instead of ambient JS folklore
-- callback-bearing history, replay, export, and import handled through one
-  honest self-describing envelope and typed capability-availability story
+- callback-bearing history, replay, export, and import handled through honest
+  artifact families:
+  - exact same-process restore tokens for live callback-bearing restore
+  - explicit callback-unavailable portable transport and import artifacts when
+    callback bodies are not present
 - bounded and attributable callback costs
 
 At that point, serialized AST recipes become what they should have been all
 along: a powerful advanced lane, not the tax every app developer pays for basic
 derived state.
+
+## Closeout Record
+
+This milestone is closed.
+
+It completed the product and runtime work needed to make callback-first
+`computed(() => ...)` a real `forge-signal-wasm` authoring lane rather than a
+JavaScript-local convenience cache.
+
+What is now true:
+
+- callback-first `computed(() => ...)` lowers into runtime-owned derived nodes
+  with dynamic dependency capture and rewiring
+- watch/effect and compute callback lifecycle is runtime-scoped,
+  generation-aware, and mechanically denied when stale
+- React consumes runtime truth without monkey-patching shared `Signals`
+  behavior or depending on compatibility reads for ordinary usage
+- diagnostics, history, replay, and merge surfaces are exposed as typed product
+  artifacts rather than blob-shaped boundary folklore
+- the npm artifact, runtime tests, and release-proof path certify the public
+  package that users actually install
+
+The trust-boundary split is also now explicit:
+
+- same-process exact restore of callback-bearing runtime state uses
+  runtime-local restore tokens and exact restore artifacts
+- portable export/import and cross-host transport do not pretend JavaScript
+  callback bodies are portable runtime data; they surface explicit typed
+  callback-unavailable outcomes instead
+
+This milestone intentionally did not solve general host capability. For this
+completed scope, callback purity means captured signal reads only. Any future
+host-capability lane must be specified as a separately typed resource family
+with its own lifecycle, invalidation, replay/restore, diagnostics, and
+measurement contracts. That follow-on work now lives in
+[wasm_product_roadmap.md](./wasm_product_roadmap.md).
 
 ## Crate Maturity Done When
 

@@ -138,6 +138,7 @@ impl RuntimeCore {
                 let active_branch_id = self.runtime.current_branch().id.0;
                 self.branch_states
                     .insert(active_branch_id, self.snapshot_branch_state());
+                self.notify_diagnostics_subscribers();
                 wasm_debug(format!(
                     "[forge-signal-wasm] tx:done touched={} evaluated={} elapsed_ms={:.1}",
                     result.touched_nodes,
@@ -174,6 +175,7 @@ impl RuntimeCore {
             .runtime
             .evaluate_dirty(&self.store, &evaluator)
             .map_err(ForgeSignalJsError::from)?;
+        self.notify_diagnostics_subscribers();
         Ok(RunSummary {
             touched_nodes: report.task_count,
             nodes_evaluated: report.tasks_executed,

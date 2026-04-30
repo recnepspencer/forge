@@ -8,6 +8,36 @@ use super::super::evaluation::signal_value_breadth;
 use super::super::RuntimeCore;
 
 impl RuntimeCore {
+    pub(crate) fn replay_summary_with_callbacks(
+        &mut self,
+        replay: forge_signal::diagnostics::ReplayView,
+    ) -> Result<ReplaySummary, ForgeSignalJsError> {
+        let mut frames = Vec::with_capacity(replay.frames.len());
+        for frame in replay.frames {
+            let callback = match frame.node {
+                Some(node) => self.callback_node_for_node(node)?,
+                None => None,
+            };
+            frames.push(ReplayFrameSummary {
+                cursor: frame.cursor.0,
+                kind: format!("{:?}", frame.kind),
+                branch_id: frame.branch_id.0,
+                snapshot_id: frame.snapshot_id.map(|id| id.0),
+                node: frame.node.map(|node| node.to_string()),
+                detail: frame
+                    .detail
+                    .and_then(|detail| detail.as_message().map(str::to_owned))
+                    .or_else(|| {
+                        frame
+                            .execution_record_id
+                            .map(|id| format!("executionRecord:{id}"))
+                    }),
+                callback,
+            });
+        }
+        Ok(ReplaySummary { frames })
+    }
+
     pub fn health(&self) -> Result<HealthSummary, ForgeSignalJsError> {
         Ok(self
             .runtime
@@ -196,30 +226,7 @@ impl RuntimeCore {
             let history = self.runtime.history();
             history.replay_for_node(node)
         };
-        let mut frames = Vec::with_capacity(replay.frames.len());
-        for frame in replay.frames {
-            let callback = match frame.node {
-                Some(node) => self.callback_node_for_node(node)?,
-                None => None,
-            };
-            frames.push(ReplayFrameSummary {
-                cursor: frame.cursor.0,
-                kind: format!("{:?}", frame.kind),
-                branch_id: frame.branch_id.0,
-                snapshot_id: frame.snapshot_id.map(|id| id.0),
-                node: frame.node.map(|node| node.to_string()),
-                detail: frame
-                    .detail
-                    .and_then(|detail| detail.as_message().map(str::to_owned))
-                    .or_else(|| {
-                        frame
-                            .execution_record_id
-                            .map(|id| format!("executionRecord:{id}"))
-                    }),
-                callback,
-            });
-        }
-        Ok(ReplaySummary { frames })
+        self.replay_summary_with_callbacks(replay)
     }
 
     pub fn lineage_for_id(&mut self, id: &str) -> Result<LineageSummary, ForgeSignalJsError> {

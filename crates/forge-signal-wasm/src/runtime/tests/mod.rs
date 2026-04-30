@@ -5,6 +5,7 @@ mod branches_basic;
 mod callback_basics;
 mod callback_diagnostics;
 mod callback_restore;
+mod diagnostics_subscriptions;
 mod keyed_runtime;
 mod runtime_state;
 mod support;

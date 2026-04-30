@@ -59,8 +59,33 @@ fn adversarial_merge_proof_envelopes_and_rebuild_state_remain_consistent() {
         plan_envelope.proof.proof_schema_version,
         forge_signal::facade::adapters::MERGE_PROOF_SCHEMA_VERSION
     );
-    assert_eq!(plan_envelope.plan.source_branch_id().0, feature_branch_id);
-    assert_eq!(plan_envelope.plan.target_branch_id().0, main_branch_id);
+    assert_eq!(plan_envelope.plan.source_branch_id, feature_branch_id);
+    assert_eq!(plan_envelope.plan.target_branch_id, main_branch_id);
+    assert!(!plan_envelope
+        .plan
+        .selected_semantics
+        .strategy_name
+        .is_empty());
+    assert!(plan_envelope
+        .plan
+        .node_map
+        .iter()
+        .all(|entry| entry.source_node.contains(':') && entry.target_node.contains(':')));
+    assert!(plan_envelope
+        .plan
+        .node_plan
+        .iter()
+        .all(|entry| !entry.decision.is_empty()));
+    assert!(plan_envelope
+        .plan
+        .adoption_core
+        .iter()
+        .all(|entry| entry.source_node.contains(':')));
+    assert!(plan_envelope
+        .plan
+        .adoption_policy
+        .iter()
+        .all(|entry| !entry.runtime_artifact.is_empty()));
 
     let result_envelope = runtime
         .merge_branches_with_proof(feature_branch_id, main_branch_id)
@@ -85,8 +110,14 @@ fn adversarial_merge_proof_envelopes_and_rebuild_state_remain_consistent() {
         plan_envelope.proof.selected_conflict_isolation_digest,
         result_envelope.proof.selected_conflict_isolation_digest
     );
-    assert_eq!(result_envelope.result.source_branch.0, feature_branch_id);
-    assert_eq!(result_envelope.result.target_branch.0, main_branch_id);
+    assert_eq!(result_envelope.result.source_branch, feature_branch_id);
+    assert_eq!(result_envelope.result.target_branch, main_branch_id);
+    assert!(result_envelope.result.counters.replay_event_count >= 1);
+    assert!(result_envelope
+        .result
+        .records
+        .iter()
+        .all(|record| record.source_node.contains(':')));
 
     runtime.switch_branch(main_branch_id).unwrap();
     assert_eq!(

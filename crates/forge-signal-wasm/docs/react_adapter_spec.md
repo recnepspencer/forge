@@ -1,10 +1,10 @@
 # forge-signal-wasm React Adapter Spec
 
-> **Status:** Proposed 2026-04-17
+> **Status:** Completed 2026-04-29
 >
-> **Parent:** [web_runtime_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/web_runtime_spec.md)
+> **Parent:** [web_runtime_spec.md](web_runtime_spec.md)
 >
-> **Core prerequisite:** [_docs/forge_signal/milestone-11-closeout.md](/C:/Users/shepworth/Documents/programming/forge/_docs/forge_signal/milestone-11-closeout.md)
+> **Core prerequisite:** [_docs/forge_signal/milestone-11-closeout.md](../../../_docs/forge_signal/milestone-11-closeout.md)
 >
 > **Primary architectural driver:** add a React domain inside
 > `forge-signal-wasm` that feels native in a React codebase without inventing a
@@ -29,8 +29,10 @@ and diagnostics without writing its own adapter glue.
 
 ## Why This Spec Exists
 
-The runtime package is now close to web-runtime complete, but real React use
-still has an adoption gap:
+This spec was written while the web runtime was still converging and the React
+lane still needed to be forced into a disciplined consumer shape.
+
+At the time of writing, the adoption gap looked like this:
 
 - the runtime is framework-agnostic
 - React still wants a stable subscription/snapshot layer
@@ -162,9 +164,12 @@ import {
 const signals = createSignals();
 const store = createReactSignalsStore(signals);
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", { ... });
-const panel = signals.output("panel", { ... });
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 
 function Counter() {
   const countValue = useSignalValue(count, store);
@@ -339,6 +344,19 @@ This spec is done when all of these are true:
 - diagnostics are available through a first-class hook now, not deferred
 - React-domain structure remains separate from the framework-agnostic runtime
 - required adversarial tests pass
+
+## Completion Note
+
+This adapter spec is complete. React now consumes an existing `Signals`
+instance through a dedicated store and runtime-owned diagnostics subscription
+path instead of monkey-patching shared runtime behavior or inventing a second
+derived cache.
+
+The React surface remains intentionally secondary to the framework-agnostic web
+runtime and the callback-first product surface described in:
+
+- [web_runtime_spec.md](./web_runtime_spec.md)
+- [host_callback_computed_spec.md](./host_callback_computed_spec.md)
 
 ## Explicit Non-Goals
 

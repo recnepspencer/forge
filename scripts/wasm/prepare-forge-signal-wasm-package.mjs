@@ -5,14 +5,14 @@ import path from "node:path";
 import process from "node:process";
 
 const execFileAsync = promisify(execFile);
-const scope = process.env.FORGE_SIGNAL_WASM_SCOPE ?? "aust-group";
+const scope = process.env.FORGE_SIGNAL_WASM_SCOPE ?? null;
 const packageNameOverride = process.env.FORGE_SIGNAL_WASM_PACKAGE_NAME ?? null;
 const publishRegistry = process.env.FORGE_SIGNAL_WASM_REGISTRY
-  ?? "https://npm.pkg.github.com";
-const publishAccess = process.env.FORGE_SIGNAL_WASM_PUBLISH_ACCESS ?? null;
-const publishNoticeMode = process.env.FORGE_SIGNAL_WASM_NOTICE_MODE ?? "proprietary";
+  ?? "https://registry.npmjs.org";
+const publishAccess = process.env.FORGE_SIGNAL_WASM_PUBLISH_ACCESS ?? "public";
+const publishNoticeMode = process.env.FORGE_SIGNAL_WASM_NOTICE_MODE ?? "none";
 
-const normalizedScope = scope.toLowerCase();
+const normalizedScope = scope ? scope.toLowerCase() : null;
 const repoUrl = process.env.FORGE_SIGNAL_WASM_REPOSITORY_URL
   ?? "https://github.com/recnepspencer/forge.git";
 const pkgDir = path.resolve(
@@ -104,7 +104,8 @@ async function compileReactEntryPoints() {
   );
 }
 
-packageJson.name = packageNameOverride ?? `@${normalizedScope}/forge-signal-wasm`;
+packageJson.name = packageNameOverride
+  ?? (normalizedScope ? `@${normalizedScope}/forge-signal-wasm` : "forge-signal-wasm");
 packageJson.license = "UNLICENSED";
 packageJson.repository = {
   type: "git",
@@ -125,13 +126,12 @@ packageJson.files = [
   "*.wasm",
   "raw_surface.js",
   "index.d.ts",
-  "product/**/*.js",
-  "types/**/*.d.ts",
+  "product",
+  "types",
   "README.md",
   "LICENSE",
-  "docs/**/*.md",
-  "react/*.js",
-  "react/*.d.ts",
+  "docs",
+  "react",
 ];
 packageJson.exports = {
   ".": {
@@ -177,7 +177,7 @@ const authHost = registryUrl.host;
 const normalizedRegistry = publishRegistry.endsWith("/")
   ? publishRegistry.slice(0, -1)
   : publishRegistry;
-const scopeRegistryLine = publishRegistry.includes("registry.npmjs.org")
+const scopeRegistryLine = !normalizedScope || publishRegistry.includes("registry.npmjs.org")
   ? ""
   : `@${normalizedScope}:registry=${normalizedRegistry}\n`;
 const npmrc = `${scopeRegistryLine}//${authHost}/:_authToken=\${NODE_AUTH_TOKEN}

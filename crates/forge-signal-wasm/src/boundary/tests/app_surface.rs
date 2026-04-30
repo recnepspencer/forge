@@ -222,3 +222,45 @@ fn signals_phase2_core_tracks_distinct_web_signal_kinds() {
     );
     assert_eq!(core.web_signal_kind("panel"), Some(WebSignalKind::Output));
 }
+
+#[test]
+fn signals_phase2_app_first_read_surface_does_not_fall_back_to_compatibility_reads() {
+    let signals = build_signals();
+
+    signals
+        .input_for_test("count", SignalValue::Number(2.0))
+        .unwrap();
+    signals
+        .output_for_test(
+            "panel",
+            OutputSpec {
+                reads: vec![RecipeReadSpec::LegacyId("count".to_owned())],
+                expr: Expr::Object {
+                    fields: vec![(
+                        "count".to_owned(),
+                        Expr::Read {
+                            id: "count".to_owned(),
+                        },
+                    )],
+                },
+                when: None,
+                identity: None,
+                produces_aspects: None,
+            },
+        )
+        .unwrap();
+
+    let count_from_string = signals.read_for_test("count").unwrap();
+    let panel_from_string = signals.read_for_test("panel").unwrap();
+
+    assert_eq!(count_from_string, SignalValue::Number(2.0));
+    assert_eq!(
+        panel_from_string,
+        SignalValue::Object(vec![("count".to_owned(), SignalValue::Number(2.0))])
+    );
+
+    let summary = signals.core.borrow().web_performance_summary();
+    assert_eq!(summary.compatibility_read_count, 0);
+    assert_eq!(summary.output_serialization_count, 1);
+    assert_eq!(summary.output_serialization_breadth, 2);
+}

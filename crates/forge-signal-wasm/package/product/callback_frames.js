@@ -109,10 +109,10 @@ function parseCallbackAuthoringArgs(rawSignals, family, idOrCompute, computeOrOp
         || typeof computeOrOptions !== "object"
         || Array.isArray(computeOrOptions))
     ) {
-      throw new TypeError("computed callback options must be an object when provided");
+      throw new TypeError(`${family} callback options must be an object when provided`);
     }
     if (maybeOptions !== undefined) {
-      throw new TypeError("computed callback form does not accept a third argument");
+      throw new TypeError(`${family} callback form does not accept a third argument`);
     }
     return {
       id: computeOrOptions?.id ?? nextGeneratedCallbackId(rawSignals, family),
@@ -122,7 +122,7 @@ function parseCallbackAuthoringArgs(rawSignals, family, idOrCompute, computeOrOp
 
   if (typeof idOrCompute === "string" && isFunction(computeOrOptions)) {
     if (maybeOptions !== undefined) {
-      throw new TypeError("computed callback form does not accept options after an explicit id");
+      throw new TypeError(`${family} callback form does not accept options after an explicit id`);
     }
     return {
       id: idOrCompute,

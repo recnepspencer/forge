@@ -1,18 +1,10 @@
 use wasm_bindgen::prelude::*;
 
-use crate::boundary::serde::{from_js, to_js};
+use crate::boundary::restore_tokens::{load_runtime_envelope, store_runtime_envelope};
+use crate::boundary::serde::{from_js, to_js, to_js_structured};
+use crate::runtime::adapters::RuntimeEnvelope;
 
 use super::types::{SignalAdapters, SignalSpecialist};
-
-const RUNTIME_ENVELOPE_JS_BOUNDARY_DEFERRED: &str = "runtimeEnvelopeJsBoundaryDeferred";
-
-fn runtime_envelope_js_boundary_deferred_error() -> crate::boundary::errors::ForgeSignalJsError {
-    crate::boundary::errors::ForgeSignalJsError::deferred(
-        RUNTIME_ENVELOPE_JS_BOUNDARY_DEFERRED,
-        "runtime envelope export/import is intentionally deferred on the wasm JS boundary until the boundary can produce a self-describing portable snapshot artifact",
-        None,
-    )
-}
 
 #[wasm_bindgen]
 impl SignalSpecialist {
@@ -53,7 +45,21 @@ impl SignalAdapters {
     }
 
     pub fn export_runtime_envelope(&self) -> Result<JsValue, JsValue> {
-        Err(JsValue::from(runtime_envelope_js_boundary_deferred_error()))
+        let envelope = self
+            .core
+            .borrow_mut()
+            .export_runtime_envelope()
+            .map_err(JsValue::from)?;
+        to_js_structured(&envelope).map_err(JsValue::from)
+    }
+
+    pub fn export_runtime_envelope_wire(&self) -> Result<String, JsValue> {
+        let envelope = self
+            .core
+            .borrow_mut()
+            .export_exact_runtime_restore_artifact()
+            .map_err(JsValue::from)?;
+        Ok(store_runtime_envelope(envelope))
     }
 
     pub fn runtime_proof_report(&self) -> Result<JsValue, JsValue> {
@@ -61,16 +67,35 @@ impl SignalAdapters {
         to_js(&report).map_err(JsValue::from)
     }
 
-    pub fn replace_runtime_envelope(&self, _envelope: JsValue) -> Result<(), JsValue> {
-        Err(JsValue::from(runtime_envelope_js_boundary_deferred_error()))
+    pub fn replace_runtime_envelope(&self, envelope: JsValue) -> Result<(), JsValue> {
+        let envelope: RuntimeEnvelope = from_js(envelope)?;
+        self.core
+            .borrow_mut()
+            .replace_runtime_envelope(envelope)
+            .map_err(JsValue::from)
+    }
+
+    pub fn replace_runtime_envelope_wire(&self, envelope: String) -> Result<(), JsValue> {
+        let envelope = load_runtime_envelope(&envelope).map_err(JsValue::from)?;
+        self.core
+            .borrow_mut()
+            .replace_runtime_envelope_exact(envelope)
+            .map_err(JsValue::from)
     }
 }
 
 #[cfg(test)]
 impl SignalAdapters {
-    pub(super) fn runtime_envelope_js_boundary_deferred_error_for_test(
+    pub(super) fn export_runtime_envelope_for_test(
         &self,
-    ) -> crate::boundary::errors::ForgeSignalJsError {
-        runtime_envelope_js_boundary_deferred_error()
+    ) -> Result<RuntimeEnvelope, crate::boundary::errors::ForgeSignalJsError> {
+        self.core.borrow_mut().export_runtime_envelope()
+    }
+
+    pub(super) fn replace_runtime_envelope_for_test(
+        &self,
+        envelope: RuntimeEnvelope,
+    ) -> Result<(), crate::boundary::errors::ForgeSignalJsError> {
+        self.core.borrow_mut().replace_runtime_envelope(envelope)
     }
 }

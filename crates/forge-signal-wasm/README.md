@@ -36,14 +36,18 @@ import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", () => count() * 2);
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
 
-console.log(doubled());
+console.log(panel());
 ```
 
 ## Core Concepts
@@ -55,18 +59,19 @@ Use `input` for mutable source state.
 Simple:
 
 ```ts
-const count = signals.input("count", 1);
+const count = signals.input(1, { id: "count" });
 signals.transaction((tx) => tx.set(count, 2));
 ```
 
 Complex:
 
 ```ts
-const part = signals.input("part", {
+const part = signals.input({
   id: "gear-7",
   teeth: 24,
   enabled: true,
 }, {
+  id: "part",
   producesAspects: [1, 2],
 });
 
@@ -84,21 +89,25 @@ signals.transaction((tx) => {
 Use `computed` for runtime-owned derived state. Callback form is the normal
 authoring lane.
 
+Only callable signal reads are tracked. Ordinary closure variables are not
+reactive dependencies, and a callback that captures no signal reads can be
+lowered into a constantized node.
+
 Simple:
 
 ```ts
-const doubled = signals.computed("doubled", () => count() * 2);
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 ```
 
 Complex:
 
 ```ts
-const enabled = signals.input("enabled", true);
-const name = signals.input("name", "Ada");
+const enabled = signals.input(true, { id: "enabled" });
+const name = signals.input("Ada", { id: "name" });
 
-const label = signals.computed("label", () => {
+const label = signals.computed(() => {
   return enabled() ? `${name()} is enabled` : "disabled";
-});
+}, { id: "label" });
 ```
 
 Advanced recipe form still exists:
@@ -121,44 +130,43 @@ const doubled = signals.computedSpec("doubled", {
 Use `output` for public projections you hand to UI layers, tables, panels, or
 other consumers.
 
+Callback outputs follow the same capture rule as callback computed nodes:
+signal reads are tracked, ordinary closure variables are not, and richer
+aspect-targeted projection contracts belong on the explicit spec lane.
+
 Simple:
 
 ```ts
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 ```
 
 Complex:
 
 ```ts
-const partSummary = signals.output("partSummary", {
+const partSummary = signals.output(() => ({
+  part: part(),
+  label: label(),
+  status: part().enabled ? "active" : "inactive",
+}), { id: "partSummary" });
+```
+
+Advanced recipe form still exists when you need explicit portable specs:
+
+```ts
+const partSummary = signals.outputSpec("partSummary", {
   reads: ["part", "label"],
   expr: {
     kind: "object",
     fields: [
       ["part", { kind: "read", id: "part" }],
       ["label", { kind: "read", id: "label" }],
-      ["status", {
-        kind: "if",
-        condition: { kind: "get", target: { kind: "read", id: "part" }, field: "enabled" },
-        thenExpr: { kind: "value", value: "active" },
-        elseExpr: { kind: "value", value: "inactive" },
-      }],
     ],
   },
 });
 ```
-
-`output(() => ...)` is intentionally deferred. Use explicit `outputSpec(...)`
-or `output(...)` with a recipe today.
 
 ### `watch` and `effect`
 
@@ -232,9 +240,10 @@ const latestFlow = diagnostics.latestFlow();
 const perf = diagnostics.performanceSummary();
 
 console.log({
-  delivered: latestObservation?.deliveredEventCount,
+  delivered: latestObservation?.observation.delivered_event_count,
   callbackReads: perf.computeCallbackCapturedReadCount,
   dependencyPatches: perf.computeCallbackDependencyPatchCount,
+  callbackNodes: latestFlow?.callbackNodes.map((node) => node.id) ?? [],
 });
 ```
 
@@ -280,10 +289,21 @@ function PartPanel() {
 }
 ```
 
+## Advanced Lanes
+
+- Prefer callback-first `computed(() => ...)` and `output(() => ...)` for
+  ordinary app code.
+- Prefer `signals.input(value, { id })` when you want the family to read with
+  one coherent grammar.
+- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
+  authoring.
+- Keep `compatibilityApp()` and `compatibilityRuntime()` for expert or migration
+  scenarios, not for the default product lane.
+
 ## Documentation
 
-- [docs/README.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/README.md)
-- [docs/consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
-- [docs/app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [docs/diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [docs/react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [docs/README.md](docs/README.md)
+- [docs/consuming_the_package.md](docs/consuming_the_package.md)
+- [docs/app_surface_reference.md](docs/app_surface_reference.md)
+- [docs/diagnostics_and_history_reference.md](docs/diagnostics_and_history_reference.md)
+- [docs/react_adapter_reference.md](docs/react_adapter_reference.md)

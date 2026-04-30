@@ -1,10 +1,12 @@
 use forge_signal::facade::runtime::{ObservationHandle, ObservationPolicy};
+use js_sys::Function;
 
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::expression::model::SignalValue;
 use crate::runtime::compute_callbacks;
+use crate::runtime::diagnostics_callbacks::DiagnosticsCallbackToken;
 use crate::runtime::summaries::WebPerformanceSummary;
-use crate::runtime::web_callbacks;
+use crate::runtime::web_callbacks::{self, ObservationCallbackToken};
 
 use super::super::state::WebSignalKind;
 use super::super::{RuntimeCore, WasmEffectListener, WasmWatchListener};
@@ -13,14 +15,15 @@ impl RuntimeCore {
     pub fn watch_signal(
         &mut self,
         id: &str,
-        callback_id: u64,
+        callback_token: ObservationCallbackToken,
     ) -> Result<ObservationHandle, ForgeSignalJsError> {
         let node = self.node_for_id(id)?;
         Ok(self.runtime.observe_nodes(
             ObservationPolicy::meaningful_change(),
             [node],
             Box::new(WasmWatchListener {
-                callback_id,
+                callback_scope_id: self.observation_callback_scope_id,
+                callback_token,
                 signal_id: id.to_owned(),
             }),
         ))
@@ -29,14 +32,82 @@ impl RuntimeCore {
     pub fn effect_signal(
         &mut self,
         id: &str,
-        callback_id: u64,
+        callback_token: ObservationCallbackToken,
     ) -> Result<ObservationHandle, ForgeSignalJsError> {
         let node = self.node_for_id(id)?;
         Ok(self.runtime.observe_nodes(
             ObservationPolicy::meaningful_change(),
             [node],
-            Box::new(WasmEffectListener { callback_id }),
+            Box::new(WasmEffectListener {
+                callback_scope_id: self.observation_callback_scope_id,
+                callback_token,
+            }),
         ))
+    }
+
+    pub fn register_wasm_watch_callback(&mut self, callback: Function) -> ObservationCallbackToken {
+        web_callbacks::register_wasm_watch(self.observation_callback_scope_id, callback)
+    }
+
+    pub fn register_wasm_effect_callback(
+        &mut self,
+        callback: Function,
+    ) -> ObservationCallbackToken {
+        web_callbacks::register_wasm_effect(self.observation_callback_scope_id, callback)
+    }
+
+    pub fn dispose_observation_callback(&mut self, token: ObservationCallbackToken) -> bool {
+        web_callbacks::dispose_callback(self.observation_callback_scope_id, token)
+    }
+
+    pub fn register_wasm_diagnostics_callback(
+        &mut self,
+        callback: Function,
+    ) -> DiagnosticsCallbackToken {
+        crate::runtime::diagnostics_callbacks::register_wasm_diagnostics_callback(
+            self.diagnostics_callback_scope_id,
+            callback,
+        )
+    }
+
+    pub fn dispose_diagnostics_callback(&mut self, token: DiagnosticsCallbackToken) -> bool {
+        crate::runtime::diagnostics_callbacks::dispose_diagnostics_callback(
+            self.diagnostics_callback_scope_id,
+            token,
+        )
+    }
+
+    pub fn notify_diagnostics_subscribers(&mut self) {
+        crate::runtime::diagnostics_callbacks::notify_diagnostics_callbacks(
+            self.diagnostics_callback_scope_id,
+        );
+    }
+
+    #[cfg(test)]
+    pub fn register_native_watch_callback(
+        &mut self,
+        callback: Box<dyn Fn(web_callbacks::WebObservationNotice)>,
+    ) -> ObservationCallbackToken {
+        web_callbacks::register_native_watch(self.observation_callback_scope_id, callback)
+    }
+
+    #[cfg(test)]
+    pub fn register_native_effect_callback(
+        &mut self,
+        callback: Box<dyn Fn()>,
+    ) -> ObservationCallbackToken {
+        web_callbacks::register_native_effect(self.observation_callback_scope_id, callback)
+    }
+
+    #[cfg(test)]
+    pub fn register_native_diagnostics_callback(
+        &mut self,
+        callback: Box<dyn Fn()>,
+    ) -> DiagnosticsCallbackToken {
+        crate::runtime::diagnostics_callbacks::register_native_diagnostics_callback(
+            self.diagnostics_callback_scope_id,
+            callback,
+        )
     }
 
     pub fn unobserve_handle(&mut self, handle: ObservationHandle) -> bool {
@@ -65,7 +136,8 @@ impl RuntimeCore {
     }
 
     pub fn web_performance_summary(&self) -> WebPerformanceSummary {
-        let observation_callback_stats = web_callbacks::callback_stats();
+        let observation_callback_stats =
+            web_callbacks::callback_stats(self.observation_callback_scope_id);
         let compute_callback_stats = compute_callbacks::compute_callback_stats();
         let transaction = self.runtime.telemetry().transaction;
         WebPerformanceSummary {
@@ -94,6 +166,16 @@ impl RuntimeCore {
                 .observation_callback_invocation_count,
             js_callback_failure_count: observation_callback_stats
                 .observation_callback_failure_count,
+            observation_callback_registration_count: observation_callback_stats
+                .observation_callback_registration_count,
+            observation_callback_disposal_count: observation_callback_stats
+                .observation_callback_disposal_count,
+            observation_callback_generation_mismatch_denial_count: observation_callback_stats
+                .observation_callback_generation_mismatch_denial_count,
+            observation_callback_allocation_count: observation_callback_stats
+                .observation_callback_allocation_count,
+            observation_callback_reuse_count: observation_callback_stats
+                .observation_callback_reuse_count,
             compute_callback_registration_count: compute_callback_stats
                 .compute_callback_registration_count,
             compute_callback_disposal_count: compute_callback_stats.compute_callback_disposal_count,

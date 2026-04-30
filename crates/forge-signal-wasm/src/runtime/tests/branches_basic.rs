@@ -50,14 +50,32 @@ fn merge_plan_and_result_are_available_through_history_surface() {
     let plan = runtime
         .plan_merge_branches(feature_branch.id.0, main_branch.id.0)
         .unwrap();
-    assert_eq!(plan.source_branch_id(), feature_branch.id);
-    assert_eq!(plan.target_branch_id(), main_branch.id);
+    assert_eq!(plan.source_branch_id, feature_branch.id.0);
+    assert_eq!(plan.target_branch_id, main_branch.id.0);
+    assert!(!plan.selected_semantics.strategy_name.is_empty());
+    assert!(plan
+        .node_map
+        .iter()
+        .all(|entry| entry.source_node.contains(':') && entry.target_node.contains(':')));
+    assert!(plan
+        .node_plan
+        .iter()
+        .all(|entry| !entry.decision.is_empty()));
+    assert!(plan
+        .adoption_core
+        .iter()
+        .all(|entry| entry.source_node.contains(':')));
+    assert!(plan
+        .adoption_policy
+        .iter()
+        .all(|entry| !entry.runtime_artifact.is_empty()));
 
     let result = runtime
         .merge_branches(feature_branch.id.0, main_branch.id.0)
         .unwrap();
-    assert_eq!(result.source_branch, feature_branch.id);
-    assert_eq!(result.target_branch, main_branch.id);
+    assert_eq!(result.source_branch, feature_branch.id.0);
+    assert_eq!(result.target_branch, main_branch.id.0);
+    assert!(result.counters.replay_event_count >= 1);
 }
 
 #[test]
@@ -114,8 +132,8 @@ fn merge_preserves_non_overlapping_source_edits_from_both_branches() {
         runtime.read_value("gearThickness").unwrap(),
         SignalValue::Number(0.31)
     );
-    assert_eq!(result.source_branch, feature_branch.id);
-    assert_eq!(result.target_branch, main_branch.id);
+    assert_eq!(result.source_branch, feature_branch.id.0);
+    assert_eq!(result.target_branch, main_branch.id.0);
 }
 
 #[test]
@@ -211,9 +229,9 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
         .iter()
         .map(|record| {
             (
-                format!("{:?}", record.source_node),
+                record.source_node.clone(),
                 format!("{:?}", record.target_node),
-                format!("{:?}", record.action),
+                record.action.clone(),
             )
         })
         .collect::<Vec<_>>();
@@ -236,8 +254,8 @@ fn merge_preserves_non_overlapping_source_edits_when_recipe_materializes_combine
             ("thickness".to_owned(), SignalValue::Number(0.1)),
         ])
     );
-    assert_eq!(result.source_branch, feature_branch.id);
-    assert_eq!(result.target_branch, main_branch.id);
+    assert_eq!(result.source_branch, feature_branch.id.0);
+    assert_eq!(result.target_branch, main_branch.id.0);
 }
 
 #[test]
@@ -322,9 +340,9 @@ fn merge_with_combined_recipe_but_without_post_edit_recipe_reads_keeps_target_on
             .records
             .iter()
             .map(|record| (
-                format!("{:?}", record.source_node),
+                record.source_node.clone(),
                 format!("{:?}", record.target_node),
-                format!("{:?}", record.action),
+                record.action.clone(),
             ))
             .collect::<Vec<_>>()
     );

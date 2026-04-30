@@ -37,10 +37,8 @@ impl RuntimeCore {
         &mut self,
         branch_id: u64,
     ) -> Result<ReplaySummary, ForgeSignalJsError> {
-        Ok(self
-            .runtime
-            .replay_for_branch(RuntimeBranchId(branch_id))
-            .into())
+        let replay = self.runtime.replay_for_branch(RuntimeBranchId(branch_id));
+        self.replay_summary_with_callbacks(replay)
     }
 
     pub fn branch_snapshot(

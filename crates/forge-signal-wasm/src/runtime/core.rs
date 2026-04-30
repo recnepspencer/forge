@@ -12,6 +12,7 @@ use forge_signal::facade::{DependencyEdge, NodeId, SignalGraph, SignalRuntime as
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::recipe::model::RecipeReadSpec;
 use crate::runtime::compute_callbacks;
+use crate::runtime::diagnostics_callbacks;
 use crate::runtime::policy::RuntimePolicySpec;
 use crate::runtime::summaries::RuntimeStoreSnapshot;
 use crate::runtime::web_callbacks;
@@ -31,6 +32,7 @@ mod state;
 mod transactions;
 
 use self::aspects::resolve_selected_aspects;
+pub(crate) use self::envelopes::ExactRuntimeRestoreArtifact;
 use self::evaluation::canonicalize_callback_reads;
 pub(crate) use self::state::SharedStore;
 use self::state::{
@@ -39,6 +41,7 @@ use self::state::{
     WebRuntimeMetrics,
 };
 pub use self::state::{MergePolicyPreviewRequest, SharedCore, WebSignalKind};
+use crate::runtime::web_callbacks::ObservationCallbackToken;
 
 const DEFAULT_ASPECT: forge_signal::facade::Aspect = forge_signal::facade::Aspect::new(0);
 
@@ -55,6 +58,8 @@ pub struct RuntimeCore {
     runtime_snapshots: BTreeMap<u64, RuntimeSnapshot>,
     policy: RuntimePolicySpec,
     web_metrics: WebRuntimeMetrics,
+    observation_callback_scope_id: u64,
+    diagnostics_callback_scope_id: u64,
 }
 
 impl Drop for RuntimeCore {
@@ -64,6 +69,10 @@ impl Drop for RuntimeCore {
                 dispose_callback_recipe_token(recipe);
             }
         }
+        web_callbacks::dispose_runtime_callback_scope(self.observation_callback_scope_id);
+        diagnostics_callbacks::dispose_runtime_diagnostics_callback_scope(
+            self.diagnostics_callback_scope_id,
+        );
     }
 }
 
@@ -88,6 +97,9 @@ impl RuntimeCore {
             runtime_snapshots: BTreeMap::new(),
             policy,
             web_metrics: WebRuntimeMetrics::default(),
+            observation_callback_scope_id: web_callbacks::allocate_runtime_callback_scope(),
+            diagnostics_callback_scope_id:
+                diagnostics_callbacks::allocate_runtime_diagnostics_callback_scope(),
         })
     }
 
@@ -287,7 +299,8 @@ pub fn new_shared_core(policy: RuntimePolicySpec) -> Result<SharedCore, ForgeSig
 }
 
 struct WasmWatchListener {
-    callback_id: u64,
+    callback_scope_id: u64,
+    callback_token: ObservationCallbackToken,
     signal_id: String,
 }
 
@@ -298,14 +311,16 @@ impl ObservationListener<(), (), (), SharedStore, ()> for WasmWatchListener {
         notice: &ObservationNotice<'_>,
     ) {
         web_callbacks::invoke_watch(
-            self.callback_id,
+            self.callback_scope_id,
+            self.callback_token,
             web_callbacks::notice_from_runtime(&self.signal_id, ctx, notice),
         );
     }
 }
 
 struct WasmEffectListener {
-    callback_id: u64,
+    callback_scope_id: u64,
+    callback_token: ObservationCallbackToken,
 }
 
 impl ObservationListener<(), (), (), SharedStore, ()> for WasmEffectListener {
@@ -314,6 +329,6 @@ impl ObservationListener<(), (), (), SharedStore, ()> for WasmEffectListener {
         _ctx: ObservationReadContext<'_, (), (), (), SharedStore, ()>,
         _notice: &ObservationNotice<'_>,
     ) {
-        web_callbacks::invoke_effect(self.callback_id);
+        web_callbacks::invoke_effect(self.callback_scope_id, self.callback_token);
     }
 }

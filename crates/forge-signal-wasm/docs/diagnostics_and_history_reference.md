@@ -120,7 +120,7 @@ Simple:
 
 ```ts
 const flow = diagnostics.latestFlow();
-console.log(flow?.flow.change.changedNodes);
+console.log(flow?.flow.change.changed_nodes);
 ```
 
 Complex:
@@ -129,7 +129,7 @@ Complex:
 const flow = diagnostics.latestFlow();
 if (flow) {
   console.log({
-    changedNodes: flow.flow.change.changedNodes,
+    changedNodes: flow.flow.change.changed_nodes,
     explanation: flow.flow.explanation,
     callbackNodes: flow.callbackNodes,
   });
@@ -145,7 +145,7 @@ Simple:
 
 ```ts
 const observation = diagnostics.latestObservation();
-console.log(observation?.deliveredEventCount);
+console.log(observation?.observation.delivered_event_count);
 ```
 
 Complex:
@@ -154,9 +154,9 @@ Complex:
 const observation = diagnostics.latestObservation();
 
 console.log({
-  delivered: observation?.deliveredEventCount,
-  rollbackSuppressed: observation?.rollbackSuppressedEventCount,
-  boundaryEvents: observation?.boundaryEvents,
+  delivered: observation?.observation.delivered_event_count,
+  rollbackSuppressed: observation?.observation.rollback_suppressed_event_count,
+  boundaryEvents: observation?.observation.boundary_events,
 });
 ```
 
@@ -238,10 +238,12 @@ Complex:
 ```ts
 const replay = history.replay_for("label");
 const lineage = history.lineage_for("label");
+const branchReplay = history.replay_for_branch(history.current_branch().id);
 
 console.log({
   replay,
   lineage,
+  branchReplay,
 });
 ```
 
@@ -267,13 +269,28 @@ Complex:
 ```ts
 const branchId = history.current_branch().id;
 const snapshot = history.branch_snapshot(branchId);
+const envelope = history.branch_snapshot_envelope(branchId);
 
 signals.transaction((tx) => {
   tx.set(count, 99);
 });
 
+history.restore_snapshot(envelope);
 history.restore_branch_snapshot(branchId, snapshot);
 ```
+
+The callback-bearing history contract is:
+
+- `replay_for(...)` and `replay_for_branch(...)` expose callback metadata on
+  replay frames when callback-backed nodes participate in the history slice.
+- `snapshot()` and `branch_snapshot_envelope(...)` are structured expert
+  artifacts, not plain JSON blobs.
+- callback-backed restore/import lanes still deny missing live callback
+  registrations explicitly rather than silently degrading into callback-free
+  truth.
+- the product-facing `history()` surface accepts the numeric branch ids it
+  already returns from `current_branch()` and `create_branch(...)`; callers do
+  not need `BigInt(...)` ceremony on the normal package lane.
 
 ### Branch Access
 
@@ -323,9 +340,39 @@ Complex:
 ```ts
 const plan = history.plan_merge_branches_with_proof(sourceId, targetId);
 const merge = history.merge_branches_with_proof(sourceId, targetId);
+const preview = history.plan_merge_policy_preview_with_proof({
+  source_branch_id: sourceId,
+  target_branch_id: targetId,
+});
 
-console.log({ plan, merge });
+console.log({
+  strategy: preview.plan.selected_semantics.strategy_name,
+  divergence: preview.plan.resolution_plan?.divergence ?? null,
+  mappedNodes: preview.plan.node_map,
+  firstDecision: preview.plan.node_plan[0]?.decision ?? null,
+  firstAdoptionSource: preview.plan.adoption_core[0]?.source_node ?? null,
+  firstCarryPolicy: preview.plan.adoption_policy[0]?.runtime_artifact ?? null,
+  replayEvents: merge.result.counters.replay_event_count,
+  firstMergedNode: merge.result.records[0]?.source_node ?? null,
+});
 ```
+
+Notes:
+
+- merge plan and merge result artifacts now expose stable summary fields instead
+  of opaque nested blobs for:
+  - `selected_semantics`
+  - `merge_base` / `lowered_merge_base`
+  - `resolution_plan`
+  - `node_map`
+  - `node_plan`
+  - `adoption_core`
+  - `adoption_policy`
+  - `records`
+  - `counters`
+- merge node identities are surfaced as generational strings like
+  `"12:3"`, not bare numeric ids, so cross-branch merge evidence keeps the
+  real runtime identity shape.
 
 ### Proof Access
 
@@ -352,21 +399,21 @@ Use the specialist surface for advanced runtime inspection.
 
 Methods:
 
-- `evaluate_dirty()`
-- `graph_summary()`
-- `read_versions(ids)`
+- `evaluateDirty()` / `evaluate_dirty()`
+- `graphSummary()` / `graph_summary()`
+- `readVersions(ids)` / `read_versions(ids)`
 
 Simple:
 
 ```ts
-console.log(specialist.graph_summary());
+console.log(specialist.graphSummary());
 ```
 
 Complex:
 
 ```ts
-const versions = specialist.read_versions(["count", "label", "panel"]);
-const dirty = specialist.evaluate_dirty();
+const versions = specialist.readVersions(["count", "label", "panel"]);
+const dirty = specialist.evaluateDirty();
 
 console.log({ versions, dirty });
 ```
@@ -378,6 +425,8 @@ Use adapters for export/import and proof/report surfaces.
 Methods:
 
 - `export_definitions()`
+- `export_runtime_envelope()`
+- `replace_runtime_envelope(envelope)`
 - `runtime_proof_report()`
 
 Simple:
@@ -390,13 +439,24 @@ Complex:
 
 ```ts
 const definitions = adapters.export_definitions();
+const envelope = adapters.export_runtime_envelope();
+adapters.replace_runtime_envelope(envelope);
 const proof = adapters.runtime_proof_report();
 
 console.log({
   unavailableCallbacks: definitions.unavailableCallbacks,
-  proof,
+  proofVersion: proof.proofSchemaVersion,
+  proofDigest: proof.registryBundleDigest,
 });
 ```
+
+Use the runtime-envelope lane as an expert restore/export surface:
+
+- `export_runtime_envelope()` carries definitions plus the captured runtime
+  snapshot envelope for rebuildable runtimes.
+- `replace_runtime_envelope(...)` restores that envelope into a fresh runtime.
+- callback-backed nodes without live callback registrations are a typed denial,
+  not a silent partial restore.
 
 ## Callback Diagnostics Notes
 
@@ -421,6 +481,39 @@ Use those to distinguish:
 - from
 - “this callback captured no signal reads and was lowered into a constant node”
 
+## Practical Debugging Workflows
+
+### Why did this callback rewire?
+
+```ts
+const why = diagnostics.why("doubled");
+console.log(why.callback?.lastDependencyPatch);
+```
+
+### What just delivered to observers?
+
+```ts
+const latestObservation = diagnostics.latestObservation();
+
+console.log(
+  latestObservation?.observation.boundary_events.map((event) => ({
+    observerId: event.observer_id,
+    matchedNodes: event.matched_nodes.nodes,
+    triggerMatched: event.trigger_matched,
+  })),
+);
+```
+
+### Did a callback fail or get denied?
+
+```ts
+console.log({
+  latestFailure: diagnostics.latestFailure(),
+  latestRollback: diagnostics.latestRollback(),
+  perf: diagnostics.performanceSummary(),
+});
+```
+
 ## When To Reach For Which Surface
 
 - Use `why(id)` first for one broken signal.
@@ -432,5 +525,5 @@ Use those to distinguish:
 
 ## Related Docs
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [react_adapter_reference.md](react_adapter_reference.md)

@@ -1,11 +1,11 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 
 use forge_signal::facade::SignalError;
 
 use crate::runtime::compute_callbacks::ComputeCallbackFailure;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ForgeSignalJsError {
     pub code: String,

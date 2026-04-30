@@ -7,32 +7,32 @@ subpath.
 
 ## Start Here
 
-- [README.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/README.md)
+- [README.md](../README.md)
   Product overview and the shortest happy path.
-- [consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
+- [consuming_the_package.md](consuming_the_package.md)
   Build, prepare, install, import, and package-shape guidance for other apps.
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
   Reference for `createSignals()`, `input`, `computed`, `output`, `watch`,
   `effect`, `transaction`, `batch`, and `nuke`.
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
   Reference for diagnostics, latest observation, latest flow, history, branch,
   snapshot, replay, and adapter/export surfaces.
-- [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
+- [compatibility_surface_reference.md](compatibility_surface_reference.md)
   Reference for the lower-level `SignalApp` and `SignalRuntime` compatibility
   surfaces.
-- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
+- [aspects_reference.md](aspects_reference.md)
   Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
   and why subscriptions remain node-scoped.
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [react_adapter_reference.md](react_adapter_reference.md)
   Reference for `forge-signal-wasm/react`.
 
 ## Design And Architecture
 
-- [web_runtime_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/web_runtime_spec.md)
+- [web_runtime_spec.md](web_runtime_spec.md)
   Web runtime product and architecture spec.
-- [react_adapter_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_spec.md)
+- [react_adapter_spec.md](react_adapter_spec.md)
   React-domain adapter spec.
-- [host_callback_computed_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/host_callback_computed_spec.md)
+- [host_callback_computed_spec.md](host_callback_computed_spec.md)
   Callback-first computed-node spec for normal TypeScript authoring with
   dynamic dependencies and diagnostics parity.
 
@@ -63,8 +63,8 @@ The package also exposes:
 - `computed` is derived internal state.
 - `computed` is callback-first on the package surface.
 - `output` is a public projection intended for host and framework consumption.
-- `output` callback authoring remains explicitly deferred; use spec authoring
-  for now.
+- `output` is callback-first on the product surface, while `outputSpec(...)`
+  remains available for explicit portable recipe authoring.
 - `watch` observes committed boundaries.
 - `effect` reacts to committed boundaries.
 - `transaction` is the committed write boundary.

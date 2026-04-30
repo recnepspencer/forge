@@ -6,19 +6,74 @@ import {
   denySignalReadFromForeignRuntime,
   denyUnavailableRuntimeCallbackRead,
 } from "./callback_frames.js";
-import { RAW_SIGNAL_HANDLE, RAW_SIGNALS } from "./symbols.js";
+import { PRODUCT_SIGNAL_KIND, RAW_SIGNAL_HANDLE, RAW_SIGNALS } from "./symbols.js";
 
-export function unwrapSignalTarget(target) {
-  if (typeof target === "string") {
-    return target;
+function describeHandleKind(target) {
+  if (!target || typeof target !== "function") {
+    return null;
   }
-  if (target && typeof target === "function" && RAW_SIGNAL_HANDLE in target) {
-    return target[RAW_SIGNAL_HANDLE];
+  return target[PRODUCT_SIGNAL_KIND] ?? null;
+}
+
+function signalIdForError(target) {
+  return typeof target?.id === "string" ? target.id : "<unknown>";
+}
+
+function isProductSignalHandle(target) {
+  return (
+    target
+    && typeof target === "function"
+    && RAW_SIGNAL_HANDLE in target
+    && RAW_SIGNALS in target
+    && PRODUCT_SIGNAL_KIND in target
+  );
+}
+
+function invalidTargetError(operation) {
+  return new TypeError(
+    `${operation} expects a string id or a product signal handle created by this package`,
+  );
+}
+
+function foreignRuntimeError(operation, signalId) {
+  return new TypeError(
+    `${operation} cannot use signal \`${signalId}\` from a different Signals runtime`,
+  );
+}
+
+function nonInputMutationError(operation, kind, signalId) {
+  return new TypeError(
+    `${operation} expects an input handle, but received a ${kind} handle for \`${signalId}\``,
+  );
+}
+
+function requireProductSignalHandle(target, rawSignals, operation) {
+  if (!isProductSignalHandle(target)) {
+    throw invalidTargetError(operation);
+  }
+  if (target[RAW_SIGNALS] !== rawSignals) {
+    throw foreignRuntimeError(operation, signalIdForError(target));
   }
   return target;
 }
 
-export function wrapReadableSignal(rawHandle, rawSignals) {
+export function unwrapSignalTarget(target, rawSignals, operation = "signal operation") {
+  if (typeof target === "string") {
+    return target;
+  }
+  return requireProductSignalHandle(target, rawSignals, operation)[RAW_SIGNAL_HANDLE];
+}
+
+export function unwrapInputSignalTarget(target, rawSignals, operation = "signal mutation") {
+  const handle = requireProductSignalHandle(target, rawSignals, operation);
+  const kind = describeHandleKind(handle);
+  if (kind !== "input") {
+    throw nonInputMutationError(operation, kind ?? "unknown", signalIdForError(handle));
+  }
+  return handle[RAW_SIGNAL_HANDLE];
+}
+
+export function wrapReadableSignal(rawHandle, rawSignals, kind = "signal") {
   const signal = function signal() {
     const frame = activeComputedCallbackFrame();
     if (frame) {
@@ -104,13 +159,17 @@ export function wrapReadableSignal(rawHandle, rawSignals) {
       enumerable: false,
       value: rawSignals,
     },
+    [PRODUCT_SIGNAL_KIND]: {
+      enumerable: false,
+      value: kind,
+    },
   });
 
   return signal;
 }
 
 export function wrapInputSignal(rawHandle, rawSignals) {
-  const signal = wrapReadableSignal(rawHandle, rawSignals);
+  const signal = wrapReadableSignal(rawHandle, rawSignals, "input");
   Object.defineProperty(signal, "set", {
     enumerable: false,
     value(nextValue) {

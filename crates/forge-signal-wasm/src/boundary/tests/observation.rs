@@ -26,6 +26,11 @@ fn signals_phase3_watch_and_nuke_follow_committed_delivery_semantics() {
 
     assert!(signals.nuke(handle));
 
+    let summary = signals.core.borrow().web_performance_summary();
+    assert_eq!(summary.observation_callback_registration_count, 1);
+    assert_eq!(summary.observation_callback_disposal_count, 1);
+    assert_eq!(summary.active_handle_count, 0);
+
     set_signal_value(&signals, "count", 9.0);
 
     assert_eq!(
@@ -41,6 +46,90 @@ fn signals_phase3_watch_and_nuke_follow_committed_delivery_semantics() {
             .is_some(),
         "latest observation should still record the committed boundary"
     );
+}
+
+#[test]
+fn stale_observation_callback_tokens_cannot_dispose_reused_runtime_slots() {
+    let signals = build_signals();
+    build_phase3_graph(&signals);
+
+    let first_notices = Arc::new(Mutex::new(Vec::<WebObservationNotice>::new()));
+    let first_notices_clone = first_notices.clone();
+    let first_handle = signals
+        .watch_for_test("panel", move |notice| {
+            first_notices_clone
+                .lock()
+                .expect("first watch notices mutex poisoned")
+                .push(notice);
+        })
+        .unwrap();
+    let stale_token = first_handle
+        .callback_token
+        .expect("first watch should carry a callback token");
+    assert!(signals.nuke(first_handle));
+
+    let second_notices = Arc::new(Mutex::new(Vec::<WebObservationNotice>::new()));
+    let second_notices_clone = second_notices.clone();
+    let second_handle = signals
+        .watch_for_test("panel", move |notice| {
+            second_notices_clone
+                .lock()
+                .expect("second watch notices mutex poisoned")
+                .push(notice);
+        })
+        .unwrap();
+
+    let second_token = second_handle
+        .callback_token
+        .expect("second watch should carry a callback token");
+    assert_eq!(
+        stale_token.slot, second_token.slot,
+        "disposing and re-registering should reuse the runtime-owned callback slot"
+    );
+    assert_ne!(
+        stale_token.generation, second_token.generation,
+        "reused slots must advance generation so stale tokens lose authority"
+    );
+
+    assert!(
+        !signals
+            .core
+            .borrow_mut()
+            .dispose_observation_callback(stale_token),
+        "a stale token must not dispose the recycled callback slot"
+    );
+
+    set_signal_value(&signals, "count", 5.0);
+
+    assert_eq!(
+        first_notices
+            .lock()
+            .expect("first watch notices mutex poisoned")
+            .len(),
+        0,
+        "nuked handles must stay dead even after slot reuse"
+    );
+    assert_eq!(
+        second_notices
+            .lock()
+            .expect("second watch notices mutex poisoned")
+            .len(),
+        1,
+        "the recycled slot must still deliver to the new owner"
+    );
+
+    let summary = signals.core.borrow().web_performance_summary();
+    assert_eq!(summary.observation_callback_registration_count, 2);
+    assert_eq!(summary.observation_callback_disposal_count, 1);
+    assert_eq!(
+        summary.observation_callback_generation_mismatch_denial_count,
+        1
+    );
+    assert_eq!(summary.observation_callback_allocation_count, 1);
+    assert_eq!(summary.observation_callback_reuse_count, 1);
+    assert_eq!(summary.active_handle_count, 1);
+
+    assert!(signals.nuke(second_handle));
 }
 
 #[test]
@@ -71,6 +160,11 @@ fn signals_phase3_effect_and_failed_transaction_do_not_create_illegal_delivery()
     assert_eq!(*hits.lock().expect("effect hits mutex poisoned"), 1);
 
     assert!(signals.nuke(handle));
+
+    let summary = signals.core.borrow().web_performance_summary();
+    assert_eq!(summary.observation_callback_registration_count, 1);
+    assert_eq!(summary.observation_callback_disposal_count, 1);
+    assert_eq!(summary.active_handle_count, 0);
 }
 
 #[test]

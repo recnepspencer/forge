@@ -9,7 +9,10 @@ use forge_signal::facade::history::RuntimeBranchId;
 
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::expression::model::SignalValue;
-use crate::runtime::adapters::{MergePlanProofEnvelope, MergeResultProofEnvelope};
+use crate::runtime::adapters::{
+    MergePlanArtifactSummary, MergePlanProofEnvelope, MergeResultArtifactSummary,
+    MergeResultProofEnvelope,
+};
 use crate::runtime::summaries::{AspectVersionSummary, RuntimeStoreSnapshot, StoredSourceSnapshot};
 
 use super::state::{BranchRuntimeMetadata, BranchRuntimeState};
@@ -18,6 +21,192 @@ use super::RuntimeCore;
 
 impl RuntimeCore {
     pub fn merge_branches(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergeResultArtifactSummary, ForgeSignalJsError> {
+        self.merge_branches_raw(source_branch_id, target_branch_id)
+            .map(Into::into)
+    }
+
+    pub fn merge_branches_with_proof(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergeResultProofEnvelope, ForgeSignalJsError> {
+        let raw_result = self.merge_branches_raw(source_branch_id, target_branch_id)?;
+        let proof = self.merge_result_proof_report(&raw_result)?;
+        let result = raw_result.into();
+        Ok(MergeResultProofEnvelope { result, proof })
+    }
+
+    pub fn plan_merge_branches(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergePlanArtifactSummary, ForgeSignalJsError> {
+        self.plan_merge_branches_raw(source_branch_id, target_branch_id)
+            .map(Into::into)
+    }
+
+    fn plan_merge_branches_raw(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<BranchMergePlan, ForgeSignalJsError> {
+        let source = self
+            .runtime
+            .branch_handle(RuntimeBranchId(source_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
+            })?;
+        let target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(target_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
+            })?;
+        self.runtime
+            .merge()
+            .from(source)
+            .into_branch(target)
+            .plan()
+            .map(|planned| planned.plan().clone())
+            .map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn plan_merge_branches_with_proof(
+        &mut self,
+        source_branch_id: u64,
+        target_branch_id: u64,
+    ) -> Result<MergePlanProofEnvelope, ForgeSignalJsError> {
+        let raw_plan = self.plan_merge_branches_raw(source_branch_id, target_branch_id)?;
+        let proof = self.merge_plan_proof_report(&raw_plan)?;
+        let plan = raw_plan.into();
+        Ok(MergePlanProofEnvelope { plan, proof })
+    }
+
+    pub fn plan_merge_policy_preview(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<MergePlanArtifactSummary, ForgeSignalJsError> {
+        self.plan_merge_policy_preview_raw(request).map(Into::into)
+    }
+
+    fn plan_merge_policy_preview_raw(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<BranchMergePlan, ForgeSignalJsError> {
+        let source = self
+            .runtime
+            .branch_handle(RuntimeBranchId(request.source_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "unknown branch `{}`",
+                    request.source_branch_id
+                ))
+            })?;
+        let target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(request.target_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "unknown branch `{}`",
+                    request.target_branch_id
+                ))
+            })?;
+
+        let mut merge = self.runtime.merge().from(source).into_branch(target);
+        if let Some(policy_name) = request.conflict_policy_name {
+            merge = merge.conflict_policy_named(policy_name);
+        }
+        if let Some(policy_name) = request.conflict_isolation_policy_name {
+            merge = merge.conflict_isolation_policy_named(policy_name);
+        }
+        if let Some(matcher_name) = request.identity_matcher_name {
+            merge = merge.identity_matcher_named(matcher_name);
+        }
+        if let Some(policy_name) = request.deletion_policy_name {
+            merge = merge.deletion_policy_named(policy_name);
+        }
+
+        merge
+            .plan()
+            .map(|planned| planned.plan().clone())
+            .map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn plan_merge_policy_preview_with_proof(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<MergePlanProofEnvelope, ForgeSignalJsError> {
+        let raw_plan = self.plan_merge_policy_preview_raw(request)?;
+        let proof = self.merge_plan_proof_report(&raw_plan)?;
+        let plan = raw_plan.into();
+        Ok(MergePlanProofEnvelope { plan, proof })
+    }
+
+    pub fn merge_branches_policy_preview(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<MergeResultArtifactSummary, ForgeSignalJsError> {
+        self.merge_branches_policy_preview_raw(request)
+            .map(Into::into)
+    }
+
+    fn merge_branches_policy_preview_raw(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<BranchMergeResult, ForgeSignalJsError> {
+        let source = self
+            .runtime
+            .branch_handle(RuntimeBranchId(request.source_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "unknown branch `{}`",
+                    request.source_branch_id
+                ))
+            })?;
+        let target = self
+            .runtime
+            .branch_handle(RuntimeBranchId(request.target_branch_id))
+            .ok_or_else(|| {
+                ForgeSignalJsError::invalid_input(format!(
+                    "unknown branch `{}`",
+                    request.target_branch_id
+                ))
+            })?;
+
+        let mut merge = self.runtime.merge().from(source).into_branch(target);
+        if let Some(policy_name) = request.conflict_policy_name {
+            merge = merge.conflict_policy_named(policy_name);
+        }
+        if let Some(policy_name) = request.conflict_isolation_policy_name {
+            merge = merge.conflict_isolation_policy_named(policy_name);
+        }
+        if let Some(matcher_name) = request.identity_matcher_name {
+            merge = merge.identity_matcher_named(matcher_name);
+        }
+        if let Some(policy_name) = request.deletion_policy_name {
+            merge = merge.deletion_policy_named(policy_name);
+        }
+
+        merge.run().map_err(ForgeSignalJsError::from)
+    }
+
+    pub fn merge_branches_policy_preview_with_proof(
+        &mut self,
+        request: MergePolicyPreviewRequest,
+    ) -> Result<MergeResultProofEnvelope, ForgeSignalJsError> {
+        let raw_result = self.merge_branches_policy_preview_raw(request)?;
+        let proof = self.merge_result_proof_report(&raw_result)?;
+        let result = raw_result.into();
+        Ok(MergeResultProofEnvelope { result, proof })
+    }
+}
+
+impl RuntimeCore {
+    fn merge_branches_raw(
         &mut self,
         source_branch_id: u64,
         target_branch_id: u64,
@@ -87,153 +276,6 @@ impl RuntimeCore {
                 let _ = self.restore_branch_state(restored);
                 result
             })
-    }
-
-    pub fn merge_branches_with_proof(
-        &mut self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergeResultProofEnvelope, ForgeSignalJsError> {
-        let result = self.merge_branches(source_branch_id, target_branch_id)?;
-        let proof = self.merge_result_proof_report(&result)?;
-        Ok(MergeResultProofEnvelope { result, proof })
-    }
-
-    pub fn plan_merge_branches(
-        &mut self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<BranchMergePlan, ForgeSignalJsError> {
-        let source = self
-            .runtime
-            .branch_handle(RuntimeBranchId(source_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!("unknown branch `{source_branch_id}`"))
-            })?;
-        let target = self
-            .runtime
-            .branch_handle(RuntimeBranchId(target_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!("unknown branch `{target_branch_id}`"))
-            })?;
-        self.runtime
-            .merge()
-            .from(source)
-            .into_branch(target)
-            .plan()
-            .map(|planned| planned.plan().clone())
-            .map_err(ForgeSignalJsError::from)
-    }
-
-    pub fn plan_merge_branches_with_proof(
-        &mut self,
-        source_branch_id: u64,
-        target_branch_id: u64,
-    ) -> Result<MergePlanProofEnvelope, ForgeSignalJsError> {
-        let plan = self.plan_merge_branches(source_branch_id, target_branch_id)?;
-        let proof = self.merge_plan_proof_report(&plan)?;
-        Ok(MergePlanProofEnvelope { plan, proof })
-    }
-
-    pub fn plan_merge_policy_preview(
-        &mut self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<BranchMergePlan, ForgeSignalJsError> {
-        let source = self
-            .runtime
-            .branch_handle(RuntimeBranchId(request.source_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!(
-                    "unknown branch `{}`",
-                    request.source_branch_id
-                ))
-            })?;
-        let target = self
-            .runtime
-            .branch_handle(RuntimeBranchId(request.target_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!(
-                    "unknown branch `{}`",
-                    request.target_branch_id
-                ))
-            })?;
-
-        let mut merge = self.runtime.merge().from(source).into_branch(target);
-        if let Some(policy_name) = request.conflict_policy_name {
-            merge = merge.conflict_policy_named(policy_name);
-        }
-        if let Some(policy_name) = request.conflict_isolation_policy_name {
-            merge = merge.conflict_isolation_policy_named(policy_name);
-        }
-        if let Some(matcher_name) = request.identity_matcher_name {
-            merge = merge.identity_matcher_named(matcher_name);
-        }
-        if let Some(policy_name) = request.deletion_policy_name {
-            merge = merge.deletion_policy_named(policy_name);
-        }
-
-        merge
-            .plan()
-            .map(|planned| planned.plan().clone())
-            .map_err(ForgeSignalJsError::from)
-    }
-
-    pub fn plan_merge_policy_preview_with_proof(
-        &mut self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergePlanProofEnvelope, ForgeSignalJsError> {
-        let plan = self.plan_merge_policy_preview(request)?;
-        let proof = self.merge_plan_proof_report(&plan)?;
-        Ok(MergePlanProofEnvelope { plan, proof })
-    }
-
-    pub fn merge_branches_policy_preview(
-        &mut self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<BranchMergeResult, ForgeSignalJsError> {
-        let source = self
-            .runtime
-            .branch_handle(RuntimeBranchId(request.source_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!(
-                    "unknown branch `{}`",
-                    request.source_branch_id
-                ))
-            })?;
-        let target = self
-            .runtime
-            .branch_handle(RuntimeBranchId(request.target_branch_id))
-            .ok_or_else(|| {
-                ForgeSignalJsError::invalid_input(format!(
-                    "unknown branch `{}`",
-                    request.target_branch_id
-                ))
-            })?;
-
-        let mut merge = self.runtime.merge().from(source).into_branch(target);
-        if let Some(policy_name) = request.conflict_policy_name {
-            merge = merge.conflict_policy_named(policy_name);
-        }
-        if let Some(policy_name) = request.conflict_isolation_policy_name {
-            merge = merge.conflict_isolation_policy_named(policy_name);
-        }
-        if let Some(matcher_name) = request.identity_matcher_name {
-            merge = merge.identity_matcher_named(matcher_name);
-        }
-        if let Some(policy_name) = request.deletion_policy_name {
-            merge = merge.deletion_policy_named(policy_name);
-        }
-
-        merge.run().map_err(ForgeSignalJsError::from)
-    }
-
-    pub fn merge_branches_policy_preview_with_proof(
-        &mut self,
-        request: MergePolicyPreviewRequest,
-    ) -> Result<MergeResultProofEnvelope, ForgeSignalJsError> {
-        let result = self.merge_branches_policy_preview(request)?;
-        let proof = self.merge_result_proof_report(&result)?;
-        Ok(MergeResultProofEnvelope { result, proof })
     }
 }
 

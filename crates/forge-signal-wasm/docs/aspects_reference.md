@@ -38,7 +38,8 @@ do not carry semantic change kind through the runtime itself.
 `input(...)` accepts optional input options:
 
 ```ts
-const sensor = signals.input("sensor", 10, {
+const sensor = signals.input(10, {
+  id: "sensor",
   producesAspects: [1, 2],
 });
 ```
@@ -48,10 +49,13 @@ single-aspect behavior through aspect `0`.
 
 ### Aspect-Filtered Reads
 
-`computed(...)` and `output(...)` can read only selected aspects:
+Callback-first `computed(() => ...)` and `output(() => ...)` stay the normal
+product lane when plain callable signal reads are enough.
+
+When you need explicit aspect-filtered read contracts, use the spec lane:
 
 ```ts
-const display = signals.output("display", {
+const display = signals.outputSpec("display", {
   reads: [
     {
       id: "sensor",
@@ -73,10 +77,11 @@ Object-form reads also allow:
 
 ### Produced Aspects On Derived Nodes
 
-`computed(...)` and `output(...)` can also declare their own produced aspects:
+Produced-aspect declarations on derived nodes also belong on the explicit spec
+lane today:
 
 ```ts
-const summary = signals.computed("summary", {
+const summary = signals.computedSpec("summary", {
   reads: [{ id: "sensor", aspect: 1 }],
   expr: { kind: "read", id: "sensor" },
   producesAspects: [7],
@@ -149,6 +154,11 @@ Forge Signal aspect substrate.
 
 ## Practical Guidance
 
+- Prefer callback-first authoring for ordinary app code.
+- Switch to `computedSpec(...)` or `outputSpec(...)` when you need explicit
+  aspect-filtered reads or produced-aspect declarations on derived nodes.
+- Callback tracking follows callable signal reads only. Ordinary closure
+  variables are not reactive dependencies.
 - If the distinction is part of app truth, model it with aspects or separate
   nodes.
 - If the node is still one coherent public thing, keep `watch(...)` and

@@ -1,9 +1,10 @@
+use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
 use crate::boundary::serde::to_js;
 use serde::Serialize;
 
-use super::types::SignalDiagnostics;
+use super::types::{DisposableHandle, SignalDiagnostics};
 
 fn to_nullable_js<T>(value: Option<T>) -> Result<JsValue, JsValue>
 where
@@ -67,6 +68,19 @@ impl SignalDiagnostics {
     pub fn performance_summary(&self) -> Result<JsValue, JsValue> {
         let summary = self.core.borrow().web_performance_summary();
         to_js(&summary).map_err(JsValue::from)
+    }
+
+    pub fn subscribe(&self, callback: Function) -> Result<DisposableHandle, JsValue> {
+        let callback_token = self
+            .core
+            .borrow_mut()
+            .register_wasm_diagnostics_callback(callback);
+        Ok(DisposableHandle {
+            core: self.core.clone(),
+            observation_handle: None,
+            callback_token: None,
+            diagnostics_callback_token: Some(callback_token),
+        })
     }
 
     #[wasm_bindgen(js_name = latestFailure)]

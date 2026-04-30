@@ -1,54 +1,12 @@
-export interface ObservationBoundarySummary {
-  branchId: number;
-  deliveredEventCount: number;
-  rollbackSuppressedEventCount: number;
-  boundaryEvents: ReadonlyArray<unknown>;
-}
-
-export interface WebPerformanceSummary {
-  activeHandleCount: number;
-  activeCallbackCount: number;
-  activeComputeCallbackCount: number;
-  activeComputeCollectorCount: number;
-  matchedWatcherBreadth: number;
-  deliveredObservationCount: number;
-  rollbackSuppressedDeliveryCount: number;
-  serialExecutorUsageCount: number;
-  parallelExecutorUsageCount: number;
-  outputSerializationCount: number;
-  outputSerializationBreadth: number;
-  jsCallbackInvocationCount: number;
-  jsCallbackFailureCount: number;
-  computeCallbackRegistrationCount: number;
-  computeCallbackDisposalCount: number;
-  computeCallbackInvocationCount: number;
-  computeCallbackFailureCount: number;
-  computeCallbackGenerationMismatchDenialCount: number;
-  computeCallbackSelfReadDenialCount: number;
-  computeCallbackDynamicCycleDenialCount: number;
-  computeCallbackPromiseReturnDenialCount: number;
-  computeCallbackInvalidReturnDenialCount: number;
-  computeCallbackCollectorInstallationCount: number;
-  computeCallbackCaptureCount: number;
-  computeCallbackCapturedReadCount: number;
-  computeCallbackReturnSerializationBreadth: number;
-  computeCallbackAllocationCount: number;
-  computeCallbackReuseCount: number;
-  computeCallbackDependencyPatchCount: number;
-  computeCallbackDependencyPatchAddedCount: number;
-  computeCallbackDependencyPatchRemovedCount: number;
-  computeCallbackDependencyPatchRetainedCount: number;
-  computeCallbackRuntimeReadBreadth: number;
-  computeCallbackConstantNoSignalReadClassificationCount: number;
-  computeCallbackSignalTrackedClassificationCount: number;
-  computeCallbackMissingUnavailabilityCount: number;
-  compatibilityReadCount: number;
-  compatibilityReadBreadth: number;
-}
+import type {
+  FlowSurfaceSummary,
+  ObservationSurfaceSummary,
+  WebPerformanceSummary,
+} from "../package/types/diagnostics.js";
 
 export interface SignalsDiagnosticsSnapshot {
-  latestObservation: ObservationBoundarySummary | null;
-  latestFlow: unknown | null;
+  latestObservation: ObservationSurfaceSummary | null;
+  latestFlow: FlowSurfaceSummary | null;
   performanceSummary: WebPerformanceSummary;
 }
 
@@ -65,7 +23,9 @@ export interface WebObservationNotice {
   meaningfulChange: boolean;
 }
 
-export interface DisposableHandleLike {}
+export interface DisposableHandleLike {
+  free(): void;
+}
 
 export interface SignalHandleLike {
   id: string;
@@ -77,9 +37,10 @@ export interface SignalsTransactionLike {
 }
 
 export interface SignalDiagnosticsLike {
-  latestObservation(): ObservationBoundarySummary | null;
-  latestFlow(): unknown | null;
+  latestObservation(): ObservationSurfaceSummary | null;
+  latestFlow(): FlowSurfaceSummary | null;
   performanceSummary(): WebPerformanceSummary;
+  subscribe(listener: () => void): DisposableHandleLike;
 }
 
 export interface CompatibilityAppLike {
@@ -87,6 +48,7 @@ export interface CompatibilityAppLike {
 }
 
 export interface SignalsLike {
+  read(target: SignalHandleLike | string): unknown;
   watch(
     target: SignalHandleLike | string,
     callback: (notice: WebObservationNotice) => void,

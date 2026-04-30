@@ -11,7 +11,9 @@ use crate::runtime::compute_callbacks;
 
 use super::super::signals_model::{ComputedSpec, OutputSpec};
 use super::super::types::{ComputedSignal, InputSignal, OutputSignal, Signals, SignalsTransaction};
-use super::helpers::{apply_transaction_ops, output_callback_deferred_error, read_signal_value};
+use super::helpers::{
+    apply_transaction_ops, output_callback_deferred_error, read_signal_value, signal_id_from_js,
+};
 
 #[wasm_bindgen]
 impl Signals {
@@ -104,6 +106,11 @@ impl Signals {
         Err(JsValue::from(output_callback_deferred_error(id)))
     }
 
+    pub fn read(&self, target: JsValue) -> Result<JsValue, JsValue> {
+        let signal_id = signal_id_from_js(&target)?;
+        read_signal_value(&self.core, &signal_id)
+    }
+
     pub fn transaction(&self, callback: &Function) -> Result<JsValue, JsValue> {
         let builder = SignalsTransaction {
             core: self.core.clone(),
@@ -177,6 +184,16 @@ impl Signals {
         spec: OutputSpec,
     ) -> Result<OutputSignal, crate::boundary::errors::ForgeSignalJsError> {
         self.output_for_test(id, spec)
+    }
+
+    pub(crate) fn read_for_test(
+        &self,
+        id: &str,
+    ) -> Result<SignalValue, crate::boundary::errors::ForgeSignalJsError> {
+        let mut core = self.core.borrow_mut();
+        let value = core.read_value(id)?;
+        core.note_app_signal_serialization(id, &value);
+        Ok(value)
     }
 
     pub(crate) fn apply_transaction_for_test(

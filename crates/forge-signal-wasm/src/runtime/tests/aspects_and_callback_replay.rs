@@ -250,6 +250,14 @@ fn callback_replay_and_lineage_surfaces_report_callback_availability() {
         .as_ref()
         .map(|callback| callback.registered)
         == Some(true)));
+    let branch_replay = runtime
+        .replay_for_branch(runtime.current_branch().id.0)
+        .unwrap();
+    assert!(branch_replay.frames.iter().any(|frame| frame
+        .callback
+        .as_ref()
+        .map(|callback| callback.registered)
+        == Some(true)));
     let lineage = runtime.lineage_for_id("doubled").unwrap();
     assert!(lineage.events.iter().any(|event| event
         .callback
@@ -263,6 +271,16 @@ fn callback_replay_and_lineage_surfaces_report_callback_availability() {
 
     let replay = runtime.replay_for_id("doubled").unwrap();
     assert!(replay.frames.iter().any(|frame| {
+        frame.callback.as_ref().map(|callback| {
+            !callback.registered
+                && callback.unavailable_reason.as_deref()
+                    == Some("computeCallbackUnavailableForReplay")
+        }) == Some(true)
+    }));
+    let branch_replay = runtime
+        .replay_for_branch(runtime.current_branch().id.0)
+        .unwrap();
+    assert!(branch_replay.frames.iter().any(|frame| {
         frame.callback.as_ref().map(|callback| {
             !callback.registered
                 && callback.unavailable_reason.as_deref()

@@ -28,12 +28,15 @@ wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 Then prepare the package. Public npm example:
 
 ```powershell
-$env:FORGE_SIGNAL_WASM_PACKAGE_NAME='forge-signal-wasm'
-$env:FORGE_SIGNAL_WASM_REGISTRY='https://registry.npmjs.org'
-$env:FORGE_SIGNAL_WASM_PUBLISH_ACCESS='public'
-$env:FORGE_SIGNAL_WASM_NOTICE_MODE='none'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
+
+The prepare script now defaults to the public package lane:
+
+- package name: `forge-signal-wasm`
+- registry: `https://registry.npmjs.org`
+- access: `public`
+- notice mode: `none`
 
 Then run the release-proof verifier:
 
@@ -45,6 +48,8 @@ Private scoped example:
 
 ```powershell
 $env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
+$env:FORGE_SIGNAL_WASM_REGISTRY='https://npm.pkg.github.com'
+$env:FORGE_SIGNAL_WASM_NOTICE_MODE='proprietary'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
@@ -64,10 +69,6 @@ Once the package is built and prepared, the honest publish lane is:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
-$env:FORGE_SIGNAL_WASM_PACKAGE_NAME='forge-signal-wasm'
-$env:FORGE_SIGNAL_WASM_REGISTRY='https://registry.npmjs.org'
-$env:FORGE_SIGNAL_WASM_PUBLISH_ACCESS='public'
-$env:FORGE_SIGNAL_WASM_NOTICE_MODE='none'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 cd crates/forge-signal-wasm/pkg
@@ -137,8 +138,8 @@ import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", () => count() * 2);
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 
 signals.transaction((tx) => {
   tx.set(count, 2);
@@ -154,26 +155,20 @@ import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const enabled = signals.input("enabled", true);
-const name = signals.input("name", "Ada");
-const count = signals.input("count", 1);
+const enabled = signals.input(true, { id: "enabled" });
+const name = signals.input("Ada", { id: "name" });
+const count = signals.input(1, { id: "count" });
 
-const label = signals.computed("label", () => {
+const label = signals.computed(() => {
   return enabled() ? `${name()} x${count()}` : "disabled";
-});
+}, { id: "label" });
 
-const panel = signals.output("panel", {
-  reads: ["enabled", "name", "count", "label"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["enabled", { kind: "read", id: "enabled" }],
-      ["name", { kind: "read", id: "name" }],
-      ["count", { kind: "read", id: "count" }],
-      ["label", { kind: "read", id: "label" }],
-    ],
-  },
-});
+const panel = signals.output(() => ({
+  enabled: enabled(),
+  name: name(),
+  count: count(),
+  label: label(),
+}), { id: "panel" });
 
 const watchHandle = signals.watch(panel, (notice) => {
   console.log("panel changed", notice);
@@ -202,11 +197,13 @@ Complex:
 const diagnostics = signals.diagnostics();
 const perf = diagnostics.performanceSummary();
 const latestObservation = diagnostics.latestObservation();
+const latestFlow = diagnostics.latestFlow();
 
 console.log({
-  deliveries: latestObservation?.deliveredEventCount,
+  deliveries: latestObservation?.observation.delivered_event_count,
   callbackCaptures: perf.computeCallbackCaptureCount,
   dependencyPatches: perf.computeCallbackDependencyPatchCount,
+  callbackNodes: latestFlow?.callbackNodes.map((node) => node.id) ?? [],
 });
 ```
 
@@ -224,18 +221,12 @@ import {
 const signals = createSignals();
 const store = createReactSignalsStore(signals);
 
-const count = signals.input("count", 1);
-const doubled = signals.computed("doubled", () => count() * 2);
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const count = signals.input(1, { id: "count" });
+const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}), { id: "panel" });
 
 function Counter() {
   const countValue = useSignalValue<number>(count, store);
@@ -250,14 +241,25 @@ function Counter() {
 ## Practical Notes
 
 - Prefer callback-first `computed(() => ...)` for ordinary app code.
-- Keep `computedSpec(...)` for explicit portable recipe authoring.
-- `output(...)` remains spec-authored today.
-- `output(() => ...)` is intentionally deferred.
+- Prefer callback-first `output(() => ...)` for ordinary public projections.
+- Callback tracking follows callable signal reads only. Ordinary closure
+  variables are not reactive dependencies.
+- Prefer `signals.input(value, { id })` when you want the family to read with
+  one coherent authoring grammar.
+- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
+  authoring.
+- Keep compatibility/runtime surfaces for expert or migration scenarios rather
+  than the default product lane.
+- Keep `adapters().exportRuntimeEnvelope()` /
+  `adapters().replaceRuntimeEnvelope(...)` as the expert rebuild/import lane
+  rather than part of the normal app happy path.
+- Runtime-envelope import denies callback-backed nodes that do not have live
+  callback registrations available in the receiving runtime.
 - The React adapter consumes runtime truth; it does not recalculate derived
   values locally.
 
 ## What To Read Next
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [app_surface_reference.md](app_surface_reference.md)
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](react_adapter_reference.md)
