@@ -1,92 +1,98 @@
 # forge-signal-wasm Product Roadmap
 
-> **Status:** Active 2026-04-29
->
-> **Core runtime prerequisite:** [_docs/forge_signal/forge_signal_temporal_async_roadmap.md](../../../_docs/forge_signal/forge_signal_temporal_async_roadmap.md)
->
-> **Web runtime parent:** [web_runtime_spec.md](./web_runtime_spec.md)
->
-> **React adapter parent:** [react_adapter_spec.md](./react_adapter_spec.md)
->
-> **Callback-computed closeout parent:** [host_callback_computed_spec.md](./host_callback_computed_spec.md)
+## Purpose
 
-## Goal
+This document defines the remaining product roadmap for `forge-signal-wasm`
+after callback-computed closeout.
 
-Define the next wasm-side product sequence now that callback-computed closeout
-is complete and after the upcoming async-node core work is available, so
-`forge-signal-wasm`
-keeps one honest application-facing trajectory instead of growing by
-feature-by-feature convenience pressure.
+It is a future-only roadmap. It does not treat the wasm package as unfinished
+runtime foundation, and it does not treat later package products as incidental
+helpers. It exists to sequence the remaining work required to turn the closed
+callback/runtime substrate into a broader application-facing product line
+without splitting reactive truth across multiple convenience layers.
 
-This roadmap exists to answer:
+The governing rule remains:
 
-- what comes after callback-computed maturity
-- what must wait for async nodes
-- what order host capability, forms, and API resources should land in
-- why that order is architecturally required rather than preference
+- runtime truth stays canonical
+- package surfaces stay productized
+- later products consume semantics; they do not redefine them
 
-## Scope
+`forge-signal-wasm` may author, type, route, explain, and package host-facing
+surfaces, but it must not define temporal semantics that belong to core
+`forge-signal`, authority semantics that belong to `forge-relational`, or
+adapter-local truth engines that drift away from the runtime.
 
-This is a wasm and product-consumer roadmap, not a core `forge-signal` runtime
-roadmap.
+## Shipped Baseline
 
-It plans follow-on wasm/product work that consumes the core runtime honestly:
+The roadmap no longer tracks the already-shipped foundation as future work.
 
-- host-capability productization on top of the signal and async substrate
-- forms surfaces on top of callback-computed, observation, and async truth
-- API resource / query-replacement surfaces on top of temporal, async, and
-  host-capability truth
+The current shipped baseline includes:
 
-It does not redefine:
-
-- temporal runtime semantics
-- async node lifecycle semantics
-- retry / timeout / cancellation / supersession legality
-- replay / restore / branch truth
-
-Those remain core runtime responsibilities.
-
-## Adversarial Constraint
-
-`forge-signal-wasm` must survive the following hostile condition:
-
-> A long-lived web runtime that mixes callback-computed nodes, host-derived
-> facts, async nodes, form draft/validation/submit flows, and resource-backed
-> application data must converge to the same committed truth, the same
-> lifecycle classifications, and the same diagnostics explanations regardless
-> of whether work was driven by signal invalidation, host-capability change,
-> async completion, retry/cancellation, snapshot restore, or branch replay.
-
-If any follow-on wasm product:
-
-- invents host-derived semantics outside a typed runtime-owned capability lane
-- treats forms as local UI state instead of runtime-owned derived and async
+- app-first `createSignals()` runtime product surface
+- callback-first `computed(() => ...)` as a real runtime-owned derived lane
+- coherent `input`, `computed`, and `output` product surfaces
+- runtime-scoped callback lifecycle and generation-aware callback ownership
+- React consumption as a disciplined consumer of runtime truth
+- typed diagnostics, history, replay, merge, and package artifact surfaces
+- release-proof packaging and temp-consumer verification
+- explicit same-process exact restore vs callback-unavailable portable transport
   truth
-- treats resource/query caching as a separate truth engine parallel to the
-  runtime
-- smuggles retry/freshness/visibility semantics into adapter-local glue
-- hides cost posture behind attractive APIs with no counters or proof artifacts
 
-then the wasm product roadmap has failed.
+The shipped closeout reference for the latest major wasm milestone is
+[host_callback_computed_spec.md](./host_callback_computed_spec.md).
 
-## Governing Rules
+## Roadmap Rules
 
-- wasm/product layers consume core runtime semantics; they do not redefine
-  them
-- any new product surface must preserve the authority split:
-  `forge-relational` owns truth, `forge-signal` owns derived execution truth,
-  `forge-signal-wasm` owns host-facing authoring and typed product surfaces
-- every phase must declare:
-  - the runtime substrate it depends on
-  - the product truth it owns
-  - the diagnostics and boundedness proof it requires
-- if a product need exposes a missing runtime semantic family, that family must
-  be elevated explicitly rather than hidden in package glue
+Rules for every remaining wasm product item:
 
-## Dependency Lock
+- each milestone must describe a real product capability, not just a helper API
+  family
+- each milestone must preserve separate authority, execution, and package
+  ownership
+- each milestone must preserve replay, restore, diagnostics, and boundedness
+  honesty at the public boundary it introduces
+- each milestone must consume core runtime semantics rather than redefining
+  async, temporal, or invalidation truth in package glue
+- each milestone must define concrete acceptance evidence through runtime
+  proofs, package proofs, diagnostics artifacts, or product-level certification
+  scenarios
+- no milestone is complete until both implementation and product-facing trust
+  evidence exist
+- forms and resources must never become the first place where host-capability
+  or async lifecycle meaning is truly defined
+- package APIs, diagnostics, and type surfaces must remain clean, explicit, and
+  library-grade rather than becoming bags of host-specific flags
 
-This roadmap begins only after the async-node substrate is available from the
-core runtime work currently being finished on another branch.
+## Critical Path
+
+This section is the first build priority.
+
+These are the milestones that most directly keep the next wasm products from
+recreating the exact convenience-era failure mode the callback-computed
+closeout just removed:
+
+- ambient browser facts turning back into reactive folklore
+- forms inventing a second store
+- API resources inventing a second async and freshness engine
+
+Even here, the wasm package is still only productizing runtime truth.
+Authority, derived execution, temporal legality, async lifecycle policy, and
+canonical replay/restore semantics remain in the parent runtimes.
+
+If this section is weak, the next wasm products will inherit the classic drift
+pattern:
+
+- browser facts become ambient closure reads again
+- app-facing helpers redefine semantics that should have stayed runtime-owned
+- diagnostics stop at the product boundary instead of explaining the real
+  lifecycle
+- one product surface quietly becomes the semantic owner for every unfinished
+  concept underneath it
+
+## Dependency Gate: Async-Node Substrate
+
+This roadmap begins only after the core async-node substrate is available from
+the `forge-signal` roadmap work currently being finished on another branch.
 
 The intended dependency order is:
 
@@ -97,101 +103,19 @@ The intended dependency order is:
 
 That order is normative for this roadmap.
 
-## Why This Order
-
-### Async Nodes First
-
-Host capability, forms, and resources all need the async-node substrate to be
-real first.
-
-Without async nodes:
-
-- form submission and validation lifecycles degrade into ad hoc package state
-- resource loading becomes a second async engine
-- timeout, retry, cancellation, freshness, and supersession semantics drift out
-  of the runtime
-
-So this roadmap does not treat those products as independent of the core async
-branch. They are consumers of it.
-
-### Host Capability Before Forms And Resources
-
-Callback-computed closeout correctly deferred general host capability beyond
-captured signal reads. That deferral should end here, before broader product
-surfaces are allowed to lean on ambient browser facts.
-
-Host capability comes first because:
-
-- it is the missing typed lane between pure signal reads and real web-app
-  products that need browser-derived facts
-- forms will want honest access to focus, visibility, connectivity,
-  browser-local persistence, and similar host-derived facts
-- resource/query products will want honest access to online/offline state,
-  visibility, timers, and other host-derived revalidation inputs
-- if this lane is not typed first, both forms and resources will recreate
-  ambient closure-read folklore under prettier APIs
-
-### Forms Before Resources
-
-Forms come before resources because forms are the smaller and more local
-application product that still exercises the hard substrate honestly:
-
-- source state vs derived draft state
-- validation and submit-readiness derivation
-- async submission lifecycle
-- rollback-safe observation
-- host-derived UX state where appropriate
-
-Forms are therefore the first serious app-facing proof that the callback,
-observation, async, and host-capability story composes into a humane product
-surface.
-
-### Resources Last
-
-API resources and TanStack-style query replacement come last because they are
-the broadest and riskiest consumer of the whole stack.
-
-That product will need to consume, not redefine:
-
-- async node lifecycle truth
-- retry / timeout / cancellation / supersession policy families
-- temporal freshness and stale-window semantics
-- host capability where browser/runtime-local facts affect revalidation
-- branch / replay / restore honesty
-- diagnostics and boundedness artifacts
-
-If resources land first, they are likely to become the accidental owner of:
-
-- host-derived fetch facts
-- freshness semantics
-- visibility semantics
-- submission semantics that forms should inherit differently
-
-This roadmap rejects that inversion.
-
-## Phase 0: Async-Node Prerequisite Check
-
-### Goal
-
-Refuse to begin wasm follow-on product work until the core async-node substrate
-is actually available and honest enough to inherit.
-
-### Must Be True
+Before Milestone 1 begins, the following must already be true:
 
 - async/resource lifecycle is runtime-owned
 - retry, timeout, cancellation, supersession, and revalidation semantics are
   real runtime policy families rather than adapter-local conventions
 - replay, restore, branch, rollback, and diagnostics parity exist for async
   work
-- wasm does not need to invent parallel pending/fulfilled/rejected truth
+- wasm does not need to invent a second pending/fulfilled/rejected truth model
 
-### Exit Condition
+If those conditions are not true, this roadmap must pause rather than coding
+against moving semantic targets.
 
-The async-node branch is merged or otherwise frozen enough that the wasm
-product work can name one canonical substrate instead of coding against moving
-semantic targets.
-
-## Phase 1: Host Capability
+## Milestone 1: Host Capability Product Lane
 
 ### Goal
 
@@ -199,32 +123,51 @@ Add a typed host-capability lane for non-signal host-derived facts so callback
 code can consume approved browser/runtime inputs without pretending ambient
 closure reads are reactive truth.
 
-### Examples
-
-- viewport/media facts
-- online/offline state
-- visibility/focus state
-- browser-local persistence-backed facts
-- clock/timer-facing host facts that belong above pure signal reads
-
 ### Must Ship
 
 - a frozen wasm-facing host-capability vocabulary
 - typed handles or descriptors for approved host-capability families
-- explicit ownership, invalidation, and disposal semantics
-- diagnostics and explanation artifacts that name host-capability reads
-- replay/restore/import-export posture for each admitted capability family
-- counters and boundedness proof for capability registration, invalidation, and
-  delivery
+- explicit ownership, invalidation, registration, and disposal semantics
+- diagnostics and explanation artifacts that name host-capability reads and
+  invalidation causes
+- replay, restore, and import/export posture for each admitted capability
+  family
+- counters and boundedness proof for capability registration, invalidation,
+  delivery, and callback reevaluation
 
 ### Must Preserve
 
 - host capability remains a typed lane, not ambient closure permission
-- capability semantics remain runtime-truth consumers, not React-local or
-  browser-local shadow state
+- capability semantics remain runtime-truth consumers rather than React-local
+  or browser-local shadow state
 - unsupported host reads remain explicitly non-reactive by contract
+- callback-computed purity for ordinary signal-only code remains simple and
+  does not become entangled with optional host-capability machinery
 
-## Phase 2: Forms
+### Explicit Boundary
+
+Milestone 1 includes viewport, visibility, online/offline, timers, local
+persistence-backed facts, and similar host-facing runtime inputs where the
+package needs an explicit typed lane above pure signal reads.
+
+Milestone 1 does not include letting arbitrary closure reads become reactive by
+declaration, nor does it include burying host invalidation inside forms or
+resource APIs. Unsupported host reads must remain visibly non-reactive rather
+than being grandfathered in as convenience behavior.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- host-derived callback code does not rely on ambient closure folklore
+- supported host capabilities are typed, lifecycle-owned, and diagnostics-
+  visible
+- restore, replay, and import behavior is explicit for each admitted capability
+  family
+- host-capability invalidation stays bounded and explainable at the public
+  product boundary
+
+## Milestone 2: Forms Product Surface
 
 ### Goal
 
@@ -233,8 +176,8 @@ async, and host-capability truth.
 
 ### Must Ship
 
-- source/draft/effective/dirty/readiness vocabulary that feels native in app
-  code
+- source, draft, effective, dirty, readiness, and submission vocabulary that
+  feels native in app code
 - validation and submission state derived through runtime-owned signals and
   async nodes
 - rollback-safe observation and diagnostics for form activity
@@ -247,18 +190,42 @@ async, and host-capability truth.
 - submit lifecycle consumes async runtime truth rather than inventing local
   pending/success/error grammar
 - validation and readiness remain diagnosable runtime-derived state
+- the forms surface remains a consumer of callback, async, and host-capability
+  truth rather than redefining any of them
 
-## Phase 3: API Resources / Query Replacement
+### Explicit Boundary
+
+Milestone 2 includes humane forms authoring, validation, readiness, draft
+state, and submission lifecycle on top of the completed runtime substrate.
+
+Milestone 2 does not include treating local component state as the authority
+for form lifecycle, inventing a separate async submission state machine, or
+letting browser-local conditions bypass the typed host-capability lane.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- forms are built as real runtime consumers rather than local UI sugar
+- async submission truth, validation truth, and host-derived form facts do not
+  split into separate semantic engines
+- diagnostics explain form readiness, validation, submission, and rollback
+  coherently
+- the package examples teach a forms story that does not require tribal
+  knowledge
+
+## Milestone 3: API Resource And Query-Replacement Surface
 
 ### Goal
 
-Build the API resource / TanStack-replacement layer as a consumer of the now
-completed callback, async, host-capability, and forms-adjacent semantics.
+Build the API resource / query-replacement layer as a consumer of the completed
+callback, temporal, async, and host-capability semantics.
 
 ### Must Ship
 
 - a resource authoring surface that feels first-class in TypeScript
-- explicit cache/freshness/revalidation semantics backed by the runtime
+- explicit cache, freshness, and revalidation semantics backed by runtime
+  truth
 - diagnostics, replay, and restore truth for resource-backed application state
 - ergonomics strong enough to replace query-library-shaped usage without
   inventing a second async truth model
@@ -269,10 +236,35 @@ completed callback, async, host-capability, and forms-adjacent semantics.
   remain runtime-owned semantics
 - forms and resources share substrate truth rather than carrying separate async
   worlds
-- host-derived revalidation facts flow through host capability, not ad hoc
-  browser checks inside resource callbacks
+- host-derived revalidation facts flow through host capability rather than ad
+  hoc browser checks inside resource callbacks
+- resource ergonomics do not hide broad scans, broad invalidation, or broad
+  refetch orchestration behind cheap-looking helper calls
 
-## Completion Standard
+### Explicit Boundary
+
+Milestone 3 includes query-replacement-grade resource authoring, freshness,
+retry/revalidation semantics, and diagnostics-rich resource state on top of the
+completed substrate.
+
+Milestone 3 does not include turning resources into the semantic owner of
+host-derived facts, async policy, or freshness meaning for the rest of the
+package. Resources must inherit those semantics rather than define them.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- API resources/query replacement consume the completed semantics above them
+  rather than redefining them
+- host-derived revalidation and async lifecycle truth flow through named typed
+  product lanes
+- resource diagnostics explain freshness, retry, invalidation, and visibility-
+  or host-driven revalidation honestly
+- the package can recommend the resource surface without a giant footnote about
+  "real semantics living somewhere else"
+
+## Roadmap Done When
 
 This roadmap is complete only when:
 
@@ -280,11 +272,5 @@ This roadmap is complete only when:
 - host capability exists as a typed wasm/product lane
 - forms are built as real runtime consumers rather than local UI sugar
 - API resources/query replacement consume the completed semantics above them
-- no phase creates a second reactive or async truth engine beside the runtime
-
-## Companion Documents
-
-- [web_runtime_spec.md](./web_runtime_spec.md)
-- [react_adapter_spec.md](./react_adapter_spec.md)
-- [host_callback_computed_spec.md](./host_callback_computed_spec.md)
-- [_docs/forge_signal/forge_signal_temporal_async_roadmap.md](../../../_docs/forge_signal/forge_signal_temporal_async_roadmap.md)
+- no milestone creates a second reactive or async truth engine beside the
+  runtime
