@@ -1,7 +1,12 @@
 # forge-signal-wasm
 
-Framework-agnostic browser bindings for Forge Signal, with a callback-first
-app surface, a typed host-capability lane, and an optional React adapter.
+Framework-agnostic browser bindings for Forge Signal, with a callback-based
+app surface, graph publication, typed host capabilities, and an optional
+React adapter.
+
+The package also includes aspect-aware invalidation, graph-scoped input
+operations, runtime diagnostics/history, exact graph restore, and lower-level
+compatibility surfaces when you need them.
 
 ## Install
 
@@ -58,12 +63,10 @@ The canonical app-authoring grammar is:
 
 including string-valued inputs such as `signals.input("Ada", { id: "name" })`.
 
-## Controller-First Composition
+## Controller Composition
 
-The primary app story is now controller-first authoring plus graph-owned
-publication. For repeated feature instances, prefer `signals.graph("id",
-(graph) => ...)` plus `graph.scope(...)` instead of hand-prefixing ids
-yourself.
+For feature-level app code, prefer `signals.graph("id", (graph) => ...)`
+plus `graph.scope(...)` over hand-prefixing ids yourself.
 
 Simple:
 
@@ -215,9 +218,8 @@ const itemDetailGraph = createSignals().graph("itemDetail", (graph) => {
 });
 ```
 
-Repeated families are a normal case now, not a naming accident. For side by
-side page/modal copies of the same controller family, scope each instance and
-alias the public contract deliberately:
+For side-by-side page/modal copies of the same controller family, scope each
+instance and alias the public contract deliberately:
 
 ```ts
 const itemWorkspaceGraph = createSignals().graph("itemWorkspace", (graph) => {
@@ -254,13 +256,12 @@ const rowEditorsGraph = createSignals().graph("rowEditors", (graph) => {
 });
 ```
 
-Today, authored signal ids still become canonical runtime ids under the hood,
-but `graph.scope(...)` and `signals.scope(...)` now own that prefixing step
-for significant app code. Keep manual string prefixing only as a compatibility
-bridge for older controllers. Graph `inputs` and `outputs` are explicit public
-contract names consumers read through the published graph artifact, while
-controller `internal` signals stay private unless you deliberately re-expose
-them.
+Authored signal ids still become canonical runtime ids under the hood.
+`graph.scope(...)` and `signals.scope(...)` own that prefixing step for normal
+app code; manual string prefixing is mainly a compatibility bridge for older
+controllers. Graph `inputs` and `outputs` are the public contract names
+consumers read through the published graph artifact, while controller
+`internal` signals stay private unless you deliberately re-expose them.
 
 The published graph is also the contract object forms and resource-style
 controllers should build on:
@@ -269,12 +270,27 @@ controllers should build on:
 console.log(itemDetailGraph.contract().inputs.serverItemData);
 console.log(itemDetailGraph.inspectDiagnostics().inputs.serverItemData.why);
 console.log(itemDetailGraph.inspectHistory().outputs.submitReadiness.replay);
+console.log(itemDetailGraph.operationalContract().authorities);
+itemDetailGraph.patchInputs({
+  draftEdits: { name: "Updated name" },
+});
 console.log(itemDetailGraph.importPosture());
 const exported = itemDetailGraph.exportDefinition();
 const snapshot = itemDetailGraph.exportSnapshot();
 const restored = createSignals().importGraph(exported, snapshot);
 console.log(restored.contractHistory());
 ```
+
+Published graphs also expose graph-native input operations:
+
+- `writeInputs(...)`
+- `patchInputs(...)`
+- `resetInputs(...)`
+- `apply(...)`
+- graph-scoped `transaction(...)`
+
+Use those when you want to operate on the published graph contract directly
+instead of dropping back to raw runtime-wide input handles.
 
 ## Host Capabilities
 
@@ -331,9 +347,40 @@ Good to know:
 - unsupported host reads stay non-reactive by contract
 - diagnostics and transport surfaces preserve denied vs unavailable family
   posture
+- available families include `viewport`, `visibility`, `online`, `clock`, and
+  `persistence`
 
 For the full guide, see
 [docs/host_capabilities.md](./docs/host_capabilities.md).
+
+## Aspects
+
+Aspects let one node carry multiple semantic change channels so reads and
+invalidations can stay narrower than "everything changed".
+
+Simple:
+
+```ts
+const part = signals.input({
+  id: "gear-7",
+  teeth: 24,
+  enabled: true,
+}, {
+  id: "part",
+  producesAspects: [1, 2],
+});
+
+signals.transaction((tx) => {
+  tx.setWithAspects(part, {
+    id: "gear-7",
+    teeth: 26,
+    enabled: true,
+  }, [1]);
+});
+```
+
+For the full guide, see
+[docs/aspects_reference.md](./docs/aspects_reference.md).
 
 ## Core Concepts
 
@@ -504,7 +551,7 @@ signals.transaction((tx) => {
 
 ## Diagnostics
 
-Diagnostics are first-class. Start here:
+Start here:
 
 ```ts
 const diagnostics = signals.diagnostics();
@@ -548,6 +595,9 @@ const graphHistory = itemDetailGraph.inspectHistory();
 console.log(graphDiagnostics.outputs.submitReadiness.why);
 console.log(graphHistory.outputs.submitReadiness.replay);
 ```
+
+The runtime also includes a larger history surface for snapshots, branching,
+replay, lineage, and merge planning when you need it.
 
 ## React Adapter
 
@@ -601,6 +651,8 @@ function PartPanel() {
   authoring.
 - Keep `compatibilityApp()` and `compatibilityRuntime()` for expert or migration
   scenarios, not for the default product lane.
+- Keep `history()` and `adapters()` for snapshot/replay/export/proof work when
+  you need deeper runtime control than the normal app path.
 
 ## Documentation
 

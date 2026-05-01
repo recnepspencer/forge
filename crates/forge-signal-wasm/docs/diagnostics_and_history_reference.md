@@ -7,9 +7,8 @@ This document covers the deeper inspection surfaces:
 - `SignalSpecialist`
 - `SignalAdapters`
 
-The short version: diagnostics are not an afterthought. They are a first-class
-part of how you debug callback-backed computed nodes, observation behavior,
-history, and replay.
+Use these surfaces when you need to explain callback-backed computed nodes,
+observation behavior, history, and replay.
 
 Published graphs also expose graph-scoped inspection surfaces. When you already
 have a `PublishedSignalGraph`, prefer those graph-shaped views over manually
@@ -157,9 +156,8 @@ console.log({
 Use this when you want replay/lineage answers anchored to the graph publication
 boundary instead of manually translating graph output names back into raw ids.
 
-Graph-scoped diagnostics/history now expose the public input side too, which is
-what future forms/resources layers should depend on when they need a stable
-contract instead of ambient runtime ids.
+Graph-scoped diagnostics/history expose the public input side too, which is the
+stable contract surface to use instead of ambient runtime ids.
 
 ### `health(): HealthSummary`
 
@@ -610,25 +608,26 @@ Use adapters for export/import and proof/report surfaces.
 
 Methods:
 
-- `export_definitions()`
-- `export_runtime_envelope()`
-- `replace_runtime_envelope(envelope)`
-- `runtime_proof_report()`
+- `exportDefinitions()`
+- `exportRuntimeEnvelope()`
+- `replaceRuntimeEnvelope(envelope)`
+- `restoreExactRuntimeEnvelope(envelope)`
+- `runtimeProofReport()`
 - `hostCapabilityTransportReport(envelope?)`
 
 Simple:
 
 ```ts
-const definitions = adapters.export_definitions();
+const definitions = adapters.exportDefinitions();
 ```
 
 Complex:
 
 ```ts
-const definitions = adapters.export_definitions();
-const envelope = adapters.export_runtime_envelope();
-adapters.replace_runtime_envelope(envelope);
-const proof = adapters.runtime_proof_report();
+const definitions = adapters.exportDefinitions();
+const envelope = adapters.exportRuntimeEnvelope();
+adapters.replaceRuntimeEnvelope(envelope);
+const proof = adapters.runtimeProofReport();
 
 console.log({
   unavailableCallbacks: definitions.unavailableCallbacks,
@@ -661,9 +660,9 @@ console.log({
 
 Use the runtime-envelope lane as an expert restore/export surface:
 
-- `export_runtime_envelope()` carries definitions plus the captured runtime
+- `exportRuntimeEnvelope()` carries definitions plus the captured runtime
   snapshot envelope for rebuildable runtimes.
-- `replace_runtime_envelope(...)` restores that envelope into a fresh runtime.
+- `replaceRuntimeEnvelope(...)` restores that envelope into a fresh runtime.
 - callback-backed nodes without live callback registrations are a typed denial,
   not a silent partial restore.
 

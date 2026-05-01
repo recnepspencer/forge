@@ -9,7 +9,7 @@ posture, diagnostics, and anti-patterns, see
 
 ## Entry Point
 
-### `createSignals(): Signals`
+### `createSignals(): CallableSignals`
 
 Creates a framework-agnostic runtime instance.
 
@@ -123,23 +123,24 @@ Good to know:
 - unsupported ambient host reads remain non-reactive
 - per-family compatibility posture matters during restore/import/export
 
-### `start(): void`
+### `default init(): Promise<undefined>`
 
-Low-level wasm start hook retained for completeness. Normal app code should not
-need it.
+Low-level wasm initialization hook retained for completeness. Normal app code
+usually imports `createSignals()` and lets the package wiring handle this for
+them.
 
 Simple:
 
 ```ts
-import { start } from "forge-signal-wasm";
+import init from "forge-signal-wasm";
 ```
 
 Complex:
 
 ```ts
-import { start, createSignals } from "forge-signal-wasm";
+import init, { createSignals } from "forge-signal-wasm";
 
-start();
+await init();
 const signals = createSignals();
 ```
 
@@ -329,6 +330,7 @@ type EditSessionController = {
     effectiveItemData: ComputedSignalHandle<ItemServerData>;
     dirtyState: ComputedSignalHandle<{ isDirty: boolean }>;
   };
+  internal: Record<string, never>;
 };
 
 function createEditSessionController(
@@ -346,7 +348,7 @@ function createEditSessionController(
     isDirty: Object.keys(draftEdits()).length > 0,
   }), { id: "dirtyState" });
 
-  return {
+  return signals.controller({
     inputs: {
       serverItemData,
       draftEdits,
@@ -355,7 +357,7 @@ function createEditSessionController(
       effectiveItemData,
       dirtyState,
     },
-  };
+  });
 }
 
 const signals = createSignals();
@@ -403,8 +405,8 @@ return form.controller({
 ```
 
 `graph.operationalContract().authorities` preserves that authority explicitly.
-Only `writable` inputs participate in graph-native writes, patches, resets, and
-transactions.
+Only `writable` inputs participate in graph-native writes, patches, resets,
+and transactions.
 
 Repeated controller families should also stay graph-owned. A page + modal copy
 of the same controller family should scope each instance and alias the public
@@ -764,13 +766,13 @@ The graph artifact gives you:
 - `exportDefinition()`
 - `exportSnapshot()`
 
-And the callable runtime now supports:
+The callable runtime also supports:
 
 - `importGraph(exportedDefinition, exportedSnapshot)`
 
-That contract surface is the important bridge for future forms/resources-style
-products: they can depend on explicit published inputs and outputs without
-inventing their own scope or lifecycle rules.
+That contract surface is the bridge future forms/resources-style products can
+build on: explicit published inputs and outputs without inventing a separate
+scope or lifecycle model.
 
 Advanced recipe form:
 

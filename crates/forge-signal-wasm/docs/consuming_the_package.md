@@ -195,7 +195,7 @@ The canonical app-authoring grammar is:
 This is safe for scalar and object values alike, including string-valued inputs
 such as `signals.input("Ada", { id: "name" })`.
 
-## Controller-First Composition Example
+## Controller Composition Example
 
 Simple:
 
@@ -398,8 +398,8 @@ const restored = createSignals().importGraph(exported, snapshot);
 console.log(restored.contractHistory());
 ```
 
-`graph.scope(...)` now owns the canonical runtime prefixing for significant app
-code. Keep manual string-prefixing only as a compatibility bridge for older
+`graph.scope(...)` owns the canonical runtime prefixing for normal app code.
+Keep manual string-prefixing only as a compatibility bridge for older
 controllers. `signals.controller(...)` / `scope.controller(...)` defines the
 controller contract, and `graph.expose({ controllers })` composes those
 contracts into the public graph boundary. The graph `inputs` and `outputs`

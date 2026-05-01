@@ -341,4 +341,4 @@ signals.computed(() => window.innerWidth, { id: "bad" });
 - [app_surface_reference.md](./app_surface_reference.md)
 - [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
 - [react_adapter_reference.md](./react_adapter_reference.md)
-- [host_capability_spec.md](./host_capability_spec.md)
+- [host_capability_spec.md](../../../_docs/forge_signal_wasm/host_capability_spec.md)

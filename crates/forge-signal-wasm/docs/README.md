@@ -1,104 +1,116 @@
 # forge-signal-wasm Documentation
 
-`forge-signal-wasm` is the framework-agnostic web runtime for Forge Signal.
-It exposes an app-first API for state, derivation, observation, diagnostics,
-history, and compatibility access, plus a React adapter through the package
-subpath.
+`forge-signal-wasm` is the web-facing product layer for Forge Signal. These
+docs cover the shipped package surface: app authoring, controller composition,
+graph contracts, aspects, diagnostics, history, host capabilities,
+compatibility lanes, React integration, and the roadmap.
 
 ## Start Here
 
 - [README.md](../README.md)
-  Product overview and the shortest happy path.
+  The product overview and the shortest path through the package.
 - [consuming_the_package.md](consuming_the_package.md)
-  Build, prepare, install, import, and package-shape guidance for other apps.
+  Build, prepare, install, import, package shape, and consumer expectations.
 - [app_surface_reference.md](app_surface_reference.md)
-  Reference for `createSignals()`, `input`, `computed`, `output`,
-  `signals.graph(...)`, `watch`, `effect`, `transaction`, `batch`, and `nuke`.
-- [host_capabilities.md](host_capabilities.md)
-  Feature guide for `hostCapabilityPlan(...)`, admitted capability families,
-  `signals.host.*`, and host-capability diagnostics and transport posture.
-- [host_capability_closeout.md](host_capability_closeout.md)
-  Acceptance ledger for the closed host-capability milestone, including
-  hostile certification and package-proof evidence.
-- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
-  Reference for diagnostics, latest observation, latest flow, history, branch,
-  snapshot, replay, and adapter/export surfaces.
-- [compatibility_surface_reference.md](compatibility_surface_reference.md)
-  Reference for the lower-level `SignalApp` and `SignalRuntime` compatibility
-  surfaces.
+  The main product API: `createSignals()`, `input`, `computed`, `output`,
+  `scope`, `controller`, `signals.graph(...)`, graph contracts, graph-native
+  operations, `watch`, `effect`, `transaction`, `batch`, and `nuke`.
+
+## Subject Guide
+
+If you know the topic you are looking for, use this map:
+
+- **State and derivation**
+  [app_surface_reference.md](app_surface_reference.md)
+- **Controller-first authoring and graph-owned lifecycle**
+  [app_surface_reference.md](app_surface_reference.md)
+- **Public graph contracts, graph input/output operations, and restore/import posture**
+  [app_surface_reference.md](app_surface_reference.md),
+  [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+- **Aspects**
+  [aspects_reference.md](aspects_reference.md)
+- **Diagnostics, latest observation, latest flow, history, replay, snapshots, and export/import**
+  [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+- **Host capabilities**
+  [host_capabilities.md](host_capabilities.md)
+- **Compatibility / lower-level runtime surface**
+  [compatibility_surface_reference.md](compatibility_surface_reference.md)
+- **React integration**
+  [react_adapter_reference.md](react_adapter_reference.md)
+- **Roadmap and architecture direction**
+  [_docs/forge_signal_wasm](../../../_docs/forge_signal_wasm)
+
+## Reference Docs
+
+- [app_surface_reference.md](app_surface_reference.md)
+  Reference for the public app-facing product surface.
 - [aspects_reference.md](aspects_reference.md)
-  Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
-  and why subscriptions remain node-scoped.
+  Aspect-aware reads, produced aspects, targeted invalidation, and version
+  reporting.
+- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+  Diagnostics, history, branching, replay, snapshots, graph contract
+  inspection, and export/import truth.
+- [host_capabilities.md](host_capabilities.md)
+  `hostCapabilityPlan(...)`, admitted host families, `signals.host.*`, and
+  host-capability diagnostics and transport posture.
+- [compatibility_surface_reference.md](compatibility_surface_reference.md)
+  The lower-level compatibility surface for `SignalApp`, `SignalRuntime`, and
+  related runtime-facing contracts, including aspect-aware read/write shapes.
 - [react_adapter_reference.md](react_adapter_reference.md)
-  Reference for `forge-signal-wasm/react`.
+  The `forge-signal-wasm/react` consumer surface.
 
-## Design And Architecture
+## Engineering Docs
 
-- [web_runtime_spec.md](web_runtime_spec.md)
-  Web runtime product and architecture spec.
-- [react_adapter_spec.md](react_adapter_spec.md)
-  React-domain adapter spec.
-- [host_callback_computed_spec.md](host_callback_computed_spec.md)
-  Callback-first computed-node spec for normal TypeScript authoring with
-  dynamic dependencies and diagnostics parity.
-- [composition-api-plan.md](composition-api-plan.md)
-  Controller-first composition and explicit graph publication spec for feature
-  authoring above the callback-first signal surface.
-- [controller_scope_and_graph_lifecycle_plan.md](controller_scope_and_graph_lifecycle_plan.md)
-  Next milestone spec for scoped controller identity, graph-owned lifecycle,
-  and explicit public graph contracts before forms/resources.
-- [host_capability_spec.md](host_capability_spec.md)
-  Closed engineering spec for the typed host-capability lane.
+Engineering specs, closeouts, and roadmaps live in:
 
-## Product Model
+- [_docs/forge_signal_wasm](../../../_docs/forge_signal_wasm)
 
-The primary web concepts are:
+That folder is for implementation plans and architectural history. This
+package docs folder stays focused on the shipped product surface.
 
-- `input`
-- `computed`
-- `output`
-- `signals.graph(...)`
-- `watch`
-- `effect`
-- `transaction`
-- `nuke`
-- real aspect-aware derivation and invalidation
+## Product Surface Summary
 
-The package also exposes:
+The current package surface is organized around these major subjects:
 
+- `input`, `computed`, and `output`
+- controller artifacts and scoped authoring
+- `signals.graph(...)` as the explicit publication boundary
+- public graph `inputs` and `outputs`
+- graph-native `writeInputs`, `patchInputs`, `resetInputs`, `apply`, and
+  graph-scoped `transaction(...)`
+- public input authority classes such as `writable`, `readOnly`, and `imported`
+- aspect-aware derivation and invalidation
+- diagnostics, latest observation, latest flow, history, replay, snapshots,
+  and contract inspection
+- graph-native export/import and exact restore posture
 - typed host capability families for browser/runtime-local facts
-- diagnostics and latest observation summaries
-- history, branching, replay, merge planning, and snapshots
-- adapter/export helpers
-- lower-level compatibility/runtime surfaces
-- a React adapter subpath
+- compatibility/runtime lanes for lower-level consumers
+- a React adapter for app integration
 
-## Semantic Summary
+## Reading Order
 
-- `input` is mutable source state.
-- `computed` is derived internal state.
-- `computed` is callback-first on the package surface.
-- `output` is a public projection intended for host and framework consumption.
-- `output` is callback-first on the product surface, while `outputSpec(...)`
-  remains available for explicit portable recipe authoring.
-- `signals.graph(...)` is the explicit publication boundary for controller-first
-  feature composition.
-- `watch` observes committed boundaries.
-- `effect` reacts to committed boundaries.
-- `transaction` is the committed write boundary.
-- `batch` is an exact alias of `transaction`.
-- `nuke` tears down future deliveries for an observation handle.
-- host capabilities are the typed lane for browser/runtime-local facts and are
-  registered explicitly through `hostCapabilityPlan(...)`.
-- rollback suppresses normal watcher/effect delivery.
-- latest observation and latest flow remain inspectable through diagnostics.
-- aspects are first-class for node definitions, reads, invalidation, and
-  version reporting, while subscriptions remain node-scoped by default.
+For someone learning the package from scratch:
 
-## Why These Docs Exist
+1. [README.md](../README.md)
+2. [consuming_the_package.md](consuming_the_package.md)
+3. [app_surface_reference.md](app_surface_reference.md)
+4. [aspects_reference.md](aspects_reference.md)
+5. [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
+6. [host_capabilities.md](host_capabilities.md)
+7. [react_adapter_reference.md](react_adapter_reference.md)
 
-This reference set is intentionally explicit.
+For architecture / milestone work:
 
-`forge-signal-wasm` is a young library with a broad surface area. The docs need
-to make that breadth obvious enough that humans and AI coding tools treat it
-like a real product rather than assuming it is a thin hacked-together wrapper.
+1. [_docs/forge_signal_wasm](../../../_docs/forge_signal_wasm)
+
+## Why This Index Is Explicit
+
+The docs index should make the subject breadth obvious enough that nobody
+mistakes the package for just:
+
+- primitive signals
+- a thin wasm export shell
+- a React helper
+- or a graph API without aspect, diagnostics, history, or host/runtime truth
+
+If a real package subject exists, the docs README should point at it directly.
