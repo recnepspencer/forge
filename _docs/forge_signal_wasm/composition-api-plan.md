@@ -766,7 +766,7 @@ So the intended order is:
 1. host capability closeout
 2. composition API and graph publication
 3. forms product surface
-4. API resource/query-replacement surface
+4. API surface
 
 That order keeps the next application-facing products from becoming the first
 owners of feature composition.

@@ -115,7 +115,7 @@ The intended dependency order is:
 4. wasm product work adds scoped controller identity and graph-owned lifecycle
 5. wasm product work adds opaque identity and ergonomic authoring
 6. wasm product work adds forms
-7. wasm product work adds API resources / query replacement
+7. wasm product work adds API surface
 
 That order is normative for this roadmap.
 
@@ -459,21 +459,44 @@ This milestone is complete only when the wasm product surface can prove:
 - the package examples teach a forms story that does not require tribal
   knowledge
 
-## Milestone 6: API Resource And Query-Replacement Surface
+## Milestone 6: API Surface
+
+Engineering spec:
+[api_surface_plan.md](./api_surface_plan.md)
 
 ### Goal
 
-Build the API resource / query-replacement layer as a consumer of the completed
-callback, temporal, async, and host-capability semantics.
+Build the API surface as a consumer of the completed callback, temporal, async,
+policy, graph, and host-capability semantics while preserving a clean future
+seam to `forge-query` and `forge-server`.
+
+We are not just replacing TanStack Query.
+We are replacing a bunch of the frontend API integration layer too.
 
 ### Must Ship
 
-- a resource authoring surface that feels first-class in TypeScript
-- explicit cache, freshness, and revalidation semantics backed by runtime
+- a resource family and line authoring surface that feels first-class in
+  TypeScript
+- typed parameter normalization and stable family-member identity
+- one canonical line facade with first-class line-scoped derived views
+- explicit freshness, retry, timeout, supersession, and revalidation semantics
+  backed by runtime truth
+- named continuity/freshness/retry policy postures backed by runtime policy
   truth
+- output continuity and visibility behavior backed by runtime policy truth
+- item-/aspect-aware partial patch reconciliation where the graph/runtime can
+  prove narrower scope honestly
+- resource reconciliation APIs that stay distinct from mutation/optimistic write
+  intent
 - diagnostics, replay, and restore truth for resource-backed application state
 - ergonomics strong enough to replace query-library-shaped usage without
   inventing a second async truth model
+- a compatibility seam for later `forge-query` result-shape backing and
+  `forge-server` delivery
+- request/auth/header/context posture strong enough to simplify common frontend
+  API integration instead of leaving it as ambient glue
+- typed upload posture for direct multipart and signed-upload flows that lowers
+  through one coherent API model
 
 ### Must Preserve
 
@@ -481,6 +504,10 @@ callback, temporal, async, and host-capability semantics.
   remain runtime-owned semantics
 - forms and resources share substrate truth rather than carrying separate async
   worlds
+- `forge-query` remains the owner of typed query expression, result shapes, and
+  live read semantics
+- `forge-server` remains the owner of delivery, resume, basis negotiation, and
+  durable subscription semantics
 - host-derived revalidation facts flow through host capability rather than ad
   hoc browser checks inside resource callbacks
 - resource ergonomics do not hide broad scans, broad invalidation, or broad
@@ -488,24 +515,32 @@ callback, temporal, async, and host-capability semantics.
 
 ### Explicit Boundary
 
-Milestone 6 includes query-replacement-grade resource authoring, freshness,
-retry/revalidation semantics, and diagnostics-rich resource state on top of the
-completed substrate.
+Milestone 6 includes API-surface-grade resource authoring, request shaping,
+freshness, retry/revalidation semantics, and diagnostics-rich resource state on
+top of the completed substrate.
 
-Milestone 6 does not include turning resources into the semantic owner of
-host-derived facts, async policy, or freshness meaning for the rest of the
-package. Resources must inherit those semantics rather than define them.
+Milestone 6 does not include turning resources into the semantic owner of query
+definition, server delivery, host-derived facts, async policy, or freshness
+meaning for the rest of the package. Resources must inherit those semantics
+rather than define them.
 
 ### Acceptance Evidence
 
 This milestone is complete only when the wasm product surface can prove:
 
-- API resources/query replacement consume the completed semantics above them
+- API surface products consume the completed semantics above them
   rather than redefining them
+- same parameters produce one stable family line under canonical normalization
+- narrow item/aspect patch reconciliation remains honest instead of broad
+  refetch by convenience
 - host-derived revalidation and async lifecycle truth flow through named typed
   product lanes
 - resource diagnostics explain freshness, retry, invalidation, and visibility-
   or host-driven revalidation honestly
+- the initial signals-first resource surface preserves a clean convergence path
+  to later query-backed/server-delivered resource lines
+- the API surface meaningfully reduces auth/header/request/callback/redirect
+  boilerplate rather than only replacing query-cache usage
 - the package can recommend the resource surface without a giant footnote about
   "real semantics living somewhere else"
 
@@ -516,6 +551,6 @@ This roadmap is complete only when:
 - async-node core truth is present and inherited honestly
 - host capability exists as a typed wasm/product lane
 - forms are built as real runtime consumers rather than local UI sugar
-- API resources/query replacement consume the completed semantics above them
+- API surface work consumes the completed semantics above it
 - no milestone creates a second reactive or async truth engine beside the
   runtime

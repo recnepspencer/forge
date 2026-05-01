@@ -147,7 +147,7 @@ Closing this milestone does not mean the wasm roadmap is finished.
 What remains intentionally deferred to later roadmap milestones:
 
 - forms built on top of host capability and async truth
-- API resource / query-replacement product surface
+- API surface product line
 - additional host families beyond the admitted first set
 - any future broadening of transport posture that would need a new capability
   taxonomy or new family-specific restore law

@@ -1624,7 +1624,7 @@ The intended order is now:
 2. composition API and graph publication
 3. scoped controller identity and graph-owned lifecycle
 4. forms product surface
-5. API resource/query-replacement surface
+5. API surface
 
 That order keeps the next two application-facing products from becoming the
 first real owners of scope, lifecycle, and public graph contracts.

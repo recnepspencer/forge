@@ -783,7 +783,7 @@ The intended order becomes:
 3. scoped controller identity and graph-owned lifecycle
 4. opaque identity and ergonomic authoring
 5. forms product surface
-6. API resource/query-replacement surface
+6. API surface
 
 That order keeps forms/resources from becoming the first place where CRUD-scale
 ergonomics are invented, while still leaving the actual forms product for the
