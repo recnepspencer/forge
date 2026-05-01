@@ -162,6 +162,12 @@ Simple:
 const count = signals.input(1, { id: "count" });
 ```
 
+String values use the same value-first form:
+
+```ts
+const name = signals.input("Ada", { id: "name" });
+```
+
 Complex:
 
 ```ts
@@ -276,6 +282,168 @@ const summary = signals.output(() => ({
 }), { id: "summary" });
 ```
 
+### `PublishedSignalGraph`
+
+Named publication artifact produced by `signals.graph(...)`.
+
+Simple:
+
+```ts
+const counterGraph = signals.graph("counter", {
+  outputs: {
+    count,
+    doubled,
+  },
+});
+
+console.log(counterGraph.read());
+```
+
+Complex:
+
+```ts
+import {
+  createSignals,
+  type ComputedSignalHandle,
+  type InputSignalHandle,
+  type SignalNamespace,
+} from "forge-signal-wasm";
+
+type ItemServerData = {
+  id: string;
+  name: string;
+  workflow_target_state_id?: string | null;
+};
+
+type ItemDraftEdits = Partial<Pick<
+  ItemServerData,
+  "name" | "workflow_target_state_id"
+>>;
+
+type EditSessionController = {
+  inputs: {
+    serverItemData: InputSignalHandle<ItemServerData | null>;
+    draftEdits: InputSignalHandle<ItemDraftEdits>;
+  };
+  outputs: {
+    effectiveItemData: ComputedSignalHandle<ItemServerData>;
+    dirtyState: ComputedSignalHandle<{ isDirty: boolean }>;
+  };
+};
+
+function createEditSessionController(
+  signals: SignalNamespace,
+): EditSessionController {
+  const serverItemData = signals.input<ItemServerData | null>(null, { id: "serverItemData" });
+  const draftEdits = signals.input<ItemDraftEdits>({}, { id: "draftEdits" });
+
+  const effectiveItemData = signals.computed(() => ({
+    ...(serverItemData() ?? {}),
+    ...draftEdits(),
+  }), { id: "effectiveItemData" });
+
+  const dirtyState = signals.computed(() => ({
+    isDirty: Object.keys(draftEdits()).length > 0,
+  }), { id: "dirtyState" });
+
+  return {
+    inputs: {
+      serverItemData,
+      draftEdits,
+    },
+    outputs: {
+      effectiveItemData,
+      dirtyState,
+    },
+  };
+}
+
+const signals = createSignals();
+const itemDetailGraph = signals.graph("itemDetail", (graph) => {
+  const editSession = createEditSessionController(graph.scope("editSession"));
+
+  return graph.expose({
+    inputs: {
+      ...editSession.inputs,
+    },
+    outputs: {
+      ...editSession.outputs,
+    },
+  });
+});
+
+console.log(itemDetailGraph.contract().inputs.serverItemData);
+console.log(itemDetailGraph.inspectDiagnostics().inputs.serverItemData.why);
+console.log(itemDetailGraph.inspectDiagnostics().outputs.effectiveItemData.why);
+console.log(itemDetailGraph.inspectDiagnostics().dependenciesForOutput("effectiveItemData"));
+console.log(itemDetailGraph.contractDelta(itemDetailGraph.contract()));
+const exported = itemDetailGraph.exportDefinition();
+const snapshot = itemDetailGraph.exportSnapshot();
+const restored = createSignals().importGraph(exported, snapshot);
+console.log(itemDetailGraph.importPosture());
+console.log(restored.contractHistory());
+```
+
+When a published input must stay visible but not writable through the graph,
+wrap the input handle before exposure:
+
+```ts
+const serverValue = form.input({ id: "task-7" }, { id: "serverValue" });
+const externalParams = form.input({ taskId: "task-7" }, { id: "externalParams" });
+
+return form.controller({
+  inputs: {
+    serverValue: form.publicInput(serverValue, { authority: "readOnly" }),
+    externalParams: form.publicInput(externalParams, { authority: "imported" }),
+  },
+  outputs: {
+    effectiveValue,
+  },
+});
+```
+
+`graph.operationalContract().authorities` preserves that authority explicitly.
+Only `writable` inputs participate in graph-native writes, patches, resets, and
+transactions.
+
+Repeated controller families should also stay graph-owned. A page + modal copy
+of the same controller family should scope each instance and alias the public
+contract deliberately:
+
+```ts
+const itemWorkspaceGraph = createSignals().graph("itemWorkspace", (graph) => {
+  const page = createEditSessionController(graph.scope("page"));
+  const modal = createEditSessionController(graph.scope("modal"));
+
+  return graph.expose({
+    inputs: {
+      pageServerItemData: page.inputs.serverItemData,
+      modalServerItemData: modal.inputs.serverItemData,
+    },
+    outputs: {
+      pageEffectiveItemData: page.outputs.effectiveItemData,
+      modalEffectiveItemData: modal.outputs.effectiveItemData,
+    },
+  });
+});
+```
+
+The same pattern scales to repeated row-level editors:
+
+```ts
+const rowEditorsGraph = createSignals().graph("rowEditors", (graph) => {
+  const row0 = createEditSessionController(graph.scope("row-0"));
+  const row1 = createEditSessionController(graph.scope("row-1"));
+
+  return graph.expose({
+    outputs: {
+      row0EffectiveItemData: row0.outputs.effectiveItemData,
+      row1EffectiveItemData: row1.outputs.effectiveItemData,
+    },
+  });
+});
+```
+
 ### `DisposableHandle`
 
 Lifecycle handle from `watch(...)` and `effect(...)`.
@@ -320,6 +488,74 @@ signals.transaction((tx) => {
 
 ## Core Methods On `Signals`
 
+### `scope(localScopeId): ScopedSignalNamespace`
+
+Simple:
+
+```ts
+const editSession = signals.scope("itemDetail.editSession");
+const count = editSession.input(1, { id: "count" });
+```
+
+Complex:
+
+```ts
+const itemDetail = signals.scope("itemDetail");
+const editSession = itemDetail.scope("editSession");
+const workflow = itemDetail.scope("workflow");
+```
+
+### `controller(definition): ControllerContract`
+
+Creates a package-understood controller artifact with explicit `inputs`,
+`outputs`, and optional `internal` categories.
+
+Simple:
+
+```ts
+const counter = signals.scope("counter");
+const count = counter.input(1, { id: "count" });
+const doubled = counter.computed(() => count() * 2, { id: "doubled" });
+
+const counterController = counter.controller({
+  inputs: { count },
+  outputs: { doubled },
+});
+```
+
+Complex:
+
+```ts
+function createEditSessionController(namespace: SignalNamespace) {
+  const serverItemData = namespace.input(null, { id: "serverItemData" });
+  const draftEdits = namespace.input({}, { id: "draftEdits" });
+  const effectiveItemData = namespace.computed(() => ({
+    ...(serverItemData() ?? {}),
+    ...draftEdits(),
+  }), { id: "effectiveItemData" });
+  const dirtyState = namespace.computed(() => ({
+    isDirty: Object.keys(draftEdits()).length > 0,
+  }), { id: "dirtyState" });
+  const validationTrace = namespace.computed(() => ({
+    dirty: dirtyState().isDirty,
+  }), { id: "validationTrace" });
+
+  return namespace.controller({
+    inputs: {
+      serverItemData,
+      draftEdits,
+    },
+    outputs: {
+      effectiveItemData,
+      dirtyState,
+    },
+    internal: {
+      validationTrace,
+    },
+  });
+}
+```
+
 ### `input(initial, options?): InputSignal`
 
 Simple:
@@ -348,7 +584,7 @@ Preferred callback form:
 const doubled = signals.computed(() => count() * 2, { id: "doubled" });
 ```
 
-Legacy id-first callback form:
+Legacy compatibility form:
 
 ```ts
 const doubled = signals.computed("doubled", () => count() * 2);
@@ -361,6 +597,180 @@ const label = signals.computed(() => {
   return enabled() ? `${name()} x${count()}` : "disabled";
 }, { id: "label" });
 ```
+
+### `graph(id, definitionOrBuilder)`
+
+Controller-first publication boundary for feature composition.
+
+Simple:
+
+```ts
+const counterGraph = createSignals().graph("counter", (graph) => {
+  const counter = graph.scope("counter");
+  const count = counter.input(1, { id: "count" });
+  const doubled = counter.computed(() => count() * 2, { id: "doubled" });
+
+  return graph.expose({
+    controllers: [
+      counter.controller({
+        inputs: { count },
+        outputs: { doubled },
+      }),
+    ],
+    outputs: { count },
+  });
+});
+```
+
+Complex:
+
+```ts
+import {
+  createSignals,
+  type ComputedSignalHandle,
+  type InputSignalHandle,
+  type SignalNamespace,
+} from "forge-signal-wasm";
+
+type ItemServerData = {
+  id: string;
+  name: string;
+  workflow_target_state_id?: string | null;
+};
+
+type ItemDraftEdits = Partial<Pick<
+  ItemServerData,
+  "name" | "workflow_target_state_id"
+>>;
+
+type EditSessionController = {
+  inputs: {
+    serverItemData: InputSignalHandle<ItemServerData | null>;
+    draftEdits: InputSignalHandle<ItemDraftEdits>;
+  };
+  outputs: {
+    effectiveItemData: ComputedSignalHandle<ItemServerData>;
+    dirtyState: ComputedSignalHandle<{ isDirty: boolean }>;
+  };
+  internal: Record<string, never>;
+};
+
+function createEditSessionController(signals: SignalNamespace): EditSessionController {
+  const serverItemData = signals.input<ItemServerData | null>(null, { id: "serverItemData" });
+  const draftEdits = signals.input<ItemDraftEdits>({}, { id: "draftEdits" });
+
+  const effectiveItemData = signals.computed(() => ({
+    ...(serverItemData() ?? {}),
+    ...draftEdits(),
+  }), { id: "effectiveItemData" });
+
+  const dirtyState = signals.computed(() => ({
+    isDirty: Object.keys(draftEdits()).length > 0,
+  }), { id: "dirtyState" });
+
+  return signals.controller({
+    inputs: {
+      serverItemData,
+      draftEdits,
+    },
+    outputs: {
+      effectiveItemData,
+      dirtyState,
+    },
+  });
+}
+
+type WorkflowController = {
+  inputs: Record<string, never>;
+  outputs: {
+    submitReadiness: ComputedSignalHandle<{
+      enabled: boolean;
+      targetStateId: string | null;
+    }>;
+  };
+  internal: Record<string, never>;
+};
+
+function createWorkflowController(
+  signals: SignalNamespace,
+  editSession: EditSessionController,
+): WorkflowController {
+  const submitReadiness = signals.computed(() => {
+    const item = editSession.outputs.effectiveItemData();
+    const dirty = editSession.outputs.dirtyState();
+
+    return {
+      enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+      targetStateId: item.workflow_target_state_id ?? null,
+    };
+  }, { id: "submitReadiness" });
+
+  return signals.controller({
+    outputs: {
+      submitReadiness,
+    },
+  });
+}
+
+const itemDetailGraph = createSignals().graph("itemDetail", (graph) => {
+  const editSession = createEditSessionController(graph.scope("editSession"));
+  const workflow = createWorkflowController(graph.scope("workflow"), editSession);
+
+  return graph.expose({
+    controllers: [editSession, workflow],
+  });
+});
+```
+
+`signals.graph(...)` accepts either:
+
+- a direct contract object with `inputs?` and `outputs`
+- or a builder callback that owns scoped construction through `graph.scope(...)`
+  and returns `graph.expose(...)`
+
+Published graph `inputs` preserve same-runtime input handles. Published graph
+`outputs` preserve existing output handles and synthesize deterministic output
+authorities from published input/computed handles when needed.
+
+Current identity rules:
+
+- authored signal ids must be unique within one runtime instance
+- `graph.scope(...)` and `signals.scope(...)` own canonical runtime prefixing
+  for significant app code
+- graph `inputs` and `outputs` keys are the public contract names exposed by
+  the published graph artifact
+- controller artifacts may distinguish `inputs`, `outputs`, and `internal`
+  structure explicitly
+- controller `internal` entries stay private unless deliberately re-exposed
+
+The graph artifact gives you:
+
+- `contract()`
+- `input(name)`
+- `inputs`
+- `readInputs()`
+- `inputDescriptors()`
+- `output(name)`
+- `outputs`
+- `read()`
+- `summary()`
+- `descriptors()`
+- `inspectDiagnostics()`
+- `inspectHistory()`
+- `contractDelta(previousContract)`
+- `contractHistory()`
+- `importPosture()`
+- `exportCompatibilityDefinition()`
+- `exportDefinition()`
+- `exportSnapshot()`
+
+And the callable runtime now supports:
+
+- `importGraph(exportedDefinition, exportedSnapshot)`
+
+That contract surface is the important bridge for future forms/resources-style
+products: they can depend on explicit published inputs and outputs without
+inventing their own scope or lifecycle rules.
 
 Advanced recipe form:
 

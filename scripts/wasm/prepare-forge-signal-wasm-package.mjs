@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { access, copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { stripTypeScriptTypes } from "node:module";
 import { promisify } from "node:util";
 import path from "node:path";
 import process from "node:process";
@@ -24,9 +25,7 @@ const typedDeclarationsPath = path.resolve(
 const packageIndexDeclarationsPath = path.resolve(
   "crates/forge-signal-wasm/package/index.d.ts",
 );
-const packageEntryPath = path.resolve("crates/forge-signal-wasm/package/index.js");
-const rawSurfaceEntryPath = path.resolve("crates/forge-signal-wasm/package/raw_surface.js");
-const productDirPath = path.resolve("crates/forge-signal-wasm/package/product");
+const packageSourceDirPath = path.resolve("crates/forge-signal-wasm/package-src");
 const typesDirPath = path.resolve("crates/forge-signal-wasm/package/types");
 const readmePath = path.resolve("crates/forge-signal-wasm/README.md");
 const licensePath = path.resolve("crates/forge-signal-wasm/LICENSE");
@@ -53,6 +52,33 @@ async function copyDirectoryRecursive(sourceDir, destinationDir) {
       continue;
     }
     await copyFile(sourcePath, destinationPath);
+  }
+}
+
+async function transpilePackageSourcesRecursive(sourceDir, destinationDir) {
+  await mkdir(destinationDir, { recursive: true });
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const destinationPath = path.join(destinationDir, entry.name);
+    if (entry.isDirectory()) {
+      await transpilePackageSourcesRecursive(sourcePath, destinationPath);
+      continue;
+    }
+    if (entry.name.endsWith(".d.ts")) {
+      continue;
+    }
+    if (!entry.name.endsWith(".ts")) {
+      continue;
+    }
+    if (entry.name === "types-smoke.ts" || entry.name.endsWith(".test.ts")) {
+      continue;
+    }
+    const outputPath = destinationPath.replace(/\.ts$/u, ".js");
+    const source = await readFile(sourcePath, "utf8");
+    const transformed = stripTypeScriptTypes(source, { mode: "transform" });
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, transformed, "utf8");
   }
 }
 
@@ -192,12 +218,10 @@ await copyFile(
   packageIndexDeclarationsPath,
   path.join(pkgDir, "index.d.ts"),
 );
-await copyFile(packageEntryPath, path.join(pkgDir, "index.js"));
-await copyFile(rawSurfaceEntryPath, path.join(pkgDir, "raw_surface.js"));
+await transpilePackageSourcesRecursive(packageSourceDirPath, pkgDir);
 await copyFile(readmePath, path.join(pkgDir, "README.md"));
 await copyFile(licensePath, path.join(pkgDir, "LICENSE"));
 await copyDirectoryRecursive(docsDirPath, path.join(pkgDir, "docs"));
-await copyDirectoryRecursive(productDirPath, path.join(pkgDir, "product"));
 await copyDirectoryRecursive(typesDirPath, path.join(pkgDir, "types"));
 await mkdir(path.join(pkgDir, "react"), { recursive: true });
 await compileReactEntryPoints();

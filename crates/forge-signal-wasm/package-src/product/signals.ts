@@ -4,6 +4,7 @@ import {
   parseOutputCallbackArgs,
   withComputedCallbackFrame,
 } from "./callback_frames.js";
+import { createControllerContract } from "./controllers.js";
 import {
   clockCapability,
   createHostCapabilities,
@@ -14,8 +15,11 @@ import {
   visibilityCapability,
 } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
+import { createImportedSignalGraph, createPublishedSignalGraph } from "./graphs.js";
 import { wrapHistory } from "./history.js";
 import { unwrapSignalTarget, wrapInputSignal, wrapReadableSignal } from "./handles.js";
+import { createPublicGraphInputEntry } from "./public_inputs.js";
+import { createScopedSignalNamespace, reserveAuthoringSignalId } from "./scopes.js";
 import { wrapSpecialist } from "./specialist.js";
 import { wrapAdapters, wrapTransaction } from "./transactions.js";
 
@@ -23,6 +27,23 @@ const OUTPUT_CALLBACK_PROJECTION_COUNTERS = new WeakMap();
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneSignalValue(value) {
+  if (typeof globalThis.structuredClone === "function") {
+    try {
+      return globalThis.structuredClone(value);
+    } catch {
+      return value;
+    }
+  }
+  if (Array.isArray(value)) {
+    return value.slice();
+  }
+  if (isPlainObject(value)) {
+    return { ...value };
+  }
+  return value;
 }
 
 function requireAuthoringOptions(family, options) {
@@ -39,8 +60,15 @@ function requireAuthoringId(family, options) {
   return options.id;
 }
 
+function looksLikeInputMetadataOptions(value) {
+  if (!isPlainObject(value) || typeof value.id !== "string" || value.id.length === 0) {
+    return false;
+  }
+  return Object.keys(value).every((key) => key === "id" || key === "producesAspects");
+}
+
 function parseInputArgs(firstArg, secondArg, thirdArg) {
-  if (typeof firstArg === "string") {
+  if (typeof firstArg === "string" && !looksLikeInputMetadataOptions(secondArg)) {
     return {
       id: firstArg,
       initial: secondArg,
@@ -98,6 +126,16 @@ function outputProjectionSpec(hiddenComputedId) {
   };
 }
 
+function withReservedSignalId(rawSignals, family, id, callback) {
+  const release = reserveAuthoringSignalId(rawSignals, family, id);
+  try {
+    return callback();
+  } catch (error) {
+    release();
+    throw error;
+  }
+}
+
 export {
   clockCapability,
   hostCapabilityPlan,
@@ -110,14 +148,31 @@ export {
 export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
   let diagnostics = null;
-  return {
+  const callableSignals = {
     host: hostCapabilities.host,
+    scope(localScopeId) {
+      return createScopedSignalNamespace(callableSignals, rawSignals, localScopeId);
+    },
+    controller(definition) {
+      return createControllerContract(definition);
+    },
+    publicInput(handle, options) {
+      return createPublicGraphInputEntry(handle, options);
+    },
     input(idOrInitial, initialOrOptions, maybeOptions) {
       const { id, initial, options } = parseInputArgs(idOrInitial, initialOrOptions, maybeOptions);
-      return wrapInputSignal(rawSignals.input(id, initial, options), rawSignals);
+      return withReservedSignalId(rawSignals, "input", id, () => (
+        wrapInputSignal(
+          rawSignals.input(id, initial, options),
+          rawSignals,
+          cloneSignalValue(initial),
+        )
+      ));
     },
     computedSpec(id, spec) {
-      return wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed");
+      return withReservedSignalId(rawSignals, "computed", id, () => (
+        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed")
+      ));
     },
     computed(idOrCompute, specOrCompute, maybeOptions) {
       const callbackArgs = parseComputedCallbackArgs(
@@ -128,11 +183,13 @@ export function wrapSignals(rawSignals, options) {
       );
       if (callbackArgs) {
         const callback = withComputedCallbackFrame(rawSignals, callbackArgs.callback);
-        return wrapReadableSignal(
-          rawSignals.computedCallback(callbackArgs.id, callback),
-          rawSignals,
-          "computed",
-        );
+        return withReservedSignalId(rawSignals, "computed", callbackArgs.id, () => (
+          wrapReadableSignal(
+            rawSignals.computedCallback(callbackArgs.id, callback),
+            rawSignals,
+            "computed",
+          )
+        ));
       }
       const { id, spec } = parseSpecAuthoringArgs(
         "computed",
@@ -140,10 +197,14 @@ export function wrapSignals(rawSignals, options) {
         specOrCompute,
         maybeOptions,
       );
-      return wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed");
+      return withReservedSignalId(rawSignals, "computed", id, () => (
+        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed")
+      ));
     },
     outputSpec(id, spec) {
-      return wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output");
+      return withReservedSignalId(rawSignals, "output", id, () => (
+        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output")
+      ));
     },
     output(idOrSpec, specOrCompute, maybeOptions) {
       const callbackArgs = parseOutputCallbackArgs(
@@ -155,12 +216,14 @@ export function wrapSignals(rawSignals, options) {
       if (callbackArgs) {
         const wrappedCallback = withComputedCallbackFrame(rawSignals, callbackArgs.callback);
         const hiddenComputedId = nextOutputProjectionId(rawSignals, callbackArgs.id);
-        rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
-        return wrapReadableSignal(
-          rawSignals.outputSpec(callbackArgs.id, outputProjectionSpec(hiddenComputedId)),
-          rawSignals,
-          "output",
-        );
+        return withReservedSignalId(rawSignals, "output", callbackArgs.id, () => {
+          rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
+          return wrapReadableSignal(
+            rawSignals.outputSpec(callbackArgs.id, outputProjectionSpec(hiddenComputedId)),
+            rawSignals,
+            "output",
+          );
+        });
       }
       const { id, spec } = parseSpecAuthoringArgs(
         "output",
@@ -168,17 +231,27 @@ export function wrapSignals(rawSignals, options) {
         specOrCompute,
         maybeOptions,
       );
-      return wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output");
+      return withReservedSignalId(rawSignals, "output", id, () => (
+        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output")
+      ));
     },
     outputCallback(id, callback) {
       const wrappedCallback = withComputedCallbackFrame(rawSignals, callback);
       const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
-      rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
-      return wrapReadableSignal(
-        rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
-        rawSignals,
-        "output",
-      );
+      return withReservedSignalId(rawSignals, "output", id, () => {
+        rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
+        return wrapReadableSignal(
+          rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
+          rawSignals,
+          "output",
+        );
+      });
+    },
+    graph(id, definition) {
+      return createPublishedSignalGraph(callableSignals, rawSignals, id, definition);
+    },
+    importGraph(definition, snapshot) {
+      return createImportedSignalGraph(callableSignals, rawSignals, definition, snapshot);
     },
     read(target) {
       return rawSignals.read(unwrapSignalTarget(target, rawSignals, "signals.read"));
@@ -232,6 +305,7 @@ export function wrapSignals(rawSignals, options) {
       rawSignals.free();
     },
   };
+  return callableSignals;
 }
 
 export function createCallableSignals(options) {

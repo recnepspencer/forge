@@ -31,6 +31,20 @@ import type {
   GraphSummary,
 } from "./diagnostics.js";
 import type {
+  ExportedSignalGraphDefinition,
+  ExportedSignalGraphSnapshot,
+  GraphBuilder,
+  GraphInputDefinitions,
+  GraphOutputDefinitions,
+  GraphPublicationRequest,
+  GraphScope,
+  ImportedSignalGraph,
+  PublicGraphInputContractEntry,
+  PublicGraphInputOptions,
+  PublishedSignalGraph,
+} from "./graph_surface.js";
+import type { ControllerContract, ControllerContractDefinition } from "./controller_surface.js";
+import type {
   ComputedSignal,
   DisposableHandle,
   InputSignal,
@@ -200,6 +214,18 @@ export interface HostCapabilityPlan<TPersistence = SignalValue> {
 
 export interface CreateSignalsOptions<TPersistence = SignalValue> {
   hostCapabilities?: HostCapabilityPlan<TPersistence>;
+}
+
+export interface InputAuthoringOptions extends InputOptions {
+  id: string;
+}
+
+export interface SignalAuthoringOptions {
+  id: string;
+}
+
+export interface CallbackSignalAuthoringOptions {
+  id?: string;
 }
 
 export interface ViewportCapabilityDescriptor {
@@ -392,21 +418,144 @@ export interface CallableSignalSpecialist {
   [Symbol.dispose](): void;
 }
 
+export interface ScopeDescriptor {
+  readonly id: string;
+  readonly localScopeId: string;
+  readonly parentScopeId: string | null;
+  readonly depth: number;
+  readonly path: ReadonlyArray<ScopePathSegment>;
+  readonly identity: ScopeIdentity;
+  readonly graphOwnerId?: string | null;
+}
+
+export interface ScopePathSegment {
+  readonly id: string;
+  readonly localScopeId: string;
+  readonly depth: number;
+}
+
+export interface ScopeIdentity {
+  readonly scopeId: string;
+  readonly parentScopeId: string | null;
+  readonly path: ReadonlyArray<ScopePathSegment>;
+  readonly depth: number;
+}
+
+export interface ScopedSignalIdentity {
+  readonly localId: string;
+  readonly canonicalId: string;
+  readonly scopeId: string;
+  readonly graphOwnerId: string | null;
+  readonly graphId: string | null;
+  readonly rootScopeId: string | null;
+  readonly scopePath: ReadonlyArray<ScopePathSegment>;
+}
+
+export interface ScopedSignalNamespace<TPersistence = SignalValue> {
+  readonly host: CallableSignalsHost<TPersistence>;
+  readonly scopeId: string;
+  readonly localScopeId: string;
+  readonly parentScopeId: string | null;
+  scope(localScopeId: string): ScopedSignalNamespace<TPersistence>;
+  controller<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = Record<string, never>,
+    TInternal extends Record<string, unknown> = Record<string, never>,
+  >(definition: ControllerContractDefinition<TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  publicInput<THandle extends InputSignalHandle>(
+    handle: THandle,
+    options?: PublicGraphInputOptions,
+  ): PublicGraphInputContractEntry<THandle>;
+  input<T = SignalValue>(initial: T, options: InputAuthoringOptions): InputSignalHandle<T>;
+  /** @deprecated Prefer input(value, { id }) so source, derived, and exposed authoring read as one metadata-first language. */
+  input<T = SignalValue>(id: string, initial: T, options?: InputOptions): InputSignalHandle<T>;
+  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
+  /** @deprecated Prefer computed(spec, { id }) or computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
+  computed<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(spec: ComputedSpec, options: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  /** @deprecated Prefer computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
+  computed<T = SignalValue>(id: string, compute: () => T): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): ComputedSignalHandle<T>;
+  outputSpec<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(spec, { id }) or output(() => ..., { id }) for the canonical metadata-first authoring lane. */
+  output<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
+  output<T = SignalValue>(spec: OutputSpec, options: SignalAuthoringOptions): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
+  output<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
+  output<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
+  outputCallback<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
+  graph<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
+  >(
+    id: string,
+    definition: GraphPublicationRequest<TInputs, TOutputs>,
+  ): PublishedSignalGraph<TOutputs, TInputs>;
+  graph<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
+  >(
+    id: string,
+    builder: GraphBuilder<TPersistence, TInputs, TOutputs>,
+  ): PublishedSignalGraph<TOutputs, TInputs>;
+  canonicalId(localId: string): string;
+  signalIdentity(localId: string): ScopedSignalIdentity;
+  descriptor(): ScopeDescriptor;
+}
+
 export interface CallableSignals<TPersistence = SignalValue> {
   readonly host: CallableSignalsHost<TPersistence>;
+  scope(localScopeId: string): GraphScope<TPersistence>;
+  controller<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = Record<string, never>,
+    TInternal extends Record<string, unknown> = Record<string, never>,
+  >(definition: ControllerContractDefinition<TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  publicInput<THandle extends InputSignalHandle>(
+    handle: THandle,
+    options?: PublicGraphInputOptions,
+  ): PublicGraphInputContractEntry<THandle>;
+  input<T = SignalValue>(initial: T, options: InputAuthoringOptions): InputSignalHandle<T>;
+  /** @deprecated Prefer input(value, { id }) so source, derived, and exposed authoring read as one metadata-first language. */
   input<T = SignalValue>(id: string, initial: T, options?: InputOptions): InputSignalHandle<T>;
-  input<T = SignalValue>(initial: T, options: InputOptions & { id: string }): InputSignalHandle<T>;
   computedSpec<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
+  /** @deprecated Prefer computed(spec, { id }) or computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
   computed<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(spec: ComputedSpec, options: { id: string }): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(spec: ComputedSpec, options: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  /** @deprecated Prefer computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
   computed<T = SignalValue>(id: string, compute: () => T): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(compute: () => T, options?: { id?: string }): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): ComputedSignalHandle<T>;
   outputSpec<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(spec, { id }) or output(() => ..., { id }) for the canonical metadata-first authoring lane. */
   output<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
-  output<T = SignalValue>(spec: OutputSpec, options: { id: string }): OutputSignalHandle<T>;
+  output<T = SignalValue>(spec: OutputSpec, options: SignalAuthoringOptions): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
   output<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
-  output<T = SignalValue>(compute: () => T, options?: { id?: string }): OutputSignalHandle<T>;
+  output<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): OutputSignalHandle<T>;
+  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
   outputCallback<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
+  graph<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
+  >(
+    id: string,
+    definition: GraphPublicationRequest<TInputs, TOutputs>,
+  ): PublishedSignalGraph<TOutputs, TInputs>;
+  graph<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
+  >(
+    id: string,
+    builder: GraphBuilder<TPersistence, TInputs, TOutputs>,
+  ): PublishedSignalGraph<TOutputs, TInputs>;
+  importGraph<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
+  >(
+    definition: ExportedSignalGraphDefinition<TOutputs, TInputs>,
+    snapshot: ExportedSignalGraphSnapshot<TOutputs, TInputs>,
+  ): ImportedSignalGraph<TOutputs, TInputs>;
   read<T = SignalValue>(target: CallableSignalTarget): T;
   transaction(callback: (tx: CallableSignalsTransaction) => void): RunSummary;
   batch(callback: (tx: CallableSignalsTransaction) => void): RunSummary;

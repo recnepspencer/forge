@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -7,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const productDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.dirname(productDir);
+const packageSourceDir = path.join(packageDir, "..", "package-src");
 
 function flushMicrotasks() {
   return new Promise((resolve) => queueMicrotask(resolve));
@@ -20,23 +22,36 @@ async function loadSignalsModule() {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-host-capability-"));
   try {
     const filesToCopy = [
-      ["product/signals.js", "product/signals.js"],
-      ["product/callback_frames.js", "product/callback_frames.js"],
-      ["product/diagnostics.js", "product/diagnostics.js"],
-      ["product/host_capability_reports.js", "product/host_capability_reports.js"],
-      ["product/host_capabilities.js", "product/host_capabilities.js"],
-      ["product/history.js", "product/history.js"],
-      ["product/handles.js", "product/handles.js"],
-      ["product/specialist.js", "product/specialist.js"],
-      ["product/transactions.js", "product/transactions.js"],
-      ["product/symbols.js", "product/symbols.js"],
+      ["product/signals.ts", "product/signals.js"],
+      ["product/callback_frames.ts", "product/callback_frames.js"],
+      ["product/controllers.ts", "product/controllers.js"],
+      ["product/diagnostics.ts", "product/diagnostics.js"],
+      ["product/graph_authoring_support.ts", "product/graph_authoring_support.js"],
+      ["product/graph_support.ts", "product/graph_support.js"],
+      ["product/graphs.ts", "product/graphs.js"],
+      ["product/host_capability_declarations.ts", "product/host_capability_declarations.js"],
+      ["product/host_capability_registrations.ts", "product/host_capability_registrations.js"],
+      ["product/host_capability_reports.ts", "product/host_capability_reports.js"],
+      ["product/host_capabilities.ts", "product/host_capabilities.js"],
+      ["product/history.ts", "product/history.js"],
+      ["product/handles.ts", "product/handles.js"],
+      ["product/public_inputs.ts", "product/public_inputs.js"],
+      ["product/scopes.ts", "product/scopes.js"],
+      ["product/specialist.ts", "product/specialist.js"],
+      ["product/transactions.ts", "product/transactions.js"],
+      ["product/symbols.ts", "product/symbols.js"],
     ];
 
     for (const [sourceRelativePath, outputRelativePath] of filesToCopy) {
-      const sourcePath = path.join(packageDir, sourceRelativePath);
+      const sourcePath = path.join(packageSourceDir, sourceRelativePath);
       const targetPath = path.join(tempDir, outputRelativePath);
       await mkdir(path.dirname(targetPath), { recursive: true });
-      await writeFile(targetPath, await readFile(sourcePath, "utf8"), "utf8");
+      const source = await readFile(sourcePath, "utf8");
+      await writeFile(
+        targetPath,
+        stripTypeScriptTypes(source, { mode: "transform" }),
+        "utf8",
+      );
     }
 
     await writeFile(

@@ -4,6 +4,7 @@ import {
 } from "./callback_frames.js";
 import { buildHostCapabilityTransportReport } from "./host_capability_reports.js";
 import { unwrapInputSignalTarget } from "./handles.js";
+import { RAW_SIGNAL_HANDLE } from "./symbols.js";
 
 function attachSerializedField(value, field, serialized) {
   if (!value || typeof value !== "object" || typeof serialized !== "string") {
@@ -81,6 +82,108 @@ export function wrapTransaction(rawTx, rawSignals) {
       }
       rawTx.setWithRegionsAndAspects(
         unwrapInputSignalTarget(input, rawSignals, "transaction.setWithRegionsAndAspects"),
+        value,
+        changedRegions,
+        aspects,
+      );
+    },
+    free() {
+      rawTx.free();
+    },
+    [Symbol.dispose]() {
+      if (typeof rawTx[Symbol.dispose] === "function") {
+        rawTx[Symbol.dispose]();
+        return;
+      }
+      rawTx.free();
+    },
+  });
+}
+
+function requirePublishedGraphInput(inputOrName, publishedInputs, publishedInputHandleSet, rawSignals, graphId, operation) {
+  if (typeof inputOrName === "string") {
+    const publishedInput = publishedInputs[inputOrName];
+    if (!publishedInput) {
+      throw new TypeError(
+        `${operation} only accepts published graph input names from graph \`${graphId}\`; \`${inputOrName}\` is not part of the public input contract`,
+      );
+    }
+    return publishedInput[RAW_SIGNAL_HANDLE];
+  }
+
+  const rawInput = unwrapInputSignalTarget(inputOrName, rawSignals, operation);
+  const signalId = typeof inputOrName?.id === "string" ? inputOrName.id : "<unknown>";
+  if (!publishedInputHandleSet.has(inputOrName)) {
+    throw new TypeError(
+      `${operation} only accepts published graph inputs from graph \`${graphId}\`; \`${signalId}\` is outside the graph contract`,
+    );
+  }
+  return rawInput;
+}
+
+function requireGraphInputWritable(authorities, graphId, inputName, operation) {
+  const authority = authorities[inputName];
+  if (!authority?.supportsWrite) {
+    throw new TypeError(
+      `${operation} cannot write public input \`${inputName}\` from graph \`${graphId}\` because its authority is \`${authority?.authority ?? "unknown"}\``,
+    );
+  }
+}
+
+export function wrapGraphTransaction(rawTx, rawSignals, graphId, publishedInputs, authorities) {
+  const publishedInputHandleSet = new Set(Object.values(publishedInputs));
+
+  function resolve(inputOrName, operation) {
+    const rawInput = requirePublishedGraphInput(
+      inputOrName,
+      publishedInputs,
+      publishedInputHandleSet,
+      rawSignals,
+      graphId,
+      operation,
+    );
+    const inputName = typeof inputOrName === "string"
+      ? inputOrName
+      : Object.entries(publishedInputs).find(([, handle]) => handle === inputOrName)?.[0];
+    if (typeof inputName === "string") {
+      requireGraphInputWritable(authorities, graphId, inputName, operation);
+    }
+    return rawInput;
+  }
+
+  return Object.freeze({
+    set(inputOrName, value) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      rawTx.set(resolve(inputOrName, "graph.transaction.set"), value);
+    },
+    setWithAspects(inputOrName, value, aspects) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      rawTx.setWithAspects(
+        resolve(inputOrName, "graph.transaction.setWithAspects"),
+        value,
+        aspects,
+      );
+    },
+    setWithRegions(inputOrName, value, changedRegions) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      rawTx.setWithRegions(
+        resolve(inputOrName, "graph.transaction.setWithRegions"),
+        value,
+        changedRegions,
+      );
+    },
+    setWithRegionsAndAspects(inputOrName, value, changedRegions, aspects) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      rawTx.setWithRegionsAndAspects(
+        resolve(inputOrName, "graph.transaction.setWithRegionsAndAspects"),
         value,
         changedRegions,
         aspects,

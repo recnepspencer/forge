@@ -11,6 +11,10 @@ The short version: diagnostics are not an afterthought. They are a first-class
 part of how you debug callback-backed computed nodes, observation behavior,
 history, and replay.
 
+Published graphs also expose graph-scoped inspection surfaces. When you already
+have a `PublishedSignalGraph`, prefer those graph-shaped views over manually
+looping runtime-wide APIs.
+
 ## Getting Started
 
 ```ts
@@ -53,6 +57,109 @@ This is the first place to look when:
 - a callback computed did not rerun
 - a callback reran with the wrong dependency frontier
 - a self-read or dynamic-cycle denial occurred
+
+## Graph-Scoped Inspection
+
+Published graphs keep diagnostics and history attached to graph identity rather
+than forcing you to think in raw ids first.
+
+### `graph.inspectDiagnostics()`
+
+Simple:
+
+```ts
+const graphDiagnostics = itemDetailGraph.inspectDiagnostics();
+console.log(graphDiagnostics.inputs.serverItemData.why);
+console.log(graphDiagnostics.outputs.submitReadiness.why);
+console.log(graphDiagnostics.dependenciesForOutput("submitReadiness").publicInputNames);
+```
+
+Complex:
+
+```ts
+const graphDiagnostics = itemDetailGraph.inspectDiagnostics();
+
+console.log({
+  graphId: graphDiagnostics.graph.id,
+  contract: graphDiagnostics.contract,
+  contractSummary: graphDiagnostics.contractSummary(),
+  inputDescriptors: graphDiagnostics.inputDescriptors,
+  descriptors: graphDiagnostics.descriptors,
+  serverEntry: graphDiagnostics.input("serverItemData"),
+  submitEntry: graphDiagnostics.output("submitReadiness"),
+  submitDependencies: graphDiagnostics.dependenciesForOutput("submitReadiness"),
+  serverWhy: graphDiagnostics.inputs.serverItemData.why,
+  serverVersion: graphDiagnostics.inputs.serverItemData.version,
+  submitWhy: graphDiagnostics.outputs.submitReadiness.why,
+  submitVersion: graphDiagnostics.outputs.submitReadiness.version,
+  runtimeGraph: graphDiagnostics.runtimeGraph,
+  executionHistory: graphDiagnostics.executionHistory,
+  latestFlow: graphDiagnostics.latestFlow,
+  latestObservation: graphDiagnostics.latestObservation,
+});
+```
+
+Use this when the question is:
+
+- what did this published graph expose?
+- why does one published output currently look the way it does?
+- which public inputs feed one published output?
+- what changed about the public contract between snapshots?
+- what runtime summary was current when I inspected the graph?
+
+If you already captured an earlier contract snapshot, you can compare it
+directly at the graph boundary:
+
+```ts
+const previousContract = itemDetailGraph.contract();
+const nextDelta = itemDetailGraph.contractDelta(previousContract);
+const contractHistory = itemDetailGraph.contractHistory();
+const exported = itemDetailGraph.exportDefinition();
+const snapshot = itemDetailGraph.exportSnapshot();
+const restored = createSignals().importGraph(exported, snapshot);
+console.log(itemDetailGraph.importPosture());
+console.log(contractHistory.restoreMode);
+console.log(restored.contractHistory());
+console.log(nextDelta.outputs.added);
+```
+
+### `graph.inspectHistory()`
+
+Simple:
+
+```ts
+const graphHistory = itemDetailGraph.inspectHistory();
+console.log(graphHistory.inputs.serverItemData.replay);
+console.log(graphHistory.outputs.submitReadiness.replay);
+console.log(graphHistory.dependenciesForOutput("submitReadiness").publicInputSourceIds);
+```
+
+Complex:
+
+```ts
+const graphHistory = itemDetailGraph.inspectHistory();
+
+console.log({
+  graphId: graphHistory.graph.id,
+  contract: graphHistory.contract,
+  contractSummary: graphHistory.contractSummary(),
+  serverEntry: graphHistory.input("serverItemData"),
+  submitEntry: graphHistory.output("submitReadiness"),
+  submitDependencies: graphHistory.dependenciesForOutput("submitReadiness"),
+  inputReplay: graphHistory.inputs.serverItemData.replay,
+  inputLineage: graphHistory.inputs.serverItemData.lineage,
+  submitReplay: graphHistory.outputs.submitReadiness.replay,
+  submitLineage: graphHistory.outputs.submitReadiness.lineage,
+  recentHistory: graphHistory.recentHistory,
+});
+```
+
+Use this when you want replay/lineage answers anchored to the graph publication
+boundary instead of manually translating graph output names back into raw ids.
+
+Graph-scoped diagnostics/history now expose the public input side too, which is
+what future forms/resources layers should depend on when they need a stable
+contract instead of ambient runtime ids.
 
 ### `health(): HealthSummary`
 

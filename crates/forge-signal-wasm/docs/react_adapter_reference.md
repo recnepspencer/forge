@@ -47,6 +47,28 @@ const panel = signals.output(() => ({
 }), { id: "panel" });
 ```
 
+Controller-first composition works the same way before the store is created or
+after it, because React is consuming published runtime truth rather than
+defining a second graph model.
+
+```ts
+import { createSignals, type SignalNamespace } from "forge-signal-wasm";
+
+function createCounterController(signals: SignalNamespace) {
+  const count = signals.input(1, { id: "count" });
+  const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+  return { count, doubled };
+}
+
+const counter = createCounterController(signals);
+const counterGraph = signals.graph("counter", {
+  outputs: {
+    count: counter.count,
+    doubled: counter.doubled,
+  },
+});
+```
+
 The returned `ReactSignalsStore` exposes:
 
 - `signals`
@@ -100,6 +122,16 @@ Complex:
 ```tsx
 function Panel() {
   const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
+  return <pre>{JSON.stringify(panelValue, null, 2)}</pre>;
+}
+```
+
+If you published outputs through `signals.graph(...)`, use the graph’s output
+handles directly:
+
+```tsx
+function CounterPanel() {
+  const panelValue = useOutputValue(counterGraph.output("doubled"), store);
   return <pre>{JSON.stringify(panelValue, null, 2)}</pre>;
 }
 ```

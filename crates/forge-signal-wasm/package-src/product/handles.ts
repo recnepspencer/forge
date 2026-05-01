@@ -6,7 +6,7 @@ import {
   denySignalReadFromForeignRuntime,
   denyUnavailableRuntimeCallbackRead,
 } from "./callback_frames.js";
-import { PRODUCT_SIGNAL_KIND, RAW_SIGNAL_HANDLE, RAW_SIGNALS } from "./symbols.js";
+import { INPUT_BASELINE_VALUE, PRODUCT_SIGNAL_KIND, RAW_SIGNAL_HANDLE, RAW_SIGNALS } from "./symbols.js";
 
 function describeHandleKind(target) {
   if (!target || typeof target !== "function") {
@@ -168,7 +168,7 @@ export function wrapReadableSignal(rawHandle, rawSignals, kind = "signal") {
   return signal;
 }
 
-export function wrapInputSignal(rawHandle, rawSignals) {
+export function wrapInputSignal(rawHandle, rawSignals, baselineValue) {
   const signal = wrapReadableSignal(rawHandle, rawSignals, "input");
   Object.defineProperty(signal, "set", {
     enumerable: false,
@@ -180,6 +180,10 @@ export function wrapInputSignal(rawHandle, rawSignals) {
         tx.set(rawHandle, nextValue);
       });
     },
+  });
+  Object.defineProperty(signal, INPUT_BASELINE_VALUE, {
+    enumerable: false,
+    value: baselineValue,
   });
   return signal;
 }

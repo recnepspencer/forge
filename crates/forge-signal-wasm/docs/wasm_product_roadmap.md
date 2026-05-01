@@ -111,8 +111,10 @@ The intended dependency order is:
 
 1. async nodes and resource lifecycle substrate exist in core runtime truth
 2. wasm product work adds host capability
-3. wasm product work adds forms
-4. wasm product work adds API resources / query replacement
+3. wasm product work adds controller-first composition and graph publication
+4. wasm product work adds scoped controller identity and graph-owned lifecycle
+5. wasm product work adds forms
+6. wasm product work adds API resources / query replacement
 
 That order is normative for this roadmap.
 
@@ -127,6 +129,61 @@ Before Milestone 1 begins, the following must already be true:
 
 If those conditions are not true, this roadmap must pause rather than coding
 against moving semantic targets.
+
+## Dependency Gate: Generic Aspect Capacity
+
+This roadmap also depends on one deeper `forge-signal` rewrite that belongs to
+core runtime truth rather than the wasm package:
+
+- generic aspect capacity
+
+The current aspect substrate is good enough for the already-shipped wasm
+surface, but it is not the end-state capacity story for the broader product
+line. Later package products should be able to rely on aspect-heavy feature
+models without forcing Forge to choose between low capacity and dishonest
+performance.
+
+The required direction is:
+
+- the runtime must support a generic aspect-capacity family rather than one
+  fixed aspect width
+- supported capacity classes must cover the practical range from `8` aspects up
+  through `264` aspects
+- the runtime must preserve bounded hot-path behavior across those capacity
+  classes rather than quietly degrading into broad scans or allocation-heavy
+  fallback
+
+This is not a wasm-only milestone. It is a core `forge-signal` architectural
+rewrite that the wasm roadmap must acknowledge because later package products
+will lean on aspect breadth more aggressively than the current surface does.
+
+The governing expectation is:
+
+- small-capacity deployments should not pay for large-capacity machinery
+- large-capacity deployments should not need a different semantic model
+- aspect width must remain a declared/runtime-owned capability boundary, not an
+  ambient implementation accident
+
+Before later aspect-heavy wasm products are considered closed, the parent
+runtime should be able to prove:
+
+- one canonical aspect model across capacity classes
+- no semantic drift between `8`, `16`, `32`, `64`, `128`, `256`, and `264`
+  aspect regimes
+- named counters and proof tests for invalidation breadth, version tracking,
+  dependency filtering, and memory/coordination posture under wider aspect
+  capacity
+- no package-facing API lie where aspect-rich authoring looks cheap while the
+  core runtime is doing hidden broad work
+
+Roadmap consequence:
+
+- this dependency should be treated the same way as the async-node substrate:
+  wasm can productize on top of it, but wasm must not become the place where
+  generic aspect-capacity semantics are invented ad hoc
+- this dependency is not a blocker for the next wasm milestone on controller
+  scope and graph-owned lifecycle, because that milestone is about naming,
+  ownership, and boundary truth rather than aspect-width expansion
 
 ## Milestone 1: Host Capability Product Lane (Completed)
 
@@ -178,7 +235,118 @@ This milestone is now closed. The admitted first-family lane ships as part of
 the wasm baseline, and later milestones should treat host capability as an
 existing product dependency rather than future exploratory work.
 
-## Milestone 2: Forms Product Surface
+## Milestone 2: Composition API And Graph Publication
+
+Engineering spec: [composition-api-plan.md](./composition-api-plan.md)
+
+### Goal
+
+Make controller-first signal authoring and explicit graph publication a real
+package product surface so application code can compose feature controllers as
+ordinary functions and publish outputs through `signals.graph(...)` without
+falling back to graph-object registries or string-id wiring.
+
+### Must Ship
+
+- exported composition vocabulary such as `SignalNamespace`
+- real `signals.graph(...)` API
+- publication from typed readable handles
+- deterministic output synthesis and graph publication artifacts
+- diagnostics/history/compatibility alignment for published graphs
+- docs and tests that teach controller-first composition as a real product path
+
+### Must Preserve
+
+- runtime truth remains runtime-owned
+- graph publication remains an explicit public boundary
+- compatibility/import/export graph-object lanes remain available but secondary
+- forms/resources consume this composition surface instead of inventing their
+  own feature-level graph model
+
+### Explicit Boundary
+
+Milestone 2 includes controller-first authoring and graph publication for app
+code.
+
+Milestone 2 does not include full forms behavior, resource lifecycle products,
+or a second local graph engine living in package glue.
+
+### Acceptance Evidence
+
+This milestone is complete only when the package can prove:
+
+- one flat runtime script and one controller-composed graph publish the same
+  committed output truth
+- `signals.graph(...)` is real, typed, and diagnostics-visible
+- publication from computed handles is deterministic and same-runtime honest
+- compatibility/export lanes stay aligned with the controller-first lane
+
+This milestone is now closed. Controller-first composition and explicit graph
+publication are part of the shipped wasm package surface, and later milestones
+should build on them instead of treating them as future substrate work.
+
+## Milestone 3: Scoped Controller Identity And Graph-Owned Lifecycle
+
+Engineering spec:
+[controller_scope_and_graph_lifecycle_plan.md](./controller_scope_and_graph_lifecycle_plan.md)
+
+### Goal
+
+Make controller-authored graphs safe for repeated real-world composition by
+adding controller scope, graph-owned lifecycle, explicit public graph
+contracts, graph-native operations, richer controller contract structure,
+contract-level diagnostics/history/export truth, and graph-native historical
+boundary artifacts before forms and API resources are allowed to build on the
+current composition API.
+
+### Must Ship
+
+- standardized controller contract shape with explicit public and internal
+  categories
+- scoped controller/graph identity model
+- graph-owned construction boundary instead of runtime-global id folklore
+- explicit public graph input and output contract surfaces
+- graph-native operational surface for public inputs and graph transactions
+- collision-safe multi-instance controller composition
+- repeated and dynamic instance identity story
+- more unified `input` / `computed` / `output` authoring grammar
+- contract-level diagnostics and dependency introspection
+- graph-native export/import and historical boundary truth
+- docs and certification that teach the significant-code path honestly
+
+### Must Preserve
+
+- runtime truth remains runtime-owned
+- controller composition remains ordinary code rather than a second local graph
+  engine
+- forms/resources consume this ownership model instead of inventing their own
+- the milestone may land before generic aspect-capacity work because it
+  changes ownership and naming, not aspect breadth semantics
+
+### Explicit Boundary
+
+Milestone 3 includes scoped authoring, graph-owned lifecycle, public input and
+output graph contracts, controller composition that survives repeated feature
+instances, graph-native operations for public contracts, richer controller
+contract structure, and graph-native historical/export truth.
+
+Milestone 3 does not include full forms behavior, async resource product
+semantics, or the generic aspect-capacity rewrite itself.
+
+### Acceptance Evidence
+
+This milestone is complete only when the package can prove:
+
+- repeated instances of the same controller family do not collide
+- graph-owned authoring/publication produces the same committed truth as
+  equivalent flat or manually scoped runtime scripts
+- public graph inputs and outputs are explicit, typed, and diagnostics-visible
+- public graph inputs are operationally first-class at the graph boundary
+- controller contracts preserve internal/public boundaries intentionally
+- graph-native export/import and restore surfaces preserve public contract truth
+- forms/resources no longer need to invent their own scope or lifecycle model
+
+## Milestone 4: Forms Product Surface
 
 ### Goal
 
@@ -206,10 +374,10 @@ async, and host-capability truth.
 
 ### Explicit Boundary
 
-Milestone 2 includes humane forms authoring, validation, readiness, draft
+Milestone 4 includes humane forms authoring, validation, readiness, draft
 state, and submission lifecycle on top of the completed runtime substrate.
 
-Milestone 2 does not include treating local component state as the authority
+Milestone 4 does not include treating local component state as the authority
 for form lifecycle, inventing a separate async submission state machine, or
 letting browser-local conditions bypass the typed host-capability lane.
 
@@ -225,7 +393,7 @@ This milestone is complete only when the wasm product surface can prove:
 - the package examples teach a forms story that does not require tribal
   knowledge
 
-## Milestone 3: API Resource And Query-Replacement Surface
+## Milestone 5: API Resource And Query-Replacement Surface
 
 ### Goal
 
@@ -254,11 +422,11 @@ callback, temporal, async, and host-capability semantics.
 
 ### Explicit Boundary
 
-Milestone 3 includes query-replacement-grade resource authoring, freshness,
+Milestone 5 includes query-replacement-grade resource authoring, freshness,
 retry/revalidation semantics, and diagnostics-rich resource state on top of the
 completed substrate.
 
-Milestone 3 does not include turning resources into the semantic owner of
+Milestone 5 does not include turning resources into the semantic owner of
 host-derived facts, async policy, or freshness meaning for the rest of the
 package. Resources must inherit those semantics rather than define them.
 

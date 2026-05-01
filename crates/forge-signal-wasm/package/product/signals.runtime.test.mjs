@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -7,28 +8,42 @@ import { fileURLToPath } from "node:url";
 
 const productDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.dirname(productDir);
+const packageSourceDir = path.join(packageDir, "..", "package-src");
 
 async function loadSignalsModule() {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-product-"));
   try {
     const filesToCopy = [
-      ["product/signals.js", "product/signals.js"],
-      ["product/callback_frames.js", "product/callback_frames.js"],
-      ["product/diagnostics.js", "product/diagnostics.js"],
-      ["product/host_capability_reports.js", "product/host_capability_reports.js"],
-      ["product/host_capabilities.js", "product/host_capabilities.js"],
-      ["product/history.js", "product/history.js"],
-      ["product/handles.js", "product/handles.js"],
-      ["product/specialist.js", "product/specialist.js"],
-      ["product/transactions.js", "product/transactions.js"],
-      ["product/symbols.js", "product/symbols.js"],
+      ["product/signals.ts", "product/signals.js"],
+      ["product/callback_frames.ts", "product/callback_frames.js"],
+      ["product/controllers.ts", "product/controllers.js"],
+      ["product/diagnostics.ts", "product/diagnostics.js"],
+      ["product/graph_authoring_support.ts", "product/graph_authoring_support.js"],
+      ["product/graph_support.ts", "product/graph_support.js"],
+      ["product/graphs.ts", "product/graphs.js"],
+      ["product/host_capability_declarations.ts", "product/host_capability_declarations.js"],
+      ["product/host_capability_registrations.ts", "product/host_capability_registrations.js"],
+      ["product/host_capability_reports.ts", "product/host_capability_reports.js"],
+      ["product/host_capabilities.ts", "product/host_capabilities.js"],
+      ["product/history.ts", "product/history.js"],
+      ["product/handles.ts", "product/handles.js"],
+      ["product/public_inputs.ts", "product/public_inputs.js"],
+      ["product/scopes.ts", "product/scopes.js"],
+      ["product/specialist.ts", "product/specialist.js"],
+      ["product/transactions.ts", "product/transactions.js"],
+      ["product/symbols.ts", "product/symbols.js"],
     ];
 
     for (const [sourceRelativePath, outputRelativePath] of filesToCopy) {
-      const sourcePath = path.join(packageDir, sourceRelativePath);
+      const sourcePath = path.join(packageSourceDir, sourceRelativePath);
       const targetPath = path.join(tempDir, outputRelativePath);
       await mkdir(path.dirname(targetPath), { recursive: true });
-      await writeFile(targetPath, await readFile(sourcePath, "utf8"), "utf8");
+      const source = await readFile(sourcePath, "utf8");
+      await writeFile(
+        targetPath,
+        stripTypeScriptTypes(source, { mode: "transform" }),
+        "utf8",
+      );
     }
 
     await writeFile(
@@ -46,6 +61,38 @@ async function loadSignalsModule() {
   }
 }
 
+function materializeGraphDiagnosticsSurface(surface) {
+  return {
+    graph: surface.graph,
+    contract: surface.contract,
+    dependencies: { ...surface.dependencies },
+    inputDescriptors: surface.inputDescriptors,
+    descriptors: surface.descriptors,
+    inputVersions: surface.inputVersions,
+    outputVersions: surface.outputVersions,
+    inputs: { ...surface.inputs },
+    outputs: { ...surface.outputs },
+    runtimeGraph: surface.runtimeGraph,
+    executionHistory: surface.executionHistory,
+    latestFlow: surface.latestFlow,
+    latestObservation: surface.latestObservation,
+  };
+}
+
+function materializeGraphHistorySurface(surface) {
+  return {
+    graph: surface.graph,
+    contract: surface.contract,
+    dependencies: { ...surface.dependencies },
+    inputDescriptors: surface.inputDescriptors,
+    descriptors: surface.descriptors,
+    inputs: { ...surface.inputs },
+    outputs: { ...surface.outputs },
+    executionHistory: surface.executionHistory,
+    recentHistory: surface.recentHistory,
+  };
+}
+
 function createRawReadableHandle(id, value) {
   return {
     id,
@@ -54,6 +101,633 @@ function createRawReadableHandle(id, value) {
     },
     peek() {
       return value;
+    },
+    free() {},
+  };
+}
+
+function createGraphPublicationRuntime() {
+  return {
+    input(id, initial) {
+      return createRawReadableHandle(id, initial);
+    },
+    computedSpec(id, spec) {
+      return createRawReadableHandle(id, { id, spec });
+    },
+    computedCallback(id, callback) {
+      return createRawReadableHandle(id, callback());
+    },
+    outputSpec(id, spec) {
+      return createRawReadableHandle(id, { id, spec });
+    },
+    read(target) {
+      return typeof target === "string" ? target : target.id;
+    },
+    watch() {
+      return { free() {} };
+    },
+    effect() {
+      return { free() {} };
+    },
+    transaction(callback) {
+      callback({ set() {}, free() {} });
+      return {};
+    },
+    batch(callback) {
+      callback({ set() {}, free() {} });
+      return {};
+    },
+    nuke() {
+      return true;
+    },
+    diagnostics() {
+      return {
+        subscribe() {
+          return { free() {} };
+        },
+        why(id) {
+          return { id, family: "why" };
+        },
+        health() { return null; },
+        summaryNow() {
+          return { profile: "WebDevelopment", active_node_count: 5 };
+        },
+        historyNow() {
+          return {
+            history: {
+              profile: "WebDevelopment",
+              traced_node_count: 3,
+              execution_record_count: 3,
+              latest_execution_record_id: 12,
+              reuse_origin_counts: {},
+              nodes: [],
+            },
+            callbackNodes: [],
+          };
+        },
+        latestObservation() {
+          return {
+            observation: {
+              node: "panel",
+              phase: "Apply",
+            },
+            callbackNodes: [],
+          };
+        },
+        latestFlow() {
+          return {
+            flow: {
+              profile: "WebDevelopment",
+              cause_samples: [],
+              event_epochs: [],
+              observation: null,
+              rollback: null,
+              explanation: null,
+            },
+            callbackNodes: [],
+          };
+        },
+        performanceSummary() { return {}; },
+        latestFailure() { return null; },
+        latestRollback() { return null; },
+        latestFrontierExecution() { return null; },
+        latestInvalidationTraceRecords() { return []; },
+        recentHistory() {
+          return [
+            {
+              profile: "WebDevelopment",
+              traced_node_count: 2,
+              execution_record_count: 2,
+              latest_execution_record_id: 11,
+              reuse_origin_counts: {},
+              nodes: [],
+            },
+          ];
+        },
+      };
+    },
+    history() {
+      return {
+        replay_for(id) {
+          return { id, family: "replay" };
+        },
+        lineage_for(id) {
+          return { id, family: "lineage" };
+        },
+      };
+    },
+    specialist() {
+      return {
+        evaluate_dirty() {
+          return { touchedNodes: 2, nodesEvaluated: 2 };
+        },
+        graph_summary() {
+          return { profile: "WebDevelopment", active_node_count: 5 };
+        },
+        read_versions(ids) {
+          return ids.map((id, index) => ({ id, value_version: index + 1, shape_version: index + 10 }));
+        },
+        free() {},
+      };
+    },
+    adapters() {
+      return {
+        export_definitions() {
+          return {
+            policy: null,
+            sources: [],
+            recipes: [],
+            sourceFamilies: [],
+            recipeFamilies: [],
+            unavailableCallbacks: [],
+          };
+        },
+      };
+    },
+    compatibilityApp() {
+      return {};
+    },
+    compatibilityRuntime() {
+      return {};
+    },
+    free() {},
+  };
+}
+
+function createGraphOperationalRuntime() {
+  const values = new Map();
+  const callLog = [];
+
+  function cloneValue(value) {
+    if (typeof globalThis.structuredClone === "function") {
+      try {
+        return globalThis.structuredClone(value);
+      } catch {
+        return value;
+      }
+    }
+    if (Array.isArray(value)) {
+      return value.slice();
+    }
+    if (value && typeof value === "object") {
+      return { ...value };
+    }
+    return value;
+  }
+
+  return {
+    callLog,
+    input(id, initial) {
+      values.set(id, cloneValue(initial));
+      return {
+        id,
+        get() {
+          return values.get(id);
+        },
+        peek() {
+          return values.get(id);
+        },
+        free() {},
+      };
+    },
+    computedSpec(id, spec) {
+      return createRawReadableHandle(id, { id, spec });
+    },
+    computedCallback(id, callback) {
+      return {
+        id,
+        get() {
+          return callback();
+        },
+        peek() {
+          return callback();
+        },
+        free() {},
+      };
+    },
+    outputSpec(id, spec) {
+      return createRawReadableHandle(id, { id, spec });
+    },
+    read(target) {
+      return typeof target === "string" ? target : target.id;
+    },
+    watch() {
+      return { free() {} };
+    },
+    effect() {
+      return { free() {} };
+    },
+    transaction(callback) {
+      const ops = [];
+      callback({
+        set(target, value) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["set", target.id, cloneValue(value)]);
+        },
+        setWithAspects(target, value, aspects) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithAspects", target.id, cloneValue(value), aspects]);
+        },
+        setWithRegions(target, value, changedRegions) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithRegions", target.id, cloneValue(value), changedRegions]);
+        },
+        setWithRegionsAndAspects(target, value, changedRegions, aspects) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithRegionsAndAspects", target.id, cloneValue(value), changedRegions, aspects]);
+        },
+        free() {},
+      });
+      callLog.push(["transaction", ops]);
+      return ops;
+    },
+    batch(callback) {
+      return this.transaction(callback);
+    },
+    nuke() {
+      return true;
+    },
+    diagnostics() {
+      return {
+        subscribe() {
+          return { free() {} };
+        },
+        why(id) {
+          return { id, family: "why" };
+        },
+        health() { return null; },
+        summaryNow() {
+          return { profile: "WebDevelopment", active_node_count: 3 };
+        },
+        historyNow() {
+          return {
+            history: {
+              profile: "WebDevelopment",
+              traced_node_count: 2,
+              execution_record_count: 2,
+              latest_execution_record_id: 7,
+              reuse_origin_counts: {},
+              nodes: [],
+            },
+            callbackNodes: [],
+          };
+        },
+        latestObservation() {
+          return null;
+        },
+        latestFlow() {
+          return null;
+        },
+        performanceSummary() { return {}; },
+        latestFailure() { return null; },
+        latestRollback() { return null; },
+        latestFrontierExecution() { return null; },
+        latestInvalidationTraceRecords() { return []; },
+        recentHistory() {
+          return [];
+        },
+      };
+    },
+    history() {
+      return {
+        replay_for(id) {
+          return { id, family: "replay", frames: [{ id }] };
+        },
+        lineage_for(id) {
+          return { id, family: "lineage" };
+        },
+        free() {},
+      };
+    },
+    specialist() {
+      return {
+        read_versions(ids) {
+          return ids.map((id, index) => ({ id, version: index + 1 }));
+        },
+        free() {},
+      };
+    },
+    adapters() {
+      return {
+        export_definitions() {
+          return {
+            policy: { preset: "WebDevelopment" },
+            sources: [...values.keys()].map((id) => ({ id, initial: null })),
+            recipes: [],
+            sourceFamilies: [],
+            recipeFamilies: [],
+            unavailableCallbacks: [],
+          };
+        },
+        free() {},
+      };
+    },
+    compatibilityApp() {
+      return { family: "app" };
+    },
+    compatibilityRuntime() {
+      return { family: "runtime" };
+    },
+    free() {},
+  };
+}
+
+function createGraphExportImportRuntime() {
+  const values = new Map();
+  const sourceIds = new Set();
+  const callbackRecipes = new Map();
+  const projectionRecipeReads = new Map();
+
+  function cloneValue(value) {
+    if (typeof globalThis.structuredClone === "function") {
+      try {
+        return globalThis.structuredClone(value);
+      } catch {
+        return value;
+      }
+    }
+    if (Array.isArray(value)) {
+      return value.slice();
+    }
+    if (value && typeof value === "object") {
+      return { ...value };
+    }
+    return value;
+  }
+
+  function recomputeDerivedValues() {
+    for (const [id, recipe] of callbackRecipes) {
+      const result = recipe.callback();
+      const value = result?.__forgeSignalCallbackCapture ? result.value : result;
+      if (result?.__forgeSignalCallbackCapture) {
+        recipe.reads = [...result.reads];
+      }
+      values.set(id, cloneValue(value));
+    }
+    for (const [id, sourceId] of projectionRecipeReads) {
+      values.set(id, cloneValue(values.get(sourceId)));
+    }
+  }
+
+  function exportDefinitions() {
+    return {
+      policy: { preset: "WebDevelopment" },
+      sources: [...sourceIds].map((id) => ({ id, initial: null })),
+      recipes: [
+        ...[...callbackRecipes.entries()].map(([id, recipe]) => ({
+          id,
+          reads: recipe.reads,
+        })),
+        ...[...projectionRecipeReads.entries()].map(([id, sourceId]) => ({
+          id,
+          reads: [sourceId],
+        })),
+      ],
+      sourceFamilies: [],
+      recipeFamilies: [],
+      unavailableCallbacks: [],
+    };
+  }
+
+  function exportRuntimeEnvelope() {
+    return {
+      values: Object.fromEntries([...values.entries()].map(([id, value]) => [id, cloneValue(value)])),
+      definitions: exportDefinitions(),
+    };
+  }
+
+  function restoreRuntimeEnvelope(envelope) {
+    values.clear();
+    sourceIds.clear();
+    callbackRecipes.clear();
+    projectionRecipeReads.clear();
+    for (const [id, value] of Object.entries(envelope?.values ?? {})) {
+      values.set(id, cloneValue(value));
+    }
+    for (const source of envelope?.definitions?.sources ?? []) {
+      if (typeof source?.id === "string" && source.id.length > 0) {
+        sourceIds.add(source.id);
+      }
+    }
+    for (const recipe of envelope?.definitions?.recipes ?? []) {
+      if (typeof recipe?.id !== "string" || recipe.id.length === 0) {
+        continue;
+      }
+      if (
+        Array.isArray(recipe.reads)
+        && recipe.reads.length === 1
+        && typeof recipe.reads[0] === "string"
+        && recipe.id.includes(".")
+      ) {
+        projectionRecipeReads.set(recipe.id, recipe.reads[0]);
+        continue;
+      }
+      callbackRecipes.set(recipe.id, {
+        callback() {
+          return values.get(recipe.id);
+        },
+        reads: Array.isArray(recipe.reads) ? [...recipe.reads] : [],
+      });
+    }
+  }
+
+  return {
+    input(id, initial) {
+      sourceIds.add(id);
+      values.set(id, cloneValue(initial));
+      return {
+        id,
+        get() {
+          return values.get(id);
+        },
+        peek() {
+          return values.get(id);
+        },
+        free() {},
+      };
+    },
+    computedSpec(id, spec) {
+      if (spec?.expr?.kind === "read" && typeof spec.expr.id === "string") {
+        projectionRecipeReads.set(id, spec.expr.id);
+        values.set(id, cloneValue(values.get(spec.expr.id)));
+      }
+      return {
+        id,
+        get() {
+          const sourceId = projectionRecipeReads.get(id);
+          return sourceId ? values.get(sourceId) : values.get(id);
+        },
+        peek() {
+          const sourceId = projectionRecipeReads.get(id);
+          return sourceId ? values.get(sourceId) : values.get(id);
+        },
+        free() {},
+      };
+    },
+    computedCallback(id, callback) {
+      const result = callback();
+      callbackRecipes.set(id, {
+        callback,
+        reads: result?.__forgeSignalCallbackCapture ? [...result.reads] : [],
+      });
+      values.set(
+        id,
+        cloneValue(result?.__forgeSignalCallbackCapture ? result.value : result),
+      );
+      return {
+        id,
+        get() {
+        return values.get(id);
+      },
+        peek() {
+          return values.get(id);
+        },
+        free() {},
+      };
+    },
+    outputSpec(id, spec) {
+      const sourceId = spec?.expr?.id;
+      if (typeof sourceId === "string") {
+        projectionRecipeReads.set(id, sourceId);
+        values.set(id, cloneValue(values.get(sourceId)));
+      }
+      return {
+        id,
+        get() {
+          const currentSourceId = projectionRecipeReads.get(id);
+          return currentSourceId ? values.get(currentSourceId) : values.get(id);
+        },
+        peek() {
+          const currentSourceId = projectionRecipeReads.get(id);
+          return currentSourceId ? values.get(currentSourceId) : values.get(id);
+        },
+        free() {},
+      };
+    },
+    read(target) {
+      const id = typeof target === "string" ? target : target.id;
+      return values.get(id);
+    },
+    watch() {
+      return { free() {} };
+    },
+    effect() {
+      return { free() {} };
+    },
+    transaction(callback) {
+      callback({
+        set(target, value) {
+          values.set(target.id, cloneValue(value));
+        },
+        setWithAspects(target, value) {
+          values.set(target.id, cloneValue(value));
+        },
+        setWithRegions(target, value) {
+          values.set(target.id, cloneValue(value));
+        },
+        setWithRegionsAndAspects(target, value) {
+          values.set(target.id, cloneValue(value));
+        },
+        free() {},
+      });
+      recomputeDerivedValues();
+      return { committed: true };
+    },
+    batch(callback) {
+      return this.transaction(callback);
+    },
+    nuke() {
+      return true;
+    },
+    diagnostics() {
+      return {
+        subscribe() { return { free() {} }; },
+        why(id) { return { id, family: "why" }; },
+        health() { return null; },
+        summaryNow() {
+          return { profile: "WebDevelopment", active_node_count: values.size };
+        },
+        historyNow() {
+          return {
+            history: {
+              profile: "WebDevelopment",
+              traced_node_count: values.size,
+              execution_record_count: values.size,
+              latest_execution_record_id: values.size,
+              reuse_origin_counts: {},
+              nodes: [],
+            },
+            callbackNodes: [],
+          };
+        },
+        latestObservation() { return null; },
+        latestFlow() { return null; },
+        performanceSummary() { return {}; },
+        latestFailure() { return null; },
+        latestRollback() { return null; },
+        latestFrontierExecution() { return null; },
+        latestInvalidationTraceRecords() { return []; },
+        recentHistory() { return []; },
+      };
+    },
+    history() {
+      return {
+        replay_for(id) { return { id, family: "replay", frames: [{ id }] }; },
+        lineage_for(id) { return { id, family: "lineage" }; },
+        snapshot() {
+          return { snapshot: { meta: { branch_id: 0 } } };
+        },
+        snapshot_wire() {
+          return JSON.stringify({ snapshot: { meta: { branch_id: 0 } } });
+        },
+        snapshot_portable_wire() {
+          return JSON.stringify({ portable: true, snapshot: { meta: { branch_id: 0 } } });
+        },
+        free() {},
+      };
+    },
+    specialist() {
+      return {
+        read_versions(ids) {
+          return ids.map((id, index) => ({ id, version: index + 1 }));
+        },
+        free() {},
+      };
+    },
+    adapters() {
+      return {
+        export_definitions() {
+          return exportDefinitions();
+        },
+        export_runtime_envelope() {
+          return exportRuntimeEnvelope();
+        },
+        export_runtime_envelope_wire() {
+          return JSON.stringify(exportRuntimeEnvelope());
+        },
+        export_runtime_envelope_portable_wire() {
+          return JSON.stringify({ portable: true, ...exportRuntimeEnvelope() });
+        },
+        replace_runtime_envelope(envelope) {
+          restoreRuntimeEnvelope(envelope);
+        },
+        replace_runtime_envelope_wire(envelope) {
+          restoreRuntimeEnvelope(JSON.parse(envelope));
+        },
+        replace_runtime_envelope_portable_wire(envelope) {
+          restoreRuntimeEnvelope(JSON.parse(envelope));
+        },
+        runtime_proof_report() {
+          return { kind: "proof" };
+        },
+        free() {},
+      };
+    },
+    compatibilityApp() {
+      return { family: "app" };
+    },
+    compatibilityRuntime() {
+      return { family: "runtime" };
     },
     free() {},
   };
@@ -269,6 +943,85 @@ test("wrapSignals keeps callback forms and rejects malformed metadata mixes", as
   }
 });
 
+test("wrapSignals accepts string-valued metadata-style inputs without misparsing them as id-first authoring", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const calls = [];
+    const rawSignals = {
+      input(id, initial, options) {
+        calls.push(["input", id, initial, options]);
+        return createRawReadableHandle(id, initial);
+      },
+      computedSpec() {
+        throw new Error("computedSpec not needed");
+      },
+      computedCallback() {
+        throw new Error("computedCallback not needed");
+      },
+      outputSpec() {
+        throw new Error("outputSpec not needed");
+      },
+      read(target) {
+        return typeof target === "string" ? target : target.id;
+      },
+      watch() {
+        throw new Error("watch not needed");
+      },
+      effect() {
+        throw new Error("effect not needed");
+      },
+      transaction() {
+        throw new Error("transaction not needed");
+      },
+      batch() {
+        throw new Error("batch not needed");
+      },
+      nuke() {
+        return true;
+      },
+      diagnostics() {
+        throw new Error("diagnostics not needed");
+      },
+      history() {
+        throw new Error("history not needed");
+      },
+      specialist() {
+        throw new Error("specialist not needed");
+      },
+      adapters() {
+        throw new Error("adapters not needed");
+      },
+      compatibilityApp() {
+        throw new Error("compatibilityApp not needed");
+      },
+      compatibilityRuntime() {
+        throw new Error("compatibilityRuntime not needed");
+      },
+      free() {},
+    };
+
+    const signals = wrapSignals(rawSignals);
+    const emptyStringInput = signals.input("", { id: "emptyStringInput" });
+    const namedStringInput = signals.input("Ada", { id: "name" });
+    const objectWithOwnIdValue = signals.input("draft", { id: "gear-7", name: "Gear 7" });
+
+    assert.equal(emptyStringInput.id, "emptyStringInput");
+    assert.equal(emptyStringInput(), "");
+    assert.equal(namedStringInput.id, "name");
+    assert.equal(namedStringInput(), "Ada");
+    assert.equal(objectWithOwnIdValue.id, "draft");
+    assert.deepEqual(objectWithOwnIdValue(), { id: "gear-7", name: "Gear 7" });
+
+    assert.deepEqual(calls, [
+      ["input", "emptyStringInput", "", undefined],
+      ["input", "name", "Ada", undefined],
+      ["input", "draft", { id: "gear-7", name: "Gear 7" }, undefined],
+    ]);
+  } finally {
+    await cleanup();
+  }
+});
+
 test("wrapSignals rejects raw handles, foreign-runtime handles, and non-input mutations", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
@@ -385,6 +1138,3031 @@ test("wrapSignals rejects raw handles, foreign-runtime handles, and non-input mu
 
     const commit = firstSignals.transaction((tx) => tx.set(firstInput, 7));
     assert.deepEqual(commit, [["set", "count", 7]]);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph Publication Output Synthesis Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const calls = [];
+    const whyCalls = [];
+    const replayCalls = [];
+    const lineageCalls = [];
+    const readVersionCalls = [];
+    const rawSignals = {
+      input(id, initial, options) {
+        calls.push(["input", id, initial, options]);
+        return createRawReadableHandle(id, initial);
+      },
+      computedSpec(id, spec) {
+        calls.push(["computedSpec", id, spec]);
+        return createRawReadableHandle(id, spec);
+      },
+      computedCallback(id, callback) {
+        calls.push(["computedCallback", id, typeof callback]);
+        return createRawReadableHandle(id, callback());
+      },
+      outputSpec(id, spec) {
+        calls.push(["outputSpec", id, spec]);
+        return createRawReadableHandle(id, { id, spec });
+      },
+      read(target) {
+        return typeof target === "string" ? target : target.id;
+      },
+      watch() {
+        return { free() {} };
+      },
+      effect() {
+        return { free() {} };
+      },
+      transaction(callback) {
+        callback({ set() {}, free() {} });
+        return {};
+      },
+      batch(callback) {
+        callback({ set() {}, free() {} });
+        return {};
+      },
+      nuke() {
+        return true;
+      },
+      diagnostics() {
+        return {
+          subscribe() {
+            return { free() {} };
+          },
+          why(id) {
+            whyCalls.push(id);
+            return { id, family: "why" };
+          },
+          health() { return null; },
+          summaryNow() {
+            return { profile: "WebDevelopment", active_node_count: 5 };
+          },
+          historyNow() {
+            return {
+              history: {
+                profile: "WebDevelopment",
+                traced_node_count: 3,
+                execution_record_count: 3,
+                latest_execution_record_id: 12,
+                reuse_origin_counts: {},
+                nodes: [],
+              },
+              callbackNodes: [],
+            };
+          },
+          latestObservation() {
+            return {
+              observation: {
+                node: "panel",
+                phase: "Apply",
+              },
+              callbackNodes: [],
+            };
+          },
+          latestFlow() {
+            return {
+              flow: {
+                profile: "WebDevelopment",
+                cause_samples: [],
+                event_epochs: [],
+                observation: null,
+                rollback: null,
+                explanation: null,
+              },
+              callbackNodes: [],
+            };
+          },
+          performanceSummary() { return {}; },
+          latestFailure() { return null; },
+          latestRollback() { return null; },
+          latestFrontierExecution() { return null; },
+          latestInvalidationTraceRecords() { return []; },
+          recentHistory() {
+            return [
+              {
+                profile: "WebDevelopment",
+                traced_node_count: 2,
+                execution_record_count: 2,
+                latest_execution_record_id: 11,
+                reuse_origin_counts: {},
+                nodes: [],
+              },
+            ];
+          },
+        };
+      },
+      history() {
+        return {
+          replay_for(id) {
+            replayCalls.push(id);
+            return { id, family: "replay" };
+          },
+          lineage_for(id) {
+            lineageCalls.push(id);
+            return { id, family: "lineage" };
+          },
+          free() {},
+        };
+      },
+      specialist() {
+        return {
+          read_versions(ids) {
+            readVersionCalls.push(ids);
+            return ids.map((id, index) => ({ id, version: index + 1 }));
+          },
+          free() {},
+        };
+      },
+      adapters() {
+        return {
+          export_definitions() {
+            return {
+              policy: { preset: "WebDevelopment" },
+              sources: [
+                { id: "count", initial: 1 },
+                { id: "other", initial: 99 },
+              ],
+              recipes: [
+                {
+                  id: "doubled",
+                  reads: ["count"],
+                  expr: { kind: "multiply", args: [{ kind: "read", id: "count" }, { kind: "value", value: 2 }] },
+                },
+                {
+                  id: "itemDetail.count",
+                  reads: ["count"],
+                  expr: { kind: "read", id: "count" },
+                },
+                {
+                  id: "itemDetail.doubled",
+                  reads: ["doubled"],
+                  expr: { kind: "read", id: "doubled" },
+                },
+                {
+                  id: "panel",
+                  reads: ["__forgeSignal.outputProjection.panel.1"],
+                  expr: { kind: "read", id: "__forgeSignal.outputProjection.panel.1" },
+                },
+                {
+                  id: "unrelated",
+                  reads: ["other"],
+                  expr: { kind: "read", id: "other" },
+                },
+              ],
+              sourceFamilies: [],
+              recipeFamilies: [],
+              unavailableCallbacks: [
+                {
+                  id: "__forgeSignal.outputProjection.panel.1",
+                  signalKind: "computed",
+                  reason: "computeCallbackUnavailableForPortableExport",
+                  currentReads: ["count", "doubled"],
+                  hostCapabilityReads: [],
+                  hostCapabilityTransports: [],
+                },
+                {
+                  id: "__forgeSignal.outputProjection.unrelated.2",
+                  signalKind: "computed",
+                  reason: "computeCallbackUnavailableForPortableExport",
+                  currentReads: ["other"],
+                  hostCapabilityReads: [],
+                  hostCapabilityTransports: [],
+                },
+              ],
+            };
+          },
+          free() {},
+        };
+      },
+      compatibilityApp() {
+        return { family: "app" };
+      },
+      compatibilityRuntime() {
+        return { family: "runtime" };
+      },
+      free() {},
+    };
+
+    const signals = wrapSignals(rawSignals);
+    const count = signals.input(1, { id: "count" });
+    const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+    const panel = signals.output(() => ({ count: count(), doubled: doubled() }), { id: "panel" });
+
+    const graph = signals.graph("itemDetail", {
+      outputs: {
+        count,
+        doubled,
+        panel,
+      },
+    });
+
+    assert.equal(graph.id, "itemDetail");
+    assert.equal(graph.outputs.count.id, "itemDetail.count");
+    assert.equal(graph.outputs.doubled.id, "itemDetail.doubled");
+    assert.equal(graph.outputs.panel.id, "panel");
+    const graphSnapshot = graph.read();
+    assert.equal(Object.getPrototypeOf(graphSnapshot), null);
+    assert.deepEqual({ ...graphSnapshot }, {
+      count: {
+        id: "itemDetail.count",
+        spec: {
+          reads: ["count"],
+          expr: {
+            kind: "read",
+            id: "count",
+          },
+        },
+      },
+      doubled: {
+        id: "itemDetail.doubled",
+        spec: {
+          reads: ["doubled"],
+          expr: {
+            kind: "read",
+            id: "doubled",
+          },
+        },
+      },
+      panel: {
+        id: "panel",
+        spec: {
+          reads: ["__forgeSignal.outputProjection.panel.1"],
+          expr: {
+            kind: "read",
+            id: "__forgeSignal.outputProjection.panel.1",
+          },
+        },
+      },
+    });
+    assert.deepEqual(graph.output("count")(), {
+      id: "itemDetail.count",
+      spec: {
+        reads: ["count"],
+        expr: {
+          kind: "read",
+          id: "count",
+        },
+      },
+    });
+    assert.deepEqual(graph.why("count"), { id: "itemDetail.count", family: "why" });
+    assert.deepEqual(graph.replayFor("doubled"), { id: "itemDetail.doubled", family: "replay" });
+    assert.deepEqual(graph.lineageFor("panel"), { id: "panel", family: "lineage" });
+    assert.deepEqual(graph.readVersions(), [
+      { id: "itemDetail.count", version: 1 },
+      { id: "itemDetail.doubled", version: 2 },
+      { id: "panel", version: 3 },
+    ]);
+    const diagnosticsSurface = graph.inspectDiagnostics();
+    assert.equal(Object.getPrototypeOf(diagnosticsSurface.inputs), null);
+    assert.equal(Object.getPrototypeOf(diagnosticsSurface.outputs), null);
+    assert.deepEqual(diagnosticsSurface.contract, graph.contract());
+    assert.deepEqual(diagnosticsSurface.inputVersions, []);
+    assert.deepEqual(
+      diagnosticsSurface.dependenciesForOutput("panel"),
+      {
+        graphId: "itemDetail",
+        outputName: "panel",
+        publishedId: "panel",
+        sourceId: "panel",
+        publicInputNames: [],
+        publicInputSourceIds: [],
+        transitiveSignalIds: ["panel", "__forgeSignal.outputProjection.panel.1", "count", "doubled"],
+      },
+    );
+    assert.deepEqual(
+      diagnosticsSurface.contractSummary(),
+      {
+        graph: graph.summary(),
+        contract: graph.contract(),
+        inputCount: 0,
+        outputCount: 3,
+        inputNames: [],
+        outputNames: ["count", "doubled", "panel"],
+        dependencies: diagnosticsSurface.dependencies,
+      },
+    );
+    assert.deepEqual(diagnosticsSurface.outputs.count, {
+      descriptor: graph.descriptors()[0],
+      version: { id: "itemDetail.count", version: 1 },
+      why: { id: "itemDetail.count", family: "why" },
+    });
+    assert.deepEqual(diagnosticsSurface.outputs.panel, {
+      descriptor: graph.descriptors()[2],
+      version: { id: "panel", version: 3 },
+      why: { id: "panel", family: "why" },
+    });
+    assert.deepEqual(diagnosticsSurface.runtimeGraph, {
+      profile: "WebDevelopment",
+      active_node_count: 5,
+    });
+    assert.deepEqual(diagnosticsSurface.executionHistory, {
+      history: {
+        profile: "WebDevelopment",
+        traced_node_count: 3,
+        execution_record_count: 3,
+        latest_execution_record_id: 12,
+        reuse_origin_counts: {},
+        nodes: [],
+      },
+      callbackNodes: [],
+    });
+    assert.deepEqual(diagnosticsSurface.latestObservation, {
+      observation: {
+        node: "panel",
+        phase: "Apply",
+      },
+      callbackNodes: [],
+    });
+    const historySurface = graph.inspectHistory();
+    assert.equal(Object.getPrototypeOf(historySurface.inputs), null);
+    assert.equal(Object.getPrototypeOf(historySurface.outputs), null);
+    assert.deepEqual(historySurface.contract, graph.contract());
+    assert.deepEqual({ ...historySurface.inputs }, {});
+    assert.deepEqual(
+      historySurface.dependenciesForOutput("panel"),
+      diagnosticsSurface.dependenciesForOutput("panel"),
+    );
+    assert.deepEqual(historySurface.contractSummary(), diagnosticsSurface.contractSummary());
+    assert.deepEqual(historySurface.outputs.doubled, {
+      descriptor: graph.descriptors()[1],
+      replay: { id: "itemDetail.doubled", family: "replay" },
+      lineage: { id: "itemDetail.doubled", family: "lineage" },
+    });
+    assert.deepEqual(historySurface.recentHistory, [
+      {
+        profile: "WebDevelopment",
+        traced_node_count: 2,
+        execution_record_count: 2,
+        latest_execution_record_id: 11,
+        reuse_origin_counts: {},
+        nodes: [],
+      },
+    ]);
+    assert.deepEqual(graph.summary(), {
+      id: "itemDetail",
+      inputCount: 0,
+      inputNames: [],
+      inputSourceIds: [],
+      outputCount: 3,
+      outputNames: ["count", "doubled", "panel"],
+      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "panel"],
+      sourceIds: ["count", "doubled", "panel"],
+      synthesizedOutputCount: 2,
+    });
+    const compatibilityDefinition = graph.exportCompatibilityDefinition();
+    assert.equal(Object.getPrototypeOf(compatibilityDefinition.outputs), null);
+    assert.deepEqual({
+      ...compatibilityDefinition,
+      contract: {
+        ...compatibilityDefinition.contract,
+        inputs: { ...compatibilityDefinition.contract.inputs },
+        outputs: { ...compatibilityDefinition.contract.outputs },
+      },
+      inputs: { ...compatibilityDefinition.inputs },
+      outputs: { ...compatibilityDefinition.outputs },
+    }, {
+      id: "itemDetail",
+      contract: {
+        graph: graph.summary(),
+        inputs: {},
+        outputs: {
+          count: "itemDetail.count",
+          doubled: "itemDetail.doubled",
+          panel: "panel",
+        },
+        inputDescriptors: [],
+        descriptors: graph.descriptors(),
+      },
+      inputs: {},
+      outputs: {
+        count: "itemDetail.count",
+        doubled: "itemDetail.doubled",
+        panel: "panel",
+      },
+      inputSourceIds: [],
+      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "panel"],
+      sourceIds: ["count", "doubled", "panel"],
+      inputDescriptors: [],
+      descriptors: graph.descriptors(),
+      definitions: {
+        policy: { preset: "WebDevelopment" },
+        sources: [{ id: "count", initial: 1 }],
+        recipes: [
+          {
+            id: "doubled",
+            reads: ["count"],
+            expr: { kind: "multiply", args: [{ kind: "read", id: "count" }, { kind: "value", value: 2 }] },
+          },
+          {
+            id: "itemDetail.count",
+            reads: ["count"],
+            expr: { kind: "read", id: "count" },
+          },
+          {
+            id: "itemDetail.doubled",
+            reads: ["doubled"],
+            expr: { kind: "read", id: "doubled" },
+          },
+          {
+            id: "panel",
+            reads: ["__forgeSignal.outputProjection.panel.1"],
+            expr: { kind: "read", id: "__forgeSignal.outputProjection.panel.1" },
+          },
+        ],
+        sourceFamilies: [],
+        recipeFamilies: [],
+        unavailableCallbacks: [
+          {
+            id: "__forgeSignal.outputProjection.panel.1",
+            signalKind: "computed",
+            reason: "computeCallbackUnavailableForPortableExport",
+            currentReads: ["count", "doubled"],
+            hostCapabilityReads: [],
+            hostCapabilityTransports: [],
+          },
+        ],
+      },
+    });
+    rawSignals.adapters = () => ({
+      export_definitions() {
+        return {
+          policy: { preset: "WebDevelopment" },
+          sources: [
+            { id: "count", initial: 1 },
+          ],
+          recipes: [
+            {
+              id: "doubled",
+              reads: ["count"],
+              expr: { kind: "multiply", args: [{ kind: "read", id: "count" }, { kind: "value", value: 2 }] },
+            },
+            {
+              id: "itemDetail.count",
+              reads: ["count"],
+              expr: { kind: "read", id: "count" },
+            },
+            {
+              id: "itemDetail.doubled",
+              reads: ["doubled"],
+              expr: { kind: "read", id: "doubled" },
+            },
+            {
+              id: "panel",
+              reads: ["__forgeSignal.outputProjection.panel.1"],
+              expr: { kind: "read", id: "__forgeSignal.outputProjection.panel.1" },
+            },
+          ],
+          sourceFamilies: [],
+          recipeFamilies: [],
+          unavailableCallbacks: [
+            {
+              id: "__forgeSignal.outputProjection.panel.1",
+              signalKind: "computed",
+              reason: "computeCallbackUnavailableForPortableExport",
+              currentReads: ["count"],
+              hostCapabilityReads: [],
+              hostCapabilityTransports: [],
+            },
+          ],
+        };
+      },
+      free() {},
+    });
+    const refreshedCompatibilityDefinition = graph.exportCompatibilityDefinition();
+    assert.deepEqual(
+      refreshedCompatibilityDefinition.definitions.unavailableCallbacks[0]?.currentReads,
+      ["count"],
+    );
+    assert.equal(typeof graph.diagnostics().performanceSummary, "function");
+    assert.equal(typeof graph.history, "function");
+    assert.equal(typeof graph.specialist, "function");
+    assert.equal(typeof graph.adapters, "function");
+    assert.equal(typeof graph.compatibilityApp, "function");
+    assert.equal(typeof graph.compatibilityRuntime, "function");
+    assert.deepEqual(graph.descriptors(), [
+      {
+        outputName: "count",
+        sourceId: "count",
+        sourceKind: "input",
+        publishedId: "itemDetail.count",
+        publicationKind: "synthesizedOutput",
+      },
+      {
+        outputName: "doubled",
+        sourceId: "doubled",
+        sourceKind: "computed",
+        publishedId: "itemDetail.doubled",
+        publicationKind: "synthesizedOutput",
+      },
+      {
+        outputName: "panel",
+        sourceId: "panel",
+        sourceKind: "output",
+        publishedId: "panel",
+        publicationKind: "existingOutput",
+      },
+    ]);
+    assert.deepEqual(readVersionCalls, [
+      ["itemDetail.count", "itemDetail.doubled", "panel"],
+      [],
+      ["itemDetail.count", "itemDetail.doubled", "panel"],
+    ]);
+    assert.deepEqual(whyCalls, [
+      "itemDetail.count",
+      "itemDetail.count",
+      "itemDetail.doubled",
+      "panel",
+    ]);
+    assert.deepEqual(replayCalls, [
+      "itemDetail.doubled",
+      "itemDetail.count",
+      "itemDetail.doubled",
+      "panel",
+    ]);
+    assert.deepEqual(lineageCalls, [
+      "panel",
+      "itemDetail.count",
+      "itemDetail.doubled",
+      "panel",
+    ]);
+    assert.deepEqual(calls.slice(0, 7), [
+      ["input", "count", 1, undefined],
+      ["computedCallback", "doubled", "function"],
+      ["computedCallback", "__forgeSignal.outputProjection.panel.1", "function"],
+      ["outputSpec", "panel", {
+        reads: ["__forgeSignal.outputProjection.panel.1"],
+        expr: {
+          kind: "read",
+          id: "__forgeSignal.outputProjection.panel.1",
+        },
+      }],
+      ["outputSpec", "itemDetail.count", {
+        reads: ["count"],
+        expr: {
+          kind: "read",
+          id: "count",
+        },
+      }],
+      ["outputSpec", "itemDetail.doubled", {
+        reads: ["doubled"],
+        expr: {
+          kind: "read",
+          id: "doubled",
+        },
+      }],
+    ]);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Authoring Grammar Convergence Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    function defineCanonicalGraph(signals) {
+      const count = signals.input(1, { id: "count" });
+      const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+      const panel = signals.output(() => ({
+        count: count(),
+        doubled: doubled(),
+      }), { id: "panel" });
+
+      return signals.graph("counter", {
+        inputs: { count },
+        outputs: { doubled, panel },
+      });
+    }
+
+    function defineCompatibilityGraph(signals) {
+      const count = signals.input("count", 1);
+      const doubled = signals.computed("doubled", () => count() * 2);
+      const panel = signals.output("panel", () => ({
+        count: count(),
+        doubled: doubled(),
+      }));
+
+      return signals.graph("counter", {
+        inputs: { count },
+        outputs: { doubled, panel },
+      });
+    }
+
+    const canonicalGraph = defineCanonicalGraph(wrapSignals(createGraphPublicationRuntime()));
+    const compatibilityGraph = defineCompatibilityGraph(wrapSignals(createGraphPublicationRuntime()));
+
+    assert.deepEqual(canonicalGraph.summary(), compatibilityGraph.summary());
+    assert.deepEqual(canonicalGraph.contract(), compatibilityGraph.contract());
+    assert.deepEqual(canonicalGraph.inputDescriptors(), compatibilityGraph.inputDescriptors());
+    assert.deepEqual(canonicalGraph.descriptors(), compatibilityGraph.descriptors());
+    assert.deepEqual(canonicalGraph.readInputs(), compatibilityGraph.readInputs());
+    assert.deepEqual(canonicalGraph.read(), compatibilityGraph.read());
+    assert.deepEqual(
+      materializeGraphDiagnosticsSurface(canonicalGraph.inspectDiagnostics()),
+      materializeGraphDiagnosticsSurface(compatibilityGraph.inspectDiagnostics()),
+    );
+    assert.deepEqual(
+      materializeGraphHistorySurface(canonicalGraph.inspectHistory()),
+      materializeGraphHistorySurface(compatibilityGraph.inspectHistory()),
+    );
+    assert.deepEqual(
+      canonicalGraph.exportCompatibilityDefinition(),
+      compatibilityGraph.exportCompatibilityDefinition(),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Same-Runtime Controller Ownership Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    function buildRawSignals() {
+      return {
+        input(id, initial) {
+          return createRawReadableHandle(id, initial);
+        },
+        computedSpec(id, spec) {
+          return createRawReadableHandle(id, spec);
+        },
+        computedCallback(id, callback) {
+          return createRawReadableHandle(id, callback());
+        },
+        outputSpec(id, spec) {
+          return createRawReadableHandle(id, spec);
+        },
+        read(target) {
+          return typeof target === "string" ? target : target.id;
+        },
+        watch() {
+          return { free() {} };
+        },
+        effect() {
+          return { free() {} };
+        },
+        transaction(callback) {
+          callback({ set() {}, free() {} });
+          return {};
+        },
+        batch(callback) {
+          callback({ set() {}, free() {} });
+          return {};
+        },
+        nuke() {
+          return true;
+        },
+        diagnostics() {
+          return {};
+        },
+        history() {
+          return {};
+        },
+        specialist() {
+          return {};
+        },
+        adapters() {
+          return {};
+        },
+        compatibilityApp() {
+          return {};
+        },
+        compatibilityRuntime() {
+          return {};
+        },
+        free() {},
+      };
+    }
+
+    const firstSignals = wrapSignals(buildRawSignals());
+    const secondSignals = wrapSignals(buildRawSignals());
+    const count = firstSignals.input(1, { id: "count" });
+    const other = secondSignals.input(2, { id: "other" });
+
+    assert.throws(
+      () => firstSignals.graph("", { outputs: { count } }),
+      /signals\.graph requires a non-empty string graph id/,
+    );
+    assert.throws(
+      () => firstSignals.graph("itemDetail"),
+      /signals\.graph requires a graph definition object/,
+    );
+    assert.throws(
+      () => firstSignals.graph("itemDetail", { outputs: {} }),
+      /signals\.graph requires at least one published output/,
+    );
+    assert.throws(
+      () => firstSignals.graph("itemDetail", { outputs: { count: "count" } }),
+      /signals\.graph output `itemDetail\.count` expects a product signal handle created by this package/,
+    );
+    assert.throws(
+      () => firstSignals.graph("itemDetail", { outputs: { other } }),
+      /signals\.graph output `itemDetail\.other` cannot use signal `other` from a different Signals runtime/,
+    );
+
+    const graph = firstSignals.graph("itemDetail", { outputs: { count } });
+    assert.throws(
+      () => graph.output("missing"),
+      /signals\.graph output `itemDetail\.missing` is not part of the published graph/,
+    );
+    assert.throws(
+      () => graph.why("missing"),
+      /signals\.graph output `itemDetail\.missing` is not part of the published graph/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Composition Diagnostics And History Parity Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const readVersionCalls = [];
+    const rawSignals = {
+      input(id, initial) {
+        return createRawReadableHandle(id, initial);
+      },
+      computedSpec(id, spec) {
+        return createRawReadableHandle(id, spec);
+      },
+      computedCallback(id, callback) {
+        return createRawReadableHandle(id, callback());
+      },
+      outputSpec(id, spec) {
+        return createRawReadableHandle(id, { id, spec });
+      },
+      read(target) {
+        return typeof target === "string" ? target : target.id;
+      },
+      watch() {
+        return { free() {} };
+      },
+      effect() {
+        return { free() {} };
+      },
+      transaction(callback) {
+        callback({ set() {}, free() {} });
+        return {};
+      },
+      batch(callback) {
+        callback({ set() {}, free() {} });
+        return {};
+      },
+      nuke() {
+        return true;
+      },
+      diagnostics() {
+        return {
+          subscribe() {
+            return { free() {} };
+          },
+          why(id) {
+            return { id, family: "why" };
+          },
+          health() { return null; },
+          summaryNow() {
+            return { profile: "WebDevelopment", active_node_count: 9 };
+          },
+          historyNow() {
+            return {
+              history: {
+                profile: "WebDevelopment",
+                traced_node_count: 4,
+                execution_record_count: 4,
+                latest_execution_record_id: 21,
+                reuse_origin_counts: {},
+                nodes: [],
+              },
+              callbackNodes: [],
+            };
+          },
+          latestObservation() {
+            return {
+              observation: {
+                node: "itemDetail.submitReadiness",
+                phase: "Apply",
+              },
+              callbackNodes: [],
+            };
+          },
+          latestFlow() {
+            return {
+              flow: {
+                profile: "WebDevelopment",
+                cause_samples: [],
+                event_epochs: [],
+                observation: null,
+                rollback: null,
+                explanation: null,
+              },
+              callbackNodes: [],
+            };
+          },
+          performanceSummary() { return {}; },
+          latestFailure() { return null; },
+          latestRollback() { return null; },
+          latestFrontierExecution() { return null; },
+          latestInvalidationTraceRecords() { return []; },
+          recentHistory() {
+            return [
+              {
+                profile: "WebDevelopment",
+                traced_node_count: 3,
+                execution_record_count: 3,
+                latest_execution_record_id: 20,
+                reuse_origin_counts: {},
+                nodes: [],
+              },
+            ];
+          },
+        };
+      },
+      history() {
+        return {
+          replay_for(id) {
+            return { id, family: "replay" };
+          },
+          lineage_for(id) {
+            return { id, family: "lineage" };
+          },
+          free() {},
+        };
+      },
+      specialist() {
+        return {
+          read_versions(ids) {
+            readVersionCalls.push(ids);
+            return ids.map((id, index) => ({ id, version: index + 10 }));
+          },
+          free() {},
+        };
+      },
+      adapters() {
+        return {
+          export_definitions() {
+            return {
+              policy: { preset: "WebDevelopment" },
+              sources: [
+                { id: "serverItemData", initial: null },
+                { id: "draftEdits", initial: {} },
+                { id: "other", initial: 0 },
+              ],
+              recipes: [
+                {
+                  id: "effectiveItemData",
+                  reads: ["serverItemData", "draftEdits"],
+                  expr: { kind: "mergeObjects", args: [{ kind: "read", id: "serverItemData" }, { kind: "read", id: "draftEdits" }] },
+                },
+                {
+                  id: "dirtyState",
+                  reads: ["draftEdits"],
+                  expr: { kind: "object", fields: [["isDirty", { kind: "value", value: false }]] },
+                },
+                {
+                  id: "submitReadiness",
+                  reads: ["effectiveItemData", "dirtyState"],
+                  expr: { kind: "object", fields: [["enabled", { kind: "value", value: false }]] },
+                },
+                {
+                  id: "itemDetail.effectiveItemData",
+                  reads: ["effectiveItemData"],
+                  expr: { kind: "read", id: "effectiveItemData" },
+                },
+                {
+                  id: "itemDetail.dirtyState",
+                  reads: ["dirtyState"],
+                  expr: { kind: "read", id: "dirtyState" },
+                },
+                {
+                  id: "itemDetail.submitReadiness",
+                  reads: ["submitReadiness"],
+                  expr: { kind: "read", id: "submitReadiness" },
+                },
+                {
+                  id: "unrelated",
+                  reads: ["other"],
+                  expr: { kind: "read", id: "other" },
+                },
+              ],
+              sourceFamilies: [],
+              recipeFamilies: [],
+              unavailableCallbacks: [],
+            };
+          },
+          free() {},
+        };
+      },
+      compatibilityApp() {
+        return { family: "app" };
+      },
+      compatibilityRuntime() {
+        return { family: "runtime" };
+      },
+      free() {},
+    };
+
+    const signals = wrapSignals(rawSignals);
+
+    function createEditSessionController(namespace) {
+      const serverItemData = namespace.input(null, { id: "serverItemData" });
+      const draftEdits = namespace.input({}, { id: "draftEdits" });
+
+      const effectiveItemData = namespace.computed(() => ({
+        ...(serverItemData() ?? {}),
+        ...(draftEdits() ?? {}),
+      }), { id: "effectiveItemData" });
+
+      const dirtyState = namespace.computed(() => ({
+        isDirty: Object.keys(draftEdits()).length > 0,
+      }), { id: "dirtyState" });
+
+      return {
+        serverItemData,
+        draftEdits,
+        effectiveItemData,
+        dirtyState,
+      };
+    }
+
+    function createWorkflowController(namespace, editSession) {
+      const submitReadiness = namespace.computed(() => {
+        const item = editSession.effectiveItemData();
+        const dirty = editSession.dirtyState();
+
+        return {
+          enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+          targetStateId: item.workflow_target_state_id ?? null,
+        };
+      }, { id: "submitReadiness" });
+
+      return {
+        submitReadiness,
+      };
+    }
+
+    const editSession = createEditSessionController(signals);
+    const workflow = createWorkflowController(signals, editSession);
+
+    const graph = signals.graph("itemDetail", {
+      outputs: {
+        effectiveItemData: editSession.effectiveItemData,
+        dirtyState: editSession.dirtyState,
+        submitReadiness: workflow.submitReadiness,
+      },
+    });
+
+    assert.equal(graph.output("effectiveItemData").id, "itemDetail.effectiveItemData");
+    assert.equal(graph.output("dirtyState").id, "itemDetail.dirtyState");
+    assert.equal(graph.output("submitReadiness").id, "itemDetail.submitReadiness");
+    assert.deepEqual(graph.summary(), {
+      id: "itemDetail",
+      inputCount: 0,
+      inputNames: [],
+      inputSourceIds: [],
+      outputCount: 3,
+      outputNames: ["effectiveItemData", "dirtyState", "submitReadiness"],
+      publishedOutputIds: [
+        "itemDetail.effectiveItemData",
+        "itemDetail.dirtyState",
+        "itemDetail.submitReadiness",
+      ],
+      sourceIds: ["effectiveItemData", "dirtyState", "submitReadiness"],
+      synthesizedOutputCount: 3,
+    });
+    assert.deepEqual(graph.descriptors(), [
+      {
+        outputName: "effectiveItemData",
+        sourceId: "effectiveItemData",
+        sourceKind: "computed",
+        publishedId: "itemDetail.effectiveItemData",
+        publicationKind: "synthesizedOutput",
+      },
+      {
+        outputName: "dirtyState",
+        sourceId: "dirtyState",
+        sourceKind: "computed",
+        publishedId: "itemDetail.dirtyState",
+        publicationKind: "synthesizedOutput",
+      },
+      {
+        outputName: "submitReadiness",
+        sourceId: "submitReadiness",
+        sourceKind: "computed",
+        publishedId: "itemDetail.submitReadiness",
+        publicationKind: "synthesizedOutput",
+      },
+    ]);
+    assert.deepEqual(graph.readVersions(), [
+      { id: "itemDetail.effectiveItemData", version: 10 },
+      { id: "itemDetail.dirtyState", version: 11 },
+      { id: "itemDetail.submitReadiness", version: 12 },
+    ]);
+    assert.deepEqual(readVersionCalls, [[
+      "itemDetail.effectiveItemData",
+      "itemDetail.dirtyState",
+      "itemDetail.submitReadiness",
+    ]]);
+    const graphDiagnosticsSurface = graph.inspectDiagnostics();
+    assert.equal(Object.getPrototypeOf(graphDiagnosticsSurface.inputs), null);
+    assert.equal(Object.getPrototypeOf(graphDiagnosticsSurface.outputs), null);
+    assert.deepEqual(graphDiagnosticsSurface.contract, graph.contract());
+    assert.deepEqual({ ...graphDiagnosticsSurface.inputs }, {});
+    assert.deepEqual(graphDiagnosticsSurface.inputVersions, []);
+    assert.deepEqual(graphDiagnosticsSurface.outputs.submitReadiness, {
+      descriptor: graph.descriptors()[2],
+      version: { id: "itemDetail.submitReadiness", version: 12 },
+      why: { id: "itemDetail.submitReadiness", family: "why" },
+    });
+    assert.deepEqual(graphDiagnosticsSurface.runtimeGraph, {
+      profile: "WebDevelopment",
+      active_node_count: 9,
+    });
+    const graphHistorySurface = graph.inspectHistory();
+    assert.equal(Object.getPrototypeOf(graphHistorySurface.inputs), null);
+    assert.equal(Object.getPrototypeOf(graphHistorySurface.outputs), null);
+    assert.deepEqual(graphHistorySurface.contract, graph.contract());
+    assert.deepEqual({ ...graphHistorySurface.inputs }, {});
+    assert.deepEqual(graphHistorySurface.outputs.effectiveItemData, {
+      descriptor: graph.descriptors()[0],
+      replay: { id: "itemDetail.effectiveItemData", family: "replay" },
+      lineage: { id: "itemDetail.effectiveItemData", family: "lineage" },
+    });
+    assert.deepEqual(graphHistorySurface.recentHistory, [
+      {
+        profile: "WebDevelopment",
+        traced_node_count: 3,
+        execution_record_count: 3,
+        latest_execution_record_id: 20,
+        reuse_origin_counts: {},
+        nodes: [],
+      },
+    ]);
+    assert.deepEqual(readVersionCalls, [
+      [
+        "itemDetail.effectiveItemData",
+        "itemDetail.dirtyState",
+        "itemDetail.submitReadiness",
+      ],
+      [],
+      [
+        "itemDetail.effectiveItemData",
+        "itemDetail.dirtyState",
+        "itemDetail.submitReadiness",
+      ],
+    ]);
+    const graphCompatibilityDefinition = graph.exportCompatibilityDefinition();
+    assert.equal(Object.getPrototypeOf(graphCompatibilityDefinition.outputs), null);
+    assert.deepEqual({
+      ...graphCompatibilityDefinition,
+      contract: {
+        ...graphCompatibilityDefinition.contract,
+        inputs: { ...graphCompatibilityDefinition.contract.inputs },
+        outputs: { ...graphCompatibilityDefinition.contract.outputs },
+      },
+      inputs: { ...graphCompatibilityDefinition.inputs },
+      outputs: { ...graphCompatibilityDefinition.outputs },
+    }, {
+      id: "itemDetail",
+      contract: {
+        graph: graph.summary(),
+        inputs: {},
+        outputs: {
+          effectiveItemData: "itemDetail.effectiveItemData",
+          dirtyState: "itemDetail.dirtyState",
+          submitReadiness: "itemDetail.submitReadiness",
+        },
+        inputDescriptors: [],
+        descriptors: graph.descriptors(),
+      },
+      inputs: {},
+      outputs: {
+        effectiveItemData: "itemDetail.effectiveItemData",
+        dirtyState: "itemDetail.dirtyState",
+        submitReadiness: "itemDetail.submitReadiness",
+      },
+      inputSourceIds: [],
+      publishedOutputIds: [
+        "itemDetail.effectiveItemData",
+        "itemDetail.dirtyState",
+        "itemDetail.submitReadiness",
+      ],
+      sourceIds: ["effectiveItemData", "dirtyState", "submitReadiness"],
+      inputDescriptors: [],
+      descriptors: graph.descriptors(),
+      definitions: {
+        policy: { preset: "WebDevelopment" },
+        sources: [
+          { id: "serverItemData", initial: null },
+          { id: "draftEdits", initial: {} },
+        ],
+        recipes: [
+          {
+            id: "effectiveItemData",
+            reads: ["serverItemData", "draftEdits"],
+            expr: { kind: "mergeObjects", args: [{ kind: "read", id: "serverItemData" }, { kind: "read", id: "draftEdits" }] },
+          },
+          {
+            id: "dirtyState",
+            reads: ["draftEdits"],
+            expr: { kind: "object", fields: [["isDirty", { kind: "value", value: false }]] },
+          },
+          {
+            id: "submitReadiness",
+            reads: ["effectiveItemData", "dirtyState"],
+            expr: { kind: "object", fields: [["enabled", { kind: "value", value: false }]] },
+          },
+          {
+            id: "itemDetail.effectiveItemData",
+            reads: ["effectiveItemData"],
+            expr: { kind: "read", id: "effectiveItemData" },
+          },
+          {
+            id: "itemDetail.dirtyState",
+            reads: ["dirtyState"],
+            expr: { kind: "read", id: "dirtyState" },
+          },
+          {
+            id: "itemDetail.submitReadiness",
+            reads: ["submitReadiness"],
+            expr: { kind: "read", id: "submitReadiness" },
+          },
+        ],
+        sourceFamilies: [],
+        recipeFamilies: [],
+        unavailableCallbacks: [],
+      },
+    });
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Controller Composition And Flat Runtime Equivalence Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    function buildRawSignals() {
+      return {
+        input(id, initial) {
+          return createRawReadableHandle(id, initial);
+        },
+        computedSpec(id, spec) {
+          return createRawReadableHandle(id, spec);
+        },
+        computedCallback(id, callback) {
+          return createRawReadableHandle(id, callback());
+        },
+        outputSpec(id, spec) {
+          return createRawReadableHandle(id, { id, spec });
+        },
+        read(target) {
+          return typeof target === "string" ? target : target.id;
+        },
+        watch() {
+          return { free() {} };
+        },
+        effect() {
+          return { free() {} };
+        },
+        transaction(callback) {
+          callback({ set() {}, free() {} });
+          return {};
+        },
+        batch(callback) {
+          callback({ set() {}, free() {} });
+          return {};
+        },
+        nuke() {
+          return true;
+        },
+        diagnostics() {
+          return {
+            subscribe() {
+              return { free() {} };
+            },
+            why(id) {
+              return { id, family: "why" };
+            },
+            health() { return null; },
+            summaryNow() {
+              return { profile: "WebDevelopment", active_node_count: 9 };
+            },
+            historyNow() {
+              return {
+                history: {
+                  profile: "WebDevelopment",
+                  traced_node_count: 4,
+                  execution_record_count: 4,
+                  latest_execution_record_id: 21,
+                  reuse_origin_counts: {},
+                  nodes: [],
+                },
+                callbackNodes: [],
+              };
+            },
+            latestObservation() {
+              return {
+                observation: {
+                  node: "itemDetail.submitReadiness",
+                  phase: "Apply",
+                },
+                callbackNodes: [],
+              };
+            },
+            latestFlow() {
+              return {
+                flow: {
+                  profile: "WebDevelopment",
+                  cause_samples: [],
+                  event_epochs: [],
+                  observation: null,
+                  rollback: null,
+                  explanation: null,
+                },
+                callbackNodes: [],
+              };
+            },
+            performanceSummary() { return {}; },
+            latestFailure() { return null; },
+            latestRollback() { return null; },
+            latestFrontierExecution() { return null; },
+            latestInvalidationTraceRecords() { return []; },
+            recentHistory() {
+              return [
+                {
+                  profile: "WebDevelopment",
+                  traced_node_count: 3,
+                  execution_record_count: 3,
+                  latest_execution_record_id: 20,
+                  reuse_origin_counts: {},
+                  nodes: [],
+                },
+              ];
+            },
+          };
+        },
+        history() {
+          return {
+            replay_for(id) {
+              return { frames: [{ node: id }], family: "replay" };
+            },
+            lineage_for(id) {
+              return { events: [{ node: id }], family: "lineage" };
+            },
+            free() {},
+          };
+        },
+        specialist() {
+          return {
+            read_versions(ids) {
+              return ids.map((id, index) => ({ id, version: index + 10 }));
+            },
+            free() {},
+          };
+        },
+        adapters() {
+          return {
+            export_definitions() {
+              return {
+                policy: { preset: "WebDevelopment" },
+                sources: [
+                  { id: "serverItemData", initial: null },
+                  { id: "draftEdits", initial: {} },
+                ],
+                recipes: [
+                  {
+                    id: "effectiveItemData",
+                    reads: ["serverItemData", "draftEdits"],
+                    expr: { kind: "mergeObjects", args: [{ kind: "read", id: "serverItemData" }, { kind: "read", id: "draftEdits" }] },
+                  },
+                  {
+                    id: "dirtyState",
+                    reads: ["draftEdits"],
+                    expr: { kind: "object", fields: [["isDirty", { kind: "value", value: false }]] },
+                  },
+                  {
+                    id: "submitReadiness",
+                    reads: ["effectiveItemData", "dirtyState"],
+                    expr: { kind: "object", fields: [["enabled", { kind: "value", value: false }]] },
+                  },
+                  {
+                    id: "itemDetail.effectiveItemData",
+                    reads: ["effectiveItemData"],
+                    expr: { kind: "read", id: "effectiveItemData" },
+                  },
+                  {
+                    id: "itemDetail.dirtyState",
+                    reads: ["dirtyState"],
+                    expr: { kind: "read", id: "dirtyState" },
+                  },
+                  {
+                    id: "itemDetail.submitReadiness",
+                    reads: ["submitReadiness"],
+                    expr: { kind: "read", id: "submitReadiness" },
+                  },
+                ],
+                sourceFamilies: [],
+                recipeFamilies: [],
+                unavailableCallbacks: [],
+              };
+            },
+            free() {},
+          };
+        },
+        compatibilityApp() {
+          return { family: "app" };
+        },
+        compatibilityRuntime() {
+          return { family: "runtime" };
+        },
+        free() {},
+      };
+    }
+
+    function defineFlatGraph(signals) {
+      const serverItemData = signals.input(null, { id: "serverItemData" });
+      const draftEdits = signals.input({}, { id: "draftEdits" });
+      const effectiveItemData = signals.computed(() => ({
+        ...(serverItemData() ?? {}),
+        ...(draftEdits() ?? {}),
+      }), { id: "effectiveItemData" });
+      const dirtyState = signals.computed(() => ({
+        isDirty: Object.keys(draftEdits()).length > 0,
+      }), { id: "dirtyState" });
+      const submitReadiness = signals.computed(() => {
+        const item = effectiveItemData();
+        const dirty = dirtyState();
+        return {
+          enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+          targetStateId: item.workflow_target_state_id ?? null,
+        };
+      }, { id: "submitReadiness" });
+      return signals.graph("itemDetail", {
+        outputs: {
+          effectiveItemData,
+          dirtyState,
+          submitReadiness,
+        },
+      });
+    }
+
+    function createEditSessionController(namespace) {
+      const serverItemData = namespace.input(null, { id: "serverItemData" });
+      const draftEdits = namespace.input({}, { id: "draftEdits" });
+      const effectiveItemData = namespace.computed(() => ({
+        ...(serverItemData() ?? {}),
+        ...(draftEdits() ?? {}),
+      }), { id: "effectiveItemData" });
+      const dirtyState = namespace.computed(() => ({
+        isDirty: Object.keys(draftEdits()).length > 0,
+      }), { id: "dirtyState" });
+      return { serverItemData, draftEdits, effectiveItemData, dirtyState };
+    }
+
+    function createWorkflowController(namespace, editSession) {
+      const submitReadiness = namespace.computed(() => {
+        const item = editSession.effectiveItemData();
+        const dirty = editSession.dirtyState();
+        return {
+          enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+          targetStateId: item.workflow_target_state_id ?? null,
+        };
+      }, { id: "submitReadiness" });
+      return { submitReadiness };
+    }
+
+    function defineControllerGraph(signals) {
+      const editSession = createEditSessionController(signals);
+      const workflow = createWorkflowController(signals, editSession);
+      return signals.graph("itemDetail", {
+        outputs: {
+          effectiveItemData: editSession.effectiveItemData,
+          dirtyState: editSession.dirtyState,
+          submitReadiness: workflow.submitReadiness,
+        },
+      });
+    }
+
+    const flatSignals = wrapSignals(buildRawSignals());
+    const controllerSignals = wrapSignals(buildRawSignals());
+    const flatGraph = defineFlatGraph(flatSignals);
+    const controllerGraph = defineControllerGraph(controllerSignals);
+
+    assert.deepEqual(controllerGraph.summary(), flatGraph.summary());
+    assert.deepEqual(controllerGraph.contract(), flatGraph.contract());
+    assert.deepEqual(controllerGraph.descriptors(), flatGraph.descriptors());
+    assert.deepEqual(controllerGraph.read(), flatGraph.read());
+    assert.deepEqual(
+      controllerGraph.inspectDiagnostics().outputs.submitReadiness,
+      flatGraph.inspectDiagnostics().outputs.submitReadiness,
+    );
+    assert.deepEqual(
+      controllerGraph.inspectHistory().outputs.submitReadiness,
+      flatGraph.inspectHistory().outputs.submitReadiness,
+    );
+    assert.deepEqual(
+      controllerGraph.exportCompatibilityDefinition(),
+      flatGraph.exportCompatibilityDefinition(),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Repeated Controller Instance Collision Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    function createCounterController(namespace) {
+      const count = namespace.input(0, { id: "count" });
+      const doubled = namespace.computed(() => count() * 2, { id: "doubled" });
+      return { count, doubled };
+    }
+
+    const left = createCounterController(signals.scope("leftPanel"));
+    const right = createCounterController(signals.scope("rightPanel"));
+
+    assert.equal(left.count.id, "leftPanel.count");
+    assert.equal(left.doubled.id, "leftPanel.doubled");
+    assert.equal(right.count.id, "rightPanel.count");
+    assert.equal(right.doubled.id, "rightPanel.doubled");
+
+    assert.throws(
+      () => createCounterController(signals.scope("leftPanel")),
+      /scope `leftPanel` cannot reuse local id `count`/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Repeated And Dynamic Instance Identity Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+    const rows = signals.scope("rows");
+    const row0 = rows.scope("row-0");
+    const row1 = rows.scope("row-1");
+
+    const row0Descriptor = row0.descriptor();
+    const row1Descriptor = row1.descriptor();
+    const row0Identity = row0.signalIdentity("count");
+    const row1Identity = row1.signalIdentity("count");
+    const row0Count = row0.input(0, { id: "count" });
+    const row1Count = row1.input(1, { id: "count" });
+
+    assert.deepEqual(row0Descriptor.path, [
+      { id: "rows", localScopeId: "rows", depth: 1 },
+      { id: "rows.row-0", localScopeId: "row-0", depth: 2 },
+    ]);
+    assert.deepEqual(row1Descriptor.path, [
+      { id: "rows", localScopeId: "rows", depth: 1 },
+      { id: "rows.row-1", localScopeId: "row-1", depth: 2 },
+    ]);
+    assert.deepEqual(row0Descriptor.identity, {
+      scopeId: "rows.row-0",
+      parentScopeId: "rows",
+      path: row0Descriptor.path,
+      depth: 2,
+    });
+    assert.equal(row0Identity.localId, "count");
+    assert.equal(row0Identity.canonicalId, "rows.row-0.count");
+    assert.equal(row0Identity.graphId, null);
+    assert.equal(row0Identity.rootScopeId, "rows");
+    assert.equal(row1Identity.canonicalId, "rows.row-1.count");
+    assert.notDeepEqual(row0Identity.scopePath, row1Identity.scopePath);
+    assert.equal(row0Count.id, row0Identity.canonicalId);
+    assert.equal(row1Count.id, row1Identity.canonicalId);
+    assert.deepEqual(row0Count.signalIdentity(), row0Identity);
+    assert.deepEqual(row1Count.signalIdentity(), row1Identity);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Scoped Graph And Manual Scope Equivalence Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    function createScopedGraph() {
+      const rawSignals = createGraphPublicationRuntime();
+      const signals = wrapSignals(rawSignals);
+
+      function createEditSessionController(namespace) {
+        const count = namespace.input(1, { id: "count" });
+        const label = namespace.computed(() => `count:${count()}`, { id: "label" });
+        return namespace.controller({
+          inputs: { count },
+          outputs: { label },
+        });
+      }
+
+      return signals.graph("itemDetail", (graph) => {
+        const controller = createEditSessionController(graph.scope("editSession"));
+        return graph.expose({
+          controllers: [controller],
+          outputs: {
+            count: controller.inputs.count,
+          },
+        });
+      });
+    }
+
+    function createManualGraph() {
+      const rawSignals = createGraphPublicationRuntime();
+      const signals = wrapSignals(rawSignals);
+      const count = signals.input(1, { id: "itemDetail.editSession.count" });
+      const label = signals.computed(() => `count:${count()}`, {
+        id: "itemDetail.editSession.label",
+      });
+      return signals.graph("itemDetail", {
+        inputs: {
+          count,
+        },
+        outputs: {
+          label,
+          count,
+        },
+      });
+    }
+
+    const scopedGraph = createScopedGraph();
+    const manualGraph = createManualGraph();
+
+    assert.deepEqual(scopedGraph.read(), manualGraph.read());
+    assert.deepEqual(scopedGraph.readInputs(), manualGraph.readInputs());
+    assert.deepEqual(scopedGraph.summary(), manualGraph.summary());
+    assert.deepEqual(scopedGraph.contract(), manualGraph.contract());
+    assert.deepEqual(scopedGraph.inputDescriptors(), manualGraph.inputDescriptors());
+    assert.deepEqual(scopedGraph.descriptors(), manualGraph.descriptors());
+    assert.deepEqual(
+      materializeGraphDiagnosticsSurface(scopedGraph.inspectDiagnostics()),
+      materializeGraphDiagnosticsSurface(manualGraph.inspectDiagnostics()),
+    );
+    assert.deepEqual(
+      materializeGraphHistorySurface(scopedGraph.inspectHistory()),
+      materializeGraphHistorySurface(manualGraph.inspectHistory()),
+    );
+    assert.deepEqual(
+      scopedGraph.exportCompatibilityDefinition(),
+      manualGraph.exportCompatibilityDefinition(),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Public Graph Input And Output Contract Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    rawSignals.adapters = () => ({
+      export_definitions() {
+        return {
+          policy: { preset: "WebDevelopment" },
+          sources: [
+            { id: "itemDetail.editSession.serverItemData", initial: null },
+            { id: "itemDetail.editSession.draftEdits", initial: {} },
+          ],
+          recipes: [
+            {
+              id: "itemDetail.editSession.effectiveItemData",
+              reads: [
+                "itemDetail.editSession.serverItemData",
+                "itemDetail.editSession.draftEdits",
+              ],
+              expr: {
+                kind: "mergeObjects",
+                args: [
+                  { kind: "read", id: "itemDetail.editSession.serverItemData" },
+                  { kind: "read", id: "itemDetail.editSession.draftEdits" },
+                ],
+              },
+            },
+            {
+              id: "itemDetail.effectiveItemData",
+              reads: ["itemDetail.editSession.effectiveItemData"],
+              expr: { kind: "read", id: "itemDetail.editSession.effectiveItemData" },
+            },
+          ],
+          sourceFamilies: [],
+          recipeFamilies: [],
+          unavailableCallbacks: [],
+        };
+      },
+    });
+    const signals = wrapSignals(rawSignals);
+
+    const graph = signals.graph("itemDetail", (builder) => {
+      const edit = builder.scope("editSession");
+      const serverItemData = edit.input(null, { id: "serverItemData" });
+      const draftEdits = edit.input({}, { id: "draftEdits" });
+      const effectiveItemData = edit.computed("effectiveItemData", () => ({
+        ...(serverItemData() ?? {}),
+        ...draftEdits(),
+      }));
+
+      return builder.expose({
+        inputs: {
+          serverItemData,
+          draftEdits,
+        },
+        outputs: {
+          effectiveItemData,
+        },
+      });
+    });
+
+    assert.equal(graph.input("serverItemData").id, "itemDetail.editSession.serverItemData");
+    assert.equal(graph.inputs.draftEdits.id, "itemDetail.editSession.draftEdits");
+    assert.equal(graph.output("effectiveItemData").id, "itemDetail.effectiveItemData");
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: null,
+      draftEdits: {},
+    });
+    assert.deepEqual({ ...graph.read() }, {
+      effectiveItemData: {
+        id: "itemDetail.effectiveItemData",
+        spec: {
+          reads: ["itemDetail.editSession.effectiveItemData"],
+          expr: {
+            kind: "read",
+            id: "itemDetail.editSession.effectiveItemData",
+          },
+        },
+      },
+    });
+    assert.deepEqual(graph.summary(), {
+      id: "itemDetail",
+      inputCount: 2,
+      inputNames: ["serverItemData", "draftEdits"],
+      inputSourceIds: [
+        "itemDetail.editSession.serverItemData",
+        "itemDetail.editSession.draftEdits",
+      ],
+      outputCount: 1,
+      outputNames: ["effectiveItemData"],
+      publishedOutputIds: ["itemDetail.effectiveItemData"],
+      sourceIds: [
+        "itemDetail.editSession.serverItemData",
+        "itemDetail.editSession.draftEdits",
+        "itemDetail.editSession.effectiveItemData",
+      ],
+      synthesizedOutputCount: 1,
+    });
+    assert.deepEqual(graph.inputDescriptors(), [
+      {
+        inputName: "serverItemData",
+        sourceId: "itemDetail.editSession.serverItemData",
+        sourceKind: "input",
+        authority: "writable",
+      },
+      {
+        inputName: "draftEdits",
+        sourceId: "itemDetail.editSession.draftEdits",
+        sourceKind: "input",
+        authority: "writable",
+      },
+    ]);
+    assert.deepEqual({
+      ...graph.contract(),
+      inputs: { ...graph.contract().inputs },
+      outputs: { ...graph.contract().outputs },
+    }, {
+      graph: graph.summary(),
+      inputs: {
+        serverItemData: "itemDetail.editSession.serverItemData",
+        draftEdits: "itemDetail.editSession.draftEdits",
+      },
+      outputs: {
+        effectiveItemData: "itemDetail.effectiveItemData",
+      },
+      inputDescriptors: graph.inputDescriptors(),
+      descriptors: graph.descriptors(),
+    });
+    const previousContractSnapshot = {
+      ...graph.contract(),
+      outputs: {},
+    };
+    assert.deepEqual(graph.contractDelta(previousContractSnapshot), {
+      graphId: "itemDetail",
+      previousGraphId: "itemDetail",
+      changed: true,
+      inputs: {
+        added: [],
+        removed: [],
+        remapped: [],
+      },
+      outputs: {
+        added: ["effectiveItemData"],
+        removed: [],
+        remapped: [],
+      },
+      inputDescriptorsChanged: [],
+      outputDescriptorsChanged: [],
+    });
+    const graphDiagnosticsSurface = graph.inspectDiagnostics();
+    assert.equal(Object.getPrototypeOf(graphDiagnosticsSurface.inputs), null);
+    assert.deepEqual(graphDiagnosticsSurface.contract, graph.contract());
+    assert.deepEqual(graphDiagnosticsSurface.inputVersions, [
+      { id: "itemDetail.editSession.serverItemData", value_version: 1, shape_version: 10 },
+      { id: "itemDetail.editSession.draftEdits", value_version: 2, shape_version: 11 },
+    ]);
+    assert.deepEqual(
+      graphDiagnosticsSurface.dependenciesForOutput("effectiveItemData"),
+      {
+        graphId: "itemDetail",
+        outputName: "effectiveItemData",
+        publishedId: "itemDetail.effectiveItemData",
+        sourceId: "itemDetail.editSession.effectiveItemData",
+        publicInputNames: ["serverItemData", "draftEdits"],
+        publicInputSourceIds: [
+          "itemDetail.editSession.serverItemData",
+          "itemDetail.editSession.draftEdits",
+        ],
+        transitiveSignalIds: [
+          "itemDetail.effectiveItemData",
+          "itemDetail.editSession.effectiveItemData",
+          "itemDetail.editSession.serverItemData",
+          "itemDetail.editSession.draftEdits",
+        ],
+      },
+    );
+    assert.deepEqual(
+      graphDiagnosticsSurface.contractSummary(),
+      {
+        graph: graph.summary(),
+        contract: graph.contract(),
+        inputCount: 2,
+        outputCount: 1,
+        inputNames: ["serverItemData", "draftEdits"],
+        outputNames: ["effectiveItemData"],
+        dependencies: graphDiagnosticsSurface.dependencies,
+      },
+    );
+    assert.deepEqual(graphDiagnosticsSurface.inputs.serverItemData, {
+      descriptor: graph.inputDescriptors()[0],
+      version: { id: "itemDetail.editSession.serverItemData", value_version: 1, shape_version: 10 },
+      why: { id: "itemDetail.editSession.serverItemData", family: "why" },
+    });
+    assert.deepEqual(graphDiagnosticsSurface.outputs.effectiveItemData, {
+      descriptor: graph.descriptors()[0],
+      version: { id: "itemDetail.effectiveItemData", value_version: 1, shape_version: 10 },
+      why: { id: "itemDetail.effectiveItemData", family: "why" },
+    });
+    const graphHistorySurface = graph.inspectHistory();
+    assert.equal(Object.getPrototypeOf(graphHistorySurface.inputs), null);
+    assert.deepEqual(graphHistorySurface.contract, graph.contract());
+    assert.deepEqual(
+      graphHistorySurface.dependenciesForOutput("effectiveItemData"),
+      graphDiagnosticsSurface.dependenciesForOutput("effectiveItemData"),
+    );
+    assert.deepEqual(graphHistorySurface.contractSummary(), graphDiagnosticsSurface.contractSummary());
+    assert.deepEqual(graphHistorySurface.inputs.draftEdits, {
+      descriptor: graph.inputDescriptors()[1],
+      replay: { id: "itemDetail.editSession.draftEdits", family: "replay" },
+      lineage: { id: "itemDetail.editSession.draftEdits", family: "lineage" },
+    });
+    const compatibilityDefinition = graph.exportCompatibilityDefinition();
+    assert.deepEqual(compatibilityDefinition.contract, graph.contract());
+    assert.deepEqual({ ...compatibilityDefinition.inputs }, {
+      serverItemData: "itemDetail.editSession.serverItemData",
+      draftEdits: "itemDetail.editSession.draftEdits",
+    });
+    assert.throws(
+      () => signals.graph("broken", (builder) => builder.expose({
+        inputs: {
+          notAnInput: builder.scope("edit").computed("label", () => "x"),
+        },
+        outputs: {
+          label: builder.scope("edit").computed("label2", () => "y"),
+        },
+      })),
+      /expects an input handle/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph-Owned Lifecycle Boundary Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const ambientCount = signals.input(1, { id: "ambient.count" });
+
+    assert.throws(
+      () => signals.graph("itemDetail", () => ({
+        outputs: {
+          count: ambientCount,
+        },
+      })),
+      /must return the result of graph\.expose/,
+    );
+
+    assert.throws(
+      () => signals.graph("itemDetail", (graph) => graph.expose({
+        outputs: {
+          count: ambientCount,
+        },
+      })),
+      /must come from graph-owned scope `itemDetail`/,
+    );
+
+    assert.throws(
+      () => signals.graph("itemDetail", (graph) => {
+        const edit = signals.scope("itemDetail.editSession");
+        const count = edit.input(1, { id: "count" });
+        return graph.expose({
+          inputs: {
+            count,
+          },
+          outputs: {
+            count,
+          },
+        });
+      }),
+      /must come from graph-owned scope `itemDetail`/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Forms And Resources Dependency Readiness Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    function createFormController(namespace) {
+      const fields = namespace.scope("fields");
+      const serverValue = fields.input({
+        id: "task-7",
+        title: "Ship docs",
+        status: "draft",
+      }, { id: "serverValue" });
+      const draftValue = fields.input({
+        title: "Ship docs",
+        status: "ready",
+      }, { id: "draftValue" });
+      const effectiveValue = fields.computed(() => ({
+        ...(serverValue() ?? {}),
+        ...draftValue(),
+      }), { id: "effectiveValue" });
+      const dirtyState = fields.computed(() => ({
+        isDirty: Object.keys(draftValue()).length > 0,
+      }), { id: "dirtyState" });
+      const validation = namespace.computed(() => ({
+        titleMissing: !effectiveValue().title,
+      }), { id: "validation" });
+
+      return namespace.controller({
+        inputs: {
+          serverValue,
+          draftValue,
+        },
+        outputs: {
+          effectiveValue,
+          dirtyState,
+          validation,
+        },
+      });
+    }
+
+    function createResourceController(namespace, form) {
+      const routeParams = namespace.input({
+        taskId: "task-7",
+        workspaceId: "alpha",
+      }, { id: "routeParams" });
+      const resourceQuery = namespace.computed(() => ({
+        taskId: routeParams().taskId,
+        workspaceId: routeParams().workspaceId,
+        status: form.outputs.effectiveValue().status,
+      }), { id: "resourceQuery" });
+      const submitAvailability = namespace.computed(() => ({
+        enabled: form.outputs.dirtyState().isDirty && !form.outputs.validation().titleMissing,
+        taskId: resourceQuery().taskId,
+      }), { id: "submitAvailability" });
+
+      return namespace.controller({
+        inputs: {
+          routeParams,
+        },
+        outputs: {
+          resourceQuery,
+          submitAvailability,
+        },
+      });
+    }
+
+    const graph = signals.graph("taskEditor", (graphBuilder) => {
+      const form = createFormController(graphBuilder.scope("form"));
+      const resource = createResourceController(graphBuilder.scope("resource"), form);
+
+      return graphBuilder.expose({
+        controllers: [form, resource],
+      });
+    });
+
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverValue: {
+        id: "task-7",
+        title: "Ship docs",
+        status: "draft",
+      },
+      draftValue: {
+        title: "Ship docs",
+        status: "ready",
+      },
+      routeParams: {
+        taskId: "task-7",
+        workspaceId: "alpha",
+      },
+    });
+    assert.deepEqual({
+      ...graph.contract(),
+      inputs: { ...graph.contract().inputs },
+      outputs: { ...graph.contract().outputs },
+    }, {
+      graph: graph.summary(),
+      inputs: {
+        serverValue: "taskEditor.form.fields.serverValue",
+        draftValue: "taskEditor.form.fields.draftValue",
+        routeParams: "taskEditor.resource.routeParams",
+      },
+      outputs: {
+        effectiveValue: "taskEditor.effectiveValue",
+        dirtyState: "taskEditor.dirtyState",
+        validation: "taskEditor.validation",
+        resourceQuery: "taskEditor.resourceQuery",
+        submitAvailability: "taskEditor.submitAvailability",
+      },
+      inputDescriptors: graph.inputDescriptors(),
+      descriptors: graph.descriptors(),
+    });
+    assert.equal(
+      graph.inspectDiagnostics().inputs.routeParams.why.id,
+      "taskEditor.resource.routeParams",
+    );
+    assert.equal(
+      graph.inspectDiagnostics().outputs.resourceQuery.why.id,
+      "taskEditor.resourceQuery",
+    );
+    assert.equal(
+      graph.inspectHistory().inputs.serverValue.replay.id,
+      "taskEditor.form.fields.serverValue",
+    );
+    assert.equal(
+      graph.inspectHistory().outputs.submitAvailability.lineage.id,
+      "taskEditor.submitAvailability",
+    );
+    assert.equal(
+      graph.exportCompatibilityDefinition().contract.inputs.routeParams,
+      "taskEditor.resource.routeParams",
+    );
+    assert.equal(
+      graph.exportCompatibilityDefinition().contract.outputs.submitAvailability,
+      "taskEditor.submitAvailability",
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Controller Artifact Composition Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    function createEditSessionController(namespace) {
+      const serverItemData = namespace.input(null, { id: "serverItemData" });
+      const draftEdits = namespace.input({}, { id: "draftEdits" });
+      const effectiveItemData = namespace.computed(() => ({
+        ...(serverItemData() ?? {}),
+        ...draftEdits(),
+      }), { id: "effectiveItemData" });
+      const dirtyState = namespace.computed(() => ({
+        isDirty: Object.keys(draftEdits()).length > 0,
+      }), { id: "dirtyState" });
+
+      return namespace.controller({
+        inputs: {
+          serverItemData,
+          draftEdits,
+        },
+        outputs: {
+          effectiveItemData,
+          dirtyState,
+        },
+      });
+    }
+
+    function createWorkflowController(namespace, editSession) {
+      const submitReadiness = namespace.computed(() => ({
+        enabled: editSession.outputs.dirtyState().isDirty,
+      }), { id: "submitReadiness" });
+
+      return namespace.controller({
+        outputs: {
+          submitReadiness,
+        },
+      });
+    }
+
+    const graph = signals.graph("itemDetail", (graphBuilder) => {
+      const editSession = createEditSessionController(graphBuilder.scope("editSession"));
+      const workflow = createWorkflowController(graphBuilder.scope("workflow"), editSession);
+      return graphBuilder.expose({
+        controllers: [editSession, workflow],
+      });
+    });
+
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: null,
+      draftEdits: {},
+    });
+    assert.deepEqual({
+      ...graph.contract(),
+      inputs: { ...graph.contract().inputs },
+      outputs: { ...graph.contract().outputs },
+    }, {
+      graph: graph.summary(),
+      inputs: {
+        serverItemData: "itemDetail.editSession.serverItemData",
+        draftEdits: "itemDetail.editSession.draftEdits",
+      },
+      outputs: {
+        effectiveItemData: "itemDetail.effectiveItemData",
+        dirtyState: "itemDetail.dirtyState",
+        submitReadiness: "itemDetail.submitReadiness",
+      },
+      inputDescriptors: graph.inputDescriptors(),
+      descriptors: graph.descriptors(),
+    });
+
+    assert.throws(
+      () => signals.graph("broken", (graphBuilder) => {
+        const editSession = createEditSessionController(graphBuilder.scope("editSession"));
+        return graphBuilder.expose({
+          controllers: [editSession],
+          inputs: {
+            serverItemData: editSession.inputs.serverItemData,
+          },
+        });
+      }),
+      /duplicate input name `serverItemData`/,
+    );
+
+    assert.throws(
+      () => signals.graph("broken", (graphBuilder) => graphBuilder.expose({
+        controllers: [{}],
+        outputs: {
+          label: graphBuilder.scope("editSession").computed("label", () => "x"),
+        },
+      })),
+      /must be a controller artifact created by signals\.controller/,
+    );
+
+    assert.throws(
+      () => signals.controller({
+        outputs: {
+          leakedAuthority: signals.publicInput(
+            signals.input({ taskId: "task-7" }, { id: "routeParams" }),
+            { authority: "imported" },
+          ),
+        },
+      }),
+      /controller\.outputs\.`leakedAuthority` cannot use signals\.publicInput/,
+    );
+
+    assert.throws(
+      () => signals.controller({
+        internal: {
+          leakedAuthority: signals.publicInput(
+            signals.input({ taskId: "task-7" }, { id: "routeParamsInternal" }),
+            { authority: "readOnly" },
+          ),
+        },
+      }),
+      /controller\.internal\.`leakedAuthority` cannot use signals\.publicInput/,
+    );
+
+    assert.throws(
+      () => signals.controller({
+        inputs: {
+          notAnInput: signals.computed(() => "nope", { id: "notAnInput" }),
+        },
+      }),
+      /controller\.inputs\.`notAnInput` must be an input handle or signals\.publicInput/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Controller Contract Internal Boundary Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphPublicationRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const graph = signals.graph("itemDetail", (graphBuilder) => {
+      const editSession = graphBuilder.scope("editSession");
+      const serverItemData = editSession.input(null, { id: "serverItemData" });
+      const effectiveItemData = editSession.computed("effectiveItemData", () => ({
+        ...(serverItemData() ?? {}),
+      }));
+      const validationTrace = editSession.computed("validationTrace", () => ({
+        fieldCount: Object.keys(serverItemData() ?? {}).length,
+      }));
+
+      const controller = editSession.controller({
+        inputs: {
+          serverItemData,
+        },
+        outputs: {
+          effectiveItemData,
+        },
+        internal: {
+          validationTrace,
+        },
+      });
+
+      return graphBuilder.expose({
+        controllers: [controller],
+      });
+    });
+
+    assert.equal("validationTrace" in graph.contract().inputs, false);
+    assert.equal("validationTrace" in graph.contract().outputs, false);
+    assert.equal(
+      graph.inputDescriptors().some((descriptor) => descriptor.inputName === "validationTrace"),
+      false,
+    );
+    assert.equal(
+      graph.descriptors().some((descriptor) => descriptor.outputName === "validationTrace"),
+      false,
+    );
+    assert.equal("validationTrace" in graph.inspectDiagnostics().inputs, false);
+    assert.equal("validationTrace" in graph.inspectDiagnostics().outputs, false);
+    assert.equal("validationTrace" in graph.inspectHistory().inputs, false);
+    assert.equal("validationTrace" in graph.inspectHistory().outputs, false);
+    assert.equal("validationTrace" in graph.exportCompatibilityDefinition().inputs, false);
+    assert.equal("validationTrace" in graph.exportCompatibilityDefinition().outputs, false);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Public Input Authority Class Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphOperationalRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const graph = signals.graph("taskEditor", (builder) => {
+      const scope = builder.scope("form");
+      const serverValue = scope.input({
+        id: "task-7",
+        title: "Ship docs",
+      }, { id: "serverValue" });
+      const draftValue = scope.input({
+        title: "Ship docs",
+      }, { id: "draftValue" });
+      const externalParams = scope.input({
+        taskId: "task-7",
+      }, { id: "externalParams" });
+      const effectiveValue = scope.computed(() => ({
+        ...serverValue(),
+        ...draftValue(),
+      }), { id: "effectiveValue" });
+
+      return builder.expose({
+        inputs: {
+          serverValue: scope.publicInput(serverValue, { authority: "readOnly" }),
+          draftValue: scope.publicInput(draftValue, { authority: "writable" }),
+          externalParams: scope.publicInput(externalParams, { authority: "imported" }),
+        },
+        outputs: {
+          effectiveValue,
+        },
+      });
+    });
+
+    assert.deepEqual(
+      graph.inputDescriptors().map((descriptor) => ({
+        inputName: descriptor.inputName,
+        authority: descriptor.authority,
+      })),
+      [
+        { inputName: "serverValue", authority: "readOnly" },
+        { inputName: "draftValue", authority: "writable" },
+        { inputName: "externalParams", authority: "imported" },
+      ],
+    );
+    assert.deepEqual(
+      {
+        serverValue: graph.operationalContract().authorities.serverValue,
+        draftValue: graph.operationalContract().authorities.draftValue,
+        externalParams: graph.operationalContract().authorities.externalParams,
+      },
+      {
+        serverValue: {
+          inputName: "serverValue",
+          sourceId: "taskEditor.form.serverValue",
+          authority: "readOnly",
+          supportsWrite: false,
+          supportsPatch: false,
+          supportsReset: false,
+        },
+        draftValue: {
+          inputName: "draftValue",
+          sourceId: "taskEditor.form.draftValue",
+          authority: "writable",
+          supportsWrite: true,
+          supportsPatch: true,
+          supportsReset: true,
+        },
+        externalParams: {
+          inputName: "externalParams",
+          sourceId: "taskEditor.form.externalParams",
+          authority: "imported",
+          supportsWrite: false,
+          supportsPatch: false,
+          supportsReset: false,
+        },
+      },
+    );
+
+    graph.writeInputs({
+      draftValue: {
+        title: "Ready to ship",
+      },
+    });
+    assert.deepEqual(graph.readInputs().draftValue, {
+      title: "Ready to ship",
+    });
+
+    assert.throws(
+      () => graph.writeInputs({
+        serverValue: {
+          id: "task-7",
+          title: "Nope",
+        },
+      }),
+      /cannot write public input `serverValue` because its authority is `readOnly`/,
+    );
+    assert.throws(
+      () => graph.patchInputs({
+        externalParams: {
+          taskId: "task-8",
+        },
+      }),
+      /authority is `imported`/,
+    );
+    assert.throws(
+      () => graph.resetInputs(["serverValue"]),
+      /cannot reset public input `serverValue` because its authority is `readOnly`/,
+    );
+    assert.throws(
+      () => graph.transaction((tx) => {
+        tx.set("externalParams", { taskId: "task-9" });
+      }),
+      /authority is `imported`/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph-Native Input Operations Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphOperationalRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const graph = signals.graph("taskAuthority", (graphBuilder) => {
+      const scope = graphBuilder.scope("authority");
+      const serverValue = scope.input({
+        id: "task-7",
+        title: "Ship docs",
+      }, { id: "serverValue" });
+      const draftValue = scope.input({
+        title: "Ship docs",
+      }, { id: "draftValue" });
+      const externalParams = scope.input({
+        taskId: "task-7",
+      }, { id: "externalParams" });
+      const effectiveValue = scope.computed(() => ({
+        ...serverValue(),
+        ...draftValue(),
+        taskId: externalParams().taskId,
+      }), { id: "effectiveValue" });
+
+      return graphBuilder.expose({
+        controllers: [
+          scope.controller({
+            inputs: {
+              serverValue: scope.publicInput(serverValue, { authority: "readOnly" }),
+              draftValue: scope.publicInput(draftValue),
+              externalParams: scope.publicInput(externalParams, { authority: "imported" }),
+            },
+            outputs: {
+              effectiveValue,
+            },
+          }),
+        ],
+      });
+    });
+
+    assert.equal(graph.input("draftValue").id, "taskAuthority.authority.draftValue");
+    assert.equal(graph.inputs.externalParams.id, "taskAuthority.authority.externalParams");
+    assert.equal(graph.output("effectiveValue").id, "taskAuthority.effectiveValue");
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverValue: {
+        id: "task-7",
+        title: "Ship docs",
+      },
+      draftValue: {
+        title: "Ship docs",
+      },
+      externalParams: {
+        taskId: "task-7",
+      },
+    });
+
+    graph.writeInputs({
+      draftValue: {
+        title: "Ready to ship",
+      },
+    });
+    graph.patchInputs({
+      draftValue: {
+        status: "queued",
+      },
+    });
+    graph.transaction((tx) => {
+      tx.set("draftValue", {
+        title: "Queued",
+        status: "queued",
+      });
+    });
+    graph.apply({
+      writes: {
+        draftValue: {
+          title: "Approved",
+          status: "approved",
+        },
+      },
+      commands: {},
+    });
+    graph.resetInputs(["draftValue"]);
+
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverValue: {
+        id: "task-7",
+        title: "Ship docs",
+      },
+      draftValue: {
+        title: "Ship docs",
+      },
+      externalParams: {
+        taskId: "task-7",
+      },
+    });
+    assert.equal(graph.read().effectiveValue.id, "taskAuthority.effectiveValue");
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph-Native Export And Restore Equivalence Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const sourceSignals = wrapSignals(createGraphExportImportRuntime());
+    const count = sourceSignals.input(2, { id: "count" });
+    const displayLabel = sourceSignals.computed(() => `Count:${count() * 2}`, { id: "displayLabel" });
+    const namingGraph = sourceSignals.graph("naming", {
+      inputs: {
+        count,
+      },
+      outputs: {
+        publicDisplayName: displayLabel,
+      },
+    });
+
+    count.set(4);
+    const exportedDefinition = namingGraph.exportDefinition();
+    const exportedSnapshot = namingGraph.exportSnapshot();
+    assert.deepEqual(namingGraph.importPosture(), {
+      graphId: "naming",
+      exactRestoreMode: "SameRuntimeExact",
+      portableImport: "Denied",
+      portableImportReason: "graph-native import currently requires the exact originating runtime envelope",
+      hydrate: "Deferred",
+      hydrateReason: "graph-native portable hydrate is not yet admitted on this surface",
+    });
+    assert.deepEqual(exportedDefinition.importPosture, namingGraph.importPosture());
+    assert.deepEqual(exportedSnapshot.importPosture, namingGraph.importPosture());
+
+    const restoredSignals = wrapSignals(createGraphExportImportRuntime());
+    const restoredGraph = restoredSignals.importGraph(exportedDefinition, exportedSnapshot);
+
+    assert.deepEqual({ ...restoredGraph.readInputs() }, { count: 4 });
+    assert.deepEqual({ ...restoredGraph.read() }, { publicDisplayName: "Count:8" });
+    assert.deepEqual(restoredGraph.contract(), namingGraph.contract());
+    assert.deepEqual(restoredGraph.importPosture(), namingGraph.importPosture());
+    assert.deepEqual(restoredGraph.contractHistory(), {
+      graphId: "naming",
+      current: namingGraph.contract(),
+      baseline: namingGraph.contract(),
+      deltas: [
+        {
+          graphId: "naming",
+          previousGraphId: "naming",
+          changed: false,
+          inputs: {
+            added: [],
+            removed: [],
+            remapped: [],
+          },
+          outputs: {
+            added: [],
+            removed: [],
+            remapped: [],
+          },
+          inputDescriptorsChanged: [],
+          outputDescriptorsChanged: [],
+        },
+      ],
+      changedSinceBaseline: false,
+      restoreMode: "SameRuntimeExact",
+      importedFromGraphId: "naming",
+    });
+    assert.equal(
+      restoredGraph.exportCompatibilityDefinition().outputs.publicDisplayName,
+      "naming.publicDisplayName",
+    );
+    assert.deepEqual(
+      restoredGraph.inspectDiagnostics().dependenciesForOutput("publicDisplayName").publicInputNames,
+      ["count"],
+    );
+    assert.equal(
+      restoredGraph.inspectHistory().output("publicDisplayName").replay.id,
+      "naming.publicDisplayName",
+    );
+
+    assert.throws(
+      () => restoredSignals.importGraph(
+        exportedDefinition,
+        { ...exportedSnapshot, id: "other" },
+      ),
+      /requires matching graph ids/,
+    );
+    assert.throws(
+      () => restoredSignals.importGraph(
+        {
+          ...exportedDefinition,
+          contract: {
+            ...exportedDefinition.contract,
+            outputs: {
+              ...exportedDefinition.contract.outputs,
+              publicDisplayName: "naming.other",
+            },
+          },
+        },
+        exportedSnapshot,
+      ),
+      /snapshot\.definition\.contract to match the exported graph definition/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Canonical Naming Law Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphExportImportRuntime());
+    const name = signals.input("Ada", { id: "name" });
+    const displayLabel = signals.computed(() => name().toUpperCase(), { id: "displayLabel" });
+    const namingGraph = signals.graph("naming", {
+      inputs: {
+        name,
+      },
+      outputs: {
+        publicDisplayName: displayLabel,
+      },
+    });
+
+    assert.equal(name.id, "name");
+    assert.equal(displayLabel.id, "displayLabel");
+    assert.equal(namingGraph.output("publicDisplayName").id, "naming.publicDisplayName");
+    assert.deepEqual({
+      ...namingGraph.contract(),
+      inputs: { ...namingGraph.contract().inputs },
+      outputs: { ...namingGraph.contract().outputs },
+    }, {
+      graph: namingGraph.summary(),
+      inputs: {
+        name: "name",
+      },
+      outputs: {
+        publicDisplayName: "naming.publicDisplayName",
+      },
+      inputDescriptors: namingGraph.inputDescriptors(),
+      descriptors: namingGraph.descriptors(),
+    });
+    assert.deepEqual(namingGraph.descriptors(), [
+      {
+        outputName: "publicDisplayName",
+        sourceId: "displayLabel",
+        sourceKind: "computed",
+        publishedId: "naming.publicDisplayName",
+        publicationKind: "synthesizedOutput",
+      },
+    ]);
+    assert.equal(
+      namingGraph.exportCompatibilityDefinition().contract.outputs.publicDisplayName,
+      "naming.publicDisplayName",
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Contract Dependency Explanation Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphExportImportRuntime());
+    const firstName = signals.input("Ada", { id: "firstName" });
+    const status = signals.input("ready", { id: "status" });
+    const displayLabel = signals.computed(() => `${firstName()} (${status()})`, { id: "displayLabel" });
+    const graph = signals.graph("personCard", {
+      inputs: {
+        firstName,
+        status,
+      },
+      outputs: {
+        publicDisplayName: displayLabel,
+      },
+    });
+
+    assert.deepEqual(
+      graph.inspectDiagnostics().dependenciesForOutput("publicDisplayName"),
+      {
+        graphId: "personCard",
+        outputName: "publicDisplayName",
+        publishedId: "personCard.publicDisplayName",
+        sourceId: "displayLabel",
+        publicInputNames: ["firstName", "status"],
+        publicInputSourceIds: ["firstName", "status"],
+        transitiveSignalIds: [
+          "personCard.publicDisplayName",
+          "displayLabel",
+          "firstName",
+          "status",
+        ],
+      },
+    );
+    assert.deepEqual(
+      graph.inspectHistory().dependenciesForOutput("publicDisplayName"),
+      graph.inspectDiagnostics().dependenciesForOutput("publicDisplayName"),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Contract Delta And History Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const firstSignals = wrapSignals(createGraphExportImportRuntime());
+    const firstName = firstSignals.input("Ada", { id: "name" });
+    const displayLabel = firstSignals.computed(() => firstName().toUpperCase(), { id: "displayLabel" });
+    const graphV1 = firstSignals.graph("naming", {
+      inputs: {
+        name: firstName,
+      },
+      outputs: {
+        publicDisplayName: displayLabel,
+      },
+    });
+
+    const secondSignals = wrapSignals(createGraphExportImportRuntime());
+    const secondName = secondSignals.input("Ada", { id: "name" });
+    const displayNameV2 = secondSignals.computed(() => `Person:${secondName()}`, { id: "displayNameV2" });
+    const graphV2 = secondSignals.graph("naming", {
+      inputs: {
+        name: secondName,
+      },
+      outputs: {
+        publicDisplayName: displayNameV2,
+      },
+    });
+
+    assert.deepEqual(graphV2.contractDelta(graphV1.contract()), {
+      graphId: "naming",
+      previousGraphId: "naming",
+      changed: true,
+      inputs: {
+        added: [],
+        removed: [],
+        remapped: [],
+      },
+      outputs: {
+        added: [],
+        removed: [],
+        remapped: [],
+      },
+      inputDescriptorsChanged: [],
+      outputDescriptorsChanged: [
+        {
+          outputName: "publicDisplayName",
+          previousSourceId: "displayLabel",
+          currentSourceId: "displayNameV2",
+          previousPublishedId: "naming.publicDisplayName",
+          currentPublishedId: "naming.publicDisplayName",
+          previousSourceKind: "computed",
+          currentSourceKind: "computed",
+          previousPublicationKind: "synthesizedOutput",
+          currentPublicationKind: "synthesizedOutput",
+        },
+      ],
+    });
+    assert.deepEqual(graphV1.contractHistory(), {
+      graphId: "naming",
+      current: graphV1.contract(),
+      baseline: null,
+      deltas: [],
+      changedSinceBaseline: false,
+      restoreMode: "LiveRuntime",
+      importedFromGraphId: null,
+    });
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph Mutation Envelope Equivalence Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphOperationalRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    function createEditSessionController(namespace) {
+      const serverItemData = namespace.input(null, { id: "serverItemData" });
+      const draftEdits = namespace.input({}, { id: "draftEdits" });
+      const effectiveItemData = namespace.computed(() => ({
+        ...(serverItemData() ?? {}),
+        ...draftEdits(),
+      }), { id: "effectiveItemData" });
+
+      return namespace.controller({
+        inputs: {
+          serverItemData,
+          draftEdits,
+        },
+        outputs: {
+          effectiveItemData,
+        },
+      });
+    }
+
+    const graph = signals.graph("itemDetail", (graphBuilder) => {
+      const editSession = createEditSessionController(graphBuilder.scope("editSession"));
+      return graphBuilder.expose({
+        controllers: [editSession],
+      });
+    });
+    const foreignGraph = signals.graph("otherDetail", (graphBuilder) => {
+      const editSession = createEditSessionController(graphBuilder.scope("editSession"));
+      return graphBuilder.expose({
+        controllers: [editSession],
+      });
+    });
+
+    assert.deepEqual({
+      ...graph.operationalContract(),
+      writes: { ...graph.operationalContract().writes },
+      patches: { ...graph.operationalContract().patches },
+      commands: { ...graph.operationalContract().commands },
+      authorities: Object.fromEntries(
+        Object.entries(graph.operationalContract().authorities).map(([inputName, authority]) => [
+          inputName,
+          { ...authority },
+        ]),
+      ),
+    }, {
+      graph: graph.summary(),
+      writes: {
+        serverItemData: "itemDetail.editSession.serverItemData",
+        draftEdits: "itemDetail.editSession.draftEdits",
+      },
+      patches: {
+        draftEdits: "itemDetail.editSession.draftEdits",
+      },
+      commands: {},
+      authorities: {
+        serverItemData: {
+          inputName: "serverItemData",
+          sourceId: "itemDetail.editSession.serverItemData",
+          authority: "writable",
+          supportsWrite: true,
+          supportsPatch: false,
+          supportsReset: true,
+        },
+        draftEdits: {
+          inputName: "draftEdits",
+          sourceId: "itemDetail.editSession.draftEdits",
+          authority: "writable",
+          supportsWrite: true,
+          supportsPatch: true,
+          supportsReset: true,
+        },
+      },
+      resettableInputNames: ["serverItemData", "draftEdits"],
+    });
+
+    graph.writeInputs({
+      serverItemData: {
+        workflow_target_state_id: 7,
+      },
+    });
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: {
+        workflow_target_state_id: 7,
+      },
+      draftEdits: {},
+    });
+
+    graph.patchInputs({
+      draftEdits: {
+        title: "Ship docs",
+      },
+    });
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: {
+        workflow_target_state_id: 7,
+      },
+      draftEdits: {
+        title: "Ship docs",
+      },
+    });
+
+    graph.transaction((tx) => {
+      tx.set("draftEdits", {
+        title: "Ready to ship",
+      });
+    });
+    assert.deepEqual(graph.readInputs().draftEdits, {
+      title: "Ready to ship",
+    });
+
+    graph.apply({
+      writes: {
+        serverItemData: {
+          workflow_target_state_id: 12,
+        },
+      },
+      patches: {
+        draftEdits: {
+          priority: "high",
+        },
+      },
+    });
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: {
+        workflow_target_state_id: 12,
+      },
+      draftEdits: {
+        title: "Ready to ship",
+        priority: "high",
+      },
+    });
+
+    graph.resetInputs(["draftEdits"]);
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: {
+        workflow_target_state_id: 12,
+      },
+      draftEdits: {},
+    });
+
+    graph.resetInputs();
+    assert.deepEqual({ ...graph.readInputs() }, {
+      serverItemData: null,
+      draftEdits: {},
+    });
+
+    assert.throws(
+      () => graph.writeInputs({
+        missingInput: 7,
+      }),
+      /itemDetail\.missingInput.*public input contract/,
+    );
+    assert.throws(
+      () => graph.patchInputs({
+        serverItemData: {
+          title: "Nope",
+        },
+      }),
+      /does not admit patches for it/,
+    );
+    assert.throws(
+      () => graph.apply({
+        writes: {
+          draftEdits: {},
+        },
+        reset: ["draftEdits"],
+      }),
+      /cannot both write and reset public input `draftEdits`/,
+    );
+    assert.throws(
+      () => graph.transaction((tx) => {
+        tx.set(foreignGraph.inputs.draftEdits, {});
+      }),
+      /outside the graph contract/,
+    );
+
+    assert.deepEqual(
+      rawSignals.callLog.filter(([family]) => family === "transaction").map(([, ops]) => ops),
+      [
+        [["set", "itemDetail.editSession.serverItemData", { workflow_target_state_id: 7 }]],
+        [["set", "itemDetail.editSession.draftEdits", { title: "Ship docs" }]],
+        [["set", "itemDetail.editSession.draftEdits", { title: "Ready to ship" }]],
+        [
+          ["set", "itemDetail.editSession.serverItemData", { workflow_target_state_id: 12 }],
+          ["set", "itemDetail.editSession.draftEdits", { title: "Ready to ship", priority: "high" }],
+        ],
+        [["set", "itemDetail.editSession.draftEdits", {}]],
+        [
+          ["set", "itemDetail.editSession.serverItemData", null],
+          ["set", "itemDetail.editSession.draftEdits", {}],
+        ],
+      ],
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Graph Operational Mutation Rejection Precedes Transaction Entry Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    let transactionBegins = 0;
+    let inputReads = 0;
+    const rawSignals = {
+      input(id, initial) {
+        return {
+          id,
+          get() {
+            inputReads += 1;
+            return initial;
+          },
+          peek() {
+            return initial;
+          },
+          free() {},
+        };
+      },
+      computedSpec(id, spec) {
+        return createRawReadableHandle(id, { id, spec });
+      },
+      computedCallback(id, callback) {
+        return createRawReadableHandle(id, callback());
+      },
+      outputSpec(id, spec) {
+        return createRawReadableHandle(id, { id, spec });
+      },
+      read(target) {
+        return typeof target === "string" ? target : target.id;
+      },
+      watch() {
+        return { free() {} };
+      },
+      effect() {
+        return { free() {} };
+      },
+      transaction(callback) {
+        transactionBegins += 1;
+        callback({
+          set() {},
+          setWithAspects() {},
+          setWithRegions() {},
+          setWithRegionsAndAspects() {},
+          free() {},
+        });
+        return {};
+      },
+      batch(callback) {
+        return this.transaction(callback);
+      },
+      nuke() {
+        return true;
+      },
+      diagnostics() {
+        return {
+          subscribe() { return { free() {} }; },
+          why(id) { return { id, family: "why" }; },
+          health() { return null; },
+          summaryNow() { return { profile: "WebDevelopment", active_node_count: 0 }; },
+          historyNow() { return { history: { profile: "WebDevelopment", traced_node_count: 0, execution_record_count: 0, latest_execution_record_id: 0, reuse_origin_counts: {}, nodes: [] }, callbackNodes: [] }; },
+          latestObservation() { return null; },
+          latestFlow() { return null; },
+          performanceSummary() { return {}; },
+          latestFailure() { return null; },
+          latestRollback() { return null; },
+          latestFrontierExecution() { return null; },
+          latestInvalidationTraceRecords() { return []; },
+          recentHistory() { return []; },
+        };
+      },
+      history() {
+        return {
+          replay_for(id) { return { id, family: "replay", frames: [] }; },
+          lineage_for(id) { return { id, family: "lineage" }; },
+          free() {},
+        };
+      },
+      specialist() {
+        return {
+          read_versions(ids) {
+            return ids.map((id, index) => ({ id, version: index + 1 }));
+          },
+          free() {},
+        };
+      },
+      adapters() {
+        return {
+          export_definitions() {
+            return {
+              policy: null,
+              sources: [],
+              recipes: [],
+              sourceFamilies: [],
+              recipeFamilies: [],
+              unavailableCallbacks: [],
+            };
+          },
+          free() {},
+        };
+      },
+      compatibilityApp() {
+        return { family: "app" };
+      },
+      compatibilityRuntime() {
+        return { family: "runtime" };
+      },
+      free() {},
+    };
+
+    const signals = wrapSignals(rawSignals);
+    const graph = signals.graph("itemDetail", (graphBuilder) => {
+      const scoped = graphBuilder.scope("editSession");
+      const draftEdits = scoped.input({}, { id: "draftEdits" });
+      return graphBuilder.expose({
+        inputs: { draftEdits },
+        outputs: {
+          draftEdits,
+        },
+      });
+    });
+
+    let callbackMutationError = null;
+    assert.throws(() => {
+      try {
+        signals.computed("illegalPatch", () => {
+          graph.patchInputs({
+            draftEdits: {
+              title: "Nope",
+            },
+          });
+          return 1;
+        });
+      } catch (error) {
+        callbackMutationError = error;
+        throw error;
+      }
+    });
+    assert.equal(callbackMutationError?.code, "computeCallbackMutationDenied");
+    assert.equal(
+      transactionBegins,
+      0,
+      "graph-native mutation rejection should happen before transaction entry",
+    );
+    assert.equal(
+      inputReads,
+      0,
+      "graph-native mutation rejection should happen before patch planning reads current input state",
+    );
   } finally {
     await cleanup();
   }

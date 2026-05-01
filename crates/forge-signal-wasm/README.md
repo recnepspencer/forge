@@ -50,6 +50,232 @@ signals.transaction((tx) => {
 console.log(panel());
 ```
 
+The canonical app-authoring grammar is:
+
+- `input(value, { id })`
+- `computed(() => ..., { id })`
+- `output(() => ..., { id })`
+
+including string-valued inputs such as `signals.input("Ada", { id: "name" })`.
+
+## Controller-First Composition
+
+The primary app story is now controller-first authoring plus graph-owned
+publication. For repeated feature instances, prefer `signals.graph("id",
+(graph) => ...)` plus `graph.scope(...)` instead of hand-prefixing ids
+yourself.
+
+Simple:
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+const counterGraph = createSignals().graph("counter", (graph) => {
+  const counter = graph.scope("counter");
+  const count = counter.input(1, { id: "count" });
+  const doubled = counter.computed(() => count() * 2, { id: "doubled" });
+
+  return graph.expose({
+    controllers: [
+      counter.controller({
+        inputs: { count },
+        outputs: { doubled },
+      }),
+    ],
+    outputs: { count },
+  });
+});
+```
+
+If a published graph input should stay visible but not graph-writable, wrap it
+explicitly:
+
+```ts
+const serverValue = form.input({ id: "task-7" }, { id: "serverValue" });
+const routeParams = form.input({ taskId: "task-7" }, { id: "routeParams" });
+
+return form.controller({
+  inputs: {
+    serverValue: form.publicInput(serverValue, { authority: "readOnly" }),
+    routeParams: form.publicInput(routeParams, { authority: "imported" }),
+  },
+  outputs: {
+    effectiveValue,
+  },
+});
+```
+
+`writable` is the default. `readOnly` and `imported` stay in the public graph
+contract and diagnostics/history surfaces, but graph-native writes, patches,
+resets, and transactions deny them.
+
+More realistic:
+
+```ts
+import {
+  createSignals,
+  type ComputedSignalHandle,
+  type InputSignalHandle,
+  type SignalNamespace,
+} from "forge-signal-wasm";
+
+type ItemServerData = {
+  id: string;
+  name: string;
+  workflow_target_state_id?: string | null;
+};
+
+type ItemDraftEdits = Partial<Pick<
+  ItemServerData,
+  "name" | "workflow_target_state_id"
+>>;
+
+type EditSessionController = {
+  inputs: {
+    serverItemData: InputSignalHandle<ItemServerData | null>;
+    draftEdits: InputSignalHandle<ItemDraftEdits>;
+  };
+  outputs: {
+    effectiveItemData: ComputedSignalHandle<ItemServerData>;
+    dirtyState: ComputedSignalHandle<{ isDirty: boolean }>;
+  };
+  internal: Record<string, never>;
+};
+
+function createEditSessionController(
+  signals: SignalNamespace,
+): EditSessionController {
+  const serverItemData = signals.input<ItemServerData | null>(null, {
+    id: "serverItemData",
+  });
+  const draftEdits = signals.input<ItemDraftEdits>({}, {
+    id: "draftEdits",
+  });
+
+  const effectiveItemData = signals.computed(() => ({
+    ...(serverItemData() ?? {}),
+    ...draftEdits(),
+  }), { id: "effectiveItemData" });
+
+  const dirtyState = signals.computed(() => ({
+    isDirty: Object.keys(draftEdits()).length > 0,
+  }), { id: "dirtyState" });
+
+  return signals.controller({
+    inputs: {
+      serverItemData,
+      draftEdits,
+    },
+    outputs: {
+      effectiveItemData,
+      dirtyState,
+    },
+  });
+}
+
+type WorkflowController = {
+  inputs: Record<string, never>;
+  outputs: {
+    submitReadiness: ComputedSignalHandle<{
+      enabled: boolean;
+      targetStateId: string | null;
+    }>;
+  };
+  internal: Record<string, never>;
+};
+
+function createWorkflowController(
+  signals: SignalNamespace,
+  editSession: EditSessionController,
+): WorkflowController {
+  const submitReadiness = signals.computed(() => {
+    const item = editSession.outputs.effectiveItemData();
+    const dirty = editSession.outputs.dirtyState();
+
+    return {
+      enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+      targetStateId: item.workflow_target_state_id ?? null,
+    };
+  }, { id: "submitReadiness" });
+
+  return signals.controller({
+    outputs: {
+      submitReadiness,
+    },
+  });
+}
+
+const itemDetailGraph = createSignals().graph("itemDetail", (graph) => {
+  const editSession = createEditSessionController(graph.scope("editSession"));
+  const workflow = createWorkflowController(graph.scope("workflow"), editSession);
+
+  return graph.expose({
+    controllers: [editSession, workflow],
+  });
+});
+```
+
+Repeated families are a normal case now, not a naming accident. For side by
+side page/modal copies of the same controller family, scope each instance and
+alias the public contract deliberately:
+
+```ts
+const itemWorkspaceGraph = createSignals().graph("itemWorkspace", (graph) => {
+  const page = createEditSessionController(graph.scope("page"));
+  const modal = createEditSessionController(graph.scope("modal"));
+
+  return graph.expose({
+    inputs: {
+      pageServerItemData: page.inputs.serverItemData,
+      modalServerItemData: modal.inputs.serverItemData,
+    },
+    outputs: {
+      pageEffectiveItemData: page.outputs.effectiveItemData,
+      modalEffectiveItemData: modal.outputs.effectiveItemData,
+    },
+  });
+});
+```
+
+For repeated row-level editors, keep the controller family the same and let the
+graph own instance identity:
+
+```ts
+const rowEditorsGraph = createSignals().graph("rowEditors", (graph) => {
+  const row0 = createEditSessionController(graph.scope("row-0"));
+  const row1 = createEditSessionController(graph.scope("row-1"));
+
+  return graph.expose({
+    outputs: {
+      row0EffectiveItemData: row0.outputs.effectiveItemData,
+      row1EffectiveItemData: row1.outputs.effectiveItemData,
+    },
+  });
+});
+```
+
+Today, authored signal ids still become canonical runtime ids under the hood,
+but `graph.scope(...)` and `signals.scope(...)` now own that prefixing step
+for significant app code. Keep manual string prefixing only as a compatibility
+bridge for older controllers. Graph `inputs` and `outputs` are explicit public
+contract names consumers read through the published graph artifact, while
+controller `internal` signals stay private unless you deliberately re-expose
+them.
+
+The published graph is also the contract object forms and resource-style
+controllers should build on:
+
+```ts
+console.log(itemDetailGraph.contract().inputs.serverItemData);
+console.log(itemDetailGraph.inspectDiagnostics().inputs.serverItemData.why);
+console.log(itemDetailGraph.inspectHistory().outputs.submitReadiness.replay);
+console.log(itemDetailGraph.importPosture());
+const exported = itemDetailGraph.exportDefinition();
+const snapshot = itemDetailGraph.exportSnapshot();
+const restored = createSignals().importGraph(exported, snapshot);
+console.log(restored.contractHistory());
+```
+
 ## Host Capabilities
 
 Use host capabilities when callback-authored derived state needs approved
@@ -313,6 +539,16 @@ console.log({
 });
 ```
 
+Published graphs also have graph-scoped inspection surfaces:
+
+```ts
+const graphDiagnostics = itemDetailGraph.inspectDiagnostics();
+const graphHistory = itemDetailGraph.inspectHistory();
+
+console.log(graphDiagnostics.outputs.submitReadiness.why);
+console.log(graphHistory.outputs.submitReadiness.replay);
+```
+
 ## React Adapter
 
 ```ts
@@ -360,7 +596,7 @@ function PartPanel() {
 - Prefer callback-first `computed(() => ...)` and `output(() => ...)` for
   ordinary app code.
 - Prefer `signals.input(value, { id })` when you want the family to read with
-  one coherent grammar.
+  one coherent grammar, including string-valued inputs.
 - Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
   authoring.
 - Keep `compatibilityApp()` and `compatibilityRuntime()` for expert or migration

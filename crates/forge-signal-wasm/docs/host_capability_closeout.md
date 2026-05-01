@@ -52,7 +52,7 @@ The implementation now includes:
 
 The direct closeout gates are:
 
-- [host_capabilities.certification.test.mjs](../package/product/host_capabilities.certification.test.mjs)
+- [host_capabilities.certification.test.mjs](../package-src/product/host_capabilities.certification.test.mjs)
 - [verify-forge-signal-wasm-package.mjs](../../../scripts/wasm/verify-forge-signal-wasm-package.mjs)
 
 Those two surfaces matter together:
@@ -65,21 +65,20 @@ Those two surfaces matter together:
 
 Product surface and lifecycle ownership:
 
-- [package/product/host_capabilities.js](../package/product/host_capabilities.js)
-- [package/product/signals.js](../package/product/signals.js)
-- [package/product/callback_frames.js](../package/product/callback_frames.js)
-- [package/product/transactions.js](../package/product/transactions.js)
-- [package/product/diagnostics.js](../package/product/diagnostics.js)
-- [package/product/host_capability_reports.js](../package/product/host_capability_reports.js)
+- [package-src/product/host_capabilities.ts](../package-src/product/host_capabilities.ts)
+- [package-src/product/signals.ts](../package-src/product/signals.ts)
+- [package-src/product/callback_frames.ts](../package-src/product/callback_frames.ts)
+- [package-src/product/transactions.ts](../package-src/product/transactions.ts)
+- [package-src/product/diagnostics.ts](../package-src/product/diagnostics.ts)
+- [package-src/product/host_capability_reports.ts](../package-src/product/host_capability_reports.ts)
 
 Typed public surface:
 
-- [package/index.js](../package/index.js)
+- [package-src/index.ts](../package-src/index.ts)
 - [package/types/callable_surface.d.ts](../package/types/callable_surface.d.ts)
 - [package/types/diagnostics.d.ts](../package/types/diagnostics.d.ts)
 - [package/types/raw_surface.d.ts](../package/types/raw_surface.d.ts)
 - [package/types-smoke.ts](../package/types-smoke.ts)
-
 Runtime and transport ownership:
 
 - [src/runtime/compute_callbacks/invocation.rs](../src/runtime/compute_callbacks/invocation.rs)
@@ -134,9 +133,9 @@ The spec named five minimum evidence lanes. They now map to:
 Most recent closeout verification:
 
 ```powershell
-node crates/forge-signal-wasm/package/product/host_capabilities.certification.test.mjs
-node crates/forge-signal-wasm/package/product/host_capabilities.runtime.test.mjs
-node crates/forge-signal-wasm/package/product/signals.runtime.test.mjs
+node crates/forge-signal-wasm/package-src/product/host_capabilities.certification.test.mjs
+node crates/forge-signal-wasm/package-src/product/host_capabilities.runtime.test.mjs
+node crates/forge-signal-wasm/package-src/product/signals.runtime.test.mjs
 node crates/forge-signal-wasm/react/store.runtime.test.mjs
 powershell -ExecutionPolicy Bypass -File scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 ```

@@ -12,8 +12,8 @@ subpath.
 - [consuming_the_package.md](consuming_the_package.md)
   Build, prepare, install, import, and package-shape guidance for other apps.
 - [app_surface_reference.md](app_surface_reference.md)
-  Reference for `createSignals()`, `input`, `computed`, `output`, `watch`,
-  `effect`, `transaction`, `batch`, and `nuke`.
+  Reference for `createSignals()`, `input`, `computed`, `output`,
+  `signals.graph(...)`, `watch`, `effect`, `transaction`, `batch`, and `nuke`.
 - [host_capabilities.md](host_capabilities.md)
   Feature guide for `hostCapabilityPlan(...)`, admitted capability families,
   `signals.host.*`, and host-capability diagnostics and transport posture.
@@ -41,6 +41,12 @@ subpath.
 - [host_callback_computed_spec.md](host_callback_computed_spec.md)
   Callback-first computed-node spec for normal TypeScript authoring with
   dynamic dependencies and diagnostics parity.
+- [composition-api-plan.md](composition-api-plan.md)
+  Controller-first composition and explicit graph publication spec for feature
+  authoring above the callback-first signal surface.
+- [controller_scope_and_graph_lifecycle_plan.md](controller_scope_and_graph_lifecycle_plan.md)
+  Next milestone spec for scoped controller identity, graph-owned lifecycle,
+  and explicit public graph contracts before forms/resources.
 - [host_capability_spec.md](host_capability_spec.md)
   Closed engineering spec for the typed host-capability lane.
 
@@ -51,6 +57,7 @@ The primary web concepts are:
 - `input`
 - `computed`
 - `output`
+- `signals.graph(...)`
 - `watch`
 - `effect`
 - `transaction`
@@ -74,6 +81,8 @@ The package also exposes:
 - `output` is a public projection intended for host and framework consumption.
 - `output` is callback-first on the product surface, while `outputSpec(...)`
   remains available for explicit portable recipe authoring.
+- `signals.graph(...)` is the explicit publication boundary for controller-first
+  feature composition.
 - `watch` observes committed boundaries.
 - `effect` reacts to committed boundaries.
 - `transaction` is the committed write boundary.
