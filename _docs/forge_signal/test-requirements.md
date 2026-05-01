@@ -2578,3 +2578,292 @@ Pass condition
 No policy decision can enter request admission, temporal wake allocation,
 completion admission, transaction apply, observation, or replay unless it has
 lowered through a frozen deterministic descriptor.
+
+21. The async capability attachment equivalence test
+
+Purpose
+
+Prove that async capability attached to ordinary nodes is the same substrate as
+the legacy resource-shaped path rather than a second implementation wearing the
+same words.
+
+Why it matters
+
+If capability-first declarations and legacy resource-shaped declarations lower
+through different descriptor, lifecycle, replay, or denial paths, the runtime
+will quietly fork into two async systems.
+
+That would erase the whole point of Milestone D.
+
+What to stress
+
+declare semantically identical async nodes through both:
+
+- capability-first ordinary-node attachment
+- legacy resource-shaped compatibility vocabulary
+
+Include at minimum:
+
+- plain leaf async nodes
+- keyed/query/computed-family async nodes
+- condition-gated async nodes
+- nodes with non-default output continuity and observation policies
+
+Run equivalent workloads across both declaration paths including:
+
+- fresh admission
+- retry
+- timeout
+- cancellation
+- revalidation
+- restore and replay
+
+What to verify
+
+both declaration forms lower to identical canonical descriptor truth
+
+request identity law is identical
+
+lifecycle transitions are identical
+
+denial classifications are identical
+
+observation and output continuity digests are identical
+
+replay and restore digests are identical
+
+Pass condition
+
+The runtime must emit canonical equivalence artifacts containing:
+
+- capability declaration digest
+- lowered descriptor digest
+- lifecycle digest
+- denial digest
+- observation/output-continuity digest
+- replay/restore digest
+
+Equivalent capability-first and compatibility-first declarations must match
+exactly when they mean the same thing.
+
+22. The interior async node gate equivalence test
+
+Purpose
+
+Prove that an async-capable node can live in the middle of the graph and gate
+downstream work without inventing a second dependency model.
+
+Why it matters
+
+If interior async gates are implemented as pseudo-nodes, side channels, or
+special adapter-managed boundaries, then async capability is not really part of
+the graph. It is just a leaf-shaped convenience with extra tricks.
+
+What to stress
+
+build a graph where:
+
+- upstream sync nodes produce request/admission inputs
+- an interior async-capable node depends on them
+- multiple downstream nodes depend on:
+  - lifecycle truth
+  - committed output truth
+  - output continuity posture
+
+Include:
+
+- one path where the async node remains pending
+- one path where it fulfills
+- one path where it times out or rejects
+- one path where it preserves prior output while pending
+- one path where it hides prior output while pending
+- one path where upstream invalidation changes admission legality before the
+  current async lineage resolves
+
+Run this under:
+
+- ordinary execution
+- branch fork before completion
+- snapshot restore before and after completion
+- replay from checkpoint plus completion history
+
+What to verify
+
+downstream nodes observe only graph-legal lifecycle/output facts
+
+interior async gating does not introduce hidden graph edges or bypass ordinary
+dependency semantics
+
+pending lifecycle does not masquerade as node dirtiness
+
+failed or timed-out async gate state preserves correct downstream semantics
+
+restore and replay reconstruct the same gate story and downstream consequences
+
+Pass condition
+
+The runtime must emit canonical artifacts containing:
+
+- interior gate descriptor digest
+- lifecycle digest
+- downstream dependency-state digest
+- output continuity digest
+- replay/restore digest
+- explanation digest
+
+Equivalent executions must converge exactly.
+
+23. The hierarchical async capability replay and cancellation test
+
+Purpose
+
+Prove that async-capable nodes can depend on other async-capable nodes while
+preserving one coherent runtime story for cancellation, retry, replay, and
+restore.
+
+Why it matters
+
+This is where naive implementations split apart:
+
+- parent/child cancellation becomes host folklore
+- replay restores outputs but not inflight hierarchy truth
+- child completion races produce illegal parent admission
+- branch restore forgets which async layer was still authoritative
+
+What to stress
+
+build at least a three-level async-capable dependency chain:
+
+- parent async-capable node
+- child async-capable node
+- grandchild async-capable node
+
+Include hostile cases for:
+
+- parent cancellation propagating downward
+- child failure causing parent revalidation or denial
+- grandchild completion arriving after parent lineage moved on
+- retry at one layer while another layer is still pending
+- branch fork while multiple layers are inflight
+- restore to checkpoints before and after mixed-layer completion
+
+What to verify
+
+hierarchical cancellation footprint is exact and branch-local
+
+retry, timeout, revalidation, and denial history remain layer-honest
+
+replay reconstructs the same multi-level inflight and committed story
+
+no layer can commit stale work once an upstream or downstream dependency made
+that lineage non-authoritative
+
+Pass condition
+
+The runtime must emit canonical artifacts containing:
+
+- hierarchical inflight-set digest
+- hierarchical cancellation-footprint digest
+- lifecycle-history digest
+- denial-history digest
+- replay/restore digest
+- explanation digest
+
+Equivalent hierarchical histories must converge exactly.
+
+24. The condition-gated async admission parity test
+
+Purpose
+
+Prove that conditions and previous-value / temporal gates shape async
+admission truth without mutating lifecycle classification truth.
+
+Why it matters
+
+This is the most likely naive trap once async capability moves onto ordinary
+nodes. A rushed implementation will turn "blocked by condition" into a fake
+pending state, or will treat previous-value/temporal gating as hidden lifecycle
+machinery.
+
+What to stress
+
+async-capable nodes that are also:
+
+- on-demand
+- debounce-gated
+- throttle-gated
+- stale-after gated
+- previous-value-sensitive
+- delta-threshold sensitive
+
+Include workloads where:
+
+- conditions block new async admission while ordinary dirtiness still changes
+- revalidation is legal but fresh lineage admission is not
+- previous-value and temporal windows together decide admission
+- rollback happens after gating state changed but before commit
+- restore happens before and after gating flips
+
+What to verify
+
+condition outcomes remain admission truth, not lifecycle truth
+
+blocked async admission does not mint fake inflight lifecycle
+
+previous-value and temporal gates replay identically
+
+restore reconstructs the same admission legality story the original branch had
+
+Pass condition
+
+The runtime must emit canonical artifacts containing:
+
+- condition/admission classification digest
+- lifecycle digest
+- previous-value reference digest
+- temporal basis digest
+- replay/restore digest
+- explanation digest
+
+Equivalent histories must converge exactly.
+
+25. The async capability compile-time boundary test
+
+Purpose
+
+Prove that arbitrary nodes do not become async-capable by accident, and that
+legacy compatibility vocabulary cannot bypass capability-first lowering.
+
+Why it matters
+
+Milestone D will fail quietly if callers can:
+
+- reach async-only surfaces from ordinary node declarations
+- construct lowered capability descriptors directly
+- use compatibility aliases to skip the capability-first declaration path
+
+That would make the architecture depend on convention instead of enforcement.
+
+What to stress
+
+attempt to:
+
+- use async-only builder methods on ordinary node-only declarations
+- construct lowered capability descriptors outside the proving module
+- call lifecycle/replay/inspection surfaces that require async capability on
+  plain nodes without capability proof
+- use legacy resource-shaped constructors to enter async runtime paths without
+  capability-first lowering
+
+What to verify
+
+the compiler rejects forbidden construction and access where possible
+
+typed lowering or admission rejects the remainder before runtime execution
+
+compile-fail fixtures stay synchronized with the intended boundary shape
+
+Pass condition
+
+No async-only declaration, lowering, lifecycle, observation, or replay surface
+may be reachable without a capability-bearing proof path.

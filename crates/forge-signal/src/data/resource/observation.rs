@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::logic::transaction::{
     ObservationBoundaryOutcome, ObservationHandleId, ObservationPolicy, ObserverId,
@@ -10,7 +10,7 @@ use super::{
     ScheduledResourceRetry,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObservedResourceNodeState {
     node: ResourceNodeId,
     lifecycle: ResourceLifecycleClass,
@@ -71,7 +71,7 @@ impl ObservedResourceNodeState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceObservationEvent {
     observer_id: ObserverId,
     handle_id: ObservationHandleId,
@@ -146,7 +146,7 @@ impl ResourceObservationEvent {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceObservationBatchReport {
     events: Vec<ResourceObservationEvent>,
     performance: ResourceBoundaryPerformanceEnvelope,

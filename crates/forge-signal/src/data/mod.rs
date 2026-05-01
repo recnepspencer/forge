@@ -1,5 +1,6 @@
 pub(crate) mod access_counters;
 pub mod aspect;
+pub mod async_node;
 pub mod bitset;
 pub mod checkpoint;
 pub mod checkpoint_policy;

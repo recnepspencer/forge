@@ -761,6 +761,80 @@ impl ResourceRuntimeState {
             .map_err(resource_policy_resolution_signal_error)
     }
 
+    pub fn validate_async_capability_declaration(
+        &self,
+        declaration: &ResourceNodeDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ValidatedResourcePolicyDeclaration, crate::data::error::SignalError> {
+        telemetry.async_node_capability_validation_count += 1;
+        telemetry.resource_policy_resolution_count += 1;
+        ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
+            .map_err(|err| {
+                telemetry.resource_policy_resolution_denial_count += 1;
+                resource_policy_resolution_signal_error(err)
+            })
+    }
+
+    pub(in crate::logic::transaction::runtime) fn validate_resource_policy_declaration_without_async_accounting(
+        &self,
+        declaration: &ResourceNodeDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ValidatedResourcePolicyDeclaration, crate::data::error::SignalError> {
+        telemetry.resource_policy_resolution_count += 1;
+        ValidatedResourcePolicyDeclaration::from_declaration(declaration, &self.policy_registry)
+            .map_err(|err| {
+                telemetry.resource_policy_resolution_denial_count += 1;
+                resource_policy_resolution_signal_error(err)
+            })
+    }
+
+    pub fn freeze_async_capability_declaration(
+        &self,
+        validated: &ValidatedResourcePolicyDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<FrozenResourcePolicyDescriptorSet, crate::data::error::SignalError> {
+        telemetry.async_node_capability_freeze_count += 1;
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            validated,
+            &self.policy_registry,
+        )
+        .map_err(|err| {
+            telemetry.resource_policy_resolution_denial_count += 1;
+            resource_policy_resolution_signal_error(err)
+        })
+    }
+
+    pub(in crate::logic::transaction::runtime) fn freeze_resource_policy_declaration_without_async_accounting(
+        &self,
+        validated: &ValidatedResourcePolicyDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<FrozenResourcePolicyDescriptorSet, crate::data::error::SignalError> {
+        FrozenResourcePolicyDescriptorSet::from_validated_declaration(
+            validated,
+            &self.policy_registry,
+        )
+        .map_err(|err| {
+            telemetry.resource_policy_resolution_denial_count += 1;
+            resource_policy_resolution_signal_error(err)
+        })
+    }
+
+    pub fn lower_async_capability_bundle(
+        &self,
+        frozen: &FrozenResourcePolicyDescriptorSet,
+        telemetry: &mut ResourceTelemetry,
+    ) -> LoweredResourcePolicyBundle {
+        telemetry.async_node_capability_bundle_lowering_count += 1;
+        LoweredResourcePolicyBundle::from_frozen_descriptors(frozen)
+    }
+
+    pub(in crate::logic::transaction::runtime) fn lower_resource_policy_bundle_without_async_accounting(
+        &self,
+        frozen: &FrozenResourcePolicyDescriptorSet,
+    ) -> LoweredResourcePolicyBundle {
+        LoweredResourcePolicyBundle::from_frozen_descriptors(frozen)
+    }
+
     fn replay_decision_plan_from_validated(
         &self,
         validated: &ValidatedResourcePolicyDeclaration,
@@ -1212,6 +1286,17 @@ impl ResourceRuntimeState {
         node: ResourceNodeId,
     ) -> Option<ResourceLifecycleSummary> {
         self.lifecycle_by_node.get(&node).copied()
+    }
+
+    pub fn active_request_handle_for_node(
+        &self,
+        node: ResourceNodeId,
+    ) -> Option<ResourceRequestHandle> {
+        let request_id = self.active_request_by_node.get(&node)?;
+        self.in_flight_by_request
+            .get(request_id)
+            .filter(|in_flight| in_flight.status() == ResourceInFlightStatus::Active)
+            .map(|in_flight| in_flight.handle())
     }
 
     pub fn attach_stale_after_wake(&mut self, node: ResourceNodeId, wake_id: TemporalWakeId) {
