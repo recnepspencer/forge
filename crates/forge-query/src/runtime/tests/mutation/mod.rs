@@ -6,6 +6,7 @@ mod continuity;
 mod continuity_bridge;
 mod delete;
 mod existing_binding;
+mod graph_composition;
 mod mixed_authority;
 mod naming;
 mod probe_existing;

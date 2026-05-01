@@ -4,7 +4,7 @@ use crate::runtime::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryRuntimeError, ForgeQueryWriteCommand,
 };
 
-use super::aspect_builder_helpers::finish_aspects;
+use super::aspect_builder_helpers::{finish_aspects, reject_symbolic_aspect_references};
 
 impl ForgeQueryAspectMutationBuilder {
     pub(crate) fn finish_existing_truth_verification_aspects(
@@ -13,12 +13,14 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(&symbolic_aspect_references, lane_description)?;
         if !metadata.is_empty() {
             return Err(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new(format!(
@@ -49,12 +51,14 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(&symbolic_aspect_references, "existing-truth assertion")?;
         if naming_intent.is_some() {
             return Err(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new(
@@ -82,12 +86,17 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(
+            &symbolic_aspect_references,
+            "backend-verified existing-truth assertion",
+        )?;
         if naming_intent.is_some() {
             return Err(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new(
@@ -116,12 +125,17 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(
+            &symbolic_aspect_references,
+            "backend-verified existing-truth update",
+        )?;
         Ok(ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
             binding,
             asserted_aspects,

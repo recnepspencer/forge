@@ -2201,6 +2201,10 @@ continuity evidence.
 The governing hardening spec is
 [runtime-authoritative-mutation-evidence-plan.md](./runtime-authoritative-mutation-evidence-plan.md).
 
+The required follow-on hardening spec for generic graph-shaped authoring and
+identity-preserving existing-target mutation is
+[runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md).
+
 ### Must Ship
 
 - explicit declared-versus-resolved target evidence in public receipts and
@@ -2213,6 +2217,11 @@ The governing hardening spec is
   incompatible bindings
 - admitted naming-aware and continuity-aware mutation evidence families that
   either preserve explicit outcome meaning or fail typed and early
+- domain-agnostic public authoring surfaces for:
+  - identity-preserving existing-target relation updates
+  - first-class same-batch graph composition
+  - bridge-backed backend-verified existing-truth checks on admitted runtime
+    families
 - support-matrix and certification rows covering the hardened mutation surface
 
 ### Must Preserve
@@ -2236,7 +2245,10 @@ This gate is complete only when `forge-query` can prove that public receipts,
 inspection bundles, support metadata, and executable admission behavior agree
 on target evidence, existing-truth binding, and admitted naming/continuity
 neighbors, while downstream domains can delete local target-recovery glue
-instead of merely wrapping it.
+instead of merely wrapping it. The gate is not fully closed until the authoring
+surfaces and certification obligations in
+[runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md)
+are also satisfied.
 
 ## Milestone 9.4: Temporal Query Basis And Time-Aware Subscriptions
 

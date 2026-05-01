@@ -53,6 +53,18 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
         support.symbolic_target_reference_families(),
         &["same_batch_declared_target".to_string()]
     );
+    assert_eq!(
+        support.symbolic_aspect_reference_families(),
+        &["same_batch_declared_entity_identity".to_string()]
+    );
+    assert_eq!(
+        support.graph_composition_families(),
+        &[
+            "same_batch_entity_relation_identity_edges".to_string(),
+            "mixed_existing_and_symbolic_entity_identity_edges".to_string(),
+            "same_batch_symbolic_relation_followup_mutation".to_string(),
+        ]
+    );
     assert!(support
         .naming_mutation_families()
         .iter()
@@ -128,6 +140,10 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
         query_support.symbolic_target_reference_families(),
         bridge_support.symbolic_target_reference_families()
     );
+    assert!(query_support
+        .symbolic_aspect_reference_families()
+        .iter()
+        .any(|family| family == "same_batch_declared_entity_identity"));
     assert_eq!(
         query_support.naming_mutation_families(),
         bridge_support.naming_mutation_families()
@@ -236,6 +252,9 @@ fn runtime_public_authoritative_mutation_evidence_closeout_document_matches_cert
         assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(line));
     }
     for family in query_support.naming_mutation_families() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+    for family in query_support.symbolic_aspect_reference_families() {
         assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
     }
     for family in query_support.continuity_mutation_families() {

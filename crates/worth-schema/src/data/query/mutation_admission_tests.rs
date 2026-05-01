@@ -1,7 +1,8 @@
 use crate::facade::{
-    admit_worth_query_mutation_batch, RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin,
-    WorthNamingEntityKind, WorthNamingRelationKind, WorthQueryMutationAdmissionBlocker,
-    WorthRelationKind, WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
+    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
+    RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin, WorthNamingEntityKind,
+    WorthNamingRelationKind, WorthQueryMutationAdmissionBlocker, WorthRelationKind,
+    WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
 };
 
 #[test]
@@ -62,7 +63,7 @@ fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removal
 }
 
 #[test]
-fn query_mutation_admission_marks_topology_upserts_as_ready() {
+fn query_mutation_admission_marks_topology_existing_truth_verification_as_ready() {
     let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
         vec![
             WorthTopologyMutation::UpsertEntity {
@@ -99,12 +100,30 @@ fn query_mutation_admission_marks_topology_upserts_as_ready() {
 
     assert!(
         admission.is_admitted(),
-        "topology upserts should now lower through imported existing-truth bindings"
+        "topology existing-truth checks should now lower through direct existing bindings"
     );
-    assert!(
-        !admission.blockers().iter().any(|row| {
-            row.blocker == WorthQueryMutationAdmissionBlocker::ExistingIdentityBindingRequired
-        }),
-        "topology upserts should no longer claim the old explicit-binding blocker"
-    );
+}
+
+#[test]
+fn query_mutation_support_contract_distinguishes_substrate_from_workflow_widening() {
+    let contract = worth_query_mutation_support_contract()
+        .expect("worth query mutation contract should derive");
+
+    assert!(contract
+        .admitted_query_substrate_families
+        .iter()
+        .any(|family| family == "verify_existing_topology_relation_shape"));
+    assert!(contract
+        .blocked_until_invariant_complete_workflow
+        .iter()
+        .any(|family| {
+            family == "topology_relation_create_workflows_require_invariant_complete_subgraphs"
+        }));
+    assert!(contract
+        .blocked_until_invariant_complete_workflow
+        .iter()
+        .any(|family| {
+            family
+                == "topology_relation_rewire_workflows_require_identity_preserving_relation_updates"
+        }));
 }

@@ -1,12 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryComputedInspectionEvidence, ForgeQueryEntity, ForgeQueryInspection,
     ForgeQueryRuntimeStateKind,
 };
 use forge_relational::facade::replay::{
     RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
 };
-use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::{
     DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthAspect, WorthAuthorityTraceAnchor,
     WorthAuthorityTraceEvidence, WorthBoundaryEnvelope, WorthBoundaryFailure, WorthDecisionTrace,
@@ -27,7 +26,9 @@ use crate::facade::{
     build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
     compare_derived_equivalence_contracts, validate_named_topology_truth,
 };
-use crate::query::{worth_topology_query_workspace, WorthTopologyQueryAssembly};
+use crate::query::{
+    worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
+};
 
 pub type WorthTracedMilestoneOneCertificationReport =
     WorthBoundaryEnvelope<WorthMilestoneOneCertificationReport>;
@@ -50,43 +51,8 @@ struct WorthMilestoneOneQueryEvidence {
 pub struct WorthMilestoneOneCertificationHarness;
 
 impl WorthMilestoneOneCertificationHarness {
-    pub fn certify_read_view(
-        read_view: &RelationalReadView,
-        read_basis: DerivedTopologyReadBasis,
-    ) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-        Self::certify_read_view_traced(read_view, read_basis)
-            .map(WorthBoundaryEnvelope::into_primary_result)
-            .map_err(WorthBoundaryFailure::into_error)
-    }
-
-    pub fn certify_read_view_traced(
-        read_view: &RelationalReadView,
-        read_basis: DerivedTopologyReadBasis,
-    ) -> Result<
-        WorthTracedMilestoneOneCertificationReport,
-        WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
-    > {
-        Self::certify_read_view_with_batch_traced(read_view, read_basis, None, 0)
-    }
-
-    pub(crate) fn certify_read_view_with_batch(
-        read_view: &RelationalReadView,
-        read_basis: DerivedTopologyReadBasis,
-        authority_batch: Option<&WorthTopologyMutationBatch>,
-        replay_history_length: usize,
-    ) -> Result<WorthMilestoneOneCertificationReport, WorthMilestoneOneCertificationError> {
-        Self::certify_read_view_with_batch_traced(
-            read_view,
-            read_basis,
-            authority_batch,
-            replay_history_length,
-        )
-        .map(WorthBoundaryEnvelope::into_primary_result)
-        .map_err(WorthBoundaryFailure::into_error)
-    }
-
-    pub(crate) fn certify_read_view_with_batch_traced(
-        read_view: &RelationalReadView,
+    pub(crate) fn certify_read_basis_with_runtime_traced(
+        runtime: &mut RelationalRuntime,
         read_basis: DerivedTopologyReadBasis,
         authority_batch: Option<&WorthTopologyMutationBatch>,
         replay_history_length: usize,
@@ -94,18 +60,37 @@ impl WorthMilestoneOneCertificationHarness {
         WorthTracedMilestoneOneCertificationReport,
         WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
     > {
-        validate_named_topology_truth(read_view).map_err(|error| {
-            traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
-        })?;
-        let mut workspace = worth_topology_query_workspace("worth.milestone-one.certification")
-            .map_err(|error| {
+        let read_view = runtime
+            .read_truth()
+            .read_snapshot(read_basis.snapshot())
+            .ok_or_else(|| {
                 traced_certification_failure(
-                    WorthMilestoneOneCertificationError::Query(error.to_string()),
+                    WorthMilestoneOneCertificationError::ReadView(format!(
+                        "worth certification could not open snapshot {:?}",
+                        read_basis.snapshot()
+                    )),
                     &read_basis,
                     None,
                     replay_history_length,
                 )
             })?;
+        validate_named_topology_truth(&read_view).map_err(|error| {
+            traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
+        })?;
+
+        let adapters = WorthTopologyRuntimeAdapters::snapshot_read_only(
+            read_view,
+            read_basis.snapshot().clone(),
+        );
+        let mut workspace = worth_topology_runtime(adapters, "worth.milestone-one.certification")
+            .map_err(|error| {
+            traced_certification_failure(
+                WorthMilestoneOneCertificationError::Query(error.to_string()),
+                &read_basis,
+                None,
+                replay_history_length,
+            )
+        })?;
         let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).map_err(|error| {
             traced_certification_failure(
                 WorthMilestoneOneCertificationError::Query(error.to_string()),
@@ -114,11 +99,6 @@ impl WorthMilestoneOneCertificationHarness {
                 replay_history_length,
             )
         })?;
-        let receipt = assembly
-            .import_read_view(&mut workspace, read_view, &read_basis)
-            .map_err(|error| {
-                traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
-            })?;
         let entity_rows = workspace.read(assembly.entities());
         let relation_rows = workspace.read(assembly.relations());
         let persistent_name_rows = workspace.read(assembly.persistent_names());
@@ -164,13 +144,11 @@ impl WorthMilestoneOneCertificationHarness {
         .map_err(|error| {
             traced_certification_failure(error, &read_basis, None, replay_history_length)
         })?;
-        let receipt_inspection = batch_write_receipt_query_inspection(&mut workspace, &receipt)
+        let snapshot = assembly
+            .snapshot_for_read_basis(&mut workspace, &read_basis)
             .map_err(|error| {
-                traced_certification_failure(error, &read_basis, None, replay_history_length)
+                traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
             })?;
-        let snapshot = assembly.snapshot(&mut workspace).map_err(|error| {
-            traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
-        })?;
         let equivalence_contract = snapshot.equivalence_contract.clone();
         let derived_read_diagnostics = snapshot.diagnostics.clone();
         let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
@@ -187,7 +165,6 @@ impl WorthMilestoneOneCertificationHarness {
             &equivalence_contract,
             &replay_equivalence_contract,
         );
-
         let topology_localization_report =
             build_topology_localization_report_from_query_rows(&entity_rows, &relation_rows)
                 .map_err(|error| {
@@ -284,26 +261,17 @@ impl WorthMilestoneOneCertificationHarness {
             replay_history_length,
         );
         let query_evidence = WorthMilestoneOneQueryEvidence {
-            affected_live_view_count: receipt.affected_live_view_ids().len(),
-            affected_derived_view_count: receipt.affected_derived_view_ids().len(),
-            considered_computed_view_count: receipt.considered_computed_view_count(),
+            affected_live_view_count: 0,
+            affected_derived_view_count: 0,
+            considered_computed_view_count: 0,
             topology_entity_row_count: entity_rows.len(),
             topology_relation_row_count: relation_rows.len(),
             persistent_name_row_count: persistent_name_rows.len(),
             validation_materialized_row_count: validation_inspection.materialized_row_count(),
             equivalence_materialized_row_count: equivalence_inspection.materialized_row_count(),
-            declared_aspect_operation_count: receipt_inspection
-                .component_operations()
-                .iter()
-                .map(|component| component.declared_aspect_operations().len())
-                .sum(),
-            mutation_metadata_key_count: receipt
-                .write_receipts()
-                .iter()
-                .map(|write| write.mutation_metadata().entries().len())
-                .sum(),
+            declared_aspect_operation_count: 0,
+            mutation_metadata_key_count: 0,
         };
-
         let report = WorthMilestoneOneCertificationReport {
             named_truth_validated: true,
             topology_validated: true,
@@ -352,22 +320,8 @@ impl WorthMilestoneOneCertificationHarness {
         WorthTracedMilestoneOneCertificationReport,
         WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
     > {
-        let read_view = runtime
-            .read_truth()
-            .read_snapshot(&verified.persisted_truth.snapshot)
-            .ok_or_else(|| {
-                traced_certification_failure(
-                    WorthMilestoneOneCertificationError::ReadView(format!(
-                        "worth certification could not open verified snapshot {:?}",
-                        verified.persisted_truth.snapshot
-                    )),
-                    &verified.read_basis,
-                    Some(&verified.commits),
-                    verified.commits.len(),
-                )
-            })?;
-        let traced = Self::certify_read_view_with_batch_traced(
-            &read_view,
+        let traced = Self::certify_read_basis_with_runtime_traced(
+            runtime,
             verified.read_basis.clone(),
             Some(&verified.canonical_batch.batch),
             verified.commits.len(),
@@ -471,26 +425,6 @@ impl WorthMilestoneOneCertificationHarness {
     }
 }
 
-pub fn certify_milestone_one_read_view_traced_impl(
-    read_view: &RelationalReadView,
-    read_basis: DerivedTopologyReadBasis,
-) -> Result<
-    WorthTracedMilestoneOneCertificationReport,
-    WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
-> {
-    WorthMilestoneOneCertificationHarness::certify_read_view_traced(read_view, read_basis)
-}
-
-pub fn certify_verified_topology_commit_traced_impl(
-    runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
-) -> Result<
-    WorthTracedMilestoneOneCertificationReport,
-    WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
-> {
-    WorthMilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
-}
-
 fn ensure_query_surface_ready(
     surface_name: &str,
     state: &forge_query::facade::ForgeQueryRuntimeStateSnapshot,
@@ -525,21 +459,6 @@ fn derived_query_inspection<T>(
         }
         other => Err(WorthMilestoneOneCertificationError::Query(format!(
             "query inspection for `{expected_name}` returned wrong artifact family: {other:?}"
-        ))),
-    }
-}
-
-fn batch_write_receipt_query_inspection(
-    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    receipt: &ForgeQueryBatchWriteReceipt,
-) -> Result<ForgeQueryBatchWriteReceiptInspection, WorthMilestoneOneCertificationError> {
-    match workspace
-        .inspect(receipt)
-        .map_err(|error| WorthMilestoneOneCertificationError::Query(error.to_string()))?
-    {
-        ForgeQueryInspection::BatchWriteReceipt(inspection) => Ok(inspection),
-        other => Err(WorthMilestoneOneCertificationError::Query(format!(
-            "query inspection for batch write receipt returned wrong artifact family: {other:?}"
         ))),
     }
 }

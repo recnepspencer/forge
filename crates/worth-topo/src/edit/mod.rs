@@ -1,10 +1,11 @@
 mod facade;
+mod query_native;
 mod types;
 
-pub use facade::{
-    WorthTopologyEditApplicationMode, WorthTopologyEditApplied, WorthTopologyEditBatch,
-    WorthTopologyEditError, WorthTopologyEditRunner, WorthTopologyEditRuntimeTrace,
-    WorthTracedTopologyEditApplied, WorthTracedTopologyEditCommit,
+pub use facade::{WorthTopologyEditApplicationMode, WorthTopologyEditBatch};
+pub use query_native::{
+    WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError,
+    WorthTopologyQueryEditRunner,
 };
 pub use types::{
     WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
@@ -15,4 +16,8 @@ pub use types::{
 };
 
 #[cfg(test)]
-mod tests;
+mod contract_tests;
+#[cfg(test)]
+mod query_native_test_support;
+#[cfg(test)]
+mod query_native_tests;

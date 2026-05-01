@@ -1,5 +1,34 @@
 use super::super::support::*;
 
+fn task_edge_runtime() -> ForgeQueryRuntime {
+    ForgeQueryRuntime::builder()
+        .compatibility_in_memory_collections([
+            ForgeQueryCollection::new(
+                "Task",
+                [
+                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
+                    crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
+                ],
+            ),
+            ForgeQueryCollection::new(
+                "TaskEdge",
+                [
+                    crate::memory_workspace::ForgeQueryAspect::new("edge.kind", "edge.kind"),
+                    crate::memory_workspace::ForgeQueryAspect::new(
+                        "edge.source_identity",
+                        "edge.source_identity",
+                    ),
+                    crate::memory_workspace::ForgeQueryAspect::new(
+                        "edge.target_identity",
+                        "edge.target_identity",
+                    ),
+                ],
+            ),
+        ])
+        .build()
+        .expect("runtime should build")
+}
+
 #[test]
 fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
     let mut workspace = task_runtime()
@@ -164,5 +193,92 @@ fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
             .expect("preview component should retain symbolic evidence")
             .symbol(),
         "draft-task"
+    );
+}
+
+#[test]
+fn symbolic_aspect_reference_requires_batch_context() {
+    let mut workspace = task_edge_runtime()
+        .workspace("tasks.symbolic-aspect-single")
+        .expect("runtime should open a named workspace");
+    let command = ForgeQueryAspectMutationBuilder::new()
+        .aspect("edge.kind", "depends_on")
+        .symbolic_entity_identity(
+            "edge.source_identity",
+            ForgeQuerySymbolicTargetReference::new("draft-task")
+                .expect("symbolic reference should build"),
+        )
+        .aspect("edge.target_identity", "task-existing")
+        .build_insert("TaskEdge")
+        .expect("insert command should build");
+
+    let error = workspace
+        .write(command)
+        .expect_err("symbolic aspect references must fail closed outside batch execution");
+
+    match error {
+        ForgeQueryRuntimeError::MutationTargetReferenceDenied(denial) => {
+            assert_eq!(
+                denial.kind(),
+                ForgeQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext
+            );
+        }
+        other => panic!("expected symbolic aspect batch-context denial, got {other:?}"),
+    }
+}
+
+#[test]
+fn symbolic_aspect_reference_resolves_same_batch_created_entity_identity() {
+    let mut workspace = task_edge_runtime()
+        .workspace("tasks.symbolic-aspect-batch")
+        .expect("runtime should open a named workspace");
+    let _: ForgeQueryLiveView<Value> = workspace
+        .live_view("tasks.symbolic-aspect-tasks", |q| {
+            q.from("Task")
+                .select(["identity.id", "title.value"])
+                .order_by("title.value")
+                .schema_basis("tasks-symbolic-aspect-tasks")
+        })
+        .expect("task live view should declare");
+    let edges: ForgeQueryLiveView<Value> = workspace
+        .live_view("tasks.symbolic-aspect-edges", |q| {
+            q.from("TaskEdge")
+                .select(["edge.kind", "edge.source_identity", "edge.target_identity"])
+                .order_by("edge.kind")
+                .schema_basis("tasks-symbolic-aspect-edges")
+        })
+        .expect("edge live view should declare");
+
+    let receipt = workspace
+        .batch(|batch| {
+            batch
+                .insert_symbolic("draft-task", "Task", |task| {
+                    task.aspect("identity.id", "task-draft")
+                        .aspect("title.value", "Draft task")
+                })
+                .insert("TaskEdge", |edge| {
+                    edge.aspect("edge.kind", "depends_on")
+                        .symbolic_entity_identity(
+                            "edge.source_identity",
+                            ForgeQuerySymbolicTargetReference::new("draft-task")
+                                .expect("symbolic reference should build"),
+                        )
+                        .aspect("edge.target_identity", "task-existing")
+                })
+        })
+        .expect("symbolic aspect batch should execute");
+
+    let draft_identity = receipt.write_receipts()[0].deltas()[0]
+        .entity_identity
+        .clone();
+    let edge_rows = workspace.read(&edges);
+    assert_eq!(edge_rows.len(), 1);
+    assert_eq!(
+        edge_rows[0].payload["edge"]["source_identity"].as_str(),
+        Some(draft_identity.as_str())
+    );
+    assert_eq!(
+        edge_rows[0].payload["edge"]["target_identity"].as_str(),
+        Some("task-existing")
     );
 }

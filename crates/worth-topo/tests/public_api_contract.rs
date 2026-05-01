@@ -1,36 +1,37 @@
-use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_relational::facade::snapshots::SnapshotHandle;
 use worth_schema::facade::{
     DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthBoundaryFailure, WorthQueryAspectPath,
     WorthQueryCollection, WorthQueryComputedDeclarationBuilder, WorthQueryLiveDeclarationBuilder,
     WorthQuerySchemaBasis,
 };
 use worth_topo::facade::{
-    certify_milestone_one_read_view_traced, certify_milestone_two_read_view_traced,
+    certify_milestone_one_read_basis_traced, certify_milestone_two_read_basis_traced,
     certify_milestone_two_verified_topology_commit_traced, certify_verified_topology_commit_traced,
     declare_worth_persistent_name_live_view, declare_worth_topology_diagnostics_surface,
     declare_worth_topology_entity_live_view, declare_worth_topology_equivalence_contract_surface,
     declare_worth_topology_interpreted_surface, declare_worth_topology_materialized_surface,
     declare_worth_topology_relation_live_view, declare_worth_topology_validation_surface,
     derived_read_diagnostics_from_query_rows, equivalence_contract_from_diagnostics_rows,
-    interpreted_topology_from_materialized_rows, materialized_topology_from_query_rows,
-    naming_attachment_report_from_query_rows, validation_report_from_query_rows,
-    worth_persistent_name_live_view_declaration, worth_topology_query_workspace,
-    WorthMilestoneOneCertificationError, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditError, WorthTopologyEditRunner, WorthTopologyQueryAppliedIntent,
-    WorthTopologyQueryApplyError, WorthTopologyQueryAssembly, WorthTopologyQueryImportError,
-    WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot,
+    interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_rows,
+    validation_report_from_query_rows, worth_persistent_name_live_view_declaration,
+    worth_topology_runtime, WorthMilestoneOneCertificationError, WorthTopologyEditApplicationMode,
+    WorthTopologyEditBatch, WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError,
+    WorthTopologyQueryAssembly, WorthTopologyQueryEditExecution,
+    WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner,
+    WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot, WorthTopologyRuntimeAdapters,
+    WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
     WorthTracedMilestoneOneCertificationReport, WorthTracedMilestoneTwoDerivedReadReport,
-    WorthTracedTopologyEditApplied, WorthTracedTopologyEditCommit,
 };
 
 fn _m1_read_cert_contract(
-    read_view: &RelationalReadView,
+    runtime: &mut RelationalRuntime,
     basis: DerivedTopologyReadBasis,
 ) -> Result<
     WorthTracedMilestoneOneCertificationReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    certify_milestone_one_read_view_traced(read_view, basis)
+    certify_milestone_one_read_basis_traced(runtime, basis)
 }
 
 fn _m1_commit_cert_contract(
@@ -44,13 +45,13 @@ fn _m1_commit_cert_contract(
 }
 
 fn _m2_read_cert_contract(
-    read_view: &RelationalReadView,
+    runtime: &mut RelationalRuntime,
     basis: DerivedTopologyReadBasis,
 ) -> Result<
     WorthTracedMilestoneTwoDerivedReadReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    certify_milestone_two_read_view_traced(read_view, basis)
+    certify_milestone_two_read_basis_traced(runtime, basis)
 }
 
 fn _m2_commit_cert_contract(
@@ -64,19 +65,11 @@ fn _m2_commit_cert_contract(
 }
 
 fn _edit_apply_contract(
-    runner: &mut WorthTopologyEditRunner<'_>,
+    runner: &mut WorthTopologyQueryEditRunner<'_, '_>,
     batch: WorthTopologyEditBatch,
     mode: WorthTopologyEditApplicationMode,
-) -> Result<WorthTracedTopologyEditCommit, WorthTopologyEditError> {
-    runner.apply_traced(batch, mode)
-}
-
-fn _edit_apply_and_inspect_contract(
-    runner: &mut WorthTopologyEditRunner<'_>,
-    batch: WorthTopologyEditBatch,
-    mode: WorthTopologyEditApplicationMode,
-) -> Result<WorthTracedTopologyEditApplied, WorthTopologyEditError> {
-    runner.apply_and_inspect_traced(batch, mode)
+) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
+    runner.apply(batch, mode)
 }
 
 fn _worth_vocab_live_query_declaration_contract() {
@@ -103,25 +96,27 @@ fn _worth_vocab_computed_query_declaration_contract() {
 
 fn _worth_query_native_topology_surface_contracts() {
     let _: fn(
+        WorthTopologyRuntimeAdapters,
         String,
-    ) -> Result<
-        forge_query::facade::ForgeQueryWorkspace,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = worth_topology_query_workspace;
+    )
+        -> Result<forge_query::facade::ForgeQueryWorkspace, WorthTopologyRuntimeFailure> =
+        worth_topology_runtime;
+    let _: fn(
+        forge_relational::facade::runtime::RelationalRuntime,
+    ) -> WorthTopologyRuntimeAdapters = WorthTopologyRuntimeAdapters::current_head;
+    let _: fn(
+        forge_relational::facade::runtime::RelationalReadView,
+        SnapshotHandle,
+    ) -> WorthTopologyRuntimeAdapters = WorthTopologyRuntimeAdapters::snapshot_read_only;
+    let _: fn(&WorthTopologyRuntimeAdapters) -> &WorthTopologyRuntimeSupport =
+        WorthTopologyRuntimeAdapters::support;
+    let _: fn(&WorthTopologyRuntimeSupport) -> bool =
+        WorthTopologyRuntimeSupport::query_edit_execution_supported;
     let _: fn(
         &mut forge_query::facade::ForgeQueryWorkspace,
     )
         -> Result<WorthTopologyQueryAssembly, forge_query::facade::ForgeQueryRuntimeError> =
         WorthTopologyQueryAssembly::declare;
-    let _: fn(
-        &WorthTopologyQueryAssembly,
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        &forge_relational::facade::runtime::RelationalReadView,
-        &worth_schema::facade::DerivedTopologyReadBasis,
-    ) -> Result<
-        forge_query::facade::ForgeQueryBatchWriteReceipt,
-        WorthTopologyQueryImportError,
-    > = WorthTopologyQueryAssembly::import_read_view;
     let _: fn(
         &WorthTopologyQueryAssembly,
         &mut forge_query::facade::ForgeQueryWorkspace,
@@ -221,13 +216,6 @@ fn _worth_query_native_topology_surface_contracts() {
         forge_query::facade::ForgeQueryRuntimeError,
     > = declare_worth_topology_equivalence_contract_surface::<serde_json::Value, serde_json::Value>;
     let _: fn(
-        &[forge_query::facade::ForgeQueryEntity],
-        &[forge_query::facade::ForgeQueryEntity],
-    ) -> Result<
-        worth_topo::facade::MaterializedTopologyView,
-        worth_topo::facade::WorthTopologyMaterializationError,
-    > = materialized_topology_from_query_rows;
-    let _: fn(
         &[serde_json::Value],
     ) -> Result<
         worth_topo::facade::InterpretedTopologyView,
@@ -275,7 +263,6 @@ fn worth_topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _m2_read_cert_contract;
     let _ = _m2_commit_cert_contract;
     let _ = _edit_apply_contract;
-    let _ = _edit_apply_and_inspect_contract;
     let _ = _worth_vocab_live_query_declaration_contract;
     let _ = _worth_vocab_computed_query_declaration_contract;
     let _ = _worth_query_native_topology_surface_contracts;

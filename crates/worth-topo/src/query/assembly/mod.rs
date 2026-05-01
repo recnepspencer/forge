@@ -2,22 +2,15 @@
 //!
 //! This module is the Worth-owned workspace seam for:
 //! - declaring the full topology live/computed surface family once
-//! - importing authoritative relational truth through aspect-native query writes
+//! - applying topology intent through canonical Query writes/assertions
 //! - carrying persistent-name truth alongside topology truth
-//! - decoding a retained derived snapshot back into Worth domain outputs
+//! - decoding current-head and snapshot-bound truth into Worth domain outputs
 
 use forge_query::facade::{
-    ForgeQueryAspect, ForgeQueryBatchWriteReceipt,
-    ForgeQueryCollection as ForgeQueryRuntimeCollection, ForgeQueryDerivedViewHandle,
-    ForgeQueryLiveView, ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryWorkspace,
-    ForgeQueryWriteReceipt,
+    ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 use serde_json::Value;
-use worth_schema::facade::{
-    DerivedTopologyReadBasis, WorthEntityKind, WorthNamingEntityKind, WorthNamingRelationKind,
-    WorthRelationKind,
-};
+use worth_schema::facade::DerivedTopologyReadBasis;
 
 use super::{
     declare_worth_persistent_name_live_view, declare_worth_topology_diagnostics_surface,
@@ -25,24 +18,21 @@ use super::{
     declare_worth_topology_interpreted_surface, declare_worth_topology_materialized_surface,
     declare_worth_topology_relation_live_view, declare_worth_topology_validation_surface,
     equivalence_contract_from_diagnostics_rows, interpreted_topology_from_materialized_rows,
-    materialized::topology_relation_dependency_path, materialized_topology_from_query_rows,
     naming_attachment_report_from_query_rows, validation_report_from_query_rows,
-    WorthTopologyQueryMutationEvidence, WorthTopologyQuerySurfaceError,
+    WorthTopologyQuerySurfaceError,
 };
+use crate::diagnostics::build_derived_read_diagnostics;
 use crate::facade::{
     DerivedTopologyValidationReport, InterpretedTopologyView, MaterializedTopologyView,
     WorthDerivedEquivalenceContractReport, WorthDerivedReadDiagnostics,
     WorthNamingAttachmentReport,
 };
+use crate::interpretation::interpret_topology_view;
+use crate::validators::validate_interpreted_topology;
 
 mod authority;
 mod authority_support;
-mod import;
 pub use self::authority::{WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError};
-use self::import::{
-    import_persistent_name_records, import_topology_entity_records,
-    import_topology_relation_records, index_persistent_name_targets,
-};
 
 const ENTITY_SURFACE: &str = "worth.topology.entities";
 const RELATION_SURFACE: &str = "worth.topology.relations";
@@ -73,62 +63,6 @@ pub struct WorthTopologyQuerySnapshot {
     pub validation: DerivedTopologyValidationReport,
     pub diagnostics: WorthDerivedReadDiagnostics,
     pub equivalence_contract: WorthDerivedEquivalenceContractReport,
-}
-
-#[derive(Debug)]
-pub enum WorthTopologyQueryImportError {
-    Runtime(ForgeQueryRuntimeError),
-    UnsupportedEntityKind {
-        entity_id: String,
-        kind_name: String,
-    },
-    UnsupportedRelationKind {
-        relation_id: String,
-        kind_name: String,
-    },
-    MissingEntityMapping {
-        relation_id: String,
-        endpoint: &'static str,
-        entity_id: String,
-    },
-}
-
-impl std::fmt::Display for WorthTopologyQueryImportError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Runtime(error) => write!(f, "query workspace runtime error: {error}"),
-            Self::UnsupportedEntityKind {
-                entity_id,
-                kind_name,
-            } => write!(
-                f,
-                "query import does not support non-Worth entity kind `{kind_name}` on `{entity_id}`"
-            ),
-            Self::UnsupportedRelationKind {
-                relation_id,
-                kind_name,
-            } => write!(
-                f,
-                "query import does not support non-Worth relation kind `{kind_name}` on `{relation_id}`"
-            ),
-            Self::MissingEntityMapping {
-                relation_id,
-                endpoint,
-                entity_id,
-            } => write!(
-                f,
-                "query import is missing imported query identity mapping for relation `{relation_id}` {endpoint} endpoint `{entity_id}`"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for WorthTopologyQueryImportError {}
-
-impl From<ForgeQueryRuntimeError> for WorthTopologyQueryImportError {
-    fn from(value: ForgeQueryRuntimeError) -> Self {
-        Self::Runtime(value)
-    }
 }
 
 impl WorthTopologyQueryAssembly {
@@ -210,49 +144,36 @@ impl WorthTopologyQueryAssembly {
         &self.equivalence_contract
     }
 
-    /// Imports one authoritative read view through aspect-native query writes.
-    ///
-    /// The returned receipt aggregates the sequential import session into one
-    /// inspectable batch artifact, even though later writes depend on the
-    /// identities minted by earlier writes.
-    pub fn import_read_view(
-        &self,
-        workspace: &mut ForgeQueryWorkspace,
-        read_view: &RelationalReadView,
-        read_basis: &DerivedTopologyReadBasis,
-    ) -> Result<ForgeQueryBatchWriteReceipt, WorthTopologyQueryImportError> {
-        let evidence = WorthTopologyQueryMutationEvidence::from_read_basis(read_basis);
-        let (entity_map, mut receipts) =
-            import_topology_entity_records(workspace, read_view.entities(), &evidence)?;
-        let naming_targets = index_persistent_name_targets(read_view.relations())?;
-        receipts.extend(import_persistent_name_records(
-            workspace,
-            read_view.entities(),
-            &entity_map,
-            &naming_targets,
-            &evidence,
-        )?);
-        receipts.extend(import_topology_relation_records(
-            workspace,
-            read_view.relations(),
-            &entity_map,
-            &evidence,
-        )?);
-        ForgeQueryBatchWriteReceipt::from_write_receipts(receipts).map_err(Into::into)
-    }
-
     pub fn snapshot(
         &self,
         workspace: &mut ForgeQueryWorkspace,
     ) -> Result<WorthTopologyQuerySnapshot, WorthTopologyQuerySurfaceError> {
+        workspace
+            .state(&self.materialized)
+            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        workspace
+            .state(&self.interpreted)
+            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        workspace
+            .state(&self.validation)
+            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        workspace
+            .state(&self.diagnostics)
+            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        workspace
+            .state(&self.equivalence_contract)
+            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
         let entity_rows = workspace.read(&self.entities);
-        let relation_rows = workspace.read(&self.relations);
         let persistent_name_rows = workspace.read(&self.persistent_names);
         let naming_attachments =
             naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
-        let materialized = materialized_topology_from_query_rows(&entity_rows, &relation_rows)
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
         let materialized_rows = workspace.materialize(&self.materialized);
+        let materialized: MaterializedTopologyView =
+            serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
+                WorthTopologyQuerySurfaceError::new(format!(
+                    "query-derived `materialized topology` row failed to decode: {error}"
+                ))
+            })?;
         let interpreted_rows = workspace.materialize(&self.interpreted);
         let _validation_rows = workspace.materialize(&self.validation);
         let diagnostics_rows = workspace.materialize(&self.diagnostics);
@@ -286,49 +207,42 @@ impl WorthTopologyQueryAssembly {
             equivalence_contract,
         })
     }
-}
 
-pub fn worth_topology_query_workspace(
-    name: impl Into<String>,
-) -> Result<ForgeQueryWorkspace, ForgeQueryRuntimeError> {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryRuntimeCollection::new(
-                "WorthTopologyEntity",
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("topology.kind", "topology.kind"),
-                    ForgeQueryAspect::new("lineage.provenance", "lineage.provenance"),
-                    ForgeQueryAspect::new("topology.structure", "topology.structure"),
-                    ForgeQueryAspect::new("naming.persistent_name", "naming.persistent_name"),
-                ],
-            ),
-            ForgeQueryRuntimeCollection::new(
-                "WorthTopologyRelation",
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("topology.kind", "topology.kind"),
-                    ForgeQueryAspect::new("lineage.provenance", "lineage.provenance"),
-                    ForgeQueryAspect::new("topology.ownership", "topology.ownership"),
-                    ForgeQueryAspect::new("topology.boundary", "topology.boundary"),
-                    ForgeQueryAspect::new("topology.radial", "topology.radial"),
-                    ForgeQueryAspect::new("topology.source_identity", "topology.source_identity"),
-                    ForgeQueryAspect::new("topology.target_identity", "topology.target_identity"),
-                ],
-            ),
-            ForgeQueryRuntimeCollection::new(
-                "WorthPersistentName",
-                [
-                    ForgeQueryAspect::new("identity.id", "identity.id"),
-                    ForgeQueryAspect::new("topology.kind", "topology.kind"),
-                    ForgeQueryAspect::new("lineage.provenance", "lineage.provenance"),
-                    ForgeQueryAspect::new("naming.persistent_name", "naming.persistent_name"),
-                    ForgeQueryAspect::new("naming.target_identity", "naming.target_identity"),
-                ],
-            ),
-        ])
-        .build()?
-        .workspace(name)
+    pub fn snapshot_for_read_basis(
+        &self,
+        workspace: &mut ForgeQueryWorkspace,
+        read_basis: &DerivedTopologyReadBasis,
+    ) -> Result<WorthTopologyQuerySnapshot, WorthTopologyQuerySurfaceError> {
+        let entity_rows = workspace.read(&self.entities);
+        let relation_rows = workspace.read(&self.relations);
+        let persistent_name_rows = workspace.read(&self.persistent_names);
+        let naming_attachments =
+            naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
+        let materialized = super::materialized::materialized_topology_from_query_rows(
+            &entity_rows,
+            &relation_rows,
+        )
+        .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        let interpreted = interpret_topology_view(&materialized);
+        let validation =
+            validate_interpreted_topology(&materialized, &interpreted).map_err(|error| {
+                WorthTopologyQuerySurfaceError::new(format!(
+                    "query-derived validation refresh failed: {error}"
+                ))
+            })?;
+        let diagnostics =
+            build_derived_read_diagnostics(read_basis, &materialized, &interpreted, &validation);
+        let equivalence_contract = diagnostics.equivalence_contract_report.clone();
+
+        Ok(WorthTopologyQuerySnapshot {
+            naming_attachments,
+            materialized,
+            interpreted,
+            validation,
+            diagnostics,
+            equivalence_contract,
+        })
+    }
 }
 
 #[cfg(test)]

@@ -2,9 +2,9 @@
 mod runtime_invariant_tests {
     use forge_relational::facade::transactions::TransactionCommitError;
     use worth_schema::facade::{
-        seed_minimal_topology, worth_bootstrap_runtime_invariant_plan, RawWorthTopologyIntent,
-        WorthCreateKey, WorthEntityKind, WorthEntityReference, WorthMutationOrigin,
-        WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind, WorthTopologyAuthority,
+        seed_minimal_topology, verify_topology_intent, worth_bootstrap_runtime_invariant_plan,
+        RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
+        WorthMutationOrigin, WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind,
         WorthTopologyAuthorityError, WorthTopologyEntityKind, WorthTopologyMutation,
         WorthTopologyRelationKind,
     };
@@ -72,8 +72,7 @@ mod runtime_invariant_tests {
             WorthMutationOrigin::LocalEdit,
         );
 
-        let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent_traced(intent)
+        let error = verify_topology_intent(&mut runtime, intent)
             .expect_err("missing persistent-name coverage must block commit")
             .into_error();
 
@@ -263,8 +262,7 @@ mod runtime_invariant_tests {
             WorthMutationOrigin::LocalEdit,
         );
 
-        let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent_traced(intent)
+        let error = verify_topology_intent(&mut runtime, intent)
             .expect_err("disconnected wire graph must block commit")
             .into_error();
 
@@ -504,8 +502,7 @@ mod runtime_invariant_tests {
             WorthMutationOrigin::LocalEdit,
         );
 
-        let error = WorthTopologyAuthority::new(&mut runtime)
-            .apply_topology_intent_traced(intent)
+        let error = verify_topology_intent(&mut runtime, intent)
             .expect_err("branch vertex with reused edge identities must block commit")
             .into_error();
 

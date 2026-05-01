@@ -21,18 +21,20 @@ error: cannot construct `ForgeQueryAuthoritativeMutationEvidenceSupport` with st
    |         ------------------------------------------- private field
  8 |         symbolic_target_reference_families: Vec::new(),
    |         ---------------------------------------------- private field
- 9 |         naming_mutation_families: Vec::new(),
+ 9 |         symbolic_aspect_reference_families: Vec::new(),
+   |         ---------------------------------------------- private field
+10 |         naming_mutation_families: Vec::new(),
    |         ------------------------------------ private field
-10 |         continuity_mutation_families: Vec::new(),
+11 |         continuity_mutation_families: Vec::new(),
    |         ---------------------------------------- private field
-11 |         aggregate_evidence_sections: Vec::new(),
+12 |         aggregate_evidence_sections: Vec::new(),
    |         --------------------------------------- private field
-12 |         fail_closed_denial_classes: Vec::new(),
+13 |         fail_closed_denial_classes: Vec::new(),
    |         -------------------------------------- private field
-13 |         support_digest: String::new(),
+14 |         support_digest: String::new(),
    |         ----------------------------- private field
    |
-   = note: ...and other private fields `existing_truth_assertion_modes`, `existing_truth_probe_modes` and `existing_truth_verified_mutation_modes` that were not provided
+   = note: ...and other private fields `existing_truth_assertion_modes`, `existing_truth_probe_modes`, `existing_truth_verified_mutation_modes` and `graph_composition_families` that were not provided
 help: you might have meant to use the `derive` associated function
    |
  4 -     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport {
@@ -40,11 +42,12 @@ help: you might have meant to use the `derive` associated function
  6 -         declared_resolved_target_model: String::new(),
  7 -         existing_truth_binding_families: Vec::new(),
  8 -         symbolic_target_reference_families: Vec::new(),
- 9 -         naming_mutation_families: Vec::new(),
-10 -         continuity_mutation_families: Vec::new(),
-11 -         aggregate_evidence_sections: Vec::new(),
-12 -         fail_closed_denial_classes: Vec::new(),
-13 -         support_digest: String::new(),
-14 -     };
+ 9 -         symbolic_aspect_reference_families: Vec::new(),
+10 -         naming_mutation_families: Vec::new(),
+11 -         continuity_mutation_families: Vec::new(),
+12 -         aggregate_evidence_sections: Vec::new(),
+13 -         fail_closed_denial_classes: Vec::new(),
+14 -         support_digest: String::new(),
+15 -     };
  4 +     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(_);
    |

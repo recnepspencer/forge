@@ -1,26 +1,27 @@
 use forge_relational::facade::history::BranchId;
+use worth_schema::facade::WorthBoundaryFailure;
 use worth_schema::facade::{
-    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
-    RawWorthTopologyIntent, WorthBoundaryFailure, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryComputedDeclarationBuilder, WorthQueryLiveDeclarationBuilder,
-    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker,
-    WorthQueryMutationSupportContract, WorthQuerySchemaBasis, WorthTopologyAuthority,
-    WorthTopologyAuthorityError, WorthTracedTopologyCommit,
+    admit_worth_query_mutation_batch, verify_topology_intent, verify_topology_intent_on_branch,
+    worth_query_mutation_support_contract, RawWorthTopologyIntent, VerifiedTopologyCommit,
+    WorthQueryAspectPath, WorthQueryCollection, WorthQueryComputedDeclarationBuilder,
+    WorthQueryLiveDeclarationBuilder, WorthQueryMutationAdmission,
+    WorthQueryMutationAdmissionBlocker, WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
+    WorthTopologyAuthorityError,
 };
 
 fn _apply_main_contract(
-    authority: &mut WorthTopologyAuthority<'_>,
+    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
     intent: RawWorthTopologyIntent,
-) -> Result<WorthTracedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
-    authority.apply_topology_intent_traced(intent)
+) -> Result<VerifiedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
+    verify_topology_intent(runtime, intent)
 }
 
 fn _apply_branch_contract(
-    authority: &mut WorthTopologyAuthority<'_>,
+    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
     intent: RawWorthTopologyIntent,
     branch_id: BranchId,
-) -> Result<WorthTracedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
-    authority.apply_topology_intent_on_branch_traced(intent, branch_id)
+) -> Result<VerifiedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
+    verify_topology_intent_on_branch(runtime, intent, branch_id)
 }
 
 fn _live_declaration_contract() {
@@ -59,7 +60,7 @@ fn _query_mutation_support_contract(
 }
 
 #[test]
-fn worth_schema_public_authority_and_query_declaration_boundaries_compile() {
+fn worth_schema_public_verification_and_query_declaration_boundaries_compile() {
     let _ = _apply_main_contract;
     let _ = _apply_branch_contract;
     let _ = _live_declaration_contract;

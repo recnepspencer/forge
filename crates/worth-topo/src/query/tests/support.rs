@@ -1,201 +1,31 @@
 use super::*;
+use crate::facade::worth_milestone_one_runtime_builder;
+use crate::query::{
+    worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
+};
+use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
 
-pub(super) fn seed_sheet_disk_topology(
-    workspace: &mut ForgeQueryWorkspace,
-) -> forge_query::facade::ForgeQueryWriteReceipt {
-    let entity_ids = [
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Model.kind_name(),
-            "model-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Body.kind_name(),
-            "body-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Lump.kind_name(),
-            "lump-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Region.kind_name(),
-            "region-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Shell.kind_name(),
-            "shell-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Face.kind_name(),
-            "face-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Loop.kind_name(),
-            "loop-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Wire.kind_name(),
-            "wire-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::HalfEdge.kind_name(),
-            "half-edge-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Edge.kind_name(),
-            "edge-a",
-        ),
-        insert_entity(
-            workspace,
-            WorthTopologyEntityKind::Vertex.kind_name(),
-            "vertex-a",
-        ),
-    ];
-
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::ModelOwnsBody.kind_name(),
-        &entity_ids[0],
-        &entity_ids[1],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::BodyOwnsLump.kind_name(),
-        &entity_ids[1],
-        &entity_ids[2],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::LumpOwnsRegion.kind_name(),
-        &entity_ids[2],
-        &entity_ids[3],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::RegionOwnsShell.kind_name(),
-        &entity_ids[3],
-        &entity_ids[4],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::ShellOwnsFace.kind_name(),
-        &entity_ids[4],
-        &entity_ids[5],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::FaceOuterLoop.kind_name(),
-        &entity_ids[5],
-        &entity_ids[6],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::LoopOwnsHalfEdge.kind_name(),
-        &entity_ids[6],
-        &entity_ids[8],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
-        &entity_ids[7],
-        &entity_ids[8],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgeNext.kind_name(),
-        &entity_ids[8],
-        &entity_ids[8],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgePrev.kind_name(),
-        &entity_ids[8],
-        &entity_ids[8],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgeRadialNext.kind_name(),
-        &entity_ids[8],
-        &entity_ids[8],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgeUsesEdge.kind_name(),
-        &entity_ids[8],
-        &entity_ids[9],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgeStartsAtVertex.kind_name(),
-        &entity_ids[8],
-        &entity_ids[10],
-    );
-    insert_relation(
-        workspace,
-        WorthTopologyRelationKind::HalfEdgeEndsAtVertex.kind_name(),
-        &entity_ids[8],
-        &entity_ids[10],
+pub(super) fn seeded_sheet_disk_workspace(
+    stem: &str,
+) -> (
+    ForgeQueryWorkspace,
+    WorthTopologyQueryAssembly,
+    worth_schema::facade::DerivedTopologyReadBasis,
+) {
+    let mut runtime = worth_milestone_one_runtime_builder()
+        .expect("worth milestone one runtime builder")
+        .build();
+    let verified = seed_milestone_one_primitive(
+        &mut runtime,
+        stem,
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
-}
-
-fn insert_entity(workspace: &mut ForgeQueryWorkspace, kind: &str, structure: &str) -> String {
-    workspace
-        .insert("WorthTopologyEntity", |builder| {
-            builder
-                .metadata(
-                    WorthTopologyQueryMutationEvidence::metadata_key(),
-                    default_query_mutation_evidence([
-                        "topology.structure".to_string(),
-                        "naming.persistent_name".to_string(),
-                    ]),
-                )
-                .aspect("topology.kind", kind)
-                .aspect("topology.structure", structure)
-                .aspect("naming.persistent_name", structure)
-        })
-        .expect("entity insert should succeed")
-        .deltas()[0]
-        .entity_identity
-        .clone()
-}
-
-fn insert_relation(
-    workspace: &mut ForgeQueryWorkspace,
-    kind: &str,
-    source: &str,
-    target: &str,
-) -> forge_query::facade::ForgeQueryWriteReceipt {
-    let worth_kind = parse_relation_kind(kind).expect("test relation kind must parse");
-    let dependency_path =
-        topology_relation_dependency_path(worth_kind).map(|path| path.to_string());
-    workspace
-        .insert("WorthTopologyRelation", |builder| {
-            let builder = builder
-                .metadata(
-                    WorthTopologyQueryMutationEvidence::metadata_key(),
-                    default_query_mutation_evidence(
-                        dependency_path.clone().into_iter().collect::<Vec<_>>(),
-                    ),
-                )
-                .aspect("topology.kind", kind)
-                .aspect("topology.source_identity", source)
-                .aspect("topology.target_identity", target);
-            if let Some(path) = topology_relation_dependency_path(worth_kind) {
-                builder.aspect(path, kind)
-            } else {
-                builder
-            }
-        })
-        .expect("relation insert should succeed")
+    .expect("verified primitive");
+    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace = worth_topology_runtime(adapters, stem).expect("workspace should build");
+    let assembly =
+        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+    (workspace, assembly, verified.read_basis)
 }
 
 pub(super) fn default_query_mutation_evidence(

@@ -1,17 +1,55 @@
-use serde_json::Value;
 use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
 use worth_schema::facade::{
     RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
     WorthMutationOrigin, WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
 };
 
-use super::import::import_topology_relation_records;
 use super::*;
-use crate::facade::{certify_milestone_one_read_view_traced, worth_milestone_one_runtime_builder};
-use crate::reader::WorthTopologyReader;
+use crate::facade::{certify_milestone_one_read_basis_traced, worth_milestone_one_runtime_builder};
+use crate::query::{worth_topology_runtime, WorthTopologyRuntimeAdapters};
+use crate::read_stage::{open_topology_read_view, stage_topology_read_from_view};
+
+fn current_head_workspace(
+    runtime: forge_relational::facade::runtime::RelationalRuntime,
+    name: &str,
+) -> (
+    forge_query::facade::ForgeQueryWorkspace,
+    WorthTopologyQueryAssembly,
+) {
+    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace =
+        worth_topology_runtime(adapters, name).expect("query workspace should build");
+    let assembly =
+        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+    (workspace, assembly)
+}
+
+fn sorted_naming_attachments(
+    report: &crate::facade::WorthNamingAttachmentReport,
+) -> Vec<(String, String, Vec<String>)> {
+    let mut rows = report
+        .attachments
+        .iter()
+        .map(|row| {
+            let mut attached_ids = row
+                .attached_persistent_name_ids
+                .iter()
+                .map(|id| format!("{id:?}"))
+                .collect::<Vec<_>>();
+            attached_ids.sort();
+            (
+                format!("{:?}", row.topology_entity_id),
+                row.topology_kind_name.clone(),
+                attached_ids,
+            )
+        })
+        .collect::<Vec<_>>();
+    rows.sort();
+    rows
+}
 
 #[test]
-fn query_native_assembly_imports_real_read_view_and_matches_reader_outputs() {
+fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     let mut runtime = worth_milestone_one_runtime_builder()
         .expect("worth milestone one runtime builder")
         .build();
@@ -21,59 +59,42 @@ fn query_native_assembly_imports_real_read_view_and_matches_reader_outputs() {
         &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
-    let reader = WorthTopologyReader::new(&runtime);
-    let read_view = reader
-        .read_view(&verified.read_basis)
-        .expect("read view should open");
-
-    let mut workspace = worth_topology_query_workspace("worth-topology-query-assembly")
-        .expect("query workspace should build");
-    let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
-    let receipt = assembly
-        .import_read_view(&mut workspace, &read_view, &verified.read_basis)
-        .expect("read view should import into query truth");
+    let read_view =
+        open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open");
+    let (mut workspace, assembly) =
+        current_head_workspace(runtime, "worth-topology-query-assembly");
     let snapshot = assembly
-        .snapshot(&mut workspace)
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
         .expect("query snapshot should decode");
     let persistent_name_rows = workspace.read(assembly.persistent_names());
-    let staged = reader
-        .stage(&verified.read_basis)
-        .expect("reader should stage");
+    let staged = stage_topology_read_from_view(&read_view).expect("read stage should succeed");
+
+    let mut certification_runtime = worth_milestone_one_runtime_builder()
+        .expect("worth milestone one runtime builder")
+        .build();
+    let _verified = seed_milestone_one_primitive(
+        &mut certification_runtime,
+        "query-native-assembly-sheet-disk",
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("verified primitive");
+    let certified_runtime_report = certify_milestone_one_read_basis_traced(
+        &mut certification_runtime,
+        verified.read_basis.clone(),
+    )
+    .expect("milestone one certification should succeed")
+    .into_primary_result();
 
     assert_eq!(
-        receipt.affected_live_view_ids(),
-        &[
-            "worth.naming.persistent_names".to_string(),
-            "worth.topology.entities".to_string(),
-            "worth.topology.relations".to_string(),
-        ]
+        sorted_naming_attachments(&snapshot.naming_attachments),
+        sorted_naming_attachments(&certified_runtime_report.naming_attachment_report)
     );
-    assert!(receipt.write_count() > 1);
-    assert_eq!(
-        snapshot.naming_attachments,
-        certify_milestone_one_read_view_traced(&read_view, verified.read_basis.clone())
-            .expect("milestone one certification should succeed")
-            .into_primary_result()
-            .naming_attachment_report
-    );
-    let expected_evidence = serde_json::to_value(
-        WorthTopologyQueryMutationEvidence::from_read_basis(&verified.read_basis),
-    )
-    .expect("query mutation evidence should serialize");
-    assert!(receipt.write_receipts().iter().all(|write| {
-        write
-            .mutation_metadata()
-            .get(WorthTopologyQueryMutationEvidence::metadata_key())
-            == Some(&expected_evidence)
-    }));
     assert!(persistent_name_rows.iter().all(|row| {
         row.payload
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .is_some()
     }));
-    assert_eq!(receipt.write_count(), receipt.write_receipts().len());
     assert_eq!(
         snapshot.materialized.topology(),
         staged.materialized().topology()
@@ -187,39 +208,7 @@ fn query_native_assembly_imports_real_read_view_and_matches_reader_outputs() {
 }
 
 #[test]
-fn query_native_assembly_rejects_relation_import_when_endpoint_mapping_is_missing() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
-        .build();
-    let verified = seed_milestone_one_primitive(
-        &mut runtime,
-        "query-native-assembly-missing-endpoint",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
-    )
-    .expect("verified primitive");
-    let reader = WorthTopologyReader::new(&runtime);
-    let read_view = reader
-        .read_view(&verified.read_basis)
-        .expect("read view should open");
-    let evidence = WorthTopologyQueryMutationEvidence::from_read_basis(&verified.read_basis);
-    let mut workspace = worth_topology_query_workspace("worth-topology-query-import-denial")
-        .expect("query workspace should build");
-
-    let error = import_topology_relation_records(
-        &mut workspace,
-        &[read_view.relations()[0].clone()],
-        &std::collections::BTreeMap::new(),
-        &evidence,
-    )
-    .expect_err("relation import should fail closed when entity identities were not imported");
-
-    assert!(error
-        .to_string()
-        .contains("missing imported query identity mapping"));
-}
-
-#[test]
-fn query_native_assembly_applies_created_entity_refs_through_ordered_query_receipts() {
+fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks_invariants() {
     let mut runtime = worth_milestone_one_runtime_builder()
         .expect("worth milestone one runtime builder")
         .build();
@@ -229,22 +218,12 @@ fn query_native_assembly_applies_created_entity_refs_through_ordered_query_recei
         &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
-    let reader = WorthTopologyReader::new(&runtime);
-    let read_view = reader
-        .read_view(&verified.read_basis)
-        .expect("read view should open");
-
-    let mut workspace = worth_topology_query_workspace("worth-topology-query-apply-created-refs")
-        .expect("query workspace should build");
-    let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
-    assembly
-        .import_read_view(&mut workspace, &read_view, &verified.read_basis)
-        .expect("read view should import into query truth");
+    let (mut workspace, assembly) =
+        current_head_workspace(runtime, "worth-topology-query-apply-created-refs");
     let entity_count_before = workspace.read(assembly.entities()).len();
     let relation_count_before = workspace.read(assembly.relations()).len();
 
-    let applied = assembly
+    let error = assembly
         .apply_raw_intent(
             &mut workspace,
             RawWorthTopologyIntent::new(
@@ -274,44 +253,26 @@ fn query_native_assembly_applies_created_entity_refs_through_ordered_query_recei
             ),
             &verified.read_basis,
         )
-        .expect("ordered create refs should lower through query receipts");
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
-    let created_entity_identities = applied.receipt.write_receipts()[0..2]
-        .iter()
-        .map(|receipt| receipt.deltas()[0].entity_identity.clone())
-        .collect::<Vec<_>>();
-    let created_relation_identity = applied.receipt.write_receipts()[2].deltas()[0]
-        .entity_identity
-        .clone();
-    let created_relation_row = relation_rows
-        .iter()
-        .find(|row| row.identity == created_relation_identity)
-        .expect("created relation row should exist");
+        .expect_err("partial created-ref subgraph should fail closed on runtime invariants");
 
-    assert_eq!(applied.receipt.write_count(), 3);
-    assert!(applied
-        .mutation_evidence
-        .touched_aspect_paths
-        .contains(&"topology.boundary".to_string()));
-    assert_eq!(entity_rows.len(), entity_count_before + 2);
-    assert_eq!(relation_rows.len(), relation_count_before + 1);
     assert_eq!(
-        created_relation_row
-            .payload
-            .get("topology")
-            .and_then(|value| value.get("source_identity"))
-            .and_then(Value::as_str),
-        Some(created_entity_identities[0].as_str())
+        workspace.read(assembly.entities()).len(),
+        entity_count_before
     );
     assert_eq!(
-        created_relation_row
-            .payload
-            .get("topology")
-            .and_then(|value| value.get("target_identity"))
-            .and_then(Value::as_str),
-        Some(created_entity_identities[1].as_str())
+        workspace.read(assembly.relations()).len(),
+        relation_count_before
     );
+    match error {
+        super::authority::WorthTopologyQueryApplyError::Query(
+            forge_query::facade::ForgeQueryRuntimeError::Workspace(workspace_error),
+        ) => {
+            assert!(workspace_error
+                .to_string()
+                .contains("worth.m1.topology.ownership_surface"));
+        }
+        other => panic!("expected invariant-backed workspace error, got {other:?}"),
+    }
 }
 
 #[test]
@@ -325,19 +286,14 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
         &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
-    let reader = WorthTopologyReader::new(&runtime);
-    let read_view = reader
-        .read_view(&verified.read_basis)
-        .expect("read view should open");
-    let relation_id = read_view.relations()[0].relation_id;
-
-    let mut workspace = worth_topology_query_workspace("worth-topology-query-apply-delete")
-        .expect("query workspace should build");
-    let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
-    assembly
-        .import_read_view(&mut workspace, &read_view, &verified.read_basis)
-        .expect("read view should import into query truth");
+    let relation_id = runtime
+        .read_truth()
+        .read_snapshot(verified.read_basis.snapshot())
+        .expect("read view should open")
+        .relations()[0]
+        .relation_id;
+    let (mut workspace, assembly) =
+        current_head_workspace(runtime, "worth-topology-query-apply-delete");
     let relation_count_before = workspace.read(assembly.relations()).len();
 
     let applied = assembly

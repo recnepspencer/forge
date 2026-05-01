@@ -24,9 +24,9 @@ pub use error::WorthMilestoneOneCertificationError;
 pub use facade::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
     certify_milestone_one_default_primitive_corpus, certify_milestone_one_primitive_corpus,
-    certify_milestone_one_primitive_scenarios, certify_milestone_one_read_view_traced,
+    certify_milestone_one_primitive_scenarios, certify_milestone_one_read_basis_traced,
     certify_milestone_two_closeout, certify_milestone_two_default_derived_corpus,
-    certify_milestone_two_read_view_traced, certify_milestone_two_verified_topology_commit_traced,
+    certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
     certify_verified_topology_commit_traced,
 };
 pub use milestone_two::WorthTracedMilestoneTwoDerivedReadReport;

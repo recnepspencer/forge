@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `import_read_view` found for struct `WorthTopologyQueryAssembly` in the current scope
+ --> tests/compile_fail/public_query_import_not_exported.rs:4:41
+  |
+4 |     let _ = WorthTopologyQueryAssembly::import_read_view;
+  |                                         ^^^^^^^^^^^^^^^^ function or associated item not found in `WorthTopologyQueryAssembly`

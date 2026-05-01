@@ -1,6 +1,5 @@
 use crate::materialization::WorthTopologyMaterializationError;
-use crate::query::{WorthTopologyQueryImportError, WorthTopologyQuerySurfaceError};
-use crate::reader::WorthTopologyReadError;
+use crate::query::WorthTopologyQuerySurfaceError;
 use crate::validators::WorthTopologyValidationError;
 use worth_schema::facade::WorthMilestoneOnePrimitiveAuthoringError;
 
@@ -39,25 +38,9 @@ impl From<WorthTopologyValidationError> for WorthMilestoneOneCertificationError 
     }
 }
 
-impl From<WorthTopologyReadError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthTopologyReadError) -> Self {
-        match value {
-            WorthTopologyReadError::ReadView(error) => Self::ReadView(error),
-            WorthTopologyReadError::Materialization(error) => Self::Materialization(error),
-            WorthTopologyReadError::Validation(error) => Self::Validation(error),
-        }
-    }
-}
-
 impl From<WorthMilestoneOnePrimitiveAuthoringError> for WorthMilestoneOneCertificationError {
     fn from(value: WorthMilestoneOnePrimitiveAuthoringError) -> Self {
         Self::Authoring(value)
-    }
-}
-
-impl From<WorthTopologyQueryImportError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthTopologyQueryImportError) -> Self {
-        Self::Query(value.to_string())
     }
 }
 

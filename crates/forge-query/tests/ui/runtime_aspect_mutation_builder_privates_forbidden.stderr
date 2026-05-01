@@ -10,7 +10,7 @@ error: cannot construct `ForgeQueryAspectMutationBuilder` with struct literal sy
 8 |         error: None,
   |         ----------- private field
   |
-  = note: ...and other private fields `metadata`, `naming_intent` and `continuity_intent` that were not provided
+  = note: ...and other private fields `symbolic_aspect_references`, `metadata`, `naming_intent` and `continuity_intent` that were not provided
 help: you might have meant to use the `new` associated function
   |
 5 -     let _builder = ForgeQueryAspectMutationBuilder {

@@ -57,6 +57,7 @@ mod mutation_compatibility;
 mod preview;
 mod public_api;
 mod runtime_api_contract;
+mod runtime_batch_writes;
 mod runtime_declarations;
 mod runtime_helpers;
 mod runtime_inspection;
@@ -70,6 +71,7 @@ mod support_matrix;
 mod surface;
 mod workspace;
 mod workspace_declaration;
+mod workspace_graph;
 mod workspace_queries;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
@@ -157,6 +159,7 @@ pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
 pub(crate) use mutation::ForgeQueryVerifiedExistingTruthAssertion;
 use mutation::{admit_continuity_intent, admit_naming_intent};
 pub(crate) use mutation::{aspect_values_to_payload, command_declared_aspect_value_digest};
+#[allow(unused_imports)]
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,
     ForgeQueryAspectMutationOperationKind, ForgeQueryAspectValue,
@@ -170,9 +173,12 @@ pub use mutation::{
     ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial,
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
     ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationBatchBuilder,
-    ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
+    ForgeQueryGraphEntitySymbol, ForgeQueryGraphRelationMutationBuilder,
+    ForgeQueryGraphRelationSymbol, ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata,
+    ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
     ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectReferenceFamily,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
     ForgeQuerySymbolicTargetReferenceDenialKind, ForgeQuerySymbolicTargetReferenceFamily,
 };
@@ -201,10 +207,11 @@ use runtime_helpers::{
     attach_naming_mutation_to_receipt, attach_symbolic_target_reference_to_receipt,
     classify_receipt_mutation_summary, combined_batch_mutation_receipt, live_subscription_error,
     record_same_batch_symbolic_target, resolve_same_batch_symbolic_target,
-    runtime_active_lifecycle_budget, runtime_bridge_lowering_budget,
-    runtime_consumer_attachment_budget, runtime_family_budget, runtime_slice_budget,
-    runtime_subscription_admission_budget, runtime_subscription_budget_policy,
-    subscription_dimensions_for_request, synthetic_existing_assertion_receipt,
+    resolve_symbolic_aspect_references, runtime_active_lifecycle_budget,
+    runtime_bridge_lowering_budget, runtime_consumer_attachment_budget, runtime_family_budget,
+    runtime_slice_budget, runtime_subscription_admission_budget,
+    runtime_subscription_budget_policy, subscription_dimensions_for_request,
+    synthetic_existing_assertion_receipt,
 };
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use support::{

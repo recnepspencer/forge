@@ -16,10 +16,7 @@ pub use derived_invalidation::{
     worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget,
     WorthDerivedTruthSurfaceKind, WorthTruthToDerivedInvalidationDeclaration,
 };
-pub use gateway::{
-    VerifiedTopologyCommit, WorthTopologyAuthority, WorthTopologyAuthorityError,
-    WorthTracedTopologyCommit,
-};
+pub use gateway::{VerifiedTopologyCommit, WorthTopologyAuthority, WorthTopologyAuthorityError};
 pub use geometry_binding::{
     WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind, WorthSurfaceBindingKind,
     WorthSurfaceRelationKind, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,

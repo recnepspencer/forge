@@ -51,6 +51,9 @@ jobs:
       - name: Signal runtime guards
         run: bash scripts/ci/check_signal_runtime_guards.sh
 
+      - name: Workspace Rust line caps
+        run: bash scripts/ci/check_workspace_rust_line_caps.sh
+
       - name: Build workspace
         run: cargo build --workspace
 

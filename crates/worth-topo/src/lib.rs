@@ -17,8 +17,10 @@ mod interpretation;
 mod materialization;
 mod parity;
 mod query;
-mod reader;
 mod runtime_invariants;
 mod validators;
 
 pub mod facade;
+
+#[cfg(test)]
+mod read_stage;

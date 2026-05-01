@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::runtime::RelationalRuntime;
+use worth_schema::facade::WorthBoundaryFailure;
 
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
 use crate::certification::core::{
@@ -64,21 +65,15 @@ where
                 "worth milestone one closeout failed to seed bootstrap truth: {error:?}"
             ))
         })?;
-    let baseline_read = baseline_runtime
-        .read_truth()
-        .read_snapshot(&seeded.snapshot)
-        .ok_or_else(|| {
-            WorthMilestoneOneCertificationError::ReadView(format!(
-                "worth milestone one closeout could not open seeded snapshot {:?}",
-                seeded.snapshot
-            ))
-        })?;
-    let seeded_bootstrap = WorthMilestoneOneCertificationHarness::certify_read_view_with_batch(
-        &baseline_read,
-        seeded.read_basis,
-        Some(&seeded.persisted_truth.batch),
-        1,
-    )?;
+    let seeded_bootstrap =
+        WorthMilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
+            &mut baseline_runtime,
+            seeded.read_basis,
+            Some(&seeded.persisted_truth.batch),
+            1,
+        )
+        .map_err(WorthBoundaryFailure::into_error)?
+        .into_primary_result();
     let primitive_corpus = certify_milestone_one_default_primitive_corpus_impl(
         &mut runtime_factory,
         &format!("{stem}.corpus"),

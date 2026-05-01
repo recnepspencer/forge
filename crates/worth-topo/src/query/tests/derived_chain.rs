@@ -1,43 +1,34 @@
-use super::support::{default_query_mutation_evidence, seed_sheet_disk_topology};
+use super::support::{default_query_mutation_evidence, seeded_sheet_disk_workspace};
 use super::*;
 
 #[test]
 fn query_native_derived_chain_materializes_interpretation_and_validation() {
-    let mut workspace = worth_topology_query_workspace("worth-query-derived-chain")
-        .expect("query workspace should build");
-    let entities =
-        declare_worth_topology_entity_live_view::<Value>(&mut workspace, "worth.topology.entities")
-            .expect("entity live view should declare");
-    let relations = declare_worth_topology_relation_live_view::<Value>(
-        &mut workspace,
-        "worth.topology.relations",
-    )
-    .expect("relation live view should declare");
-    let materialized = declare_worth_topology_materialized_surface::<Value, _, _>(
-        &mut workspace,
-        MATERIALIZED_TOPOLOGY_SURFACE,
-        &entities,
-        &relations,
-    )
-    .expect("materialized topology computed surface should declare");
-    let interpreted = declare_worth_topology_interpreted_surface::<Value, _>(
-        &mut workspace,
-        INTERPRETED_TOPOLOGY_SURFACE,
-        &materialized,
-    )
-    .expect("interpreted topology computed surface should declare");
-    let validation = declare_worth_topology_validation_surface::<Value, _, _>(
-        &mut workspace,
-        VALIDATION_TOPOLOGY_SURFACE,
-        &materialized,
-        &interpreted,
-    )
-    .expect("validation topology computed surface should declare");
+    let (mut workspace, assembly, _) = seeded_sheet_disk_workspace("worth-query-derived-chain");
 
-    let last_receipt = seed_sheet_disk_topology(&mut workspace);
-    let materialized_rows = workspace.materialize(&materialized);
-    let interpreted_rows = workspace.materialize(&interpreted);
-    let validation_rows = workspace.materialize(&validation);
+    let last_receipt = workspace
+        .insert("WorthTopologyEntity", |builder| {
+            builder
+                .metadata(
+                    WorthTopologyQueryMutationEvidence::metadata_key(),
+                    default_query_mutation_evidence([
+                        "topology.structure".to_string(),
+                        "naming.persistent_name".to_string(),
+                    ]),
+                )
+                .aspect("topology.kind", WorthTopologyEntityKind::Vertex.kind_name())
+                .aspect(
+                    "topology.structure",
+                    "worth-query-derived-chain.extra-vertex",
+                )
+                .aspect(
+                    "naming.persistent_name",
+                    "worth-query-derived-chain.extra-vertex",
+                )
+        })
+        .expect("entity insert should succeed");
+    let materialized_rows = workspace.materialize(assembly.materialized());
+    let interpreted_rows = workspace.materialize(assembly.interpreted());
+    let validation_rows = workspace.materialize(assembly.validation());
 
     assert!(last_receipt
         .affected_derived_view_ids()
@@ -48,7 +39,7 @@ fn query_native_derived_chain_materializes_interpretation_and_validation() {
     assert!(last_receipt
         .affected_derived_view_ids()
         .contains(&VALIDATION_TOPOLOGY_SURFACE.to_string()));
-    assert_eq!(last_receipt.considered_computed_view_count(), 3);
+    assert_eq!(last_receipt.considered_computed_view_count(), 5);
 
     let interpreted_view: InterpretedTopologyView =
         serde_json::from_value(interpreted_rows[0].clone()).expect("interpreted topology row");
@@ -70,12 +61,29 @@ fn query_native_derived_chain_materializes_interpretation_and_validation() {
 
 #[test]
 fn query_native_derived_chain_exposes_query_state_and_inspection() {
-    let mut workspace = worth_topology_query_workspace("worth-query-derived-inspection")
-        .expect("query workspace should build");
-    let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
-
-    let receipt = seed_sheet_disk_topology(&mut workspace);
+    let (mut workspace, assembly, _) =
+        seeded_sheet_disk_workspace("worth-query-derived-inspection");
+    let receipt = workspace
+        .insert("WorthTopologyEntity", |builder| {
+            builder
+                .metadata(
+                    WorthTopologyQueryMutationEvidence::metadata_key(),
+                    default_query_mutation_evidence([
+                        "topology.structure".to_string(),
+                        "naming.persistent_name".to_string(),
+                    ]),
+                )
+                .aspect("topology.kind", WorthTopologyEntityKind::Vertex.kind_name())
+                .aspect(
+                    "topology.structure",
+                    "worth-query-derived-inspection.extra-vertex",
+                )
+                .aspect(
+                    "naming.persistent_name",
+                    "worth-query-derived-inspection.extra-vertex",
+                )
+        })
+        .expect("entity insert should succeed");
     let validation_state = workspace
         .state(assembly.validation())
         .expect("validation state should reflect retained derived posture");
@@ -162,7 +170,7 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
             assert_eq!(inspection.commit_identity(), receipt.commit_identity());
             assert_eq!(
                 inspection.declared_collection(),
-                Some("WorthTopologyRelation")
+                Some("WorthTopologyEntity")
             );
             assert!(!inspection.live_patch_artifacts().is_empty());
             assert!(!inspection.runtime_evidence().evidence().is_empty());
@@ -172,7 +180,8 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
                     .get(WorthTopologyQueryMutationEvidence::metadata_key())
                     .expect("worth topology mutation metadata should retain"),
                 &serde_json::to_value(default_query_mutation_evidence([
-                    "topology.boundary".to_string()
+                    "topology.structure".to_string(),
+                    "naming.persistent_name".to_string(),
                 ]))
                 .expect("query mutation evidence should serialize")
             );
@@ -182,7 +191,10 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
 
     assert_eq!(
         receipt.affected_live_view_ids(),
-        &["worth.topology.relations".to_string()]
+        &[
+            "worth.naming.persistent_names".to_string(),
+            "worth.topology.entities".to_string(),
+        ]
     );
     assert_eq!(
         receipt.affected_derived_view_ids(),

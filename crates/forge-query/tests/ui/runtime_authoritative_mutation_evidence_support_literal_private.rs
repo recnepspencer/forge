@@ -6,6 +6,7 @@ fn main() {
         declared_resolved_target_model: String::new(),
         existing_truth_binding_families: Vec::new(),
         symbolic_target_reference_families: Vec::new(),
+        symbolic_aspect_reference_families: Vec::new(),
         naming_mutation_families: Vec::new(),
         continuity_mutation_families: Vec::new(),
         aggregate_evidence_sections: Vec::new(),

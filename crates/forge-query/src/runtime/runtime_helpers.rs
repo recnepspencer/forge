@@ -93,6 +93,7 @@ pub(super) fn synthetic_existing_assertion_receipt(
 pub(super) fn record_same_batch_symbolic_target(
     symbolic_targets: &mut BTreeMap<String, (String, Option<String>)>,
     reference: Option<&ForgeQuerySymbolicTargetReference>,
+    declared_collection: Option<&str>,
     receipt: &ForgeQueryMutationReceipt,
 ) {
     if receipt
@@ -105,8 +106,24 @@ pub(super) fn record_same_batch_symbolic_target(
     let Some(reference) = reference else {
         return;
     };
-    let (_, target_collection, target_entity_identity) = classify_receipt_mutation_summary(receipt);
-    let Some(target_entity_identity) = target_entity_identity else {
+    let resolved_target = declared_collection
+        .and_then(|collection| {
+            let mut matches = receipt
+                .deltas
+                .iter()
+                .filter(|delta| {
+                    delta.kind == ForgeQueryMutationKind::Created && delta.collection == collection
+                })
+                .map(|delta| (delta.entity_identity.clone(), Some(collection.to_string())))
+                .collect::<Vec<_>>();
+            (matches.len() == 1).then(|| matches.remove(0))
+        })
+        .or_else(|| {
+            let (_, target_collection, target_entity_identity) =
+                classify_receipt_mutation_summary(receipt);
+            target_entity_identity.map(|identity| (identity, target_collection))
+        });
+    let Some((target_entity_identity, target_collection)) = resolved_target else {
         return;
     };
     symbolic_targets.insert(
@@ -152,6 +169,22 @@ pub(super) fn resolve_same_batch_symbolic_target(
         resolved_entity_identity.clone(),
         resolved_collection.clone(),
     ))
+}
+
+pub(super) fn resolve_symbolic_aspect_references(
+    symbolic_targets: &BTreeMap<String, (String, Option<String>)>,
+    mut aspects: Vec<ForgeQueryAspectValue>,
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryRuntimeError> {
+    for reference in symbolic_aspect_references {
+        let (resolved_entity_identity, _) =
+            resolve_same_batch_symbolic_target(symbolic_targets, reference.reference())?;
+        aspects.push(ForgeQueryAspectValue::new_set(
+            reference.aspect_path().to_string(),
+            resolved_entity_identity,
+        )?);
+    }
+    Ok(aspects)
 }
 
 pub(super) fn combined_batch_mutation_receipt(

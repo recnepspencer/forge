@@ -6,7 +6,7 @@ use crate::runtime::mutation::{
 };
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding,
-    ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,6 +21,7 @@ pub enum ForgeQueryWriteCommand {
     InsertAspects {
         collection: String,
         aspects: Vec<ForgeQueryAspectValue>,
+        symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
@@ -285,6 +286,29 @@ impl ForgeQueryWriteCommand {
             | Self::DeleteExistingAspects { .. }
             | Self::DeleteSymbolicAspects { .. }
             | Self::Delete { .. } => None,
+        }
+    }
+
+    #[allow(deprecated)]
+    pub(crate) fn symbolic_aspect_references(&self) -> &[ForgeQuerySymbolicAspectReference] {
+        match self {
+            Self::InsertAspects {
+                symbolic_aspect_references,
+                ..
+            } => symbolic_aspect_references,
+            Self::Insert { .. }
+            | Self::UpdateAspect { .. }
+            | Self::UpdateAspects { .. }
+            | Self::UpdateExistingAspects { .. }
+            | Self::VerifyThenUpdateExistingAspects { .. }
+            | Self::VerifyThenDeleteExistingAspects { .. }
+            | Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. }
+            | Self::UpdateSymbolicAspects { .. }
+            | Self::DeleteAspects { .. }
+            | Self::DeleteExistingAspects { .. }
+            | Self::DeleteSymbolicAspects { .. }
+            | Self::Delete { .. } => &[],
         }
     }
 }

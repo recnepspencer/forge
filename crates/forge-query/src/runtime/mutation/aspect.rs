@@ -7,7 +7,7 @@ use super::ForgeQueryMutationMetadata;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::{
     ForgeQueryContinuityMutationIntent, ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError,
-    ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference, ForgeQueryWriteCommand,
 };
 
 #[path = "aspect_builder_helpers.rs"]
@@ -15,7 +15,7 @@ mod aspect_builder_helpers;
 #[path = "aspect_existing_truth.rs"]
 mod aspect_existing_truth;
 
-use aspect_builder_helpers::finish_aspects;
+use aspect_builder_helpers::{finish_aspects, reject_symbolic_aspect_references};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryAspectMutationOperationKind {
@@ -142,6 +142,7 @@ impl ForgeQueryAspectValue {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgeQueryAspectMutationBuilder {
     aspects: Vec<ForgeQueryAspectValue>,
+    symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
     seen_aspects: BTreeSet<String>,
     metadata: ForgeQueryMutationMetadata,
     naming_intent: Option<ForgeQueryNamingMutationIntent>,
@@ -169,6 +170,29 @@ impl ForgeQueryAspectMutationBuilder {
                     self.aspects.push(aspect);
                 }
             }
+            Err(error) => self.error = Some(error.to_string()),
+        }
+        self
+    }
+
+    pub fn symbolic_entity_identity(
+        mut self,
+        aspect_path: impl Into<String>,
+        reference: ForgeQuerySymbolicTargetReference,
+    ) -> Self {
+        if self.error.is_some() {
+            return self;
+        }
+        let aspect_path = aspect_path.into();
+        if !self.seen_aspects.insert(aspect_path.clone()) {
+            self.error = Some(format!(
+                "aspect `{aspect_path}` may only be declared once per mutation"
+            ));
+            return self;
+        }
+        match ForgeQuerySymbolicAspectReference::same_batch_entity_identity(aspect_path, reference)
+        {
+            Ok(reference) => self.symbolic_aspect_references.push(reference),
             Err(error) => self.error = Some(error.to_string()),
         }
         self
@@ -257,6 +281,7 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
@@ -276,6 +301,7 @@ impl ForgeQueryAspectMutationBuilder {
             naming_intent,
             continuity_intent,
             symbolic_target_reference,
+            symbolic_aspect_references,
         })
     }
 
@@ -285,12 +311,14 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(&symbolic_aspect_references, "update-family authoring")?;
         let entity_identity = entity_identity.into();
         if entity_identity.trim().is_empty() {
             return Err(ForgeQueryRuntimeError::Workspace(
@@ -312,12 +340,17 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(
+            &symbolic_aspect_references,
+            "existing-target update-family authoring",
+        )?;
         Ok(ForgeQueryWriteCommand::UpdateExistingAspects {
             binding,
             aspects: finish_aspects(aspects, error)?,
@@ -332,12 +365,17 @@ impl ForgeQueryAspectMutationBuilder {
     ) -> Result<ForgeQueryWriteCommand, ForgeQueryRuntimeError> {
         let ForgeQueryAspectMutationBuilder {
             aspects,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,
             error,
             ..
         } = self;
+        reject_symbolic_aspect_references(
+            &symbolic_aspect_references,
+            "symbolic-target update-family authoring",
+        )?;
         Ok(ForgeQueryWriteCommand::UpdateSymbolicAspects {
             reference,
             aspects: finish_aspects(aspects, error)?,

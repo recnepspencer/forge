@@ -4,6 +4,7 @@ mod batch;
 mod binding;
 mod continuity;
 mod delete;
+mod graph_composition;
 mod lowering;
 mod metadata;
 mod naming;
@@ -22,6 +23,7 @@ pub use binding::{
     ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthBindingDenialKind,
     ForgeQueryExistingTruthBindingFamily, ForgeQueryExistingTruthTargetBinding,
+    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectReferenceFamily,
     ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
     ForgeQuerySymbolicTargetReferenceDenialKind, ForgeQuerySymbolicTargetReferenceFamily,
 };
@@ -32,6 +34,10 @@ pub use continuity::{
     ForgeQueryContinuityMutationOutcomeClass,
 };
 pub use delete::ForgeQueryDeleteMutationBuilder;
+pub use graph_composition::{
+    ForgeQueryGraphCompositionBuilder, ForgeQueryGraphEntitySymbol,
+    ForgeQueryGraphRelationMutationBuilder, ForgeQueryGraphRelationSymbol,
+};
 pub(crate) use lowering::{
     aspect_values_to_payload, command_declared_aspect_operations, command_declared_aspect_paths,
     command_declared_aspect_value_digest,

@@ -18,6 +18,8 @@ pub struct ForgeQueryAuthoritativeMutationEvidenceSupport {
     existing_truth_probe_modes: Vec<String>,
     existing_truth_verified_mutation_modes: Vec<String>,
     symbolic_target_reference_families: Vec<String>,
+    symbolic_aspect_reference_families: Vec<String>,
+    graph_composition_families: Vec<String>,
     naming_mutation_families: Vec<String>,
     continuity_mutation_families: Vec<String>,
     aggregate_evidence_sections: Vec<String>,
@@ -43,6 +45,13 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             "backend_verified_delete".to_string(),
         ];
         let symbolic_target_reference_families = vec!["same_batch_declared_target".to_string()];
+        let symbolic_aspect_reference_families =
+            vec!["same_batch_declared_entity_identity".to_string()];
+        let graph_composition_families = vec![
+            "same_batch_entity_relation_identity_edges".to_string(),
+            "mixed_existing_and_symbolic_entity_identity_edges".to_string(),
+            "same_batch_symbolic_relation_followup_mutation".to_string(),
+        ];
         let naming_mutation_families = vec![
             "attach_new_target".to_string(),
             "attach_existing_target".to_string(),
@@ -111,6 +120,16 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
                 .map(|item| format!("symbolic-target:{item}")),
         );
         parts.extend(
+            symbolic_aspect_reference_families
+                .iter()
+                .map(|item| format!("symbolic-aspect:{item}")),
+        );
+        parts.extend(
+            graph_composition_families
+                .iter()
+                .map(|item| format!("graph-composition:{item}")),
+        );
+        parts.extend(
             naming_mutation_families
                 .iter()
                 .map(|item| format!("naming:{item}")),
@@ -139,6 +158,8 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             existing_truth_probe_modes,
             existing_truth_verified_mutation_modes,
             symbolic_target_reference_families,
+            symbolic_aspect_reference_families,
+            graph_composition_families,
             naming_mutation_families,
             continuity_mutation_families,
             aggregate_evidence_sections,
@@ -161,6 +182,14 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
 
     pub fn symbolic_target_reference_families(&self) -> &[String] {
         &self.symbolic_target_reference_families
+    }
+
+    pub fn symbolic_aspect_reference_families(&self) -> &[String] {
+        &self.symbolic_aspect_reference_families
+    }
+
+    pub fn graph_composition_families(&self) -> &[String] {
+        &self.graph_composition_families
     }
 
     pub fn existing_truth_assertion_modes(&self) -> &[String] {
@@ -227,14 +256,14 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let bridge_closeout_digest = bridge_closeout.closeout_digest().to_string();
         let safe_to_build_now = vec![
             "workspace.insert/update/delete/batch receipts preserve declared-versus-resolved target evidence together with touched-aspect fallout".to_string(),
-            "existing-truth binding, same-batch symbolic target reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story".to_string(),
+            "existing-truth binding, same-batch symbolic target reference, same-batch symbolic aspect reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story".to_string(),
             "existing-truth assertions now distinguish retained authoritative assertions from backend-verified assertions on the public receipt and inspection surface".to_string(),
             "mixed existing-truth authority sessions now preserve aggregate mode evidence that distinguishes retained assertions, backend-verified assertions, verified updates, and verified deletes without reconstructing that story from component receipts".to_string(),
             "existing-truth probes now expose a typed backend-verified probe lane for current authoritative values without smuggling that truth through mutation receipts".to_string(),
             "existing-truth verified updates now expose a typed backend-verified update lane that proves current authoritative values before applying update-family mutation receipts".to_string(),
             "existing-truth verified deletes now expose a typed backend-verified delete lane that proves current authoritative values before applying delete-family mutation receipts".to_string(),
             "existing-truth batch receipts, scalar inspection, and probe surfaces keep retained assertions, backend-verified assertions, backend-verified probes, verified updates, and verified deletes semantically distinct under mixed authority sessions".to_string(),
-            "batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, naming, continuity, causality, and provenance digests".to_string(),
+            "batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, symbolic-aspect, naming, continuity, causality, and provenance digests".to_string(),
             "downstream domains may rely on Query receipts and inspection instead of rebuilding target-recovery, naming, or continuity explanation glue locally".to_string(),
             "downstream domains may rely on `verify_existing(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
             "downstream domains may rely on `update_existing_verified(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),

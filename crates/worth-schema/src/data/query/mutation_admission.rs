@@ -1,5 +1,7 @@
 use forge_query::facade::{
-    ForgeQueryAspect, ForgeQueryCollection, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryAuthoritativeMutationEvidenceCloseout,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryRuntime,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeError, ForgeQueryRuntimeSupportProfile,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -69,22 +71,16 @@ impl WorthQueryMutationAdmission {
 pub struct WorthQueryMutationSupportContract {
     pub query_support_digest: String,
     pub query_closeout_digest: String,
-    pub admitted_raw_mutation_families: Vec<String>,
+    pub admitted_query_substrate_families: Vec<String>,
+    pub blocked_until_invariant_complete_workflow: Vec<String>,
     pub blocked_until_explicit_lowering: Vec<String>,
     pub contract_digest: String,
 }
 
 pub fn worth_query_mutation_support_contract(
 ) -> Result<WorthQueryMutationSupportContract, ForgeQueryRuntimeError> {
-    let workspace = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "WorthQueryMutationSupportProbe",
-            [ForgeQueryAspect::new("identity.id", "identity.id")],
-        )])
-        .build()?
-        .workspace("worth-query-mutation-support-contract")?;
-    let query_support = workspace.public_authoritative_mutation_evidence_support();
-    let query_closeout = workspace.public_authoritative_mutation_evidence_closeout();
+    let query_support = public_authoritative_mutation_evidence_support();
+    let query_closeout = public_authoritative_mutation_evidence_closeout(&query_support);
 
     assert!(
         query_support
@@ -92,6 +88,13 @@ pub fn worth_query_mutation_support_contract(
             .iter()
             .any(|family| family == "same_batch_declared_target"),
         "forge-query authoritative mutation evidence must admit same-batch symbolic target references before worth widens raw topology creation",
+    );
+    assert!(
+        query_support
+            .symbolic_aspect_reference_families()
+            .iter()
+            .any(|family| family == "same_batch_declared_entity_identity"),
+        "forge-query authoritative mutation evidence must admit same-batch symbolic aspect entity-identity references before worth widens same-batch topology relation construction",
     );
     assert!(
         query_support
@@ -108,14 +111,19 @@ pub fn worth_query_mutation_support_contract(
         "forge-query authoritative mutation evidence must admit direct existing-truth relation bindings before worth widens imported topology relation removal",
     );
 
-    let admitted_raw_mutation_families = vec![
-        "create_topology_entity".to_string(),
-        "create_topology_relation_with_existing_refs".to_string(),
-        "create_topology_relation_with_created_entity_refs_via_ordered_receipts".to_string(),
-        "upsert_topology_entity_with_backend_verified_assertion".to_string(),
-        "upsert_topology_relation_with_backend_verified_assertion".to_string(),
-        "remove_topology_entity_with_imported_binding".to_string(),
-        "remove_topology_relation_with_imported_binding".to_string(),
+    let admitted_query_substrate_families = vec![
+        "insert_topology_entity_with_projected_persistent_name".to_string(),
+        "insert_topology_relation_with_existing_entity_bindings".to_string(),
+        "insert_topology_relation_with_same_batch_symbolic_entity_identity_refs".to_string(),
+        "verify_existing_topology_entity_kind".to_string(),
+        "verify_existing_topology_relation_shape".to_string(),
+        "delete_existing_topology_entity".to_string(),
+        "delete_existing_topology_relation".to_string(),
+    ];
+    let blocked_until_invariant_complete_workflow = vec![
+        "topology_relation_create_workflows_require_invariant_complete_subgraphs".to_string(),
+        "topology_relation_rewire_workflows_require_identity_preserving_relation_updates"
+            .to_string(),
     ];
     let blocked_until_explicit_lowering = vec![
         "raw_naming_truth_requires_projected_naming_writeback".to_string(),
@@ -133,9 +141,14 @@ pub fn worth_query_mutation_support_contract(
                 query_closeout.closeout_digest()
             )))
             .chain(
-                admitted_raw_mutation_families
+                admitted_query_substrate_families
                     .iter()
                     .map(|family| format!("admitted:{family}")),
+            )
+            .chain(
+                blocked_until_invariant_complete_workflow
+                    .iter()
+                    .map(|family| format!("workflow-blocked:{family}")),
             )
             .chain(
                 blocked_until_explicit_lowering
@@ -148,7 +161,8 @@ pub fn worth_query_mutation_support_contract(
     Ok(WorthQueryMutationSupportContract {
         query_support_digest: query_support.support_digest().to_string(),
         query_closeout_digest: query_closeout.closeout_digest().to_string(),
-        admitted_raw_mutation_families,
+        admitted_query_substrate_families,
+        blocked_until_invariant_complete_workflow,
         blocked_until_explicit_lowering,
         contract_digest,
     })
@@ -298,4 +312,24 @@ fn hash_parts(parts: &[String]) -> String {
         hasher.update([0x1f]);
     }
     format!("{:x}", hasher.finalize())
+}
+
+fn public_authoritative_mutation_evidence_support() -> ForgeQueryAuthoritativeMutationEvidenceSupport
+{
+    ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
+        ForgeQueryRuntimeBackendPosture::Primary,
+    )
+}
+
+fn public_authoritative_mutation_evidence_closeout(
+    _query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
+) -> ForgeQueryAuthoritativeMutationEvidenceCloseout {
+    let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
+        "worth-query-mutation-support-contract-live",
+        "worth-query-mutation-support-contract-preview",
+        "worth-query-mutation-support-contract-inspect",
+    );
+    ForgeQueryRuntime::public_authoritative_mutation_evidence_closeout_for_support_profile(
+        &support_profile,
+    )
 }

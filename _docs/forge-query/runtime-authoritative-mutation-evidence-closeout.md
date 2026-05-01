@@ -6,14 +6,14 @@ cross-runtime authority-evidence lane right now.
 ## Safe To Build Now
 
 - workspace.insert/update/delete/batch receipts preserve declared-versus-resolved target evidence together with touched-aspect fallout
-- existing-truth binding, same-batch symbolic target reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story
+- existing-truth binding, same-batch symbolic target reference, same-batch symbolic aspect reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story
 - existing-truth assertions now distinguish retained authoritative assertions from backend-verified assertions on the public receipt and inspection surface
 - mixed existing-truth authority sessions now preserve aggregate mode evidence that distinguishes retained assertions, backend-verified assertions, verified updates, and verified deletes without reconstructing that story from component receipts
 - existing-truth probes now expose a typed backend-verified probe lane for current authoritative values without smuggling that truth through mutation receipts
 - existing-truth verified updates now expose a typed backend-verified update lane that proves current authoritative values before applying update-family mutation receipts
 - existing-truth verified deletes now expose a typed backend-verified delete lane that proves current authoritative values before applying delete-family mutation receipts
 - existing-truth batch receipts, scalar inspection, and probe surfaces keep retained assertions, backend-verified assertions, backend-verified probes, verified updates, and verified deletes semantically distinct under mixed authority sessions
-- batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, naming, continuity, causality, and provenance digests
+- batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, symbolic-aspect, naming, continuity, causality, and provenance digests
 - downstream domains may rely on Query receipts and inspection instead of rebuilding target-recovery, naming, or continuity explanation glue locally
 - downstream domains may rely on `verify_existing(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed
 - downstream domains may rely on `update_existing_verified(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed
@@ -49,6 +49,7 @@ cross-runtime authority-evidence lane right now.
 - existing-truth probe modes: `backend_verified_probe`
 - existing-truth verified mutation modes: `backend_verified_update`, `backend_verified_delete`
 - symbolic same-batch target reference: `same_batch_declared_target`
+- symbolic same-batch aspect reference: `same_batch_declared_entity_identity`
 - naming mutation families: `attach_new_target`, `attach_existing_target`, `rebind_target`, `remove`
 - continuity mutation families: `rebind_existing_target`, `split_existing_target`
 

@@ -1,6 +1,6 @@
 use super::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectValue, ForgeQueryContinuityMutationIntent,
-    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError,
+    ForgeQueryNamingMutationIntent, ForgeQueryRuntimeError, ForgeQuerySymbolicAspectReference,
 };
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 
@@ -139,4 +139,18 @@ pub(super) fn finish_aspects(
         ));
     }
     Ok(aspects)
+}
+
+pub(super) fn reject_symbolic_aspect_references(
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+    lane_description: &str,
+) -> Result<(), ForgeQueryRuntimeError> {
+    if symbolic_aspect_references.is_empty() {
+        return Ok(());
+    }
+    Err(ForgeQueryRuntimeError::Workspace(
+        ForgeQueryWorkspaceError::new(format!(
+            "{lane_description} does not admit symbolic aspect references yet"
+        )),
+    ))
 }

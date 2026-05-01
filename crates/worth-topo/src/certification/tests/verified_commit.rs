@@ -1,4 +1,5 @@
 use super::*;
+use worth_schema::facade::{verify_topology_intent, verify_topology_intent_on_branch};
 
 #[test]
 fn public_facade_exports_closeout_field_types() {
@@ -46,13 +47,14 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
 
     let _seeded =
         seeded_bootstrap(&mut runtime, "cert-verified-commit").expect("seed worth topology");
-    let verified = WorthTopologyAuthority::new(&mut runtime)
-        .apply_topology_intent_traced(RawWorthTopologyIntent::new(
+    let verified = verify_topology_intent(
+        &mut runtime,
+        RawWorthTopologyIntent::new(
             Vec::<WorthTopologyMutation>::new(),
             WorthMutationOrigin::LocalEdit,
-        ))
-        .expect("verified topology commit")
-        .into_primary_result();
+        ),
+    )
+    .expect("verified topology commit");
 
     let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
         .expect("verified commit certification should succeed")
@@ -101,16 +103,15 @@ fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis
         )
         .expect("feature branch");
 
-    let verified = WorthTopologyAuthority::new(&mut runtime)
-        .apply_topology_intent_on_branch_traced(
-            RawWorthTopologyIntent::new(
-                Vec::<WorthTopologyMutation>::new(),
-                WorthMutationOrigin::BranchLocalApplication,
-            ),
-            BranchId("feature".to_string()),
-        )
-        .expect("branch-local verified topology commit")
-        .into_primary_result();
+    let verified = verify_topology_intent_on_branch(
+        &mut runtime,
+        RawWorthTopologyIntent::new(
+            Vec::<WorthTopologyMutation>::new(),
+            WorthMutationOrigin::BranchLocalApplication,
+        ),
+        BranchId("feature".to_string()),
+    )
+    .expect("branch-local verified topology commit");
 
     let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
         .expect("branch-local certification should succeed")

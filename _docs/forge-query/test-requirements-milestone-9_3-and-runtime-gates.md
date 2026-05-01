@@ -307,3 +307,75 @@ Query receipts and inspection instead of rebuilding the same explanation layer
 locally, and the bridge-side replay/provenance artifacts remain compatible with
 that same public evidence story.
 
+### Runtime Generic Graph Authoring And Identity-Preserving Mutation Test
+
+Purpose
+
+Prove that the public runtime mutation facade can serve as a real graph-shaped
+authoring runtime for serious downstream domains without forcing them to
+reintroduce local relation-rewrite semantics, symbolic graph folklore, or
+bridge-backed verification glue.
+
+Scenario
+
+- execute public runtime authoring sessions covering:
+  - identity-preserving existing-target relation update
+  - identity-preserving existing-target relation verified update
+  - same-batch graph composition with:
+    - created entity -> created relation
+    - existing entity -> created relation
+    - mixed existing-target and same-batch symbolic references
+  - bridge-backed backend-verified existing-truth assertion/probe/verified
+    update/delete on admitted entity and relation families
+- exercise hostile neighbors for:
+  - replacement-shaped relation rewrite masquerading as update
+  - unresolved symbolic graph references
+  - reversed or illegal composition order
+  - incomplete invariant-bearing graph subgraphs
+  - bridge-backed runtime families lacking verification support
+  - target-collection and target-shape mismatch
+
+Must verify
+
+- existing-target relation update preserves authoritative relation identity
+  across receipt, inspection, and batch/session aggregate evidence
+- update denial fires typed and early whenever the lower runtime cannot preserve
+  identity honestly
+- graph composition is one public authoring family rather than caller-owned
+  scalar batch folklore
+- graph composition receipts preserve symbolic-to-resolved target mapping,
+  component ordering, target evidence, and affected live/computed breadth
+- graph composition denial distinguishes unresolved symbolic references,
+  illegal ordering, incomplete subgraph workflows, and unsupported runtime
+  families
+- bridge-backed backend-verified existing-truth surfaces report admitted versus
+  unsupported posture honestly through support metadata and executable behavior
+- memory or compatibility-backed support does not overclaim bridge-backed
+  production support
+- public docs/examples match the admitted and denied runtime story literally
+- compile-fail boundaries prove external callers cannot mint proof-bearing
+  graph-composition or support/closeout artifacts directly
+
+Required verification output
+
+- `relation_update_identity_digest`
+- `relation_update_target_evidence_digest`
+- `relation_update_denial_digest`
+- `graph_composition_digest`
+- `graph_symbolic_resolution_digest`
+- `graph_composition_denial_digest`
+- `verified_existing_bridge_support_digest`
+- `verified_existing_runtime_receipt_digest`
+- `support_matrix_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+The public runtime authoring facade is strong enough that downstream graph
+domains can use Query as the ordinary mutation runtime for admitted relation
+updates, same-batch graph composition, and bridge-backed verified existing-
+truth work, while unsupported neighbors fail closed before local substitute
+semantics can grow around them.
+

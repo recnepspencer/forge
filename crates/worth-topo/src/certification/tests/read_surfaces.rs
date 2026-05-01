@@ -1,4 +1,7 @@
 use super::*;
+use crate::diagnostics::build_derived_read_diagnostics;
+use crate::parity::build_derived_equivalence_contract;
+use crate::read_stage::stage_topology_read_from_view;
 
 #[test]
 fn seeded_bootstrap_earns_milestone_one_certification_report() {
@@ -7,12 +10,7 @@ fn seeded_bootstrap_earns_milestone_one_certification_report() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-harness").expect("seed worth topology");
-    let read_view = runtime
-        .read_truth()
-        .read_snapshot(&seeded.snapshot)
-        .expect("worth snapshot read");
-
-    let report = certify_milestone_one_read_view_traced(&read_view, seeded.read_basis.clone())
+    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
         .expect("milestone one certification should succeed")
         .into_primary_result();
 
@@ -108,12 +106,7 @@ fn seeded_bootstrap_earns_direct_milestone_two_read_report() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-m2-read").expect("seed worth topology");
-    let read_view = runtime
-        .read_truth()
-        .read_snapshot(&seeded.snapshot)
-        .expect("worth snapshot read");
-
-    let report = certify_milestone_two_read_view_traced(&read_view, seeded.read_basis)
+    let report = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis)
         .expect("milestone two read certification should succeed")
         .into_primary_result();
 
@@ -142,33 +135,39 @@ fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
         .read_snapshot(&seeded.snapshot)
         .expect("worth snapshot read");
 
-    let report = certify_milestone_one_read_view_traced(&read_view, seeded.read_basis.clone())
+    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
         .expect("milestone one certification should succeed")
         .into_primary_result();
-    let reader = WorthTopologyReader::new(&runtime);
-    let traced = reader
-        .diagnostics_traced(&seeded.read_basis)
-        .expect("traced reader diagnostics");
+    let staged = stage_topology_read_from_view(&read_view).expect("read stage should succeed");
+    let traced_diagnostics = build_derived_read_diagnostics(
+        &seeded.read_basis,
+        staged.materialized(),
+        staged.interpreted(),
+        staged.validation(),
+    );
+    let traced_equivalence = build_derived_equivalence_contract(
+        &seeded.read_basis,
+        staged.materialized(),
+        staged.interpreted(),
+        staged.validation(),
+    );
 
     assert_eq!(
         report.derived_read_diagnostics.invalidation_report,
-        traced.primary_result().invalidation_report
+        traced_diagnostics.invalidation_report
     );
     assert_eq!(
         report.derived_read_diagnostics.rebuild_report,
-        traced.primary_result().rebuild_report
+        traced_diagnostics.rebuild_report
     );
     assert_eq!(
         report.derived_read_diagnostics.fallback_report,
-        traced.primary_result().fallback_report
+        traced_diagnostics.fallback_report
     );
     assert_eq!(
         report
             .derived_equivalence_contract_report
             .truth_basis_digest_hex,
-        traced
-            .primary_result()
-            .equivalence_contract_report
-            .truth_basis_digest_hex
+        traced_equivalence.truth_basis_digest_hex
     );
 }

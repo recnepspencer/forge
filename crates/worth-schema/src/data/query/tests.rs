@@ -11,6 +11,14 @@ use crate::facade::{
     WorthQueryMutationAdmissionBlocker, WorthQuerySchemaBasis, WorthRelationKind,
     WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
 };
+use forge_query::facade::{
+    ForgeQueryAuthoritativeMutationEvidenceCloseout,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationApiCompatibilityReport,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryRuntimeSupportProfile,
+};
+use forge_runtime_bridge::facade::RuntimeBridge;
 
 #[test]
 fn query_collections_and_schema_bases_have_stable_worth_names() {
@@ -263,30 +271,69 @@ fn worth_query_declarations_reject_blank_surface_names_early() {
 fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
     let contract = worth_query_mutation_support_contract()
         .expect("worth query support contract should derive");
+    let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
+        "worth-query-mutation-support-contract-live",
+        "worth-query-mutation-support-contract-preview",
+        "worth-query-mutation-support-contract-inspect",
+    );
+    let public_api_contract =
+        ForgeQueryRuntimePublicApiContract::from_support_profile(&support_profile);
+    assert_eq!(
+        public_api_contract.backend_posture(),
+        ForgeQueryRuntimeBackendPosture::Primary
+    );
+    let support_matrix =
+        ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&public_api_contract);
+    let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
+    let mutation_compatibility = ForgeQueryMutationApiCompatibilityReport::derive(
+        public_api_contract.backend_posture(),
+        &support_matrix,
+        &naming_contract,
+    );
+    let query_support = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(
+        public_api_contract.backend_posture(),
+    );
+    let bridge_support = RuntimeBridge::public_authoritative_mutation_evidence_support();
+    let bridge_closeout = RuntimeBridge::public_authoritative_mutation_evidence_closeout();
+    let closeout = ForgeQueryAuthoritativeMutationEvidenceCloseout::derive(
+        public_api_contract.backend_posture(),
+        &support_matrix,
+        &mutation_compatibility,
+        &naming_contract,
+        &query_support,
+        &bridge_support,
+        &bridge_closeout,
+    );
+
     assert!(contract
-        .admitted_raw_mutation_families
+        .admitted_query_substrate_families
         .iter()
         .any(|family| {
-            family == "create_topology_relation_with_created_entity_refs_via_ordered_receipts"
+            family == "insert_topology_relation_with_same_batch_symbolic_entity_identity_refs"
+        }));
+    assert!(contract
+        .blocked_until_invariant_complete_workflow
+        .iter()
+        .any(|family| {
+            family == "topology_relation_create_workflows_require_invariant_complete_subgraphs"
         }));
     assert!(contract
         .blocked_until_explicit_lowering
         .iter()
         .any(|family| family == "raw_naming_truth_requires_projected_naming_writeback"));
     assert!(contract
-        .admitted_raw_mutation_families
+        .admitted_query_substrate_families
         .iter()
-        .any(|family| family == "upsert_topology_entity_with_backend_verified_assertion"));
+        .any(|family| family == "verify_existing_topology_entity_kind"));
     assert!(contract
-        .admitted_raw_mutation_families
+        .admitted_query_substrate_families
         .iter()
-        .any(|family| family == "upsert_topology_relation_with_backend_verified_assertion"));
-    assert!(!contract
-        .blocked_until_explicit_lowering
-        .iter()
-        .any(|family| family == "existing_truth_upsert_requires_explicit_resolved_binding"));
-    assert!(!contract.query_support_digest.is_empty());
-    assert!(!contract.query_closeout_digest.is_empty());
+        .any(|family| family == "verify_existing_topology_relation_shape"));
+    assert_eq!(
+        contract.query_support_digest,
+        query_support.support_digest()
+    );
+    assert_eq!(contract.query_closeout_digest, closeout.closeout_digest());
 }
 
 #[test]

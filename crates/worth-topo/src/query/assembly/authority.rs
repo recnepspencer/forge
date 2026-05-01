@@ -12,12 +12,13 @@ use worth_schema::facade::{
 };
 
 use crate::query::materialized::topology_relation_dependency_path;
+use crate::query::WorthTopologyQueryMutationEvidence;
 
 use super::authority_support::{
     index_imported_entities, index_imported_relations, mutation_evidence_for_intent,
     relation_touched_aspects,
 };
-use super::{WorthTopologyQueryAssembly, WorthTopologyQueryMutationEvidence};
+use super::WorthTopologyQueryAssembly;
 
 #[derive(Debug, Clone)]
 pub struct WorthTopologyQueryAppliedIntent {

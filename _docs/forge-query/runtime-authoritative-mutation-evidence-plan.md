@@ -7,6 +7,8 @@
 > **Primary downstream pressure:** [../worth/forge-query-runtime-rewrite-plan.md](../worth/forge-query-runtime-rewrite-plan.md)
 > **Primary owners:** `forge-query` and `forge-runtime-bridge`
 > **Purpose:** harden the public mutation and receipt contract together with the bridge carry-forward contract so serious domains can express authoritative writes against new and existing truth without shadow identity glue, semantic target loss, dropped causality/provenance, or domain-local writeback runtimes.
+>
+> **Required follow-on hardening:** [runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md)
 ## Goal
 Freeze one cross-runtime authority-evidence contract so:
 - `forge-query` exposes a public mutation/receipt/inspection surface that is
@@ -31,6 +33,14 @@ This gate is not about inventing new domain semantics inside Query. It is about
 making the generic mutation substrate honest enough that domains stop needing to
 rebuild target classification, identity binding, and authority evidence above
 the facade.
+
+Once this gate closes its target evidence, causality, provenance, existing-
+truth binding, naming, and continuity responsibilities, the next upstream
+pressure is the remaining authoring substrate: identity-preserving existing-
+target relation updates, first-class graph composition, and bridge-backed
+backend-verified existing-truth support on production runtimes. Those follow-on
+requirements are defined in
+[runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md).
 
 ## Why This Plan Exists
 

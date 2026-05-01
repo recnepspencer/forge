@@ -207,7 +207,7 @@ pub fn declare_worth_topology_materialized_surface<T, E, R>(
     )
 }
 
-pub fn materialized_topology_from_query_rows(
+pub(crate) fn materialized_topology_from_query_rows(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
 ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
