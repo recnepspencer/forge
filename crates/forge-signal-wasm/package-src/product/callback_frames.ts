@@ -1,4 +1,5 @@
-const CALLBACK_ID_COUNTERS = new WeakMap();
+import { nextGeneratedAuthoringSignalId } from "./scopes.js";
+import { PRIVATE_AUTHORING_ID } from "./symbols.js";
 const ACTIVE_RUNTIME_CALLBACK_READS_KEY = "__forgeSignalActiveRuntimeCallbackReads";
 const ACTIVE_RUNTIME_CALLBACK_READER_KEY = "__forgeSignalActiveRuntimeCallbackReader";
 const ACTIVE_COMPUTED_CALLBACK_FRAMES = [];
@@ -110,19 +111,6 @@ export function withComputedCallbackFrame(rawSignals, callback) {
   };
 }
 
-function nextGeneratedCallbackId(rawSignals, family) {
-  const currentCounters = CALLBACK_ID_COUNTERS.get(rawSignals) ?? {
-    computed: 0,
-    output: 0,
-  };
-  const next = (currentCounters[family] ?? 0) + 1;
-  CALLBACK_ID_COUNTERS.set(rawSignals, {
-    ...currentCounters,
-    [family]: next,
-  });
-  return `${family}:${next}`;
-}
-
 function parseCallbackAuthoringArgs(rawSignals, family, idOrCompute, computeOrOptions, maybeOptions) {
   if (isFunction(idOrCompute)) {
     if (
@@ -137,7 +125,9 @@ function parseCallbackAuthoringArgs(rawSignals, family, idOrCompute, computeOrOp
       throw new TypeError(`${family} callback form does not accept a third argument`);
     }
     return {
-      id: computeOrOptions?.id ?? nextGeneratedCallbackId(rawSignals, family),
+      id: computeOrOptions?.[PRIVATE_AUTHORING_ID]
+        ?? computeOrOptions?.id
+        ?? nextGeneratedAuthoringSignalId(rawSignals, family),
       callback: idOrCompute,
     };
   }

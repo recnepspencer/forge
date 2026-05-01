@@ -1,4 +1,4 @@
-import { createControllerContract } from "./controllers.js";
+import { buildControllerContract, createControllerContract } from "./controllers.js";
 import { createPublicGraphInputEntry } from "./public_inputs.js";
 import { createScopedSignalNamespace } from "./scopes.js";
 import {
@@ -28,6 +28,7 @@ import {
   requireOutputsRecord,
   requireReadableHandle,
 } from "./graph_authoring_support.js";
+import { prepareInputReset } from "./handles.js";
 import {
   buildCompatibilityDefinition,
   buildGraphContractDelta,
@@ -52,10 +53,18 @@ import { wrapGraphTransaction } from "./transactions.js";
 import {
   GRAPH_EXPOSURE,
   GRAPH_OWNER_ID,
-  INPUT_BASELINE_VALUE,
   PRODUCT_SIGNAL_KIND,
   RAW_SIGNAL_HANDLE,
 } from "./symbols.js";
+
+function normalizeBoundaryInputOptions(graphId, boundaryKind, options) {
+  if (options && Object.prototype.hasOwnProperty.call(options, "requiredness")) {
+    throw new TypeError(
+      `signals.graph \`${graphId}\` input.${boundaryKind}(...) does not accept an explicit requiredness override; use input.${boundaryKind}(...) to choose the boundary contract form`,
+    );
+  }
+  return options ?? {};
+}
 
 function createGraphConstructionSurface(signalsFacade, rawSignals, graphId) {
   const graphScope = createScopedSignalNamespace(signalsFacade, rawSignals, graphId, null, graphId);
@@ -64,12 +73,34 @@ function createGraphConstructionSurface(signalsFacade, rawSignals, graphId) {
     scope(localScopeId) {
       return graphScope.scope(localScopeId);
     },
-    controller(definition) {
-      return createControllerContract(definition);
+    controller(localScopeIdOrDefinition, maybeBuilder) {
+      if (typeof localScopeIdOrDefinition === "string") {
+        if (typeof maybeBuilder !== "function") {
+          throw new TypeError(
+            `signals.graph \`${graphId}\` controller(scopeId, builder) requires a builder callback`,
+          );
+        }
+        return buildControllerContract(graphScope.scope(localScopeIdOrDefinition), maybeBuilder);
+      }
+      return createControllerContract(localScopeIdOrDefinition);
     },
     publicInput(handle, options) {
       return createPublicGraphInputEntry(handle, options);
     },
+    input: Object.freeze({
+      required(handle, options) {
+        return createPublicGraphInputEntry(handle, {
+          ...normalizeBoundaryInputOptions(graphId, "required", options),
+          requiredness: "required",
+        });
+      },
+      optional(handle, options) {
+        return createPublicGraphInputEntry(handle, {
+          ...normalizeBoundaryInputOptions(graphId, "optional", options),
+          requiredness: "optional",
+        });
+      },
+    }),
     expose(definition) {
       const validated = requireGraphDefinition(definition);
       const merged = mergeControllerContracts(validated, graphId);
@@ -122,7 +153,14 @@ export function createPublishedSignalGraph(signalsFacade, rawSignals, graphId, d
       graphOwned,
     );
     inputs[inputName] = normalizedInput.handle;
-    inputDescriptors.push(inputDescriptor(inputName, normalizedInput.handle, normalizedInput.authority));
+    inputDescriptors.push(
+      inputDescriptor(
+        inputName,
+        normalizedInput.handle,
+        normalizedInput.authority,
+        normalizedInput.requiredness,
+      ),
+    );
   }
 
   for (const [outputName, candidateHandle] of outputEntries) {
@@ -217,6 +255,8 @@ export function createPublishedSignalGraph(signalsFacade, rawSignals, graphId, d
       ]);
     }
 
+    const plannedResetFinalizers = [];
+
     for (const inputName of resetNames) {
       const input = requireKnownInput(inputs, graphId, inputName);
       requireKnownAuthority(
@@ -226,10 +266,12 @@ export function createPublishedSignalGraph(signalsFacade, rawSignals, graphId, d
         "apply(...)",
         "supportsReset",
       );
-      plannedSets.push([inputName, cloneSignalValue(input[INPUT_BASELINE_VALUE])]);
+      const preparedReset = prepareInputReset(input);
+      plannedSets.push([inputName, preparedReset.value]);
+      plannedResetFinalizers.push(preparedReset.finalize);
     }
 
-    return rawSignals.transaction((rawTx) => {
+    const result = rawSignals.transaction((rawTx) => {
       const tx = wrapGraphTransaction(
         rawTx,
         rawSignals,
@@ -241,6 +283,12 @@ export function createPublishedSignalGraph(signalsFacade, rawSignals, graphId, d
         tx.set(inputName, nextValue);
       }
     });
+
+    for (const finalizeReset of plannedResetFinalizers) {
+      finalizeReset();
+    }
+
+    return result;
   }
 
   return Object.freeze({
@@ -280,14 +328,33 @@ export function createPublishedSignalGraph(signalsFacade, rawSignals, graphId, d
         writes: nextInputs,
       });
     },
+    writeInput(inputName, nextValue) {
+      return applyGraphMutation({
+        writes: {
+          [inputName]: nextValue,
+        },
+      });
+    },
     patchInputs(nextPatches) {
       return applyGraphMutation({
         patches: nextPatches,
       });
     },
+    patchInput(inputName, patchValue) {
+      return applyGraphMutation({
+        patches: {
+          [inputName]: patchValue,
+        },
+      });
+    },
     resetInputs(inputNamesToReset = inputNames) {
       return applyGraphMutation({
         reset: inputNamesToReset,
+      });
+    },
+    resetInput(inputName) {
+      return applyGraphMutation({
+        reset: [inputName],
       });
     },
     apply(definition) {

@@ -1,61 +1,111 @@
-# Aspect Reference
+# Aspects Reference
 
-`forge-signal-wasm` supports real Forge Signal aspects on the web surface.
+## What This Feature Is
 
-That means web consumers are not limited to a single "this node changed"
-channel. Nodes can declare multiple semantic aspects, reads can subscribe to
-only the aspects they care about, and writes/invalidation can mark only the
-aspects that actually changed.
+Aspects let one signal carry multiple semantic change lanes.
 
-## Why Aspects Matter
+Instead of one broad "this changed" channel, aspects let the runtime track
+which kind of change happened and let downstream definitions subscribe only to
+the lanes they care about.
 
-Aspects let the runtime distinguish change kind, not just changed value.
+## Why You Use It
 
-That matters when a node represents multiple semantic lanes, for example:
+- distinguish change kind on one value
+- keep derivation more precise under multi-lane state
+- reduce unnecessary downstream reevaluation
+- make version and invalidation reporting more specific
+- express explicit aspect-aware recipes on the spec and compatibility lanes
 
-- `layout` vs `content`
-- `price` vs `inventory`
-- `geometry` vs `lighting`
-- `visible rows` vs `selected rows`
+## What Distinguishes This
 
-Without aspects, every change becomes one broad invalidation channel.
+Aspects let one node carry multiple semantic change lanes inside the runtime
+itself.
 
-With aspects:
+That is different from most frontend state tools:
 
-- downstream nodes can ignore irrelevant churn
-- node-level watchers/effects stay simpler because derivation is already more
-  precise
-- diagnostics and version reporting can tell you which semantic lane advanced
+- Zustand can model multiple concerns, but it does not give the runtime a
+  first-class semantic lane model for invalidation and dependency tracking
+- Angular signals give you fine-grained reactive values, but they do not make
+  "change kind" a runtime-owned dimension on one signal
 
-That is one of the important differences between Forge Signal on the web and a
-single-channel store like Zustand or lightweight frontend signal systems that
-do not carry semantic change kind through the runtime itself.
+What this enables here is:
 
-## App-First Shape
+- one value with multiple invalidation lanes
+- dependency contracts that can subscribe to only the lanes they actually need
+- version and diagnostics surfaces that can explain which semantic lane moved
 
-### Input Aspects
+## Stable Entry Points
 
-`input(...)` accepts optional input options:
+Main app surface:
+
+- `signals.input(value, { producesAspects })`
+- `tx.setWithAspects(...)`
+- `tx.setWithRegionsAndAspects(...)`
+
+Explicit named/spec lane:
+
+- `signals.spec.input(...)`
+- `signals.spec.computed(...)`
+- `signals.spec.output(...)`
+
+Compatibility lane:
+
+- `SourceSpec.producesAspects`
+- `RecipeSpec.producesAspects`
+- aspect-aware read specs
+- lower-level aspect-targeted invalidation helpers
+
+## Core Mental Model
+
+Aspects shape derivation and invalidation, not observation identity.
+
+That split is important:
+
+- aspects decide which semantic lane advanced
+- subscriptions and observation are still node-scoped by default
+
+So aspects make callback or recipe dependency tracking more precise without
+forcing the ordinary observation model to become aspect-scoped everywhere.
+
+## How It Executes
+
+At write time:
+
+- a source may declare which aspects it produces
+- writes may mark only the aspects that changed
+
+At read time:
+
+- explicit spec reads can subscribe to one aspect or several aspects
+- downstream reevaluation only happens for matching lanes
+
+If you do nothing aspect-specific, the runtime falls back to default aspect `0`.
+
+## Small Example
 
 ```ts
 const sensor = signals.input(10, {
-  id: "sensor",
   producesAspects: [1, 2],
+});
+
+signals.transaction((tx) => {
+  tx.setWithAspects(sensor, 11, [2]);
 });
 ```
 
-If you omit `producesAspects`, wasm preserves backwards-compatible default
-single-aspect behavior through aspect `0`.
+This is the smallest honest example because it shows:
 
-### Aspect-Filtered Reads
+- aspect-producing input state
+- aspect-targeted mutation
 
-Callback-first `computed(() => ...)` and `output(() => ...)` stay the normal
-product lane when plain callable signal reads are enough.
-
-When you need explicit aspect-filtered read contracts, use the spec lane:
+## Real Example
 
 ```ts
-const display = signals.outputSpec("display", {
+const sensor = signals.spec.input("sensor", 10, {
+  producesAspects: [1, 2],
+});
+
+const display = signals.spec.output("display", {
   reads: [
     {
       id: "sensor",
@@ -64,104 +114,70 @@ const display = signals.outputSpec("display", {
   ],
   expr: { kind: "read", id: "sensor" },
 });
-```
 
-Object-form reads also allow:
-
-```ts
-{
-  id: "sensor",
-  aspects: [1, 2],
-}
-```
-
-### Produced Aspects On Derived Nodes
-
-Produced-aspect declarations on derived nodes also belong on the explicit spec
-lane today:
-
-```ts
-const summary = signals.computedSpec("summary", {
+const summary = signals.spec.computed("summary", {
   reads: [{ id: "sensor", aspect: 1 }],
   expr: { kind: "read", id: "sensor" },
   producesAspects: [7],
 });
-```
 
-### Aspect-Targeted Transactions
-
-`SignalsTransaction` supports aspect-targeted writes:
-
-```ts
-signals.transaction((tx) => {
-  tx.setWithAspects(sensor, 99, [2]);
-});
-```
-
-Or with changed regions:
-
-```ts
 signals.transaction((tx) => {
   tx.setWithRegionsAndAspects(sensor, 42, [], [1]);
 });
 ```
 
-## Compatibility Surface Shape
+What this gives you:
 
-Lower-level compatibility specs are also aspect-aware:
+- explicitly named aspect-producing source state
+- explicit aspect-filtered spec reads
+- explicit produced-aspect declaration on derived named definitions
+- targeted invalidation through the normal transaction model
 
-- `SourceSpec.producesAspects`
-- `KeyedSourceFamilySpec.producesAspects`
-- `RecipeSpec.producesAspects`
-- `KeyedRecipeFamilySpec.producesAspects`
-- `RecipeReadSpec` object reads can select `aspect` or `aspects`
-- `RecipeFamilyReadSpec` uses `aspects: { aspect?, aspects? }`
+## How It Relates To Other Features
 
-Compatibility writes and invalidation are also explicit:
+- Use callback-first authoring when ordinary dependency capture is enough.
+- Use `signals.spec.*` when you need explicit aspect-filtered read contracts.
+- Use the compatibility lane when you need lower-level structural aspect work.
+- Pair aspects with diagnostics when you need more precise version or
+  invalidation explanation.
 
-- `setKeyedWithAspects(...)`
-- `markChanged(...)`
-- `markChangedWithRegionsAndAspects(...)`
-- `markKeyedChanged(...)`
+## Observation And Debugging
 
-## Observation Model
+Observation is still node-scoped by default.
 
-Subscriptions remain node-scoped by default.
+That means:
 
-That is intentional.
+- `watch(...)` and `effect(...)` observe committed node truth
+- aspects influence whether derivation reruns
+- aspects do not automatically turn observation into per-aspect subscriptions
 
-The runtime uses aspects to decide whether downstream derivation should react.
-`watch(...)` and `effect(...)` still observe committed node truth, not
-individual aspect lanes.
+For version reporting, use the specialist surface:
 
-So the architectural split is:
+- `specialist().read_versions(...)`
 
-- aspects shape derivation and invalidation
-- node-level observation shapes delivery
-
-This keeps the default app model simple while still letting wasm use the real
-Forge Signal aspect substrate.
-
-## Version Reporting
-
-`specialist().read_versions(...)` now exposes both:
+That can expose both:
 
 - `version`
 - `aspectVersions`
 
-`version` preserves the default public summary lane.
-`aspectVersions` exposes per-aspect advancement for multi-aspect nodes.
+## Anti-Patterns
 
-## Practical Guidance
+- reaching for aspects when separate nodes would express the truth more clearly
+- expecting ambient callback closure reads to become aspect-aware automatically
+- assuming node-level observation becomes per-aspect observation by default
+- using the explicit spec lane when ordinary callback authoring is already
+  sufficient
 
-- Prefer callback-first authoring for ordinary app code.
-- Switch to `computedSpec(...)` or `outputSpec(...)` when you need explicit
-  aspect-filtered reads or produced-aspect declarations on derived nodes.
-- Callback tracking follows callable signal reads only. Ordinary closure
-  variables are not reactive dependencies.
-- If the distinction is part of app truth, model it with aspects or separate
-  nodes.
-- If the node is still one coherent public thing, keep `watch(...)` and
-  `effect(...)` node-scoped.
-- If you do nothing aspect-specific, wasm keeps the previous aspect `0`
-  behavior for backwards compatibility.
+## Current Limits
+
+- explicit aspect-filtered derived reads live on the named/spec or
+  compatibility lanes
+- ordinary callback-first app code still reads whole handles, not explicit
+  aspect contracts
+- if you omit aspect metadata, default aspect `0` remains the fallback
+
+## Related Docs
+
+- [app_surface_reference.md](./app_surface_reference.md)
+- [compatibility_surface_reference.md](./compatibility_surface_reference.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)

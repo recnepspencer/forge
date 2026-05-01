@@ -102,7 +102,11 @@ export function buildCompatibilityDefinition(
   const unavailableById = new Map(
     (definitionEnvelope?.unavailableCallbacks ?? []).map((artifact) => [artifact.id, artifact]),
   );
-  const pendingSignalIds = [...graphSummary.publishedOutputIds, ...graphSummary.inputSourceIds];
+  const pendingSignalIds = [
+    ...graphSummary.publishedOutputIds,
+    ...outputDescriptors.map((descriptor) => descriptor.sourceId),
+    ...graphSummary.inputSourceIds,
+  ];
   const pendingFamilyIds = [];
   const visitedSignalIds = new Set();
   const visitedFamilyIds = new Set();
@@ -262,6 +266,7 @@ export function buildGraphOperationalContractSurface(graphSummary, inputDescript
       inputName: descriptor.inputName,
       sourceId: descriptor.sourceId,
       authority,
+      requiredness: descriptor.requiredness,
       supportsWrite: writable,
       supportsPatch: patchable,
       supportsReset: writable,
@@ -352,7 +357,7 @@ export function buildGraphDependencyExplanationRecord(graphSummary, inputDescrip
   for (const descriptor of outputDescriptors) {
     const publicInputSourceIdSet = new Set();
     const transitiveSignalIds = [];
-    const pendingSignalIds = [descriptor.publishedId];
+    const pendingSignalIds = [descriptor.publishedId, descriptor.sourceId];
     const pendingFamilyIds = [];
     const seenSignalIds = new Set();
     const seenFamilyIds = new Set();
@@ -503,6 +508,7 @@ function compareInputDescriptors(previousDescriptors, currentDescriptors) {
     if (
       previous.sourceId !== descriptor.sourceId
       || previous.authority !== descriptor.authority
+      || previous.requiredness !== descriptor.requiredness
     ) {
       changes.push(freezeObject({
         inputName: descriptor.inputName,
@@ -510,6 +516,8 @@ function compareInputDescriptors(previousDescriptors, currentDescriptors) {
         currentSourceId: descriptor.sourceId,
         previousAuthority: previous.authority,
         currentAuthority: descriptor.authority,
+        previousRequiredness: previous.requiredness,
+        currentRequiredness: descriptor.requiredness,
       }));
     }
   }

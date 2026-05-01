@@ -1,7 +1,33 @@
 # Consuming forge-signal-wasm
 
-This guide shows how to install the public npm package, how to consume the
-local prepared package, and how to use the main entrypoints in real app code.
+## What This Guide Is
+
+This guide covers how to install, build, verify, and consume the public
+`forge-signal-wasm` package.
+
+Use this when you need the package entrypoints, local package workflow, or the
+smallest honest examples for the shipped surface.
+
+## Why You Use It
+
+- install the npm package cleanly
+- consume a locally prepared package during workspace development
+- understand the main callable surface before moving into the deeper reference
+  docs
+- verify that the tarball you are about to publish is internally consistent
+
+## Stable Entry Points
+
+- `createSignals(...)`
+- `createReactSignalsStore(...)`
+- `signals.spec.*`
+- `signals.graph(...)`
+- `signals.importGraph(...)`
+
+Package-preparation and proof entrypoints:
+
+- `scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish`
+- `scripts/wasm/verify-forge-signal-wasm-package.mjs`
 
 ## Install Shapes
 
@@ -25,32 +51,16 @@ Build from the Forge workspace root:
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 ```
 
-Then prepare the package. Public npm example:
+Prepare the package:
 
 ```powershell
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-The prepare script now defaults to the public package lane:
-
-- package name: `forge-signal-wasm`
-- registry: `https://registry.npmjs.org`
-- access: `public`
-- notice mode: `none`
-
-Then run the release-proof verifier:
+Verify the package:
 
 ```powershell
 node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
-```
-
-Private scoped example:
-
-```powershell
-$env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
-$env:FORGE_SIGNAL_WASM_REGISTRY='https://npm.pkg.github.com'
-$env:FORGE_SIGNAL_WASM_NOTICE_MODE='proprietary'
-node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
 Then consume the local folder:
@@ -65,7 +75,7 @@ Then consume the local folder:
 
 ## Public Publish Flow
 
-Once the package is built and prepared, the honest publish lane is:
+The honest release lane is:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
@@ -75,46 +85,28 @@ cd crates/forge-signal-wasm/pkg
 npm publish --access public
 ```
 
-The verifier is not optional ceremony. It is the mechanical proof that the
-prepared tarball contains the files the public entrypoints actually reference,
-and that a clean consumer can import and type-check the package.
-
-### One-command release gate
-
-Use the publish helper when you want one command that rebuilds, prepares, and
-verifies the public package without actually publishing yet:
+Or use the one-command release gate:
 
 ```powershell
 scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 ```
 
-That command now defaults to the public package lane:
+Good to know:
 
-- package name: `forge-signal-wasm`
-- registry: `https://registry.npmjs.org`
-- access: `public`
-- notice mode: `none`
+- the verifier is not optional ceremony
+- it proves the prepared tarball contains the files the public entrypoints
+  actually reference
+- it also proves a clean consumer can import and type-check the package
 
-If you need a private/scoped lane, pass explicit overrides such as `-Scope`,
-`-Registry`, `-Access`, and `-NoticeMode`.
+## Core Imports
 
-If you pass `-Scope` without `-PackageName`, the helper now intentionally falls
-back to the scoped naming pattern:
+### Main callable surface
 
-```powershell
-scripts/wasm/publish-forge-signal-wasm.ps1 `
-  -Scope aust-group `
-  -Registry https://npm.pkg.github.com `
-  -NoticeMode proprietary `
-  -SkipPublish
+```ts
+import { createSignals } from "forge-signal-wasm";
 ```
 
-That produces `@aust-group/forge-signal-wasm` instead of silently staying on
-the public unscoped package name.
-
-## Import Surface
-
-### Core runtime
+### Host capability helpers
 
 ```ts
 import {
@@ -135,15 +127,17 @@ import {
 } from "forge-signal-wasm/react";
 ```
 
-## Simple App Example
+## Small Example
+
+This is the smallest honest example for the current app lane:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
 
 signals.transaction((tx) => {
   tx.set(count, 2);
@@ -152,399 +146,176 @@ signals.transaction((tx) => {
 console.log(doubled());
 ```
 
-## More Complete App Example
+Why this is the smallest honest example:
+
+- it uses handle-based local authoring
+- it does not rely on explicit ids
+- it still shows the real runtime mutation path
+
+## Real Example
+
+This is a more realistic consumer shape that uses local state, linked state,
+controller composition, and graph publication:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const enabled = signals.input(true, { id: "enabled" });
-const name = signals.input("Ada", { id: "name" });
-const count = signals.input(1, { id: "count" });
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed, linked }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+      workflowTargetStateId: "ready",
+    });
 
-const label = signals.computed(() => {
-  return enabled() ? `${name()} x${count()}` : "disabled";
-}, { id: "label" });
+    const draft = input({});
 
-const panel = signals.output(() => ({
-  enabled: enabled(),
-  name: name(),
-  count: count(),
-  label: label(),
-}), { id: "panel" });
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
 
-const watchHandle = signals.watch(panel, (notice) => {
-  console.log("panel changed", notice);
-});
+    const selectedWorkflowTarget = linked({
+      source: () => [
+        { id: "draft", label: "Draft" },
+        { id: "ready", label: "Ready" },
+      ],
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0]
+      ),
+    });
 
-signals.transaction((tx) => {
-  tx.set(count, 3);
-});
-
-console.log(panel());
-signals.nuke(watchHandle);
-```
-
-The canonical app-authoring grammar is:
-
-- `input(value, { id })`
-- `computed(() => ..., { id })`
-- `output(() => ..., { id })`
-
-This is safe for scalar and object values alike, including string-valued inputs
-such as `signals.input("Ada", { id: "name" })`.
-
-## Controller Composition Example
-
-Simple:
-
-```ts
-import { createSignals } from "forge-signal-wasm";
-
-const counterGraph = createSignals().graph("counter", (graph) => {
-  const counter = graph.scope("counter");
-  const count = counter.input(1, { id: "count" });
-  const doubled = counter.computed(() => count() * 2, { id: "doubled" });
-
-  return graph.expose({
-    controllers: [
-      counter.controller({
-        inputs: { count },
-        outputs: { doubled },
-      }),
-    ],
-    outputs: {
-      count,
-    },
-  });
-});
-
-console.log(counterGraph.read());
-```
-
-When a controller needs to publish an input without making it graph-writable,
-use `publicInput(...)`:
-
-```ts
-return form.controller({
-  inputs: {
-    serverValue: form.publicInput(serverValue, { authority: "readOnly" }),
-    externalParams: form.publicInput(externalParams, { authority: "imported" }),
-    draftValue: form.publicInput(draftValue),
-  },
-  outputs: {
-    effectiveValue,
-  },
-});
-```
-
-`writable` remains the default authority. `readOnly` and `imported` still show
-up in `graph.contract()`, `graph.operationalContract()`,
-`graph.inspectDiagnostics()`, and `graph.inspectHistory()`, but graph-native
-mutation helpers deny writes, patches, resets, and transaction sets against
-them.
-
-Repeated controller families should stay graph-owned too.
-
-Page plus modal copy:
-
-```ts
-const itemWorkspaceGraph = createSignals().graph("itemWorkspace", (graph) => {
-  const page = createEditSessionController(graph.scope("page"));
-  const modal = createEditSessionController(graph.scope("modal"));
-
-  return graph.expose({
-    inputs: {
-      pageServerItemData: page.inputs.serverItemData,
-      modalServerItemData: modal.inputs.serverItemData,
-    },
-    outputs: {
-      pageEffectiveItemData: page.outputs.effectiveItemData,
-      modalEffectiveItemData: modal.outputs.effectiveItemData,
-    },
-  });
-});
-```
-
-Repeated row-level editors:
-
-```ts
-const rowEditorsGraph = createSignals().graph("rowEditors", (graph) => {
-  const row0 = createEditSessionController(graph.scope("row-0"));
-  const row1 = createEditSessionController(graph.scope("row-1"));
-
-  return graph.expose({
-    outputs: {
-      row0EffectiveItemData: row0.outputs.effectiveItemData,
-      row1EffectiveItemData: row1.outputs.effectiveItemData,
-    },
-  });
-});
-```
-
-Complex:
-
-```ts
-import {
-  createSignals,
-  type ComputedSignalHandle,
-  type InputSignalHandle,
-  type SignalNamespace,
-} from "forge-signal-wasm";
-
-type ItemServerData = {
-  id: string;
-  name: string;
-  workflow_target_state_id?: string | null;
-};
-
-type ItemDraftEdits = Partial<Pick<
-  ItemServerData,
-  "name" | "workflow_target_state_id"
->>;
-
-type EditSessionController = {
-  inputs: {
-    serverItemData: InputSignalHandle<ItemServerData | null>;
-    draftEdits: InputSignalHandle<ItemDraftEdits>;
-  };
-  outputs: {
-    effectiveItemData: ComputedSignalHandle<ItemServerData>;
-    dirtyState: ComputedSignalHandle<{ isDirty: boolean }>;
-  };
-  internal: Record<string, never>;
-};
-
-function createEditSessionController(
-  signals: SignalNamespace,
-): EditSessionController {
-  const serverItemData = signals.input<ItemServerData | null>(null, {
-    id: "serverItemData",
-  });
-  const draftEdits = signals.input<ItemDraftEdits>({}, {
-    id: "draftEdits",
-  });
-
-  const effectiveItemData = signals.computed(() => ({
-    ...(serverItemData() ?? {}),
-    ...draftEdits(),
-  }), { id: "effectiveItemData" });
-
-  const dirtyState = signals.computed(() => ({
-    isDirty: Object.keys(draftEdits()).length > 0,
-  }), { id: "dirtyState" });
-
-  return signals.controller({
-    inputs: {
-      serverItemData,
-      draftEdits,
-    },
-    outputs: {
-      effectiveItemData,
-      dirtyState,
-    },
-  });
-}
-
-type WorkflowController = {
-  inputs: Record<string, never>;
-  outputs: {
-    submitReadiness: ComputedSignalHandle<{
-      enabled: boolean;
-      targetStateId: string | null;
-    }>;
-  };
-  internal: Record<string, never>;
-};
-
-function createWorkflowController(
-  signals: SignalNamespace,
-  editSession: EditSessionController,
-): WorkflowController {
-  const submitReadiness = signals.computed(() => {
-    const item = editSession.outputs.effectiveItemData();
-    const dirty = editSession.outputs.dirtyState();
+    const dirtyState = computed(() => Object.keys(draft()).length > 0);
 
     return {
-      enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
-      targetStateId: item.workflow_target_state_id ?? null,
+      inputs: { serverItem, draft, selectedWorkflowTarget },
+      outputs: { effectiveItem, dirtyState },
     };
-  }, { id: "submitReadiness" });
-
-  return signals.controller({
-    outputs: {
-      submitReadiness,
-    },
   });
-}
-
-const itemDetailGraph = createSignals().graph("itemDetail", (graph) => {
-  const editSession = createEditSessionController(graph.scope("editSession"));
-  const workflow = createWorkflowController(graph.scope("workflow"), editSession);
 
   return graph.expose({
-    controllers: [editSession, workflow],
+    inputs: {
+      serverItem: graph.input.required(editor.inputs.serverItem, {
+        authority: "readOnly",
+      }),
+      draft: graph.input.optional(editor.inputs.draft),
+      selectedWorkflowTarget: graph.input.optional(
+        editor.inputs.selectedWorkflowTarget,
+      ),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
   });
 });
 
-console.log(itemDetailGraph.contract().inputs.serverItemData);
-console.log(itemDetailGraph.inspectDiagnostics().inputs.serverItemData.why);
-console.log(itemDetailGraph.inspectDiagnostics().outputs.submitReadiness.why);
-console.log(itemDetailGraph.importPosture());
-const exported = itemDetailGraph.exportDefinition();
-const snapshot = itemDetailGraph.exportSnapshot();
-const restored = createSignals().importGraph(exported, snapshot);
-console.log(restored.contractHistory());
-```
-
-`graph.scope(...)` owns the canonical runtime prefixing for normal app code.
-Keep manual string-prefixing only as a compatibility bridge for older
-controllers. `signals.controller(...)` / `scope.controller(...)` defines the
-controller contract, and `graph.expose({ controllers })` composes those
-contracts into the public graph boundary. The graph `inputs` and `outputs`
-keys are the public contract names you choose to expose, while controller
-`internal` entries stay private unless deliberately re-exposed.
-
-## Host Capability Example
-
-Host capability is the typed lane for browser/runtime-local facts. Register
-families when the runtime is created, then read them through `signals.host.*`.
-
-```ts
-import {
-  createSignals,
-  hostCapabilityPlan,
-  onlineCapability,
-  visibilityCapability,
-} from "forge-signal-wasm";
-
-const signals = createSignals({
-  hostCapabilities: hostCapabilityPlan({
-    visibility: visibilityCapability({
-      source: {
-        current() {
-          return document.visibilityState;
-        },
-        subscribe(listener) {
-          document.addEventListener("visibilitychange", listener);
-          return () => document.removeEventListener("visibilitychange", listener);
-        },
-      },
-      compatibility: "LiveOnly",
-    }),
-    online: onlineCapability({
-      source: {
-        current() {
-          return navigator.onLine ? "online" : "offline";
-        },
-        subscribe(listener) {
-          window.addEventListener("online", listener);
-          window.addEventListener("offline", listener);
-          return () => {
-            window.removeEventListener("online", listener);
-            window.removeEventListener("offline", listener);
-          };
-        },
-      },
-    }),
-  }),
+itemWorkspace.patchInput("draft", {
+  title: "Ready to ship",
 });
 
-const availability = signals.computed(() => (
-  signals.host.visibility.isVisible() && signals.host.online.isOnline()
-    ? "ready"
-    : "paused"
-), { id: "availability" });
+console.log(itemWorkspace.read());
 ```
 
-Use this lane instead of reading `document.visibilityState` or
-`navigator.onLine` directly inside callbacks. Ambient closure reads are not
-tracked dependencies.
+## Main Lane vs Explicit Named Lane
 
-## Diagnostics Example
+The normal app lane is:
 
-Simple:
+- `signals.input(value)`
+- `signals.computed(() => ...)`
+- `signals.output(() => ...)`
+
+The explicit named lane is:
+
+- `signals.spec.input("name", value)`
+- `signals.spec.computedCallback("name", () => ...)`
+- `signals.spec.outputCallback("name", () => ...)`
+
+Use the app lane for ordinary application code. Use `signals.spec` when you
+need structural names because names are part of the contract.
+
+Add `debugName` only when you want friendlier diagnostics or clearer inspection
+output. It is optional metadata, not part of local identity.
+
+## Graph Boundaries
+
+When you publish a graph, that is where explicit public names become real:
 
 ```ts
-const why = signals.diagnostics().why("label");
-console.log(why.callback?.currentReads);
-```
-
-Complex:
-
-```ts
-const diagnostics = signals.diagnostics();
-const perf = diagnostics.performanceSummary();
-const latestObservation = diagnostics.latestObservation();
-const latestFlow = diagnostics.latestFlow();
-
-console.log({
-  deliveries: latestObservation?.observation.delivered_event_count,
-  callbackCaptures: perf.computeCallbackCaptureCount,
-  dependencyPatches: perf.computeCallbackDependencyPatchCount,
-  callbackNodes: latestFlow?.callbackNodes.map((node) => node.id) ?? [],
+const graph = signals.graph("counter", {
+  inputs: {
+    count,
+  },
+  outputs: {
+    doubled,
+  },
 });
 ```
 
-## React Example
+Graph inputs can also carry public input posture:
 
-```tsx
-import { createSignals } from "forge-signal-wasm";
-import {
-  createReactSignalsStore,
-  useOutputValue,
-  useSignalValue,
-  useSignalsDiagnostics,
-} from "forge-signal-wasm/react";
-
-const signals = createSignals();
-const store = createReactSignalsStore(signals);
-
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
-const panel = signals.output(() => ({
-  count: count(),
-  doubled: doubled(),
-}), { id: "panel" });
-
-function Counter() {
-  const countValue = useSignalValue<number>(count, store);
-  const doubledValue = useSignalValue<number>(doubled, store);
-  const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
-  const diagnostics = useSignalsDiagnostics(store);
-
-  return { countValue, doubledValue, panelValue, diagnostics };
-}
+```ts
+graph.expose({
+  inputs: {
+    serverItem: graph.input.required(editor.inputs.serverItem, {
+      authority: "readOnly",
+    }),
+    draft: graph.input.optional(editor.inputs.draft),
+  },
+  outputs: {
+    effectiveItem: editor.outputs.effectiveItem,
+  },
+});
 ```
 
-## Practical Notes
+That is where:
 
-- Prefer callback-first `computed(() => ...)` for ordinary app code.
-- Prefer callback-first `output(() => ...)` for ordinary public projections.
-- Prefer controller-first authoring plus `signals.graph(...)` for feature-level
-  composition instead of giant node registries.
-- Prefer graph-owned `graph.scope(...)` for repeated feature instances when you
-  are publishing a named graph; keep `signals.scope(...)` as the lower-level
-  bridge when you are not inside graph construction yet.
-- Callback tracking follows callable signal reads only. Ordinary closure
-  variables are not reactive dependencies.
-- Prefer `signals.input(value, { id })` when you want the family to read with
-  one coherent authoring grammar, including string-valued inputs.
-- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
-  authoring.
-- Keep compatibility/runtime surfaces for expert or migration scenarios rather
-  than the default product lane.
-- Keep `adapters().exportRuntimeEnvelope()` /
-  `adapters().replaceRuntimeEnvelope(...)` as the expert rebuild/import lane
-  rather than part of the normal app happy path.
-- Runtime-envelope import denies callback-backed nodes that do not have live
-  callback registrations available in the receiving runtime.
-- The React adapter consumes runtime truth; it does not recalculate derived
-  values locally.
+- required vs optional becomes explicit
+- authority classes become explicit
+- public contract names become explicit
+
+## Mutation Helpers
+
+Local input helpers:
+
+```ts
+draft.patch({ done: true });
+draft.assign({ title: "Ready to ship" });
+draft.reset();
+```
+
+Graph boundary helpers:
+
+```ts
+graph.writeInput("draft", { title: "Queued" });
+graph.patchInput("draft", { reviewer: "Avery" });
+graph.resetInput("draft");
+```
+
+These helpers still lower through the same runtime mutation model as
+`transaction(...)`.
+
+## Import And Restore
+
+Published graphs can export exact same-runtime restore artifacts:
+
+```ts
+const definition = graph.exportDefinition();
+const snapshot = graph.exportSnapshot();
+const restoredGraph = signals.importGraph(definition, snapshot);
+```
+
+Good to know:
+
+- this is an exact graph-restore lane
+- portable graph import is still denied on this surface
+- `importPosture()` tells you the admitted restore posture directly
 
 ## What To Read Next
 
-- [app_surface_reference.md](app_surface_reference.md)
-- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
-- [react_adapter_reference.md](react_adapter_reference.md)
+- [app_surface_reference.md](./app_surface_reference.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)

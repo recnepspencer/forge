@@ -30,6 +30,7 @@ const typesDirPath = path.resolve("crates/forge-signal-wasm/package/types");
 const readmePath = path.resolve("crates/forge-signal-wasm/README.md");
 const licensePath = path.resolve("crates/forge-signal-wasm/LICENSE");
 const docsDirPath = path.resolve("crates/forge-signal-wasm/docs");
+const cargoManifestPath = path.resolve("crates/forge-signal-wasm/Cargo.toml");
 const reactTypeDeclarationsPath = path.resolve(
   "crates/forge-signal-wasm/react/index.d.ts",
 );
@@ -40,6 +41,14 @@ const reactTscBinaryPath = path.resolve(
 );
 const packageJsonPath = path.join(pkgDir, "package.json");
 const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
+const cargoManifest = await readFile(cargoManifestPath, "utf8");
+const crateVersionMatch = cargoManifest.match(/^version\s*=\s*"([^"]+)"\s*$/mu);
+
+if (!crateVersionMatch) {
+  throw new Error(`Could not determine forge-signal-wasm version from ${cargoManifestPath}`);
+}
+
+const crateVersion = crateVersionMatch[1];
 
 async function copyDirectoryRecursive(sourceDir, destinationDir) {
   await mkdir(destinationDir, { recursive: true });
@@ -132,6 +141,7 @@ async function compileReactEntryPoints() {
 
 packageJson.name = packageNameOverride
   ?? (normalizedScope ? `@${normalizedScope}/forge-signal-wasm` : "forge-signal-wasm");
+packageJson.version = crateVersion;
 packageJson.license = "UNLICENSED";
 packageJson.repository = {
   type: "git",

@@ -3,8 +3,33 @@ import {
   denySignalMutationDuringCallbackAuthoring,
 } from "./callback_frames.js";
 import { buildHostCapabilityTransportReport } from "./host_capability_reports.js";
-import { unwrapInputSignalTarget } from "./handles.js";
+import {
+  notifyInputSignalWrite,
+  requireProductSignalHandle,
+  unwrapInputSignalTarget,
+} from "./handles.js";
 import { RAW_SIGNAL_HANDLE } from "./symbols.js";
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPatchableSignalValue(value) {
+  return isPlainObject(value) || Array.isArray(value);
+}
+
+function mergePatchValue(currentValue, patchValue, operation) {
+  if (!isPatchableSignalValue(currentValue) || !isPatchableSignalValue(patchValue)) {
+    throw new TypeError(`${operation} requires object or array values`);
+  }
+  if (Array.isArray(currentValue) || Array.isArray(patchValue)) {
+    return patchValue;
+  }
+  return {
+    ...currentValue,
+    ...patchValue,
+  };
+}
 
 function attachSerializedField(value, field, serialized) {
   if (!value || typeof value !== "object" || typeof serialized !== "string") {
@@ -49,43 +74,91 @@ function throwPortableImportUnavailableCallbacks(envelope, hostCapabilities) {
 }
 
 export function wrapTransaction(rawTx, rawSignals) {
+  const stagedValues = new Map();
+
+  function readCurrentValue(rawInput, handle) {
+    return stagedValues.has(rawInput) ? stagedValues.get(rawInput) : handle.get();
+  }
+
+  function rememberStagedValue(rawInput, nextValue) {
+    stagedValues.set(rawInput, nextValue);
+  }
+
   return Object.freeze({
     set(input, value) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.set(unwrapInputSignalTarget(input, rawSignals, "transaction.set"), value);
+      const rawInput = unwrapInputSignalTarget(input, rawSignals, "transaction.set");
+      rawTx.set(rawInput, value);
+      rememberStagedValue(rawInput, value);
+      if (typeof input !== "string") {
+        notifyInputSignalWrite(
+          requireProductSignalHandle(input, rawSignals, "transaction.set"),
+          value,
+        );
+      }
     },
     setWithAspects(input, value, aspects) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithAspects(
-        unwrapInputSignalTarget(input, rawSignals, "transaction.setWithAspects"),
-        value,
-        aspects,
-      );
+      const rawInput = unwrapInputSignalTarget(input, rawSignals, "transaction.setWithAspects");
+      rawTx.setWithAspects(rawInput, value, aspects);
+      rememberStagedValue(rawInput, value);
+      if (typeof input !== "string") {
+        notifyInputSignalWrite(
+          requireProductSignalHandle(input, rawSignals, "transaction.setWithAspects"),
+          value,
+        );
+      }
     },
     setWithRegions(input, value, changedRegions) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithRegions(
-        unwrapInputSignalTarget(input, rawSignals, "transaction.setWithRegions"),
-        value,
-        changedRegions,
-      );
+      const rawInput = unwrapInputSignalTarget(input, rawSignals, "transaction.setWithRegions");
+      rawTx.setWithRegions(rawInput, value, changedRegions);
+      rememberStagedValue(rawInput, value);
+      if (typeof input !== "string") {
+        notifyInputSignalWrite(
+          requireProductSignalHandle(input, rawSignals, "transaction.setWithRegions"),
+          value,
+        );
+      }
     },
     setWithRegionsAndAspects(input, value, changedRegions, aspects) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithRegionsAndAspects(
-        unwrapInputSignalTarget(input, rawSignals, "transaction.setWithRegionsAndAspects"),
-        value,
-        changedRegions,
-        aspects,
+      const rawInput = unwrapInputSignalTarget(
+        input,
+        rawSignals,
+        "transaction.setWithRegionsAndAspects",
       );
+      rawTx.setWithRegionsAndAspects(rawInput, value, changedRegions, aspects);
+      rememberStagedValue(rawInput, value);
+      if (typeof input !== "string") {
+        notifyInputSignalWrite(
+          requireProductSignalHandle(input, rawSignals, "transaction.setWithRegionsAndAspects"),
+          value,
+        );
+      }
+    },
+    patch(input, patchValue) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      const handle = requireProductSignalHandle(input, rawSignals, "transaction.patch");
+      const rawInput = unwrapInputSignalTarget(input, rawSignals, "transaction.patch");
+      const nextValue = mergePatchValue(
+        readCurrentValue(rawInput, handle),
+        patchValue,
+        "transaction.patch(...)",
+      );
+      rawTx.set(rawInput, nextValue);
+      rememberStagedValue(rawInput, nextValue);
+      notifyInputSignalWrite(handle, nextValue);
     },
     free() {
       rawTx.free();
@@ -130,10 +203,28 @@ function requireGraphInputWritable(authorities, graphId, inputName, operation) {
   }
 }
 
+function requireGraphInputPatchable(authorities, graphId, inputName, operation) {
+  const authority = authorities[inputName];
+  if (!authority?.supportsPatch) {
+    throw new TypeError(
+      `${operation} cannot patch public input \`${inputName}\` from graph \`${graphId}\` because its authority is \`${authority?.authority ?? "unknown"}\``,
+    );
+  }
+}
+
 export function wrapGraphTransaction(rawTx, rawSignals, graphId, publishedInputs, authorities) {
   const publishedInputHandleSet = new Set(Object.values(publishedInputs));
+  const stagedValues = new Map();
 
-  function resolve(inputOrName, operation) {
+  function readCurrentValue(rawInput, handle) {
+    return stagedValues.has(rawInput) ? stagedValues.get(rawInput) : handle.get();
+  }
+
+  function rememberStagedValue(rawInput, nextValue) {
+    stagedValues.set(rawInput, nextValue);
+  }
+
+  function resolve(inputOrName, operation, capability = "write") {
     const rawInput = requirePublishedGraphInput(
       inputOrName,
       publishedInputs,
@@ -146,9 +237,16 @@ export function wrapGraphTransaction(rawTx, rawSignals, graphId, publishedInputs
       ? inputOrName
       : Object.entries(publishedInputs).find(([, handle]) => handle === inputOrName)?.[0];
     if (typeof inputName === "string") {
-      requireGraphInputWritable(authorities, graphId, inputName, operation);
+      if (capability === "patch") {
+        requireGraphInputPatchable(authorities, graphId, inputName, operation);
+      } else {
+        requireGraphInputWritable(authorities, graphId, inputName, operation);
+      }
     }
-    return rawInput;
+    const handle = typeof inputOrName === "string"
+      ? publishedInputs[inputName]
+      : requireProductSignalHandle(inputOrName, rawSignals, operation);
+    return { rawInput, handle };
   }
 
   return Object.freeze({
@@ -156,38 +254,57 @@ export function wrapGraphTransaction(rawTx, rawSignals, graphId, publishedInputs
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.set(resolve(inputOrName, "graph.transaction.set"), value);
+      const { rawInput, handle } = resolve(inputOrName, "graph.transaction.set");
+      rawTx.set(rawInput, value);
+      rememberStagedValue(rawInput, value);
+      notifyInputSignalWrite(handle, value);
     },
     setWithAspects(inputOrName, value, aspects) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithAspects(
-        resolve(inputOrName, "graph.transaction.setWithAspects"),
-        value,
-        aspects,
-      );
+      const { rawInput, handle } = resolve(inputOrName, "graph.transaction.setWithAspects");
+      rawTx.setWithAspects(rawInput, value, aspects);
+      rememberStagedValue(rawInput, value);
+      notifyInputSignalWrite(handle, value);
     },
     setWithRegions(inputOrName, value, changedRegions) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithRegions(
-        resolve(inputOrName, "graph.transaction.setWithRegions"),
-        value,
-        changedRegions,
-      );
+      const { rawInput, handle } = resolve(inputOrName, "graph.transaction.setWithRegions");
+      rawTx.setWithRegions(rawInput, value, changedRegions);
+      rememberStagedValue(rawInput, value);
+      notifyInputSignalWrite(handle, value);
     },
     setWithRegionsAndAspects(inputOrName, value, changedRegions, aspects) {
       if (activeComputedCallbackFrame()) {
         denySignalMutationDuringCallbackAuthoring();
       }
-      rawTx.setWithRegionsAndAspects(
-        resolve(inputOrName, "graph.transaction.setWithRegionsAndAspects"),
-        value,
-        changedRegions,
-        aspects,
+      const { rawInput, handle } = resolve(
+        inputOrName,
+        "graph.transaction.setWithRegionsAndAspects",
       );
+      rawTx.setWithRegionsAndAspects(rawInput, value, changedRegions, aspects);
+      rememberStagedValue(rawInput, value);
+      notifyInputSignalWrite(handle, value);
+    },
+    patch(inputOrName, patchValue) {
+      if (activeComputedCallbackFrame()) {
+        denySignalMutationDuringCallbackAuthoring();
+      }
+      const { rawInput, handle } = resolve(inputOrName, "graph.transaction.patch", "patch");
+      const inputName = typeof inputOrName === "string"
+        ? inputOrName
+        : Object.entries(publishedInputs).find(([, publishedHandle]) => publishedHandle === inputOrName)?.[0];
+      const nextValue = mergePatchValue(
+        readCurrentValue(rawInput, handle),
+        patchValue,
+        "graph.transaction.patch(...)",
+      );
+      rawTx.set(rawInput, nextValue);
+      rememberStagedValue(rawInput, nextValue);
+      notifyInputSignalWrite(handle, nextValue);
     },
     free() {
       rawTx.free();

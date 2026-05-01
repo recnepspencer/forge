@@ -9,3 +9,5 @@ export const GRAPH_EXPOSURE = Symbol("forgeSignal.graphExposure");
 export const CONTROLLER_CONTRACT = Symbol("forgeSignal.controllerContract");
 export const INPUT_BASELINE_VALUE = Symbol("forgeSignal.inputBaselineValue");
 export const PUBLIC_GRAPH_INPUT = Symbol("forgeSignal.publicGraphInput");
+export const DEBUG_NAME = Symbol("forgeSignal.debugName");
+export const PRIVATE_AUTHORING_ID = Symbol("forgeSignal.privateAuthoringId");

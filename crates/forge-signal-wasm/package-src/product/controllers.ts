@@ -1,5 +1,6 @@
+import { createLinkedSignal } from "./linked.js";
 import { isPublicGraphInputEntry } from "./public_inputs.js";
-import { CONTROLLER_CONTRACT, PRODUCT_SIGNAL_KIND } from "./symbols.js";
+import { CONTROLLER_CONTRACT, PRODUCT_SIGNAL_KIND, RAW_SIGNALS } from "./symbols.js";
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -85,6 +86,62 @@ function requireControllerInternalRecord(record) {
 
 export function isControllerContract(candidate) {
   return isPlainObject(candidate) && candidate[CONTROLLER_CONTRACT] === true;
+}
+
+function isControllerBuilder(candidate) {
+  return typeof candidate === "function";
+}
+
+function createControllerAuthoringSurface(namespace, buildController, rawSignals) {
+  const surface = {
+    host: namespace.host,
+    spec: namespace.spec,
+    scope(localScopeId) {
+      return createControllerAuthoringSurface(namespace.scope(localScopeId), buildController, rawSignals);
+    },
+    controller(definitionOrBuilder) {
+      return buildController(namespace, definitionOrBuilder, rawSignals);
+    },
+    publicInput(handle, options) {
+      return namespace.publicInput(handle, options);
+    },
+    input(...args) {
+      return namespace.input(...args);
+    },
+    linked(...args) {
+      return createLinkedSignal(namespace, rawSignals, ...args);
+    },
+    computedSpec(...args) {
+      return namespace.computedSpec(...args);
+    },
+    computed(...args) {
+      return namespace.computed(...args);
+    },
+    outputSpec(...args) {
+      return namespace.outputSpec(...args);
+    },
+    output(...args) {
+      return namespace.output(...args);
+    },
+    outputCallback(...args) {
+      return namespace.outputCallback(...args);
+    },
+  };
+  return Object.freeze(surface);
+}
+
+export function buildControllerContract(namespace, definitionOrBuilder) {
+  if (isControllerBuilder(definitionOrBuilder)) {
+    const rawSignals = namespace?.[RAW_SIGNALS];
+    const authoringSurface = createControllerAuthoringSurface(
+      namespace,
+      buildControllerContract,
+      rawSignals,
+    );
+    const builtDefinition = definitionOrBuilder(authoringSurface);
+    return createControllerContract(builtDefinition);
+  }
+  return createControllerContract(definitionOrBuilder);
 }
 
 export function createControllerContract(definition) {

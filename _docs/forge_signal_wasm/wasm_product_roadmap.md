@@ -113,8 +113,9 @@ The intended dependency order is:
 2. wasm product work adds host capability
 3. wasm product work adds controller-first composition and graph publication
 4. wasm product work adds scoped controller identity and graph-owned lifecycle
-5. wasm product work adds forms
-6. wasm product work adds API resources / query replacement
+5. wasm product work adds opaque identity and ergonomic authoring
+6. wasm product work adds forms
+7. wasm product work adds API resources / query replacement
 
 That order is normative for this roadmap.
 
@@ -346,7 +347,72 @@ This milestone is complete only when the package can prove:
 - graph-native export/import and restore surfaces preserve public contract truth
 - forms/resources no longer need to invent their own scope or lifecycle model
 
-## Milestone 4: Forms Product Surface
+## Milestone 4: Opaque Identity And Ergonomic Authoring
+
+Engineering spec:
+[opaque_identity_and_ergonomic_authoring_plan.md](./opaque_identity_and_ergonomic_authoring_plan.md)
+
+### Goal
+
+Keep the current runtime, graph, controller, diagnostics, and restore
+capabilities intact while making the main app-authoring lane materially easier,
+especially for CRUD-scale application code.
+
+### Must Ship
+
+- runtime-owned opaque internal signal identity on the main lane
+- optional debug names that are explicitly non-authoritative
+- debug names restricted to readability and diagnostics search rather than globally
+  addressable identity
+- id-less `input`, `computed`, and `output` authoring on the main lane
+- removal of authored string-id requirements from the normal app lane
+- lighter controller and graph authoring on top of the current substrate
+- lighter mutation ergonomics that still lower to the same canonical mutation
+  envelope
+- required and optional public input contract forms at graph boundaries
+- a linked writable derived-state primitive for dependent writable state
+- diagnostics/export/import parity between ergonomic and explicit authoring
+
+### Must Preserve
+
+- graph/public/export naming truth remains explicit
+- portable/spec lanes remain explicitly named where portability requires it
+- controller and graph ownership boundaries remain real
+- we do not preserve the current main-lane authored-id ergonomics merely for
+  backward compatibility if they obstruct the cleaner architecture
+- this milestone must not become the forms product under another name
+
+### Explicit Boundary
+
+Milestone 4 includes opaque internal identity, lighter authoring, lighter
+mutation ergonomics, stronger public input contracts, linked writable derived
+state on top of the current graph/controller/runtime substrate.
+
+Milestone 4 does not include a docs-journey overhaul as its primary scope, and
+it does not include the full forms product.
+
+### Acceptance Evidence
+
+This milestone is complete only when the package can prove:
+
+ - direct opaque authoring, controller-composed opaque authoring, and
+  graph-published opaque authoring converge to the same committed truth
+- public graph contracts remain explicit and export/import-honest
+- duplicated debug names do not become identity collisions
+- debug names never become the globally queryable string for authored app-lane
+  signals
+- required and optional public input contracts remain distinct and honest
+- linked writable derived state remains a consumer of runtime truth instead of
+  becoming a second source of authority
+
+Why it belongs here:
+
+- it comes after graph-owned lifecycle because that ownership model is the
+  substrate it simplifies
+- it comes before forms/resources because those later surfaces should inherit a
+  better ergonomic foundation rather than compensating for current ceremony
+
+## Milestone 5: Forms Product Surface
 
 ### Goal
 
@@ -374,10 +440,10 @@ async, and host-capability truth.
 
 ### Explicit Boundary
 
-Milestone 4 includes humane forms authoring, validation, readiness, draft
+Milestone 5 includes humane forms authoring, validation, readiness, draft
 state, and submission lifecycle on top of the completed runtime substrate.
 
-Milestone 4 does not include treating local component state as the authority
+Milestone 5 does not include treating local component state as the authority
 for form lifecycle, inventing a separate async submission state machine, or
 letting browser-local conditions bypass the typed host-capability lane.
 
@@ -393,7 +459,7 @@ This milestone is complete only when the wasm product surface can prove:
 - the package examples teach a forms story that does not require tribal
   knowledge
 
-## Milestone 5: API Resource And Query-Replacement Surface
+## Milestone 6: API Resource And Query-Replacement Surface
 
 ### Goal
 
@@ -422,11 +488,11 @@ callback, temporal, async, and host-capability semantics.
 
 ### Explicit Boundary
 
-Milestone 5 includes query-replacement-grade resource authoring, freshness,
+Milestone 6 includes query-replacement-grade resource authoring, freshness,
 retry/revalidation semantics, and diagnostics-rich resource state on top of the
 completed substrate.
 
-Milestone 5 does not include turning resources into the semantic owner of
+Milestone 6 does not include turning resources into the semantic owner of
 host-derived facts, async policy, or freshness meaning for the rest of the
 package. Resources must inherit those semantics rather than define them.
 

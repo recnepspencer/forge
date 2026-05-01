@@ -1,5 +1,9 @@
 import type { RunSummary, SignalValue, VersionSummary, AspectId } from "./model.js";
-import type { ControllerContract, ControllerContractDefinition } from "./controller_surface.js";
+import type {
+  ControllerContract,
+  ControllerContractBuilder,
+  ControllerContractDefinition,
+} from "./controller_surface.js";
 import type {
   ExecutionHistorySummary,
   ExecutionHistorySurfaceSummary,
@@ -21,8 +25,14 @@ export type GraphInputHandle<T = SignalValue> =
   import("./callable_surface.js").InputSignalHandle<T>;
 
 export type GraphPublicInputAuthority = "writable" | "readOnly" | "imported";
+export type GraphPublicInputRequiredness = "required" | "optional";
 
 export interface PublicGraphInputOptions {
+  authority?: GraphPublicInputAuthority;
+  requiredness?: GraphPublicInputRequiredness;
+}
+
+export interface GraphBoundaryInputOptions {
   authority?: GraphPublicInputAuthority;
 }
 
@@ -31,6 +41,7 @@ export interface PublicGraphInputContractEntry<
 > {
   handle: THandle;
   authority: GraphPublicInputAuthority;
+  requiredness: GraphPublicInputRequiredness;
 }
 
 export interface PublishedGraphInputDescriptor {
@@ -38,6 +49,7 @@ export interface PublishedGraphInputDescriptor {
   sourceId: string;
   sourceKind: "input";
   authority: GraphPublicInputAuthority;
+  requiredness: GraphPublicInputRequiredness;
 }
 
 export interface PublishedGraphDescriptor {
@@ -119,6 +131,8 @@ export interface PublishedGraphInputDescriptorDeltaEntry {
   currentSourceId: string;
   previousAuthority: GraphPublicInputAuthority;
   currentAuthority: GraphPublicInputAuthority;
+  previousRequiredness: GraphPublicInputRequiredness;
+  currentRequiredness: GraphPublicInputRequiredness;
 }
 
 export interface PublishedGraphOutputDescriptorDeltaEntry {
@@ -170,9 +184,21 @@ export interface PublishedGraphInputAuthorityDescriptor {
   inputName: string;
   sourceId: string;
   authority: GraphPublicInputAuthority;
+  requiredness: GraphPublicInputRequiredness;
   supportsWrite: boolean;
   supportsPatch: boolean;
   supportsReset: boolean;
+}
+
+export interface GraphBoundaryInputSurface {
+  required<THandle extends GraphInputHandle>(
+    handle: THandle,
+    options?: GraphBoundaryInputOptions,
+  ): PublicGraphInputContractEntry<THandle>;
+  optional<THandle extends GraphInputHandle>(
+    handle: THandle,
+    options?: GraphBoundaryInputOptions,
+  ): PublicGraphInputContractEntry<THandle>;
 }
 
 export interface ExportedSignalGraphDefinition<
@@ -315,6 +341,13 @@ export type GraphOutputDefinitions = Record<string, GraphReadableHandle>;
 export type GraphInputDefinition = GraphInputHandle | PublicGraphInputContractEntry;
 export type GraphInputDefinitions = Record<string, GraphInputDefinition>;
 export type GraphInternalDefinitions = Record<string, unknown>;
+type GraphPatchValue<T> = T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<U>
+  : T extends Array<infer U>
+    ? Array<U>
+    : T extends object
+      ? Partial<T>
+      : never;
 
 type UnionToIntersection<T> = (
   T extends unknown ? (value: T) => void : never
@@ -389,9 +422,7 @@ export type PublishedGraphInputValues<TDefinitions extends GraphInputDefinitions
 export type PublishedGraphPatchValues<TDefinitions extends GraphInputDefinitions> = Partial<{
   readonly [TName in keyof NormalizeGraphRecord<TDefinitions>]:
     UnwrapGraphInputHandle<TDefinitions[TName]> extends GraphInputHandle<infer TValue>
-      ? TValue extends Record<string, unknown>
-        ? Partial<TValue>
-        : never
+      ? GraphPatchValue<TValue>
       : never;
 }>;
 
@@ -482,7 +513,24 @@ export type GraphTransactionInputTarget<
 export interface PublishedGraphTransaction<
   TInputs extends GraphInputDefinitions = GraphInputDefinitions,
 > {
-  set(input: GraphTransactionInputTarget<TInputs>, value: SignalValue): void;
+  set<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    input: TName,
+    value: PublishedGraphInputValues<TInputs>[TName],
+  ): void;
+  set<THandle extends PublishedGraphInputs<TInputs>[keyof PublishedGraphInputs<TInputs>]>(
+    input: THandle,
+    value: THandle extends import("./callable_surface.js").InputSignalHandle<infer TValue> ? TValue : never,
+  ): void;
+  patch<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    input: TName,
+    value: PublishedGraphPatchValues<TInputs>[TName],
+  ): void;
+  patch<THandle extends PublishedGraphInputs<TInputs>[keyof PublishedGraphInputs<TInputs>]>(
+    input: THandle,
+    value: THandle extends import("./callable_surface.js").InputSignalHandle<infer TValue>
+      ? GraphPatchValue<TValue>
+      : never,
+  ): void;
   setWithAspects(
     input: GraphTransactionInputTarget<TInputs>,
     value: SignalValue,
@@ -508,12 +556,21 @@ export type GraphScope<TPersistence = SignalValue> =
 
 export interface GraphConstructionSurface<TPersistence = SignalValue> {
   readonly id: string;
+  readonly input: GraphBoundaryInputSurface;
   scope(localScopeId: string): GraphScope<TPersistence>;
   controller<
     TInputs extends GraphInputDefinitions = Record<string, never>,
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(definition: ControllerContractDefinition<TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  controller<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = Record<string, never>,
+    TInternal extends Record<string, unknown> = Record<string, never>,
+  >(
+    localScopeId: string,
+    builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>,
+  ): ControllerContract<TInputs, TOutputs, TInternal>;
   publicInput<THandle extends GraphInputHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
@@ -554,8 +611,17 @@ export interface PublishedSignalGraph<
   read(): PublishedGraphValues<TOutputs>;
   readInputs(): PublishedGraphInputValues<TInputs>;
   writeInputs(values: Partial<PublishedGraphInputValues<TInputs>>): RunSummary;
+  writeInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    name: TName,
+    value: PublishedGraphInputValues<TInputs>[TName],
+  ): RunSummary;
   patchInputs(patches: PublishedGraphPatchValues<TInputs>): RunSummary;
+  patchInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    name: TName,
+    patch: PublishedGraphPatchValues<TInputs>[TName],
+  ): RunSummary;
   resetInputs(inputNames?: ReadonlyArray<Extract<keyof NormalizeGraphRecord<TInputs>, string>>): RunSummary;
+  resetInput<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): RunSummary;
   apply(mutation: GraphMutationRequest<TInputs>): RunSummary;
   transaction(callback: (tx: PublishedGraphTransaction<TInputs>) => void): RunSummary;
   why<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): WhySummary;
@@ -608,7 +674,9 @@ export type SignalNamespace<TPersistence = SignalValue> = Pick<
   | "scope"
   | "controller"
   | "publicInput"
+  | "spec"
   | "input"
+  | "linked"
   | "computedSpec"
   | "computed"
   | "outputSpec"

@@ -70,33 +70,51 @@ const signals = createSignals({
     }),
   }),
 });
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const count = signals.input(1, { debugName: "count" });
+const doubled = signals.computed(() => count() * 2, { debugName: "doubled" });
 const visibleLabel = signals.computed(
   () => (signals.host.visibility?.isVisible() ? "visible" : "hidden"),
-  { id: "visibleLabel" },
+  { debugName: "visibleLabel" },
 );
 const viewportLabel = signals.computed(
   () => (signals.host.viewport?.width() ?? 0) + "x" + (signals.host.viewport?.height() ?? 0),
-  { id: "viewportLabel" },
+  { debugName: "viewportLabel" },
 );
 const onlineLabel = signals.computed(
   () => (signals.host.online?.isOnline() ? "online" : "offline"),
-  { id: "onlineLabel" },
+  { debugName: "onlineLabel" },
 );
 const clockLabel = signals.computed(
   () => (signals.host.clock?.now() ?? 0) + count(),
-  { id: "clockLabel" },
+  { debugName: "clockLabel" },
 );
 const persistenceLabel = signals.computed(
   () => signals.host.persistence?.value().revision ?? 0,
-  { id: "persistenceLabel" },
+  { debugName: "persistenceLabel" },
 );
-const name = signals.input("Ada", { id: "name" });
+const localDraft = signals.input({
+  title: "Ship docs",
+  done: false,
+}, { debugName: "localDraft" });
+const name = signals.input("Ada", { debugName: "name" });
 const displayLabel = signals.computed(
   () => name().toUpperCase(),
-  { id: "displayLabel" },
+  { debugName: "displayLabel" },
 );
+const shippingOptions = signals.input([
+  { id: "ground", label: "Ground" },
+  { id: "air", label: "Air" },
+], { debugName: "shippingOptions" });
+const firstShippingOption = signals.linked(() => shippingOptions()[0], {
+  debugName: "firstShippingOption",
+});
+const preservedShippingOption = signals.linked({
+  source: () => shippingOptions(),
+  computation: (options, previous) =>
+    options.find((option) => option.id === previous?.value?.id) ?? options[0],
+  debugName: "preservedShippingOption",
+});
+const firstShippingOptionInitial = firstShippingOption();
 const namingGraph = signals.graph("naming", {
   inputs: {
     name,
@@ -105,135 +123,190 @@ const namingGraph = signals.graph("naming", {
     publicDisplayName: displayLabel,
   },
 });
-function createEditSessionController(namespace) {
-  const serverItemData = namespace.input(null, { id: "serverItemData" });
-  const draftEdits = namespace.input({}, { id: "draftEdits" });
+const requirednessGraph = signals.graph("requiredness", (graph) => {
+  const boundary = graph.scope("boundary");
+  const requirednessServerValue = boundary.input({
+    id: "task-7",
+    title: "Ship docs",
+  });
+  const requirednessDraftValue = boundary.input({
+    title: "Ship docs",
+  });
+  const effectiveValue = boundary.computed(() => ({
+    ...requirednessServerValue(),
+    ...requirednessDraftValue(),
+  }));
 
-  const effectiveItemData = namespace.computed(() => ({
-    ...(serverItemData() ?? {}),
-    ...(draftEdits() ?? {}),
-  }), { id: "effectiveItemData" });
-
-  const dirtyState = namespace.computed(() => ({
-    isDirty: Object.keys(draftEdits()).length > 0,
-  }), { id: "dirtyState" });
-
-  return namespace.controller({
+  return graph.expose({
     inputs: {
-      serverItemData,
-      draftEdits,
+      serverValue: graph.input.required(requirednessServerValue, { authority: "readOnly" }),
+      draftValue: graph.input.optional(requirednessDraftValue),
     },
     outputs: {
-      effectiveItemData,
-      dirtyState,
+      effectiveValue,
     },
+  });
+});
+function createEditSessionController(namespace) {
+  return namespace.controller(({ input, computed }) => {
+    const serverItemData = input(null, { id: "serverItemData" });
+    const draftEdits = input({}, { id: "draftEdits" });
+
+    const effectiveItemData = computed(() => ({
+      ...(serverItemData() ?? {}),
+      ...(draftEdits() ?? {}),
+    }), { id: "effectiveItemData" });
+
+    const dirtyState = computed(() => ({
+      isDirty: Object.keys(draftEdits()).length > 0,
+    }), { id: "dirtyState" });
+
+    return {
+      inputs: {
+        serverItemData,
+        draftEdits,
+      },
+      outputs: {
+        effectiveItemData,
+        dirtyState,
+      },
+    };
   });
 }
 function createWorkflowController(namespace, editSession) {
-  const submitReadiness = namespace.computed(() => {
-    const item = editSession.outputs.effectiveItemData();
-    const dirty = editSession.outputs.dirtyState();
+  return namespace.controller(({ computed }) => {
+    const submitReadiness = computed(() => {
+      const item = editSession.outputs.effectiveItemData();
+      const dirty = editSession.outputs.dirtyState();
+
+      return {
+        enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
+        targetStateId: item.workflow_target_state_id ?? null,
+      };
+    }, { id: "submitReadiness" });
 
     return {
-      enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
-      targetStateId: item.workflow_target_state_id ?? null,
+      outputs: {
+        submitReadiness,
+      },
     };
-  }, { id: "submitReadiness" });
-
-  return namespace.controller({
-    outputs: {
-      submitReadiness,
-    },
   });
 }
 function createFormController(namespace) {
-  const serverValue = namespace.input({
-    id: "task-7",
-    title: "Ship docs",
-    status: "draft",
-  }, { id: "serverValue" });
-  const draftValue = namespace.input({
-    title: "Ship docs",
-    status: "ready",
-  }, { id: "draftValue" });
-  const effectiveValue = namespace.computed(() => ({
-    ...serverValue(),
-    ...draftValue(),
-  }), { id: "effectiveValue" });
-  const dirtyState = namespace.computed(() => ({
-    isDirty: Object.keys(draftValue()).length > 0,
-  }), { id: "dirtyState" });
-  const validation = namespace.computed(() => ({
-    titleMissing: !effectiveValue().title,
-  }), { id: "validation" });
+  return namespace.controller(({ input, computed }) => {
+    const serverValue = input({
+      id: "task-7",
+      title: "Ship docs",
+      status: "draft",
+    }, { id: "serverValue" });
+    const draftValue = input({
+      title: "Ship docs",
+      status: "ready",
+    }, { id: "draftValue" });
+    const effectiveValue = computed(() => ({
+      ...serverValue(),
+      ...draftValue(),
+    }), { id: "effectiveValue" });
+    const dirtyState = computed(() => ({
+      isDirty: Object.keys(draftValue()).length > 0,
+    }), { id: "dirtyState" });
+    const validation = computed(() => ({
+      titleMissing: !effectiveValue().title,
+    }), { id: "validation" });
 
-  return namespace.controller({
-    inputs: {
-      serverValue,
-      draftValue,
-    },
-    outputs: {
-      effectiveValue,
-      dirtyState,
-      validation,
-    },
+    return {
+      inputs: {
+        serverValue,
+        draftValue,
+      },
+      outputs: {
+        effectiveValue,
+        dirtyState,
+        validation,
+      },
+    };
   });
 }
 function createResourceController(namespace, form) {
-  const routeParams = namespace.input({
-    taskId: "task-7",
-    workspaceId: "alpha",
-  }, { id: "routeParams" });
-  const resourceQuery = namespace.computed(() => ({
-    taskId: routeParams().taskId,
-    workspaceId: routeParams().workspaceId,
-    status: form.outputs.effectiveValue().status,
-  }), { id: "resourceQuery" });
-  const submitAvailability = namespace.computed(() => ({
-    enabled: form.outputs.dirtyState().isDirty && !form.outputs.validation().titleMissing,
-    taskId: resourceQuery().taskId,
-  }), { id: "submitAvailability" });
+  return namespace.controller(({ input, computed }) => {
+    const routeParams = input({
+      taskId: "task-7",
+      workspaceId: "alpha",
+    }, { id: "routeParams" });
+    const resourceQuery = computed(() => ({
+      taskId: routeParams().taskId,
+      workspaceId: routeParams().workspaceId,
+      status: form.outputs.effectiveValue().status,
+    }), { id: "resourceQuery" });
+    const submitAvailability = computed(() => ({
+      enabled: form.outputs.dirtyState().isDirty && !form.outputs.validation().titleMissing,
+      taskId: resourceQuery().taskId,
+    }), { id: "submitAvailability" });
 
-  return namespace.controller({
-    inputs: {
-      routeParams,
-    },
-    outputs: {
-      resourceQuery,
-      submitAvailability,
-    },
+    return {
+      inputs: {
+        routeParams,
+      },
+      outputs: {
+        resourceQuery,
+        submitAvailability,
+      },
+    };
   });
 }
 function createAuthorityController(namespace) {
-  const serverValue = namespace.input({
-    id: "task-7",
-    title: "Ship docs",
-  }, { id: "serverValue" });
-  const draftValue = namespace.input({
-    title: "Ship docs",
-  }, { id: "draftValue" });
-  const externalParams = namespace.input({
-    taskId: "task-7",
-  }, { id: "externalParams" });
-  const effectiveValue = namespace.computed(() => ({
-    ...serverValue(),
-    ...draftValue(),
-    taskId: externalParams().taskId,
-  }), { id: "effectiveValue" });
+  return namespace.controller(({ input, computed, publicInput }) => {
+    const serverValue = input({
+      id: "task-7",
+      title: "Ship docs",
+    }, { id: "serverValue" });
+    const draftValue = input({
+      title: "Ship docs",
+    }, { id: "draftValue" });
+    const externalParams = input({
+      taskId: "task-7",
+    }, { id: "externalParams" });
+    const effectiveValue = computed(() => ({
+      ...serverValue(),
+      ...draftValue(),
+      taskId: externalParams().taskId,
+    }), { id: "effectiveValue" });
 
-  return namespace.controller({
-    inputs: {
-      serverValue: namespace.publicInput(serverValue, { authority: "readOnly" }),
-      draftValue: namespace.publicInput(draftValue),
-      externalParams: namespace.publicInput(externalParams, { authority: "imported" }),
-    },
-    outputs: {
-      effectiveValue,
-    },
+    return {
+      inputs: {
+        serverValue: publicInput(serverValue, { authority: "readOnly" }),
+        draftValue: publicInput(draftValue),
+        externalParams: publicInput(externalParams, { authority: "imported" }),
+      },
+      outputs: {
+        effectiveValue,
+      },
+    };
   });
 }
 const itemDetailGraph = signals.graph("itemDetail", (graph) => {
-  const editSession = createEditSessionController(graph.scope("editSession"));
+  const editSession = graph.controller("editSession", ({ input, computed }) => {
+    const serverItemData = input(null, { id: "serverItemData" });
+    const draftEdits = input({}, { id: "draftEdits" });
+    const effectiveItemData = computed(() => ({
+      ...(serverItemData() ?? {}),
+      ...(draftEdits() ?? {}),
+    }), { id: "effectiveItemData" });
+    const dirtyState = computed(() => ({
+      isDirty: Object.keys(draftEdits()).length > 0,
+    }), { id: "dirtyState" });
+
+    return {
+      inputs: {
+        serverItemData,
+        draftEdits,
+      },
+      outputs: {
+        effectiveItemData,
+        dirtyState,
+      },
+    };
+  });
   const workflow = createWorkflowController(graph.scope("workflow"), editSession);
   return graph.expose({
     controllers: [editSession, workflow],
@@ -274,6 +347,57 @@ const authorityGraph = signals.graph("taskAuthority", (graph) => {
     controllers: [authority],
   });
 });
+const linkedSelectionGraph = signals.graph("shippingSelection", (graph) => {
+  const selection = graph.scope("selection");
+  const available = selection.input([
+    { id: "draft", label: "Draft" },
+    { id: "review", label: "Review" },
+  ]);
+  const chosen = selection.linked({
+    source: () => available(),
+    computation: (options, previous) =>
+      options.find((option) => option.id === previous?.value?.id) ?? options[0] ?? null,
+    debugName: "chosenShippingOption",
+  });
+  return graph.expose({
+    inputs: {
+      available,
+      chosen,
+    },
+    outputs: {
+      chosen,
+    },
+  });
+});
+const linkedRevisionGraph = signals.graph("linkedRevisionSelection", (graph) => {
+  const selection = graph.scope("selection");
+  const available = selection.input({
+    revision: 1,
+    options: [
+      { id: "draft", label: "Draft" },
+      { id: "review", label: "Review" },
+    ],
+  });
+  const chosen = selection.linked({
+    source: () => available(),
+    computation: (source, previous) => {
+      const preserved = previous && previous.source.revision === source.revision
+        ? source.options.find((option) => option.id === previous.value?.id) ?? null
+        : null;
+      return preserved ?? source.options[0] ?? null;
+    },
+    debugName: "chosenRevisionOption",
+  });
+  return graph.expose({
+    inputs: {
+      available,
+      chosen,
+    },
+    outputs: {
+      chosen,
+    },
+  });
+});
   visibleLabel();
   viewportLabel();
   onlineLabel();
@@ -293,6 +417,41 @@ const authorityGraph = signals.graph("taskAuthority", (graph) => {
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
+localDraft.patch({
+  done: true,
+});
+localDraft.assign({
+  title: "Ready to ship",
+});
+signals.transaction((tx) => {
+  tx.patch(localDraft, {
+    status: "queued",
+  });
+});
+preservedShippingOption.set({ id: "air", label: "Air" });
+shippingOptions.set([
+  { id: "ground", label: "Ground" },
+  { id: "air", label: "Air" },
+  { id: "sea", label: "Sea" },
+]);
+const preservedShippingAfterSourceChange = preservedShippingOption();
+preservedShippingOption.relink();
+const preservedShippingAfterRelink = preservedShippingOption();
+preservedShippingOption.set({ id: "manual", label: "Manual" });
+preservedShippingOption.reset();
+const preservedShippingAfterReset = preservedShippingOption();
+shippingOptions.set([
+  { id: "sea", label: "Sea" },
+  { id: "ground", label: "Ground" },
+]);
+firstShippingOption.set({ id: "manual", label: "Manual" });
+firstShippingOption.reset();
+const firstShippingAfterReset = firstShippingOption();
+firstShippingOption.relink();
+const firstShippingAfterRelink = firstShippingOption();
+preservedShippingOption.set({ id: "manual", label: "Manual" });
+preservedShippingOption.relink();
+const preservedShippingAfterFallbackRelink = preservedShippingOption();
 const history = signals.history();
 const branch = history.current_branch();
 const previewBranch = history.create_branch("preview");
@@ -366,15 +525,24 @@ itemDetailGraph.writeInputs({
     workflow_target_state_id: "ready",
   },
 });
+itemDetailGraph.writeInput("serverItemData", {
+  workflow_target_state_id: "review",
+});
 itemDetailGraph.patchInputs({
   draftEdits: {
     title: "Ship docs",
   },
 });
+itemDetailGraph.patchInput("draftEdits", {
+  queued: true,
+});
 itemDetailGraph.transaction((tx) => {
   tx.set("draftEdits", {
     title: "Ready to ship",
     workflow_target_state_id: "ready",
+  });
+  tx.patch("draftEdits", {
+    staged: true,
   });
 });
 itemDetailGraph.apply({
@@ -422,6 +590,9 @@ taskEditorGraph.patchInputs({
     status: "published",
   },
 });
+taskEditorGraph.patchInput("draftValue", {
+  title: "Ship package",
+});
 taskEditorGraph.apply({
   writes: {
     routeParams: {
@@ -446,16 +617,57 @@ authorityGraph.writeInputs({
     title: "Ready to ship",
   },
 });
+authorityGraph.writeInput("draftValue", {
+  title: "Reviewed",
+});
 authorityGraph.patchInputs({
   draftValue: {
     title: "Approved",
   },
 });
+authorityGraph.patchInput("draftValue", {
+  status: "queued",
+});
 authorityGraph.transaction((tx) => {
   tx.set("draftValue", {
     title: "Queued",
   });
+  tx.patch("draftValue", {
+    status: "queued",
+  });
 });
+linkedSelectionGraph.writeInputs({
+  chosen: { id: "review", label: "Review" },
+});
+linkedSelectionGraph.writeInputs({
+  available: [
+    { id: "ready", label: "Ready" },
+    { id: "review", label: "Review" },
+  ],
+});
+linkedSelectionGraph.resetInputs(["chosen"]);
+const linkedSelectionAfterGraphReset = linkedSelectionGraph.readInputs().chosen;
+linkedRevisionGraph.writeInputs({
+  available: {
+    revision: 2,
+    options: [
+      { id: "review", label: "Review" },
+      { id: "ready", label: "Ready" },
+    ],
+  },
+});
+linkedRevisionGraph.resetInputs(["chosen"]);
+linkedRevisionGraph.writeInputs({
+  available: {
+    revision: 2,
+    options: [
+      { id: "approved", label: "Approved" },
+      { id: "review", label: "Review" },
+    ],
+  },
+});
+linkedRevisionGraph.resetInputs(["chosen"]);
+const linkedRevisionAfterSecondGraphReset = linkedRevisionGraph.readInputs().chosen;
 const authorityGraphRead = authorityGraph.read();
 const authorityGraphInputs = authorityGraph.readInputs();
 const authorityGraphDiagnostics = authorityGraph.inspectDiagnostics();
@@ -482,12 +694,30 @@ const summary = {
   clockCompatibility: signals.host.clock?.descriptor().compatibility ?? null,
   persistenceValue: signals.host.persistence?.value() ?? null,
   persistenceCompatibility: signals.host.persistence?.descriptor().compatibility ?? null,
+  localDraftValue: localDraft(),
   nameValue: name(),
+  nameOpaqueId: name.id,
+  displayLabelOpaqueId: displayLabel.id,
+  firstShippingOptionId: firstShippingOptionInitial.id,
+  firstShippingOptionDebugName: firstShippingOption.debugName,
+  preservedShippingAfterSourceChangeId: preservedShippingAfterSourceChange?.id ?? null,
+  preservedShippingAfterRelinkId: preservedShippingAfterRelink?.id ?? null,
+  preservedShippingAfterResetId: preservedShippingAfterReset?.id ?? null,
+  firstShippingAfterResetId: firstShippingAfterReset?.id ?? null,
+  firstShippingAfterRelinkId: firstShippingAfterRelink?.id ?? null,
+  preservedShippingAfterFallbackRelinkId: preservedShippingAfterFallbackRelink?.id ?? null,
+  linkedSelectionAfterGraphResetId: linkedSelectionAfterGraphReset?.id ?? null,
+  linkedRevisionAfterSecondGraphResetId: linkedRevisionAfterSecondGraphReset?.id ?? null,
   namingGraphInputId: namingGraph.contract().inputs.name,
   namingGraphOutputId: namingGraph.output("publicDisplayName").id,
   namingGraphDescriptor: namingGraph.descriptors()[0],
   namingGraphCompatibilityOutputId:
     namingGraph.exportCompatibilityDefinition().contract.outputs.publicDisplayName,
+  requirednessInputDescriptors: requirednessGraph.inputDescriptors(),
+  requirednessServerAuthority:
+    requirednessGraph.operationalContract().authorities.serverValue,
+  requirednessDraftAuthority:
+    requirednessGraph.operationalContract().authorities.draftValue,
   runtimeEnvelopeRestoreMode: runtimeEnvelope.runtimeEnvelopeRestoreMode,
   runtimeEnvelopeUnavailableHostCapabilityCompatibility:
     unavailableVisibleLabel?.hostCapabilityReads[0]?.compatibility ?? null,
@@ -567,7 +797,7 @@ const summary = {
     portableImportHostCapabilityReport.families.length,
   branchIdType: typeof branch.id,
   replayFrameCount: replay.frames.length,
-  replayHasCallback: replay.frames.some((frame) => frame.callback?.id === "doubled"),
+  replayHasCallback: replay.frames.some((frame) => frame.callback?.id === doubled.id),
   snapshotBranchId: snapshot.snapshot.meta.branch_id,
   branchSnapshotBranchId: branchSnapshot.meta.branch_id,
   branchSnapshotRestoreMode: branchSnapshot.snapshotRestoreMode,
@@ -576,7 +806,7 @@ const summary = {
   snapshotPolicyTier: snapshot.snapshot.meta.runtime_policy.tier,
   snapshotReplayHead: snapshot.snapshot.meta.replay_head,
   snapshotExplanationRetention: snapshot.snapshot.meta.artifact_retention.explanation_retention,
-  restoredExactDoubled: restoredExact.read("doubled"),
+  restoredExactDoubled: restoredExact.read(doubled.id),
   portableImportErrorCode: portableImportError?.code ?? null,
   portableImportErrorMessage: portableImportError?.message ?? null,
   specialistGraphProfile: specialistGraphSummary.profile,

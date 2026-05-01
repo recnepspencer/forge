@@ -110,6 +110,13 @@ function isReadableProductHandle(target) {
   );
 }
 
+function signalIdForGraphError(target) {
+  if (typeof target?.debugName === "string" && target.debugName.length > 0) {
+    return target.debugName;
+  }
+  return typeof target?.id === "string" ? target.id : "<unknown>";
+}
+
 export function requireReadableHandle(target, rawSignals, graphId, outputName) {
   if (!isReadableProductHandle(target)) {
     throw new TypeError(
@@ -118,7 +125,7 @@ export function requireReadableHandle(target, rawSignals, graphId, outputName) {
   }
   if (target[RAW_SIGNALS] !== rawSignals) {
     throw new TypeError(
-      `signals.graph output \`${graphId}.${outputName}\` cannot use signal \`${target.id ?? "<unknown>"}\` from a different Signals runtime`,
+      `signals.graph output \`${graphId}.${outputName}\` cannot use signal \`${signalIdForGraphError(target)}\` from a different Signals runtime`,
     );
   }
   return target;
@@ -150,12 +157,13 @@ function requireInputHandle(target, rawSignals, graphId, inputName) {
   return handle;
 }
 
-export function inputDescriptor(inputName, sourceHandle, authority) {
+export function inputDescriptor(inputName, sourceHandle, authority, requiredness = "required") {
   return Object.freeze({
     inputName,
     sourceId: sourceHandle.id,
     sourceKind: "input",
     authority,
+    requiredness,
   });
 }
 
@@ -214,7 +222,10 @@ export function normalizePublicInputEntry(candidateHandle, rawSignals, graphId, 
     if (graphOwned) {
       requireGraphOwnedHandle(handle, rawSignals, graphId, inputName, "input");
     }
-    return createPublicGraphInputEntry(handle, { authority: candidateHandle.authority });
+    return createPublicGraphInputEntry(handle, {
+      authority: candidateHandle.authority,
+      requiredness: candidateHandle.requiredness,
+    });
   }
   const handle = requireInputHandle(candidateHandle, rawSignals, graphId, inputName);
   if (graphOwned) {
@@ -366,7 +377,8 @@ export function mergeControllerContracts(definition, graphId) {
 }
 
 export function publishHandle(rawSignals, graphId, outputName, sourceHandle) {
-  if (sourceHandle[PRODUCT_SIGNAL_KIND] === "output") {
+  const publishedId = publicationId(graphId, outputName);
+  if (sourceHandle[PRODUCT_SIGNAL_KIND] === "output" && sourceHandle.id === publishedId) {
     return {
       handle: sourceHandle,
       descriptor: publicationDescriptor(
@@ -377,7 +389,6 @@ export function publishHandle(rawSignals, graphId, outputName, sourceHandle) {
       ),
     };
   }
-  const publishedId = publicationId(graphId, outputName);
   const publishedRawHandle = rawSignals.outputSpec(
     publishedId,
     readProjectionSpec(sourceHandle.id),

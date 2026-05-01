@@ -1,8 +1,13 @@
+import { buildControllerContract } from "./controllers.js";
+import { createLinkedSignal } from "./linked.js";
 import {
+  DEBUG_NAME,
   GRAPH_LOCAL_ID,
   GRAPH_OWNER_ID,
   GRAPH_SCOPE_DESCRIPTOR,
   GRAPH_SCOPE_ID,
+  PRIVATE_AUTHORING_ID,
+  RAW_SIGNALS,
 } from "./symbols.js";
 
 const AUTHORING_STATE = new WeakMap();
@@ -21,6 +26,10 @@ function getAuthoringState(rawSignals) {
     AUTHORING_STATE.set(rawSignals, state);
   }
   return state;
+}
+
+function generatedCounterKey(scopeId, family) {
+  return `${scopeId ?? "__root__"}:${family}`;
 }
 
 function requireNonEmptyString(value, message) {
@@ -58,12 +67,46 @@ export function reserveAuthoringSignalId(rawSignals, family, canonicalId, scopeI
   };
 }
 
-function nextGeneratedScopedId(rawSignals, scopeId, family) {
+export function nextGeneratedAuthoringSignalId(rawSignals, family, scopeId = null) {
   const state = getAuthoringState(rawSignals);
-  const counterKey = `${scopeId}:${family}`;
+  const counterKey = generatedCounterKey(scopeId, family);
   const next = (state.generatedCounters.get(counterKey) ?? 0) + 1;
   state.generatedCounters.set(counterKey, next);
-  return `__forgeSignalScoped.${family}.${next}`;
+  if (scopeId) {
+    return `__forgeSignalScoped.${scopeId}.${family}.${next}`;
+  }
+  return `__forgeSignal.${family}.${next}`;
+}
+
+function nextGeneratedScopedId(rawSignals, scopeId, family) {
+  return nextGeneratedAuthoringSignalId(rawSignals, family, scopeId);
+}
+
+function withPrivateAuthoringId(options, authoringId) {
+  if (options === undefined) {
+    return {
+      [PRIVATE_AUTHORING_ID]: authoringId,
+    };
+  }
+  if (!isPlainObject(options)) {
+    throw new TypeError("scoped authoring options must be an object when provided");
+  }
+  return {
+    ...options,
+    [PRIVATE_AUTHORING_ID]: authoringId,
+  };
+}
+
+function hasExplicitAuthoringIdOption(options) {
+  return isPlainObject(options) && typeof options.id === "string" && options.id.length > 0;
+}
+
+function stripExplicitAuthoringIdOption(options) {
+  if (!hasExplicitAuthoringIdOption(options)) {
+    return options;
+  }
+  const { id: _id, ...rest } = options;
+  return Object.keys(rest).length === 0 ? undefined : rest;
 }
 
 function descriptorForScope(scopeId, localScopeId, parentScopeId) {
@@ -108,68 +151,6 @@ function signalIdentityForScope(descriptor, graphOwnerId, localId) {
   });
 }
 
-function looksLikeInputMetadataOptions(value) {
-  if (!isPlainObject(value) || typeof value.id !== "string" || value.id.length === 0) {
-    return false;
-  }
-  return Object.keys(value).every((key) => key === "id" || key === "producesAspects");
-}
-
-function scopedInputArgs(scopeId, idOrInitial, initialOrOptions, maybeOptions) {
-  if (typeof idOrInitial === "string" && !looksLikeInputMetadataOptions(initialOrOptions)) {
-    return [canonicalId(scopeId, idOrInitial), initialOrOptions, maybeOptions];
-  }
-  if (!isPlainObject(initialOrOptions)) {
-    return [idOrInitial, initialOrOptions, maybeOptions];
-  }
-  return [
-    idOrInitial,
-    {
-      ...initialOrOptions,
-      id: canonicalId(scopeId, initialOrOptions.id),
-    },
-  ];
-}
-
-function scopedSpecArgs(scopeId, firstArg, secondArg, thirdArg) {
-  if (typeof firstArg === "string") {
-    return [canonicalId(scopeId, firstArg), secondArg, thirdArg];
-  }
-  if (!isPlainObject(secondArg)) {
-    return [firstArg, secondArg, thirdArg];
-  }
-  return [
-    firstArg,
-    {
-      ...secondArg,
-      id: canonicalId(scopeId, secondArg.id),
-    },
-  ];
-}
-
-function scopedCallbackArgs(rawSignals, scopeId, family, firstArg, secondArg, thirdArg) {
-  if (typeof firstArg === "function") {
-    if (secondArg === undefined) {
-      return [firstArg, { id: canonicalId(scopeId, nextGeneratedScopedId(rawSignals, scopeId, family)) }];
-    }
-    if (isPlainObject(secondArg)) {
-      return [firstArg, {
-        ...secondArg,
-        id: secondArg.id
-          ? canonicalId(scopeId, secondArg.id)
-          : canonicalId(scopeId, nextGeneratedScopedId(rawSignals, scopeId, family)),
-      }];
-    }
-    return [firstArg, secondArg, thirdArg];
-  }
-
-  if (typeof firstArg === "string" && typeof secondArg === "function") {
-    return [canonicalId(scopeId, firstArg), secondArg, thirdArg];
-  }
-
-  return null;
-}
-
 export function createScopedSignalNamespace(
   callableSignals,
   rawSignals,
@@ -208,6 +189,13 @@ export function createScopedSignalNamespace(
         value: localId,
       },
     });
+    const inheritedDebugName = handle[DEBUG_NAME] ?? null;
+    if (inheritedDebugName !== null) {
+      Object.defineProperty(handle, DEBUG_NAME, {
+        enumerable: false,
+        value: inheritedDebugName,
+      });
+    }
     if (signalIdentity) {
       Object.defineProperty(handle, "signalIdentity", {
         enumerable: false,
@@ -219,6 +207,38 @@ export function createScopedSignalNamespace(
 
   const scopedNamespace = {
     host: callableSignals.host,
+    spec: Object.freeze({
+      input(id, initial, options) {
+        return tagScopedHandle(
+          callableSignals.spec.input(canonicalId(scopeId, id), initial, options),
+          id,
+        );
+      },
+      computed(id, spec) {
+        return tagScopedHandle(
+          callableSignals.spec.computed(canonicalId(scopeId, id), spec),
+          id,
+        );
+      },
+      computedCallback(id, callback, options) {
+        return tagScopedHandle(
+          callableSignals.spec.computedCallback(canonicalId(scopeId, id), callback, options),
+          id,
+        );
+      },
+      output(id, spec) {
+        return tagScopedHandle(
+          callableSignals.spec.output(canonicalId(scopeId, id), spec),
+          id,
+        );
+      },
+      outputCallback(id, callback, options) {
+        return tagScopedHandle(
+          callableSignals.spec.outputCallback(canonicalId(scopeId, id), callback, options),
+          id,
+        );
+      },
+    }),
     scope(childLocalScopeId) {
       return createScopedSignalNamespace(
         callableSignals,
@@ -227,75 +247,128 @@ export function createScopedSignalNamespace(
         scopedNamespace,
       );
     },
-    controller(definition) {
-      return callableSignals.controller(definition);
+    controller(definitionOrBuilder) {
+      return buildControllerContract(scopedNamespace, definitionOrBuilder);
     },
     publicInput(handle, options) {
       return callableSignals.publicInput(handle, options);
     },
-    input(idOrInitial, initialOrOptions, maybeOptions) {
-      const localId = typeof idOrInitial === "string" && !looksLikeInputMetadataOptions(initialOrOptions)
-        ? idOrInitial
-        : initialOrOptions?.id;
-      return tagScopedHandle(callableSignals.input(...scopedInputArgs(
-        scopeId,
-        idOrInitial,
-        initialOrOptions,
-        maybeOptions,
-      )), localId ?? null);
-    },
-    computedSpec(id, spec) {
-      return tagScopedHandle(callableSignals.computedSpec(canonicalId(scopeId, id), spec), id);
-    },
-    computed(idOrSpecOrCompute, specOrComputeOrOptions, maybeOptions) {
-      const callbackArgs = scopedCallbackArgs(
-        rawSignals,
-        scopeId,
-        "computed",
-        idOrSpecOrCompute,
-        specOrComputeOrOptions,
-        maybeOptions,
-      );
-      if (callbackArgs) {
-        const localId = typeof idOrSpecOrCompute === "string"
-          ? idOrSpecOrCompute
-          : specOrComputeOrOptions?.id ?? null;
-        return tagScopedHandle(callableSignals.computed(...callbackArgs), localId);
+    input(firstArg, secondArg, thirdArg) {
+      if (typeof firstArg === "string" && arguments.length >= 2) {
+        return tagScopedHandle(
+          callableSignals.spec.input(canonicalId(scopeId, firstArg), secondArg, thirdArg),
+          firstArg,
+        );
       }
-      return tagScopedHandle(callableSignals.computed(...scopedSpecArgs(
-        scopeId,
-        idOrSpecOrCompute,
-        specOrComputeOrOptions,
-        maybeOptions,
-      )), typeof idOrSpecOrCompute === "string" ? idOrSpecOrCompute : specOrComputeOrOptions?.id ?? null);
-    },
-    outputSpec(id, spec) {
-      return tagScopedHandle(callableSignals.outputSpec(canonicalId(scopeId, id), spec), id);
-    },
-    output(idOrSpecOrCompute, specOrComputeOrOptions, maybeOptions) {
-      const callbackArgs = scopedCallbackArgs(
-        rawSignals,
-        scopeId,
-        "output",
-        idOrSpecOrCompute,
-        specOrComputeOrOptions,
-        maybeOptions,
-      );
-      if (callbackArgs) {
-        const localId = typeof idOrSpecOrCompute === "string"
-          ? idOrSpecOrCompute
-          : specOrComputeOrOptions?.id ?? null;
-        return tagScopedHandle(callableSignals.output(...callbackArgs), localId);
+      if (hasExplicitAuthoringIdOption(secondArg)) {
+        return tagScopedHandle(
+          callableSignals.spec.input(
+            canonicalId(scopeId, secondArg.id),
+            firstArg,
+            stripExplicitAuthoringIdOption(secondArg),
+          ),
+          secondArg.id,
+        );
       }
-      return tagScopedHandle(callableSignals.output(...scopedSpecArgs(
-        scopeId,
-        idOrSpecOrCompute,
-        specOrComputeOrOptions,
-        maybeOptions,
-      )), typeof idOrSpecOrCompute === "string" ? idOrSpecOrCompute : specOrComputeOrOptions?.id ?? null);
+      const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "input");
+      return tagScopedHandle(
+        callableSignals.input(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+      );
     },
-    outputCallback(id, compute) {
-      return tagScopedHandle(callableSignals.outputCallback(canonicalId(scopeId, id), compute), id);
+    linked(sourceOrDefinition, options) {
+      return tagScopedHandle(
+        createLinkedSignal(scopedNamespace, rawSignals, sourceOrDefinition, options),
+      );
+    },
+    computed(firstArg, secondArg, thirdArg) {
+      if (typeof firstArg === "string") {
+        if (typeof secondArg === "function") {
+          if (thirdArg !== undefined) {
+            throw new TypeError("scoped computed callback form does not accept options after an explicit id");
+          }
+          return tagScopedHandle(
+            callableSignals.spec.computedCallback(canonicalId(scopeId, firstArg), secondArg),
+            firstArg,
+          );
+        }
+        if (thirdArg !== undefined) {
+          throw new TypeError("scoped computed spec form does not accept a third argument after an explicit id");
+        }
+        return tagScopedHandle(
+          callableSignals.spec.computed(canonicalId(scopeId, firstArg), secondArg),
+          firstArg,
+        );
+      }
+      if (hasExplicitAuthoringIdOption(secondArg)) {
+        const localId = secondArg.id;
+        if (typeof firstArg === "function") {
+          return tagScopedHandle(
+            callableSignals.spec.computedCallback(
+              canonicalId(scopeId, localId),
+              firstArg,
+              stripExplicitAuthoringIdOption(secondArg),
+            ),
+            localId,
+          );
+        }
+        return tagScopedHandle(
+          callableSignals.spec.computed(
+            canonicalId(scopeId, localId),
+            firstArg,
+            stripExplicitAuthoringIdOption(secondArg),
+          ),
+          localId,
+        );
+      }
+      const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "computed");
+      return tagScopedHandle(
+        callableSignals.computed(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+      );
+    },
+    output(firstArg, secondArg, thirdArg) {
+      if (typeof firstArg === "string") {
+        if (typeof secondArg === "function") {
+          if (thirdArg !== undefined) {
+            throw new TypeError("scoped output callback form does not accept options after an explicit id");
+          }
+          return tagScopedHandle(
+            callableSignals.spec.outputCallback(canonicalId(scopeId, firstArg), secondArg),
+            firstArg,
+          );
+        }
+        if (thirdArg !== undefined) {
+          throw new TypeError("scoped output spec form does not accept a third argument after an explicit id");
+        }
+        return tagScopedHandle(
+          callableSignals.spec.output(canonicalId(scopeId, firstArg), secondArg),
+          firstArg,
+        );
+      }
+      if (hasExplicitAuthoringIdOption(secondArg)) {
+        const localId = secondArg.id;
+        if (typeof firstArg === "function") {
+          return tagScopedHandle(
+            callableSignals.spec.outputCallback(
+              canonicalId(scopeId, localId),
+              firstArg,
+              stripExplicitAuthoringIdOption(secondArg),
+            ),
+            localId,
+          );
+        }
+        return tagScopedHandle(
+          callableSignals.spec.output(
+            canonicalId(scopeId, localId),
+            firstArg,
+            stripExplicitAuthoringIdOption(secondArg),
+          ),
+          localId,
+        );
+      }
+      const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "output");
+      return tagScopedHandle(
+        callableSignals.output(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+      );
     },
     graph: callableSignals.graph.bind(callableSignals),
     canonicalId(localId) {
@@ -320,6 +393,7 @@ export function createScopedSignalNamespace(
     get graphOwnerId() {
       return descriptor.graphOwnerId;
     },
+    [RAW_SIGNALS]: rawSignals,
   };
 
   return Object.freeze(scopedNamespace);

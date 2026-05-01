@@ -4,7 +4,7 @@ import {
   parseOutputCallbackArgs,
   withComputedCallbackFrame,
 } from "./callback_frames.js";
-import { createControllerContract } from "./controllers.js";
+import { buildControllerContract } from "./controllers.js";
 import {
   clockCapability,
   createHostCapabilities,
@@ -18,9 +18,15 @@ import { wrapDiagnostics } from "./diagnostics.js";
 import { createImportedSignalGraph, createPublishedSignalGraph } from "./graphs.js";
 import { wrapHistory } from "./history.js";
 import { unwrapSignalTarget, wrapInputSignal, wrapReadableSignal } from "./handles.js";
+import { createLinkedSignal } from "./linked.js";
 import { createPublicGraphInputEntry } from "./public_inputs.js";
-import { createScopedSignalNamespace, reserveAuthoringSignalId } from "./scopes.js";
+import {
+  createScopedSignalNamespace,
+  nextGeneratedAuthoringSignalId,
+  reserveAuthoringSignalId,
+} from "./scopes.js";
 import { wrapSpecialist } from "./specialist.js";
+import { PRIVATE_AUTHORING_ID, RAW_SIGNALS } from "./symbols.js";
 import { wrapAdapters, wrapTransaction } from "./transactions.js";
 
 const OUTPUT_CALLBACK_PROJECTION_COUNTERS = new WeakMap();
@@ -60,6 +66,22 @@ function requireAuthoringId(family, options) {
   return options.id;
 }
 
+function requireOptionalDebugName(family, options) {
+  if (options.debugName === undefined) {
+    return null;
+  }
+  if (typeof options.debugName !== "string" || options.debugName.length === 0) {
+    throw new TypeError(`${family} debugName must be a non-empty string when provided`);
+  }
+  return options.debugName;
+}
+
+function forbidOpaqueIdOption(family, options) {
+  if (Object.prototype.hasOwnProperty.call(options, "id")) {
+    throw new TypeError(`${family} app authoring does not accept id; use ${family === "input" ? "signals.spec.input" : `signals.spec.${family}`} when you need an explicit structural name`);
+  }
+}
+
 function looksLikeInputMetadataOptions(value) {
   if (!isPlainObject(value) || typeof value.id !== "string" || value.id.length === 0) {
     return false;
@@ -67,47 +89,142 @@ function looksLikeInputMetadataOptions(value) {
   return Object.keys(value).every((key) => key === "id" || key === "producesAspects");
 }
 
-function parseInputArgs(firstArg, secondArg, thirdArg) {
-  if (typeof firstArg === "string" && !looksLikeInputMetadataOptions(secondArg)) {
-    return {
-      id: firstArg,
-      initial: secondArg,
-      options: thirdArg,
-    };
+function looksLikeOpaqueAuthoringOptions(value) {
+  if (!isPlainObject(value)) {
+    return false;
   }
+  return Object.keys(value).every((key) => key === "debugName" || key === "producesAspects");
+}
 
-  const options = requireAuthoringOptions("input", secondArg);
-  if (thirdArg !== undefined) {
-    throw new TypeError("input metadata form does not accept a third argument");
+function parseOpaqueInputArgs(rawSignals, firstArg, secondArg, thirdArg) {
+  if (
+    (typeof firstArg === "string" && secondArg !== undefined && !looksLikeOpaqueAuthoringOptions(secondArg))
+    || looksLikeInputMetadataOptions(secondArg)
+  ) {
+    throw new TypeError(
+      "input app authoring does not accept an explicit id; use signals.spec.input(...) when you need an explicit structural name",
+    );
   }
-  const { id, ...inputOptions } = options;
-  requireAuthoringId("input", options);
+  const options = secondArg === undefined ? undefined : requireAuthoringOptions("input", secondArg);
+  if (thirdArg !== undefined) {
+    throw new TypeError("input app form does not accept a third argument");
+  }
+  if (options) {
+    forbidOpaqueIdOption("input", options);
+  }
   return {
-    id,
+    id: options?.[PRIVATE_AUTHORING_ID] ?? nextGeneratedAuthoringSignalId(rawSignals, "input"),
     initial: firstArg,
-    options: Object.keys(inputOptions).length === 0 ? undefined : inputOptions,
+    debugName: options ? requireOptionalDebugName("input", options) : null,
+    options: options ? {
+      ...(options.producesAspects === undefined ? {} : { producesAspects: options.producesAspects }),
+    } : undefined,
   };
 }
 
-function parseSpecAuthoringArgs(family, firstArg, secondArg, thirdArg) {
-  if (typeof firstArg === "string") {
-    if (thirdArg !== undefined) {
-      throw new TypeError(`${family} spec form does not accept a third argument`);
-    }
-    return {
-      id: firstArg,
-      spec: secondArg,
-    };
+function parseOpaqueCallbackOptions(rawSignals, family, computeOrSpec, options, maybeOptions) {
+  if (typeof computeOrSpec === "string" && typeof options === "function") {
+    throw new TypeError(
+      `${family} app authoring does not accept an explicit id; use signals.spec.${family}Callback(...) when you need an explicit structural name`,
+    );
   }
-
-  const options = requireAuthoringOptions(family, secondArg);
-  if (thirdArg !== undefined) {
-    throw new TypeError(`${family} metadata spec form does not accept a third argument`);
+  const callbackArgs = family === "computed"
+    ? parseComputedCallbackArgs(rawSignals, computeOrSpec, options, maybeOptions)
+    : parseOutputCallbackArgs(rawSignals, computeOrSpec, options, maybeOptions);
+  if (!callbackArgs) {
+    return null;
+  }
+  const callbackOptions = typeof computeOrSpec === "function"
+    ? (options ?? {})
+    : {};
+  if (isPlainObject(callbackOptions)) {
+    forbidOpaqueIdOption(family, callbackOptions);
   }
   return {
-    id: requireAuthoringId(family, options),
-    spec: firstArg,
+    ...callbackArgs,
+    debugName: requireOptionalDebugName(family, callbackOptions),
   };
+}
+
+function parseOpaqueSpecOptions(rawSignals, family, firstArg, secondArg, thirdArg) {
+  if (typeof firstArg === "string") {
+    throw new TypeError(
+      `${family} app authoring does not accept an explicit id; use signals.spec.${family}(...) when you need an explicit structural name`,
+    );
+  }
+  const options = secondArg === undefined ? undefined : requireAuthoringOptions(family, secondArg);
+  if (thirdArg !== undefined) {
+    throw new TypeError(`${family} app spec form does not accept a third argument`);
+  }
+  if (options) {
+    forbidOpaqueIdOption(family, options);
+  }
+  return {
+    id: options?.[PRIVATE_AUTHORING_ID] ?? nextGeneratedAuthoringSignalId(rawSignals, family),
+    spec: firstArg,
+    debugName: options ? requireOptionalDebugName(family, options) : null,
+  };
+}
+
+function explicitSignalSpecNamespace(rawSignals) {
+  return Object.freeze({
+    input(id, initial, options) {
+      const specOptions = options === undefined ? undefined : requireAuthoringOptions("input", options);
+      const debugName = specOptions ? requireOptionalDebugName("input", specOptions) : null;
+      const inputOptions = specOptions ? {
+        ...(specOptions.producesAspects === undefined ? {} : { producesAspects: specOptions.producesAspects }),
+      } : undefined;
+      return withReservedSignalId(rawSignals, "input", id, () => (
+        wrapInputSignal(
+          rawSignals.input(id, initial, inputOptions),
+          rawSignals,
+          cloneSignalValue(initial),
+          debugName,
+        )
+      ));
+    },
+    computed(id, spec, options) {
+      const specOptions = options === undefined ? undefined : requireAuthoringOptions("computed", options);
+      const debugName = specOptions ? requireOptionalDebugName("computed", specOptions) : null;
+      return withReservedSignalId(rawSignals, "computed", id, () => (
+        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed", debugName)
+      ));
+    },
+    computedCallback(id, callback, options) {
+      const callbackOptions = options === undefined ? undefined : requireAuthoringOptions("computed", options);
+      const debugName = callbackOptions ? requireOptionalDebugName("computed", callbackOptions) : null;
+      return withReservedSignalId(rawSignals, "computed", id, () => (
+        wrapReadableSignal(
+          rawSignals.computedCallback(id, withComputedCallbackFrame(rawSignals, callback)),
+          rawSignals,
+          "computed",
+          debugName,
+        )
+      ));
+    },
+    output(id, spec, options) {
+      const specOptions = options === undefined ? undefined : requireAuthoringOptions("output", options);
+      const debugName = specOptions ? requireOptionalDebugName("output", specOptions) : null;
+      return withReservedSignalId(rawSignals, "output", id, () => (
+        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output", debugName)
+      ));
+    },
+    outputCallback(id, callback, options) {
+      const callbackOptions = options === undefined ? undefined : requireAuthoringOptions("output", options);
+      const debugName = callbackOptions ? requireOptionalDebugName("output", callbackOptions) : null;
+      const wrappedCallback = withComputedCallbackFrame(rawSignals, callback);
+      const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
+      return withReservedSignalId(rawSignals, "output", id, () => {
+        rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
+        return wrapReadableSignal(
+          rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
+          rawSignals,
+          "output",
+          debugName,
+        );
+      });
+    },
+  });
 }
 
 function nextOutputProjectionId(rawSignals, outputId) {
@@ -148,35 +265,45 @@ export {
 export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
   let diagnostics = null;
+  const explicitSpec = explicitSignalSpecNamespace(rawSignals);
   const callableSignals = {
     host: hostCapabilities.host,
+    spec: explicitSpec,
     scope(localScopeId) {
       return createScopedSignalNamespace(callableSignals, rawSignals, localScopeId);
     },
-    controller(definition) {
-      return createControllerContract(definition);
+    controller(definitionOrBuilder) {
+      return buildControllerContract(callableSignals, definitionOrBuilder);
     },
     publicInput(handle, options) {
       return createPublicGraphInputEntry(handle, options);
     },
     input(idOrInitial, initialOrOptions, maybeOptions) {
-      const { id, initial, options } = parseInputArgs(idOrInitial, initialOrOptions, maybeOptions);
+      const { id, initial, options, debugName } = parseOpaqueInputArgs(
+        rawSignals,
+        idOrInitial,
+        initialOrOptions,
+        maybeOptions,
+      );
       return withReservedSignalId(rawSignals, "input", id, () => (
         wrapInputSignal(
           rawSignals.input(id, initial, options),
           rawSignals,
           cloneSignalValue(initial),
+          debugName,
         )
       ));
     },
-    computedSpec(id, spec) {
-      return withReservedSignalId(rawSignals, "computed", id, () => (
-        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed")
-      ));
+    linked(sourceOrDefinition, options) {
+      return createLinkedSignal(callableSignals, rawSignals, sourceOrDefinition, options);
+    },
+    computedSpec(id, spec, options) {
+      return explicitSpec.computed(id, spec, options);
     },
     computed(idOrCompute, specOrCompute, maybeOptions) {
-      const callbackArgs = parseComputedCallbackArgs(
+      const callbackArgs = parseOpaqueCallbackOptions(
         rawSignals,
+        "computed",
         idOrCompute,
         specOrCompute,
         maybeOptions,
@@ -188,27 +315,28 @@ export function wrapSignals(rawSignals, options) {
             rawSignals.computedCallback(callbackArgs.id, callback),
             rawSignals,
             "computed",
+            callbackArgs.debugName,
           )
         ));
       }
-      const { id, spec } = parseSpecAuthoringArgs(
+      const { id, spec, debugName } = parseOpaqueSpecOptions(
+        rawSignals,
         "computed",
         idOrCompute,
         specOrCompute,
         maybeOptions,
       );
       return withReservedSignalId(rawSignals, "computed", id, () => (
-        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed")
+        wrapReadableSignal(rawSignals.computedSpec(id, spec), rawSignals, "computed", debugName)
       ));
     },
-    outputSpec(id, spec) {
-      return withReservedSignalId(rawSignals, "output", id, () => (
-        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output")
-      ));
+    outputSpec(id, spec, options) {
+      return explicitSpec.output(id, spec, options);
     },
     output(idOrSpec, specOrCompute, maybeOptions) {
-      const callbackArgs = parseOutputCallbackArgs(
+      const callbackArgs = parseOpaqueCallbackOptions(
         rawSignals,
+        "output",
         idOrSpec,
         specOrCompute,
         maybeOptions,
@@ -222,30 +350,23 @@ export function wrapSignals(rawSignals, options) {
             rawSignals.outputSpec(callbackArgs.id, outputProjectionSpec(hiddenComputedId)),
             rawSignals,
             "output",
+            callbackArgs.debugName,
           );
         });
       }
-      const { id, spec } = parseSpecAuthoringArgs(
+      const { id, spec, debugName } = parseOpaqueSpecOptions(
+        rawSignals,
         "output",
         idOrSpec,
         specOrCompute,
         maybeOptions,
       );
       return withReservedSignalId(rawSignals, "output", id, () => (
-        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output")
+        wrapReadableSignal(rawSignals.outputSpec(id, spec), rawSignals, "output", debugName)
       ));
     },
-    outputCallback(id, callback) {
-      const wrappedCallback = withComputedCallbackFrame(rawSignals, callback);
-      const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
-      return withReservedSignalId(rawSignals, "output", id, () => {
-        rawSignals.computedCallback(hiddenComputedId, wrappedCallback);
-        return wrapReadableSignal(
-          rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
-          rawSignals,
-          "output",
-        );
-      });
+    outputCallback(id, callback, options) {
+      return explicitSpec.outputCallback(id, callback, options);
     },
     graph(id, definition) {
       return createPublishedSignalGraph(callableSignals, rawSignals, id, definition);
@@ -304,6 +425,7 @@ export function wrapSignals(rawSignals, options) {
       }
       rawSignals.free();
     },
+    [RAW_SIGNALS]: rawSignals,
   };
   return callableSignals;
 }

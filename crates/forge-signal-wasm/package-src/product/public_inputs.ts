@@ -16,15 +16,28 @@ function requireAuthority(authority) {
   return authority;
 }
 
+function requireRequiredness(requiredness) {
+  if (requiredness === undefined) {
+    return "required";
+  }
+  if (requiredness !== "required" && requiredness !== "optional") {
+    throw new TypeError(
+      'signals.publicInput(...) requiredness must be "required" or "optional" when provided',
+    );
+  }
+  return requiredness;
+}
+
 function normalizeOptions(options) {
   if (options === undefined) {
-    return { authority: "writable" };
+    return { authority: "writable", requiredness: "required" };
   }
   if (!isPlainObject(options)) {
     throw new TypeError("signals.publicInput(...) options must be an object when provided");
   }
   return {
     authority: requireAuthority(options.authority),
+    requiredness: requireRequiredness(options.requiredness),
   };
 }
 
@@ -42,6 +55,7 @@ export function createPublicGraphInputEntry(handle, options) {
   return Object.freeze({
     handle,
     authority: normalizedOptions.authority,
+    requiredness: normalizedOptions.requiredness,
     [PUBLIC_GRAPH_INPUT]: true,
   });
 }

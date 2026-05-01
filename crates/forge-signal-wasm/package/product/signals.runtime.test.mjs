@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 const productDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.dirname(productDir);
@@ -27,6 +28,7 @@ async function loadSignalsModule() {
       ["product/host_capabilities.ts", "product/host_capabilities.js"],
       ["product/history.ts", "product/history.js"],
       ["product/handles.ts", "product/handles.js"],
+      ["product/linked.ts", "product/linked.js"],
       ["product/public_inputs.ts", "product/public_inputs.js"],
       ["product/scopes.ts", "product/scopes.js"],
       ["product/specialist.ts", "product/specialist.js"],
@@ -733,7 +735,414 @@ function createGraphExportImportRuntime() {
   };
 }
 
-test("wrapSignals supports symmetric metadata-style input/computed/output authoring", async () => {
+function createLinkedRuntime() {
+  const values = new Map();
+  const computedCallbacks = new Map();
+  const watchers = new Map();
+
+  function cloneValue(value) {
+    if (typeof globalThis.structuredClone === "function") {
+      try {
+        return globalThis.structuredClone(value);
+      } catch {
+        return value;
+      }
+    }
+    if (Array.isArray(value)) {
+      return value.slice();
+    }
+    if (value && typeof value === "object") {
+      return { ...value };
+    }
+    return value;
+  }
+
+  function notify(id) {
+    for (const callback of watchers.get(id) ?? []) {
+      callback({ id });
+    }
+  }
+
+  function recomputeDerivedValues() {
+    for (const [id, callback] of computedCallbacks) {
+      const previousValue = values.get(id);
+      const result = callback();
+      const nextValue = result?.__forgeSignalCallbackCapture ? result.value : result;
+      if (!isDeepStrictEqual(previousValue, nextValue)) {
+        values.set(id, cloneValue(nextValue));
+        notify(id);
+      }
+    }
+  }
+
+  return {
+    input(id, initial) {
+      values.set(id, cloneValue(initial));
+      return {
+        id,
+        get() {
+          return values.get(id);
+        },
+        peek() {
+          return values.get(id);
+        },
+        free() {},
+      };
+    },
+    computedSpec(id, spec) {
+      values.set(id, cloneValue(spec));
+      return createRawReadableHandle(id, spec);
+    },
+    computedCallback(id, callback) {
+      computedCallbacks.set(id, callback);
+      const result = callback();
+      values.set(id, cloneValue(result?.__forgeSignalCallbackCapture ? result.value : result));
+      return {
+        id,
+        get() {
+          return values.get(id);
+        },
+        peek() {
+          return values.get(id);
+        },
+        free() {
+          computedCallbacks.delete(id);
+          watchers.delete(id);
+        },
+      };
+    },
+    outputSpec(id, spec) {
+      values.set(id, cloneValue(spec));
+      return {
+        id,
+        get() {
+          const sourceId = spec?.expr?.id;
+          return typeof sourceId === "string" ? values.get(sourceId) : values.get(id);
+        },
+        peek() {
+          const sourceId = spec?.expr?.id;
+          return typeof sourceId === "string" ? values.get(sourceId) : values.get(id);
+        },
+        free() {},
+      };
+    },
+    read(target) {
+      const id = typeof target === "string" ? target : target.id;
+      return values.get(id);
+    },
+    watch(target, callback) {
+      const id = typeof target === "string" ? target : target.id;
+      const callbacks = watchers.get(id) ?? new Set();
+      callbacks.add(callback);
+      watchers.set(id, callbacks);
+      return {
+        free() {
+          callbacks.delete(callback);
+          if (callbacks.size === 0) {
+            watchers.delete(id);
+          }
+        },
+      };
+    },
+    effect(target, callback) {
+      return this.watch(target, callback);
+    },
+    transaction(callback) {
+      const ops = [];
+      callback({
+        set(target, value) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["set", target.id, cloneValue(value)]);
+        },
+        setWithAspects(target, value, aspects) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithAspects", target.id, cloneValue(value), aspects]);
+        },
+        setWithRegions(target, value, changedRegions) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithRegions", target.id, cloneValue(value), changedRegions]);
+        },
+        setWithRegionsAndAspects(target, value, changedRegions, aspects) {
+          values.set(target.id, cloneValue(value));
+          ops.push(["setWithRegionsAndAspects", target.id, cloneValue(value), changedRegions, aspects]);
+        },
+        free() {},
+      });
+      recomputeDerivedValues();
+      return ops;
+    },
+    batch(callback) {
+      return this.transaction(callback);
+    },
+    nuke() {
+      return true;
+    },
+    diagnostics() {
+      return {
+        subscribe() { return { free() {} }; },
+        why(id) { return { id, family: "why" }; },
+        health() { return null; },
+        summaryNow() { return { profile: "WebDevelopment", active_node_count: values.size }; },
+        historyNow() {
+          return {
+            history: {
+              profile: "WebDevelopment",
+              traced_node_count: values.size,
+              execution_record_count: values.size,
+              latest_execution_record_id: values.size,
+              reuse_origin_counts: {},
+              nodes: [],
+            },
+            callbackNodes: [],
+          };
+        },
+        latestObservation() { return null; },
+        latestFlow() { return null; },
+        performanceSummary() { return {}; },
+        latestFailure() { return null; },
+        latestRollback() { return null; },
+        latestFrontierExecution() { return null; },
+        latestInvalidationTraceRecords() { return []; },
+        recentHistory() { return []; },
+      };
+    },
+    history() {
+      return {
+        replay_for(id) { return { id, family: "replay" }; },
+        lineage_for(id) { return { id, family: "lineage" }; },
+        free() {},
+      };
+    },
+    specialist() {
+      return {
+        read_versions(ids) {
+          return ids.map((id, index) => ({ id, version: index + 1 }));
+        },
+        free() {},
+      };
+    },
+    adapters() {
+      return {
+        export_definitions() {
+          return {
+            policy: null,
+            sources: [],
+            recipes: [],
+            sourceFamilies: [],
+            recipeFamilies: [],
+            unavailableCallbacks: [],
+          };
+        },
+        free() {},
+      };
+    },
+    compatibilityApp() {
+      return {};
+    },
+    compatibilityRuntime() {
+      return {};
+    },
+    free() {},
+  };
+}
+
+test("The Linked Writable Derived State Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createLinkedRuntime());
+    const shippingOptions = signals.input([
+      { id: "ground", label: "Ground" },
+      { id: "air", label: "Air" },
+    ], { debugName: "shippingOptions" });
+
+    const firstOption = signals.linked(() => shippingOptions()[0], {
+      debugName: "firstOption",
+    });
+
+    const preservedSelection = signals.linked({
+      source: () => shippingOptions(),
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0] ?? null
+      ),
+      debugName: "preservedSelection",
+    });
+
+    const selectionController = signals.controller(({ input, linked }) => {
+      const options = input([
+        { id: "draft", label: "Draft" },
+        { id: "review", label: "Review" },
+      ]);
+      const selected = linked({
+        source: () => options(),
+        computation: (nextOptions, previous) => (
+          nextOptions.find((option) => option.id === previous?.value?.id) ?? nextOptions[0]
+        ),
+      });
+      return {
+        inputs: { options },
+        outputs: { selected },
+      };
+    });
+
+    assert.equal(firstOption.debugName, "firstOption");
+    assert.equal(firstOption().id, "ground");
+    assert.equal(preservedSelection().id, "ground");
+    assert.equal(selectionController.outputs.selected().id, "draft");
+
+    preservedSelection.set({ id: "air", label: "Air" });
+    assert.equal(preservedSelection().id, "air");
+
+    shippingOptions.set([
+      { id: "ground", label: "Ground" },
+      { id: "air", label: "Air" },
+      { id: "sea", label: "Sea" },
+    ]);
+
+    assert.equal(firstOption().id, "ground");
+    assert.equal(preservedSelection().id, "air");
+    preservedSelection.relink();
+    assert.equal(preservedSelection().id, "air");
+
+    preservedSelection.set({ id: "manual", label: "Manual" });
+    preservedSelection.reset();
+    assert.equal(preservedSelection().id, "air");
+
+    shippingOptions.set([
+      { id: "sea", label: "Sea" },
+      { id: "ground", label: "Ground" },
+    ]);
+
+    firstOption.set({ id: "manual", label: "Manual" });
+    firstOption.reset();
+    assert.equal(
+      firstOption().id,
+      "sea",
+      "linked reset should read the current source-derived baseline even before relink",
+    );
+    firstOption.relink();
+    assert.equal(firstOption().id, "sea");
+
+    shippingOptions.set([
+      { id: "sea", label: "Sea" },
+      { id: "ground", label: "Ground" },
+    ]);
+
+    preservedSelection.set({ id: "manual", label: "Manual" });
+    preservedSelection.relink();
+    assert.equal(preservedSelection().id, "sea");
+
+    const linkedGraph = signals.graph("linkedSelection", (graph) => {
+      const selection = graph.scope("selection");
+      const available = selection.input([
+        { id: "draft", label: "Draft" },
+        { id: "review", label: "Review" },
+      ]);
+      const chosen = selection.linked({
+        source: () => available(),
+        computation: (options, previous) => (
+          options.find((option) => option.id === previous?.value?.id) ?? options[0] ?? null
+        ),
+      });
+      return graph.expose({
+        inputs: {
+          available,
+          chosen,
+        },
+        outputs: {
+          chosen,
+        },
+      });
+    });
+
+    linkedGraph.writeInputs({
+      chosen: { id: "review", label: "Review" },
+    });
+    linkedGraph.writeInputs({
+      available: [
+        { id: "ready", label: "Ready" },
+        { id: "review", label: "Review" },
+      ],
+    });
+    linkedGraph.resetInputs(["chosen"]);
+    assert.equal(
+      linkedGraph.readInputs().chosen?.id,
+      "ready",
+      "graph reset should honor the current linked baseline rather than a stale initial baseline",
+    );
+    const linkedRevisionGraph = signals.graph("linkedRevisionSelection", (graph) => {
+      const selection = graph.scope("selection");
+      const available = selection.input({
+        revision: 1,
+        options: [
+          { id: "draft", label: "Draft" },
+          { id: "review", label: "Review" },
+        ],
+      });
+      const chosen = selection.linked({
+        source: () => available(),
+        computation: (source, previous) => {
+          const preserved = previous && previous.source.revision === source.revision
+            ? source.options.find((option) => option.id === previous.value?.id) ?? null
+            : null;
+          return preserved ?? source.options[0] ?? null;
+        },
+      });
+      return graph.expose({
+        inputs: {
+          available,
+          chosen,
+        },
+        outputs: {
+          chosen,
+        },
+      });
+    });
+
+    linkedRevisionGraph.writeInputs({
+      available: {
+        revision: 2,
+        options: [
+          { id: "review", label: "Review" },
+          { id: "ready", label: "Ready" },
+        ],
+      },
+    });
+    linkedRevisionGraph.resetInputs(["chosen"]);
+    assert.equal(
+      linkedRevisionGraph.readInputs().chosen?.id,
+      "review",
+      "linked graph reset should re-anchor to the current source-derived baseline",
+    );
+    linkedRevisionGraph.writeInputs({
+      available: {
+        revision: 2,
+        options: [
+          { id: "approved", label: "Approved" },
+          { id: "review", label: "Review" },
+        ],
+      },
+    });
+    linkedRevisionGraph.resetInputs(["chosen"]);
+    assert.equal(
+      linkedRevisionGraph.readInputs().chosen?.id,
+      "review",
+      "graph reset should finalize linked baseline state so later resets preserve the latest valid baseline under the same source revision",
+    );
+
+    assert.throws(
+      () => signals.linked(() => 1, { id: "count" }),
+      /signals\.linked app authoring does not accept id/,
+    );
+    assert.throws(
+      () => signals.linked({ source: () => 1, computation: "nope" }),
+      /signals\.linked computation must be a function when provided/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Portable Lane Explicit Naming Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const calls = [];
@@ -797,11 +1206,11 @@ test("wrapSignals supports symmetric metadata-style input/computed/output author
     const doubledSpec = { expr: { kind: "value", value: 2 } };
     const labelSpec = { expr: { kind: "value", value: "label" } };
 
-    const count = signals.input(1, { id: "count", producesAspects: [1] });
-    const doubled = signals.computed(doubledSpec, { id: "doubled" });
-    const label = signals.output(labelSpec, { id: "label" });
-    const callbackLabel = signals.output(() => "callback-label", { id: "callbackLabel" });
-    const generated = signals.computed(() => count() + 1, { id: "generated" });
+    const count = signals.spec.input("count", 1, { producesAspects: [1] });
+    const doubled = signals.spec.computed("doubled", doubledSpec);
+    const label = signals.spec.output("label", labelSpec);
+    const callbackLabel = signals.spec.outputCallback("callbackLabel", () => "callback-label");
+    const generated = signals.spec.computedCallback("generated", () => count() + 1);
 
     assert.equal(count.id, "count");
     assert.equal(doubled.id, "doubled");
@@ -809,6 +1218,14 @@ test("wrapSignals supports symmetric metadata-style input/computed/output author
     assert.equal(callbackLabel.id, "callbackLabel");
     assert.equal(generated.id, "generated");
     assert.deepEqual(label(), { spec: labelSpec });
+    assert.throws(
+      () => signals.input("count", 1),
+      /input app authoring does not accept an explicit id; use signals\.spec\.input/,
+    );
+    assert.throws(
+      () => signals.computed("doubled", doubledSpec),
+      /computed app authoring does not accept an explicit id; use signals\.spec\.computed/,
+    );
 
     assert.deepEqual(calls[0], ["input", "count", 1, { producesAspects: [1] }]);
     assert.deepEqual(calls[1], ["computedSpec", "doubled", doubledSpec]);
@@ -894,9 +1311,9 @@ test("wrapSignals keeps callback forms and rejects malformed metadata mixes", as
     };
 
     const signals = wrapSignals(rawSignals);
-    const deferred = signals.output(() => 1, { id: "panel" });
-    const explicit = signals.output("panelExplicit", () => 2);
-    const namedComputed = signals.computed("named", () => 3);
+    const deferred = signals.spec.outputCallback("panel", () => 1);
+    const explicit = signals.spec.outputCallback("panelExplicit", () => 2);
+    const namedComputed = signals.spec.computedCallback("named", () => 3);
 
     assert.equal(deferred.id, "panel");
     assert.equal(explicit.id, "panelExplicit");
@@ -923,16 +1340,16 @@ test("wrapSignals keeps callback forms and rejects malformed metadata mixes", as
     ]);
 
     assert.throws(
-      () => signals.input(1),
+      () => signals.input(1, "nope"),
       /input options must be an object when provided/,
     );
     assert.throws(
-      () => signals.computed({ expr: { kind: "value", value: 1 } }, {}),
-      /computed metadata form requires a non-empty string id/,
+      () => signals.computed("named", { expr: { kind: "value", value: 1 } }, {}),
+      /computed app authoring does not accept an explicit id; use signals\.spec\.computed/,
     );
     assert.throws(
       () => signals.output("label", { expr: { kind: "value", value: 1 } }, { id: "extra" }),
-      /output spec form does not accept a third argument/,
+      /output app authoring does not accept an explicit id; use signals\.spec\.output/,
     );
     assert.throws(
       () => signals.output(() => 1, "panel"),
@@ -1001,21 +1418,21 @@ test("wrapSignals accepts string-valued metadata-style inputs without misparsing
     };
 
     const signals = wrapSignals(rawSignals);
-    const emptyStringInput = signals.input("", { id: "emptyStringInput" });
-    const namedStringInput = signals.input("Ada", { id: "name" });
-    const objectWithOwnIdValue = signals.input("draft", { id: "gear-7", name: "Gear 7" });
+    const emptyStringInput = signals.spec.input("emptyStringInput", "");
+    const namedStringInput = signals.spec.input("name", "Ada");
+    const objectWithOwnIdValue = signals.input({ id: "gear-7", name: "Gear 7" }, { debugName: "draft" });
 
     assert.equal(emptyStringInput.id, "emptyStringInput");
     assert.equal(emptyStringInput(), "");
     assert.equal(namedStringInput.id, "name");
     assert.equal(namedStringInput(), "Ada");
-    assert.equal(objectWithOwnIdValue.id, "draft");
+    assert.notEqual(objectWithOwnIdValue.id, "gear-7");
     assert.deepEqual(objectWithOwnIdValue(), { id: "gear-7", name: "Gear 7" });
 
     assert.deepEqual(calls, [
       ["input", "emptyStringInput", "", undefined],
       ["input", "name", "Ada", undefined],
-      ["input", "draft", { id: "gear-7", name: "Gear 7" }, undefined],
+      ["input", objectWithOwnIdValue.id, { id: "gear-7", name: "Gear 7" }, {}],
     ]);
   } finally {
     await cleanup();
@@ -1109,9 +1526,9 @@ test("wrapSignals rejects raw handles, foreign-runtime handles, and non-input mu
     const firstSignals = wrapSignals(buildRawSignals(firstCalls));
     const secondSignals = wrapSignals(buildRawSignals(secondCalls));
 
-    const firstInput = firstSignals.input(1, { id: "count" });
-    const secondInput = secondSignals.input(2, { id: "other" });
-    const computed = firstSignals.computed({ expr: { kind: "value", value: 4 } }, { id: "double" });
+    const firstInput = firstSignals.input(1, { debugName: "count" });
+    const secondInput = secondSignals.input(2, { debugName: "other" });
+    const computed = firstSignals.computed({ expr: { kind: "value", value: 4 } }, { debugName: "double" });
     const rawHandle = createRawReadableHandle("raw", 9);
 
     assert.throws(
@@ -1137,7 +1554,7 @@ test("wrapSignals rejects raw handles, foreign-runtime handles, and non-input mu
     );
 
     const commit = firstSignals.transaction((tx) => tx.set(firstInput, 7));
-    assert.deepEqual(commit, [["set", "count", 7]]);
+    assert.deepEqual(commit, [["set", firstInput.id, 7]]);
   } finally {
     await cleanup();
   }
@@ -1348,9 +1765,9 @@ test("The Graph Publication Output Synthesis Test", async () => {
     };
 
     const signals = wrapSignals(rawSignals);
-    const count = signals.input(1, { id: "count" });
-    const doubled = signals.computed(() => count() * 2, { id: "doubled" });
-    const panel = signals.output(() => ({ count: count(), doubled: doubled() }), { id: "panel" });
+    const count = signals.input(1, { debugName: "count" });
+    const doubled = signals.computed(() => count() * 2, { debugName: "doubled" });
+    const panel = signals.output(() => ({ count: count(), doubled: doubled() }), { debugName: "panel" });
 
     const graph = signals.graph("itemDetail", {
       outputs: {
@@ -1363,37 +1780,37 @@ test("The Graph Publication Output Synthesis Test", async () => {
     assert.equal(graph.id, "itemDetail");
     assert.equal(graph.outputs.count.id, "itemDetail.count");
     assert.equal(graph.outputs.doubled.id, "itemDetail.doubled");
-    assert.equal(graph.outputs.panel.id, "panel");
+    assert.equal(graph.outputs.panel.id, "itemDetail.panel");
     const graphSnapshot = graph.read();
     assert.equal(Object.getPrototypeOf(graphSnapshot), null);
     assert.deepEqual({ ...graphSnapshot }, {
       count: {
         id: "itemDetail.count",
         spec: {
-          reads: ["count"],
+          reads: [count.id],
           expr: {
             kind: "read",
-            id: "count",
+            id: count.id,
           },
         },
       },
       doubled: {
         id: "itemDetail.doubled",
         spec: {
-          reads: ["doubled"],
+          reads: [doubled.id],
           expr: {
             kind: "read",
-            id: "doubled",
+            id: doubled.id,
           },
         },
       },
       panel: {
-        id: "panel",
+        id: "itemDetail.panel",
         spec: {
-          reads: ["__forgeSignal.outputProjection.panel.1"],
+          reads: [panel.id],
           expr: {
             kind: "read",
-            id: "__forgeSignal.outputProjection.panel.1",
+            id: panel.id,
           },
         },
       },
@@ -1401,20 +1818,20 @@ test("The Graph Publication Output Synthesis Test", async () => {
     assert.deepEqual(graph.output("count")(), {
       id: "itemDetail.count",
       spec: {
-        reads: ["count"],
+        reads: [count.id],
         expr: {
           kind: "read",
-          id: "count",
+          id: count.id,
         },
       },
     });
     assert.deepEqual(graph.why("count"), { id: "itemDetail.count", family: "why" });
     assert.deepEqual(graph.replayFor("doubled"), { id: "itemDetail.doubled", family: "replay" });
-    assert.deepEqual(graph.lineageFor("panel"), { id: "panel", family: "lineage" });
+    assert.deepEqual(graph.lineageFor("panel"), { id: "itemDetail.panel", family: "lineage" });
     assert.deepEqual(graph.readVersions(), [
       { id: "itemDetail.count", version: 1 },
       { id: "itemDetail.doubled", version: 2 },
-      { id: "panel", version: 3 },
+      { id: "itemDetail.panel", version: 3 },
     ]);
     const diagnosticsSurface = graph.inspectDiagnostics();
     assert.equal(Object.getPrototypeOf(diagnosticsSurface.inputs), null);
@@ -1426,11 +1843,11 @@ test("The Graph Publication Output Synthesis Test", async () => {
       {
         graphId: "itemDetail",
         outputName: "panel",
-        publishedId: "panel",
-        sourceId: "panel",
+        publishedId: "itemDetail.panel",
+        sourceId: panel.id,
         publicInputNames: [],
         publicInputSourceIds: [],
-        transitiveSignalIds: ["panel", "__forgeSignal.outputProjection.panel.1", "count", "doubled"],
+        transitiveSignalIds: ["itemDetail.panel", panel.id],
       },
     );
     assert.deepEqual(
@@ -1452,8 +1869,8 @@ test("The Graph Publication Output Synthesis Test", async () => {
     });
     assert.deepEqual(diagnosticsSurface.outputs.panel, {
       descriptor: graph.descriptors()[2],
-      version: { id: "panel", version: 3 },
-      why: { id: "panel", family: "why" },
+      version: { id: "itemDetail.panel", version: 3 },
+      why: { id: "itemDetail.panel", family: "why" },
     });
     assert.deepEqual(diagnosticsSurface.runtimeGraph, {
       profile: "WebDevelopment",
@@ -1509,9 +1926,9 @@ test("The Graph Publication Output Synthesis Test", async () => {
       inputSourceIds: [],
       outputCount: 3,
       outputNames: ["count", "doubled", "panel"],
-      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "panel"],
-      sourceIds: ["count", "doubled", "panel"],
-      synthesizedOutputCount: 2,
+      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "itemDetail.panel"],
+      sourceIds: [count.id, doubled.id, panel.id],
+      synthesizedOutputCount: 3,
     });
     const compatibilityDefinition = graph.exportCompatibilityDefinition();
     assert.equal(Object.getPrototypeOf(compatibilityDefinition.outputs), null);
@@ -1532,7 +1949,7 @@ test("The Graph Publication Output Synthesis Test", async () => {
         outputs: {
           count: "itemDetail.count",
           doubled: "itemDetail.doubled",
-          panel: "panel",
+          panel: "itemDetail.panel",
         },
         inputDescriptors: [],
         descriptors: graph.descriptors(),
@@ -1541,11 +1958,11 @@ test("The Graph Publication Output Synthesis Test", async () => {
       outputs: {
         count: "itemDetail.count",
         doubled: "itemDetail.doubled",
-        panel: "panel",
+        panel: "itemDetail.panel",
       },
       inputSourceIds: [],
-      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "panel"],
-      sourceIds: ["count", "doubled", "panel"],
+      publishedOutputIds: ["itemDetail.count", "itemDetail.doubled", "itemDetail.panel"],
+      sourceIds: [count.id, doubled.id, panel.id],
       inputDescriptors: [],
       descriptors: graph.descriptors(),
       definitions: {
@@ -1567,24 +1984,10 @@ test("The Graph Publication Output Synthesis Test", async () => {
             reads: ["doubled"],
             expr: { kind: "read", id: "doubled" },
           },
-          {
-            id: "panel",
-            reads: ["__forgeSignal.outputProjection.panel.1"],
-            expr: { kind: "read", id: "__forgeSignal.outputProjection.panel.1" },
-          },
         ],
         sourceFamilies: [],
         recipeFamilies: [],
-        unavailableCallbacks: [
-          {
-            id: "__forgeSignal.outputProjection.panel.1",
-            signalKind: "computed",
-            reason: "computeCallbackUnavailableForPortableExport",
-            currentReads: ["count", "doubled"],
-            hostCapabilityReads: [],
-            hostCapabilityTransports: [],
-          },
-        ],
+        unavailableCallbacks: [],
       },
     });
     rawSignals.adapters = () => ({
@@ -1635,7 +2038,7 @@ test("The Graph Publication Output Synthesis Test", async () => {
     const refreshedCompatibilityDefinition = graph.exportCompatibilityDefinition();
     assert.deepEqual(
       refreshedCompatibilityDefinition.definitions.unavailableCallbacks[0]?.currentReads,
-      ["count"],
+      undefined,
     );
     assert.equal(typeof graph.diagnostics().performanceSummary, "function");
     assert.equal(typeof graph.history, "function");
@@ -1646,72 +2049,80 @@ test("The Graph Publication Output Synthesis Test", async () => {
     assert.deepEqual(graph.descriptors(), [
       {
         outputName: "count",
-        sourceId: "count",
+        sourceId: count.id,
         sourceKind: "input",
         publishedId: "itemDetail.count",
         publicationKind: "synthesizedOutput",
       },
       {
         outputName: "doubled",
-        sourceId: "doubled",
+        sourceId: doubled.id,
         sourceKind: "computed",
         publishedId: "itemDetail.doubled",
         publicationKind: "synthesizedOutput",
       },
       {
         outputName: "panel",
-        sourceId: "panel",
+        sourceId: panel.id,
         sourceKind: "output",
-        publishedId: "panel",
-        publicationKind: "existingOutput",
+        publishedId: "itemDetail.panel",
+        publicationKind: "synthesizedOutput",
       },
     ]);
     assert.deepEqual(readVersionCalls, [
-      ["itemDetail.count", "itemDetail.doubled", "panel"],
+      ["itemDetail.count", "itemDetail.doubled", "itemDetail.panel"],
       [],
-      ["itemDetail.count", "itemDetail.doubled", "panel"],
+      ["itemDetail.count", "itemDetail.doubled", "itemDetail.panel"],
     ]);
     assert.deepEqual(whyCalls, [
       "itemDetail.count",
       "itemDetail.count",
       "itemDetail.doubled",
-      "panel",
+      "itemDetail.panel",
     ]);
     assert.deepEqual(replayCalls, [
       "itemDetail.doubled",
       "itemDetail.count",
       "itemDetail.doubled",
-      "panel",
+      "itemDetail.panel",
     ]);
     assert.deepEqual(lineageCalls, [
-      "panel",
+      "itemDetail.panel",
       "itemDetail.count",
       "itemDetail.doubled",
-      "panel",
+      "itemDetail.panel",
     ]);
+    const panelProjectionId = calls[2][1];
     assert.deepEqual(calls.slice(0, 7), [
-      ["input", "count", 1, undefined],
-      ["computedCallback", "doubled", "function"],
-      ["computedCallback", "__forgeSignal.outputProjection.panel.1", "function"],
-      ["outputSpec", "panel", {
-        reads: ["__forgeSignal.outputProjection.panel.1"],
+      ["input", count.id, 1, {}],
+      ["computedCallback", doubled.id, "function"],
+      ["computedCallback", panelProjectionId, "function"],
+      ["outputSpec", panel.id, {
+        reads: [panelProjectionId],
         expr: {
           kind: "read",
-          id: "__forgeSignal.outputProjection.panel.1",
+          id: panelProjectionId,
         },
       }],
       ["outputSpec", "itemDetail.count", {
-        reads: ["count"],
+        reads: [count.id],
         expr: {
           kind: "read",
-          id: "count",
+          id: count.id,
         },
       }],
       ["outputSpec", "itemDetail.doubled", {
-        reads: ["doubled"],
+        reads: [doubled.id],
         expr: {
           kind: "read",
-          id: "doubled",
+          id: doubled.id,
+        },
+      }],
+      ["outputSpec", "itemDetail.panel", {
+        reads: [panel.id],
+        expr: {
+          kind: "read",
+          id: panel.id,
         },
       }],
     ]);
@@ -1720,16 +2131,16 @@ test("The Graph Publication Output Synthesis Test", async () => {
   }
 });
 
-test("The Authoring Grammar Convergence Test", async () => {
+test("The Opaque Authoring Equivalence Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     function defineCanonicalGraph(signals) {
-      const count = signals.input(1, { id: "count" });
-      const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+      const count = signals.input(1, { debugName: "count" });
+      const doubled = signals.computed(() => count() * 2, { debugName: "doubled" });
       const panel = signals.output(() => ({
         count: count(),
         doubled: doubled(),
-      }), { id: "panel" });
+      }), { debugName: "panel" });
 
       return signals.graph("counter", {
         inputs: { count },
@@ -1738,12 +2149,9 @@ test("The Authoring Grammar Convergence Test", async () => {
     }
 
     function defineCompatibilityGraph(signals) {
-      const count = signals.input("count", 1);
-      const doubled = signals.computed("doubled", () => count() * 2);
-      const panel = signals.output("panel", () => ({
-        count: count(),
-        doubled: doubled(),
-      }));
+      const count = signals.spec.input("count", 1);
+      const doubled = signals.spec.computedCallback("doubled", () => count() * 2);
+      const panel = signals.spec.outputCallback("panel", () => ({ count: count(), doubled: doubled() }));
 
       return signals.graph("counter", {
         inputs: { count },
@@ -1754,24 +2162,117 @@ test("The Authoring Grammar Convergence Test", async () => {
     const canonicalGraph = defineCanonicalGraph(wrapSignals(createGraphPublicationRuntime()));
     const compatibilityGraph = defineCompatibilityGraph(wrapSignals(createGraphPublicationRuntime()));
 
-    assert.deepEqual(canonicalGraph.summary(), compatibilityGraph.summary());
-    assert.deepEqual(canonicalGraph.contract(), compatibilityGraph.contract());
-    assert.deepEqual(canonicalGraph.inputDescriptors(), compatibilityGraph.inputDescriptors());
-    assert.deepEqual(canonicalGraph.descriptors(), compatibilityGraph.descriptors());
+    assert.equal(canonicalGraph.summary().id, compatibilityGraph.summary().id);
+    assert.deepEqual(canonicalGraph.summary().inputNames, compatibilityGraph.summary().inputNames);
+    assert.deepEqual(canonicalGraph.summary().outputNames, compatibilityGraph.summary().outputNames);
+    assert.equal(canonicalGraph.contract().inputs.count, canonicalGraph.inputDescriptors()[0].sourceId);
+    assert.equal(canonicalGraph.contract().outputs.panel, canonicalGraph.descriptors()[1].publishedId);
+    assert.deepEqual(
+      canonicalGraph.inputDescriptors().map(({ inputName, sourceKind, authority }) => ({
+        inputName,
+        sourceKind,
+        authority,
+      })),
+      compatibilityGraph.inputDescriptors().map(({ inputName, sourceKind, authority }) => ({
+        inputName,
+        sourceKind,
+        authority,
+      })),
+    );
+    assert.deepEqual(
+      canonicalGraph.descriptors().map(({ outputName, sourceKind, publicationKind }) => ({
+        outputName,
+        sourceKind,
+        publicationKind,
+      })),
+      compatibilityGraph.descriptors().map(({ outputName, sourceKind, publicationKind }) => ({
+        outputName,
+        sourceKind,
+        publicationKind,
+      })),
+    );
     assert.deepEqual(canonicalGraph.readInputs(), compatibilityGraph.readInputs());
-    assert.deepEqual(canonicalGraph.read(), compatibilityGraph.read());
     assert.deepEqual(
-      materializeGraphDiagnosticsSurface(canonicalGraph.inspectDiagnostics()),
-      materializeGraphDiagnosticsSurface(compatibilityGraph.inspectDiagnostics()),
+      Object.keys(canonicalGraph.read()),
+      Object.keys(compatibilityGraph.read()),
+    );
+    const canonicalDiagnostics = materializeGraphDiagnosticsSurface(canonicalGraph.inspectDiagnostics());
+    const compatibilityDiagnostics = materializeGraphDiagnosticsSurface(compatibilityGraph.inspectDiagnostics());
+    assert.deepEqual(canonicalDiagnostics.graph.id, compatibilityDiagnostics.graph.id);
+    assert.deepEqual(Object.keys(canonicalDiagnostics.inputs), Object.keys(compatibilityDiagnostics.inputs));
+    assert.deepEqual(Object.keys(canonicalDiagnostics.outputs), Object.keys(compatibilityDiagnostics.outputs));
+    assert.deepEqual(
+      Object.keys(canonicalDiagnostics.dependencies),
+      Object.keys(compatibilityDiagnostics.dependencies),
+    );
+    const canonicalHistory = materializeGraphHistorySurface(canonicalGraph.inspectHistory());
+    const compatibilityHistory = materializeGraphHistorySurface(compatibilityGraph.inspectHistory());
+    assert.equal(canonicalHistory.contract.graph.id, compatibilityHistory.contract.graph.id);
+    assert.deepEqual(
+      Object.keys(canonicalHistory.contract.inputs),
+      Object.keys(compatibilityHistory.contract.inputs),
     );
     assert.deepEqual(
-      materializeGraphHistorySurface(canonicalGraph.inspectHistory()),
-      materializeGraphHistorySurface(compatibilityGraph.inspectHistory()),
+      Object.keys(canonicalHistory.contract.outputs),
+      Object.keys(compatibilityHistory.contract.outputs),
     );
     assert.deepEqual(
-      canonicalGraph.exportCompatibilityDefinition(),
-      compatibilityGraph.exportCompatibilityDefinition(),
+      Object.keys(canonicalGraph.exportCompatibilityDefinition()),
+      Object.keys(compatibilityGraph.exportCompatibilityDefinition()),
     );
+    assert.deepEqual(
+      Object.keys(canonicalGraph.exportCompatibilityDefinition().outputs),
+      Object.keys(compatibilityGraph.exportCompatibilityDefinition().outputs),
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Debug Name Is Not Identity Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphPublicationRuntime());
+    const count = signals.input(1, { debugName: "shared" });
+    const countMirror = signals.computed(() => count(), { debugName: "shared" });
+    const graph = signals.graph("counter", {
+      inputs: {
+        count,
+      },
+      outputs: {
+        countValue: countMirror,
+      },
+    });
+
+    assert.equal(count.debugName, "shared");
+    assert.equal(countMirror.debugName, "shared");
+    assert.notEqual(count.id, countMirror.id);
+    assert.notEqual(count.id, "shared");
+    assert.notEqual(countMirror.id, "shared");
+    assert.equal(graph.output("countValue").id, "counter.countValue");
+    assert.equal(graph.contract().outputs.countValue, "counter.countValue");
+    assert.equal(
+      graph.exportCompatibilityDefinition().contract.outputs.countValue,
+      "counter.countValue",
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("The Debug Name Is Not Addressability Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphPublicationRuntime());
+    const count = signals.input(1, { debugName: "count" });
+    const doubled = signals.computed(() => count() * 2, { debugName: "count" });
+
+    assert.equal(count.debugName, "count");
+    assert.equal(doubled.debugName, "count");
+    assert.notEqual(count.id, "count");
+    assert.notEqual(doubled.id, "count");
+    assert.notEqual(count.id, doubled.id);
+    assert.notEqual(signals.read("count"), count());
   } finally {
     await cleanup();
   }
@@ -1838,8 +2339,8 @@ test("The Same-Runtime Controller Ownership Test", async () => {
 
     const firstSignals = wrapSignals(buildRawSignals());
     const secondSignals = wrapSignals(buildRawSignals());
-    const count = firstSignals.input(1, { id: "count" });
-    const other = secondSignals.input(2, { id: "other" });
+    const count = firstSignals.input(1, { debugName: "count" });
+    const other = secondSignals.input(2, { debugName: "other" });
 
     assert.throws(
       () => firstSignals.graph("", { outputs: { count } }),
@@ -2066,17 +2567,17 @@ test("The Composition Diagnostics And History Parity Test", async () => {
     const signals = wrapSignals(rawSignals);
 
     function createEditSessionController(namespace) {
-      const serverItemData = namespace.input(null, { id: "serverItemData" });
-      const draftEdits = namespace.input({}, { id: "draftEdits" });
+      const serverItemData = namespace.spec.input("serverItemData", null);
+      const draftEdits = namespace.spec.input("draftEdits", {});
 
-      const effectiveItemData = namespace.computed(() => ({
+      const effectiveItemData = namespace.spec.computedCallback("effectiveItemData", () => ({
         ...(serverItemData() ?? {}),
         ...(draftEdits() ?? {}),
-      }), { id: "effectiveItemData" });
+      }));
 
-      const dirtyState = namespace.computed(() => ({
+      const dirtyState = namespace.spec.computedCallback("dirtyState", () => ({
         isDirty: Object.keys(draftEdits()).length > 0,
-      }), { id: "dirtyState" });
+      }));
 
       return {
         serverItemData,
@@ -2087,7 +2588,7 @@ test("The Composition Diagnostics And History Parity Test", async () => {
     }
 
     function createWorkflowController(namespace, editSession) {
-      const submitReadiness = namespace.computed(() => {
+      const submitReadiness = namespace.spec.computedCallback("submitReadiness", () => {
         const item = editSession.effectiveItemData();
         const dirty = editSession.dirtyState();
 
@@ -2095,7 +2596,7 @@ test("The Composition Diagnostics And History Parity Test", async () => {
           enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
           targetStateId: item.workflow_target_state_id ?? null,
         };
-      }, { id: "submitReadiness" });
+      });
 
       return {
         submitReadiness,
@@ -2481,23 +2982,23 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
     }
 
     function defineFlatGraph(signals) {
-      const serverItemData = signals.input(null, { id: "serverItemData" });
-      const draftEdits = signals.input({}, { id: "draftEdits" });
-      const effectiveItemData = signals.computed(() => ({
+      const serverItemData = signals.spec.input("serverItemData", null);
+      const draftEdits = signals.spec.input("draftEdits", {});
+      const effectiveItemData = signals.spec.computedCallback("effectiveItemData", () => ({
         ...(serverItemData() ?? {}),
         ...(draftEdits() ?? {}),
-      }), { id: "effectiveItemData" });
-      const dirtyState = signals.computed(() => ({
+      }));
+      const dirtyState = signals.spec.computedCallback("dirtyState", () => ({
         isDirty: Object.keys(draftEdits()).length > 0,
-      }), { id: "dirtyState" });
-      const submitReadiness = signals.computed(() => {
+      }));
+      const submitReadiness = signals.spec.computedCallback("submitReadiness", () => {
         const item = effectiveItemData();
         const dirty = dirtyState();
         return {
           enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
           targetStateId: item.workflow_target_state_id ?? null,
         };
-      }, { id: "submitReadiness" });
+      });
       return signals.graph("itemDetail", {
         outputs: {
           effectiveItemData,
@@ -2508,27 +3009,27 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
     }
 
     function createEditSessionController(namespace) {
-      const serverItemData = namespace.input(null, { id: "serverItemData" });
-      const draftEdits = namespace.input({}, { id: "draftEdits" });
-      const effectiveItemData = namespace.computed(() => ({
+      const serverItemData = namespace.spec.input("serverItemData", null);
+      const draftEdits = namespace.spec.input("draftEdits", {});
+      const effectiveItemData = namespace.spec.computedCallback("effectiveItemData", () => ({
         ...(serverItemData() ?? {}),
         ...(draftEdits() ?? {}),
-      }), { id: "effectiveItemData" });
-      const dirtyState = namespace.computed(() => ({
+      }));
+      const dirtyState = namespace.spec.computedCallback("dirtyState", () => ({
         isDirty: Object.keys(draftEdits()).length > 0,
-      }), { id: "dirtyState" });
+      }));
       return { serverItemData, draftEdits, effectiveItemData, dirtyState };
     }
 
     function createWorkflowController(namespace, editSession) {
-      const submitReadiness = namespace.computed(() => {
+      const submitReadiness = namespace.spec.computedCallback("submitReadiness", () => {
         const item = editSession.effectiveItemData();
         const dirty = editSession.dirtyState();
         return {
           enabled: dirty.isDirty && Boolean(item.workflow_target_state_id),
           targetStateId: item.workflow_target_state_id ?? null,
         };
-      }, { id: "submitReadiness" });
+      });
       return { submitReadiness };
     }
 
@@ -2570,30 +3071,33 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
   }
 });
 
-test("The Repeated Controller Instance Collision Test", async () => {
+test("The Opaque Local Identity Collision Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const rawSignals = createGraphPublicationRuntime();
     const signals = wrapSignals(rawSignals);
 
     function createCounterController(namespace) {
-      const count = namespace.input(0, { id: "count" });
-      const doubled = namespace.computed(() => count() * 2, { id: "doubled" });
+      const count = namespace.input(0, { debugName: "count" });
+      const doubled = namespace.computed(() => count() * 2, { debugName: "count" });
       return { count, doubled };
     }
 
     const left = createCounterController(signals.scope("leftPanel"));
     const right = createCounterController(signals.scope("rightPanel"));
 
-    assert.equal(left.count.id, "leftPanel.count");
-    assert.equal(left.doubled.id, "leftPanel.doubled");
-    assert.equal(right.count.id, "rightPanel.count");
-    assert.equal(right.doubled.id, "rightPanel.doubled");
-
-    assert.throws(
-      () => createCounterController(signals.scope("leftPanel")),
-      /scope `leftPanel` cannot reuse local id `count`/,
-    );
+    assert.equal(left.count.debugName, "count");
+    assert.equal(left.doubled.debugName, "count");
+    assert.equal(right.count.debugName, "count");
+    assert.equal(right.doubled.debugName, "count");
+    assert.notEqual(left.count.id, "count");
+    assert.notEqual(left.doubled.id, "count");
+    assert.notEqual(right.count.id, "count");
+    assert.notEqual(right.doubled.id, "count");
+    assert.notEqual(left.count.id, left.doubled.id);
+    assert.notEqual(right.count.id, right.doubled.id);
+    assert.notEqual(left.count.id, right.count.id);
+    assert.notEqual(left.doubled.id, right.doubled.id);
   } finally {
     await cleanup();
   }
@@ -2674,10 +3178,11 @@ test("The Scoped Graph And Manual Scope Equivalence Test", async () => {
     function createManualGraph() {
       const rawSignals = createGraphPublicationRuntime();
       const signals = wrapSignals(rawSignals);
-      const count = signals.input(1, { id: "itemDetail.editSession.count" });
-      const label = signals.computed(() => `count:${count()}`, {
-        id: "itemDetail.editSession.label",
-      });
+      const count = signals.spec.input("itemDetail.editSession.count", 1);
+      const label = signals.spec.computedCallback(
+        "itemDetail.editSession.label",
+        () => `count:${count()}`,
+      );
       return signals.graph("itemDetail", {
         inputs: {
           count,
@@ -2819,12 +3324,14 @@ test("The Public Graph Input And Output Contract Test", async () => {
         sourceId: "itemDetail.editSession.serverItemData",
         sourceKind: "input",
         authority: "writable",
+        requiredness: "required",
       },
       {
         inputName: "draftEdits",
         sourceId: "itemDetail.editSession.draftEdits",
         sourceKind: "input",
         authority: "writable",
+        requiredness: "required",
       },
     ]);
     assert.deepEqual({
@@ -2954,7 +3461,7 @@ test("The Graph-Owned Lifecycle Boundary Test", async () => {
     const rawSignals = createGraphPublicationRuntime();
     const signals = wrapSignals(rawSignals);
 
-    const ambientCount = signals.input(1, { id: "ambient.count" });
+    const ambientCount = signals.spec.input("ambient.count", 1);
 
     assert.throws(
       () => signals.graph("itemDetail", () => ({
@@ -3142,42 +3649,67 @@ test("The Controller Artifact Composition Test", async () => {
     const signals = wrapSignals(rawSignals);
 
     function createEditSessionController(namespace) {
-      const serverItemData = namespace.input(null, { id: "serverItemData" });
-      const draftEdits = namespace.input({}, { id: "draftEdits" });
-      const effectiveItemData = namespace.computed(() => ({
-        ...(serverItemData() ?? {}),
-        ...draftEdits(),
-      }), { id: "effectiveItemData" });
-      const dirtyState = namespace.computed(() => ({
-        isDirty: Object.keys(draftEdits()).length > 0,
-      }), { id: "dirtyState" });
+      return namespace.controller(({ input, computed }) => {
+        const serverItemData = input(null, { id: "serverItemData" });
+        const draftEdits = input({}, { id: "draftEdits" });
+        const effectiveItemData = computed(() => ({
+          ...(serverItemData() ?? {}),
+          ...draftEdits(),
+        }), { id: "effectiveItemData" });
+        const dirtyState = computed(() => ({
+          isDirty: Object.keys(draftEdits()).length > 0,
+        }), { id: "dirtyState" });
 
-      return namespace.controller({
-        inputs: {
-          serverItemData,
-          draftEdits,
-        },
-        outputs: {
-          effectiveItemData,
-          dirtyState,
-        },
+        return {
+          inputs: {
+            serverItemData,
+            draftEdits,
+          },
+          outputs: {
+            effectiveItemData,
+            dirtyState,
+          },
+        };
       });
     }
 
     function createWorkflowController(namespace, editSession) {
-      const submitReadiness = namespace.computed(() => ({
-        enabled: editSession.outputs.dirtyState().isDirty,
-      }), { id: "submitReadiness" });
+      return namespace.controller(({ computed }) => {
+        const submitReadiness = computed(() => ({
+          enabled: editSession.outputs.dirtyState().isDirty,
+        }), { id: "submitReadiness" });
 
-      return namespace.controller({
-        outputs: {
-          submitReadiness,
-        },
+        return {
+          outputs: {
+            submitReadiness,
+          },
+        };
       });
     }
 
     const graph = signals.graph("itemDetail", (graphBuilder) => {
-      const editSession = createEditSessionController(graphBuilder.scope("editSession"));
+      const editSession = graphBuilder.controller("editSession", ({ input, computed }) => {
+        const serverItemData = input(null, { id: "serverItemData" });
+        const draftEdits = input({}, { id: "draftEdits" });
+        const effectiveItemData = computed(() => ({
+          ...(serverItemData() ?? {}),
+          ...draftEdits(),
+        }), { id: "effectiveItemData" });
+        const dirtyState = computed(() => ({
+          isDirty: Object.keys(draftEdits()).length > 0,
+        }), { id: "dirtyState" });
+
+        return {
+          inputs: {
+            serverItemData,
+            draftEdits,
+          },
+          outputs: {
+            effectiveItemData,
+            dirtyState,
+          },
+        };
+      });
       const workflow = createWorkflowController(graphBuilder.scope("workflow"), editSession);
       return graphBuilder.expose({
         controllers: [editSession, workflow],
@@ -3231,10 +3763,20 @@ test("The Controller Artifact Composition Test", async () => {
     );
 
     assert.throws(
+      () => signals.controller(() => null),
+      /signals\.controller requires a controller definition object/,
+    );
+
+    assert.throws(
+      () => signals.graph("brokenBuilder", (graphBuilder) => graphBuilder.controller("editSession", () => null)),
+      /signals\.controller requires a controller definition object/,
+    );
+
+    assert.throws(
       () => signals.controller({
         outputs: {
           leakedAuthority: signals.publicInput(
-            signals.input({ taskId: "task-7" }, { id: "routeParams" }),
+            signals.input({ taskId: "task-7" }, { debugName: "routeParams" }),
             { authority: "imported" },
           ),
         },
@@ -3246,7 +3788,7 @@ test("The Controller Artifact Composition Test", async () => {
       () => signals.controller({
         internal: {
           leakedAuthority: signals.publicInput(
-            signals.input({ taskId: "task-7" }, { id: "routeParamsInternal" }),
+            signals.input({ taskId: "task-7" }, { debugName: "routeParamsInternal" }),
             { authority: "readOnly" },
           ),
         },
@@ -3257,7 +3799,7 @@ test("The Controller Artifact Composition Test", async () => {
     assert.throws(
       () => signals.controller({
         inputs: {
-          notAnInput: signals.computed(() => "nope", { id: "notAnInput" }),
+          notAnInput: signals.computed(() => "nope", { debugName: "notAnInput" }),
         },
       }),
       /controller\.inputs\.`notAnInput` must be an input handle or signals\.publicInput/,
@@ -3321,6 +3863,106 @@ test("The Controller Contract Internal Boundary Test", async () => {
   }
 });
 
+test("The Public Input Requiredness Contract Test", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphOperationalRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const graph = signals.graph("taskRequiredness", (builder) => {
+      const scope = builder.scope("requiredness");
+      const serverValue = scope.input({
+        id: "task-7",
+        title: "Ship docs",
+      }, { id: "serverValue" });
+      const draftValue = scope.input({
+        title: "Ship docs",
+      }, { id: "draftValue" });
+      const effectiveValue = scope.computed(() => ({
+        ...serverValue(),
+        ...draftValue(),
+      }), { id: "effectiveValue" });
+
+      return builder.expose({
+        inputs: {
+          serverValue: builder.input.required(serverValue, { authority: "readOnly" }),
+          draftValue: builder.input.optional(draftValue),
+        },
+        outputs: {
+          effectiveValue,
+        },
+      });
+    });
+
+    assert.deepEqual(
+      graph.inputDescriptors().map((descriptor) => ({
+        inputName: descriptor.inputName,
+        authority: descriptor.authority,
+        requiredness: descriptor.requiredness,
+      })),
+      [
+        { inputName: "serverValue", authority: "readOnly", requiredness: "required" },
+        { inputName: "draftValue", authority: "writable", requiredness: "optional" },
+      ],
+    );
+    assert.equal(
+      graph.operationalContract().authorities.serverValue.requiredness,
+      "required",
+    );
+    assert.equal(
+      graph.operationalContract().authorities.draftValue.requiredness,
+      "optional",
+    );
+    assert.equal(graph.contract().inputDescriptors[0].requiredness, "required");
+    assert.equal(graph.exportDefinition().inputDescriptors[1].requiredness, "optional");
+    assert.deepEqual(
+      graph.contractDelta({
+        ...graph.contract(),
+        inputDescriptors: graph.contract().inputDescriptors.map((descriptor) => (
+          descriptor.inputName === "draftValue"
+            ? { ...descriptor, requiredness: "required" }
+            : descriptor
+        )),
+      }).inputDescriptorsChanged,
+      [
+        {
+          inputName: "draftValue",
+          previousSourceId: "taskRequiredness.requiredness.draftValue",
+          currentSourceId: "taskRequiredness.requiredness.draftValue",
+          previousAuthority: "writable",
+          currentAuthority: "writable",
+          previousRequiredness: "required",
+          currentRequiredness: "optional",
+        },
+      ],
+    );
+    assert.throws(
+      () => signals.graph("invalidRequiredness", (invalidBuilder) => {
+        const scope = invalidBuilder.scope("boundary");
+        const source = scope.input(1, { id: "source" });
+        return invalidBuilder.expose({
+          inputs: {
+            source: invalidBuilder.input.required(source, {
+              authority: "readOnly",
+              requiredness: "optional",
+            }),
+          },
+          outputs: {
+            sourceEcho: scope.output(() => source(), { id: "sourceEcho" }),
+          },
+        });
+      }),
+      {
+        name: "TypeError",
+        message:
+          "signals.graph `invalidRequiredness` input.required(...) does not accept an explicit requiredness override; use input.required(...) to choose the boundary contract form",
+      },
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
 test("The Public Input Authority Class Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
@@ -3360,11 +4002,12 @@ test("The Public Input Authority Class Test", async () => {
       graph.inputDescriptors().map((descriptor) => ({
         inputName: descriptor.inputName,
         authority: descriptor.authority,
+        requiredness: descriptor.requiredness,
       })),
       [
-        { inputName: "serverValue", authority: "readOnly" },
-        { inputName: "draftValue", authority: "writable" },
-        { inputName: "externalParams", authority: "imported" },
+        { inputName: "serverValue", authority: "readOnly", requiredness: "required" },
+        { inputName: "draftValue", authority: "writable", requiredness: "required" },
+        { inputName: "externalParams", authority: "imported", requiredness: "required" },
       ],
     );
     assert.deepEqual(
@@ -3378,6 +4021,7 @@ test("The Public Input Authority Class Test", async () => {
           inputName: "serverValue",
           sourceId: "taskEditor.form.serverValue",
           authority: "readOnly",
+          requiredness: "required",
           supportsWrite: false,
           supportsPatch: false,
           supportsReset: false,
@@ -3386,6 +4030,7 @@ test("The Public Input Authority Class Test", async () => {
           inputName: "draftValue",
           sourceId: "taskEditor.form.draftValue",
           authority: "writable",
+          requiredness: "required",
           supportsWrite: true,
           supportsPatch: true,
           supportsReset: true,
@@ -3394,6 +4039,7 @@ test("The Public Input Authority Class Test", async () => {
           inputName: "externalParams",
           sourceId: "taskEditor.form.externalParams",
           authority: "imported",
+          requiredness: "required",
           supportsWrite: false,
           supportsPatch: false,
           supportsReset: false,
@@ -3447,6 +4093,10 @@ test("The Graph-Native Input Operations Test", async () => {
   try {
     const rawSignals = createGraphOperationalRuntime();
     const signals = wrapSignals(rawSignals);
+    const localDraft = signals.input({
+      title: "Ship docs",
+      done: false,
+    }, { debugName: "localDraft" });
 
     const graph = signals.graph("taskAuthority", (graphBuilder) => {
       const scope = graphBuilder.scope("authority");
@@ -3498,20 +4148,53 @@ test("The Graph-Native Input Operations Test", async () => {
       },
     });
 
+    localDraft.patch({
+      done: true,
+    });
+    localDraft.assign({
+      title: "Ready to ship",
+    });
+    signals.transaction((tx) => {
+      tx.patch(localDraft, {
+        status: "queued",
+      });
+    });
+    assert.deepEqual(localDraft(), {
+      title: "Ready to ship",
+      done: true,
+      status: "queued",
+    });
+    assert.throws(
+      () => signals.input(1, { debugName: "primitiveCount" }).patch(2),
+      /input\.patch\(\.\.\.\) requires object or array values/,
+    );
+
     graph.writeInputs({
       draftValue: {
         title: "Ready to ship",
       },
+    });
+    graph.writeInput("draftValue", {
+      title: "Reviewed",
     });
     graph.patchInputs({
       draftValue: {
         status: "queued",
       },
     });
+    graph.patchInput("draftValue", {
+      priority: "high",
+    });
     graph.transaction((tx) => {
       tx.set("draftValue", {
         title: "Queued",
         status: "queued",
+        priority: "high",
+      });
+    });
+    graph.transaction((tx) => {
+      tx.patch("draftValue", {
+        reviewer: "Avery",
       });
     });
     graph.apply({
@@ -3519,11 +4202,13 @@ test("The Graph-Native Input Operations Test", async () => {
         draftValue: {
           title: "Approved",
           status: "approved",
+          priority: "high",
+          reviewer: "Avery",
         },
       },
       commands: {},
     });
-    graph.resetInputs(["draftValue"]);
+    graph.resetInput("draftValue");
 
     assert.deepEqual({ ...graph.readInputs() }, {
       serverValue: {
@@ -3538,6 +4223,14 @@ test("The Graph-Native Input Operations Test", async () => {
       },
     });
     assert.equal(graph.read().effectiveValue.id, "taskAuthority.effectiveValue");
+    assert.throws(
+      () => graph.transaction((tx) => {
+        tx.patch("serverValue", {
+          title: "Nope",
+        });
+      }),
+      /cannot patch public input `serverValue`/,
+    );
   } finally {
     await cleanup();
   }
@@ -3547,8 +4240,8 @@ test("The Graph-Native Export And Restore Equivalence Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const sourceSignals = wrapSignals(createGraphExportImportRuntime());
-    const count = sourceSignals.input(2, { id: "count" });
-    const displayLabel = sourceSignals.computed(() => `Count:${count() * 2}`, { id: "displayLabel" });
+    const count = sourceSignals.input(2, { debugName: "count" });
+    const displayLabel = sourceSignals.computed(() => `Count:${count() * 2}`, { debugName: "displayLabel" });
     const namingGraph = sourceSignals.graph("naming", {
       inputs: {
         count,
@@ -3647,12 +4340,12 @@ test("The Graph-Native Export And Restore Equivalence Test", async () => {
   }
 });
 
-test("The Canonical Naming Law Test", async () => {
+test("The Public Boundary Naming Truth Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const signals = wrapSignals(createGraphExportImportRuntime());
-    const name = signals.input("Ada", { id: "name" });
-    const displayLabel = signals.computed(() => name().toUpperCase(), { id: "displayLabel" });
+    const name = signals.input("Ada", { debugName: "name" });
+    const displayLabel = signals.computed(() => name().toUpperCase(), { debugName: "displayLabel" });
     const namingGraph = signals.graph("naming", {
       inputs: {
         name,
@@ -3662,8 +4355,8 @@ test("The Canonical Naming Law Test", async () => {
       },
     });
 
-    assert.equal(name.id, "name");
-    assert.equal(displayLabel.id, "displayLabel");
+    assert.equal(name.debugName, "name");
+    assert.equal(displayLabel.debugName, "displayLabel");
     assert.equal(namingGraph.output("publicDisplayName").id, "naming.publicDisplayName");
     assert.deepEqual({
       ...namingGraph.contract(),
@@ -3672,7 +4365,7 @@ test("The Canonical Naming Law Test", async () => {
     }, {
       graph: namingGraph.summary(),
       inputs: {
-        name: "name",
+        name: name.id,
       },
       outputs: {
         publicDisplayName: "naming.publicDisplayName",
@@ -3683,7 +4376,7 @@ test("The Canonical Naming Law Test", async () => {
     assert.deepEqual(namingGraph.descriptors(), [
       {
         outputName: "publicDisplayName",
-        sourceId: "displayLabel",
+        sourceId: displayLabel.id,
         sourceKind: "computed",
         publishedId: "naming.publicDisplayName",
         publicationKind: "synthesizedOutput",
@@ -3702,9 +4395,12 @@ test("The Contract Dependency Explanation Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const signals = wrapSignals(createGraphExportImportRuntime());
-    const firstName = signals.input("Ada", { id: "firstName" });
-    const status = signals.input("ready", { id: "status" });
-    const displayLabel = signals.computed(() => `${firstName()} (${status()})`, { id: "displayLabel" });
+    const firstName = signals.spec.input("firstName", "Ada");
+    const status = signals.spec.input("status", "ready");
+    const displayLabel = signals.spec.computedCallback(
+      "displayLabel",
+      () => `${firstName()} (${status()})`,
+    );
     const graph = signals.graph("personCard", {
       inputs: {
         firstName,
@@ -3745,8 +4441,11 @@ test("The Contract Delta And History Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const firstSignals = wrapSignals(createGraphExportImportRuntime());
-    const firstName = firstSignals.input("Ada", { id: "name" });
-    const displayLabel = firstSignals.computed(() => firstName().toUpperCase(), { id: "displayLabel" });
+    const firstName = firstSignals.spec.input("name", "Ada");
+    const displayLabel = firstSignals.spec.computedCallback(
+      "displayLabel",
+      () => firstName().toUpperCase(),
+    );
     const graphV1 = firstSignals.graph("naming", {
       inputs: {
         name: firstName,
@@ -3757,8 +4456,11 @@ test("The Contract Delta And History Test", async () => {
     });
 
     const secondSignals = wrapSignals(createGraphExportImportRuntime());
-    const secondName = secondSignals.input("Ada", { id: "name" });
-    const displayNameV2 = secondSignals.computed(() => `Person:${secondName()}`, { id: "displayNameV2" });
+    const secondName = secondSignals.spec.input("name", "Ada");
+    const displayNameV2 = secondSignals.spec.computedCallback(
+      "displayNameV2",
+      () => `Person:${secondName()}`,
+    );
     const graphV2 = secondSignals.graph("naming", {
       inputs: {
         name: secondName,
@@ -3811,7 +4513,7 @@ test("The Contract Delta And History Test", async () => {
   }
 });
 
-test("The Graph Mutation Envelope Equivalence Test", async () => {
+test("The Ergonomic Mutation Envelope Equivalence Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const rawSignals = createGraphOperationalRuntime();
@@ -3875,6 +4577,7 @@ test("The Graph Mutation Envelope Equivalence Test", async () => {
           inputName: "serverItemData",
           sourceId: "itemDetail.editSession.serverItemData",
           authority: "writable",
+          requiredness: "required",
           supportsWrite: true,
           supportsPatch: false,
           supportsReset: true,
@@ -3883,6 +4586,7 @@ test("The Graph Mutation Envelope Equivalence Test", async () => {
           inputName: "draftEdits",
           sourceId: "itemDetail.editSession.draftEdits",
           authority: "writable",
+          requiredness: "required",
           supportsWrite: true,
           supportsPatch: true,
           supportsReset: true,
@@ -4139,14 +4843,14 @@ test("The Graph Operational Mutation Rejection Precedes Transaction Entry Test",
     let callbackMutationError = null;
     assert.throws(() => {
       try {
-        signals.computed("illegalPatch", () => {
+        signals.computed(() => {
           graph.patchInputs({
             draftEdits: {
               title: "Nope",
             },
           });
           return 1;
-        });
+        }, { debugName: "illegalPatch" });
       } catch (error) {
         callbackMutationError = error;
         throw error;

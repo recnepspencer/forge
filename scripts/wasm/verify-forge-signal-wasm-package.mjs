@@ -35,12 +35,42 @@ async function runRuntimeSmoke(tempDir, packageName) {
   assert.equal(result.clockLabel, 7);
   assert.equal(result.persistenceLabel, 2);
   assert.equal(result.visibilityState, "hidden");
+  assert.deepEqual(result.localDraftValue, {
+    title: "Ready to ship",
+    done: true,
+    status: "queued",
+  });
   assert.equal(result.nameValue, "Ada");
-  assert.equal(result.namingGraphInputId, "name");
+  assert.notEqual(result.nameOpaqueId, "name");
+  assert.equal(result.firstShippingOptionId, "ground");
+  assert.equal(result.firstShippingOptionDebugName, "firstShippingOption");
+  assert.equal(result.preservedShippingAfterSourceChangeId, "air");
+  assert.equal(result.preservedShippingAfterRelinkId, "air");
+  assert.equal(result.preservedShippingAfterResetId, "air");
+  assert.equal(result.firstShippingAfterResetId, "sea");
+  assert.equal(result.firstShippingAfterRelinkId, "sea");
+  assert.equal(result.preservedShippingAfterFallbackRelinkId, "sea");
+  assert.equal(result.linkedSelectionAfterGraphResetId, "ready");
+  assert.equal(result.linkedRevisionAfterSecondGraphResetId, "review");
+  assert.equal(result.namingGraphInputId, result.nameOpaqueId);
   assert.equal(result.namingGraphOutputId, "naming.publicDisplayName");
-  assert.equal(result.namingGraphDescriptor.sourceId, "displayLabel");
+  assert.notEqual(result.displayLabelOpaqueId, "displayLabel");
+  assert.equal(result.namingGraphDescriptor.sourceId, result.displayLabelOpaqueId);
   assert.equal(result.namingGraphDescriptor.outputName, "publicDisplayName");
   assert.equal(result.namingGraphCompatibilityOutputId, "naming.publicDisplayName");
+  assert.deepEqual(
+    result.requirednessInputDescriptors.map((descriptor) => ({
+      inputName: descriptor.inputName,
+      authority: descriptor.authority,
+      requiredness: descriptor.requiredness,
+    })),
+    [
+      { inputName: "serverValue", authority: "readOnly", requiredness: "required" },
+      { inputName: "draftValue", authority: "writable", requiredness: "optional" },
+    ],
+  );
+  assert.equal(result.requirednessServerAuthority.requiredness, "required");
+  assert.equal(result.requirednessDraftAuthority.requiredness, "optional");
   assert.equal(result.itemDetailGraphId, "itemDetail");
   assert.equal(result.itemDetailGraphInputNames.includes("serverItemData"), true);
   assert.equal(result.itemDetailGraphOutputNames.includes("submitReadiness"), true);

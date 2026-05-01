@@ -43,7 +43,12 @@ import type {
   PublicGraphInputOptions,
   PublishedSignalGraph,
 } from "./graph_surface.js";
-import type { ControllerContract, ControllerContractDefinition } from "./controller_surface.js";
+import type {
+  ControllerAuthoringSurface,
+  ControllerContract,
+  ControllerContractBuilder,
+  ControllerContractDefinition,
+} from "./controller_surface.js";
 import type {
   ComputedSignal,
   DisposableHandle,
@@ -81,12 +86,64 @@ export interface Signal<T = SignalValue> {
   free(): void;
   [Symbol.dispose](): void;
   readonly id: string;
+  readonly debugName: string | null;
   readonly [forgeSignalBrand]: "signal";
 }
 
+type PatchSignalValue<T> = T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<U>
+  : T extends Array<infer U>
+    ? Array<U>
+    : T extends object
+      ? Partial<T>
+      : never;
+
+type AssignSignalValue<T> = T extends ReadonlyArray<unknown>
+  ? never
+  : T extends Array<unknown>
+    ? never
+    : T extends object
+      ? Partial<T>
+      : never;
+
 export interface InputSignalHandle<T = SignalValue> extends Signal<T> {
   set(value: T): RunSummary;
+  reset(): RunSummary;
+  patch(value: PatchSignalValue<T>): RunSummary;
+  assign(fields: AssignSignalValue<T>): RunSummary;
   readonly [forgeSignalInputBrand]: "input";
+}
+
+export interface LinkedSignalPrevious<TValue = SignalValue, TSource = TValue> {
+  readonly value: TValue;
+  readonly source: TSource;
+}
+
+export interface LinkedSignalOptions {
+  debugName?: string;
+}
+
+export interface LinkedIdentitySignalDefinition<TSource = SignalValue> {
+  source: () => TSource;
+  debugName?: string;
+}
+
+export interface LinkedComputedSignalDefinition<TSource = SignalValue, TValue = SignalValue> {
+  source: () => TSource;
+  computation: (
+    source: TSource,
+    previous: LinkedSignalPrevious<TValue, TSource> | null,
+  ) => TValue;
+  debugName?: string;
+}
+
+export type LinkedSignalDefinition<TSource = SignalValue, TValue = SignalValue> =
+  | LinkedIdentitySignalDefinition<TSource>
+  | LinkedComputedSignalDefinition<TSource, TValue>;
+
+export interface LinkedSignalHandle<TValue = SignalValue, TSource = TValue>
+  extends InputSignalHandle<TValue> {
+  relink(): RunSummary;
 }
 
 export interface ComputedSignalHandle<T = SignalValue> extends Signal<T> {
@@ -217,15 +274,31 @@ export interface CreateSignalsOptions<TPersistence = SignalValue> {
 }
 
 export interface InputAuthoringOptions extends InputOptions {
-  id: string;
+  debugName?: string;
 }
 
 export interface SignalAuthoringOptions {
-  id: string;
+  debugName?: string;
 }
 
 export interface CallbackSignalAuthoringOptions {
-  id?: string;
+  debugName?: string;
+}
+
+export interface ExplicitSignalSpecNamespace {
+  input<T = SignalValue>(id: string, initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
+  computed<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computedCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
+  output<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
 }
 
 export interface ViewportCapabilityDescriptor {
@@ -308,9 +381,10 @@ export type CallableSignalTarget =
   | OutputSignalHandle;
 
 export interface CallableSignalsTransaction {
-  set(input: InputSignalHandle, value: SignalValue): void;
-  setWithAspects(input: InputSignalHandle, value: SignalValue, aspects: ReadonlyArray<AspectId>): void;
-  setWithRegions(input: InputSignalHandle, value: SignalValue, changedRegions: unknown): void;
+  set<T = SignalValue>(input: InputSignalHandle<T>, value: T): void;
+  patch<T = SignalValue>(input: InputSignalHandle<T>, value: PatchSignalValue<T>): void;
+  setWithAspects<T = SignalValue>(input: InputSignalHandle<T>, value: T, aspects: ReadonlyArray<AspectId>): void;
+  setWithRegions<T = SignalValue>(input: InputSignalHandle<T>, value: T, changedRegions: unknown): void;
   setWithRegionsAndAspects(
     input: InputSignalHandle,
     value: SignalValue,
@@ -456,35 +530,44 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   readonly scopeId: string;
   readonly localScopeId: string;
   readonly parentScopeId: string | null;
+  readonly spec: ExplicitSignalSpecNamespace;
   scope(localScopeId: string): ScopedSignalNamespace<TPersistence>;
   controller<
     TInputs extends GraphInputDefinitions = Record<string, never>,
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(definition: ControllerContractDefinition<TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  controller<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = Record<string, never>,
+    TInternal extends Record<string, unknown> = Record<string, never>,
+  >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
   ): PublicGraphInputContractEntry<THandle>;
-  input<T = SignalValue>(initial: T, options: InputAuthoringOptions): InputSignalHandle<T>;
-  /** @deprecated Prefer input(value, { id }) so source, derived, and exposed authoring read as one metadata-first language. */
-  input<T = SignalValue>(id: string, initial: T, options?: InputOptions): InputSignalHandle<T>;
-  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
-  /** @deprecated Prefer computed(spec, { id }) or computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  computed<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(spec: ComputedSpec, options: SignalAuthoringOptions): ComputedSignalHandle<T>;
-  /** @deprecated Prefer computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  computed<T = SignalValue>(id: string, compute: () => T): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): ComputedSignalHandle<T>;
-  outputSpec<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(spec, { id }) or output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  output<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
-  output<T = SignalValue>(spec: OutputSpec, options: SignalAuthoringOptions): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  output<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
-  output<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  outputCallback<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
+  input<T = SignalValue>(initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
+  linked<T = SignalValue>(
+    source: () => T,
+    options?: LinkedSignalOptions,
+  ): LinkedSignalHandle<T, T>;
+  linked<TSource = SignalValue>(
+    definition: LinkedIdentitySignalDefinition<TSource>,
+  ): LinkedSignalHandle<TSource, TSource>;
+  linked<TSource = SignalValue, TValue = TSource>(
+    definition: LinkedComputedSignalDefinition<TSource, TValue>,
+  ): LinkedSignalHandle<TValue, TSource>;
+  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  outputSpec<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
   graph<
     TInputs extends GraphInputDefinitions = Record<string, never>,
     TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
@@ -506,35 +589,44 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
 
 export interface CallableSignals<TPersistence = SignalValue> {
   readonly host: CallableSignalsHost<TPersistence>;
+  readonly spec: ExplicitSignalSpecNamespace;
   scope(localScopeId: string): GraphScope<TPersistence>;
   controller<
     TInputs extends GraphInputDefinitions = Record<string, never>,
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(definition: ControllerContractDefinition<TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  controller<
+    TInputs extends GraphInputDefinitions = Record<string, never>,
+    TOutputs extends GraphOutputDefinitions = Record<string, never>,
+    TInternal extends Record<string, unknown> = Record<string, never>,
+  >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
   ): PublicGraphInputContractEntry<THandle>;
-  input<T = SignalValue>(initial: T, options: InputAuthoringOptions): InputSignalHandle<T>;
-  /** @deprecated Prefer input(value, { id }) so source, derived, and exposed authoring read as one metadata-first language. */
-  input<T = SignalValue>(id: string, initial: T, options?: InputOptions): InputSignalHandle<T>;
-  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
-  /** @deprecated Prefer computed(spec, { id }) or computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  computed<T = SignalValue>(id: string, spec: ComputedSpec): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(spec: ComputedSpec, options: SignalAuthoringOptions): ComputedSignalHandle<T>;
-  /** @deprecated Prefer computed(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  computed<T = SignalValue>(id: string, compute: () => T): ComputedSignalHandle<T>;
-  computed<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): ComputedSignalHandle<T>;
-  outputSpec<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(spec, { id }) or output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  output<T = SignalValue>(id: string, spec: OutputSpec): OutputSignalHandle<T>;
-  output<T = SignalValue>(spec: OutputSpec, options: SignalAuthoringOptions): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  output<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
-  output<T = SignalValue>(compute: () => T, options?: CallbackSignalAuthoringOptions): OutputSignalHandle<T>;
-  /** @deprecated Prefer output(() => ..., { id }) for the canonical metadata-first authoring lane. */
-  outputCallback<T = SignalValue>(id: string, compute: () => T): OutputSignalHandle<T>;
+  input<T = SignalValue>(initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
+  linked<T = SignalValue>(
+    source: () => T,
+    options?: LinkedSignalOptions,
+  ): LinkedSignalHandle<T, T>;
+  linked<TSource = SignalValue>(
+    definition: LinkedIdentitySignalDefinition<TSource>,
+  ): LinkedSignalHandle<TSource, TSource>;
+  linked<TSource = SignalValue, TValue = TSource>(
+    definition: LinkedComputedSignalDefinition<TSource, TValue>,
+  ): LinkedSignalHandle<TValue, TSource>;
+  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  outputSpec<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
   graph<
     TInputs extends GraphInputDefinitions = Record<string, never>,
     TOutputs extends GraphOutputDefinitions = GraphOutputDefinitions,
