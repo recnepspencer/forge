@@ -493,7 +493,8 @@ passed.
 ## Phase 4: Async Capability On Arbitrary Nodes
 
 See [milestone-d-plan.md](./milestone-d-plan.md) for the concrete engineering
-specification for this phase.
+specification for this phase and
+[milestone-d-closeout.md](./milestone-d-closeout.md) for the formal closeout.
 
 ### Goal
 
@@ -545,7 +546,26 @@ This phase is complete only when `forge-signal` can prove:
 - the `Condition-Gated Async Admission Parity Test`
 - the `Aspect-Scoped Async Capability Test`
 - the `Previous-Value And Temporal Async Capability Parity Test`
+- the `Interior Async Node Gate Equivalence Test`
+- the `Hierarchical Async Capability Replay And Cancellation Test`
 - the `Legacy Resource Alias Compatibility Test`
+- the `Async Capability Compile-Time Boundary Test`
+
+### Closeout Status
+
+Phase 4 is closed.
+
+See [milestone-d-closeout.md](./milestone-d-closeout.md).
+
+The closeout gate is the sealed `AsyncNodeMilestoneDCertificationRun`, which
+now requires:
+
+- compile-time boundary proof ownership
+- exact scenario coverage
+- exact performance-envelope coverage
+- keyed/gate/hierarchy historical and explanation-lineage agreement
+- direct strict-suite evidence for public rediscovery, branch churn, and
+  combined restore pressure
 
 ## Per-Phase Format
 
@@ -591,6 +611,7 @@ This roadmap is complete only when all of the following are true:
 - [milestone-a-closeout.md](./milestone-a-closeout.md)
 - [milestone-b-closeout.md](./milestone-b-closeout.md)
 - [milestone-c-closeout.md](./milestone-c-closeout.md)
+- [milestone-d-closeout.md](./milestone-d-closeout.md)
 - [milestone-d-plan.md](./milestone-d-plan.md)
 - [test-requirements.md](./test-requirements.md)
 - [MENTALITY.md](../coding_guidelines/MENTALITY.md)

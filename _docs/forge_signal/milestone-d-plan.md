@@ -1,6 +1,8 @@
 # Milestone D Engineering Spec: Async Capability On Arbitrary Nodes
 
-> **Status:** Planned
+> **Status:** Closed
+>
+> **Closeout:** [milestone-d-closeout.md](./milestone-d-closeout.md)
 >
 > **Roadmap parent:** [forge_signal_temporal_async_roadmap.md](./forge_signal_temporal_async_roadmap.md)
 >

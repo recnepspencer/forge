@@ -328,12 +328,34 @@ fn validate_keyed_row(
     historical: &AsyncKeyedNodeHistoricalParityReport,
     equivalence: &AsyncKeyedNodeCapabilityEquivalenceReport,
 ) -> Result<(), SignalError> {
+    let equivalence_report = equivalence.equivalence_report();
+    let historical_parity = historical.historical_parity_report();
     if historical.node() != equivalence.node()
         || historical.family() != equivalence.family()
         || historical.key() != equivalence.key()
     {
         return Err(SignalError::invalid_input(
             "aspect-scoped keyed scenario requires matching family/key/node lineage".to_owned(),
+        ));
+    }
+    if historical.registry_digest() != equivalence_report.registry_digest()
+        || historical.bundle_digest() != equivalence_report.bundle_digest()
+        || historical.payload_contract_digest() != equivalence_report.payload_contract_digest()
+        || historical_parity.parity_digest()
+            != equivalence_report
+                .historical_parity_report()
+                .parity_digest()
+        || historical_parity.explanation_availability()
+            != equivalence_report.explanation_availability()
+        || historical_parity
+            .explanation_summary()
+            .map(canonical_digest)
+            .as_deref()
+            != equivalence_report.explanation_digest()
+    {
+        return Err(SignalError::invalid_input(
+            "aspect-scoped keyed scenario requires matching descriptor, payload, and explanation lineage truth"
+                .to_owned(),
         ));
     }
     Ok(())
