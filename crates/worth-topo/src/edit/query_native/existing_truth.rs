@@ -34,15 +34,19 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), binding.query_identity)?
                 .in_target_collection("WorthTopologyEntity")?,
         )?;
-        Ok(builder.delete_existing_with(binding, |delete| {
-            let mut delete = delete.target_collection("WorthTopologyEntity");
-            for path in worth_schema::facade::worth_query_aspect_path_strings(
-                contract.touched_aspects.iter().copied(),
-            ) {
-                delete = delete.touch(path);
-            }
-            delete
-        }))
+        Ok(builder.delete_existing_verified(
+            binding,
+            |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
+            |delete| {
+                let mut delete = delete.target_collection("WorthTopologyEntity");
+                for path in worth_schema::facade::worth_query_aspect_path_strings(
+                    contract.touched_aspects.iter().copied(),
+                ) {
+                    delete = delete.touch(path);
+                }
+                delete
+            },
+        ))
     }
 
     pub(super) fn lower_delete_existing_relation(
@@ -72,14 +76,18 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             )?
             .in_target_collection("WorthTopologyRelation")?,
         )?;
-        Ok(builder.delete_existing_with(binding, |delete| {
-            let mut delete = delete.target_collection("WorthTopologyRelation");
-            for path in worth_schema::facade::worth_query_aspect_path_strings(
-                contract.touched_aspects.iter().copied(),
-            ) {
-                delete = delete.touch(path);
-            }
-            delete
-        }))
+        Ok(builder.delete_existing_verified(
+            binding,
+            |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
+            |delete| {
+                let mut delete = delete.target_collection("WorthTopologyRelation");
+                for path in worth_schema::facade::worth_query_aspect_path_strings(
+                    contract.touched_aspects.iter().copied(),
+                ) {
+                    delete = delete.touch(path);
+                }
+                delete
+            },
+        ))
     }
 }

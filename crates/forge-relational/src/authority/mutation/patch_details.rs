@@ -15,6 +15,7 @@ pub(super) enum EntityPatchDetailKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum RelationPatchDetailKind {
     Created,
+    Updated,
     Deleted,
     RetainedForAudit,
 }
@@ -78,8 +79,9 @@ fn entity_patch_kind_code(kind: EntityPatchDetailKind) -> u64 {
 fn relation_patch_kind_code(kind: RelationPatchDetailKind) -> u64 {
     match kind {
         RelationPatchDetailKind::Created => 4,
-        RelationPatchDetailKind::Deleted => 5,
-        RelationPatchDetailKind::RetainedForAudit => 6,
+        RelationPatchDetailKind::Updated => 5,
+        RelationPatchDetailKind::Deleted => 6,
+        RelationPatchDetailKind::RetainedForAudit => 7,
     }
 }
 

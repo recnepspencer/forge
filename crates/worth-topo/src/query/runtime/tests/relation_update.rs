@@ -1,22 +1,25 @@
-use forge_query::facade::ForgeQueryExistingRelationTarget;
-use forge_relational::facade::identity::RelationId;
+use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode};
 use worth_schema::facade::{
     seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase, WorthTopologyRelationKind,
 };
 
+use super::relation_update_support::{query_entity_id_from_row, query_relation_id_from_row};
+use crate::edit::{
+    WorthLoopEndpointKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
+    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
+};
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
 };
 use crate::runtime_invariants::build_worth_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_denies_relation_updates_until_identity_preserving_authority_support_exists()
-{
+fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_runtime() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     seed_milestone_one_primitive(
         &mut runtime,
         "worth.current-head.query-update-rewire-endpoint",
-        &WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("seed primitive");
     let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
@@ -24,17 +27,33 @@ fn current_head_runtime_denies_relation_updates_until_identity_preserving_author
         worth_topology_runtime(adapters, "worth.current-head.query-update-rewire-endpoint")
             .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let entity_rows = workspace.read(assembly.entities());
     let relation_rows = workspace.read(assembly.relations());
-    let half_edge_name = "worth.current-head.query-update-rewire-endpoint.wire_open.half_edge.0";
-    let target_vertex_name = "worth.current-head.query-update-rewire-endpoint.wire_open.vertex.2";
-    let half_edge_identity = query_entity_identity_by_name(&entity_rows, half_edge_name);
-    let relation = query_relation_row_by_kind_and_source(
-        &relation_rows,
-        WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
-        &half_edge_identity,
-    );
-    let target_vertex_identity = query_entity_identity_by_name(&entity_rows, target_vertex_name);
+    let relation = relation_rows
+        .iter()
+        .find(|row| {
+            row.payload
+                .get("topology")
+                .and_then(|value| value.get("kind"))
+                .and_then(|value| value.as_str())
+                .is_some_and(|kind_name| {
+                    kind_name == WorthTopologyRelationKind::HalfEdgeNext.kind_name()
+                })
+        })
+        .expect("seeded topology should contain half-edge successor relation");
+    let source_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("source_identity"))
+        .and_then(|value| value.as_str())
+        .expect("seeded relation should expose topology.source_identity")
+        .to_string();
+    let target_vertex_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("target_identity"))
+        .and_then(|value| value.as_str())
+        .expect("seeded relation should expose topology.target_identity")
+        .to_string();
     let binding = workspace
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
@@ -47,80 +66,138 @@ fn current_head_runtime_denies_relation_updates_until_identity_preserving_author
         )
         .expect("bind existing relation");
 
-    let error = workspace
+    let receipt = workspace
         .update_existing(binding, |mutation| {
             mutation
                 .aspect(
                     "topology.kind",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex.kind_name(),
+                    WorthTopologyRelationKind::HalfEdgeNext.kind_name(),
                 )
-                .aspect("topology.source_identity", half_edge_identity)
-                .aspect("topology.target_identity", target_vertex_identity)
+                .aspect("topology.source_identity", &source_identity)
+                .aspect("topology.target_identity", &target_vertex_identity)
         })
-        .expect_err("relation updates must stay fail-closed until the runtime can preserve authoritative relation identity");
+        .expect("direct relation update substrate should execute through the real runtime");
 
-    let message = error.to_string();
-    assert!(message.contains("does not admit `update_existing` write command yet"));
-
-    let relation_rows_after = workspace.read(assembly.relations());
-    let original_relation = query_relation_row_by_kind_and_source(
-        &relation_rows_after,
-        WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
-        &query_entity_identity_by_name(&entity_rows, half_edge_name),
+    assert_eq!(
+        receipt.mutation_family(),
+        forge_query::facade::ForgeQueryMutationFamily::Update
     );
     assert_eq!(
-        query_relation_id_from_row(original_relation),
-        query_relation_id_from_row(relation)
+        receipt
+            .existing_truth_binding_evidence()
+            .expect("relation update receipt should retain direct binding evidence")
+            .family(),
+        forge_query::facade::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
+    );
+
+    let relation_rows_after = workspace.read(assembly.relations());
+    let original_relation = relation_rows_after
+        .iter()
+        .find(|row| query_relation_id_from_row(row) == query_relation_id_from_row(relation))
+        .expect("relation should remain visible after denied update");
+    assert_eq!(
+        original_relation
+            .payload
+            .get("topology")
+            .and_then(|value| value.get("target_identity"))
+            .and_then(|value| value.as_str()),
+        Some(target_vertex_identity.as_str())
     );
 }
 
-fn query_entity_identity_by_name(
-    rows: &[forge_query::facade::ForgeQueryEntity],
-    name: &str,
-) -> String {
-    rows.iter()
-        .find(|row| row_matches_name(row, name))
-        .map(|row| row.identity.clone())
-        .expect("query rows should contain requested persistent name")
-}
-
-fn query_relation_row_by_kind_and_source<'a>(
-    rows: &'a [forge_query::facade::ForgeQueryEntity],
-    kind: WorthTopologyRelationKind,
-    source_identity: &str,
-) -> &'a forge_query::facade::ForgeQueryEntity {
-    rows.iter()
+#[test]
+fn current_head_runtime_executes_rewire_loop_endpoint_through_query_native_edit_runner() {
+    let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
+    seed_milestone_one_primitive(
+        &mut runtime,
+        "worth.current-head.query-edit-rewire-endpoint",
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("seed primitive");
+    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace =
+        worth_topology_runtime(adapters, "worth.current-head.query-edit-rewire-endpoint")
+            .expect("workspace");
+    let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let relation_rows = workspace.read(assembly.relations());
+    let entity_rows = workspace.read(assembly.entities());
+    let relation = relation_rows
+        .iter()
         .find(|row| {
             row.payload
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == kind.kind_name())
-                && row
-                    .payload
-                    .get("topology")
-                    .and_then(|value| value.get("source_identity"))
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|identity| identity == source_identity)
+                .is_some_and(|kind_name| {
+                    kind_name == WorthTopologyRelationKind::HalfEdgeEndsAtVertex.kind_name()
+                })
         })
-        .expect("query rows should contain requested topology relation")
-}
-
-fn query_relation_id_from_row(row: &forge_query::facade::ForgeQueryEntity) -> RelationId {
-    serde_json::from_value(row.payload["lineage"]["provenance"].clone())
-        .expect("query relation provenance should decode")
-}
-
-fn row_matches_name(row: &forge_query::facade::ForgeQueryEntity, name: &str) -> bool {
-    row.payload
-        .get("naming")
-        .and_then(|value| value.get("persistent_name"))
+        .expect("seeded topology should contain an endpoint relation");
+    let current_target_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
-        .is_some_and(|persistent_name| persistent_name == name)
-        || row
-            .payload
-            .get("topology")
-            .and_then(|value| value.get("structure"))
-            .and_then(|value| value.as_str())
-            .is_some_and(|structure| structure == name)
+        .expect("endpoint relation should expose topology.target_identity");
+    let source_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("source_identity"))
+        .and_then(|value| value.as_str())
+        .expect("endpoint relation should expose topology.source_identity");
+    let target_vertex_id = entity_rows
+        .iter()
+        .find(|row| {
+            row.payload
+                .get("topology")
+                .and_then(|value| value.get("kind"))
+                .and_then(|value| value.as_str())
+                .is_some_and(|kind_name| kind_name == "worth.vertex")
+                && row.identity != current_target_identity
+        })
+        .map(query_entity_id_from_row)
+        .expect("seeded sheet disk should provide an alternate vertex");
+    let half_edge_id = entity_rows
+        .iter()
+        .find(|row| row.identity == source_identity)
+        .map(query_entity_id_from_row)
+        .expect("relation source identity should resolve to a halfedge");
+    let batch = WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::rewire_loop_endpoint(
+        query_relation_id_from_row(relation),
+        WorthLoopEndpointKind::End,
+        half_edge_id,
+        target_vertex_id,
+    )])
+    .expect("non-empty edit batch");
+
+    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
+        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+        .expect("endpoint rewire should execute through the admitted runtime family");
+
+    assert_eq!(
+        execution.families,
+        vec![WorthTopologyEditFamily::RewireLoopEndpoint]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .batch_mutation_evidence()
+            .backend_verified_update_count(),
+        1
+    );
+    assert_eq!(
+        execution.inspection.component_operations()[0]
+            .existing_truth_assertion_evidence()
+            .expect("rewire receipt should retain backend verification evidence")
+            .mode(),
+        ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
+    );
+    let half_edge = execution
+        .materialized
+        .topology()
+        .half_edges
+        .iter()
+        .find(|half_edge| half_edge.entity_id == half_edge_id)
+        .expect("rewired halfedge should remain present");
+    assert_eq!(half_edge.target_vertex_id, Some(target_vertex_id));
 }

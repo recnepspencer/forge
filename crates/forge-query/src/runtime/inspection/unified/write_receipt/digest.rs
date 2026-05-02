@@ -59,13 +59,22 @@ pub(super) fn build_write_receipt_inspection_digest(
             target_evidence.resolved().entity_identity().unwrap_or("")
         ),
         format!(
-            "existing-assertion:{}:{}:{}",
+            "existing-assertion:{}:{}:{}:{}:{}:{}",
             existing_truth_assertion_evidence
                 .map_or("none", |evidence| { evidence.mode().as_str() }),
             existing_truth_assertion_evidence
                 .map_or(0, |evidence| { evidence.asserted_aspect_count() }),
             existing_truth_assertion_evidence
-                .map_or("none", |evidence| { evidence.verification_digest() })
+                .map_or("none", |evidence| { evidence.verification_digest() }),
+            existing_truth_assertion_evidence
+                .and_then(ForgeQueryExistingTruthAssertionEvidence::assumption_snapshot_digest)
+                .unwrap_or("none"),
+            existing_truth_assertion_evidence
+                .and_then(ForgeQueryExistingTruthAssertionEvidence::verified_precondition_digest)
+                .unwrap_or("none"),
+            existing_truth_assertion_evidence
+                .and_then(ForgeQueryExistingTruthAssertionEvidence::verification_read_set_breadth)
+                .map_or("none", |breadth| breadth.counter_snapshot()),
         ),
         format!(
             "existing-truth:{}:{}:{}:{}:{}",

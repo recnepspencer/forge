@@ -3,6 +3,7 @@ pub struct ForgeQueryExistingTruthAssertionEvidence {
     mode: crate::runtime::ForgeQueryExistingTruthAssertionMode,
     asserted_aspect_count: usize,
     verification_digest: String,
+    verified_assumption_set: Option<crate::runtime::ForgeQueryVerifiedAssumptionSet>,
 }
 
 impl ForgeQueryExistingTruthAssertionEvidence {
@@ -15,6 +16,7 @@ impl ForgeQueryExistingTruthAssertionEvidence {
                 crate::runtime::ForgeQueryExistingTruthAssertionMode::RetainedAuthoritativeAssertion,
             asserted_aspect_count,
             verification_digest: verification_digest.into(),
+            verified_assumption_set: None,
         }
     }
 
@@ -25,6 +27,7 @@ impl ForgeQueryExistingTruthAssertionEvidence {
             mode: crate::runtime::ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion,
             asserted_aspect_count: verification.asserted_aspect_count(),
             verification_digest: verification.verification_digest().to_string(),
+            verified_assumption_set: Some(verification.verified_assumption_set().clone()),
         }
     }
 
@@ -38,5 +41,31 @@ impl ForgeQueryExistingTruthAssertionEvidence {
 
     pub fn verification_digest(&self) -> &str {
         &self.verification_digest
+    }
+
+    pub fn verified_assumption_set(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerifiedAssumptionSet> {
+        self.verified_assumption_set.as_ref()
+    }
+
+    pub fn assumption_snapshot_digest(&self) -> Option<&str> {
+        self.verified_assumption_set
+            .as_ref()
+            .map(crate::runtime::ForgeQueryVerifiedAssumptionSet::assumption_snapshot_digest)
+    }
+
+    pub fn verified_precondition_digest(&self) -> Option<&str> {
+        self.verified_assumption_set
+            .as_ref()
+            .map(crate::runtime::ForgeQueryVerifiedAssumptionSet::verified_precondition_digest)
+    }
+
+    pub fn verification_read_set_breadth(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerificationReadSetBreadth> {
+        self.verified_assumption_set
+            .as_ref()
+            .map(crate::runtime::ForgeQueryVerifiedAssumptionSet::verification_read_set_breadth)
     }
 }

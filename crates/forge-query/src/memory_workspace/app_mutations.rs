@@ -206,7 +206,11 @@ impl ForgeQueryMemoryApp {
                 )));
             }
         }
-        crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(binding, aspects)
+        crate::runtime::ForgeQueryVerifiedExistingTruthAssertion::new(
+            binding,
+            aspects,
+            "memory-workspace-snapshot",
+        )
     }
 
     pub fn probe_existing_truth(

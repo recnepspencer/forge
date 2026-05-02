@@ -21,14 +21,54 @@ let receipt = workspace.update_existing_verified(
 The first closure declares the backend-verified precondition. The second closure
 declares the actual update-family mutation.
 
+Check support rows before treating this as an ordinary bridge-backed production
+lane:
+
+```rust
+let support = workspace.public_authoritative_mutation_evidence_support();
+let update_row = support
+    .bridge_backed_verification_support_rows()
+    .iter()
+    .find(|row| {
+        row.operation_family() == "update_existing_verified"
+            && row.target_binding_family() == "direct_entity_identity"
+    })
+    .unwrap();
+
+assert!(update_row.compatibility_runtime_supported());
+if update_row.primary_bridge_backed_runtime_supported() {
+    assert_eq!(
+        update_row.current_posture_status(),
+        ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
+    );
+} else {
+    assert_eq!(
+        update_row.denial_class_when_unsupported(),
+        Some("backend_verification_unsupported")
+    );
+}
+```
+
 ## Contract
 
 - the receipt remains an ordinary `update` mutation-family receipt
 - existing-truth binding evidence stays attached
 - backend-verified assertion evidence stays attached
+- backend-verified assertion evidence now carries a verified assumption set,
+  including the assumption snapshot token, assumption snapshot digest,
+  verified precondition digest, and verification read-set breadth
 - declared aspect operations describe only the update side
 - the declared aspect value digest includes both the verified preconditions and
   the update values, so semantically different verified updates do not collapse
+
+That means callers can distinguish:
+
+- target binding evidence
+- verified old-truth assumptions
+- snapshot basis for those assumptions
+- update result evidence
+
+without rebuilding that story from local bridge glue.
 
 ## Denials
 

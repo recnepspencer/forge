@@ -3,7 +3,8 @@ use crate::runtime::{
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
     ForgeQueryMutationCausalityEvidence, ForgeQueryMutationProvenanceEvidence,
     ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
-    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryWriteReceipt,
+    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryWriteReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,6 +15,7 @@ pub struct ForgeQueryBatchWriteComponentInspection {
     existing_truth_assertion_evidence: Option<ForgeQueryExistingTruthAssertionEvidence>,
     existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
     symbolic_target_reference_evidence: Option<ForgeQuerySymbolicTargetReferenceEvidence>,
+    symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
     naming_mutation_evidence: Option<ForgeQueryNamingMutationEvidence>,
     continuity_mutation_evidence: Option<ForgeQueryContinuityMutationEvidence>,
     causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
@@ -75,6 +77,9 @@ impl ForgeQueryBatchWriteComponentInspection {
             symbolic_target_reference_evidence: receipt
                 .symbolic_target_reference_evidence()
                 .cloned(),
+            symbolic_aspect_resolution_evidence: receipt
+                .symbolic_aspect_resolution_evidence()
+                .to_vec(),
             naming_mutation_evidence: receipt.naming_mutation_evidence().cloned(),
             continuity_mutation_evidence: receipt.continuity_mutation_evidence().cloned(),
             causality_evidence: receipt.causality_evidence().cloned(),
@@ -122,6 +127,12 @@ impl ForgeQueryBatchWriteComponentInspection {
         &self,
     ) -> Option<&ForgeQuerySymbolicTargetReferenceEvidence> {
         self.symbolic_target_reference_evidence.as_ref()
+    }
+
+    pub fn symbolic_aspect_resolution_evidence(
+        &self,
+    ) -> &[ForgeQuerySymbolicAspectResolutionEvidence] {
+        &self.symbolic_aspect_resolution_evidence
     }
 
     pub fn naming_mutation_evidence(&self) -> Option<&ForgeQueryNamingMutationEvidence> {

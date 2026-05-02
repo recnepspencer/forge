@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryMutationBatchBuilder, ForgeQuerySymbolicTargetReference,
+    ForgeQueryAspectMutationBuilder, ForgeQueryEntity, ForgeQueryMutationBatchBuilder,
+    ForgeQuerySymbolicTargetReference,
 };
 use worth_schema::facade::{WorthEntityReference, WorthTopologyEntityKind};
 
 use super::bindings::{query_entity_binding, QueryEntityBinding};
 use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
-use crate::edit::{WorthBoundaryMembershipKind, WorthShellOrWireMembershipKind};
+use crate::edit::WorthShellOrWireMembershipKind;
 
 enum LoweredEntityReference {
     Existing(QueryEntityBinding),
@@ -15,37 +16,6 @@ enum LoweredEntityReference {
 }
 
 impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
-    pub(super) fn lower_attach_boundary_membership(
-        &self,
-        builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
-        created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-        kind: WorthBoundaryMembershipKind,
-        owner: &WorthEntityReference,
-        member: &WorthEntityReference,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
-        let (expected_owner_kind, expected_member_kind) = match kind {
-            WorthBoundaryMembershipKind::FaceOuterLoop
-            | WorthBoundaryMembershipKind::FaceInnerLoop => {
-                (WorthTopologyEntityKind::Face, WorthTopologyEntityKind::Loop)
-            }
-            WorthBoundaryMembershipKind::LoopOwnsHalfEdge => (
-                WorthTopologyEntityKind::Loop,
-                WorthTopologyEntityKind::HalfEdge,
-            ),
-        };
-        self.lower_relation_create(
-            builder,
-            entity_rows,
-            created_entity_kinds,
-            kind.relation_kind(),
-            owner,
-            expected_owner_kind,
-            member,
-            expected_member_kind,
-        )
-    }
-
     pub(super) fn lower_attach_shell_or_wire_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
@@ -81,7 +51,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         )
     }
 
-    fn lower_relation_create(
+    pub(super) fn lower_relation_create(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
@@ -162,10 +132,10 @@ fn lower_entity_reference(
 }
 
 fn authored_relation_endpoint(
-    mutation: forge_query::facade::ForgeQueryAspectMutationBuilder,
+    mutation: ForgeQueryAspectMutationBuilder,
     aspect_path: &'static str,
     reference: &LoweredEntityReference,
-) -> forge_query::facade::ForgeQueryAspectMutationBuilder {
+) -> ForgeQueryAspectMutationBuilder {
     match reference {
         LoweredEntityReference::Existing(binding) => {
             mutation.aspect(aspect_path, binding.query_identity.clone())

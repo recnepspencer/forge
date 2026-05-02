@@ -61,7 +61,7 @@ pub struct ForgeQueryExistingTruthAssertionDenial {
 }
 
 impl ForgeQueryExistingTruthAssertionDenial {
-    pub(crate) fn new(
+    pub fn new(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthAssertionDenialKind,
         asserted_aspect_path: Option<String>,
@@ -146,19 +146,51 @@ impl std::error::Error for ForgeQueryExistingTruthAssertionDenial {}
 pub struct ForgeQueryVerifiedExistingTruthAssertion {
     asserted_aspect_count: usize,
     verification_digest: String,
+    verified_assumption_set: crate::runtime::ForgeQueryVerifiedAssumptionSet,
 }
 
 impl ForgeQueryVerifiedExistingTruthAssertion {
     pub(crate) fn new(
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
         aspects: &[ForgeQueryAspectValue],
+        snapshot_token: &str,
     ) -> Result<Self, ForgeQueryWorkspaceError> {
         let asserted_aspect_count = aspects.len();
+        let asserted_aspect_paths = aspects
+            .iter()
+            .map(|aspect| aspect.aspect_path().to_string())
+            .collect::<Vec<_>>();
+        let cleared_assertion_count = aspects
+            .iter()
+            .filter(|aspect| aspect.clears_existing_value())
+            .count();
+        let verified_assumption_set = crate::runtime::ForgeQueryVerifiedAssumptionSet::new(
+            binding.binding_digest(),
+            asserted_aspect_paths,
+            aspects
+                .iter()
+                .map(|aspect| {
+                    format!(
+                        "{}:{}:{}",
+                        aspect.aspect_path(),
+                        aspect.clears_existing_value(),
+                        serde_json::to_string(aspect.value())
+                            .unwrap_or_else(|_| aspect.value().to_string())
+                    )
+                })
+                .collect::<Vec<_>>(),
+            cleared_assertion_count,
+            snapshot_token,
+        );
         let verification_digest = hash_parts(
             &std::iter::once("forge_query_existing_truth_assertion_verification_v1".to_string())
                 .chain(std::iter::once(format!(
                     "binding:{}",
                     binding.binding_digest()
+                )))
+                .chain(std::iter::once(format!(
+                    "assumption-set:{}",
+                    verified_assumption_set.verified_assumption_digest()
                 )))
                 .chain(aspects.iter().map(|aspect| {
                     format!(
@@ -174,6 +206,7 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
         Ok(Self {
             asserted_aspect_count,
             verification_digest,
+            verified_assumption_set,
         })
     }
 
@@ -183,5 +216,23 @@ impl ForgeQueryVerifiedExistingTruthAssertion {
 
     pub fn verification_digest(&self) -> &str {
         &self.verification_digest
+    }
+
+    pub fn verified_assumption_set(&self) -> &crate::runtime::ForgeQueryVerifiedAssumptionSet {
+        &self.verified_assumption_set
+    }
+
+    pub fn assumption_snapshot_digest(&self) -> &str {
+        self.verified_assumption_set.assumption_snapshot_digest()
+    }
+
+    pub fn verified_precondition_digest(&self) -> &str {
+        self.verified_assumption_set.verified_precondition_digest()
+    }
+
+    pub fn verification_read_set_breadth(
+        &self,
+    ) -> &crate::runtime::ForgeQueryVerificationReadSetBreadth {
+        self.verified_assumption_set.verification_read_set_breadth()
     }
 }

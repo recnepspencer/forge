@@ -2,10 +2,10 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 use super::{
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 use crate::runtime::{ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeSupportProfile};
 
@@ -15,6 +15,8 @@ pub struct ForgeQueryRuntimeBackendParts {
     pub(super) runtime_bridge: Option<RuntimeBridge>,
     pub(super) schema_adapter: Option<Box<dyn ForgeQueryRuntimeSchemaAdapter>>,
     pub(super) source_adapter: Option<Box<dyn ForgeQueryRuntimeSourceAdapter>>,
+    pub(super) existing_truth_verification:
+        Option<Box<dyn ForgeQueryRuntimeExistingTruthVerificationAdapter>>,
     pub(super) write_authority: Option<Box<dyn ForgeQueryRuntimeWriteAuthorityAdapter>>,
     pub(super) signal_sink: Option<Box<dyn ForgeQueryRuntimeSignalSinkAdapter>>,
     pub(super) subscription_activation:
@@ -53,6 +55,14 @@ impl ForgeQueryRuntimeBackendParts {
         adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
     ) -> Self {
         self.source_adapter = Some(Box::new(adapter));
+        self
+    }
+
+    pub fn existing_truth_verification(
+        mut self,
+        adapter: impl ForgeQueryRuntimeExistingTruthVerificationAdapter + 'static,
+    ) -> Self {
+        self.existing_truth_verification = Some(Box::new(adapter));
         self
     }
 

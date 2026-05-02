@@ -9,6 +9,8 @@
 > **Purpose:** harden the public mutation and receipt contract together with the bridge carry-forward contract so serious domains can express authoritative writes against new and existing truth without shadow identity glue, semantic target loss, dropped causality/provenance, or domain-local writeback runtimes.
 >
 > **Required follow-on hardening:** [runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md)
+>
+> **Shipped follow-on closeout:** [runtime-generic-graph-authoring-closeout.md](./runtime-generic-graph-authoring-closeout.md)
 ## Goal
 Freeze one cross-runtime authority-evidence contract so:
 - `forge-query` exposes a public mutation/receipt/inspection surface that is

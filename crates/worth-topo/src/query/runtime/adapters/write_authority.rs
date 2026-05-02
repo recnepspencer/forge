@@ -12,6 +12,7 @@ use forge_relational::facade::transactions::{
 };
 use forge_runtime_bridge::facade::RuntimeBridge;
 
+mod patch_matching;
 mod write_lowering;
 
 use self::write_lowering::{
@@ -46,6 +47,9 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
                 aspects,
                 ..
             } => self.write_insert(collection, aspects),
+            ForgeQueryWriteCommand::UpdateExistingAspects {
+                binding, aspects, ..
+            } => self.write_update_existing(binding, aspects),
             ForgeQueryWriteCommand::DeleteExistingAspects {
                 binding,
                 touched_aspect_paths,
@@ -103,26 +107,44 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
         .as_str()
         .to_string();
         let patch = commit.patch();
-        let mut offset = 0usize;
+        let mut used_patch_indexes = std::collections::BTreeSet::new();
         lowered
             .into_iter()
             .map(|command| {
-                let end = offset + command.expected_patch_count;
-                if end > patch.len() {
+                let matched_indexes = command.patch_match.matching_patch_indexes(
+                    &runtime,
+                    commit.envelope().commit.version_id,
+                    patch,
+                    &used_patch_indexes,
+                );
+                if matched_indexes.len() != command.expected_observable_patch_count {
                     return Err(ForgeQueryWorkspaceError::new(format!(
-                        "worth topology production runtime expected {} patch records for `{}`, observed only {} remaining",
-                        command.expected_patch_count,
+                        "worth topology production runtime expected {} observable patch records for `{}`, observed {}",
+                        command.expected_observable_patch_count,
                         command.batch_label,
-                        patch.len().saturating_sub(offset),
+                        matched_indexes.len(),
                     )));
                 }
+                for index in &matched_indexes {
+                    used_patch_indexes.insert(*index);
+                }
+                let matched_patch = matched_indexes
+                    .into_iter()
+                    .map(|index| patch[index].clone())
+                    .collect::<Vec<_>>();
                 let deltas = mutation_deltas_from_patch_records(
                     &runtime,
                     commit.envelope().commit.version_id,
-                    &patch[offset..end],
+                    &matched_patch,
                     &command.declared_aspect_paths,
-                )?;
-                offset = end;
+                    command.fallback_collection.as_deref(),
+                )
+                .map_err(|error| {
+                    ForgeQueryWorkspaceError::new(format!(
+                        "worth topology production runtime could not derive observable query deltas for `{}`: {}",
+                        command.batch_label, error
+                    ))
+                })?;
                 Ok(ForgeQueryMutationReceipt {
                     commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
                     snapshot_token: snapshot_token.clone(),
@@ -189,7 +211,7 @@ impl WorthTopologyRuntimeWriteAuthority {
             })?
         };
 
-        let deltas = mutation_deltas_from_commit(&runtime, &commit, &declared_aspect_paths)?;
+        let deltas = mutation_deltas_from_commit(&runtime, &commit, &declared_aspect_paths, None)?;
         Ok(ForgeQueryMutationReceipt {
             commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
             snapshot_token: bridge_snapshot_identity_for_commit(
@@ -249,7 +271,67 @@ impl WorthTopologyRuntimeWriteAuthority {
             })?
         };
 
-        let deltas = mutation_deltas_from_commit(&runtime, &commit, &touched_aspect_paths)?;
+        let deltas = mutation_deltas_from_commit(
+            &runtime,
+            &commit,
+            &touched_aspect_paths,
+            Some(collection.as_str()),
+        )?;
+        Ok(ForgeQueryMutationReceipt {
+            commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
+            snapshot_token: bridge_snapshot_identity_for_commit(
+                commit.envelope().commit.commit_id,
+                commit.envelope().commit.version_id,
+            )
+            .as_str()
+            .to_string(),
+            deltas,
+            bridge_authority: None,
+        })
+    }
+
+    fn write_update_existing(
+        &mut self,
+        binding: forge_query::facade::ForgeQueryExistingTruthTargetBinding,
+        aspects: Vec<ForgeQueryAspectValue>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        let runtime = self.runtime()?;
+        let lowered = lower_write_command(
+            &runtime,
+            &mut BTreeMap::new(),
+            ForgeQueryWriteCommand::UpdateExistingAspects {
+                binding,
+                aspects: aspects.clone(),
+                metadata: forge_query::facade::ForgeQueryMutationMetadata::default(),
+                naming_intent: None,
+                continuity_intent: None,
+            },
+        )?;
+        let declared_aspect_paths = lowered.declared_aspect_paths.clone();
+        let commit = {
+            let runtime_handle = self.runtime()?;
+            let mut runtime = runtime_handle
+                .write()
+                .expect("worth topology runtime write authority lock poisoned");
+            let mut tx = runtime.begin_transaction(TransactionOptions::default());
+            let batch = lowered.intents.into_iter().fold(
+                WorkerIntentBatch::new("worth-query-runtime-update"),
+                |batch, intent| batch.push(intent),
+            );
+            tx.push_batch(batch);
+            tx.commit().map_err(|error| {
+                ForgeQueryWorkspaceError::new(format!(
+                    "worth topology production runtime update commit failed: {error:?}"
+                ))
+            })?
+        };
+
+        let deltas = mutation_deltas_from_commit(
+            &runtime,
+            &commit,
+            &declared_aspect_paths,
+            Some("WorthTopologyRelation"),
+        )?;
         Ok(ForgeQueryMutationReceipt {
             commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
             snapshot_token: bridge_snapshot_identity_for_commit(

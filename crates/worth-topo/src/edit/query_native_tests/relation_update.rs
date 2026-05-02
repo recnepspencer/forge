@@ -1,9 +1,10 @@
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
+use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
 
+use super::relation_update_support::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::edit::{
     WorthLoopEndpointKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
+    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -44,28 +45,85 @@ fn rewire_loop_endpoint_contract_preserves_upsert_relation_lowering() {
 }
 
 #[test]
-fn query_native_edit_runner_denies_rewire_loop_endpoint_until_invariant_complete_rewire_workflows_are_admitted(
-) {
-    let runtime = build_worth_milestone_one_runtime().expect("worth runtime");
+fn query_native_edit_runner_executes_rewire_loop_endpoint_on_production_runtime() {
+    let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
+    seed_milestone_one_primitive(
+        &mut runtime,
+        "worth.query-native-edit.rewire-endpoint",
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("seed primitive");
     let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = worth_topology_runtime(adapters, "worth.query-native-edit.rewire-endpoint")
         .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let relation_rows = workspace.read(assembly.relations());
+    let entity_rows = workspace.read(assembly.entities());
+    let relation = relation_rows
+        .iter()
+        .find(|row| {
+            row.payload
+                .get("topology")
+                .and_then(|value| value.get("kind"))
+                .and_then(|value| value.as_str())
+                .is_some_and(|kind_name| {
+                    kind_name
+                        == worth_schema::facade::WorthTopologyRelationKind::HalfEdgeEndsAtVertex
+                            .kind_name()
+                })
+        })
+        .expect("seeded topology should contain an endpoint relation");
+    let current_target_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("target_identity"))
+        .and_then(|value| value.as_str())
+        .expect("endpoint relation should expose topology.target_identity");
+    let source_identity = relation
+        .payload
+        .get("topology")
+        .and_then(|value| value.get("source_identity"))
+        .and_then(|value| value.as_str())
+        .expect("endpoint relation should expose topology.source_identity");
+    let target_vertex_id = entity_rows
+        .iter()
+        .find(|row| {
+            row.payload
+                .get("topology")
+                .and_then(|value| value.get("kind"))
+                .and_then(|value| value.as_str())
+                .is_some_and(|kind_name| kind_name == "worth.vertex")
+                && row.identity != current_target_identity
+        })
+        .map(query_entity_id_from_row)
+        .expect("seeded sheet disk should provide an alternate vertex");
+    let half_edge_id = entity_rows
+        .iter()
+        .find(|row| row.identity == source_identity)
+        .map(query_entity_id_from_row)
+        .expect("relation source identity should resolve to a halfedge");
     let batch = WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::rewire_loop_endpoint(
-        RelationId::new(PartitionId::main(), 7, 1),
+        query_relation_id_from_row(relation),
         WorthLoopEndpointKind::End,
-        EntityId::new(PartitionId::main(), 8, 1),
-        EntityId::new(PartitionId::main(), 9, 1),
+        half_edge_id,
+        target_vertex_id,
     )])
     .expect("non-empty batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
+    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
         .apply(batch, WorthTopologyEditApplicationMode::Mainline)
-        .expect_err("endpoint rewires must stay fail-closed until invariant-complete rewire workflows are admitted");
+        .expect("endpoint rewire should execute through the admitted runtime family");
 
-    assert!(matches!(
-        error,
-        WorthTopologyQueryEditExecutionError::UnsupportedFamilies(families)
-            if families == vec![WorthTopologyEditFamily::RewireLoopEndpoint]
-    ));
+    assert_eq!(
+        execution.families,
+        vec![WorthTopologyEditFamily::RewireLoopEndpoint]
+    );
+    let half_edge = execution
+        .materialized
+        .topology()
+        .half_edges
+        .iter()
+        .find(|half_edge| half_edge.entity_id == half_edge_id)
+        .expect("rewired halfedge should remain present");
+    assert_eq!(half_edge.target_vertex_id, Some(target_vertex_id));
 }

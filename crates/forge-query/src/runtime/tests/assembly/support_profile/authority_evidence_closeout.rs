@@ -49,6 +49,19 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
             "backend_verified_delete".to_string(),
         ]
     );
+    assert_eq!(support.bridge_backed_verification_support_rows().len(), 8);
+    assert!(support
+        .bridge_backed_verification_support_rows()
+        .iter()
+        .any(|row| row.operation_family() == "verify_existing"
+            && row.target_binding_family() == "direct_entity_identity"));
+    assert_eq!(
+        support.identity_preserving_update_families(),
+        &[
+            "direct_entity_identity_update".to_string(),
+            "direct_relation_identity_update".to_string(),
+        ]
+    );
     assert_eq!(
         support.symbolic_target_reference_families(),
         &["same_batch_declared_target".to_string()]
@@ -62,7 +75,17 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
         &[
             "same_batch_entity_relation_identity_edges".to_string(),
             "mixed_existing_and_symbolic_entity_identity_edges".to_string(),
+            "same_batch_symbolic_entity_followup_mutation".to_string(),
             "same_batch_symbolic_relation_followup_mutation".to_string(),
+            "same_batch_symbolic_relation_retirement".to_string(),
+            "mixed_existing_target_followup_mutation".to_string(),
+            "mixed_existing_target_retarget".to_string(),
+            "mixed_existing_target_supersession".to_string(),
+            "mixed_existing_target_retirement".to_string(),
+            "mixed_existing_target_verified_followup_mutation".to_string(),
+            "mixed_existing_target_verified_retarget".to_string(),
+            "mixed_existing_target_verified_supersession".to_string(),
+            "mixed_existing_target_verified_retirement".to_string(),
         ]
     );
     assert!(support
@@ -97,6 +120,54 @@ fn runtime_public_authoritative_mutation_evidence_support_freezes_admitted_famil
         .fail_closed_denial_classes()
         .iter()
         .any(|kind| kind == "requires_authoritative_lane"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-empty"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-duplicate-symbol"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-unresolved-symbolic-reference"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-symbolic-collection-mismatch"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-resolved-target-missing"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-collection-mismatch"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-retarget-unsupported"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-identity-preservation-unavailable"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-supersession-unsupported"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-backend-verification-unsupported"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-existing-target-missing-asserted-aspect"));
+    assert!(support
+        .fail_closed_denial_classes()
+        .iter()
+        .any(|kind| kind == "graph-composition-domain-invariant-denied"));
     assert_eq!(
         row.support_contract_digest(),
         Some(support.support_digest())
@@ -179,11 +250,28 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
     assert!(closeout
         .safe_to_build_now()
         .iter()
+        .any(|line| line.contains("relation identity")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
         .any(|line| line.contains("verified deletes")));
     assert!(closeout
         .safe_to_build_now()
         .iter()
         .any(|line| line.contains("probe surfaces keep retained assertions")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("attempted-shape summaries")
+            && line.contains("declared collections")
+            && line.contains("lifecycle families")));
+    assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("commit atomically at the backend boundary")));
+    assert!(closeout.safe_to_build_now().iter().any(
+        |line| line.contains("machine-readable by operation family and target-binding family")
+    ));
     assert!(closeout
         .must_not_assume_yet()
         .iter()
@@ -195,7 +283,15 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
     assert!(closeout
         .must_not_assume_yet()
         .iter()
+        .any(|line| line.contains("identity-preserving relation update families")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
         .any(|line| line.contains("verified-mutation") && line.contains("probe neighbors")));
+    assert!(closeout
+        .must_not_assume_yet()
+        .iter()
+        .any(|line| line.contains("compatibility runtimes admit them")));
     assert!(bridge_closeout
         .must_not_assume_yet()
         .iter()
@@ -203,11 +299,28 @@ fn runtime_public_authoritative_mutation_evidence_closeout_answers_dependency_co
     assert!(closeout
         .migration_guidance()
         .iter()
+        .any(|line| line.contains("read bridge-backed verified-existing support rows")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.compose_graph(...)")
+            && line.contains("workspace.compose_graph_with_invariant_pack(...)")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
         .any(|line| line.contains("workspace.assert_existing(...)")));
     assert!(closeout
         .migration_guidance()
         .iter()
+        .any(|line| line.contains("domain_invariant_summary()")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
         .any(|line| line.contains("workspace.probe_existing(...)")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("workspace.bind_existing_relation(...)")));
     assert!(closeout
         .migration_guidance()
         .iter()
@@ -271,5 +384,20 @@ fn runtime_public_authoritative_mutation_evidence_closeout_document_matches_cert
     }
     for mode in query_support.existing_truth_verified_mutation_modes() {
         assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(mode));
+    }
+    for row in query_support.bridge_backed_verification_support_rows() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.operation_family()));
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.target_binding_family()));
+    }
+    for family in query_support.identity_preserving_update_families() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(family));
+    }
+    for row in query_support.graph_composition_capability_support_rows() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.capability_family()));
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.capability_class().as_str()));
+    }
+    for row in query_support.graph_composition_extension_hook_support_rows() {
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.hook_family()));
+        assert!(AUTHORITY_EVIDENCE_CLOSEOUT_DOC.contains(row.boundary().as_str()));
     }
 }

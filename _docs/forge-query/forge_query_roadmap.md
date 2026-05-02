@@ -2205,6 +2205,10 @@ The required follow-on hardening spec for generic graph-shaped authoring and
 identity-preserving existing-target mutation is
 [runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md).
 
+The admitted graph-authoring and geometry-pressure closure for that follow-on
+hardening is now frozen in
+[runtime-generic-graph-authoring-closeout.md](./runtime-generic-graph-authoring-closeout.md).
+
 ### Must Ship
 
 - explicit declared-versus-resolved target evidence in public receipts and
@@ -2219,7 +2223,8 @@ identity-preserving existing-target mutation is
   either preserve explicit outcome meaning or fail typed and early
 - domain-agnostic public authoring surfaces for:
   - identity-preserving existing-target relation updates
-  - first-class same-batch graph composition
+  - first-class same-batch graph composition with a widening mixed-shape
+    capability contract
   - bridge-backed backend-verified existing-truth checks on admitted runtime
     families
 - support-matrix and certification rows covering the hardened mutation surface
@@ -2248,7 +2253,8 @@ neighbors, while downstream domains can delete local target-recovery glue
 instead of merely wrapping it. The gate is not fully closed until the authoring
 surfaces and certification obligations in
 [runtime-generic-graph-authoring-plan.md](./runtime-generic-graph-authoring-plan.md)
-are also satisfied.
+are also satisfied. That follow-on closure now exists in
+[runtime-generic-graph-authoring-closeout.md](./runtime-generic-graph-authoring-closeout.md).
 
 ## Milestone 9.4: Temporal Query Basis And Time-Aware Subscriptions
 

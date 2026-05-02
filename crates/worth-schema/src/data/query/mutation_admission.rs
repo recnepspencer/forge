@@ -117,12 +117,15 @@ pub fn worth_query_mutation_support_contract(
         "insert_topology_relation_with_same_batch_symbolic_entity_identity_refs".to_string(),
         "verify_existing_topology_entity_kind".to_string(),
         "verify_existing_topology_relation_shape".to_string(),
+        "update_existing_topology_relation_shape_identity_preserving".to_string(),
         "delete_existing_topology_entity".to_string(),
         "delete_existing_topology_relation".to_string(),
     ];
     let blocked_until_invariant_complete_workflow = vec![
-        "topology_relation_create_workflows_require_invariant_complete_subgraphs".to_string(),
-        "topology_relation_rewire_workflows_require_identity_preserving_relation_updates"
+        "topology_relation_create_workflows_beyond_face_inner_loop_require_invariant_complete_subgraphs".to_string(),
+        "topology_shell_or_wire_membership_workflows_beyond_admitted_full_wire_rehome_connected_wire_split_single_face_two_face_shell_split_and_full_shell_face_set_rehome_require_invariant_complete_owner_rehome_or_shell_subgraphs"
+            .to_string(),
+        "topology_relation_loop_successor_workflows_beyond_admitted_half_edge_relocation_lanes_require_invariant_complete_topology_update_workflows"
             .to_string(),
     ];
     let blocked_until_explicit_lowering = vec![

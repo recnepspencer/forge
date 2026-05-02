@@ -153,7 +153,8 @@ fn summarize_bulk_mutation_telemetry(
                 entity_target_count += 1;
                 lineage_transition_count += 1;
             }
-            MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
+            MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
+            | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 relation_target_count += 1;
                 lineage_transition_count += 1;
             }

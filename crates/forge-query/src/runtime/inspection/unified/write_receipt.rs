@@ -152,6 +152,22 @@ impl ForgeQueryWriteReceiptInspection {
         self.existing_truth_assertion_evidence.as_ref()
     }
 
+    pub fn verified_assumption_set(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerifiedAssumptionSet> {
+        self.existing_truth_assertion_evidence
+            .as_ref()
+            .and_then(ForgeQueryExistingTruthAssertionEvidence::verified_assumption_set)
+    }
+
+    pub fn verification_read_set_breadth(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerificationReadSetBreadth> {
+        self.existing_truth_assertion_evidence
+            .as_ref()
+            .and_then(ForgeQueryExistingTruthAssertionEvidence::verification_read_set_breadth)
+    }
+
     pub fn existing_truth_binding_evidence(
         &self,
     ) -> Option<&ForgeQueryExistingTruthBindingEvidence> {

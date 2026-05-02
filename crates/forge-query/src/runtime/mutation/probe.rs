@@ -57,7 +57,7 @@ pub struct ForgeQueryExistingTruthProbeDenial {
 }
 
 impl ForgeQueryExistingTruthProbeDenial {
-    pub(crate) fn new(
+    pub fn new(
         binding: &ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthProbeDenialKind,
         probed_aspect_path: Option<String>,

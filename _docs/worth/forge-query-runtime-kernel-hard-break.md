@@ -1,14 +1,19 @@
 # Worth Forge Query Runtime Kernel Hard-Break Spec
 
 > **Status:** Proposed hard-break spec for the active Forge Query runtime rewrite
-> gate
+> gate, refreshed against the shipped 2026-05-01 `forge-query` runtime
+> graph-authoring and authority-evidence closeouts
 >
 > **Owners:** `worth-schema`, `worth-topo`, `forge-query`,
 > `forge-runtime-bridge`
 >
 > **Roadmap position:** refinement of the existing `Forge Query Runtime Rewrite
-> Gate`, still blocking further Worth Milestone 3 expansion until the real
-> bridge-backed kernel path exists
+> Gate`, still blocking further Worth Milestone 3 expansion until Worth uses
+> the real bridge-backed Query kernel path instead of the compatibility mirror
+>
+> **Shipped upstream closeouts this spec now assumes are real:**
+> - [../forge-query/runtime-authoritative-mutation-evidence-closeout.md](../forge-query/runtime-authoritative-mutation-evidence-closeout.md)
+> - [../forge-query/runtime-generic-graph-authoring-closeout.md](../forge-query/runtime-generic-graph-authoring-closeout.md)
 
 ## Goal
 
@@ -18,10 +23,39 @@ authority and read orchestration.
 
 ## Why This Spec Exists
 
-The current rewrite gate correctly rejects public compatibility stories, but it
-is still too soft about the kernel question.
+The current rewrite gate already rejects public compatibility stories, but the
+code and spec were out of sync about what Query still needed to invent versus
+what Query has already shipped.
 
-Today, Worth has a query-shaped surface while still relying on:
+That upstream distinction matters now.
+
+As of the shipped Query closeouts, the generic runtime substrate already
+admits:
+
+- bridge-backed authoritative mutation evidence
+- same-batch graph composition through:
+  - `workspace.compose_graph(...)`
+  - `workspace.compose_graph_with_invariant_pack(...)`
+- typed graph-program denial and denied-path admission traces
+- distinct domain-invariant denial with attempted-shape summary
+- verified existing-target update / retarget / supersession / retirement lanes
+- composition-level assumption/read-set and lineage summaries
+- geometry-pressure proof for:
+  - `LoopSuccessorRewire`
+  - `FailedNonManifoldAdmission`
+  - `FaceInnerLoopInsertion`
+  - `EdgeSplit`
+
+So this spec is no longer about asking Query to invent a generic graph-shaped
+mutation substrate from scratch.
+
+This spec now exists to forbid the remaining mirror-runtime shape inside Worth
+and replace it with one runtime story:
+
+`Worth domain intent -> Forge Query runtime -> bridge-backed write/read authority -> canonical relational truth`
+
+Today, Worth still has query-shaped seams while relying on mirror-era
+infrastructure such as:
 
 - `worth_topology_query_workspace(...)` built with
   `ForgeQueryRuntime::builder().compatibility_in_memory_collections(...)`
@@ -32,23 +66,24 @@ Today, Worth has a query-shaped surface while still relying on:
 - `WorthTopologyEditRunner` and `WorthTopologyAuthority` as the real ordinary
   write path
 
-That is not a hard break. It is a compatibility mirror with a query-native
-facade.
-
-This spec exists to forbid that shape and replace it with one runtime story:
-
-`Worth domain intent -> Forge Query runtime -> bridge-backed write/read authority -> canonical relational truth`
+That is still not a hard break. It is a compatibility mirror with a
+query-native facade.
 
 ## Hard Part
 
-The hard part is not adding another cleaner-looking facade.
+The hard part is no longer inventing generic mixed-shape graph authoring.
+Query already ships that.
 
-The hard part is keeping five things separate that the current Worth shape
+The hard part is deleting the remaining Worth-local mirror behaviors without
+accidentally reintroducing a second runtime story in nicer clothes.
+
+The hard part is keeping six things separate that the current Worth shape
 collapses:
 
 - canonical relational truth
 - Query as the real runtime/query facade over that truth
 - Worth domain lowering and interpretation
+- Query-owned graph authoring, receipts, inspection, and denied-path evidence
 - derived materialization / diagnostics / certification surfaces
 - temporary migration helpers that must never become the surviving kernel
 
@@ -59,6 +94,8 @@ The design fails if:
   `WorthTopologyAuthority` facade under a Query-shaped wrapper
 - read/materialization still round-trips through fake relational record
   reconstruction because the old materializer remained structurally central
+- topology edits keep bypassing shipped Query graph composition and verified
+  existing-target lanes by rebuilding local graph orchestration in Worth
 - branch-local or certification flows keep a second runtime story "just for
   now" and later make that fallback permanent
 - the public DX looks Query-native while the real operational truth still
@@ -73,6 +110,14 @@ artifact family, and one exact deletion bar for the mirror-runtime shape.
   authority seams; this spec is about building the missing Worth production
   adapters and deleting the compatibility mirror, not inventing a second query
   engine.
+- Forge Query's shipped public graph-authoring contract is now a dependency,
+  not a speculative future:
+  - `workspace.compose_graph(...)`
+  - `workspace.compose_graph_with_invariant_pack(...)`
+  - graph-composition support rows
+  - graph-composition denial and domain-invariant denial artifacts
+  - verified existing-target mutation lanes
+  - composition-level assumption/read-set and lineage summaries
 - `forge-relational` remains the authority for commit, branch, lineage, and
   replay semantics.
 - `forge-runtime-bridge` remains the authority for truth-to-derived causality,
@@ -85,6 +130,10 @@ artifact family, and one exact deletion bar for the mirror-runtime shape.
 - Query-backed materialization may decode Query rows into Worth domain
   projection types, but it must not rebuild fake authoritative relational
   records to re-enter old orchestration.
+- Worth topology edits that need symbolic same-batch construction, verified
+  rewires, retarget, supersession, or domain-invalidity evidence should use the
+  shipped Query graph-authoring contract rather than asking Worth to re-own
+  those generic runtime semantics.
 - Unsupported Query capabilities must fail typed and early rather than
   triggering Worth-local substitute runtime behavior.
 
@@ -99,6 +148,9 @@ artifact family, and one exact deletion bar for the mirror-runtime shape.
   entrypoints.
 - Query receipts, state, materialization, and inspection are the canonical
   ordinary runtime artifact families.
+- Query graph-composition receipts, inspection, admission traces, and
+  domain-invariant summaries are the canonical ordinary runtime artifact
+  families for graph-shaped topology edits.
 - Worth-specific envelopes may survive only as retained or derived proof where
   they do not compete with the Query runtime contract.
 - If a generic runtime/query capability is missing, the fix belongs in
@@ -111,13 +163,14 @@ Worth must survive the following hostile condition without preserving any
 mirror-runtime or dual-authority fallback:
 
 > The same admitted topology workflow, certification workflow, materialization
-> workflow, and edit workflow must produce the same canonical truth mutation,
-> the same Query receipt and inspection meaning, and the same derived
-> materialization / diagnostics conclusions whether it is executed live,
-> branch-local, replayed, or historically reopened, with no path allowed to
-> import truth into a fake workspace, reconstruct fake relational records from
-> Query rows, or route ordinary writes through direct `WorthTopologyAuthority`
-> entrypoints outside the Forge Query runtime.
+> workflow, and graph-shaped edit workflow must produce the same canonical
+> truth mutation, the same Query receipt and inspection meaning, the same
+> denied-path classification, and the same derived materialization /
+> diagnostics conclusions whether it is executed live, branch-local, replayed,
+> or historically reopened, with no path allowed to import truth into a fake
+> workspace, reconstruct fake relational records from Query rows, or route
+> ordinary writes through direct `WorthTopologyAuthority` entrypoints outside
+> the Forge Query runtime.
 
 If any ordinary Worth path:
 
@@ -126,6 +179,9 @@ If any ordinary Worth path:
   for secondary inspection
 - reconstructs fake `EntityReadRecord` / `RelationReadRecord` values from Query
   rows to feed domain materializers
+- rebuilds local graph-program orchestration instead of using shipped Query
+  graph composition for same-batch symbolic, verified, lineage-carrying, or
+  domain-invalid edit families
 - requires UI, certification, or editor consumers to choose between Worth
   authority artifacts and Query artifacts
 - exposes a public or ordinary-internal runtime path that bypasses the real
@@ -135,29 +191,29 @@ then the hard break has failed.
 
 ## Phases
 
-### Phase 1: Define The Canonical Surviving Runtime Shape
+### Phase 1: Freeze The Shipped Query Dependency Contract
 
-Lock the runtime shape that is allowed to survive this gate.
+Lock exactly which upstream Query surfaces this rewrite is allowed to depend on
+and which old assumptions are now obsolete.
 
-The surviving ordinary Worth runtime must provide:
+This phase must explicitly treat the following as already shipped generic
+runtime substrate rather than as future Query hardening:
 
-- one production constructor that assembles a bridge-backed Forge Query runtime
-  over the real `RelationalRuntime`
-- one Query-owned topology workspace / assembly vocabulary
-- one Query-owned mutation / receipt / inspection / state / materialization
-  story
-- one Query-owned edit execution story
+- `workspace.insert(...)`
+- `workspace.update(...)`
+- `workspace.delete(...)`
+- `workspace.batch(...)`
+- `workspace.compose_graph(...)`
+- `workspace.compose_graph_with_invariant_pack(...)`
+- graph-composition capability rows and extension-hook rows
+- graph-composition admission traces and domain-invariant summaries
+- verified existing-target update / retarget / supersession / retirement lanes
+- composition-level assumption/read-set and lineage summaries
 
-This phase forbids the following from being treated as acceptable end-state
- debt:
-
-- `compatibility_in_memory_collections(...)`
-- `import_read_view(...)` as the ordinary certification or materialization
-  path
-- `materialized_topology_from_query_rows(...)` rebuilding fake relational read
-  records
-- direct `WorthTopologyReader` or `WorthTopologyAuthority` ordinary runtime
-  orchestration
+This phase forbids the refreshed Worth spec from claiming that generic
+same-batch graph composition, verified existing-target rewires, or
+domain-invalid graph denial still need to be invented in Query before Worth can
+continue.
 
 ### Phase 2: Build The Production Worth Query Runtime Assembly
 
@@ -200,8 +256,8 @@ This phase must explicitly kill the ordinary use of:
 
 ### Phase 4: Replace Direct Worth Authority With Query-Owned Authority
 
-Move the real ordinary Worth write path onto the bridge-backed Forge Query
-runtime.
+Move the real ordinary Worth truth write path onto the bridge-backed Forge
+Query runtime.
 
 The surviving write path must:
 
@@ -215,17 +271,26 @@ This phase is complete only when direct `WorthTopologyAuthority` commit APIs
 are not the ordinary path for any surviving public or ordinary-internal Worth
 workflow.
 
-### Phase 5: Rewrite Topology Edit Execution Onto The Same Runtime
+### Phase 5: Rewrite Graph-Shaped Topology Edits Onto Query Composition
 
 Rebuild topology edit execution so edit authoring remains Worth-domain
-meaningful, but edit execution itself is Query-native all the way down.
+meaningful, but graph-shaped execution itself is Query-native all the way down.
 
-This phase must produce:
+This phase must move the first admitted Worth edit families onto the shipped
+Query graph-authoring substrate rather than onto Worth-local orchestration.
 
-- a Query-native Worth edit runner
-- edit fallout routed from Query receipts and computed surfaces
-- edit inspection and certification driven from Query artifacts
-- typed fail-closed behavior for unsupported Query mutation families
+The surviving edit path must:
+
+- use plain Query mutation families when the edit is honestly scalar
+- use `workspace.compose_graph(...)` when one edit needs symbolic same-batch
+  declaration, existing-target identity preservation, lineage, or verified
+  existing-truth checks in one canonical program
+- use `workspace.compose_graph_with_invariant_pack(...)` when the edit may be
+  substrate-valid but topology-invalid and needs domain-owned rejection without
+  collapsing into generic support denial
+- route fallout from Query receipts and computed surfaces
+- drive edit inspection and certification from Query artifacts directly
+- deny typed and early when a needed Query mutation family is still unsupported
 
 This phase is complete only when `WorthTopologyEditRunner` no longer owns the
 real ordinary execution path in its current authority/reader-owned form.
@@ -243,6 +308,8 @@ Delete or privatize:
 - truth-import compatibility paths that exist only to feed Query mirrors
 - Query-row-to-fake-relational-record translation helpers that exist only
   because the runtime is not yet truly Query-native
+- any Worth-local graph-program builder whose only job is to emulate shipped
+  Query graph-composition semantics above the facade
 
 This phase closes only when the surviving Worth public/runtime story is
 Query-native in implementation, evidence, docs, and examples.
@@ -263,6 +330,9 @@ The implementation must map to concrete surviving surfaces, not only to prose:
 - one production write artifact family:
   - `ForgeQueryWriteReceipt`
   - `ForgeQueryBatchWriteReceipt`
+- one production graph-shaped write family:
+  - `workspace.compose_graph(...)`
+  - `workspace.compose_graph_with_invariant_pack(...)`
 - one production inspection family:
   - `workspace.inspect(...)`
 - one production state/materialization family:
@@ -274,7 +344,7 @@ The implementation must map to concrete surviving surfaces, not only to prose:
     admitted on the real bridge-backed path
 - one production edit execution surface:
   - Worth edit authoring lowered into Query mutation authoring on the same
-    runtime
+    runtime, including graph-shaped composition where the edit really needs it
 
 If a proposed implementation cannot point to these exact surviving surfaces, it
 is not implementing this spec honestly.
@@ -293,8 +363,11 @@ The surviving DX must have this shape:
   - `workspace.state(...)`
   - `workspace.inspect(...)`
 - one ordinary edit path:
-  - Worth edit contracts lowered into Query mutation authoring, executed on the
-    same runtime
+  - Worth edit contracts lowered into Query mutation authoring on the same
+    runtime
+  - graph-shaped edits using Query graph composition instead of a Worth-local
+    mirror program builder when symbolic same-batch, verified rewire, lineage,
+    or domain-invalidity evidence is required
 
 The DX must not require ordinary consumers to:
 
@@ -343,15 +416,28 @@ The surviving shape must look like this:
 let mut workspace = worth_topology_runtime(&mut runtime, "worth.milestone-one.certification")?;
 let assembly = WorthTopologyQueryAssembly::declare(&mut workspace)?;
 
-let write_receipt = workspace.batch(|batch| {
-    // Worth-domain lowering authors Query mutations here against real runtime truth.
-    Ok(())
-})?;
+let write_receipt = workspace.compose_graph_with_invariant_pack(
+    worth_topology_invariant_pack(),
+    |graph| {
+        // Worth-domain lowering authors Query mutations here against real runtime truth.
+        // Existing-target rewires, supersession, symbolic same-batch declarations,
+        // and domain-invalid rejection all stay in the ordinary Query receipt story.
+        Ok(())
+    },
+)?;
 
 let topology_rows = workspace.read(assembly.entities());
 let materialized_rows = workspace.materialize(assembly.materialized());
 let receipt_inspection = workspace.inspect(&write_receipt)?;
 let validation_state = workspace.state(assembly.validation())?;
+```
+
+Scalar truth-only edits may still look like this:
+
+```rust
+let write_receipt = workspace.batch(|batch| {
+    Ok(())
+})?;
 ```
 
 The key difference is architectural, not cosmetic:
@@ -360,6 +446,8 @@ The key difference is architectural, not cosmetic:
 - no fake `EntityReadRecord` / `RelationReadRecord` reconstruction
 - no second runtime story
 - Query receipt / state / inspection are the canonical surfaces
+- graph-shaped edits use shipped Query graph composition rather than a
+  Worth-local mirror program builder
 
 The surviving materialization path may decode Query-derived rows into domain
 projection types, but it must never reconstruct fake authoritative relational
@@ -378,6 +466,8 @@ naive trap behind "we'll make the real runtime later."
 - admitted topology read/materialization/certification paths over the same
   runtime
 - at least one admitted topology edit family executing on that same runtime
+  through Query graph composition rather than through Worth-local graph
+  orchestration
 - explicit typed failure for unsupported branch, naming, continuity, geometry,
   or edit families
 
@@ -387,6 +477,8 @@ naive trap behind "we'll make the real runtime later."
 - finer-grained recompute or locality optimization where current Query support
   still exposes explicit whole-view debt
 - ergonomics polish after the real runtime path and deletion bar are proven
+- later Worth-specific edit DSL refinement after the Query-native execution
+  contract is already proven
 
 ### Not Allowed As Debt
 
@@ -394,6 +486,8 @@ naive trap behind "we'll make the real runtime later."
 - truth import as the ordinary certification/materialization path
 - row-to-fake-record reconstruction as the ordinary materialization path
 - direct Worth authority or reader orchestration as a hidden ordinary path
+- Worth-local graph-program execution that exists only because the code did not
+  move onto shipped Query graph composition yet
 - public examples or tests that still teach the old runtime shape as normal
 
 ## Must Ship
@@ -402,6 +496,9 @@ naive trap behind "we'll make the real runtime later."
 - Query-backed Worth source / schema / write-authority adapters
 - Query-native materialization / diagnostics / certification paths
 - Query-native topology edit execution
+- graph-shaped topology edit execution that uses shipped Query graph composition
+  when the edit honestly needs symbolic same-batch, verified existing-target,
+  lineage, or domain-invalidity semantics
 - explicit DX and support documentation for the surviving runtime shape
 - compile-fail or privacy boundaries preventing external minting of proof-
   bearing runtime artifacts where appropriate
@@ -426,8 +523,8 @@ naive trap behind "we'll make the real runtime later."
 - `WorthTopologyReader`, `WorthTopologyAuthority`, and the old-form
   `WorthTopologyEditRunner` must not remain on the ordinary public facade
 - any temporary import-only or reconstruction-only helpers that survive during
-  implementation must be `pub(crate)` or test-only and must fail compile-fail
- /public-API tests if exposed through the surviving facade
+  implementation must be `pub(crate)` or test-only and must fail
+  compile-fail/public-API tests if exposed through the surviving facade
 - the production write path must not merely wrap the old public
   `WorthTopologyAuthority` facade under a Query-shaped shell; reusable lower
   semantics may be extracted below the facade, but the old facade must not
@@ -448,6 +545,9 @@ to them honestly:
 - `WorthTopologyQueryEditExecution`
   - typed edit execution result family over Query receipts/inspection rather
     than direct authority envelopes
+- `WorthTopologyGraphEditLowering`
+  - typed lowering seam that decides when an edit stays scalar Query mutation
+    and when it must become Query graph composition
 - `WorthTopologyRuntimeCloseout`
   - support/closeout artifact binding the admitted kernel families and deletion
     posture
@@ -464,6 +564,9 @@ Equivalent names are acceptable if the responsibilities remain distinct.
   support or closeout artifacts directly
 - ordinary external callers must not be able to call the old direct authority
   or reader runtime entrypoints through the surviving facade
+- ordinary external callers must not be taught or forced to choose between a
+  Worth-local graph edit executor and Query graph composition for the same
+  admitted workflow class
 - compile-fail tests must exist for:
   - compatibility runtime construction through the surviving facade
   - exposure of old direct authority/reader/edit entrypoints on the surviving
@@ -489,6 +592,15 @@ Equivalent names are acceptable if the responsibilities remain distinct.
   prove at least one admitted edit family lowers into Query mutation authoring,
   executes through the same runtime, and routes fallout through Query receipts
   and computed surfaces
+- graph-composition adoption:
+  prove at least one admitted Worth graph-shaped edit family lowers into
+  `workspace.compose_graph(...)` or
+  `workspace.compose_graph_with_invariant_pack(...)` instead of a Worth-local
+  mirror program
+- domain-invalidity honesty:
+  prove a topology-invalid but substrate-supported Worth edit returns the Query
+  domain-invariant denial lane rather than collapsing into local Worth failure
+  folklore
 - branch-local honesty:
   prove admitted branch-local behavior uses the same Query-backed runtime or
   fails typed and early where Query support is not yet admitted
@@ -510,11 +622,15 @@ Equivalent names are acceptable if the responsibilities remain distinct.
 - write receipts or their inspection surfaces must expose touched-aspect count,
   affected live-view count, affected computed-surface count, and any explicit
   fallback class
+- graph-shaped edit receipts or their inspection surfaces must expose the
+  graph-composition program, resolution map, lifecycle outcomes, and any
+  admitted assumption/read-set or lineage summaries required by the workflow
 - materialization/certification paths must expose row breadth and fallback
   breadth so whole-view rebuild debt cannot hide behind a Query-native facade
 - hostile tests must assert exact counter presence for:
   - touched aspect breadth
   - affected live/computed breadth
+  - graph-composition breadth where graph-shaped edits are admitted
   - materialization breadth
   - fallback class / fallback count
 
@@ -539,6 +655,9 @@ cost posture and explicit debt where optimization is not yet certified.
   the real Query runtime and returns canonical Query receipts
 - a hostile edit-path test proving at least one admitted edit family executes
   entirely through the same Query runtime
+- a hostile graph-shaped edit-path test proving at least one admitted Worth
+  edit family uses Query graph composition on the real runtime and preserves
+  the exact receipt / inspection evidence the workflow class needs
 - public-surface tests proving direct reader/authority/runner execution APIs
   are no longer required by ordinary external Worth use
 - docs/examples that show only the surviving Query-native kernel story
@@ -554,6 +673,9 @@ cost posture and explicit debt where optimization is not yet certified.
   `forge-query`, not in a new Worth-local runtime substitute.
 - "Query-native" in this spec means Query is the real runtime path, not that
   Worth mutations or reads happen elsewhere and later become Query-shaped.
+- The upstream Query closeouts changed the shape of this spec. Generic
+  graph-shaped mutation authoring is now closed upstream, so the remaining
+  burden here is consumption, deletion, and Worth-domain workflow closure.
 
 ## Sequencing Notes
 
@@ -562,3 +684,12 @@ cost posture and explicit debt where optimization is not yet certified.
 - Once this spec closes, the next active frontier is Worth Milestone 3/Phase 7
   style edit widening on top of the real Query-backed kernel, not more kernel
   ambiguity cleanup.
+- The sequencing change from the older draft is important:
+  - before the upstream Query closeouts, this spec had to leave room for Query
+    to grow generic graph substrate first
+  - after the upstream Query closeouts, this spec must spend that substrate on
+    the real Worth hard break rather than pretending the missing generic
+    capability still explains the mirror-runtime debt
+- The next meaningful frontier after this spec is not "teach Query more graph
+  basics." It is "prove Worth uses the shipped Query graph and evidence
+  contract for real workflow closure."

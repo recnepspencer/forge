@@ -239,6 +239,79 @@ fn batch_update_existing_verified_preserves_aggregate_assertion_digest() {
 }
 
 #[test]
+fn primary_multi_verified_update_batch_shares_one_commit_boundary() {
+    let attempted_writes = std::rc::Rc::new(std::cell::Cell::new(0usize));
+    let attempted_batches = std::rc::Rc::new(std::cell::Cell::new(0usize));
+    let runtime = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .existing_truth_verification(PermissiveExistingTruthVerificationAdapter)
+        .write_authority(AtomicBatchCountingWriteAuthority {
+            attempted_writes: attempted_writes.clone(),
+            attempted_batches: attempted_batches.clone(),
+        })
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .support_profile(ForgeQueryRuntimeSupportProfile::bridge_backed(
+            "test-subscription-activation",
+            "test-preview-basis",
+            "test-inspector-evidence",
+        ))
+        .build_backend_from_parts()
+        .build()
+        .expect("primary bridge-backed runtime should build");
+    let mut workspace = runtime
+        .workspace("tasks.batch-update-existing-verified-atomic")
+        .expect("task runtime should open a named workspace");
+
+    let binding_one = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new("authority:task-atomic-1", "Task:1")
+                .expect("first existing entity target should build")
+                .in_target_collection("Task")
+                .expect("first existing entity target collection should build"),
+        )
+        .expect("first binding should build");
+    let binding_two = workspace
+        .bind_existing_entity(
+            ForgeQueryExistingEntityTarget::new("authority:task-atomic-2", "Task:2")
+                .expect("second existing entity target should build")
+                .in_target_collection("Task")
+                .expect("second existing entity target collection should build"),
+        )
+        .expect("second binding should build");
+
+    let receipt = workspace
+        .batch(|batch| {
+            batch
+                .update_existing_verified(
+                    binding_one,
+                    |task| task.aspect("status.value", "open"),
+                    |task| task.aspect("status.value", "closed"),
+                )
+                .update_existing_verified(
+                    binding_two,
+                    |task| task.aspect("status.value", "open"),
+                    |task| task.aspect("status.value", "closed"),
+                )
+        })
+        .expect("verified update batch should execute atomically");
+
+    assert_eq!(receipt.write_receipts().len(), 2);
+    assert_eq!(attempted_batches.get(), 1);
+    assert_eq!(attempted_writes.get(), 0);
+    assert_eq!(
+        receipt
+            .batch_mutation_evidence()
+            .backend_verified_update_count(),
+        2
+    );
+}
+
+#[test]
 fn update_existing_verified_denies_unsupported_backend_typed_and_early() {
     let runtime = bridge_runtime_with_support(ForgeQueryRuntimeSupportProfile::bridge_backed(
         "test-subscription-activation",

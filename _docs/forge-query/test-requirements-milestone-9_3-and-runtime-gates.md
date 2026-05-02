@@ -307,7 +307,7 @@ Query receipts and inspection instead of rebuilding the same explanation layer
 locally, and the bridge-side replay/provenance artifacts remain compatible with
 that same public evidence story.
 
-### Runtime Generic Graph Authoring And Identity-Preserving Mutation Test
+### Runtime Mixed-Shape Graph Authoring And Identity-Preserving Mutation Test
 
 Purpose
 
@@ -325,6 +325,30 @@ Scenario
     - created entity -> created relation
     - existing entity -> created relation
     - mixed existing-target and same-batch symbolic references
+    - symbolic entity follow-up mutation
+    - symbolic relation follow-up mutation
+    - symbolic relation retirement
+    - mixed create/update/delete composition in one canonical program
+  - geometry-inspired hostile generic graph programs covering:
+    - `EdgeSplit`
+      - existing edge relation retired
+      - two new edges created
+      - one new vertex created
+      - adjacency relations rewired
+      - receipt proves lineage and identity outcomes
+    - `LoopSuccessorRewire`
+      - existing successor relation retargets old successor to new successor
+      - relation identity is preserved
+      - verification asserts old source/target assumptions before mutation
+    - `FaceInnerLoopInsertion`
+      - create loop entity
+      - create relation from existing face to symbolic loop
+      - create symbolic edges/vertices
+      - resolution map exposes all symbolic-to-resolved identities
+    - `FailedNonManifoldAdmission`
+      - substrate can express the graph shape
+      - domain invariant hook denies it
+      - denial remains distinct from runtime support denial
   - bridge-backed backend-verified existing-truth assertion/probe/verified
     update/delete on admitted entity and relation families
 - exercise hostile neighbors for:
@@ -333,6 +357,7 @@ Scenario
   - reversed or illegal composition order
   - incomplete invariant-bearing graph subgraphs
   - bridge-backed runtime families lacking verification support
+  - domain-invalid but substrate-expressible graph programs
   - target-collection and target-shape mismatch
 
 Must verify
@@ -344,10 +369,17 @@ Must verify
 - graph composition is one public authoring family rather than caller-owned
   scalar batch folklore
 - graph composition receipts preserve symbolic-to-resolved target mapping,
-  component ordering, target evidence, and affected live/computed breadth
+  component ordering, target evidence, lifecycle-step meaning, lifecycle
+  outcome meaning, and affected live/computed breadth
+- graph composition preserves and exposes assumption/read-set evidence
+  distinctly from target binding and mutation result evidence
 - graph composition denial distinguishes unresolved symbolic references,
-  illegal ordering, incomplete subgraph workflows, and unsupported runtime
+  illegal ordering, incomplete subgraph workflows, unsupported mixed-shape
+  capability families, lower-runtime identity-preservation gaps, verification
+  substrate unavailability, domain invariant denial, and unsupported runtime
   families
+- denied paths expose an admission trace showing the classification stage where
+  execution stopped, and that trace is not the same artifact as a receipt
 - bridge-backed backend-verified existing-truth surfaces report admitted versus
   unsupported posture honestly through support metadata and executable behavior
 - memory or compatibility-backed support does not overclaim bridge-backed
@@ -363,7 +395,14 @@ Required verification output
 - `relation_update_denial_digest`
 - `graph_composition_digest`
 - `graph_symbolic_resolution_digest`
+- `graph_composition_program_digest`
 - `graph_composition_denial_digest`
+- `graph_composition_lifecycle_digest`
+- `verified_assumption_set_digest`
+- `assumption_snapshot_digest`
+- `verified_precondition_digest`
+- `verification_read_set_breadth_digest`
+- `admission_trace_digest`
 - `verified_existing_bridge_support_digest`
 - `verified_existing_runtime_receipt_digest`
 - `support_matrix_digest`

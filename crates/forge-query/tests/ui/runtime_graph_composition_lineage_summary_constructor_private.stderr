@@ -1,0 +1,38 @@
+error[E0451]: fields `entries`, `counter_snapshot`, `aggregate_lineage_digest`, `aggregate_continuity_resolution_digest` and `lineage_summary_digest` of struct `ForgeQueryGraphCompositionLineageSummary` are private
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:8:9
+   |
+ 7 |     let _ = ForgeQueryGraphCompositionLineageSummary {
+   |             ---------------------------------------- in this type
+ 8 |         entries: vec![ForgeQueryGraphCompositionLineageEntry {
+   |         ^^^^^^^ private field
+...
+18 |         counter_snapshot: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+19 |         aggregate_lineage_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         aggregate_continuity_resolution_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         lineage_summary_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `component_index`, `family`, `outcome_class`, `prior_authoritative_identity`, `successor_authoritative_identities`, `target_collection`, `lineage_digest` and `continuity_resolution_digest` of struct `ForgeQueryGraphCompositionLineageEntry` are private
+  --> tests/ui/runtime_graph_composition_lineage_summary_constructor_private.rs:9:13
+   |
+ 8 |         entries: vec![ForgeQueryGraphCompositionLineageEntry {
+   |                       -------------------------------------- in this type
+ 9 |             component_index: 0,
+   |             ^^^^^^^^^^^^^^^ private field
+10 |             family: ForgeQueryContinuityMutationFamily::SplitExistingTarget,
+   |             ^^^^^^ private field
+11 |             outcome_class: ForgeQueryContinuityOutcomeClass::ContinuesAsSplitSuccessors,
+   |             ^^^^^^^^^^^^^ private field
+12 |             prior_authoritative_identity: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |             successor_authoritative_identities: Vec::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |             target_collection: None,
+   |             ^^^^^^^^^^^^^^^^^ private field
+15 |             lineage_digest: String::new(),
+   |             ^^^^^^^^^^^^^^ private field
+16 |             continuity_resolution_digest: String::new(),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

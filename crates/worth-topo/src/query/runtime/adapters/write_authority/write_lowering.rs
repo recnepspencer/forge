@@ -11,6 +11,7 @@ use forge_relational::facade::symbols::InternedString;
 use forge_relational::facade::transactions::{
     CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
     EntitySpec, MutationIntent, RelationMutationIntent, RelationSpec,
+    UpdateRelationEndpointsIntent,
 };
 use serde_json::{json, Value};
 use worth_schema::facade::{
@@ -21,12 +22,15 @@ use super::super::write_support::{
     aspect_map, ensure_live_entity_exists, live_entity_label_exists, optional_text,
     parse_entity_identity, parse_relation_identity, required_text, write_command_label,
 };
+use super::patch_matching::LoweredPatchMatch;
 
 pub(super) struct LoweredWriteCommand {
     pub(super) batch_label: String,
     pub(super) intents: Vec<MutationIntent>,
     pub(super) declared_aspect_paths: Vec<String>,
-    pub(super) expected_patch_count: usize,
+    pub(super) expected_observable_patch_count: usize,
+    pub(super) patch_match: LoweredPatchMatch,
+    pub(super) fallback_collection: Option<String>,
 }
 
 pub(super) fn lower_write_command(
@@ -59,27 +63,45 @@ pub(super) fn lower_write_command(
                     if let Some(reference) = symbolic_target_reference {
                         created_entities.insert(reference.symbol().to_string(), created_entity_ref);
                     }
-                    let expected_patch_count = intents.len();
                     Ok(LoweredWriteCommand {
                         batch_label: "worth-query-runtime-batch-insert-entity".to_string(),
                         intents,
                         declared_aspect_paths,
-                        expected_patch_count,
+                        expected_observable_patch_count: 2,
+                        patch_match: LoweredPatchMatch::TopologyEntityInsert {
+                            structure_label: required_text(&aspect_map, "topology.structure")?,
+                            persistent_name: optional_text(&aspect_map, "naming.persistent_name")
+                                .unwrap_or_else(|| {
+                                    required_text(&aspect_map, "topology.structure")
+                                        .expect("topology.structure should exist for insert")
+                                }),
+                        },
+                        fallback_collection: None,
                     })
                 }
-                "WorthTopologyRelation" => Ok(LoweredWriteCommand {
-                    batch_label: "worth-query-runtime-batch-insert-relation".to_string(),
-                    intents: vec![MutationIntent::Create(CreateIntent::Relation(
-                        lower_topology_relation_insert(
-                            runtime,
-                            &aspect_map,
-                            &symbolic_aspect_references,
-                            created_entities,
-                        )?,
-                    ))],
-                    declared_aspect_paths,
-                    expected_patch_count: 1,
-                }),
+                "WorthTopologyRelation" => {
+                    let relation = lower_topology_relation_insert(
+                        runtime,
+                        &aspect_map,
+                        &symbolic_aspect_references,
+                        created_entities,
+                    )?;
+                    Ok(LoweredWriteCommand {
+                        batch_label: "worth-query-runtime-batch-insert-relation".to_string(),
+                        intents: vec![MutationIntent::Create(CreateIntent::Relation(
+                            relation.clone(),
+                        ))],
+                        declared_aspect_paths,
+                        expected_observable_patch_count: 1,
+                        patch_match: LoweredPatchMatch::TopologyRelationInsert {
+                            kind_name: kind_name_for_relation_kind_id(relation.kind_id)
+                                .to_string(),
+                            source_identity: relation_endpoint_identity(&relation.source)?,
+                            target_identity: relation_endpoint_identity(&relation.target)?,
+                        },
+                        fallback_collection: None,
+                    })
+                }
                 other => Err(ForgeQueryWorkspaceError::new(format!(
                     "worth topology production runtime does not admit insert collection `{other}`"
                 ))),
@@ -119,7 +141,148 @@ pub(super) fn lower_write_command(
                 batch_label: "worth-query-runtime-batch-delete".to_string(),
                 intents: vec![intent],
                 declared_aspect_paths: touched_aspect_paths,
-                expected_patch_count: 1,
+                expected_observable_patch_count: 1,
+                patch_match: LoweredPatchMatch::ExistingTargetIdentity {
+                    resolved_target_identity: binding.resolved_target_identity().to_string(),
+                },
+                fallback_collection: Some(collection),
+            })
+        }
+        ForgeQueryWriteCommand::UpdateExistingAspects {
+            binding,
+            aspects,
+            ..
+        } => {
+            let collection = binding
+                .target_collection()
+                .ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "worth topology production runtime update requires a declared target collection",
+                    )
+                })?
+                .to_string();
+            let aspect_map = aspect_map(&aspects);
+            let declared_aspect_paths = aspects
+                .iter()
+                .map(|aspect| aspect.aspect_path().to_string())
+                .collect::<Vec<_>>();
+            let intent = match collection.as_str() {
+                "WorthTopologyRelation" => MutationIntent::Relation(
+                    RelationMutationIntent::UpdateEndpoints(lower_topology_relation_update(
+                        runtime,
+                        &aspect_map,
+                        &[],
+                        created_entities,
+                        binding.resolved_target_identity(),
+                    )?),
+                ),
+                other => {
+                    return Err(ForgeQueryWorkspaceError::new(format!(
+                        "worth topology production runtime does not admit update collection `{other}`"
+                    )))
+                }
+            };
+            Ok(LoweredWriteCommand {
+                batch_label: "worth-query-runtime-batch-update".to_string(),
+                intents: vec![intent],
+                declared_aspect_paths,
+                expected_observable_patch_count: 1,
+                patch_match: LoweredPatchMatch::ExistingTargetIdentity {
+                    resolved_target_identity: binding.resolved_target_identity().to_string(),
+                },
+                fallback_collection: Some(collection),
+            })
+        }
+        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+            binding,
+            aspects,
+            symbolic_aspect_references,
+            ..
+        } => {
+            let collection = binding
+                .target_collection()
+                .ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "worth topology production runtime update requires a declared target collection",
+                    )
+                })?
+                .to_string();
+            let aspect_map = aspect_map(&aspects);
+            let declared_aspect_paths = aspects
+                .iter()
+                .map(|aspect| aspect.aspect_path().to_string())
+                .chain(
+                    symbolic_aspect_references
+                        .iter()
+                        .map(|reference| reference.aspect_path().to_string()),
+                )
+                .collect::<Vec<_>>();
+            let intent = match collection.as_str() {
+                "WorthTopologyRelation" => MutationIntent::Relation(
+                    RelationMutationIntent::UpdateEndpoints(lower_topology_relation_update(
+                        runtime,
+                        &aspect_map,
+                        &symbolic_aspect_references,
+                        created_entities,
+                        binding.resolved_target_identity(),
+                    )?),
+                ),
+                other => {
+                    return Err(ForgeQueryWorkspaceError::new(format!(
+                        "worth topology production runtime does not admit update collection `{other}`"
+                    )))
+                }
+            };
+            Ok(LoweredWriteCommand {
+                batch_label: "worth-query-runtime-batch-update".to_string(),
+                intents: vec![intent],
+                declared_aspect_paths,
+                expected_observable_patch_count: 1,
+                patch_match: LoweredPatchMatch::ExistingTargetIdentity {
+                    resolved_target_identity: binding.resolved_target_identity().to_string(),
+                },
+                fallback_collection: Some(collection),
+            })
+        }
+        ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects {
+            binding,
+            touched_aspect_paths,
+            ..
+        } => {
+            let collection = binding
+                .target_collection()
+                .ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(
+                        "worth topology production runtime delete requires a declared target collection",
+                    )
+                })?
+                .to_string();
+            let intent = match collection.as_str() {
+                "WorthTopologyEntity" => MutationIntent::Entity(EntityMutationIntent::Delete(
+                    DeleteEntityIntent {
+                        entity_id: parse_entity_identity(binding.resolved_target_identity())?,
+                    },
+                )),
+                "WorthTopologyRelation" => MutationIntent::Relation(RelationMutationIntent::Delete(
+                    DeleteRelationIntent {
+                        relation_id: parse_relation_identity(binding.resolved_target_identity())?,
+                    },
+                )),
+                other => {
+                    return Err(ForgeQueryWorkspaceError::new(format!(
+                        "worth topology production runtime does not admit delete collection `{other}`"
+                    )))
+                }
+            };
+            Ok(LoweredWriteCommand {
+                batch_label: "worth-query-runtime-batch-delete".to_string(),
+                intents: vec![intent],
+                declared_aspect_paths: touched_aspect_paths,
+                expected_observable_patch_count: 1,
+                patch_match: LoweredPatchMatch::ExistingTargetIdentity {
+                    resolved_target_identity: binding.resolved_target_identity().to_string(),
+                },
+                fallback_collection: Some(collection),
             })
         }
         other => Err(ForgeQueryWorkspaceError::new(format!(
@@ -248,6 +411,46 @@ pub(super) fn lower_topology_relation_insert(
     })
 }
 
+fn lower_topology_relation_update(
+    runtime: &Arc<RwLock<RelationalRuntime>>,
+    aspects: &BTreeMap<String, Value>,
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+    created_entities: &BTreeMap<String, EntityReference>,
+    resolved_target_identity: &str,
+) -> Result<UpdateRelationEndpointsIntent, ForgeQueryWorkspaceError> {
+    let kind_name = required_text(aspects, "topology.kind")?;
+    let kind = WorthRelationKind::ALL
+        .into_iter()
+        .find(|kind| matches!(kind, WorthRelationKind::Topology(_)) && kind.kind_name() == kind_name)
+        .ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "worth topology production runtime does not admit non-topology relation kind `{kind_name}`"
+            ))
+        })?;
+    let source = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.source_identity",
+        "source",
+    )?;
+    let target = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.target_identity",
+        "target",
+    )?;
+    Ok(UpdateRelationEndpointsIntent {
+        relation_id: parse_relation_identity(resolved_target_identity)?,
+        kind_id: kind.kind_id(),
+        source,
+        target,
+    })
+}
+
 fn lower_relation_endpoint(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     aspects: &BTreeMap<String, Value>,
@@ -292,4 +495,12 @@ fn relation_endpoint_identity(
             ))),
         },
     }
+}
+
+fn kind_name_for_relation_kind_id(
+    kind_id: forge_relational::facade::identity::KindId,
+) -> &'static str {
+    WorthRelationKind::from_kind_id(kind_id)
+        .expect("worth topology runtime only lowers admitted relation kinds")
+        .kind_name()
 }

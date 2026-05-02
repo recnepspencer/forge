@@ -101,7 +101,8 @@ pub use crate::query::{
     worth_topology_validation_computed_declaration, WorthTopologyDiagnosticsMaintainer,
     WorthTopologyEquivalenceContractMaintainer, WorthTopologyInterpretedMaintainer,
     WorthTopologyMaterializedMaintainer, WorthTopologyQueryAppliedIntent,
-    WorthTopologyQueryApplyError, WorthTopologyQueryAssembly, WorthTopologyQueryMutationEvidence,
+    WorthTopologyQueryApplyError, WorthTopologyQueryAssembly,
+    WorthTopologyQueryEditFamilySupportStatus, WorthTopologyQueryMutationEvidence,
     WorthTopologyQuerySnapshot, WorthTopologyQuerySurfaceError, WorthTopologyRuntimeAdapters,
     WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport, WorthTopologyValidationMaintainer,
 };

@@ -28,6 +28,34 @@ The result preserves:
 - one typed field entry per requested aspect path
 - a probe digest that changes when the returned authoritative values change
 
+Before teaching this as an ordinary production flow on a bridge-backed runtime,
+read the support rows:
+
+```rust
+let support = workspace.public_authoritative_mutation_evidence_support();
+let probe_row = support
+    .bridge_backed_verification_support_rows()
+    .iter()
+    .find(|row| {
+        row.operation_family() == "probe_existing"
+            && row.target_binding_family() == "direct_entity_identity"
+    })
+    .unwrap();
+
+assert!(probe_row.compatibility_runtime_supported());
+if probe_row.primary_bridge_backed_runtime_supported() {
+    assert_eq!(
+        probe_row.current_posture_status(),
+        ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
+    );
+} else {
+    assert_eq!(
+        probe_row.denial_class_when_unsupported(),
+        Some("backend_probe_unsupported")
+    );
+}
+```
+
 Typed access stays straightforward:
 
 ```rust

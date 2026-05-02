@@ -290,9 +290,7 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
         &support_matrix,
         &naming_contract,
     );
-    let query_support = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(
-        public_api_contract.backend_posture(),
-    );
+    let query_support = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(&support_profile);
     let bridge_support = RuntimeBridge::public_authoritative_mutation_evidence_support();
     let bridge_closeout = RuntimeBridge::public_authoritative_mutation_evidence_closeout();
     let closeout = ForgeQueryAuthoritativeMutationEvidenceCloseout::derive(
@@ -315,7 +313,15 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
         .blocked_until_invariant_complete_workflow
         .iter()
         .any(|family| {
-            family == "topology_relation_create_workflows_require_invariant_complete_subgraphs"
+            family
+                == "topology_relation_create_workflows_beyond_face_inner_loop_require_invariant_complete_subgraphs"
+        }));
+    assert!(contract
+        .blocked_until_invariant_complete_workflow
+        .iter()
+        .any(|family| {
+            family
+                == "topology_shell_or_wire_membership_workflows_beyond_admitted_full_wire_rehome_connected_wire_split_single_face_two_face_shell_split_and_full_shell_face_set_rehome_require_invariant_complete_owner_rehome_or_shell_subgraphs"
         }));
     assert!(contract
         .blocked_until_explicit_lowering
@@ -329,6 +335,10 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
         .admitted_query_substrate_families
         .iter()
         .any(|family| family == "verify_existing_topology_relation_shape"));
+    assert!(contract
+        .admitted_query_substrate_families
+        .iter()
+        .any(|family| family == "update_existing_topology_relation_shape_identity_preserving"));
     assert_eq!(
         contract.query_support_digest,
         query_support.support_digest()

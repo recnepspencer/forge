@@ -135,6 +135,50 @@ pub(crate) fn assemble_effect(
                     ),
                 });
             }
+            RecordMutation::RelationUpdated {
+                relation_id,
+                old_source,
+                old_target,
+                new_source,
+                new_target,
+                payload,
+                ..
+            } => {
+                effect
+                    .publication
+                    .changed_records
+                    .push(RecordRef::Relation(relation_id));
+                effect.publication.canonical_deltas.push(canonical_delta);
+                effect.adjacency.deltas.push(AdjacencyDelta {
+                    relation_id,
+                    kind: AdjacencyDeltaKind::Deleted {
+                        source: old_source,
+                        target: old_target,
+                    },
+                });
+                effect.adjacency.deltas.push(AdjacencyDelta {
+                    relation_id,
+                    kind: AdjacencyDeltaKind::Created {
+                        source: new_source,
+                        target: new_target,
+                    },
+                });
+                effect.publication.patch_records.push(PatchRecord {
+                    kind: PatchRecordKind::Updated,
+                    target: RecordRef::Relation(relation_id),
+                    structural_change: RecordStructuralChange::Updated,
+                    aspects: patch_aspects,
+                    contains_degraded_precision,
+                    detail: patch_detail_for_relation(
+                        patch_surface_policy,
+                        RelationPatchDetailKind::Updated,
+                        relation_id,
+                        new_source,
+                        new_target,
+                        payload.as_ref(),
+                    ),
+                });
+            }
             RecordMutation::RelationDeleted {
                 relation_id,
                 source,
@@ -275,6 +319,14 @@ fn event_diagnostic(event: MutationEvent) -> RelationalDiagnosticsEntry {
                 "target_partition": target.partition_id.0,
                 "target_slot": target.local_slot.0,
                 "kind_id": kind_id.0,
+            }),
+        },
+        MutationEvent::RelationUpdated { relation_id } => RelationalDiagnosticsEntry {
+            code: DiagnosticCode::RelationUpdated,
+            message: "relation updated".to_string(),
+            fields: json!({
+                "partition_id": relation_id.partition_id.0,
+                "relation_slot": relation_id.local_slot.0,
             }),
         },
         MutationEvent::BulkRelationsCreated {

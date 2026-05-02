@@ -8,5 +8,6 @@ mod dispatch;
 mod replace_entity;
 mod update_entity;
 mod update_entity_fields;
+mod update_relation_endpoints;
 
 pub(crate) use dispatch::dispatch_intent;

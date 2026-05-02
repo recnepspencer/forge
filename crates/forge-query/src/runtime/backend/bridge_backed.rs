@@ -11,12 +11,14 @@ use crate::subscription::SubscriptionActivationInput;
 
 use super::ForgeQueryRuntimeBackendParts;
 use crate::runtime::{
-    ForgeQueryEffectPolicy, ForgeQueryExistingTruthBindingDenial,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentAuthorityAdapter,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeSupportProfile, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
+    ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
+    ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence,
+    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend,
+    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub struct ForgeQueryBridgeBackedRuntimeBackend {
@@ -24,6 +26,8 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
     runtime_bridge: RuntimeBridge,
     schema_adapter: Box<dyn super::ForgeQueryRuntimeSchemaAdapter>,
     source_adapter: Box<dyn super::ForgeQueryRuntimeSourceAdapter>,
+    existing_truth_verification:
+        Option<Box<dyn super::ForgeQueryRuntimeExistingTruthVerificationAdapter>>,
     write_authority: Box<dyn super::ForgeQueryRuntimeWriteAuthorityAdapter>,
     signal_sink: Box<dyn super::ForgeQueryRuntimeSignalSinkAdapter>,
     subscription_activation: Box<dyn super::ForgeQueryRuntimeSubscriptionActivationAdapter>,
@@ -47,6 +51,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
         let source_adapter = parts
             .source_adapter
             .ok_or(ForgeQueryRuntimeError::MissingSourceAdapter)?;
+        let existing_truth_verification = parts.existing_truth_verification;
         let write_authority = parts
             .write_authority
             .ok_or(ForgeQueryRuntimeError::MissingWriteAuthority)?;
@@ -80,6 +85,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
             runtime_bridge,
             schema_adapter,
             source_adapter,
+            existing_truth_verification,
             write_authority,
             signal_sink,
             subscription_activation,
@@ -147,6 +153,54 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         _binding: &ForgeQueryExistingTruthTargetBinding,
     ) -> Result<(), ForgeQueryExistingTruthBindingDenial> {
         Ok(())
+    }
+
+    fn verify_existing_truth_assertion(
+        &self,
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        aspects: &[crate::runtime::ForgeQueryAspectValue],
+    ) -> Result<ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryExistingTruthAssertionDenial>
+    {
+        let Some(adapter) = self.existing_truth_verification.as_ref() else {
+            return Err(ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                crate::runtime::ForgeQueryExistingTruthAssertionDenialKind::BackendVerificationUnsupported,
+                None,
+                None,
+                None,
+                "this runtime backend does not admit backend-verified existing-truth assertions yet",
+            ));
+        };
+        adapter.verify_existing_truth_assertion(binding, aspects)?;
+        ForgeQueryVerifiedExistingTruthAssertion::new(binding, aspects, &self.snapshot_token())
+            .map_err(|error| {
+                ForgeQueryExistingTruthAssertionDenial::new(
+                binding,
+                crate::runtime::ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
+                None,
+                None,
+                None,
+                error.to_string(),
+            )
+            })
+    }
+
+    fn probe_existing_truth(
+        &self,
+        request: &crate::runtime::ForgeQueryExistingTruthProbeRequest,
+    ) -> Result<ForgeQueryExistingTruthProbe, ForgeQueryExistingTruthProbeDenial> {
+        let Some(adapter) = self.existing_truth_verification.as_ref() else {
+            return Err(ForgeQueryExistingTruthProbeDenial::new(
+                request.binding(),
+                crate::runtime::ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported,
+                None,
+                "this runtime backend does not admit backend-verified existing-truth probes yet",
+            ));
+        };
+        Ok(ForgeQueryExistingTruthProbe::backend_verified(
+            request,
+            adapter.probe_existing_truth(request)?,
+        ))
     }
 
     fn execute_intent(

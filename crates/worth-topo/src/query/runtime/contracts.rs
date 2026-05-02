@@ -10,6 +10,19 @@ use crate::edit::WorthTopologyEditFamily;
 
 use super::adapters::WorthTopologyRuntimeBinding;
 
+/// Public support status for a Worth topology edit family on the bridge-backed
+/// Query runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorthTopologyQueryEditFamilySupportStatus {
+    /// No admitted lane exists for this family on the current runtime posture.
+    Denied,
+    /// One or more named lanes are admitted, but the family is not generally
+    /// open beyond those lanes.
+    PartiallyAdmittedByLane,
+    /// The family is admitted without lane-specific narrowing.
+    Admitted,
+}
+
 #[derive(Debug)]
 pub struct WorthTopologyRuntimeAdapters {
     pub(super) binding: WorthTopologyRuntimeBinding,
@@ -44,6 +57,7 @@ pub struct WorthTopologyRuntimeSupport {
     historical_basis_supported: bool,
     authoritative_writes_supported: bool,
     admitted_query_edit_families: Vec<WorthTopologyEditFamily>,
+    partially_admitted_query_edit_families: Vec<WorthTopologyEditFamily>,
     admitted_query_edit_lanes: Vec<&'static str>,
 }
 
@@ -60,14 +74,30 @@ impl WorthTopologyRuntimeSupport {
                 WorthTopologyEditFamily::DetachBoundaryMembership,
                 WorthTopologyEditFamily::DetachRadialAdjacency,
                 WorthTopologyEditFamily::DetachShellOrWireMembership,
+                WorthTopologyEditFamily::RewireLoopEndpoint,
+                WorthTopologyEditFamily::SpliceRadialAdjacency,
                 WorthTopologyEditFamily::RetireTopologyEntity,
+            ],
+            partially_admitted_query_edit_families: vec![
+                WorthTopologyEditFamily::AttachBoundaryMembership,
+                WorthTopologyEditFamily::AttachShellOrWireMembership,
+                WorthTopologyEditFamily::RewireLoopSuccessor,
             ],
             admitted_query_edit_lanes: vec![
                 "CreateTopologyEntity",
+                "CreateInnerLoopOnExistingFace",
+                "RehomeAllOwnedHalfEdgesToNewWire",
+                "SplitConnectedHalfEdgeSetIntoNewWire",
+                "SplitSingleFaceFromTwoFaceShellToNewShell",
+                "RehomeAllOwnedFacesToNewShell",
                 "RetireTopologyEntity",
                 "DetachBoundaryMembership",
                 "DetachRadialAdjacency",
                 "DetachShellOrWireMembership",
+                "RelocateHalfEdgeBeforeSuccessor",
+                "RelocateHalfEdgeSpanBeforeSuccessor",
+                "RewireLoopEndpoint",
+                "SpliceRadialAdjacency",
             ],
         }
     }
@@ -80,6 +110,7 @@ impl WorthTopologyRuntimeSupport {
             historical_basis_supported: true,
             authoritative_writes_supported: false,
             admitted_query_edit_families: Vec::new(),
+            partially_admitted_query_edit_families: Vec::new(),
             admitted_query_edit_lanes: Vec::new(),
         }
     }
@@ -108,16 +139,48 @@ impl WorthTopologyRuntimeSupport {
         !self.admitted_query_edit_lanes.is_empty()
     }
 
+    /// Families admitted without lane-specific narrowing.
     pub fn admitted_query_edit_families(&self) -> &[WorthTopologyEditFamily] {
         &self.admitted_query_edit_families
     }
 
+    /// Families that are supported only through specific admitted lanes.
+    pub fn partially_admitted_query_edit_families(&self) -> &[WorthTopologyEditFamily] {
+        &self.partially_admitted_query_edit_families
+    }
+
+    /// Named admitted edit lanes on the current runtime posture.
     pub fn admitted_query_edit_lanes(&self) -> &[&'static str] {
         &self.admitted_query_edit_lanes
     }
 
+    pub fn query_edit_lane_supported(&self, lane: &str) -> bool {
+        self.admitted_query_edit_lanes.contains(&lane)
+    }
+
+    /// Returns `true` when at least one admitted lane exists for the family.
+    ///
+    /// Callers that need to distinguish fully admitted families from
+    /// lane-specific support must inspect `query_edit_family_support_status`.
     pub fn query_edit_family_supported(&self, family: WorthTopologyEditFamily) -> bool {
-        self.admitted_query_edit_families.contains(&family)
+        self.query_edit_family_support_status(family)
+            != WorthTopologyQueryEditFamilySupportStatus::Denied
+    }
+
+    pub fn query_edit_family_support_status(
+        &self,
+        family: WorthTopologyEditFamily,
+    ) -> WorthTopologyQueryEditFamilySupportStatus {
+        if self.admitted_query_edit_families.contains(&family) {
+            WorthTopologyQueryEditFamilySupportStatus::Admitted
+        } else if self
+            .partially_admitted_query_edit_families
+            .contains(&family)
+        {
+            WorthTopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        } else {
+            WorthTopologyQueryEditFamilySupportStatus::Denied
+        }
     }
 
     pub(super) fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
@@ -126,6 +189,31 @@ impl WorthTopologyRuntimeSupport {
             "worth-topology-current-head-preview-denial",
             "worth-topology-current-head-inspector-evidence",
         );
+        if self.authoritative_writes_supported {
+            for operation_family in [
+                "verify_existing",
+                "probe_existing",
+                "delete_existing_verified",
+            ] {
+                for target_binding_family in ["direct_entity_identity", "direct_relation_identity"]
+                {
+                    profile = profile.with_bridge_backed_verification_support(
+                        operation_family,
+                        target_binding_family,
+                        true,
+                        true,
+                        None,
+                    );
+                }
+            }
+            profile = profile.with_bridge_backed_verification_support(
+                "update_existing_verified",
+                "direct_relation_identity",
+                true,
+                true,
+                None,
+            );
+        }
         if !self.historical_basis_supported {
             profile = profile.with_family_support(ForgeQueryRuntimeFamilySupport::unsupported(
                 ForgeQueryRuntimeFacadeFamily::BranchPreview,

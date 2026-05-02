@@ -9,6 +9,10 @@
 >
 > **Detailed hard-break spec:** [forge-query-runtime-kernel-hard-break.md](./forge-query-runtime-kernel-hard-break.md)
 >
+> **Shipped upstream Query closeouts this gate now depends on:**
+> - [../forge-query/runtime-authoritative-mutation-evidence-closeout.md](../forge-query/runtime-authoritative-mutation-evidence-closeout.md)
+> - [../forge-query/runtime-generic-graph-authoring-closeout.md](../forge-query/runtime-generic-graph-authoring-closeout.md)
+>
 > **Core rule:** Worth does not work around Forge Query gaps. Worth exposes
 > them, hardens Forge Query, and then builds on the hardened query surface.
 
@@ -101,7 +105,10 @@ must not create generic adapter bags.
 
 Worth keeps truth canonical and derived projections rebuildable. Forge Query is
 the typed, composable, aspect-aware runtime/query layer. Any generic capability
-Worth exposes as missing must be hardened in `forge-query`, not patched locally.
+Worth exposes as missing must be hardened in `forge-query`, not patched
+locally. That now includes consuming the shipped graph-composition and
+verified existing-target runtime contract rather than recreating it inside
+Worth.
 
 ## Adversarial Constraint
 

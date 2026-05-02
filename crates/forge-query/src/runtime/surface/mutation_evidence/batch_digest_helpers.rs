@@ -1,7 +1,8 @@
 use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryExistingTruthAssertionEvidence,
     ForgeQueryExistingTruthBindingEvidence, ForgeQueryMutationTargetEvidence,
-    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReferenceEvidence,
 };
 
 pub(super) fn batch_target_digest(components: &[ForgeQueryMutationTargetEvidence]) -> String {
@@ -87,6 +88,43 @@ pub(super) fn batch_symbolic_target_reference_digest(
     Some(crate::identity::hash_parts(
         &std::iter::once("forge-query-batch-symbolic-target-reference-v1".to_string())
             .chain(references)
+            .collect::<Vec<_>>(),
+    ))
+}
+
+pub(super) fn batch_symbolic_resolution_digest(
+    target_references: &[Option<ForgeQuerySymbolicTargetReferenceEvidence>],
+    aspect_resolutions: &[Vec<ForgeQuerySymbolicAspectResolutionEvidence>],
+) -> Option<String> {
+    let rows = target_references
+        .iter()
+        .flatten()
+        .map(|reference| {
+            format!(
+                "target:{}:{}:{}:{}",
+                reference.family(),
+                reference.symbol(),
+                reference.resolved_entity_identity(),
+                reference.target_collection().unwrap_or("none")
+            )
+        })
+        .chain(aspect_resolutions.iter().flatten().map(|resolution| {
+            format!(
+                "aspect:{}:{}:{}:{}:{}",
+                resolution.family(),
+                resolution.aspect_path(),
+                resolution.symbol(),
+                resolution.resolved_entity_identity(),
+                resolution.target_collection().unwrap_or("none")
+            )
+        }))
+        .collect::<Vec<_>>();
+    if rows.is_empty() {
+        return None;
+    }
+    Some(crate::identity::hash_parts(
+        &std::iter::once("forge-query-batch-symbolic-resolution-v1".to_string())
+            .chain(rows)
             .collect::<Vec<_>>(),
     ))
 }

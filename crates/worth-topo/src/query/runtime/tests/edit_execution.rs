@@ -1,18 +1,19 @@
 use forge_relational::facade::identity::RelationId;
 use worth_schema::facade::{
-    created_ref, seed_minimal_topology, WorthCreateKey, WorthRelationKind, WorthTopologyEntityKind,
+    created_ref, seed_milestone_one_primitive, seed_minimal_topology, WorthCreateKey,
+    WorthEntityKind, WorthMilestoneOnePrimitiveCase, WorthRelationKind, WorthTopologyEntityKind,
     WorthTopologyRelationKind,
 };
 
 use crate::edit::{
-    WorthBoundaryMembershipKind, WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode,
-    WorthTopologyEditBatch, WorthTopologyEditContract, WorthTopologyEditFamily,
-    WorthTopologyQueryEditRunner,
+    WorthBoundaryMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
+    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
 };
 use crate::runtime_invariants::build_worth_milestone_one_runtime;
+use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 
 #[test]
 fn current_head_runtime_executes_create_topology_entity_through_query_native_edit_runner() {
@@ -85,6 +86,20 @@ fn current_head_runtime_executes_retire_topology_entity_through_query_native_edi
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
     );
+    assert_eq!(
+        execution.inspection.component_operations()[0]
+            .existing_truth_assertion_evidence()
+            .expect("retire receipt should retain backend verification evidence")
+            .mode(),
+        ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .batch_mutation_evidence()
+            .backend_verified_delete_count(),
+        1
+    );
     assert!(!execution
         .materialized
         .topology()
@@ -130,6 +145,20 @@ fn current_head_runtime_executes_detach_boundary_membership_through_query_native
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
     );
+    assert_eq!(
+        execution.inspection.component_operations()[0]
+            .existing_truth_assertion_evidence()
+            .expect("detach receipt should retain backend verification evidence")
+            .mode(),
+        ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .batch_mutation_evidence()
+            .backend_verified_delete_count(),
+        1
+    );
     let loop_record = execution
         .materialized
         .topology()
@@ -141,11 +170,26 @@ fn current_head_runtime_executes_detach_boundary_membership_through_query_native
 }
 
 #[test]
-fn current_head_runtime_denies_create_inner_loop_on_existing_face_workflow_until_invariant_complete_subgraphs_are_admitted(
-) {
+fn current_head_runtime_executes_create_inner_loop_on_existing_face_workflow() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "worth-query-edit-runtime-attach-boundary")
-        .expect("seed topology");
+    let verified = seed_milestone_one_primitive(
+        &mut runtime,
+        "worth-query-edit-runtime-attach-boundary",
+        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("seed topology");
+    let face_id = runtime
+        .read_truth()
+        .read_snapshot(verified.read_basis.snapshot())
+        .expect("seeded snapshot should remain readable")
+        .entities()
+        .iter()
+        .find(|record| {
+            record.kind.kind_id
+                == WorthEntityKind::Topology(WorthTopologyEntityKind::Face).kind_id()
+        })
+        .map(|record| record.entity_id)
+        .expect("seeded primitive should contain a face");
     let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         worth_topology_runtime(adapters, "worth.current-head.query-edit-attach-boundary")
@@ -160,21 +204,38 @@ fn current_head_runtime_denies_create_inner_loop_on_existing_face_workflow_until
         WorthTopologyEditContract::attach_boundary_membership(
             "worth-query-edit-runtime-attach-boundary.face-inner-loop",
             WorthBoundaryMembershipKind::FaceInnerLoop,
-            seeded.face,
+            face_id,
             created_ref(loop_key.as_str()),
         ),
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
+    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
         .apply(batch, WorthTopologyEditApplicationMode::Mainline)
-        .expect_err("create-inner-loop workflow must fail closed until the production runtime admits an invariant-complete subgraph");
+        .expect("create-inner-loop workflow should execute through the admitted invariant-complete runtime lane");
 
-    assert!(matches!(
-        error,
-        crate::edit::WorthTopologyQueryEditExecutionError::UnsupportedFamilies(families)
-            if families == vec![WorthTopologyEditFamily::AttachBoundaryMembership]
-    ));
+    assert_eq!(
+        execution.families,
+        vec![
+            WorthTopologyEditFamily::CreateTopologyEntity,
+            WorthTopologyEditFamily::AttachBoundaryMembership,
+        ]
+    );
+    assert!(execution
+        .receipt
+        .affected_derived_view_ids()
+        .contains(&assembly.materialized().name().to_string()));
+    let face = execution
+        .materialized
+        .topology()
+        .faces
+        .iter()
+        .find(|face| face.entity_id == face_id)
+        .expect("seeded face should remain present");
+    assert!(
+        !face.inner_loop_ids.is_empty(),
+        "face should gain an inner loop after admitted workflow"
+    );
 }
 
 #[test]
@@ -214,6 +275,20 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_query_native_ed
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
     );
+    assert_eq!(
+        execution.inspection.component_operations()[0]
+            .existing_truth_assertion_evidence()
+            .expect("detach receipt should retain backend verification evidence")
+            .mode(),
+        ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .batch_mutation_evidence()
+            .backend_verified_delete_count(),
+        1
+    );
     let half_edge = execution
         .materialized
         .topology()
@@ -222,93 +297,6 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_query_native_ed
         .find(|half_edge| half_edge.entity_id == seeded.half_edge)
         .expect("seeded half-edge should remain present");
     assert_eq!(half_edge.radial_next_half_edge_id, None);
-}
-
-#[test]
-fn current_head_runtime_executes_detach_shell_or_wire_membership_through_query_native_edit_runner()
-{
-    let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "worth-query-edit-runtime-detach-wire")
-        .expect("seed topology");
-    let wire_owns_half_edge_relation = seeded_relation_id(
-        &runtime,
-        &seeded.snapshot,
-        WorthTopologyRelationKind::WireOwnsHalfEdge,
-    );
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        worth_topology_runtime(adapters, "worth.current-head.query-edit-detach-wire")
-            .expect("workspace");
-    let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch = WorthTopologyEditBatch::new(vec![
-        WorthTopologyEditContract::detach_shell_or_wire_membership(
-            wire_owns_half_edge_relation,
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge,
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
-        .expect("detach shell-or-wire membership should execute through query runtime");
-
-    assert_eq!(
-        execution.families,
-        vec![WorthTopologyEditFamily::DetachShellOrWireMembership]
-    );
-    assert!(execution
-        .receipt
-        .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
-    assert_eq!(
-        execution.inspection.affected_derived_view_ids(),
-        execution.receipt.affected_derived_view_ids()
-    );
-    let wire = execution
-        .materialized
-        .topology()
-        .wires
-        .iter()
-        .find(|wire| wire.entity_id == seeded.wire)
-        .expect("seeded wire should remain present");
-    assert!(wire.half_edge_ids.is_empty());
-}
-
-#[test]
-fn current_head_runtime_denies_attach_shell_or_wire_membership_until_invariant_complete_subgraphs_are_admitted(
-) {
-    let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "worth-query-edit-runtime-attach-wire")
-        .expect("seed topology");
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        worth_topology_runtime(adapters, "worth.current-head.query-edit-attach-wire")
-            .expect("workspace");
-    let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let shell_key = WorthCreateKey::new("worth-query-edit-runtime-attach-wire.inner_shell");
-    let batch = WorthTopologyEditBatch::new(vec![
-        WorthTopologyEditContract::create_topology_entity(
-            shell_key.as_str(),
-            WorthTopologyEntityKind::Shell,
-        ),
-        WorthTopologyEditContract::attach_shell_or_wire_membership(
-            "worth-query-edit-runtime-attach-wire.region-owns-shell",
-            WorthShellOrWireMembershipKind::RegionOwnsShell,
-            seeded.region,
-            created_ref(shell_key.as_str()),
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
-        .expect_err("attach shell-or-wire membership must fail closed until invariant-complete topology subgraphs are admitted");
-
-    assert!(matches!(
-        error,
-        crate::edit::WorthTopologyQueryEditExecutionError::UnsupportedFamilies(families)
-            if families == vec![WorthTopologyEditFamily::AttachShellOrWireMembership]
-    ));
 }
 
 fn seeded_relation_id(

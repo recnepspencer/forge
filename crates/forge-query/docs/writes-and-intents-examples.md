@@ -79,6 +79,34 @@ That target-first shape is the supported DX surface for admitted existing-truth
 binding families. The runtime owns the canonical binding digest, declared
 target, resolved target, causality, and provenance after that point.
 
+Admitted relation rewrites stay in that same surface and preserve the
+authoritative relation target instead of treating an update as replacement:
+
+```rust
+let existing_relation = workspace
+    .bind_existing_relation(
+        ForgeQueryExistingRelationTarget::new("authority:rel-7", "relation-row-7")?
+            .in_target_collection("TaskRelation")?,
+    )?;
+
+let relation_receipt = workspace.update_existing(existing_relation, |relation| {
+    relation
+        .aspect("kind.value", "blocks")
+        .aspect("status.value", "closed")
+})?;
+
+assert_eq!(relation_receipt.mutation_family().as_str(), "update");
+assert_eq!(relation_receipt.target_collection(), Some("TaskRelation"));
+assert_eq!(
+    relation_receipt
+        .existing_truth_binding_evidence()
+        .unwrap()
+        .family()
+        .as_str(),
+    "direct-relation-identity"
+);
+```
+
 Existing-truth assertions come in two distinct lanes:
 
 ```rust
@@ -114,6 +142,35 @@ stored values. Use `verify_existing(...)` when the backend must check the
 asserted aspect values now and deny typed and early on mismatch or missing
 truth. Preview lanes deny both because they cannot mint authoritative
 verification.
+
+Before treating the backend-verified lanes below as ordinary bridge-backed
+production flow, read the support rows for the relevant operation family and
+binding family:
+
+```rust
+let support = workspace.public_authoritative_mutation_evidence_support();
+let verified_update_row = support
+    .bridge_backed_verification_support_rows()
+    .iter()
+    .find(|row| {
+        row.operation_family() == "update_existing_verified"
+            && row.target_binding_family() == "direct_entity_identity"
+    })
+    .unwrap();
+
+assert!(verified_update_row.compatibility_runtime_supported());
+if verified_update_row.primary_bridge_backed_runtime_supported() {
+    assert_eq!(
+        verified_update_row.current_posture_status(),
+        ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
+    );
+} else {
+    assert_eq!(
+        verified_update_row.denial_class_when_unsupported(),
+        Some("backend_verification_unsupported")
+    );
+}
+```
 
 Verified existing-target mutation keeps that same target-first shape while
 letting the backend prove current truth immediately before the mutation:

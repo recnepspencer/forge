@@ -16,12 +16,14 @@ use forge_runtime_bridge::facade::{
 mod binding;
 pub(super) mod bridge_source;
 mod bridge_source_support;
+mod existing_truth_verification;
 mod query_rows;
 pub(super) mod write_authority;
 pub(super) mod write_support;
 
 pub(crate) use self::binding::WorthTopologyRuntimeBinding;
 use self::bridge_source::WorthTopologyRuntimeBridgeSource;
+pub(crate) use self::existing_truth_verification::WorthTopologyExistingTruthVerificationAdapter;
 use self::query_rows::{persistent_name_rows, topology_entity_rows, topology_relation_rows};
 
 pub(super) fn build_runtime_bridge(

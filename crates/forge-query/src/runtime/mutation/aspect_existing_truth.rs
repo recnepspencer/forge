@@ -132,14 +132,11 @@ impl ForgeQueryAspectMutationBuilder {
             error,
             ..
         } = self;
-        reject_symbolic_aspect_references(
-            &symbolic_aspect_references,
-            "backend-verified existing-truth update",
-        )?;
         Ok(ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
             binding,
             asserted_aspects,
             aspects: finish_aspects(aspects, error)?,
+            symbolic_aspect_references,
             metadata,
             naming_intent,
             continuity_intent,

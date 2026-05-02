@@ -31,6 +31,7 @@ pub use diagnostics::{
     worth_topology_equivalence_contract_computed_declaration, WorthTopologyDiagnosticsMaintainer,
     WorthTopologyEquivalenceContractMaintainer, WorthTopologyQueryMutationEvidence,
 };
+pub(crate) use materialized::topology_relation_dependency_path;
 pub use materialized::{
     declare_worth_topology_entity_live_view, declare_worth_topology_materialized_surface,
     declare_worth_topology_relation_live_view, worth_topology_entity_live_view_declaration,
@@ -42,8 +43,8 @@ pub use naming::{
     worth_persistent_name_live_view_declaration,
 };
 pub use runtime::{
-    worth_topology_runtime, WorthTopologyRuntimeAdapters, WorthTopologyRuntimeFailure,
-    WorthTopologyRuntimeSupport,
+    worth_topology_runtime, WorthTopologyQueryEditFamilySupportStatus,
+    WorthTopologyRuntimeAdapters, WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
 };
 
 const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";

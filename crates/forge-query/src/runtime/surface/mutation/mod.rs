@@ -1,4 +1,5 @@
 mod batch_receipt;
+mod batch_receipt_aggregates;
 mod command;
 mod write_receipt;
 

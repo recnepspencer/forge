@@ -39,6 +39,8 @@ use crate::view_shape_live::LiveViewShapeFamily;
 mod aspect_api_closeout;
 mod authoritative_mutation_evidence_bridge_compat;
 mod authoritative_mutation_evidence_closeout;
+mod authoritative_mutation_evidence_support;
+mod authoritative_mutation_evidence_support_bridge;
 mod authority;
 mod backend;
 mod branch;
@@ -58,6 +60,7 @@ mod preview;
 mod public_api;
 mod runtime_api_contract;
 mod runtime_batch_writes;
+mod runtime_batching;
 mod runtime_declarations;
 mod runtime_helpers;
 mod runtime_inspection;
@@ -88,8 +91,11 @@ const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
     "runtime-live-consumer-attachment:fanout=1:pacing=1:allocation=1:retain_within_window";
 
 pub use aspect_api_closeout::ForgeQueryAspectApiFinalizationCloseout;
-pub use authoritative_mutation_evidence_closeout::{
-    ForgeQueryAuthoritativeMutationEvidenceCloseout, ForgeQueryAuthoritativeMutationEvidenceSupport,
+pub use authoritative_mutation_evidence_closeout::ForgeQueryAuthoritativeMutationEvidenceCloseout;
+#[allow(unused_imports)]
+pub use authoritative_mutation_evidence_support::{
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryBridgeBackedVerificationSupportRow,
+    ForgeQueryBridgeBackedVerificationSupportStatus,
 };
 pub use authority::{
     ForgeQueryAuthorityLane, ForgeQueryBranchOptions, ForgeQueryEffectAction,
@@ -98,10 +104,11 @@ pub use authority::{
 };
 pub use backend::{
     ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimeIntentAuthorityAdapter,
-    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimeIntentAuthorityAdapter, ForgeQueryRuntimePreviewBasisAdapter,
+    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 pub use branch::ForgeQueryBranchSession;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
@@ -174,13 +181,17 @@ pub use mutation::{
     ForgeQueryExistingTruthProbeDenialKind, ForgeQueryExistingTruthProbeField,
     ForgeQueryExistingTruthProbeMode, ForgeQueryExistingTruthProbeRequest,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
-    ForgeQueryGraphEntitySymbol, ForgeQueryGraphRelationMutationBuilder,
-    ForgeQueryGraphRelationSymbol, ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata,
-    ForgeQueryNamingMutationDenial, ForgeQueryNamingMutationDenialKind,
-    ForgeQueryNamingMutationFamily, ForgeQueryNamingMutationIntent,
-    ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicAspectReferenceFamily,
-    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceDenial,
-    ForgeQuerySymbolicTargetReferenceDenialKind, ForgeQuerySymbolicTargetReferenceFamily,
+    ForgeQueryGraphCompositionDenial, ForgeQueryGraphCompositionDenialKind,
+    ForgeQueryGraphCompositionDomainInvariantDenial,
+    ForgeQueryGraphCompositionInvariantPackContext,
+    ForgeQueryGraphCompositionInvariantPackViolation, ForgeQueryGraphEntitySymbol,
+    ForgeQueryGraphRelationMutationBuilder, ForgeQueryGraphRelationSymbol,
+    ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata, ForgeQueryNamingMutationDenial,
+    ForgeQueryNamingMutationDenialKind, ForgeQueryNamingMutationFamily,
+    ForgeQueryNamingMutationIntent, ForgeQuerySymbolicAspectReference,
+    ForgeQuerySymbolicAspectReferenceFamily, ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
+    ForgeQuerySymbolicTargetReferenceFamily,
 };
 pub use mutation_compatibility::{
     ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
@@ -215,7 +226,10 @@ use runtime_helpers::{
 };
 pub use state::ForgeQueryRuntimeStateTarget;
 pub use support::{
-    ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryBranchBasisAdmission, ForgeQueryGraphCompositionCapabilityClass,
+    ForgeQueryGraphCompositionCapabilitySupportRow,
+    ForgeQueryGraphCompositionExtensionHookBoundary,
+    ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
@@ -230,14 +244,24 @@ pub use surface::{
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryExistingTruthBindingOutcome, ForgeQueryInspectedArtifact,
+    ForgeQueryExistingTruthBindingOutcome, ForgeQueryGraphCompositionAdmissionTrace,
+    ForgeQueryGraphCompositionAdmissionTraceStage, ForgeQueryGraphCompositionAssumptionSummary,
+    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionDomainInvariantSummary,
+    ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomeEntry,
+    ForgeQueryGraphCompositionLifecycleOutcomeKind, ForgeQueryGraphCompositionLifecycleOutcomes,
+    ForgeQueryGraphCompositionLineageEntry, ForgeQueryGraphCompositionLineageSummary,
+    ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
+    ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphCompositionResolutionEntry,
+    ForgeQueryGraphCompositionResolutionMap, ForgeQueryInspectedArtifact,
     ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveView,
     ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,
-    ForgeQueryRunReceipt, ForgeQuerySymbolicTargetReferenceEvidence,
-    ForgeQuerySymbolicTargetReferenceOutcome, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryRunReceipt, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,
+    ForgeQueryVerificationReadSetBreadth, ForgeQueryVerifiedAssumptionSet, ForgeQueryWriteCommand,
+    ForgeQueryWriteReceipt,
 };
 pub use workspace::ForgeQueryWorkspace;
 pub use workspace_declaration::{

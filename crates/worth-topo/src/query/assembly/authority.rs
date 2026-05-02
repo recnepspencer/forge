@@ -103,6 +103,8 @@ pub(super) struct ImportedTopologyEntity {
 pub(super) struct ImportedTopologyRelation {
     pub(super) query_identity: String,
     pub(super) kind: WorthRelationKind,
+    pub(super) source_query_identity: String,
+    pub(super) target_query_identity: String,
 }
 
 impl WorthTopologyQueryAssembly {
@@ -268,21 +270,57 @@ impl WorthTopologyQueryAssembly {
                         )?
                         .in_target_collection("WorthTopologyRelation")?,
                     )?;
-                    receipts.push(workspace.verify_existing(binding, |assertion| {
-                        let assertion = assertion
-                            .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
-                                &mutation_evidence,
-                            )
-                            .aspect("topology.kind", kind.kind_name())
-                            .aspect("topology.source_identity", expected_source)
-                            .aspect("topology.target_identity", expected_target);
-                        if let Some(path) = topology_relation_dependency_path(kind) {
-                            assertion.aspect(path, kind.kind_name())
-                        } else {
-                            assertion
-                        }
-                    })?);
+                    if imported.kind != kind
+                        || imported.source_query_identity != expected_source
+                        || imported.target_query_identity != expected_target
+                    {
+                        receipts.push(workspace.update_existing_verified(
+                            binding,
+                            |assertion| {
+                                assertion
+                                    .aspect("topology.kind", imported.kind.kind_name())
+                                    .aspect(
+                                        "topology.source_identity",
+                                        imported.source_query_identity.clone(),
+                                    )
+                                    .aspect(
+                                        "topology.target_identity",
+                                        imported.target_query_identity.clone(),
+                                    )
+                            },
+                            |update| {
+                                let update = update
+                                    .metadata(
+                                        WorthTopologyQueryMutationEvidence::metadata_key(),
+                                        &mutation_evidence,
+                                    )
+                                    .aspect("topology.kind", kind.kind_name())
+                                    .aspect("topology.source_identity", expected_source)
+                                    .aspect("topology.target_identity", expected_target);
+                                if let Some(path) = topology_relation_dependency_path(kind) {
+                                    update.aspect(path, kind.kind_name())
+                                } else {
+                                    update
+                                }
+                            },
+                        )?);
+                    } else {
+                        receipts.push(workspace.verify_existing(binding, |assertion| {
+                            let assertion = assertion
+                                .metadata(
+                                    WorthTopologyQueryMutationEvidence::metadata_key(),
+                                    &mutation_evidence,
+                                )
+                                .aspect("topology.kind", kind.kind_name())
+                                .aspect("topology.source_identity", expected_source)
+                                .aspect("topology.target_identity", expected_target);
+                            if let Some(path) = topology_relation_dependency_path(kind) {
+                                assertion.aspect(path, kind.kind_name())
+                            } else {
+                                assertion
+                            }
+                        })?);
+                    }
                 }
             }
         }

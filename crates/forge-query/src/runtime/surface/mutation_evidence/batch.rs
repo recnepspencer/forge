@@ -3,7 +3,7 @@ use forge_runtime_bridge::facade::BridgeBatchMutationAuthorityBundle;
 use super::batch_digest_helpers::{
     batch_continuity_mutation_digest, batch_existing_truth_assertion_digest,
     batch_existing_truth_binding_digest, batch_naming_mutation_digest,
-    batch_symbolic_target_reference_digest, batch_target_digest,
+    batch_symbolic_resolution_digest, batch_symbolic_target_reference_digest, batch_target_digest,
 };
 use super::{
     binding::ForgeQueryExistingTruthBindingEvidence, target::ForgeQueryMutationTargetClass,
@@ -21,6 +21,7 @@ pub struct ForgeQueryBatchMutationEvidence {
     backend_verified_delete_count: usize,
     existing_truth_binding_count: usize,
     symbolic_target_reference_count: usize,
+    symbolic_resolution_count: usize,
     naming_mutation_count: usize,
     continuity_mutation_count: usize,
     resolved_target_count: usize,
@@ -30,6 +31,7 @@ pub struct ForgeQueryBatchMutationEvidence {
     aggregate_existing_truth_mode_digest: Option<String>,
     aggregate_existing_truth_binding_digest: Option<String>,
     aggregate_symbolic_target_reference_digest: Option<String>,
+    aggregate_symbolic_resolution_digest: Option<String>,
     aggregate_naming_mutation_digest: Option<String>,
     aggregate_continuity_mutation_digest: Option<String>,
     causality_bundle_count: usize,
@@ -50,6 +52,9 @@ impl ForgeQueryBatchMutationEvidence {
         existing_truth_bindings: &[Option<ForgeQueryExistingTruthBindingEvidence>],
         symbolic_target_references: &[Option<
             crate::runtime::ForgeQuerySymbolicTargetReferenceEvidence,
+        >],
+        symbolic_aspect_resolutions: &[Vec<
+            crate::runtime::ForgeQuerySymbolicAspectResolutionEvidence,
         >],
         naming_mutations: &[Option<crate::runtime::ForgeQueryNamingMutationEvidence>],
         continuity_mutations: &[Option<crate::runtime::ForgeQueryContinuityMutationEvidence>],
@@ -107,6 +112,14 @@ impl ForgeQueryBatchMutationEvidence {
                 .iter()
                 .filter(|reference| reference.is_some())
                 .count(),
+            symbolic_resolution_count: symbolic_target_references
+                .iter()
+                .filter(|reference| reference.is_some())
+                .count()
+                + symbolic_aspect_resolutions
+                    .iter()
+                    .map(Vec::len)
+                    .sum::<usize>(),
             naming_mutation_count: naming_mutations
                 .iter()
                 .filter(|naming| naming.is_some())
@@ -130,6 +143,10 @@ impl ForgeQueryBatchMutationEvidence {
                 .and_then(|bundle| bundle.aggregate_symbolic_target_reference_digest())
                 .map(str::to_string)
                 .or_else(|| batch_symbolic_target_reference_digest(symbolic_target_references)),
+            aggregate_symbolic_resolution_digest: batch_symbolic_resolution_digest(
+                symbolic_target_references,
+                symbolic_aspect_resolutions,
+            ),
             aggregate_naming_mutation_digest: aggregate_bridge
                 .and_then(|bundle| bundle.aggregate_naming_mutation_digest())
                 .map(str::to_string)
@@ -195,6 +212,10 @@ impl ForgeQueryBatchMutationEvidence {
         self.symbolic_target_reference_count
     }
 
+    pub fn symbolic_resolution_count(&self) -> usize {
+        self.symbolic_resolution_count
+    }
+
     pub fn naming_mutation_count(&self) -> usize {
         self.naming_mutation_count
     }
@@ -225,6 +246,10 @@ impl ForgeQueryBatchMutationEvidence {
 
     pub fn aggregate_symbolic_target_reference_digest(&self) -> Option<&str> {
         self.aggregate_symbolic_target_reference_digest.as_deref()
+    }
+
+    pub fn aggregate_symbolic_resolution_digest(&self) -> Option<&str> {
+        self.aggregate_symbolic_resolution_digest.as_deref()
     }
 
     pub fn aggregate_naming_mutation_digest(&self) -> Option<&str> {

@@ -18,9 +18,10 @@ pub use custom_rule::{
     CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
     CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantScopePlanner,
     CustomInvariantTouchedSummary, CustomInvariantTraversalError, CustomInvariantTraversalSummary,
-    CustomInvariantVerdict, PlannedEntityCreate, PlannedRelationCreate, StructuralCountView,
-    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
-    StructuralTraversalResult, TouchedStructuralSet,
+    CustomInvariantVerdict, PlannedEntityCreate, PlannedRelationCreate,
+    PlannedRelationEndpointUpdate, StructuralCountView, StructuralPayloadView,
+    StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
+    TouchedStructuralSet,
 };
 pub(crate) use custom_rule::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,

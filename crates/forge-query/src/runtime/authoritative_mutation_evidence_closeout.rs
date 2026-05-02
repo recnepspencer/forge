@@ -5,225 +5,10 @@ use forge_runtime_bridge::facade::{
 
 use super::authoritative_mutation_evidence_bridge_compat::assert_bridge_support_compatibility;
 use super::{
-    ForgeQueryMutationApiCompatibilityReport, ForgeQueryRuntimeBackendPosture,
-    ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationApiCompatibilityReport,
+    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiNamingContract,
+    ForgeQueryRuntimePublicSupportMatrix,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryAuthoritativeMutationEvidenceSupport {
-    backend_posture: ForgeQueryRuntimeBackendPosture,
-    declared_resolved_target_model: String,
-    existing_truth_binding_families: Vec<String>,
-    existing_truth_assertion_modes: Vec<String>,
-    existing_truth_probe_modes: Vec<String>,
-    existing_truth_verified_mutation_modes: Vec<String>,
-    symbolic_target_reference_families: Vec<String>,
-    symbolic_aspect_reference_families: Vec<String>,
-    graph_composition_families: Vec<String>,
-    naming_mutation_families: Vec<String>,
-    continuity_mutation_families: Vec<String>,
-    aggregate_evidence_sections: Vec<String>,
-    fail_closed_denial_classes: Vec<String>,
-    support_digest: String,
-}
-
-impl ForgeQueryAuthoritativeMutationEvidenceSupport {
-    pub fn derive(backend_posture: ForgeQueryRuntimeBackendPosture) -> Self {
-        let declared_resolved_target_model =
-            "declared-resolved-target-evidence-with-touched-fallout".to_string();
-        let existing_truth_binding_families = vec![
-            "direct_entity_identity".to_string(),
-            "direct_relation_identity".to_string(),
-        ];
-        let existing_truth_assertion_modes = vec![
-            "retained_authoritative_assertion".to_string(),
-            "backend_verified_assertion".to_string(),
-        ];
-        let existing_truth_probe_modes = vec!["backend_verified_probe".to_string()];
-        let existing_truth_verified_mutation_modes = vec![
-            "backend_verified_update".to_string(),
-            "backend_verified_delete".to_string(),
-        ];
-        let symbolic_target_reference_families = vec!["same_batch_declared_target".to_string()];
-        let symbolic_aspect_reference_families =
-            vec!["same_batch_declared_entity_identity".to_string()];
-        let graph_composition_families = vec![
-            "same_batch_entity_relation_identity_edges".to_string(),
-            "mixed_existing_and_symbolic_entity_identity_edges".to_string(),
-            "same_batch_symbolic_relation_followup_mutation".to_string(),
-        ];
-        let naming_mutation_families = vec![
-            "attach_new_target".to_string(),
-            "attach_existing_target".to_string(),
-            "rebind_target".to_string(),
-            "remove".to_string(),
-        ];
-        let continuity_mutation_families = vec![
-            "rebind_existing_target".to_string(),
-            "split_existing_target".to_string(),
-        ];
-        let aggregate_evidence_sections = vec![
-            "batch_mutation_evidence".to_string(),
-            "aggregate_existing_truth_binding_digest".to_string(),
-            "aggregate_existing_truth_mode_digest".to_string(),
-            "aggregate_symbolic_target_reference_digest".to_string(),
-            "aggregate_naming_mutation_digest".to_string(),
-            "aggregate_continuity_mutation_digest".to_string(),
-            "aggregate_causality_digest".to_string(),
-            "aggregate_provenance_digest".to_string(),
-        ];
-        let fail_closed_denial_classes = vec![
-            "unsupported-family".to_string(),
-            "resolved-target-missing".to_string(),
-            "collection-mismatch".to_string(),
-            "backend_verification_unsupported".to_string(),
-            "missing_asserted_aspect".to_string(),
-            "asserted_value_mismatch".to_string(),
-            "backend_probe_unsupported".to_string(),
-            "resolved_target_unavailable".to_string(),
-            "missing_probed_aspect".to_string(),
-            "unsupported_symbolic_target_reference".to_string(),
-            "requires_same_batch_target_reference".to_string(),
-            "requires_existing_truth_binding".to_string(),
-            "requires_delete_family".to_string(),
-            "requires_update_family".to_string(),
-            "requires_authoritative_lane".to_string(),
-        ];
-        let mut parts = vec![
-            "forge_query_authoritative_mutation_evidence_support_v1".to_string(),
-            format!("posture:{}", backend_posture.as_str()),
-            format!("target-model:{declared_resolved_target_model}"),
-        ];
-        parts.extend(
-            existing_truth_binding_families
-                .iter()
-                .map(|item| format!("existing-binding:{item}")),
-        );
-        parts.extend(
-            existing_truth_assertion_modes
-                .iter()
-                .map(|item| format!("existing-assertion:{item}")),
-        );
-        parts.extend(
-            existing_truth_probe_modes
-                .iter()
-                .map(|item| format!("existing-probe:{item}")),
-        );
-        parts.extend(
-            existing_truth_verified_mutation_modes
-                .iter()
-                .map(|item| format!("existing-verified-mutation:{item}")),
-        );
-        parts.extend(
-            symbolic_target_reference_families
-                .iter()
-                .map(|item| format!("symbolic-target:{item}")),
-        );
-        parts.extend(
-            symbolic_aspect_reference_families
-                .iter()
-                .map(|item| format!("symbolic-aspect:{item}")),
-        );
-        parts.extend(
-            graph_composition_families
-                .iter()
-                .map(|item| format!("graph-composition:{item}")),
-        );
-        parts.extend(
-            naming_mutation_families
-                .iter()
-                .map(|item| format!("naming:{item}")),
-        );
-        parts.extend(
-            continuity_mutation_families
-                .iter()
-                .map(|item| format!("continuity:{item}")),
-        );
-        parts.extend(
-            aggregate_evidence_sections
-                .iter()
-                .map(|item| format!("aggregate:{item}")),
-        );
-        parts.extend(
-            fail_closed_denial_classes
-                .iter()
-                .map(|item| format!("fail-closed:{item}")),
-        );
-        let support_digest = hash_parts(&parts);
-        Self {
-            backend_posture,
-            declared_resolved_target_model,
-            existing_truth_binding_families,
-            existing_truth_assertion_modes,
-            existing_truth_probe_modes,
-            existing_truth_verified_mutation_modes,
-            symbolic_target_reference_families,
-            symbolic_aspect_reference_families,
-            graph_composition_families,
-            naming_mutation_families,
-            continuity_mutation_families,
-            aggregate_evidence_sections,
-            fail_closed_denial_classes,
-            support_digest,
-        }
-    }
-
-    pub fn backend_posture(&self) -> ForgeQueryRuntimeBackendPosture {
-        self.backend_posture
-    }
-
-    pub fn declared_resolved_target_model(&self) -> &str {
-        &self.declared_resolved_target_model
-    }
-
-    pub fn existing_truth_binding_families(&self) -> &[String] {
-        &self.existing_truth_binding_families
-    }
-
-    pub fn symbolic_target_reference_families(&self) -> &[String] {
-        &self.symbolic_target_reference_families
-    }
-
-    pub fn symbolic_aspect_reference_families(&self) -> &[String] {
-        &self.symbolic_aspect_reference_families
-    }
-
-    pub fn graph_composition_families(&self) -> &[String] {
-        &self.graph_composition_families
-    }
-
-    pub fn existing_truth_assertion_modes(&self) -> &[String] {
-        &self.existing_truth_assertion_modes
-    }
-
-    pub fn existing_truth_probe_modes(&self) -> &[String] {
-        &self.existing_truth_probe_modes
-    }
-
-    pub fn existing_truth_verified_mutation_modes(&self) -> &[String] {
-        &self.existing_truth_verified_mutation_modes
-    }
-
-    pub fn naming_mutation_families(&self) -> &[String] {
-        &self.naming_mutation_families
-    }
-
-    pub fn continuity_mutation_families(&self) -> &[String] {
-        &self.continuity_mutation_families
-    }
-
-    pub fn aggregate_evidence_sections(&self) -> &[String] {
-        &self.aggregate_evidence_sections
-    }
-
-    pub fn fail_closed_denial_classes(&self) -> &[String] {
-        &self.fail_closed_denial_classes
-    }
-
-    pub fn support_digest(&self) -> &str {
-        &self.support_digest
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAuthoritativeMutationEvidenceCloseout {
@@ -257,13 +42,35 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let safe_to_build_now = vec![
             "workspace.insert/update/delete/batch receipts preserve declared-versus-resolved target evidence together with touched-aspect fallout".to_string(),
             "existing-truth binding, same-batch symbolic target reference, same-batch symbolic aspect reference, naming mutation, and continuity mutation evidence are part of the ordinary public receipt and inspection story".to_string(),
+            "graph composition receipts and inspection now expose explicit symbolic-to-resolved mapping instead of forcing downstream domains to infer same-batch edge resolution from final rows alone".to_string(),
+            "graph composition receipts and inspection now expose explicit entity-versus-relation breadth counters instead of forcing downstream domains to reconstruct graph breadth from generic batch rows".to_string(),
+            "graph composition receipts and inspection now expose an explicit canonical lowered program ordering instead of forcing downstream domains to infer component meaning from generic batch families".to_string(),
+            "graph composition receipts and inspection now expose explicit lifecycle outcome snapshots instead of forcing downstream domains to infer create-versus-update-versus-retire meaning from step kinds alone".to_string(),
+            "graph composition now admits symbolic entity follow-up mutation and symbolic relation retirement as ordinary typed lifecycle steps instead of forcing downstream domains back onto scalar batch escape hatches".to_string(),
+            "graph composition now admits existing-target update and retirement steps inside the same canonical program instead of forcing mixed created/existing workflows back onto generic batch orchestration".to_string(),
+            "graph composition now admits existing-target retarget steps as explicit identity-preserved lifecycle lanes instead of flattening successor rewires back into generic update semantics".to_string(),
+            "graph composition now admits existing-target supersession steps as explicit lineage-preserved lifecycle lanes instead of flattening split-or-merge successor semantics into retarget or retirement folklore".to_string(),
+            "graph composition now admits bridge-verified existing-target update and retirement steps inside the same canonical program instead of forcing verified mixed-shape workflows back out into separate batch orchestration".to_string(),
+            "graph composition now admits bridge-verified existing-target retarget steps inside the same canonical program instead of making verified relation rewires fall back to generic update folklore".to_string(),
+            "graph composition now admits bridge-verified existing-target supersession steps inside the same canonical program instead of making lineage-preserved verified rewrites masquerade as plain updates".to_string(),
+            "graph composition declaration and symbolic-edge failures now deny through a typed graph-composition lane instead of collapsing into generic workspace strings".to_string(),
+            "graph composition denied paths now expose admission traces with explicit failure stages instead of forcing callers to infer where admission stopped from denial prose alone".to_string(),
+            "graph composition invariant-pack rejection now denies through a distinct domain-invariant lane instead of collapsing domain invalidity into generic graph-composition support denial".to_string(),
+            "graph composition domain-invariant denials now expose attempted-shape summaries with declared collections, declared symbols, capability families, and lifecycle families instead of forcing kernels to reconstruct rejected topology from builder folklore".to_string(),
+            "graph composition support is now machine-readable by capability class and extension-hook boundary instead of forcing downstream domains to treat one flat family list as the whole support contract".to_string(),
+            "verified graph composition lanes now expose aggregate assumption snapshot, verified precondition, and read-set-breadth summaries instead of forcing kernels to reconstruct operation preconditions from component rows one by one".to_string(),
+            "lineage-carrying graph composition lanes now expose aggregate prior-versus-successor continuity summaries instead of forcing kernels to reconstruct edge-split lineage from scattered component continuity rows".to_string(),
             "existing-truth assertions now distinguish retained authoritative assertions from backend-verified assertions on the public receipt and inspection surface".to_string(),
+            "backend-verified existing-truth lanes now expose verified assumption-set, assumption snapshot token/digest, verified precondition digest, and read-set-breadth evidence instead of collapsing all verification meaning into one opaque assertion digest".to_string(),
             "mixed existing-truth authority sessions now preserve aggregate mode evidence that distinguishes retained assertions, backend-verified assertions, verified updates, and verified deletes without reconstructing that story from component receipts".to_string(),
             "existing-truth probes now expose a typed backend-verified probe lane for current authoritative values without smuggling that truth through mutation receipts".to_string(),
             "existing-truth verified updates now expose a typed backend-verified update lane that proves current authoritative values before applying update-family mutation receipts".to_string(),
+            "existing-target relation updates on admitted families preserve authoritative relation identity instead of disguising delete-plus-recreate as update vocabulary".to_string(),
             "existing-truth verified deletes now expose a typed backend-verified delete lane that proves current authoritative values before applying delete-family mutation receipts".to_string(),
             "existing-truth batch receipts, scalar inspection, and probe surfaces keep retained assertions, backend-verified assertions, backend-verified probes, verified updates, and verified deletes semantically distinct under mixed authority sessions".to_string(),
+            "primary multi-command batches now commit atomically at the backend boundary instead of degrading into per-command commits, so invariant-complete closures can rely on one truth-change boundary".to_string(),
             "batch and import-style authority sessions preserve aggregate existing-binding, symbolic-target, symbolic-aspect, naming, continuity, causality, and provenance digests".to_string(),
+            "bridge-backed verified-existing support rows are machine-readable by operation family and target-binding family instead of hiding behind one generic backend bool".to_string(),
             "downstream domains may rely on Query receipts and inspection instead of rebuilding target-recovery, naming, or continuity explanation glue locally".to_string(),
             "downstream domains may rely on `verify_existing(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
             "downstream domains may rely on `update_existing_verified(...)` only when the active backend actually supports backend verification; unsupported backends remain typed and fail-closed".to_string(),
@@ -273,15 +80,22 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
             "authority-mutation evidence closes durable restart, temporal, async, or store-backed mutation semantics".to_string(),
             "unsupported identity-binding, naming, or continuity families remain fail-closed until explicitly admitted".to_string(),
             "unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort compatibility".to_string(),
+            "unsupported identity-preserving relation update families remain fail-closed until the lower runtime can preserve target identity honestly".to_string(),
+            "bridge-backed verified-existing support rows that deny on the primary posture may not be treated as production-ready just because compatibility runtimes admit them".to_string(),
             "downstream code may bypass Query receipts and inspect raw bridge/runtime provenance bags directly".to_string(),
         ];
         let migration_guidance = vec![
             "move authoritative mutation onto workspace.insert/update/delete/batch and consume receipts plus inspect output as the domain explanation contract".to_string(),
+            "read bridge-backed verified-existing support rows before teaching `verify_existing(...)`, `probe_existing(...)`, `update_existing_verified(...)`, or `delete_existing_verified(...)` as ordinary production runtime flows".to_string(),
+            "read graph-composition capability rows and extension-hook rows before teaching a new mixed-shape lifecycle or domain extension as ordinary stable runtime support".to_string(),
+            "use `workspace.compose_graph(...)` or `workspace.compose_graph_with_invariant_pack(...)` when one logical mutation needs symbolic resolution, verified preconditions, lineage, or domain-invalidity evidence as part of the ordinary receipt story".to_string(),
             "use `workspace.assert_existing(...)` for retained assertion receipts and `workspace.verify_existing(...)` when the backend must prove current stored truth before returning an assertion receipt".to_string(),
             "use `workspace.probe_existing(...)` when the domain needs current authoritative aspect values as input rather than a retained assertion receipt".to_string(),
+            "use `workspace.bind_existing_relation(...)` plus `workspace.update_existing(...)` when an admitted relation family must preserve authoritative target identity under ordinary update-family receipts".to_string(),
             "use `workspace.update_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target update-family mutation".to_string(),
             "use `workspace.delete_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target delete-family mutation".to_string(),
             "delete local existing-target rebinding, naming outcome reconstruction, and continuity breadcrumb glue once equivalent Query evidence is available".to_string(),
+            "delete local graph-program rejection reconstruction once `admission_trace()` and `domain_invariant_summary()` cover the denied-path explanation contract".to_string(),
             "treat unsupported mutation-evidence neighbors as fail-closed support gates rather than compatibility seams".to_string(),
         ];
         let required_verification_commands = vec![

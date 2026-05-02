@@ -1,5 +1,9 @@
 use std::collections::BTreeMap;
 
+use super::bridge_backed_verification_profile::{
+    default_bridge_backed_verification_support_rows,
+    ForgeQueryBridgeBackedVerificationSupportProfileRow,
+};
 use super::{
     ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
@@ -12,6 +16,8 @@ use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
 pub struct ForgeQueryRuntimeSupportProfile {
     posture: ForgeQueryRuntimeBackendPosture,
     rows: BTreeMap<ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport>,
+    bridge_backed_verification_support_rows:
+        Vec<ForgeQueryBridgeBackedVerificationSupportProfileRow>,
 }
 
 impl ForgeQueryRuntimeSupportProfile {
@@ -19,6 +25,8 @@ impl ForgeQueryRuntimeSupportProfile {
         Self {
             posture: ForgeQueryRuntimeBackendPosture::Primary,
             rows: rows.into_iter().map(|row| (row.family(), row)).collect(),
+            bridge_backed_verification_support_rows:
+                default_bridge_backed_verification_support_rows(),
         }
     }
 
@@ -184,6 +192,47 @@ impl ForgeQueryRuntimeSupportProfile {
     pub fn with_family_support(mut self, row: ForgeQueryRuntimeFamilySupport) -> Self {
         self.rows.insert(row.family(), row);
         self
+    }
+
+    pub(crate) fn bridge_backed_verification_support_rows(
+        &self,
+    ) -> &[ForgeQueryBridgeBackedVerificationSupportProfileRow] {
+        &self.bridge_backed_verification_support_rows
+    }
+
+    pub(crate) fn with_bridge_backed_verification_support_row(
+        mut self,
+        row: ForgeQueryBridgeBackedVerificationSupportProfileRow,
+    ) -> Self {
+        let rows = &mut self.bridge_backed_verification_support_rows;
+        if let Some(index) = rows.iter().position(|candidate| {
+            candidate.operation_family() == row.operation_family()
+                && candidate.target_binding_family() == row.target_binding_family()
+        }) {
+            rows[index] = row;
+        } else {
+            rows.push(row);
+        }
+        self
+    }
+
+    pub fn with_bridge_backed_verification_support(
+        self,
+        operation_family: impl Into<String>,
+        target_binding_family: impl Into<String>,
+        compatibility_runtime_supported: bool,
+        primary_bridge_backed_runtime_supported: bool,
+        denial_class_when_primary_unsupported: Option<&str>,
+    ) -> Self {
+        self.with_bridge_backed_verification_support_row(
+            ForgeQueryBridgeBackedVerificationSupportProfileRow::new(
+                operation_family,
+                target_binding_family,
+                compatibility_runtime_supported,
+                primary_bridge_backed_runtime_supported,
+                denial_class_when_primary_unsupported,
+            ),
+        )
     }
 
     pub fn rows(&self) -> impl Iterator<Item = &ForgeQueryRuntimeFamilySupport> {

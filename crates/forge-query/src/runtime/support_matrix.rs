@@ -1,9 +1,8 @@
 use crate::identity::hash_parts;
 
 use super::{
-    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryRuntimeBackendPosture,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
-    ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntime, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimePublicApiContract,
 };
 
 const STABILIZED_EXTENSION_RULE: &str =
@@ -147,9 +146,11 @@ impl ForgeQueryRuntimePublicSupportMatrix {
             true,
             false,
             Some(
-                ForgeQueryAuthoritativeMutationEvidenceSupport::derive(contract.backend_posture())
-                    .support_digest()
-                    .to_string(),
+                ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
+                    contract.backend_posture(),
+                )
+                .support_digest()
+                .to_string(),
             ),
         ));
 

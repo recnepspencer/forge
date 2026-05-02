@@ -37,6 +37,7 @@ impl ForgeQueryRuntime {
             None,
             None,
             None,
+            Vec::new(),
             None,
             None,
             Vec::new(),
@@ -120,6 +121,7 @@ impl ForgeQueryRuntime {
             None,
             None,
             None,
+            Vec::new(),
             None,
             None,
             Vec::new(),
@@ -161,6 +163,7 @@ impl ForgeQueryRuntime {
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
+        symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
@@ -169,15 +172,9 @@ impl ForgeQueryRuntime {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
-        if target_collection.is_none() {
-            target_collection = existing_truth_binding
-                .as_ref()
-                .and_then(|binding| binding.target_collection().map(str::to_string));
-        }
-        if target_entity_identity.is_none() {
-            target_entity_identity = existing_truth_binding
-                .as_ref()
-                .map(|binding| binding.resolved_target_identity().to_string());
+        if let Some(binding) = existing_truth_binding.as_ref() {
+            target_collection = binding.target_collection().map(str::to_string);
+            target_entity_identity = Some(binding.resolved_target_identity().to_string());
         }
         let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
         Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
@@ -188,6 +185,7 @@ impl ForgeQueryRuntime {
             existing_truth_binding,
             existing_truth_assertion,
             symbolic_target_reference,
+            symbolic_aspect_resolution_evidence,
             naming_intent,
             continuity_intent,
             target_collection,

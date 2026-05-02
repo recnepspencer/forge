@@ -66,6 +66,7 @@ impl ForgeQueryWriteReceipt {
                 command.symbolic_target_reference(),
                 Some(delta.entity_identity.as_str()),
             ),
+            symbolic_aspect_resolution_evidence: Vec::new(),
             naming_mutation_evidence,
             continuity_mutation_evidence,
             causality_evidence: None,

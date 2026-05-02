@@ -9,7 +9,7 @@ error[E0308]: mismatched types
   = note: expected reference `&ForgeQueryGraphEntitySymbol`
              found reference `&ForgeQuerySymbolicTargetReference`
 note: method defined here
- --> src/runtime/mutation/graph_composition.rs
+ --> src/runtime/mutation/graph_composition/relation_builder.rs
   |
   |     pub fn symbolic_entity_identity(
   |            ^^^^^^^^^^^^^^^^^^^^^^^^

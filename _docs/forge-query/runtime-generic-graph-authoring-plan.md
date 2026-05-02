@@ -1,6 +1,8 @@
-# Forge Query Runtime Generic Graph Authoring And Identity-Preserving Existing-Truth Plan
+# Forge Query Runtime Generic Graph Authoring, Mixed-Shape Composition, And Identity-Preserving Existing-Truth Plan
 
-> **Status:** Proposed upstream hardening gate
+> **Status:** Implemented and closed upstream hardening gate
+>
+> **Shipped closeout:** [runtime-generic-graph-authoring-closeout.md](./runtime-generic-graph-authoring-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -40,6 +42,8 @@ domain-local substitutes for:
 
 - identity-preserving existing-target relation rewrites
 - invariant-complete same-batch graph composition
+- generic mixed-shape graph composition that can combine create, update,
+  retarget, and retire semantics in one authoring program
 - backend-verified existing-truth checks on real bridge-backed runtimes
 
 The result must be a domain-agnostic authoring contract that lets downstream
@@ -58,14 +62,18 @@ explanation layers locally.
 That was necessary. It is not yet sufficient for Query to feel like the real
 runtime.
 
-Downstream kernel pressure now exposes three remaining gaps that are still too
-generic to leave inside domain-local adapters:
+Downstream kernel pressure now exposes a broader remaining substrate problem
+that is still too generic to leave inside domain-local adapters:
 
 1. existing-target relation rewires need a true identity-preserving update lane
    rather than delete-plus-recreate disguise
 2. same-batch graph authoring needs a first-class public composition surface
    rather than a fragile pile of scalar symbolic writes
-3. backend-verified existing-truth checks need a stable ordinary story on real
+3. same-batch graph authoring must widen from a pile of named lucky workflows
+   into a generic mixed-shape composition engine that can preserve honest
+   semantics across created and existing targets, preserved identity, and
+   retirement within one canonical program
+4. backend-verified existing-truth checks need a stable ordinary story on real
    bridge-backed runtimes, not just on memory or compatibility slices
 
 If these gaps are not solved in Forge Query itself:
@@ -74,6 +82,9 @@ If these gaps are not solved in Forge Query itself:
   semantics that violate existing-target meaning
 - graph-shaped create-plus-attach workflows will drift into one-off builder
   tricks rather than one generic runtime story
+- downstream pressure will keep widening named workflow lanes one by one,
+  turning the roadmap into a costly pile of narrow admissions instead of one
+  capability-generic composition contract
 - backend-verified checks will remain technically available in principle but
   operationally incomplete on the production runtime paths that matter
 - Query will continue to look like the runtime while domains quietly keep the
@@ -87,13 +98,16 @@ runtime for graph-shaped domains.
 
 The hard part is not adding three more facade methods.
 
-The hard part is keeping five things separate that a weaker runtime will blur
+The hard part is keeping six things separate that a weaker runtime will blur
 together the moment downstream pressure increases:
 
 - existing-target mutation semantics that preserve target identity
 - replacement workflows that only look update-shaped at the API boundary
 - same-batch graph composition semantics that preserve symbolic intent,
   ordering, and resolved-target meaning
+- generic mixed-shape composition semantics that preserve lifecycle meaning
+  across create, update, retarget, and retire steps without collapsing back
+  into scalar batch folklore
 - backend-verified existing-truth semantics that depend on lower-runtime truth
   authority rather than Query-local assertions
 - support metadata and certification evidence that must report the same truth
@@ -104,6 +118,8 @@ The design fails if:
 - a relation "update" is implemented as create-plus-delete under a nicer name
 - graph composition is really just scalar batch mutation plus raw symbolic
   string folklore
+- graph composition remains a growing list of named downstream workflows rather
+  than becoming one capability-generic composition contract
 - bridge-backed verification is documented as ordinary while production
   runtimes still deny or degrade it silently
 - support metadata says "supported" for substrate that only works on
@@ -131,6 +147,7 @@ capabilities inherit.
   surface
 - downstream domains such as Worth are valid pressure tests for generic
   runtime capability, but they do not get to define the public Query contract
+  or the roadmap shape of generic graph composition
 - production bridge-backed runtime support is the governing support bar; memory
   and compatibility runtimes may lead implementation, but they do not define
   completion
@@ -190,6 +207,8 @@ whether the workflow:
 
 - mutates an existing relation in place
 - creates several entities and relations in one same-batch subgraph
+- mixes created targets, existing targets, preserved identity, and retirement
+  inside one same-batch composition program
 - verifies existing truth before mutate/delete continuation
 - executes live on a production bridge-backed runtime
 - is denied because the runtime cannot yet preserve the required meaning
@@ -200,6 +219,9 @@ If any admitted path:
   new one under an "update" label
 - makes graph-shaped authoring depend on caller-owned ordering folklore or raw
   symbolic identity strings without one composition contract
+- widens support by admitting another named downstream workflow while the
+  generic composition engine still cannot explain or certify the same lifecycle
+  shape upstream
 - exposes a verified existing-truth surface in the facade but leaves production
   bridge-backed runtimes unable to admit it honestly
 - forces downstream domains to distinguish "real runtime support" from
@@ -211,6 +233,56 @@ The public authoring surface must make the same canonical meanings available on
 real runtime paths or deny typed and early before domains are tempted to fill
 the gap themselves.
 
+## Geometry Kernel Pressure Cases
+
+This plan remains domain-agnostic, but its runtime bar is intentionally shaped
+by hostile graph programs that geometry kernels routinely need.
+
+These are not topology-specific implementation requirements. They are generic
+pressure cases that the substrate must survive honestly.
+
+Required hostile graph programs:
+
+- `EdgeSplit`
+  - an existing edge relation is retired
+  - two new edges are created
+  - one new vertex is created
+  - adjacency relations are rewired
+  - old edge identity is either preserved as lineage parent or explicitly
+    retired
+  - receipt must prove lineage and identity outcomes rather than forcing the
+    kernel to reconstruct them from raw deltas
+
+- `LoopSuccessorRewire`
+  - an existing successor relation retargets from old successor to new
+    successor
+  - relation identity must remain preserved
+  - verification must assert old source and target before mutation
+  - denial must distinguish identity-preservation failure from target-family
+    unsupportability
+
+- `FaceInnerLoopInsertion`
+  - a loop entity is created
+  - a relation from an existing face to the symbolic loop is created
+  - symbolic edges and vertices may also be created in the same program
+  - the resolution map must expose all symbolic-to-resolved identities
+
+- `FailedNonManifoldAdmission`
+  - generic graph composition substrate can express the shape
+  - a domain invariant hook denies the resulting topology
+  - denial must not collapse into runtime support denial
+  - support posture and domain-invalidity posture must remain explicitly
+    distinguishable
+
+These cases exist to keep the plan honest about the difference between:
+
+- Query cannot express the graph composition
+- the runtime cannot preserve the required identity semantics
+- bridge-backed verification is unavailable
+- the domain rejected the resulting graph as invalid
+
+Those outcomes must not collapse into one generic graph-composition denial.
+
 ## Product Decision Lock
 
 - Query remains a domain-agnostic mutation/runtime facade; it does not become a
@@ -219,6 +291,9 @@ the gap themselves.
   may not masquerade as that surface.
 - Same-batch graph authoring must be a first-class public composition story,
   not a downstream convention over scalar batch operations.
+- Mixed-shape graph composition is a capability-generic runtime target, not a
+  promise to admit every domain-specific workflow. Query owns generic
+  composition semantics; domains still own their invariants.
 - Backend-verified existing-truth support counts as "supported" only when real
   bridge-backed runtimes can admit it honestly through the ordinary facade.
 - Receipts, inspection, support metadata, and typed denials must all agree on
@@ -226,6 +301,10 @@ the gap themselves.
 - If a required capability is missing, the fix belongs in Forge Query and its
   bridge/runtime contracts, not in a domain-local wrapper that restores the old
   dual-runtime shape.
+- Extension hooks are allowed only when they preserve the canonical runtime
+  semantics. Domains may extend lowering, invariant validation, capability
+  declaration, and artifact interpretation; they may not override target
+  identity semantics, receipt truth, support posture, or denial taxonomy.
 
 Normative consequence:
 
@@ -264,6 +343,45 @@ Normative consequence:
   scheduling beyond the support/reporting obligations needed to keep this work
   honest
 
+## Extensibility And Hook Boundaries
+
+This plan must leave room for native extension on top of the mixed-shape
+composition engine without reopening the shadow-runtime problem it is trying to
+close.
+
+Allowed extension hooks:
+
+- domain-side intent lowering into the generic graph-composition program
+- domain-owned invariant packs that validate whether an otherwise-admitted
+  generic composition is valid for that domain
+- domain capability declarations built on top of admitted generic substrate
+- domain interpretation layers that consume canonical Query receipts and
+  inspection artifacts to produce domain diagnostics, certification output, or
+  UX-facing summaries
+
+Not allowed as extension hooks:
+
+- alternate target identity semantics
+- alternate relation update semantics that disguise replacement as update
+- alternate receipt or inspection truth that competes with the canonical Query
+  artifact family
+- domain-local support posture that broadens or narrows the public support
+  contract privately
+- ad hoc symbolic resolution rules outside the Query-owned composition builder
+  and lowering path
+- arbitrary execution-mode injection that bypasses the program/lowering model
+
+Rules:
+
+- hooks may add domain meaning; they may not weaken generic runtime truth
+- hooks must consume proof-bearing runtime artifacts rather than reconstructing
+  parallel truths from raw deltas
+- unsupported domain extensions must fail typed and early rather than falling
+  back to hidden local execution semantics
+- if a domain extension needs new generic lifecycle or target semantics, the
+  fix belongs in Forge Query first and the hook may only consume that widened
+  substrate afterward
+
 ## Required Runtime Contracts And Counters
 
 The runtime must emit machine-checkable counter bundles for this gate instead
@@ -280,6 +398,32 @@ Rules:
 - counters attach to authoring-family work units rather than one rolled-up
   "graph mutation" total
 - support-closeout docs must quote the same counter families the tests certify
+
+### Lifecycle Outcome Taxonomy
+
+Mixed-shape graph composition must report lifecycle outcomes with enough
+precision for lineage-heavy kernels to distinguish current-truth removal from
+hard deletion or pre-execution denial.
+
+Required lifecycle outcome taxonomy:
+
+- `Created`
+- `UpdatedIdentityPreserved`
+- `RetargetedIdentityPreserved`
+- `RetiredCurrentTruth`
+- `SupersededWithLineage`
+- `DeletedIfUncommitted`
+- `DeniedBeforeExecution`
+
+Rules:
+
+- `retire` may not remain a vague umbrella for delete, supersede, or hide
+- lifecycle outcome surfaces must distinguish current-topology removal from
+  hard deletion whenever lineage or replay semantics are preserved
+- denied work must report `DeniedBeforeExecution` rather than pretending to be
+  a partial lifecycle receipt
+- first-ship mixed-shape certification must freeze lifecycle outcome meaning in
+  receipt and inspection output, not just final row shape
 
 ### Identity-Preserving Update Contract
 
@@ -322,6 +466,8 @@ Required contract surfaces:
 - `GraphCompositionProgram`
 - `GraphCompositionSymbol`
 - `GraphCompositionResolutionMap`
+- `GraphCompositionBreadth`
+- `GraphCompositionEvidence`
 - `GraphCompositionSupportVerdict`
 - typed denial taxonomy for unresolved, illegal, or unsupported composition
   edges
@@ -331,18 +477,31 @@ Required counters and outputs:
 - symbolic entity count
 - symbolic relation count
 - existing-target edge count
+- symbolic entity follow-up mutation count
+- symbolic relation follow-up mutation count
+- symbolic relation retirement count
 - symbolic-resolution count
 - graph breadth and component-order count
+- lifecycle outcome breadth by taxonomy family
 
 Rules:
 
 - symbolic references must be typed handles, not raw public strings
 - composition must lower once into canonical mutation commands
 - receipts and inspection must expose symbolic-to-resolved mapping explicitly
+- receipts and inspection must expose canonical lowered program meaning
 - mixed existing-target and symbolic edges are part of first-ship completion;
   "symbolic entity creation only" does not count as generic graph composition
+- mixed create/update/delete/retarget closures are the target completion shape;
+  endlessly adding named downstream workflow admissions is not
 - composition lowering may not rediscover graph ordering or target shape by
   rereading workspace state during execution
+- graph-composition denial must stay distinguishable from:
+  - lower-runtime identity-preservation denial
+  - bridge verification unavailability
+  - domain invariant denial
+- domain-invalid graph programs must not be reported as runtime-support denial
+  when the generic composition substrate could otherwise express them honestly
 
 ### Bridge-Backed Verification Contract
 
@@ -352,6 +511,9 @@ runtime can execute it with the same public meaning as the facade advertises.
 Required contract surfaces:
 
 - `BridgeBackedVerificationSupportVerdict`
+- `VerifiedAssumptionSet`
+- `AssumptionSnapshotDigest`
+- `VerifiedPreconditionDigest`
 - per-family verification support rows
 - typed denial taxonomy for unsupported verification substrate
 
@@ -360,6 +522,7 @@ Required counters and outputs:
 - verified-assertion family count
 - verified-update family count
 - verified-delete family count
+- verification-read-set breadth
 - verification-denial count by family
 
 Rules:
@@ -370,6 +533,72 @@ Rules:
   support
 - verification denials must distinguish unsupported bridge substrate from
   target-shape or collection mismatch so downstream callers can react honestly
+- verification evidence must distinguish:
+  - target binding evidence
+  - verification assertion evidence
+  - verified assumption/read-set evidence
+  - mutation result evidence
+
+### Verified Assumption And Snapshot Contract
+
+Bridge-backed verification must preserve the exact preconditions that a mixed-
+shape operation depended on, not just the fact that some check happened.
+
+Required contract surfaces:
+
+- `VerifiedAssumptionSet`
+- `AssumptionSnapshotDigest`
+- `VerifiedPreconditionDigest`
+- `VerificationReadSetBreadth`
+
+Rules:
+
+- a verified mutation must be able to say "this operation was admitted only if
+  these old truths still held at this snapshot basis"
+- assumption/read-set evidence must stay distinct from target binding evidence
+  and from mutation result evidence
+- collaborative editing, replay, branching, and live UI consumers must be able
+  to distinguish:
+  - binding target resolution
+  - verified old-truth assumptions
+  - the snapshot basis those assumptions were read from
+  - the mutation results produced after admission
+- first-ship certification must freeze assumption/read-set breadth and digest
+  outputs for at least one preserved-identity retarget case
+
+### Admission Trace Contract
+
+Denied graph work must expose an admission-classification path that is richer
+than a final denial code and explicitly separate from execution receipts.
+
+Required contract surfaces:
+
+- `GraphCompositionAdmissionTrace`
+- `AdmissionTraceStage`
+- `AdmissionTraceDigest`
+
+Required stages:
+
+- `ProgramParsed`
+- `SymbolsValidated`
+- `LoweringValidated`
+- `CapabilityFamilyClassified`
+- `SupportPostureResolved`
+- `IdentityPreservationEvaluated`
+- `VerificationSubstrateEvaluated`
+- `DomainInvariantEvaluated`
+- `DeniedBeforeExecution`
+
+Rules:
+
+- admission traces are for denied or fail-closed work; they are not receipts
+- admitted work may summarize admission stages, but denied work must expose the
+  exact stage boundary that prevented execution
+- domain invariant denial must remain distinguishable from runtime support or
+  identity-preservation denial
+- first-ship certification must include at least one denied trace that reaches
+  domain-invariant evaluation and one that fails earlier in generic runtime
+  admission
 
 ## Compile-Time Boundary Rule
 
@@ -535,7 +764,7 @@ Not allowed as first-ship debt:
 
 ## Phases
 
-### Phase 1: Freeze The Public Authoring Vocabulary
+### Phase 1: Freeze The Public Authoring Vocabulary And Capability Taxonomy
 
 Lock one coherent public vocabulary for the three missing substrate families
 before implementation spreads the wrong names.
@@ -545,10 +774,20 @@ Must ship:
 - one public authoring family for identity-preserving existing-target relation
   update
 - one public authoring family for same-batch graph composition
+- one public capability taxonomy for graph composition breadth so support can
+  distinguish:
+  - admitted composition lifecycle steps
+  - admitted mixed-shape target combinations
+  - denied-but-planned neighbors
 - one public support/admission family for bridge-backed backend-verified
   existing-truth checks
 - typed receipt and inspection accessors that preserve the same evidence story
   already required by the authoritative mutation evidence gate
+- one explicit extension-hook taxonomy that distinguishes:
+  - allowed lowering hooks
+  - allowed invariant-pack hooks
+  - allowed interpretation hooks
+  - forbidden semantic-bypass hooks
 - support-matrix rows that distinguish:
   - stable public runtime surfaces
   - admitted but bridge-backed-runtime-incomplete surfaces
@@ -562,12 +801,14 @@ Must preserve:
 - new graph-oriented authoring surfaces compose with existing target evidence
   rather than replacing it
 - public names remain domain-neutral and cost-honest
+- extension taxonomy remains capability-oriented and does not become a hidden
+  second runtime contract
 
 This phase is complete only when a downstream engineer can tell, from public
 types and support metadata alone, which graph-authoring/runtime surfaces are
 stable, denied, or still deferred.
 
-### Phase 2: Identity-Preserving Existing-Target Relation Updates
+### Phase 2: Identity-Preserving Existing-Target Update And Retarget Substrate
 
 Add a real existing-target relation update lane whose semantics preserve target
 identity rather than hiding a replacement workflow behind update-shaped names.
@@ -584,6 +825,9 @@ Must ship:
   - collection mismatch
   - target-shape mismatch
   - backend verification unsupported
+- support for retargeting an identity-preserved relation toward admitted
+  created-or-existing target references where lower truth can still preserve
+  authoritative relation identity honestly
 - receipt and inspection evidence that preserve:
   - binding family
   - declared target
@@ -603,14 +847,17 @@ Must preserve:
   decide whether a relation can be updated in place
 - if the lower runtime cannot preserve identity, Query denies typed and early
 - batch/session aggregate evidence remains honest about this mutation family
+- created-target retarget support may not be reported as admitted unless the
+  final receipt and inspection surfaces can preserve one truthful target story
 
 This phase is complete only when an existing-target relation rewrite can be
 expressed through the ordinary public facade without delete-plus-recreate
 disguise and without domain-local target recovery.
 
-### Phase 3: First-Class Composed Graph Authoring
+### Phase 3: Generic Mixed-Shape Graph Composition Program
 
-Make same-batch graph construction an explicit public runtime capability rather
+Make same-batch graph construction an explicit public runtime capability whose
+program model can express mixed create/update/retarget/retire lifecycles rather
 than a downstream convention over scalar batch operations.
 
 Must ship:
@@ -619,14 +866,23 @@ Must ship:
   `compose_graph(...)` or an equally explicit family
 - explicit symbolic entity/relation handles produced within the composition
   block and reused through typed identity references rather than raw strings
+- explicit composition lifecycle steps for:
+  - symbolic entity declaration
+  - symbolic relation declaration
+  - symbolic entity follow-up mutation
+  - symbolic relation follow-up mutation
+  - symbolic relation retirement
 - composition-level receipts and inspection that preserve:
   - component ordering
   - symbolic-to-resolved target mapping
   - graph breadth counters
+  - canonical lowered program meaning
   - affected live/computed breadth
   - typed denial for unresolved or illegal composition edges
 - support for mixed existing-target and same-batch symbolic references inside
   one composition block
+- support for mixed create/update/delete/retarget closures where the runtime
+  can preserve one coherent target-identity and lifecycle story
 - compile-fail boundaries that prevent public fallback to raw symbolic strings
 
 Must preserve:
@@ -636,12 +892,65 @@ Must preserve:
 - composition does not hide domain invariants; unsupported or incomplete graph
   workflows still deny typed and early
 - scalar batch APIs remain available for non-graph workflows
+- composition widening is capability-generic rather than a permanent pile of
+  named downstream workflow exceptions
 
 This phase is complete only when downstream domains can author one admitted
-multi-entity, multi-relation subgraph through one public composition surface
-without stitching together raw symbolic identity folklore themselves.
+mixed-shape multi-entity, multi-relation program through one public composition
+surface without stitching together raw symbolic identity folklore or
+workflow-local lifecycle tricks themselves.
 
-### Phase 4: Bridge-Backed Backend-Verified Existing-Truth Execution
+### Phase 4: Capability-Generic Admission And Denial For Mixed-Shape Composition
+
+Replace workflow-by-workflow admission folklore with one explicit support and
+denial story for mixed-shape graph composition capabilities.
+
+Must ship:
+
+- support metadata that reports graph-composition support by admitted
+  capability family, not by one vague "graph authoring supported" bit
+- typed denial that distinguishes:
+  - unresolved symbolic references
+  - illegal program ordering
+  - unsupported lifecycle-step combinations
+  - unsupported target-shape combinations
+  - lower-runtime identity-preservation gaps
+  - bridge verification substrate unavailable
+  - domain invariant denial after generic composition admission
+  - incomplete invariant-bearing subgraphs that generic Query is not allowed to
+    admit yet
+- canonical admission rules for composition receipts so:
+  - real composition receipts expose composition program, breadth, resolution,
+    and evidence
+  - reconstructed or generic scalar batches fail closed and cannot impersonate
+    those artifacts
+- support and denial participation rules for domain extension hooks so
+  downstream code can add domain validation or interpretation without privately
+  mutating the generic support contract
+- admission traces that show where denied work failed without forcing callers
+  to reverse-engineer denial from logs or internal branching
+- exact counters for admitted versus denied composition capability families
+
+Must preserve:
+
+- support posture remains explicit and machine-checkable
+- denied neighbors fail typed and early before domains are tempted to widen
+  them locally
+- generic capability admission does not erase the distinction between substrate
+  support and domain-specific invariant closure
+- denied operations must preserve the distinction among:
+  - Query cannot express the composition
+  - the runtime cannot preserve identity
+  - verification substrate is unavailable
+  - the domain rejected the result as invalid
+- extension hooks remain consumers of runtime truth rather than alternate
+  producers of it
+
+This phase is complete only when engineers can widen composition capability by
+reading one capability/support contract rather than by hunting for named
+workflow exceptions in downstream code.
+
+### Phase 5: Bridge-Backed Backend-Verified Existing-Truth Execution
 
 Turn backend-verified existing-truth checks into a real ordinary runtime
 capability on production bridge-backed runtimes.
@@ -661,6 +970,8 @@ Must ship:
 - verification receipts and inspection bundles that preserve the same target
   evidence, causality, provenance, and mode distinction already frozen by the
   mutation-evidence gate
+- verified assumption/read-set surfaces that preserve precondition snapshots
+  and read-set breadth for admitted verified mutations
 - explicit support rows that distinguish:
   - admitted on production bridge-backed runtimes
   - admitted only on non-production runtimes
@@ -674,12 +985,14 @@ Must preserve:
   assertions with the same public shape
 - production runtimes and memory/compatibility runtimes remain phase-typed in
   support posture
+- assumption/read-set evidence stays distinct from binding and result evidence
+  in receipt, inspection, and certification output
 
 This phase is complete only when backend-verified existing-truth support is
 ordinary and support-reportable on real bridge-backed runtimes, or denied typed
 and early with no ambiguity.
 
-### Phase 5: Support, Documentation, And Certification Closeout
+### Phase 6: Support, Documentation, And Certification Closeout
 
 Close the gate with machine-checkable proof, frozen support metadata, and
 developer-facing documentation that teaches the new runtime honestly.
@@ -690,11 +1003,16 @@ Must ship:
   denied authoring families
 - compile-fail boundaries preventing external minting of proof-bearing support,
   closeout, or graph-composition evidence artifacts where appropriate
+- documentation that teaches the allowed extension-hook boundaries explicitly,
+  including examples of domain lowering and invariant validation that do not
+  fork the runtime truth contract
 - feature docs that show:
   - identity-preserving relation update authoring
   - graph composition authoring
   - bridge-backed verification authoring
   - typed denial and support-report reading
+  - assumption snapshot / read-set evidence reading
+  - admission trace reading for denied work
 - roadmap and closeout documents updated so downstream domains can cite one
   stable upstream contract instead of oral tradition
 
@@ -708,10 +1026,342 @@ Must preserve:
 This phase is complete only when public docs, roadmap placement, support
 metadata, and certification suites all tell the same story.
 
+## Practicality QA Findings
+
+This plan was revised after hostile review for practical implementation shape.
+
+Findings that needed correction:
+
+1. The earlier version was strong on semantic direction but too weak on file
+   ownership boundaries. That would have encouraged continued growth of
+   catch-all files such as `graph_composition.rs`, `runtime_batch_writes.rs`,
+   and `workspace_graph.rs`.
+2. The earlier version widened composition semantics without naming where
+   extension hooks, admission classification, and lowering ownership should
+   live. That would have made the hook story easy to implement as ad hoc
+   branching inside unrelated modules.
+3. The earlier version named certification obligations but did not give a
+   decomposed test-module topology. That would have increased the chance that
+   graph-composition certification turns back into a few oversized test files.
+
+Correction rule:
+
+- every new concern in this plan must have an explicit module home
+- workspace entrypoints stay thin and delegate immediately
+- runtime surface artifacts stay separate from mutation lowering
+- certification files split by concern rather than by chronology
+- decomposition is the default; merging later is cheaper than surgery later
+
+## Implementation Topology And File Skeleton
+
+The plan is not considered practical unless engineers can see, before
+implementation, where the code is expected to live.
+
+The following skeleton is the intended default topology. Equivalent names are
+acceptable only if ownership boundaries remain equally explicit.
+
+### Runtime Entry And Thin Facade
+
+These files should stay thin:
+
+- `crates/forge-query/src/runtime/workspace_graph.rs`
+  - owns only the public `compose_graph(...)` entrypoint and immediate
+    delegation into the composition subsystem
+- `crates/forge-query/src/runtime/runtime_batch_writes.rs`
+  - owns batch execution orchestration, not graph-program planning semantics
+- `crates/forge-query/src/runtime/error.rs`
+  - owns typed runtime error integration, not denial construction logic
+
+Rule:
+
+- if a change is primarily about graph-program semantics, it should not be
+  implemented first in `workspace_graph.rs` or `runtime_batch_writes.rs`
+
+### Graph Composition Mutation Subsystem
+
+Expected home:
+
+```text
+crates/forge-query/src/runtime/mutation/graph_composition/
+  mod.rs
+  builder.rs
+  symbols.rs
+  declarations.rs
+  lifecycle.rs
+  lowering.rs
+  admission.rs
+  admission_trace.rs
+  denial.rs
+  hooks.rs
+  capability_families.rs
+```
+
+Ownership:
+
+- `builder.rs`
+  - user-facing composition builder state
+  - sequencing of builder calls
+  - no receipt/evidence shaping
+- `symbols.rs`
+  - typed composition-local symbol handles and symbol bookkeeping
+  - no lowering logic
+- `declarations.rs`
+  - entity and relation declaration operations
+  - declaration-time validation only
+- `lifecycle.rs`
+  - follow-up mutation and retirement steps
+  - lifecycle-step classification
+- `lowering.rs`
+  - canonical lowering from composition program into runtime write commands
+  - no public support wording
+- `admission.rs`
+  - capability-family classification for mixed-shape composition combinations
+  - no typed denial formatting text
+- `admission_trace.rs`
+  - stage-by-stage denied-path trace assembly
+  - no receipt shaping
+- `denial.rs`
+  - graph-composition-specific denial artifact construction
+  - denial kind mapping from lower/runtime outcomes
+- `hooks.rs`
+  - extension hook contracts for lowering, invariant packs, and interpretation
+  - must not own alternate execution semantics
+- `capability_families.rs`
+  - capability-family names and helper classification used by support artifacts
+
+Practical rule:
+
+- if `graph_composition.rs` survives as a single file, that is a temporary
+  transition state, not the intended end-state topology
+
+### Identity-Preserving Update And Retarget Subsystem
+
+Expected home:
+
+```text
+crates/forge-query/src/runtime/mutation/existing_update/
+  mod.rs
+  binding.rs
+  identity_preserving.rs
+  retarget.rs
+  verified.rs
+  assumptions.rs
+  denial.rs
+```
+
+Ownership:
+
+- `binding.rs`
+  - existing-target binding assembly and binding-family classification
+- `identity_preserving.rs`
+  - ordinary identity-preserving update semantics
+- `retarget.rs`
+  - created-or-existing target retarget rules under preserved identity
+- `verified.rs`
+  - verified update entry shaping, not bridge support reporting
+- `assumptions.rs`
+  - verified assumption set and snapshot/read-set digest shaping
+- `denial.rs`
+  - typed denial construction for mismatch, unsupported family, and
+    identity-not-preservable outcomes
+
+Rule:
+
+- relation retarget logic and entity retarget logic may share helpers, but
+  family-specific rules should not collapse into one giant switch file
+
+### Support And Capability Classification
+
+Expected home:
+
+```text
+crates/forge-query/src/runtime/support/graph_composition/
+  mod.rs
+  capability_rows.rs
+  denial_classes.rs
+  hook_rows.rs
+  admission_trace_rows.rs
+```
+
+Ownership:
+
+- `capability_rows.rs`
+  - public support-family rows for mixed-shape composition capabilities
+- `denial_classes.rs`
+  - public fail-closed denial class naming for composition capability posture
+- `hook_rows.rs`
+  - public support posture for allowed extension-hook classes where needed
+- `admission_trace_rows.rs`
+  - public naming for admission-trace stages and denial boundaries
+
+Rule:
+
+- support wording must not be assembled ad hoc inside mutation lowering files
+
+### Surface Artifact Topology
+
+Public proof-bearing surface types should stay structurally separate and small.
+
+Preferred home:
+
+```text
+crates/forge-query/src/runtime/surface/graph_composition/
+  mod.rs
+  breadth.rs
+  evidence.rs
+  program.rs
+  resolution_map.rs
+  lifecycle_outcome.rs
+  admission_trace.rs
+  denial.rs
+  support_verdict.rs
+```
+
+If migration cost makes a subdirectory unnecessary immediately, the existing
+separate files in `surface/` may remain, but the ownership split above must
+still hold.
+
+### Inspection Topology
+
+Expected home:
+
+```text
+crates/forge-query/src/runtime/inspection/unified/
+  batch_write.rs
+  component.rs
+  graph_composition.rs
+  admission_trace.rs
+```
+
+Ownership:
+
+- `graph_composition.rs`
+  - inspection-facing composition projection helpers
+  - composition-specific digest/counter rendering
+- `admission_trace.rs`
+  - denied-path inspection projection helpers
+  - stage/digest rendering for admission traces
+
+Rule:
+
+- `batch_write.rs` should aggregate, not become the permanent home for every
+  composition-specific inspection rule
+
+### Test And Certification Topology
+
+Expected home:
+
+```text
+crates/forge-query/src/runtime/tests/mutation/graph_composition/
+  mod.rs
+  declarations.rs
+  lifecycle.rs
+  mixed_shape.rs
+  denial.rs
+  admission_trace.rs
+  boundary.rs
+  support.rs
+  geometry_pressure.rs
+
+crates/forge-query/src/runtime/tests/assembly/support_profile/
+  authority_evidence_closeout.rs
+  graph_composition_capabilities.rs
+
+crates/forge-query/tests/ui/
+  runtime_graph_composition_symbol_constructor_private.rs
+  runtime_graph_composition_program_constructor_private.rs
+  runtime_graph_composition_evidence_constructor_private.rs
+  runtime_graph_composition_resolution_map_constructor_private.rs
+  runtime_graph_composition_denial_constructor_private.rs
+```
+
+Test ownership:
+
+- `declarations.rs`
+  - symbolic declaration happy paths
+- `lifecycle.rs`
+  - follow-up mutation and retirement lifecycle cases
+- `mixed_shape.rs`
+  - mixed created/existing/update/delete/retarget programs
+- `denial.rs`
+  - typed composition denials
+- `admission_trace.rs`
+  - denied-path stage and digest certification
+- `boundary.rs`
+  - reconstructed/generic batch fail-closed behavior
+- `geometry_pressure.rs`
+  - hostile geometry-inspired generic graph programs
+- `support.rs`
+  - support/admission and capability-family freezes for composition
+
+Rule:
+
+- one test file per concern, not one test file per milestone turn
+
+### Hook Integration Topology
+
+Allowed extension hooks should have explicit contract homes:
+
+```text
+crates/forge-query/src/runtime/mutation/graph_composition/hooks.rs
+crates/forge-query/src/runtime/surface/graph_composition/support_verdict.rs
+```
+
+The intended hook classes are:
+
+- lowering hooks
+- invariant-pack hooks
+- interpretation hooks
+- admission-trace interpretation hooks
+
+The following are intentionally not hook homes and should not grow alternate
+semantics:
+
+- `workspace_graph.rs`
+- `runtime_batch_writes.rs`
+- downstream domain facades
+
+### Phase-To-Module Mapping
+
+Minimum practical mapping for implementation planning:
+
+- Phase 1
+  - `mutation/graph_composition/capability_families.rs`
+  - `support/graph_composition/*`
+  - `surface/graph_composition/support_verdict.rs`
+- Phase 2
+  - `mutation/existing_update/*`
+  - `surface/graph_composition/lifecycle_outcome.rs`
+- Phase 3
+  - `mutation/graph_composition/{builder,declarations,lifecycle,lowering}.rs`
+  - `surface/graph_composition/{program,breadth,evidence,resolution_map}.rs`
+- Phase 4
+  - `mutation/graph_composition/{admission,admission_trace,denial,hooks}.rs`
+  - `inspection/unified/{graph_composition,admission_trace}.rs`
+- Phase 5
+  - bridge-backed support rows plus verified update/delete execution glue
+  - `mutation/existing_update/assumptions.rs`
+- Phase 6
+  - feature docs, closeout docs, support freezes, compile-fail fixtures
+
+### File Size Discipline For This Plan
+
+This plan inherits the workspace rule that code and test files stay at 400
+lines or fewer by default.
+
+Implementation consequence:
+
+- if a graph-composition or mixed-shape concern threatens to push a file above
+  the cap, split by responsibility immediately
+- do not defer decomposition into a later cleanup batch
+- if a current file is already near the cap, treat extraction as part of the
+  feature, not as optional polish
+
 ## Must Ship
 
 - one public identity-preserving existing-target relation update family
 - one public composed graph authoring family
+- one public mixed-shape graph composition capability contract
 - one honest bridge-backed backend-verified existing-truth support story
 - support metadata, receipts, and inspection for all of the above
 - hostile certification suites and compile-fail boundaries for the new
@@ -767,10 +1417,11 @@ Documentation must explicitly distinguish:
   proving identity-preserving relation updates remain identity-preserving in
   receipts, inspection, aggregate evidence, and support metadata
 - one named certification suite:
-  `Runtime Generic Graph Composition Test`
+  `Runtime Mixed-Shape Graph Composition Test`
   proving graph composition preserves symbolic references, resolved target
-  mapping, typed ordering meaning, graph breadth counters, and typed denial
-  under hostile incomplete-subgraph conditions
+  mapping, typed ordering meaning, graph breadth counters, lifecycle counters,
+  lifecycle outcome taxonomy, admission traces, and typed denial under hostile
+  incomplete-subgraph and mixed-shape conditions
 - one named certification suite:
   `Runtime Bridge-Backed Verified Existing-Truth Support Test`
   proving verified existing-truth surfaces are admitted or denied honestly on
@@ -787,13 +1438,19 @@ Documentation must explicitly distinguish:
 - exact counter assertions for:
   - identity-preserved versus denied update families
   - symbolic entity/relation breadth
+  - symbolic lifecycle-step breadth
+  - verification read-set breadth
+  - lifecycle outcome breadth by taxonomy family
   - symbolic-resolution count
+  - mixed-shape composition admitted versus denied capability count
   - bridge-backed verification admitted versus denied count by family
 - machine-checkable output bundles from each named certification suite
   including:
   - `truth_snapshot`
   - `inspection_snapshot`
   - `support_snapshot`
+  - `assumption_snapshot`
+  - `admission_trace_snapshot`
   - `counter_snapshot`
 
 ## Sequencing Notes
@@ -803,10 +1460,12 @@ Documentation must explicitly distinguish:
   mutation/runtime evidence story rather than defining a new runtime family.
 - It should land before downstream domains widen more ordinary graph workflows
   on top of Query, because otherwise those domains will be forced to invent
-  local substitutes for one of the three missing generic surfaces.
-- It should precede further Worth kernel widening for relation create/attach
-  and rewire families, because those families are the concrete hostile pressure
-  that proves the gap is real.
+  local substitutes for one of the remaining generic composition surfaces.
+- Further Worth kernel widening should be treated as hostile certification
+  pressure, not as the roadmap driver for generic composition semantics.
+- The roadmap priority after the current admitted surfaces is capability-generic
+  mixed-shape composition closure, not indefinite accumulation of tiny named
+  workflow lanes.
 
 ## Architectural Notes
 

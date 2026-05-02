@@ -53,9 +53,18 @@ pub(crate) fn command_declared_aspect_operations(
             .iter()
             .map(ForgeQueryAspectValue::declared_operation)
             .collect(),
-        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { aspects, .. } => aspects
+        ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
+            aspects,
+            symbolic_aspect_references,
+            ..
+        } => aspects
             .iter()
             .map(ForgeQueryAspectValue::declared_operation)
+            .chain(
+                symbolic_aspect_references
+                    .iter()
+                    .map(symbolic_aspect_reference_operation),
+            )
             .collect(),
         ForgeQueryWriteCommand::DeleteAspects {
             touched_aspect_paths,
@@ -131,6 +140,7 @@ pub(crate) fn command_declared_aspect_value_digest(
         ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects {
             asserted_aspects,
             aspects,
+            symbolic_aspect_references,
             ..
         } => {
             return Some(hash_parts(
@@ -159,6 +169,15 @@ pub(crate) fn command_declared_aspect_value_digest(
                             },
                             serde_json::to_string(aspect.value())
                                 .unwrap_or_else(|_| aspect.value().to_string())
+                        )
+                    }))
+                    .chain(symbolic_aspect_references.iter().map(|reference| {
+                        format!(
+                            "update-symbolic:{}:{}:{}:{}",
+                            reference.aspect_path(),
+                            reference.family(),
+                            reference.reference().symbol(),
+                            reference.reference().target_collection().unwrap_or("")
                         )
                     }))
                     .collect::<Vec<_>>(),

@@ -5,7 +5,8 @@ use crate::runtime::{
     ForgeQueryContinuityMutationEvidence, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence,
     ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
-    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicTargetReferenceEvidence,
 };
 
 impl ForgeQueryWriteReceipt {
@@ -43,6 +44,22 @@ impl ForgeQueryWriteReceipt {
         self.existing_truth_assertion_evidence.as_ref()
     }
 
+    pub fn verified_assumption_set(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerifiedAssumptionSet> {
+        self.existing_truth_assertion_evidence.as_ref().and_then(
+            crate::runtime::ForgeQueryExistingTruthAssertionEvidence::verified_assumption_set,
+        )
+    }
+
+    pub fn verification_read_set_breadth(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryVerificationReadSetBreadth> {
+        self.existing_truth_assertion_evidence.as_ref().and_then(
+            crate::runtime::ForgeQueryExistingTruthAssertionEvidence::verification_read_set_breadth,
+        )
+    }
+
     pub fn existing_truth_binding_evidence(
         &self,
     ) -> Option<&crate::runtime::ForgeQueryExistingTruthBindingEvidence> {
@@ -53,6 +70,12 @@ impl ForgeQueryWriteReceipt {
         &self,
     ) -> Option<&ForgeQuerySymbolicTargetReferenceEvidence> {
         self.symbolic_target_reference_evidence.as_ref()
+    }
+
+    pub fn symbolic_aspect_resolution_evidence(
+        &self,
+    ) -> &[ForgeQuerySymbolicAspectResolutionEvidence] {
+        &self.symbolic_aspect_resolution_evidence
     }
 
     pub fn naming_mutation_evidence(&self) -> Option<&ForgeQueryNamingMutationEvidence> {

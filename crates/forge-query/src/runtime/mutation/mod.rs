@@ -34,9 +34,17 @@ pub use continuity::{
     ForgeQueryContinuityMutationOutcomeClass,
 };
 pub use delete::ForgeQueryDeleteMutationBuilder;
+pub(crate) use graph_composition::graph_composition_error;
 pub use graph_composition::{
-    ForgeQueryGraphCompositionBuilder, ForgeQueryGraphEntitySymbol,
+    ForgeQueryGraphCompositionBuilder, ForgeQueryGraphCompositionDenial,
+    ForgeQueryGraphCompositionDenialKind, ForgeQueryGraphCompositionDomainInvariantDenial,
+    ForgeQueryGraphCompositionInvariantPackContext,
+    ForgeQueryGraphCompositionInvariantPackViolation, ForgeQueryGraphEntitySymbol,
     ForgeQueryGraphRelationMutationBuilder, ForgeQueryGraphRelationSymbol,
+};
+pub(crate) use graph_composition::{
+    GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES, GRAPH_COMPOSITION_LIFECYCLE_FAMILIES,
+    GRAPH_COMPOSITION_TARGET_COMBINATION_FAMILIES,
 };
 pub(crate) use lowering::{
     aspect_values_to_payload, command_declared_aspect_operations, command_declared_aspect_paths,

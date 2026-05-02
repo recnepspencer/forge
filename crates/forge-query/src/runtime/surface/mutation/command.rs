@@ -50,6 +50,7 @@ pub enum ForgeQueryWriteCommand {
         binding: ForgeQueryExistingTruthTargetBinding,
         asserted_aspects: Vec<ForgeQueryAspectValue>,
         aspects: Vec<ForgeQueryAspectValue>,
+        symbolic_aspect_references: Vec<ForgeQuerySymbolicAspectReference>,
         metadata: ForgeQueryMutationMetadata,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
@@ -141,8 +142,21 @@ impl ForgeQueryWriteCommand {
             Self::UpdateAspect { .. }
             | Self::UpdateAspects { .. }
             | Self::UpdateExistingAspects { .. }
-            | Self::VerifyThenUpdateExistingAspects { .. }
             | Self::Delete { .. } => None,
+            Self::VerifyThenUpdateExistingAspects {
+                binding,
+                symbolic_aspect_references,
+                ..
+            } => {
+                if let Some(collection) = binding.target_collection() {
+                    Some(collection.to_string())
+                } else {
+                    symbolic_aspect_references
+                        .first()
+                        .and_then(|reference| reference.reference().target_collection())
+                        .map(str::to_string)
+                }
+            }
             Self::VerifyThenDeleteExistingAspects { binding, .. } => {
                 binding.target_collection().map(str::to_string)
             }
@@ -295,12 +309,15 @@ impl ForgeQueryWriteCommand {
             Self::InsertAspects {
                 symbolic_aspect_references,
                 ..
+            }
+            | Self::VerifyThenUpdateExistingAspects {
+                symbolic_aspect_references,
+                ..
             } => symbolic_aspect_references,
             Self::Insert { .. }
             | Self::UpdateAspect { .. }
             | Self::UpdateAspects { .. }
             | Self::UpdateExistingAspects { .. }
-            | Self::VerifyThenUpdateExistingAspects { .. }
             | Self::VerifyThenDeleteExistingAspects { .. }
             | Self::AssertExistingAspects { .. }
             | Self::VerifyExistingAspects { .. }

@@ -16,12 +16,14 @@ pub(super) fn mutation_deltas_from_commit(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     commit: &CommitResult,
     declared_aspect_paths: &[String],
+    fallback_collection: Option<&str>,
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
     mutation_deltas_from_patch_records(
         runtime,
         commit.envelope().commit.version_id,
         commit.patch(),
         declared_aspect_paths,
+        fallback_collection,
     )
 }
 
@@ -30,6 +32,7 @@ pub(super) fn mutation_deltas_from_patch_records(
     version_id: forge_relational::facade::identity::VersionId,
     patch_records: &[PatchRecord],
     declared_aspect_paths: &[String],
+    fallback_collection: Option<&str>,
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
     let runtime = runtime
         .read()
@@ -37,6 +40,7 @@ pub(super) fn mutation_deltas_from_patch_records(
     let mut deltas = Vec::new();
     for record in patch_records {
         let Some(collection) = target_collection_for_patch(&runtime, version_id, &record.target)
+            .or_else(|| fallback_collection.map(ToString::to_string))
         else {
             continue;
         };
@@ -237,7 +241,7 @@ pub(super) fn write_command_label(command: &ForgeQueryWriteCommand) -> &'static 
     }
 }
 
-fn target_collection_for_patch(
+pub(super) fn target_collection_for_patch(
     runtime: &RelationalRuntime,
     version_id: forge_relational::facade::identity::VersionId,
     target: &RecordRef,
@@ -276,7 +280,7 @@ fn mutation_kind(change: RecordStructuralChange) -> ForgeQueryMutationKind {
     }
 }
 
-fn record_identity(target: &RecordRef) -> String {
+pub(super) fn record_identity(target: &RecordRef) -> String {
     match target {
         RecordRef::Entity(entity) => format!(
             "entity:{}:{}:{}",

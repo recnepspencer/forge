@@ -18,9 +18,9 @@ use worth_topo::facade::{
     worth_topology_runtime, WorthMilestoneOneCertificationError, WorthTopologyEditApplicationMode,
     WorthTopologyEditBatch, WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError,
     WorthTopologyQueryAssembly, WorthTopologyQueryEditExecution,
-    WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner,
-    WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot, WorthTopologyRuntimeAdapters,
-    WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
+    WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditFamilySupportStatus,
+    WorthTopologyQueryEditRunner, WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot,
+    WorthTopologyRuntimeAdapters, WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
     WorthTracedMilestoneOneCertificationReport, WorthTracedMilestoneTwoDerivedReadReport,
 };
 
@@ -112,6 +112,11 @@ fn _worth_query_native_topology_surface_contracts() {
         WorthTopologyRuntimeAdapters::support;
     let _: fn(&WorthTopologyRuntimeSupport) -> bool =
         WorthTopologyRuntimeSupport::query_edit_execution_supported;
+    let _: fn(
+        &WorthTopologyRuntimeSupport,
+        worth_topo::facade::WorthTopologyEditFamily,
+    ) -> WorthTopologyQueryEditFamilySupportStatus =
+        WorthTopologyRuntimeSupport::query_edit_family_support_status;
     let _: fn(
         &mut forge_query::facade::ForgeQueryWorkspace,
     )

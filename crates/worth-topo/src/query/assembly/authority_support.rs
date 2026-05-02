@@ -97,6 +97,24 @@ pub fn index_imported_relations(
             ImportedTopologyRelation {
                 query_identity: row.identity,
                 kind,
+                source_query_identity: row
+                    .payload
+                    .get("topology")
+                    .and_then(|value| value.get("source_identity"))
+                    .and_then(Value::as_str)
+                    .ok_or(
+                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
+                    )?
+                    .to_string(),
+                target_query_identity: row
+                    .payload
+                    .get("topology")
+                    .and_then(|value| value.get("target_identity"))
+                    .and_then(Value::as_str)
+                    .ok_or(
+                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
+                    )?
+                    .to_string(),
             },
         );
     }
@@ -140,7 +158,12 @@ pub fn mutation_evidence_for_intent(
             WorthTopologyMutation::UpsertEntity { kind, .. } => {
                 touched.extend(entity_touched_aspects(*kind));
             }
-            WorthTopologyMutation::UpsertRelation { kind, .. } => {
+            WorthTopologyMutation::UpsertRelation {
+                relation_id, kind, ..
+            } => {
+                if let Some(imported) = relations.get(relation_id) {
+                    touched.extend(relation_touched_aspects(imported.kind));
+                }
                 touched.extend(relation_touched_aspects(*kind));
             }
         }

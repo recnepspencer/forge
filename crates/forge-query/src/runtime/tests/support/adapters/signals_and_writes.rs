@@ -1,9 +1,19 @@
 use super::*;
 
+fn command_collection(command: &ForgeQueryWriteCommand) -> String {
+    command
+        .declared_collection()
+        .unwrap_or_else(|| match command.mutation_family() {
+            ForgeQueryMutationFamily::Insert
+            | ForgeQueryMutationFamily::Update
+            | ForgeQueryMutationFamily::Delete
+            | ForgeQueryMutationFamily::Assertion => "Task".to_string(),
+        })
+}
+
 pub(in crate::runtime::tests) struct TestWriteAuthority;
 
 impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
-    #[allow(deprecated)]
     fn write(
         &mut self,
         _bridge: &RuntimeBridge,
@@ -11,38 +21,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let aspect_paths = command.declared_aspect_paths();
-        let collection = match command {
-            ForgeQueryWriteCommand::Insert { collection, .. } => collection,
-            ForgeQueryWriteCommand::InsertAspects { collection, .. } => collection,
-            ForgeQueryWriteCommand::UpdateAspect { .. } => "Task".to_string(),
-            ForgeQueryWriteCommand::UpdateAspects { .. } => "Task".to_string(),
-            ForgeQueryWriteCommand::UpdateExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::VerifyThenUpdateExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::VerifyThenDeleteExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::AssertExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::UpdateSymbolicAspects { reference, .. } => {
-                reference.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::DeleteAspects { .. } => "Task".to_string(),
-            ForgeQueryWriteCommand::DeleteExistingAspects { binding, .. } => {
-                binding.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::DeleteSymbolicAspects { reference, .. } => {
-                reference.target_collection().unwrap_or("Task").to_string()
-            }
-            ForgeQueryWriteCommand::Delete { .. } => "Task".to_string(),
-        };
+        let collection = command_collection(&command);
         Ok(ForgeQueryMutationReceipt {
             commit_identity: "external-commit-1".to_string(),
             snapshot_token: "external-snapshot-1".to_string(),
@@ -87,6 +66,52 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CountingWriteAuthority {
             .set(self.attempted_writes.get().saturating_add(1));
         let mut authority = TestWriteAuthority;
         authority.write(_bridge, _relational_runtime, command)
+    }
+}
+
+pub(in crate::runtime::tests) struct AtomicBatchCountingWriteAuthority {
+    pub(in crate::runtime::tests) attempted_writes: std::rc::Rc<std::cell::Cell<usize>>,
+    pub(in crate::runtime::tests) attempted_batches: std::rc::Rc<std::cell::Cell<usize>>,
+}
+
+impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthority {
+    fn write(
+        &mut self,
+        _bridge: &RuntimeBridge,
+        _relational_runtime: Option<&mut RelationalRuntime>,
+        command: ForgeQueryWriteCommand,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+        self.attempted_writes
+            .set(self.attempted_writes.get().saturating_add(1));
+        let mut authority = TestWriteAuthority;
+        authority.write(_bridge, _relational_runtime, command)
+    }
+
+    fn write_batch(
+        &mut self,
+        _bridge: &RuntimeBridge,
+        _relational_runtime: Option<&mut RelationalRuntime>,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+        self.attempted_batches
+            .set(self.attempted_batches.get().saturating_add(1));
+        let mut receipts = Vec::with_capacity(commands.len());
+        for (index, command) in commands.into_iter().enumerate() {
+            let aspect_paths = command.declared_aspect_paths();
+            let collection = command_collection(&command);
+            receipts.push(ForgeQueryMutationReceipt {
+                commit_identity: "external-batch-commit-1".to_string(),
+                snapshot_token: "external-batch-snapshot-1".to_string(),
+                deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
+                    collection,
+                    entity_identity: format!("external-entity-{}", index + 1),
+                    kind: ForgeQueryMutationKind::Created,
+                    aspect_paths,
+                }],
+                bridge_authority: None,
+            });
+        }
+        Ok(receipts)
     }
 }
 

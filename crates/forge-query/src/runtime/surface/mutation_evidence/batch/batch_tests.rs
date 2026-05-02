@@ -202,6 +202,7 @@ fn existing_truth_mode_summary_digest_changes_with_mutation_family() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
+            "snapshot:test",
         )
         .expect("verified assertion should build"),
     );
@@ -236,6 +237,7 @@ fn existing_truth_mode_summary_digest_changes_with_assertion_mode() {
                 serde_json::json!("Seed title"),
             )
             .expect("aspect should build")],
+            "snapshot:test",
         )
         .expect("verified assertion should build"),
     );

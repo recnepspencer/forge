@@ -9,8 +9,8 @@ use crate::runtime::{
     ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationIntent,
-    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
-    ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
+    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQueryVerifiedExistingTruthAssertion,
 };
 
 mod accessors;
@@ -33,6 +33,7 @@ pub struct ForgeQueryWriteReceipt {
     pub(super) existing_truth_binding_evidence: Option<ForgeQueryExistingTruthBindingEvidence>,
     pub(super) symbolic_target_reference_evidence:
         Option<ForgeQuerySymbolicTargetReferenceEvidence>,
+    pub(super) symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
     pub(super) naming_mutation_evidence: Option<ForgeQueryNamingMutationEvidence>,
     pub(super) continuity_mutation_evidence: Option<ForgeQueryContinuityMutationEvidence>,
     pub(super) causality_evidence: Option<ForgeQueryMutationCausalityEvidence>,
@@ -65,6 +66,7 @@ impl ForgeQueryWriteReceipt {
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
+        symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         target_collection: Option<String>,
@@ -153,6 +155,7 @@ impl ForgeQueryWriteReceipt {
             existing_truth_assertion_evidence,
             existing_truth_binding_evidence,
             symbolic_target_reference_evidence,
+            symbolic_aspect_resolution_evidence,
             naming_mutation_evidence,
             continuity_mutation_evidence,
             causality_evidence,
@@ -186,6 +189,7 @@ impl ForgeQueryWriteReceipt {
         existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
         existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
         symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
+        symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
         naming_intent: Option<ForgeQueryNamingMutationIntent>,
         continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
         target_collection: Option<String>,
@@ -266,6 +270,7 @@ impl ForgeQueryWriteReceipt {
             existing_truth_assertion_evidence,
             existing_truth_binding_evidence,
             symbolic_target_reference_evidence,
+            symbolic_aspect_resolution_evidence,
             naming_mutation_evidence,
             continuity_mutation_evidence,
             causality_evidence,

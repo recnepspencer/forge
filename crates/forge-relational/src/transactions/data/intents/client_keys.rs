@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::symbols::data::{InternedString, StringInterner, SymbolPolicy};
 
-use super::{CreateIntent, EntityMutationIntent, MutationIntent};
+use super::{CreateIntent, EntityMutationIntent, MutationIntent, RelationMutationIntent};
 use crate::transactions::data::EntityReference;
 
 impl MutationIntent {
@@ -35,7 +35,11 @@ impl MutationIntent {
                     raw_values.insert(raw.clone());
                 }
             }
-            Self::Entity(_) | Self::Relation(_) => {}
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                collect_entity_reference_raw_client_key(&spec.source, raw_values);
+                collect_entity_reference_raw_client_key(&spec.target, raw_values);
+            }
+            Self::Entity(_) | Self::Relation(RelationMutationIntent::Delete(_)) => {}
         }
     }
 
@@ -72,7 +76,11 @@ impl MutationIntent {
                     spec.replacement.client_key.clone(),
                 );
             }
-            Self::Entity(_) | Self::Relation(_) => {}
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                normalize_entity_reference_client_key(&mut spec.source, interner, policy);
+                normalize_entity_reference_client_key(&mut spec.target, interner, policy);
+            }
+            Self::Entity(_) | Self::Relation(RelationMutationIntent::Delete(_)) => {}
         }
     }
 }

@@ -51,6 +51,9 @@ types, but must not remain ordinary public runtime entrypoints:
 - a materialized/interpreted/validated computed-surface test
 - a query-native edit application test over at least one admitted topology edit
   family
+- a query-native graph-shaped edit application test over at least one admitted
+  topology edit family that requires Query graph composition rather than scalar
+  batch mutation
 - a query-native branch-local test only for branch behavior admitted by Forge
   Query support
 - a query-native certification closeout test for Milestone 1 evidence
@@ -100,6 +103,7 @@ made:
 - affected computed surface count
 - materialization entity/relation breadth
 - topology relation traversal breadth
+- graph-composition breadth where graph-shaped edits are admitted
 - validation row count
 - fallback count and fallback class
 - branch-local read/write breadth where branch behavior is admitted

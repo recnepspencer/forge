@@ -4,7 +4,15 @@ impl ForgeQueryRuntime {
     pub fn public_authoritative_mutation_evidence_support_for_posture(
         posture: ForgeQueryRuntimeBackendPosture,
     ) -> ForgeQueryAuthoritativeMutationEvidenceSupport {
-        ForgeQueryAuthoritativeMutationEvidenceSupport::derive(posture)
+        ForgeQueryAuthoritativeMutationEvidenceSupport::derive(
+            &ForgeQueryRuntimeSupportProfile::compatibility_backend().with_posture(posture),
+        )
+    }
+
+    pub fn public_authoritative_mutation_evidence_support_for_support_profile(
+        support_profile: &ForgeQueryRuntimeSupportProfile,
+    ) -> ForgeQueryAuthoritativeMutationEvidenceSupport {
+        ForgeQueryAuthoritativeMutationEvidenceSupport::derive(support_profile)
     }
 
     pub fn public_authoritative_mutation_evidence_closeout_for_support_profile(
@@ -20,9 +28,10 @@ impl ForgeQueryRuntime {
             &support_matrix,
             &naming_contract,
         );
-        let query_support = Self::public_authoritative_mutation_evidence_support_for_posture(
-            public_api_contract.backend_posture(),
-        );
+        let query_support =
+            Self::public_authoritative_mutation_evidence_support_for_support_profile(
+                support_profile,
+            );
         let bridge_support =
             forge_runtime_bridge::facade::RuntimeBridge::public_authoritative_mutation_evidence_support();
         let bridge_closeout =
@@ -78,8 +87,8 @@ impl ForgeQueryRuntime {
     pub fn public_authoritative_mutation_evidence_support(
         &self,
     ) -> ForgeQueryAuthoritativeMutationEvidenceSupport {
-        Self::public_authoritative_mutation_evidence_support_for_posture(
-            self.public_api_contract().backend_posture(),
+        Self::public_authoritative_mutation_evidence_support_for_support_profile(
+            &self.backend.support_profile(),
         )
     }
 

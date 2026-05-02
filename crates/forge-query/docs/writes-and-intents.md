@@ -12,9 +12,21 @@ surfaces exist in the public vocabulary, but they remain support-gated and
 must not be treated as part of the same stable compatibility closure as direct
 writes.
 
+On primary backends, a multi-command `workspace.batch(...)` is one backend
+commit boundary, not a nice-looking wrapper around separate per-command
+commits. That atomicity rule is what makes invariant-complete graph closures
+and verified existing-target batches trustworthy instead of only “correct if
+nobody looks in the middle.”
+
 The important posture is simple: ordinary runtime code should not need
 `workspace.write(...)` or `ForgeQueryWriteCommand::*`. Those exist as expert or
 compatibility seams while the substrate is being replaced underneath the facade.
+
+On admitted families, `workspace.bind_existing_relation(...)` plus
+`workspace.update_existing(...)` is also the identity-preserving relation
+rewrite surface. The resulting receipt stays an `update` receipt and keeps the
+existing-truth relation binding intact instead of treating the rewrite as a
+delete-plus-recreate disguise.
 
 ## Why You Use It
 
@@ -30,22 +42,24 @@ Stable:
 
 - `workspace.insert(...)`
 - `workspace.update(...)`
+- `workspace.compose_graph(...)`
 - `workspace.bind_existing_entity(...)`
 - `workspace.bind_existing_relation(...)`
 - `workspace.update_existing(...)`
 - `workspace.assert_existing(...)`
-- `workspace.verify_existing(...)`
-- `workspace.update_existing_verified(...)`
 - `workspace.delete(...)`
 - `workspace.delete_with(...)`
 - `workspace.delete_existing(...)`
-- `workspace.delete_existing_verified(...)`
 - `workspace.batch(...)`
 - `workspace.write(...)`
 - `workspace.public_mutation_api_compatibility_report()`
 
 Vocabulary with support gate:
 
+- `workspace.verify_existing(...)`
+- `workspace.probe_existing(...)`
+- `workspace.update_existing_verified(...)`
+- `workspace.delete_existing_verified(...)`
 - `workspace.intent(...)`
 - `workspace.next_effect_intent(...)`
 - `write_intent(...)` inside effect declaration
@@ -53,6 +67,11 @@ Vocabulary with support gate:
 Important boundary:
 
 - direct writes are part of the stabilized public runtime facade
+- graph-shaped same-batch authoring belongs on `workspace.compose_graph(...)`,
+  not on caller-owned `workspace.batch(...)` string choreography
+- backend-verified existing-truth lanes are public and typed, but callers must
+  read the bridge-backed verification support rows before teaching them as
+  ordinary bridge-backed production flows
 - intent execution is public vocabulary, but not in the stable compatibility
   support set yet
 - callers must treat support admission and backend capability as authoritative
@@ -83,6 +102,7 @@ Direct write path:
 
 1. Declare the live/computed/effect surfaces that care about the truth.
 2. Execute `workspace.insert(...)`, `workspace.update(...)`,
+   `workspace.compose_graph(...)`,
    `workspace.bind_existing_entity(...)`,
    `workspace.bind_existing_relation(...)`,
    `workspace.update_existing(...)`, `workspace.assert_existing(...)`,
@@ -101,6 +121,9 @@ Direct write receipts now carry:
   authoritative preexisting truth
 - existing-truth assertion evidence when the mutation declared or backend-verified
   authoritative truth without mutating stored values
+- verified assumption-set evidence on backend-verified existing-truth lanes,
+  including assumption snapshot token, assumption snapshot digest, verified
+  precondition digest, and verification read-set breadth
 - canonical existing-truth binding digests so batch/session consumers can
   preserve one explicit binding story instead of re-summarizing component
   identities themselves
@@ -117,6 +140,8 @@ Direct write receipts now carry:
   or authoritative import session
 - aggregate existing-truth and symbolic-reference digests when the batch mixes
   preexisting authoritative targets and same-batch declarations
+- graph composition program, breadth, symbolic-resolution map, and composition
+  evidence when the batch came from `workspace.compose_graph(...)`
 - aggregate naming digests when the batch mixes attachment, rebinding, or
   removal outcomes and later consumers need one stable session explanation
 - continuity-aware authority evidence when an admitted update-existing mutation
@@ -211,6 +236,13 @@ see [Writes and Intent Examples](./writes-and-intents-examples.md).
 
 Direct writes are the clean stable path. Intents are the extensible strategy
 boundary around that path.
+
+For the support-row reading pattern around backend-verified lanes, see:
+
+- [Graph Composition Authoring](./graph-composition-authoring.md)
+- [Existing-Truth Probing](./existing-truth-probing.md)
+- [Existing-Truth Verified Updates](./existing-truth-verified-updates.md)
+- [Existing-Truth Verified Deletes](./existing-truth-verified-deletes.md)
 
 ## Inspection And Debugging
 

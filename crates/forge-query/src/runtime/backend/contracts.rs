@@ -1,5 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
+use serde_json::Value;
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
@@ -145,6 +146,19 @@ pub trait ForgeQueryRuntimeSourceAdapter {
     fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String>;
 
     fn snapshot_token(&self) -> String;
+}
+
+pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
+    fn verify_existing_truth_assertion(
+        &self,
+        binding: &ForgeQueryExistingTruthTargetBinding,
+        aspects: &[crate::runtime::ForgeQueryAspectValue],
+    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial>;
+
+    fn probe_existing_truth(
+        &self,
+        request: &ForgeQueryExistingTruthProbeRequest,
+    ) -> Result<Vec<(String, Value)>, ForgeQueryExistingTruthProbeDenial>;
 }
 
 pub trait ForgeQueryRuntimeWriteAuthorityAdapter {

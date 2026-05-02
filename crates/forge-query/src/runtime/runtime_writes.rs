@@ -111,6 +111,7 @@ impl ForgeQueryRuntime {
         let verified_existing_truth_assertion =
             self.verified_existing_assertion_for_command(&command)?;
         let symbolic_target_reference = None;
+        let symbolic_aspect_resolution_evidence = Vec::new();
         let naming_intent = command.naming_intent().cloned();
         let continuity_intent = command.continuity_intent().cloned();
         let declared_aspect_operations = command.declared_aspect_operations();
@@ -169,6 +170,7 @@ impl ForgeQueryRuntime {
             existing_truth_binding,
             verified_existing_truth_assertion,
             symbolic_target_reference,
+            symbolic_aspect_resolution_evidence,
             naming_intent,
             continuity_intent,
             declared_aspect_operations,
