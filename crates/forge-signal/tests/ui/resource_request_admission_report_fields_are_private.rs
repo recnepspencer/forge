@@ -1,6 +1,7 @@
 use forge_signal::facade::{
     AdmittedResourceRequest, ResourceBoundaryPerformanceEnvelope, ResourceLifecycleSummary,
-    ResourceLifecycleTransition, ResourceRequestAdmissionReport, ResourceSupersessionRecord,
+    ResourceIntentEquivalenceCoalescing, ResourceLifecycleTransition,
+    ResourceRequestAdmissionReport, ResourceSupersessionRecord,
 };
 
 fn admitted() -> AdmittedResourceRequest {
@@ -23,12 +24,17 @@ fn supersession() -> ResourceSupersessionRecord {
     loop {}
 }
 
+fn coalescing() -> ResourceIntentEquivalenceCoalescing {
+    loop {}
+}
+
 fn main() {
     let _ = ResourceRequestAdmissionReport {
         admitted_request: admitted(),
         lifecycle: lifecycle(),
         transition: transition(),
         supersession_record: Some(supersession()),
+        intent_equivalence_coalescing: Some(coalescing()),
         superseded_request: None,
         superseded_transition: None,
         performance: performance(),

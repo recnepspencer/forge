@@ -1,34 +1,170 @@
 # React Adapter Reference
 
-The package exposes a React adapter through:
+## What This Feature Is
 
-```ts
-import {
-  createReactSignalsStore,
-  useSignalValue,
-  useOutputValue,
-  useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+The React adapter is the thin React-facing consumer for a `forge-signal-wasm`
+signals instance.
+
+It does not create a second state engine. It subscribes to signal truth that
+already exists in the shared runtime.
+
+## Why You Use It
+
+- subscribe React components to signal handles
+- reuse one shared signals instance across a React tree
+- observe diagnostics from React without inventing a second observer layer
+- keep React integration lightweight while the runtime stays authoritative
+
+## Stable Entry Points
+
+- `createReactSignalsStore(signals)`
+- `useSignalValue(signal, store)`
+- `useOutputValue(output, store)`
+- `useSignalsDiagnostics(store)`
+
+## Core Mental Model
+
+The React adapter wraps an existing `signals` instance in a small subscription
+store:
+
+- the runtime still owns state and mutation semantics
+- the React store owns subscription fanout and cached snapshots
+- hooks read from the store, not from a separate React-only model
+
+If your app already has a `signals` instance, React should consume it. Do not
+mirror signal state into another store just to render components.
+
+## How It Executes
+
+1. create a shared `signals` instance
+2. create a React store from that instance
+3. pass handles and the store into hooks
+4. React subscribes through runtime `watch(...)`
+5. React receives snapshot updates when the underlying signal truth changes
+
+Diagnostics follow the same pattern through the runtime diagnostics surface.
+
+## Small Example
+
+```tsx
+import { createSignals } from "forge-signal-wasm";
+import { createReactSignalsStore, useSignalValue } from "forge-signal-wasm/react";
+
+const signals = createSignals();
+const count = signals.input(1);
+const store = createReactSignalsStore(signals);
+
+function CounterValue() {
+  const value = useSignalValue<number>(count, store);
+  return <span>{value}</span>;
+}
 ```
 
-This adapter is intentionally thin. React consumes runtime truth; it does not
-become a second state engine.
+This is the smallest honest example because:
 
-## Primary Functions
+- the runtime owns `count`
+- React only subscribes and renders
+- nothing is copied into a second app store
+
+Add `debugName` only if you want friendlier diagnostics while inspecting the
+shared runtime.
+
+## Real Example
+
+```tsx
+import { createSignals } from "forge-signal-wasm";
+import {
+  createReactSignalsStore,
+  useOutputValue,
+  useSignalValue,
+  useSignalsDiagnostics,
+} from "forge-signal-wasm/react";
+
+const signals = createSignals();
+
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+    });
+    const draft = input({});
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
+    const dirtyState = computed(() => Object.keys(draft()).length > 0);
+
+    return {
+      inputs: { serverItem, draft },
+      outputs: { effectiveItem, dirtyState },
+    };
+  });
+
+  return graph.expose({
+    inputs: {
+      draft: graph.input.optional(editor.inputs.draft),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
+  });
+});
+
+const store = createReactSignalsStore(signals);
+
+function ItemEditor() {
+  const effectiveItem = useOutputValue<{ title?: string }>(
+    itemWorkspace.output("effectiveItem"),
+    store,
+  );
+  const dirtyState = useOutputValue<boolean>(
+    itemWorkspace.output("dirtyState"),
+    store,
+  );
+  const diagnostics = useSignalsDiagnostics(store);
+
+  return (
+    <section>
+      <h2>{effectiveItem.title ?? "Untitled"}</h2>
+      <button
+        onClick={() => itemWorkspace.patchInput("draft", { title: "Ready to ship" })}
+      >
+        Patch Draft
+      </button>
+      <small>
+        dirty: {String(dirtyState)}
+        {" | "}
+        latest flow: {diagnostics.latestFlow?.graph?.id ?? "none"}
+      </small>
+    </section>
+  );
+}
+```
+
+What is authoritative here:
+
+- the graph and its inputs/outputs still live in the signal runtime
+- the React store only tracks subscriptions and snapshots
+- component actions still mutate through graph helpers or runtime transactions
+
+## How It Relates To Other Features
+
+- Pair this with the main app surface when React is your view layer.
+- Pair it with published graphs when you want stable output handles for
+  components.
+- Pair it with diagnostics when you want a lightweight dev panel.
+- Use host capabilities in the shared signals instance, not by reading browser
+  globals directly in React components.
+
+## API Notes
 
 ### `createReactSignalsStore(signals)`
 
-Creates a React-domain store wrapper around a `Signals` instance.
+Creates the shared React subscription store.
 
-The store is responsible for:
-
-- subscription glue
-- `useSyncExternalStore` integration
-- per-target listener fanout
-- diagnostics snapshot refresh
-- transaction and batch forwarding
-
-The returned `ReactSignalsStore` exposes:
+The returned store exposes:
 
 - `signals`
 - `subscribeSignal(signal, listener)`
@@ -43,165 +179,54 @@ The returned `ReactSignalsStore` exposes:
 
 ### `useSignalValue(signal, store)`
 
-Reads an `InputSignal` or `ComputedSignal` through the React store.
-
-Example:
-
-```ts
-const countValue = useSignalValue(count, store);
-const doubledValue = useSignalValue(doubled, store);
-```
+Use this for input or computed handles.
 
 ### `useOutputValue(output, store)`
 
-Reads an `OutputSignal` through the React store.
-
-Example:
-
-```ts
-const panelValue = useOutputValue(panel, store);
-```
+Use this for output handles, including graph-published outputs.
 
 ### `useSignalsDiagnostics(store)`
 
-Returns current diagnostics snapshots:
+Returns:
 
 - `latestObservation`
 - `latestFlow`
 - `performanceSummary`
 
-Example:
+## Inspection And Debugging
 
-```ts
-const diagnostics = useSignalsDiagnostics(store);
-```
+Useful store surfaces:
 
-## `SignalsDiagnosticsSnapshot`
+- `store.getSignalSnapshot(...)`
+- `store.getDiagnosticsSnapshot()`
+- `store.refreshDiagnostics()`
+- `store.performanceSummary()`
 
-`useSignalsDiagnostics(...)` and `store.getDiagnosticsSnapshot()` expose:
+Useful runtime surfaces behind the store:
 
-- `latestObservation`
-- `latestFlow`
-- `performanceSummary`
+- `signals.diagnostics()`
+- graph `inspectDiagnostics()`
 
-## `ReactPerformanceSummary`
+The React store is for consumption and fanout. If you need graph-contract or
+history truth, inspect the graph or runtime directly.
 
-`store.performanceSummary()` returns React-adapter counters:
+## Anti-Patterns
 
-- `activeSignalSubscriptionCount`
-- `activeReactSubscriberCount`
-- `activeRuntimeWatchHandleCount`
-- `diagnosticsSubscriberCount`
-- `sharedFanoutRatio`
+- copying signal state into a second React store
+- building component-local mirrors for values you already have as signal handles
+- using React state as the authoritative source when the runtime should own it
+- reading ambient browser state in components instead of host capability
+- disposing the shared store while components still depend on it
 
-This surface is useful for checking whether the React adapter is actually
-sharing runtime subscriptions instead of fanning out wastefully.
+## Current Limits
 
-## Store Methods
-
-### `subscribeSignal(signal, listener)`
-
-Subscribes a React-side listener to a signal or output target and returns an
-unsubscribe function.
-
-### `getSignalSnapshot(signal)`
-
-Returns the current snapshot value for a signal/output target.
-
-### `subscribeDiagnostics(listener)`
-
-Subscribes a listener to diagnostics snapshot changes and returns an
-unsubscribe function.
-
-### `getDiagnosticsSnapshot()`
-
-Returns the current diagnostics snapshot without going through a hook.
-
-### `transaction(callback)` and `batch(callback)`
-
-Forward to the shared `Signals` instance and refresh diagnostics snapshots
-after committed writes.
-
-### `refreshDiagnostics()`
-
-Forces a diagnostics snapshot refresh and returns the resulting snapshot.
-
-### `performanceSummary()`
-
-Returns the adapter-level `ReactPerformanceSummary`.
-
-### `dispose()`
-
-Tears down React-side store resources.
-
-## Store Behavior
-
-The React store:
-
-- dedupes subscriptions by signal id
-- refreshes diagnostics snapshots after committed writes
-- instruments the shared `Signals` instance so both:
-  - `store.transaction(...)`
-  - `signals.transaction(...)`
-  update React diagnostics consumers honestly
-
-## Typical Usage
-
-```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
-import {
-  createReactSignalsStore,
-  useOutputValue,
-  useSignalValue,
-  useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
-
-const signals = createSignals();
-const store = createReactSignalsStore(signals);
-
-const count = signals.input("count", 1);
-
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
-
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
-
-function Counter() {
-  const countValue = useSignalValue(count, store);
-  const doubledValue = useSignalValue(doubled, store);
-  const panelValue = useOutputValue(panel, store);
-  const diagnostics = useSignalsDiagnostics(store);
-
-  return { countValue, doubledValue, panelValue, diagnostics };
-}
-```
-
-## Semantics Notes
-
-- React subscriptions are built on the same committed observation substrate as
-  `watch(...)`
-- rollback still suppresses normal delivery
-- the store is a framework adapter, not a second source of truth
-- current web execution remains serial by default
+- the React adapter is intentionally thin
+- it does not define a React-only mutation language
+- it does not replace graph diagnostics/history surfaces
+- it assumes you already have a shared `signals` instance to consume
 
 ## Related Docs
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
+- [app_surface_reference.md](./app_surface_reference.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)

@@ -10,7 +10,7 @@ keywords = ["incremental", "runtime", "reactive", "diagnostics", "replay"]
 categories = ["data-structures", "caching", "science"]
 
 [features]
-default = ["profile-standard"]
+default = ["profile-extended"]
 parallel = []
 profile-compact = []
 profile-standard = []

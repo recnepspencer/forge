@@ -65,6 +65,7 @@ pub enum ResourceLifecycleTransitionKind {
     RequestAdmitted,
     RequestSuperseded,
     RequestCancelled,
+    RequestRejected,
     RequestTimedOut,
     CompletionAdmitted,
 }

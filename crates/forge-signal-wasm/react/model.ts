@@ -1,29 +1,12 @@
-export interface ObservationBoundarySummary {
-  branchId: number;
-  deliveredEventCount: number;
-  rollbackSuppressedEventCount: number;
-  boundaryEvents: ReadonlyArray<unknown>;
-}
-
-export interface WebPerformanceSummary {
-  activeHandleCount: number;
-  activeCallbackCount: number;
-  matchedWatcherBreadth: number;
-  deliveredObservationCount: number;
-  rollbackSuppressedDeliveryCount: number;
-  serialExecutorUsageCount: number;
-  parallelExecutorUsageCount: number;
-  outputSerializationCount: number;
-  outputSerializationBreadth: number;
-  jsCallbackInvocationCount: number;
-  jsCallbackFailureCount: number;
-  compatibilityReadCount: number;
-  compatibilityReadBreadth: number;
-}
+import type {
+  FlowSurfaceSummary,
+  ObservationSurfaceSummary,
+  WebPerformanceSummary,
+} from "../package/types/diagnostics.js";
 
 export interface SignalsDiagnosticsSnapshot {
-  latestObservation: ObservationBoundarySummary | null;
-  latestFlow: unknown | null;
+  latestObservation: ObservationSurfaceSummary | null;
+  latestFlow: FlowSurfaceSummary | null;
   performanceSummary: WebPerformanceSummary;
 }
 
@@ -40,7 +23,9 @@ export interface WebObservationNotice {
   meaningfulChange: boolean;
 }
 
-export interface DisposableHandleLike {}
+export interface DisposableHandleLike {
+  free(): void;
+}
 
 export interface SignalHandleLike {
   id: string;
@@ -52,9 +37,10 @@ export interface SignalsTransactionLike {
 }
 
 export interface SignalDiagnosticsLike {
-  latestObservation(): ObservationBoundarySummary | null;
-  latestFlow(): unknown | null;
+  latestObservation(): ObservationSurfaceSummary | null;
+  latestFlow(): FlowSurfaceSummary | null;
   performanceSummary(): WebPerformanceSummary;
+  subscribe(listener: () => void): DisposableHandleLike;
 }
 
 export interface CompatibilityAppLike {
@@ -62,6 +48,7 @@ export interface CompatibilityAppLike {
 }
 
 export interface SignalsLike {
+  read(target: SignalHandleLike | string): unknown;
   watch(
     target: SignalHandleLike | string,
     callback: (notice: WebObservationNotice) => void,

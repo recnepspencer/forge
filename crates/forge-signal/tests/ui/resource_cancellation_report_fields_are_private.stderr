@@ -1,15 +1,17 @@
-error[E0451]: fields `cancelled_request`, `denied_cancellation`, `lifecycle`, `transition` and `performance` of struct `ResourceCancellationReport` are private
-  --> tests/ui/resource_cancellation_report_fields_are_private.rs:24:9
+error[E0451]: fields `cancelled_request`, `dependent_propagation`, `denied_cancellation`, `lifecycle`, `transition` and `performance` of struct `ResourceCancellationReport` are private
+  --> tests/ui/resource_cancellation_report_fields_are_private.rs:29:9
    |
-23 |     let _ = ResourceCancellationReport {
+28 |     let _ = ResourceCancellationReport {
    |             -------------------------- in this type
-24 |         cancelled_request: Some(forged_cancelled()),
+29 |         cancelled_request: Some(forged_cancelled()),
    |         ^^^^^^^^^^^^^^^^^ private field
-25 |         denied_cancellation: None,
+30 |         dependent_propagation: Some(forged_propagation()),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+31 |         denied_cancellation: None,
    |         ^^^^^^^^^^^^^^^^^^^ private field
-26 |         lifecycle: Some(forged_lifecycle()),
+32 |         lifecycle: Some(forged_lifecycle()),
    |         ^^^^^^^^^ private field
-27 |         transition: Some(forged_transition()),
+33 |         transition: Some(forged_transition()),
    |         ^^^^^^^^^^ private field
-28 |         performance: forged_performance(),
+34 |         performance: forged_performance(),
    |         ^^^^^^^^^^^ private field

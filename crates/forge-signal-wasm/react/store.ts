@@ -7,15 +7,6 @@ import type {
   SignalsLike,
 } from "./model.js";
 
-const STORE_PATCH_STATE = new WeakMap<
-  SignalsLike,
-  {
-    stores: Set<{ scheduleDiagnosticsRefresh: () => void }>;
-    originalTransaction: SignalsLike["transaction"];
-    originalBatch: SignalsLike["batch"];
-  }
->();
-
 type SignalEntry = {
   id: string;
   target: SignalHandleLike | string;
@@ -40,16 +31,9 @@ function resolveSignalId(target: SignalHandleLike | string): string {
 
 function readSignalValue(
   signals: SignalsLike,
-  compatibilityApp: ReturnType<SignalsLike["compatibilityApp"]>,
   target: SignalHandleLike | string,
 ): unknown {
-  if (typeof target === "string") {
-    return compatibilityApp.read(target);
-  }
-  if (target && typeof target.get === "function") {
-    return target.get();
-  }
-  throw new TypeError("signal target must expose a get() method or a string id");
+  return signals.read(target);
 }
 
 function createDiagnosticsSnapshot(signals: SignalsLike): SignalsDiagnosticsSnapshot {
@@ -105,11 +89,16 @@ function enqueueMicrotask(callback: () => void): void {
 }
 
 export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore {
-  const compatibilityApp = signals.compatibilityApp();
   const signalEntries = new Map<string, SignalEntry>();
   const diagnosticsListeners = new Set<() => void>();
+  let diagnosticsRuntimeHandle: DisposableHandleLike | null = null;
   let diagnosticsSnapshot = createDiagnosticsSnapshot(signals);
   let diagnosticsRefreshQueued = false;
+
+  function refreshDiagnosticsSnapshot(): void {
+    diagnosticsSnapshot = createDiagnosticsSnapshot(signals);
+    notifyAll(diagnosticsListeners);
+  }
 
   function scheduleDiagnosticsRefresh(): void {
     if (diagnosticsRefreshQueued) {
@@ -118,40 +107,26 @@ export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore
     diagnosticsRefreshQueued = true;
     enqueueMicrotask(() => {
       diagnosticsRefreshQueued = false;
-      diagnosticsSnapshot = createDiagnosticsSnapshot(signals);
-      notifyAll(diagnosticsListeners);
+      refreshDiagnosticsSnapshot();
     });
   }
 
-  let patchState = STORE_PATCH_STATE.get(signals);
-  if (!patchState) {
-    patchState = {
-      stores: new Set(),
-      originalTransaction: signals.transaction.bind(signals),
-      originalBatch: signals.batch.bind(signals),
-    };
-    STORE_PATCH_STATE.set(signals, patchState);
-    const newPatchState = patchState;
-
-    signals.transaction = ((callback) => {
-      const summary = newPatchState.originalTransaction(callback);
-      for (const store of newPatchState.stores) {
-        store.scheduleDiagnosticsRefresh();
-      }
-      return summary;
-    }) as SignalsLike["transaction"];
-
-    signals.batch = ((callback) => {
-      const summary = newPatchState.originalBatch(callback);
-      for (const store of newPatchState.stores) {
-        store.scheduleDiagnosticsRefresh();
-      }
-      return summary;
-    }) as SignalsLike["batch"];
+  function ensureDiagnosticsRuntimeSubscription(): void {
+    if (diagnosticsRuntimeHandle) {
+      return;
+    }
+    diagnosticsRuntimeHandle = signals.diagnostics().subscribe(() => {
+      scheduleDiagnosticsRefresh();
+    });
   }
-  const ensuredPatchState = patchState;
-  const storeState = { scheduleDiagnosticsRefresh };
-  ensuredPatchState.stores.add(storeState);
+
+  function releaseDiagnosticsRuntimeSubscription(): void {
+    if (!diagnosticsRuntimeHandle) {
+      return;
+    }
+    diagnosticsRuntimeHandle.free();
+    diagnosticsRuntimeHandle = null;
+  }
 
   function ensureSignalEntry(target: SignalHandleLike | string): SignalEntry {
     const id = resolveSignalId(target);
@@ -222,16 +197,20 @@ export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore
   function getSignalSnapshot(target: SignalHandleLike | string): unknown {
     const entry = ensureSignalEntry(target);
     if (entry.snapshotVersion !== entry.version) {
-      entry.snapshot = readSignalValue(signals, compatibilityApp, entry.target);
+      entry.snapshot = readSignalValue(signals, entry.target);
       entry.snapshotVersion = entry.version;
     }
     return entry.snapshot;
   }
 
   function subscribeDiagnostics(listener: () => void): () => void {
+    ensureDiagnosticsRuntimeSubscription();
     diagnosticsListeners.add(listener);
     return () => {
       diagnosticsListeners.delete(listener);
+      if (diagnosticsListeners.size === 0) {
+        releaseDiagnosticsRuntimeSubscription();
+      }
     };
   }
 
@@ -248,8 +227,7 @@ export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore
   }
 
   function refreshDiagnostics(): SignalsDiagnosticsSnapshot {
-    diagnosticsSnapshot = createDiagnosticsSnapshot(signals);
-    notifyAll(diagnosticsListeners);
+    refreshDiagnosticsSnapshot();
     return diagnosticsSnapshot;
   }
 
@@ -265,13 +243,7 @@ export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore
     }
     signalEntries.clear();
     diagnosticsListeners.clear();
-
-    ensuredPatchState.stores.delete(storeState);
-    if (ensuredPatchState.stores.size === 0) {
-      signals.transaction = ensuredPatchState.originalTransaction;
-      signals.batch = ensuredPatchState.originalBatch;
-      STORE_PATCH_STATE.delete(signals);
-    }
+    releaseDiagnosticsRuntimeSubscription();
   }
 
   return Object.freeze({

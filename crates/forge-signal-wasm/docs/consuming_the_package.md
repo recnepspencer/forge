@@ -1,149 +1,321 @@
 # Consuming forge-signal-wasm
 
-This guide explains how to build, prepare, install, and import
-`forge-signal-wasm` into another web application.
+## What This Guide Is
 
-## Package Shapes
+This guide covers how to install, build, verify, and consume the public
+`forge-signal-wasm` package.
 
-There are two package shapes to be aware of:
+Use this when you need the package entrypoints, local package workflow, or the
+smallest honest examples for the shipped surface.
 
-- raw `wasm-pack` output in `crates/forge-signal-wasm/pkg`
-- prepared package output after the Forge packaging script rewrites metadata and
-  exports
+## Why You Use It
 
-For real app consumption, use the prepared package.
+- install the npm package cleanly
+- consume a locally prepared package during workspace development
+- understand the main callable surface before moving into the deeper reference
+  docs
+- verify that the tarball you are about to publish is internally consistent
 
-The prepare step:
+## Stable Entry Points
 
-- rewrites the package name into the scoped private package form
-- installs the `./react` subpath export
-- copies the stronger hand-authored TypeScript declarations
-- compiles and includes the React adapter subpath
-- makes the package metadata honest for private registry use
+- `createSignals(...)`
+- `createReactSignalsStore(...)`
+- `signals.spec.*`
+- `signals.graph(...)`
+- `signals.importGraph(...)`
 
-## Build And Prepare
+Package-preparation and proof entrypoints:
 
-From the Forge workspace root:
+- `scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish`
+- `scripts/wasm/verify-forge-signal-wasm-package.mjs`
+
+## Install Shapes
+
+### Public npm package
+
+```bash
+npm install forge-signal-wasm
+```
+
+### Public npm package with React adapter
+
+```bash
+npm install forge-signal-wasm react
+```
+
+### Local prepared package during development
+
+Build from the Forge workspace root:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 ```
 
-Then prepare the package:
+Prepare the package:
 
 ```powershell
-$env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-After preparation, the package is ready to be consumed as:
+Verify the package:
 
-```text
-@aust-group/forge-signal-wasm
+```powershell
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-If you use a different scope, set `FORGE_SIGNAL_WASM_SCOPE` accordingly.
-
-## Install Into Another App
-
-### Local File Install
-
-In another app's `package.json`:
+Then consume the local folder:
 
 ```json
 {
   "dependencies": {
-    "@aust-group/forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
+    "forge-signal-wasm": "file:../path/to/forge/crates/forge-signal-wasm/pkg"
   }
 }
 ```
 
-Then install normally with your package manager.
+## Public Publish Flow
 
-### Private Registry Install
+The honest release lane is:
 
-If you publish the prepared package to GitHub Packages or another private
-registry, install it under the scoped package name:
-
-```json
-{
-  "dependencies": {
-    "@aust-group/forge-signal-wasm": "0.1.0"
-  }
-}
+```powershell
+wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
+node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
+cd crates/forge-signal-wasm/pkg
+npm publish --access public
 ```
 
-The prep script writes package metadata and `.npmrc` support for private
-package distribution.
+Or use the one-command release gate:
 
-## Import Surface
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
+```
 
-### Core App-First Runtime
+Good to know:
+
+- the verifier is not optional ceremony
+- it proves the prepared tarball contains the files the public entrypoints
+  actually reference
+- it also proves a clean consumer can import and type-check the package
+
+## Core Imports
+
+### Main callable surface
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 ```
 
-### React Adapter
+### Host capability helpers
+
+```ts
+import {
+  createSignals,
+  hostCapabilityPlan,
+  visibilityCapability,
+} from "forge-signal-wasm";
+```
+
+### React adapter
 
 ```ts
 import {
   createReactSignalsStore,
-  useSignalValue,
   useOutputValue,
+  useSignalValue,
   useSignalsDiagnostics,
-} from "@aust-group/forge-signal-wasm/react";
+} from "forge-signal-wasm/react";
 ```
 
-## Minimal Example
+## Small Example
+
+This is the smallest honest example for the current app lane:
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input("count", 1);
-
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
-
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
 
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
 
-console.log(panel.get());
+console.log(doubled());
 ```
 
-## Runtime Behavior Notes
+Why this is the smallest honest example:
 
-- current web execution is intentionally serial by default
-- the package does not require a separate user-called wasm bootstrap function
-- `createSignals()` is the primary entrypoint
-- `watch` and `effect` inherit committed observation semantics from
-  `forge-signal`
-- rollback suppresses normal delivery
+- it uses handle-based local authoring
+- it does not rely on explicit ids
+- it still shows the real runtime mutation path
+
+## Real Example
+
+This is a more realistic consumer shape that uses local state, linked state,
+controller composition, and graph publication:
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed, linked }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+      workflowTargetStateId: "ready",
+    });
+
+    const draft = input({});
+
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
+
+    const selectedWorkflowTarget = linked({
+      source: () => [
+        { id: "draft", label: "Draft" },
+        { id: "ready", label: "Ready" },
+      ],
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0]
+      ),
+    });
+
+    const dirtyState = computed(() => Object.keys(draft()).length > 0);
+
+    return {
+      inputs: { serverItem, draft, selectedWorkflowTarget },
+      outputs: { effectiveItem, dirtyState },
+    };
+  });
+
+  return graph.expose({
+    inputs: {
+      serverItem: graph.input.required(editor.inputs.serverItem, {
+        authority: "readOnly",
+      }),
+      draft: graph.input.optional(editor.inputs.draft),
+      selectedWorkflowTarget: graph.input.optional(
+        editor.inputs.selectedWorkflowTarget,
+      ),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
+  });
+});
+
+itemWorkspace.patchInput("draft", {
+  title: "Ready to ship",
+});
+
+console.log(itemWorkspace.read());
+```
+
+## Main Lane vs Explicit Named Lane
+
+The normal app lane is:
+
+- `signals.input(value)`
+- `signals.computed(() => ...)`
+- `signals.output(() => ...)`
+
+The explicit named lane is:
+
+- `signals.spec.input("name", value)`
+- `signals.spec.computedCallback("name", () => ...)`
+- `signals.spec.outputCallback("name", () => ...)`
+
+Use the app lane for ordinary application code. Use `signals.spec` when you
+need structural names because names are part of the contract.
+
+Add `debugName` only when you want friendlier diagnostics or clearer inspection
+output. It is optional metadata, not part of local identity.
+
+## Graph Boundaries
+
+When you publish a graph, that is where explicit public names become real:
+
+```ts
+const graph = signals.graph("counter", {
+  inputs: {
+    count,
+  },
+  outputs: {
+    doubled,
+  },
+});
+```
+
+Graph inputs can also carry public input posture:
+
+```ts
+graph.expose({
+  inputs: {
+    serverItem: graph.input.required(editor.inputs.serverItem, {
+      authority: "readOnly",
+    }),
+    draft: graph.input.optional(editor.inputs.draft),
+  },
+  outputs: {
+    effectiveItem: editor.outputs.effectiveItem,
+  },
+});
+```
+
+That is where:
+
+- required vs optional becomes explicit
+- authority classes become explicit
+- public contract names become explicit
+
+## Mutation Helpers
+
+Local input helpers:
+
+```ts
+draft.patch({ done: true });
+draft.assign({ title: "Ready to ship" });
+draft.reset();
+```
+
+Graph boundary helpers:
+
+```ts
+graph.writeInput("draft", { title: "Queued" });
+graph.patchInput("draft", { reviewer: "Avery" });
+graph.resetInput("draft");
+```
+
+These helpers still lower through the same runtime mutation model as
+`transaction(...)`.
+
+## Import And Restore
+
+Published graphs can export exact same-runtime restore artifacts:
+
+```ts
+const definition = graph.exportDefinition();
+const snapshot = graph.exportSnapshot();
+const restoredGraph = signals.importGraph(definition, snapshot);
+```
+
+Good to know:
+
+- this is an exact graph-restore lane
+- portable graph import is still denied on this surface
+- `importPosture()` tells you the admitted restore posture directly
 
 ## What To Read Next
 
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [app_surface_reference.md](./app_surface_reference.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)

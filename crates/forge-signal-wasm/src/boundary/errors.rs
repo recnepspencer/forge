@@ -1,9 +1,11 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 
 use forge_signal::facade::SignalError;
 
-#[derive(Debug, Clone, Serialize)]
+use crate::runtime::compute_callbacks::ComputeCallbackFailure;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ForgeSignalJsError {
     pub code: String,
@@ -13,6 +15,38 @@ pub struct ForgeSignalJsError {
 }
 
 impl ForgeSignalJsError {
+    pub fn deferred(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        context: Option<String>,
+    ) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            context,
+        }
+    }
+
+    pub fn callback_deferred(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        context: Option<String>,
+    ) -> Self {
+        Self::deferred(code, message, context)
+    }
+
+    pub fn callback_failure(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        context: Option<String>,
+    ) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            context,
+        }
+    }
+
     pub fn invalid_input(message: impl Into<String>) -> Self {
         Self {
             code: "invalidInput".to_owned(),
@@ -25,6 +59,16 @@ impl ForgeSignalJsError {
         Self {
             code: "internal".to_owned(),
             message: message.into(),
+            context: None,
+        }
+    }
+
+    pub fn from_compute_callback_failure(value: ComputeCallbackFailure) -> Self {
+        Self {
+            code: value
+                .code
+                .unwrap_or_else(|| "computeCallbackFailure".to_owned()),
+            message: value.message,
             context: None,
         }
     }

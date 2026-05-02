@@ -1,25 +1,5 @@
 use crate::data::dependency::DependencyEdge;
-use crate::data::error::SignalError;
-use crate::data::graph::SignalGraph;
 use crate::logic::explain::{RewiringDependency, RewiringSummary};
-use crate::logic::prepared::PreparedDependencyCapture;
-
-pub(super) fn build_prepared_dependency_edges(
-    graph: &mut SignalGraph,
-    capture: &PreparedDependencyCapture,
-) -> Result<Vec<DependencyEdge>, SignalError> {
-    Ok(capture
-        .as_slice()
-        .iter()
-        .map(|dependency| {
-            graph.build_dependency_edge(
-                dependency.source,
-                dependency.aspect,
-                dependency.scope.clone(),
-            )
-        })
-        .collect())
-}
 
 pub(super) fn count_dependency_updates(
     current_dependencies: &[DependencyEdge],

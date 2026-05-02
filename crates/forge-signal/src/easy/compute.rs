@@ -2,6 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
+use crate::data::dependency::DependencyEdge;
 use crate::facade::{AspectVersion, NodeEvaluationResult, NodeId, SignalError};
 use crate::logic::prepared::{PreparedDependencyCapture, PreparedEvaluation};
 
@@ -13,6 +14,7 @@ pub(crate) trait ErasedComputed: Send + Sync {
         node: NodeId,
         values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         staged_values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+        current_dependencies: &[DependencyEdge],
         current_version: u64,
     ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation, bool), SignalError>;
 }
@@ -36,6 +38,7 @@ where
         node: NodeId,
         values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         staged_values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+        current_dependencies: &[DependencyEdge],
         current_version: u64,
     ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation, bool), SignalError> {
         let mut capture = PreparedDependencyCapture::default();
@@ -54,6 +57,7 @@ where
         let prepared =
             PreparedEvaluation::from_result(NodeEvaluationResult::from_version(next_version))
                 .with_dependencies(capture);
+        let _ = current_dependencies;
         Ok((Box::new(value), prepared, meaningful_change))
     }
 }

@@ -3,7 +3,7 @@ use smallvec::SmallVec;
 
 use crate::data::aspect::{
     Aspect, AspectMask, AspectVersion, AspectVersionHeader, PartitionVersionMap,
-    PartitionVersionOverrides, MAX_ASPECTS,
+    PartitionVersionOverrides,
 };
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
@@ -108,7 +108,7 @@ impl NodeEntry {
         Self {
             hot: NodeHotData {
                 state: NodeState::Dirty,
-                dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
+                dirty_aspects: AspectMask::ALL,
                 dirty_partition_scope_aspects: AspectMask::EMPTY,
                 aspect_version_header: AspectVersionHeader::zero(),
                 dependencies_id: DependencySetId::EMPTY,

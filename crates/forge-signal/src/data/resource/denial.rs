@@ -25,6 +25,7 @@ pub enum CompletionDenialClass {
     Retired,
     RetainedHistoryUnavailable,
     Cancelled,
+    Rejected,
     TimedOut,
     Impossible,
 }

@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::temporal::TemporalDuration;
+
 use super::policy::{
-    ResourceCancellationPolicyDeclaration, ResourceLifecyclePolicyDeclaration,
-    ResourceObservationPolicyDeclaration, ResourceOutputContinuityPolicyDeclaration,
-    ResourceRetentionPolicyDeclaration, ResourceRetryPolicyDeclaration,
+    ResourceCancellationPolicyDeclaration, ResourceDiagnosticsPolicyDeclaration,
+    ResourceLifecyclePolicyDeclaration, ResourceObservationPolicyDeclaration,
+    ResourceOutputContinuityPolicyDeclaration, ResourceReplayPolicyDeclaration,
+    ResourceRetentionPolicyDeclaration, ResourceRetryBudgetScope, ResourceRetryPolicyDeclaration,
     ResourceRevalidationPolicyDeclaration, ResourceStaleAfterPolicyDeclaration,
     ResourceSupersessionPolicyDeclaration, ResourceTimeoutPolicyDeclaration,
 };
@@ -71,6 +74,14 @@ pub struct ResourceNodeDeclaration {
     observation_policy: ResourceObservationPolicyDeclaration,
     output_continuity_policy: ResourceOutputContinuityPolicyDeclaration,
     retention_policy: ResourceRetentionPolicyDeclaration,
+    diagnostics_policy: ResourceDiagnosticsPolicyDeclaration,
+    replay_policy: ResourceReplayPolicyDeclaration,
+    cancellation_grace_period: Option<TemporalDuration>,
+    declared_dependent_cancellation_nodes: Vec<ResourceNodeId>,
+    retry_max_attempts: Option<u32>,
+    retry_deterministic_jitter: Option<TemporalDuration>,
+    retry_budget_scope: Option<ResourceRetryBudgetScope>,
+    retry_budget_limit: Option<u32>,
     payload_contract: ResourcePayloadContract,
 }
 
@@ -88,6 +99,14 @@ impl ResourceNodeDeclaration {
             observation_policy: ResourceObservationPolicyDeclaration::default(),
             output_continuity_policy: ResourceOutputContinuityPolicyDeclaration::default(),
             retention_policy: ResourceRetentionPolicyDeclaration::default(),
+            diagnostics_policy: ResourceDiagnosticsPolicyDeclaration::default(),
+            replay_policy: ResourceReplayPolicyDeclaration::default(),
+            cancellation_grace_period: None,
+            declared_dependent_cancellation_nodes: Vec::new(),
+            retry_max_attempts: None,
+            retry_deterministic_jitter: None,
+            retry_budget_scope: None,
+            retry_budget_limit: None,
             payload_contract,
         }
     }
@@ -136,8 +155,40 @@ impl ResourceNodeDeclaration {
         &self.retention_policy
     }
 
+    pub fn diagnostics_policy(&self) -> &ResourceDiagnosticsPolicyDeclaration {
+        &self.diagnostics_policy
+    }
+
+    pub fn replay_policy(&self) -> &ResourceReplayPolicyDeclaration {
+        &self.replay_policy
+    }
+
     pub fn payload_contract(&self) -> &ResourcePayloadContract {
         &self.payload_contract
+    }
+
+    pub fn cancellation_grace_period(&self) -> Option<TemporalDuration> {
+        self.cancellation_grace_period
+    }
+
+    pub fn declared_dependent_cancellation_nodes(&self) -> &[ResourceNodeId] {
+        &self.declared_dependent_cancellation_nodes
+    }
+
+    pub fn retry_max_attempts(&self) -> Option<u32> {
+        self.retry_max_attempts
+    }
+
+    pub fn retry_deterministic_jitter(&self) -> Option<TemporalDuration> {
+        self.retry_deterministic_jitter
+    }
+
+    pub fn retry_budget_scope(&self) -> Option<ResourceRetryBudgetScope> {
+        self.retry_budget_scope
+    }
+
+    pub fn retry_budget_limit(&self) -> Option<u32> {
+        self.retry_budget_limit
     }
 
     pub fn with_lifecycle_policy(mut self, policy: ResourceLifecyclePolicyDeclaration) -> Self {
@@ -199,6 +250,49 @@ impl ResourceNodeDeclaration {
 
     pub fn with_retention_policy(mut self, policy: ResourceRetentionPolicyDeclaration) -> Self {
         self.retention_policy = policy;
+        self
+    }
+
+    pub fn with_diagnostics_policy(mut self, policy: ResourceDiagnosticsPolicyDeclaration) -> Self {
+        self.diagnostics_policy = policy;
+        self
+    }
+
+    pub fn with_replay_policy(mut self, policy: ResourceReplayPolicyDeclaration) -> Self {
+        self.replay_policy = policy;
+        self
+    }
+
+    pub fn with_cancellation_grace_period(mut self, grace_period: TemporalDuration) -> Self {
+        self.cancellation_grace_period = Some(grace_period);
+        self
+    }
+
+    pub fn with_declared_dependent_cancellation_nodes(
+        mut self,
+        nodes: impl IntoIterator<Item = ResourceNodeId>,
+    ) -> Self {
+        self.declared_dependent_cancellation_nodes = nodes.into_iter().collect();
+        self
+    }
+
+    pub fn with_retry_max_attempts(mut self, max_attempts: u32) -> Self {
+        self.retry_max_attempts = Some(max_attempts);
+        self
+    }
+
+    pub fn with_retry_deterministic_jitter(mut self, max_jitter: TemporalDuration) -> Self {
+        self.retry_deterministic_jitter = Some(max_jitter);
+        self
+    }
+
+    pub fn with_retry_budget(
+        mut self,
+        scope: ResourceRetryBudgetScope,
+        retry_budget_limit: u32,
+    ) -> Self {
+        self.retry_budget_scope = Some(scope);
+        self.retry_budget_limit = Some(retry_budget_limit);
         self
     }
 }

@@ -1,78 +1,71 @@
 # forge-signal-wasm Documentation
 
-`forge-signal-wasm` is the framework-agnostic web runtime for Forge Signal.
-It exposes an app-first API for state, derivation, observation, diagnostics,
-history, and compatibility access, plus a React adapter through the package
-subpath.
+These docs cover the shipped `forge-signal-wasm` product surface.
+
+They are organized around feature use, not milestone history.
 
 ## Start Here
 
-- [README.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/README.md)
-  Product overview and the shortest happy path.
-- [consuming_the_package.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/consuming_the_package.md)
-  Build, prepare, install, import, and package-shape guidance for other apps.
-- [app_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/app_surface_reference.md)
-  Reference for `createSignals()`, `input`, `computed`, `output`, `watch`,
-  `effect`, `transaction`, `batch`, and `nuke`.
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-  Reference for diagnostics, latest observation, latest flow, history, branch,
-  snapshot, replay, and adapter/export surfaces.
-- [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
-  Reference for the lower-level `SignalApp` and `SignalRuntime` compatibility
-  surfaces.
-- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
-  Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
-  and why subscriptions remain node-scoped.
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
-  Reference for `@.../forge-signal-wasm/react`.
+- [README.md](../README.md)
+  Product overview and the shortest path through the package.
+- [consuming_the_package.md](./consuming_the_package.md)
+  Install, build, verify, import, and consume the package.
+- [app_surface_reference.md](./app_surface_reference.md)
+  Main app-facing API: local state, linked state, controllers, graphs,
+  mutation helpers, and inspection surfaces.
 
-## Design And Architecture
+## Subject Guide
 
-- [web_runtime_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/web_runtime_spec.md)
-  Web runtime product and architecture spec.
-- [react_adapter_spec.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_spec.md)
-  React-domain adapter spec.
+- **Local state, derived values, linked state, controllers, and graphs**
+  [app_surface_reference.md](./app_surface_reference.md)
+- **Host capabilities**
+  [host_capabilities.md](./host_capabilities.md)
+- **Diagnostics, history, replay, export, and restore**
+  [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- **Aspects**
+  [aspects_reference.md](./aspects_reference.md)
+- **Compatibility / lower-level runtime surfaces**
+  [compatibility_surface_reference.md](./compatibility_surface_reference.md)
+- **React integration**
+  [react_adapter_reference.md](./react_adapter_reference.md)
 
-## Product Model
+## Recommended Reading Order
 
-The primary web concepts are:
+For someone learning the package from scratch:
 
-- `input`
-- `computed`
-- `output`
-- `watch`
-- `effect`
-- `transaction`
-- `nuke`
-- real aspect-aware derivation and invalidation
+1. [README.md](../README.md)
+2. [consuming_the_package.md](./consuming_the_package.md)
+3. [app_surface_reference.md](./app_surface_reference.md)
+4. [host_capabilities.md](./host_capabilities.md)
+5. [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+6. [react_adapter_reference.md](./react_adapter_reference.md)
 
-The package also exposes:
+## What These Docs Intentionally Do Not Cover
 
-- diagnostics and latest observation summaries
-- history, branching, replay, merge planning, and snapshots
-- adapter/export helpers
-- lower-level compatibility/runtime surfaces
-- a React adapter subpath
+This folder is for product-facing docs.
 
-## Semantic Summary
+It does not carry:
 
-- `input` is mutable source state.
-- `computed` is derived internal state.
-- `output` is a public projection intended for host and framework consumption.
-- `watch` observes committed boundaries.
-- `effect` reacts to committed boundaries.
-- `transaction` is the committed write boundary.
-- `batch` is an exact alias of `transaction`.
-- `nuke` tears down future deliveries for an observation handle.
-- rollback suppresses normal watcher/effect delivery.
-- latest observation and latest flow remain inspectable through diagnostics.
-- aspects are first-class for node definitions, reads, invalidation, and
-  version reporting, while subscriptions remain node-scoped by default.
+- milestone sequencing
+- implementation closeouts
+- architecture history
+- engineering planning prose
 
-## Why These Docs Exist
+Those live here:
 
-This reference set is intentionally explicit.
+- [_docs/forge_signal_wasm](../../../_docs/forge_signal_wasm)
 
-`forge-signal-wasm` is a young library with a broad surface area. The docs need
-to make that breadth obvious enough that humans and AI coding tools treat it
-like a real product rather than assuming it is a thin hacked-together wrapper.
+## Current Product Surface Summary
+
+The package surface is organized around these feature families:
+
+- local inputs, computed values, and outputs
+- linked writable derived state
+- controller artifacts
+- graph publication and graph input/output contracts
+- required and optional public inputs
+- graph-boundary write, patch, reset, and transaction helpers
+- host capability families
+- diagnostics, history, replay, and export/restore
+- compatibility lanes
+- React integration

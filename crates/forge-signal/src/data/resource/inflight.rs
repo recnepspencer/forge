@@ -1,34 +1,53 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::temporal::ClockTick;
+use crate::data::temporal::TemporalDuration;
 use crate::data::temporal::TemporalWakeId;
 
 use super::descriptor::ResourceDescriptorId;
 use super::lifecycle::{ResourceLifecycleClass, ResourceLifecycleOrdinal};
+use super::policy::ResourceTimeoutOutcomeClass;
+use super::policy_registry::ResourcePolicyDigest;
 use super::request::{
     ResourceAttemptId, ResourceBranchEpoch, ResourceGeneration, ResourceNodeId,
-    ResourceRequestHandle,
+    ResourceRequestHandle, ResourceRequestIntentDigest,
 };
+use super::revalidation::{
+    ResourceRevalidationFreshnessClass, ResourceRevalidationFreshnessDecision,
+};
+use super::timeout::ResourceTimeoutDeadlineAuthority;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceInFlightStatus {
     Active,
     Fulfilled,
+    Rejected,
     Superseded,
     Cancelled,
     TimedOut,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InFlightResourceRequest {
     handle: ResourceRequestHandle,
     node: ResourceNodeId,
     descriptor_id: ResourceDescriptorId,
     generation: ResourceGeneration,
     attempt: ResourceAttemptId,
+    request_intent_digest: ResourceRequestIntentDigest,
+    generation_started_tick: ClockTick,
     lifecycle: ResourceLifecycleClass,
     lifecycle_ordinal: ResourceLifecycleOrdinal,
     status: ResourceInFlightStatus,
     timeout_wake_id: Option<TemporalWakeId>,
+    timeout_duration: Option<TemporalDuration>,
+    timeout_due_tick: Option<ClockTick>,
+    timeout_outcome_class: ResourceTimeoutOutcomeClass,
+    timeout_deadline_authority: ResourceTimeoutDeadlineAuthority,
+    timeout_decision_digest: ResourcePolicyDigest,
+    revalidation_freshness_class: Option<ResourceRevalidationFreshnessClass>,
+    revalidation_freshness_digest: Option<String>,
+    revalidation_policy_decision_digest: Option<ResourcePolicyDigest>,
     superseded_by: Option<ResourceRequestHandle>,
 }
 
@@ -39,7 +58,14 @@ impl InFlightResourceRequest {
         descriptor_id: ResourceDescriptorId,
         generation: ResourceGeneration,
         attempt: ResourceAttemptId,
+        request_intent_digest: ResourceRequestIntentDigest,
+        generation_started_tick: ClockTick,
         lifecycle_ordinal: ResourceLifecycleOrdinal,
+        timeout_duration: Option<TemporalDuration>,
+        timeout_due_tick: Option<ClockTick>,
+        timeout_outcome_class: ResourceTimeoutOutcomeClass,
+        timeout_deadline_authority: ResourceTimeoutDeadlineAuthority,
+        timeout_decision_digest: ResourcePolicyDigest,
     ) -> Self {
         Self {
             handle,
@@ -47,16 +73,36 @@ impl InFlightResourceRequest {
             descriptor_id,
             generation,
             attempt,
+            request_intent_digest,
+            generation_started_tick,
             lifecycle: ResourceLifecycleClass::Pending,
             lifecycle_ordinal,
             status: ResourceInFlightStatus::Active,
             timeout_wake_id: None,
+            timeout_duration,
+            timeout_due_tick,
+            timeout_outcome_class,
+            timeout_deadline_authority,
+            timeout_decision_digest,
+            revalidation_freshness_class: None,
+            revalidation_freshness_digest: None,
+            revalidation_policy_decision_digest: None,
             superseded_by: None,
         }
     }
 
     pub(crate) fn attach_timeout_wake(&mut self, wake_id: TemporalWakeId) {
         self.timeout_wake_id = Some(wake_id);
+    }
+
+    pub(crate) fn attach_revalidation_freshness(
+        &mut self,
+        freshness_decision: &ResourceRevalidationFreshnessDecision,
+    ) {
+        self.revalidation_freshness_class = Some(freshness_decision.class());
+        self.revalidation_freshness_digest = Some(freshness_decision.freshness_digest().to_owned());
+        self.revalidation_policy_decision_digest =
+            Some(freshness_decision.policy_decision_digest().clone());
     }
 
     pub(crate) fn supersede(
@@ -82,6 +128,12 @@ impl InFlightResourceRequest {
         self.status = ResourceInFlightStatus::TimedOut;
     }
 
+    pub(crate) fn reject(&mut self, lifecycle_ordinal: ResourceLifecycleOrdinal) {
+        self.lifecycle = ResourceLifecycleClass::Rejected;
+        self.lifecycle_ordinal = lifecycle_ordinal;
+        self.status = ResourceInFlightStatus::Rejected;
+    }
+
     pub(crate) fn fulfill(&mut self, lifecycle_ordinal: ResourceLifecycleOrdinal) {
         self.lifecycle = ResourceLifecycleClass::Fulfilled;
         self.lifecycle_ordinal = lifecycle_ordinal;
@@ -92,43 +144,79 @@ impl InFlightResourceRequest {
         self.handle = self.handle.with_branch_epoch(branch_epoch);
     }
 
-    pub fn handle(self) -> ResourceRequestHandle {
+    pub fn handle(&self) -> ResourceRequestHandle {
         self.handle
     }
 
-    pub fn node(self) -> ResourceNodeId {
+    pub fn node(&self) -> ResourceNodeId {
         self.node
     }
 
-    pub fn descriptor_id(self) -> ResourceDescriptorId {
+    pub fn descriptor_id(&self) -> ResourceDescriptorId {
         self.descriptor_id
     }
 
-    pub fn generation(self) -> ResourceGeneration {
+    pub fn generation(&self) -> ResourceGeneration {
         self.generation
     }
 
-    pub fn attempt(self) -> ResourceAttemptId {
+    pub fn attempt(&self) -> ResourceAttemptId {
         self.attempt
     }
 
-    pub fn lifecycle(self) -> ResourceLifecycleClass {
+    pub fn request_intent_digest(&self) -> &ResourceRequestIntentDigest {
+        &self.request_intent_digest
+    }
+
+    pub fn generation_started_tick(&self) -> ClockTick {
+        self.generation_started_tick
+    }
+
+    pub fn lifecycle(&self) -> ResourceLifecycleClass {
         self.lifecycle
     }
 
-    pub fn lifecycle_ordinal(self) -> ResourceLifecycleOrdinal {
+    pub fn lifecycle_ordinal(&self) -> ResourceLifecycleOrdinal {
         self.lifecycle_ordinal
     }
 
-    pub fn status(self) -> ResourceInFlightStatus {
+    pub fn status(&self) -> ResourceInFlightStatus {
         self.status
     }
 
-    pub fn timeout_wake_id(self) -> Option<TemporalWakeId> {
+    pub fn timeout_wake_id(&self) -> Option<TemporalWakeId> {
         self.timeout_wake_id
     }
 
-    pub fn superseded_by(self) -> Option<ResourceRequestHandle> {
+    pub fn timeout_duration(&self) -> Option<TemporalDuration> {
+        self.timeout_duration
+    }
+
+    pub fn timeout_outcome_class(&self) -> ResourceTimeoutOutcomeClass {
+        self.timeout_outcome_class
+    }
+
+    pub fn timeout_due_tick(&self) -> Option<ClockTick> {
+        self.timeout_due_tick
+    }
+
+    pub fn timeout_deadline_authority(&self) -> ResourceTimeoutDeadlineAuthority {
+        self.timeout_deadline_authority
+    }
+
+    pub fn timeout_decision_digest(&self) -> &ResourcePolicyDigest {
+        &self.timeout_decision_digest
+    }
+
+    pub fn revalidation_freshness_decision(&self) -> Option<ResourceRevalidationFreshnessDecision> {
+        Some(ResourceRevalidationFreshnessDecision::new(
+            self.revalidation_freshness_class?,
+            self.revalidation_freshness_digest.clone()?,
+            self.revalidation_policy_decision_digest.clone()?,
+        ))
+    }
+
+    pub fn superseded_by(&self) -> Option<ResourceRequestHandle> {
         self.superseded_by
     }
 }

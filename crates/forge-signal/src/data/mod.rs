@@ -1,5 +1,6 @@
 pub(crate) mod access_counters;
 pub mod aspect;
+pub mod async_node;
 pub mod bitset;
 pub mod checkpoint;
 pub mod checkpoint_policy;
@@ -13,6 +14,7 @@ pub mod evaluator;
 pub mod event_subscriber;
 pub mod graph;
 pub mod handle;
+pub mod host_computed;
 pub mod node;
 pub mod node_meta;
 pub mod output;

@@ -163,6 +163,312 @@ afterEach(() => {
 });
 
 describe("forge-signal-wasm React harness", () => {
+  it("supports callable input/output handles on the default package surface", async () => {
+    const fixture = buildFixture();
+
+    try {
+      expect(fixture.count()).toBe(1);
+      expect(fixture.doubled()).toBe(2);
+      expect(fixture.panel()).toEqual({ count: 1, doubled: 2 });
+
+      act(() => {
+        fixture.count.set(4);
+      });
+      await flushQueuedDiagnostics();
+
+      expect(fixture.count()).toBe(4);
+      expect(fixture.doubled()).toBe(8);
+      expect(fixture.panel()).toEqual({ count: 4, doubled: 8 });
+    } finally {
+      fixture.dispose();
+    }
+  });
+
+  it("supports constant callback computed authoring through the wasm callback lane", async () => {
+    const signals = createSignals();
+    const answer = signals.computed("answer", () => 42);
+    const generated = signals.computed(() => 7);
+
+    try {
+      expect(answer()).toBe(42);
+      expect(generated()).toBe(7);
+      const why = signals.diagnostics().why(answer.id);
+      expect(why.recipeFamily).toBe("callbackConstantized");
+      expect(why.callback?.purityPosture).toBe("constantizedNoSignalReads");
+      expect(why.callback?.registered).toBe(false);
+
+      const summary = signals.diagnostics().performanceSummary();
+      expect(summary.activeComputeCallbackCount).toBe(0);
+      expect(summary.computeCallbackRegistrationCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackDisposalCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackInvocationCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackReturnSerializationBreadth).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackConstantNoSignalReadClassificationCount).toBeGreaterThanOrEqual(2);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("supports stable callback computed reads through committed runtime truth", async () => {
+    const signals = createSignals();
+    const count = signals.input("count", 1);
+    const doubled = signals.computed("doubled", () => count() * 2);
+
+    try {
+      expect(doubled()).toBe(2);
+
+      act(() => {
+        count.set(5);
+      });
+      await flushQueuedDiagnostics();
+
+      expect(doubled()).toBe(10);
+      const why = signals.diagnostics().why(doubled.id);
+      expect(why.recipeFamily).toBe("callback");
+      expect(why.callback?.purityPosture).toBe("signalTracked");
+      expect(why.callback?.currentReads).toEqual(["count"]);
+
+      const summary = signals.diagnostics().performanceSummary();
+      expect(summary.activeComputeCallbackCount).toBeGreaterThanOrEqual(1);
+      expect(summary.computeCallbackCollectorInstallationCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackCaptureCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackCapturedReadCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackRuntimeReadBreadth).toBe(2);
+      expect(summary.computeCallbackSignalTrackedClassificationCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("keeps callback runtime read breadth bounded to actual reads instead of whole-store preload", async () => {
+    const signals = createSignals();
+    const count = signals.input("count", 1);
+    for (let index = 0; index < 24; index += 1) {
+      signals.input(`unrelated:${index}`, index);
+    }
+    const doubled = signals.computed("doubled", () => count() * 2);
+
+    try {
+      expect(doubled()).toBe(2);
+
+      act(() => {
+        count.set(5);
+      });
+      await flushQueuedDiagnostics();
+
+      expect(doubled()).toBe(10);
+
+      const summary = signals.diagnostics().performanceSummary();
+      expect(summary.computeCallbackRuntimeReadBreadth).toBe(2);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("preserves outer callback evaluation when nested callback reads run inside it", async () => {
+    const signals = createSignals();
+    const count = signals.input("count", 1);
+    const offset = signals.input("offset", 1);
+    const inner = signals.computed("inner", () => count() * 2);
+    const outer = signals.computed("outer", () => inner() + offset());
+
+    try {
+      expect(outer()).toBe(3);
+
+      act(() => {
+        count.set(4);
+      });
+      await flushQueuedDiagnostics();
+      expect(outer()).toBe(9);
+
+      act(() => {
+        offset.set(5);
+      });
+      await flushQueuedDiagnostics();
+      expect(outer()).toBe(13);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("rewires callback computed dependency branches through committed runtime truth", async () => {
+    const signals = createSignals();
+    const enabled = signals.input("enabled", true);
+    const name = signals.input("name", "Ada");
+    const label = signals.computed("label", () => (enabled() ? name() : "disabled"));
+
+    try {
+      expect(label()).toBe("Ada");
+
+      act(() => {
+        enabled.set(false);
+      });
+      await flushQueuedDiagnostics();
+      expect(label()).toBe("disabled");
+
+      const beforeNameOnly = signals.diagnostics().performanceSummary();
+
+      act(() => {
+        name.set("Grace");
+      });
+      await flushQueuedDiagnostics();
+      expect(label()).toBe("disabled");
+
+      const afterNameOnly = signals.diagnostics().performanceSummary();
+      expect(afterNameOnly.computeCallbackInvocationCount).toBe(
+        beforeNameOnly.computeCallbackInvocationCount,
+      );
+
+      act(() => {
+        enabled.set(true);
+      });
+      await flushQueuedDiagnostics();
+      expect(label()).toBe("Grace");
+
+      const summary = signals.diagnostics().performanceSummary();
+      expect(summary.computeCallbackDependencyPatchCount).toBeGreaterThanOrEqual(2);
+      expect(summary.computeCallbackDependencyPatchAddedCount).toBeGreaterThanOrEqual(1);
+      expect(summary.computeCallbackDependencyPatchRemovedCount).toBeGreaterThanOrEqual(1);
+      expect(summary.computeCallbackRuntimeReadBreadth).toBe(5);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("exposes callback why diagnostics for branch rewires and retained failures", async () => {
+    const signals = createSignals();
+    const enabled = signals.input("enabled", true);
+    const name = signals.input("name", "Ada");
+    const count = signals.input("count", 1);
+    let shouldFail = false;
+    const label = signals.computed(() => (enabled() ? name() : "disabled"));
+    const fragile = signals.computed(() => {
+      if (shouldFail) {
+        const error = new Error("boom") as Error & { code?: string };
+        error.code = "fragileBoom";
+        throw error;
+      }
+      return count() * 2;
+    });
+
+    try {
+      expect(label()).toBe("Ada");
+      expect(fragile()).toBe(2);
+
+      act(() => {
+        enabled.set(false);
+      });
+      await flushQueuedDiagnostics();
+      expect(label()).toBe("disabled");
+
+      const labelWhy = signals.diagnostics().why(label.id);
+      expect(labelWhy.apiFamily).toBe("computed");
+      expect(labelWhy.recipeFamily).toBe("callback");
+      expect(labelWhy.callback?.currentReads).toEqual(["enabled"]);
+      expect(labelWhy.callback?.lastDependencyPatch?.previousReads).toEqual([
+        "enabled",
+        "name",
+      ]);
+      expect(labelWhy.callback?.lastDependencyPatch?.currentReads).toEqual(["enabled"]);
+      expect(labelWhy.callback?.lastDependencyPatch?.removedCount).toBe(1);
+
+      shouldFail = true;
+      expect(() => {
+        act(() => {
+          count.set(2);
+        });
+      }).toThrow(/boom/);
+
+      const fragileWhy = signals.diagnostics().why(fragile.id);
+      expect(fragileWhy.callback?.lastFailure?.class).toBe("CallbackThrew");
+      expect(fragileWhy.callback?.lastFailure?.message).toBe("boom");
+      expect(fragileWhy.callback?.lastFailure?.code).toBe("fragileBoom");
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("denies callback computed reads from a different Signals runtime", () => {
+    const left = createSignals();
+    const right = createSignals();
+    const count = left.input("count", 1);
+
+    try {
+      expect(() => right.computed("badCrossRuntime", () => count() * 2)).toThrow(
+        /different Signals runtime/,
+      );
+    } finally {
+      left.free();
+      right.free();
+    }
+  });
+
+  it("denies mutations during callback computed authoring", () => {
+    const signals = createSignals();
+    const count = signals.input("count", 1);
+
+    try {
+      expect(() =>
+        signals.computed("badMutation", () => {
+          count.set(2);
+          return 1;
+        }),
+      ).toThrow(/cannot mutate signals or transactions/);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("denies promise-returning callback computed authoring with a typed runtime failure", () => {
+    const signals = createSignals();
+
+    try {
+      expect(() =>
+        signals.computed("future", () => Promise.resolve(5) as unknown as number),
+      ).toThrow(/returned a Promise/);
+
+      const summary = signals.diagnostics().performanceSummary();
+      expect(summary.computeCallbackFailureCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      signals.free();
+    }
+  });
+
+  it("surfaces output callback deferral explicitly on the package callback-first API", () => {
+    const signals = createSignals();
+    const count = signals.input("count", 1);
+
+    try {
+      const fromOutputForm = (() => {
+        try {
+          signals.output("panel", () => ({ count: count() }));
+          return null;
+        } catch (error) {
+          return error;
+        }
+      })() as { code?: string; message?: string; context?: string | null } | null;
+
+      expect(fromOutputForm?.code).toBe("outputCallbackDeferred");
+      expect(fromOutputForm?.message).toMatch(/intentionally deferred/i);
+      expect(fromOutputForm?.context).toBe("panel");
+
+      const fromExplicitMethod = (() => {
+        try {
+          signals.outputCallback("panelToo", () => ({ count: count() }));
+          return null;
+        } catch (error) {
+          return error;
+        }
+      })() as { code?: string; message?: string; context?: string | null } | null;
+
+      expect(fromExplicitMethod?.code).toBe("outputCallbackDeferred");
+      expect(fromExplicitMethod?.message).toMatch(/use outputSpec/i);
+      expect(fromExplicitMethod?.context).toBe("panelToo");
+    } finally {
+      signals.free();
+    }
+  });
+
   it("keeps React values and shared fanout metrics aligned with committed runtime truth", async () => {
     const fixture = buildFixture();
     const renderCounts: RenderCounts = {};

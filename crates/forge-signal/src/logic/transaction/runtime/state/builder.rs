@@ -4,6 +4,7 @@ use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
+use crate::data::resource::FrozenResourcePolicyRegistry;
 use crate::data::tier::TierPolicy;
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::logic::checkpoint::CheckpointRuntime;
@@ -50,6 +51,7 @@ pub struct SignalRuntimeBuilder<
     identity_matcher_registry: FrozenIdentityMatcherRegistry,
     source_only_policy_registry: FrozenSourceOnlyPolicyRegistry,
     deletion_policy_registry: FrozenDeletionPolicyRegistry,
+    resource_policy_registry: FrozenResourcePolicyRegistry,
     checkpoint_policy: CheckpointPolicy<D>,
     fallback_comparator: VersionComparatorPolicy,
     runtime_policy: SignalRuntimePolicy,
@@ -76,6 +78,7 @@ where
             identity_matcher_registry: FrozenIdentityMatcherRegistry::built_in(),
             source_only_policy_registry: FrozenSourceOnlyPolicyRegistry::built_in(),
             deletion_policy_registry: FrozenDeletionPolicyRegistry::built_in(),
+            resource_policy_registry: FrozenResourcePolicyRegistry::built_in(),
             checkpoint_policy: CheckpointPolicy::new(CheckpointBarrier::PerOperation),
             fallback_comparator: VersionComparatorPolicy::Exact,
             runtime_policy: SignalRuntimePolicy::default(),
@@ -103,6 +106,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: CheckpointPolicy::new(barrier),
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -127,6 +131,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -155,6 +160,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -179,6 +185,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: comparator,
             runtime_policy: self.runtime_policy,
@@ -207,6 +214,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -446,6 +454,15 @@ where
         Ok(self)
     }
 
+    /// Replace the frozen resource policy registry used for resource descriptor lowering.
+    pub fn resource_policy_registry(
+        mut self,
+        resource_policy_registry: FrozenResourcePolicyRegistry,
+    ) -> Self {
+        self.resource_policy_registry = resource_policy_registry;
+        self
+    }
+
     pub fn with_kernel_defaults(self) -> SignalRuntimeBuilder<Present, Present, D, I, E, Ctx, T> {
         self.checkpoint_barrier(CheckpointBarrier::PerOperation)
             .fallback_comparator(VersionComparatorPolicy::Exact)
@@ -468,6 +485,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -494,6 +512,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: CheckpointPolicy::new(self.checkpoint_policy.barrier_for_default()),
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -520,6 +539,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -546,6 +566,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -569,6 +590,7 @@ where
             identity_matcher_registry: self.identity_matcher_registry,
             source_only_policy_registry: self.source_only_policy_registry,
             deletion_policy_registry: self.deletion_policy_registry,
+            resource_policy_registry: self.resource_policy_registry,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
@@ -601,6 +623,9 @@ where
         runtime.identity_matcher_registry = self.identity_matcher_registry;
         runtime.source_only_policy_registry = self.source_only_policy_registry;
         runtime.deletion_policy_registry = self.deletion_policy_registry;
+        runtime
+            .resource
+            .set_policy_registry(self.resource_policy_registry);
         runtime.set_fallback_comparator(self.fallback_comparator);
         runtime.set_runtime_policy(self.runtime_policy);
         for policy in self.tier_policies {

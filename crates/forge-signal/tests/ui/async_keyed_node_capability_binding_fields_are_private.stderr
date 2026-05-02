@@ -1,0 +1,10 @@
+error[E0432]: unresolved import `forge_signal::AsyncKeyedNodeCapabilityBinding`
+ --> tests/ui/async_keyed_node_capability_binding_fields_are_private.rs:1:5
+  |
+1 | use forge_signal::AsyncKeyedNodeCapabilityBinding;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `AsyncKeyedNodeCapabilityBinding` in the root
+  |
+help: consider importing this struct instead
+  |
+1 | use forge_signal::facade::AsyncKeyedNodeCapabilityBinding;
+  |                   ++++++++

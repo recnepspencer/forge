@@ -1,388 +1,431 @@
 # App Surface Reference
 
-This document is the reference for the primary app-first `forge-signal-wasm`
-surface.
+## What This Feature Is
 
-## Entry Point
+The app surface is the main public API for `forge-signal-wasm`.
 
-### `createSignals(): Signals`
+It gives you:
 
-Creates a framework-agnostic web runtime instance.
+- local writable inputs
+- derived computed values
+- published outputs
+- linked writable derived state
+- controller composition
+- graph publication
+- graph-boundary mutation helpers
+- runtime observation and mutation entrypoints
+
+This is the surface most application code should live on.
+
+## Why You Use It
+
+- author local app state without explicit ids
+- build larger features from controller artifacts instead of loose helpers
+- publish stable graph contracts only when you want a boundary
+- mutate local and graph-owned state through the same runtime truth
+- inspect graphs without dropping to lower runtime plumbing
+
+## Stable Entry Points
+
+- `createSignals(...)`
+- `signals.input(...)`
+- `signals.computed(...)`
+- `signals.output(...)`
+- `signals.linked(...)`
+- `signals.spec.*`
+- `signals.controller(...)`
+- `signals.graph(...)`
+- `signals.importGraph(...)`
+- `signals.transaction(...)`
+- `signals.batch(...)`
+- `signals.watch(...)`
+- `signals.effect(...)`
+- `signals.diagnostics()`
+- `signals.history()`
+
+## Core Mental Model
+
+The app surface is handle-based.
+
+- local signal identity is runtime-owned
+- `debugName` is optional metadata for humans
+- local composition happens by handle
+- public naming happens at graph publication
+- explicit structural naming lives in `signals.spec`
+
+That split matters:
+
+- ordinary app code should not care about ids
+- graph contracts should care about public names
+- spec and portability work should care about explicit structural names
+
+## How It Executes
+
+The normal flow is:
+
+1. create a `signals` instance
+2. author local inputs, computeds, outputs, and linked state
+3. optionally organize larger units as controllers
+4. optionally publish a graph when you need explicit public inputs and outputs
+5. mutate through input helpers, graph helpers, or transactions
+6. inspect diagnostics/history/export surfaces only when you need explanation or transport
+
+The app surface does not replace runtime truth. It is the product-facing layer
+over that runtime truth.
+
+## Small Example
 
 ```ts
-import { createSignals } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
+
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
+const panel = signals.output(() => ({
+  count: count(),
+  doubled: doubled(),
+}));
+
+count.set(2);
+
+console.log(panel());
 ```
 
-`Signals` is the main app-facing object.
+This is the smallest honest example because it shows the current main lane:
 
-### `start(): void`
+- no explicit authored id
+- handle-based reads and writes
+- derived output as the published view for local code
 
-The package also exports `start()`.
+Keep the first pass this simple. Add `debugName` later when you want friendlier
+diagnostics; it is optional metadata, not part of local identity.
 
-This is a low-level wasm start hook retained for completeness and compatibility.
-Normal app code should not need to call it directly before `createSignals()`.
+## Real Example
 
 ```ts
-import { start } from "@aust-group/forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed, linked }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+      workflowTargetStateId: "ready",
+    });
+
+    const draft = input({});
+
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
+
+    const selectedWorkflowTarget = linked({
+      source: () => [
+        { id: "draft", label: "Draft" },
+        { id: "ready", label: "Ready" },
+      ],
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0]
+      ),
+    });
+
+    const dirtyState = computed(() => Object.keys(draft()).length > 0);
+
+    return {
+      inputs: { serverItem, draft, selectedWorkflowTarget },
+      outputs: { effectiveItem, dirtyState },
+    };
+  });
+
+  return graph.expose({
+    inputs: {
+      serverItem: graph.input.required(editor.inputs.serverItem, {
+        authority: "readOnly",
+      }),
+      draft: graph.input.optional(editor.inputs.draft),
+      selectedWorkflowTarget: graph.input.optional(
+        editor.inputs.selectedWorkflowTarget,
+      ),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
+  });
+});
+
+itemWorkspace.patchInput("draft", {
+  title: "Ready to ship",
+});
+
+itemWorkspace.writeInput("selectedWorkflowTarget", {
+  id: "ready",
+  label: "Ready",
+});
+
+console.log(itemWorkspace.read());
 ```
 
-## Value Types
+What is authoritative here:
 
-### `SignalValue`
+- `serverItem` is source state
+- `draft` is writable local state
+- `selectedWorkflowTarget` is linked writable derived state
+- graph publication is where requiredness, authority, and public names become
+  explicit
 
-`SignalValue` is the JSON-like value model used by the app-first surface:
+## Local State And Derived Values
 
-- `null`
-- `boolean`
-- `number`
-- `string`
-- arrays of `SignalValue`
-- objects whose values are `SignalValue`
+### `signals.input(...)`
 
-## Handles
-
-### `InputSignal`
-
-Represents mutable source state.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `ComputedSignal`
-
-Represents derived internal state.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `OutputSignal`
-
-Represents a public derived projection intended for host/framework consumption.
-
-Properties and methods:
-
-- `id: string`
-- `get(): SignalValue`
-- `free()`
-- `[Symbol.dispose]()`
-
-### `DisposableHandle`
-
-Represents a watcher/effect lifecycle handle returned by `watch(...)` and
-`effect(...)`.
-
-Properties and methods:
-
-- `free()`
-- `[Symbol.dispose]()`
-
-This handle is also accepted by `nuke(...)`.
-
-### `SignalsTransaction`
-
-Represents the write lane inside `transaction(...)` and `batch(...)`.
-
-Methods:
-
-- `set(input: InputSignal, value: SignalValue): void`
-- `setWithAspects(input: InputSignal, value: SignalValue, aspects: ReadonlyArray<number>): void`
-- `setWithRegions(input: InputSignal, value: SignalValue, changedRegions: unknown): void`
-- `setWithRegionsAndAspects(input: InputSignal, value: SignalValue, changedRegions: unknown, aspects: ReadonlyArray<number>): void`
-
-## Core Methods On `Signals`
-
-### `input(id, initial, options?): InputSignal`
-
-Registers mutable source state.
+Use `input(...)` for writable local state:
 
 ```ts
-const count = signals.input("count", 1, {
-  producesAspects: [1, 2],
+const draft = signals.input({ title: "Ship docs" });
+```
+
+Input handles support:
+
+- `set(value)`
+- `patch(value)`
+- `assign(fields)`
+- `reset()`
+
+Use `patch(...)` and `assign(...)` for object-ish local state. Keep `set(...)`
+for full replacement.
+
+### `signals.computed(...)`
+
+Use `computed(...)` for derived internal state:
+
+```ts
+const dirty = signals.computed(() => Object.keys(draft()).length > 0);
+```
+
+Only signal and admitted host-capability reads are reactive dependencies.
+Ordinary closure variables are not reactive truth.
+
+### `signals.output(...)`
+
+Use `output(...)` for the shaped value you want to expose or observe:
+
+```ts
+const panel = signals.output(() => ({
+  draft: draft(),
+  dirty: dirty(),
+}));
+```
+
+Outputs are still derived signal handles. They do not become an event channel or
+separate store.
+
+## Linked Writable Derived State
+
+`signals.linked(...)` is for writable state that normally follows a reactive
+source but may be locally overridden:
+
+```ts
+const selectedOption = signals.linked({
+  source: () => shippingOptions(),
+  computation: (options, previous) => (
+    options.find((option) => option.id === previous?.value?.id) ?? options[0]
+  ),
 });
 ```
 
-Use `input` for app-owned values that are explicitly mutated through
-transactions.
+Linked handles support:
 
-If you omit `options` or `producesAspects`, the runtime preserves the default
-single-aspect compatibility lane through aspect `0`.
+- `set(value)`
+- `reset()`
+- `relink()`
 
-### `computed(id, spec): ComputedSignal`
+Use `reset()` when you want to go back to the current linked baseline. Use
+`relink()` when you want to explicitly re-anchor to the latest source-derived
+value.
 
-Registers derived internal state.
+## Explicit Named Lane
+
+Use `signals.spec` when names are the contract:
 
 ```ts
-const doubled = signals.computed("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
+const count = signals.spec.input("count", 1);
+const doubled = signals.spec.computedCallback("doubled", () => count() * 2);
+const panel = signals.spec.outputCallback("panel", () => ({
+  count: count(),
+  doubled: doubled(),
+}));
+```
+
+Use this lane for:
+
+- portable/spec authoring
+- compatibility-facing work
+- explicit structural naming
+
+Do not use it to recreate the old main-lane id-heavy style for ordinary app
+code.
+
+## Controllers
+
+Controllers are real package-understood artifacts, not plain object folklore.
+
+Use the builder form when you want feature-local composition:
+
+```ts
+const editor = signals.controller(({ input, computed }) => {
+  const serverItem = input(null, { debugName: "serverItem" });
+  const draft = input({}, { debugName: "draft" });
+  const effectiveItem = computed(() => ({
+    ...(serverItem() ?? {}),
+    ...draft(),
+  }));
+
+  return {
+    inputs: { serverItem, draft },
+    outputs: { effectiveItem },
+  };
+});
+```
+
+The builder is lighter than the older manual shape, but it still produces a
+validated controller contract.
+
+## Graphs
+
+Use graphs when you want an explicit published boundary.
+
+### Public input requiredness
+
+Graphs can declare required and optional public inputs:
+
+```ts
+graph.expose({
+  inputs: {
+    serverItem: graph.input.required(editor.inputs.serverItem, {
+      authority: "readOnly",
+    }),
+    draft: graph.input.optional(editor.inputs.draft),
+  },
+  outputs: {
+    effectiveItem: editor.outputs.effectiveItem,
   },
 });
 ```
 
-Use `computed` when the value is part of internal derivation rather than a
-public projection boundary.
+### Public input authority
 
-### `output(id, spec): OutputSignal`
+Public input authorities today are:
 
-Registers a public derived projection.
+- `writable`
+- `readOnly`
+- `imported`
 
-```ts
-const panel = signals.output("panel", {
-  reads: ["count", "doubled"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["count", { kind: "read", id: "count" }],
-      ["doubled", { kind: "read", id: "doubled" }],
-    ],
-  },
-});
-```
+These show up in:
 
-Use `output` for values that are intended for external consumption:
+- `contract()`
+- `operationalContract()`
+- `inspectDiagnostics()`
+- `inspectHistory()`
 
-- React/Vue/Angular view models
-- editor panels
-- tables and rows
-- structured trace payloads
-- public app projections
+And they are enforced by graph mutation helpers.
 
-`output` is not just a naming alias of `computed`. It is the public projection
-concept in the web runtime.
+### Graph mutation helpers
 
-### `transaction(callback): RunSummary`
+Published graphs expose:
 
-Executes a committed write boundary.
-
-```ts
-signals.transaction((tx) => {
-  tx.set(count, 2);
-});
-```
-
-The callback receives a `SignalsTransaction`.
-
-### `batch(callback): RunSummary`
-
-Exact ergonomic alias of `transaction(...)`.
-
-It is not a weaker semantic lane. It uses the same committed transaction
-boundary.
-
-### `watch(target, callback): DisposableHandle`
-
-Observes committed change for a signal target.
-
-Accepted targets:
-
-- string signal id
-- `InputSignal`
-- `ComputedSignal`
-- `OutputSignal`
+- `writeInputs(...)`
+- `writeInput(...)`
+- `patchInputs(...)`
+- `patchInput(...)`
+- `resetInputs(...)`
+- `resetInput(...)`
+- `apply(...)`
+- `transaction(...)`
 
 Example:
 
 ```ts
+graph.patchInput("draft", { title: "Queued" });
+graph.resetInput("draft");
+```
+
+These helpers still lower through one canonical mutation envelope. They are not
+a second write engine.
+
+## Observation And Mutation Entry Points
+
+### `signals.transaction(...)` and `signals.batch(...)`
+
+Use transactions when several writes belong together:
+
+```ts
+signals.transaction((tx) => {
+  tx.set(count, 2);
+  tx.patch(draft, { done: true });
+});
+```
+
+### `signals.watch(...)` and `signals.effect(...)`
+
+Use these when you need runtime observation:
+
+```ts
 const handle = signals.watch(panel, (notice) => {
-  console.log(notice.signalId, notice.meaningfulChange);
+  console.log("panel changed", notice);
 });
-```
 
-The callback receives a `WebObservationNotice`.
-
-### `effect(target, callback): DisposableHandle`
-
-Registers a host-side committed reaction.
-
-```ts
-const handle = signals.effect(panel, () => {
-  console.log("panel changed");
-});
-```
-
-Like `watch(...)`, `effect(...)` inherits committed observation semantics from
-the core runtime.
-
-### `nuke(handle): boolean`
-
-Tears down future deliveries for a watcher/effect handle.
-
-```ts
 signals.nuke(handle);
 ```
 
-This affects future deliveries only.
+Use `watch(...)` or `effect(...)` for observation. Do not turn them into your
+main state model.
 
-### `diagnostics(): SignalDiagnostics`
+## Inspection And Debugging
 
-Returns the diagnostics surface.
+For local runtime inspection:
 
-### `history(): SignalHistory`
+- `signals.diagnostics()`
+- `signals.history()`
 
-Returns the history and branching surface.
+For graph-boundary inspection:
 
-### `specialist(): SignalSpecialist`
+- `graph.contract()`
+- `graph.operationalContract()`
+- `graph.contractHistory()`
+- `graph.contractDelta(...)`
+- `graph.inspectDiagnostics()`
+- `graph.inspectHistory()`
+- `graph.exportDefinition()`
+- `graph.exportSnapshot()`
+- `graph.importPosture()`
 
-Returns specialist and lower-level runtime accessors.
+These surfaces explain the published boundary honestly. They do not turn local
+`debugName` into stable contract identity.
 
-### `adapters(): SignalAdapters`
+## Anti-Patterns
 
-Returns export/import and runtime envelope helpers.
+- using `debugName` as if it were a stable query or mutation key
+- reaching for `signals.spec.*` for ordinary local app code
+- treating graph publication as optional when you need a real public contract
+- using ambient browser reads inside `computed(...)` instead of host capability
+- assuming graph mutation helpers own different semantics than transactions
 
-### `compatibilityApp(): SignalApp`
+## Current Limits
 
-Returns the lower-level compatibility app surface.
-
-### `compatibilityRuntime(): SignalRuntime`
-
-Returns the lower-level compatibility runtime surface.
-
-## `RunSummary`
-
-`transaction(...)` and `batch(...)` return:
-
-- `touchedNodes`
-- `nodesEvaluated`
-- `nodesRecomputed`
-- `nodesSuppressed`
-- `plansBuilt`
-- `stagesExecuted`
-- `totalNanos`
-- `evaluationNanos`
-- `commitNanos`
-
-This is the first runtime summary for the committed boundary, not the full
-diagnostics archive.
-
-## `ComputedSpec` And `OutputSpec`
-
-Both `computed(...)` and `output(...)` use spec-driven authoring.
-
-Fields:
-
-- `reads?: ReadonlyArray<RecipeReadSpec>`
-- `expr: Expr`
-- `when?: ConditionSpec`
-- `identity?: IdentitySpec`
-- `producesAspects?: ReadonlyArray<number>`
-
-### `RecipeReadSpec`
-
-- simple string id
-- or object form:
-
-```ts
-{ id: "part", scope: ..., aspect: 1 }
-```
-
-Or:
-
-```ts
-{ id: "part", aspects: [1, 2] }
-```
-
-These aspect filters are how the wasm app-first surface becomes genuinely
-multi-aspect instead of flattening all reads to aspect `0`.
-
-### `ConditionSpec`
-
-```ts
-{
-  expr: Expr;
-}
-```
-
-### `IdentitySpec`
-
-- `{ kind: "exact" }`
-- `{ kind: "expr", expr: Expr }`
-
-`output(...)` defaults to exact identity behavior so public projections behave
-like real externally observed values.
-
-## Expression Reference
-
-`Expr` supports:
-
-- constants: `value`
-- reads: `read`
-- object/array shaping: `object`, `array`, `mergeObjects`, `pick`, `omit`
-- property/index access: `get`, `at`, `first`, `last`, `slice`
-- collection helpers: `join`, `flatten`, `length`, `contains`, `keys`, `values`, `append`
-- arithmetic: `sum`, `multiply`, `subtract`, `divide`, `abs`, `min`, `max`, `sqrt`, `sin`, `cos`, `floor`, `mod`, `clamp`, `atan2`
-- string/object combination: `concat`, `coalesce`
-- comparisons: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`
-- boolean logic: `and`, `or`, `not`
-- conditional branching: `if`
-
-Example object projection:
-
-```ts
-{
-  kind: "object",
-  fields: [
-    ["count", { kind: "read", id: "count" }],
-    ["isLarge", {
-      kind: "gt",
-      left: { kind: "read", id: "count" },
-      right: { kind: "value", value: 10 },
-    }],
-  ],
-}
-```
-
-## Observation Types
-
-### `WebObservationNotice`
-
-Watcher callbacks receive:
-
-- `observerId`
-- `handleId`
-- `signalId`
-- `branchId`
-- `policy`
-- `touched`
-- `recomputed`
-- `meaningfulChange`
-- `triggerMatched`
-
-This is a web-facing observation notice, not the full retained diagnostics
-archive.
-
-## Semantics Summary
-
-- `input` is mutable source state
-- `computed` is derived internal state
-- `output` is a public projection
-- `watch` observes committed change
-- `effect` reacts to committed change
-- rollback suppresses normal delivery
-- `transaction` is the write boundary
-- `batch` is an alias of `transaction`
-- aspects are first-class for node definition, read selection, invalidation,
-  and version reporting
-- subscriptions stay node-scoped by default; aspect precision belongs in
-  derivation, not in the default watch/effect model
+- portable graph import is still denied on the graph-native import surface
+- exact graph restore is the admitted import posture today
+- `debugName` may help diagnostics, but it is never addressability
+- the forms and resource products are still later layers, not part of this app
+  surface
 
 ## Related Docs
 
-- [diagnostics_and_history_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [compatibility_surface_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
-- [aspects_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/aspects_reference.md)
-- [react_adapter_reference.md](/C:/Users/shepworth/Documents/programming/forge/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [consuming_the_package.md](./consuming_the_package.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)
+- [aspects_reference.md](./aspects_reference.md)

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::telemetry::{
-    CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry,
-    PlannerTelemetry, RuntimeTelemetry, StorageTelemetry, TemporalTelemetry, TransactionTelemetry,
+    CheckpointTelemetry, EvaluationTelemetry, ExecutionTelemetry, HostComputedTelemetry,
+    InvalidationTelemetry, PlannerTelemetry, RuntimeTelemetry, StorageTelemetry, TemporalTelemetry,
+    TransactionTelemetry,
 };
 
 /// Read-only summary of graph-local runtime telemetry.
@@ -14,6 +15,7 @@ pub struct GraphMetrics {
     pub execution: ExecutionTelemetry,
     pub storage: StorageTelemetry,
     pub temporal: TemporalTelemetry,
+    pub host_computed: HostComputedTelemetry,
     pub partition_interner_size: usize,
 }
 
@@ -29,6 +31,7 @@ impl GraphMetrics {
             execution: telemetry.execution,
             storage: telemetry.storage,
             temporal: telemetry.temporal,
+            host_computed: telemetry.host_computed,
             partition_interner_size,
         }
     }
@@ -45,4 +48,5 @@ pub struct RuntimeMetrics {
     pub storage: StorageTelemetry,
     pub checkpoint: CheckpointTelemetry,
     pub temporal: TemporalTelemetry,
+    pub host_computed: HostComputedTelemetry,
 }
