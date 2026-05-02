@@ -4,6 +4,7 @@ mod lookup;
 mod minimal_topology;
 mod primitive_corpus;
 mod types;
+mod verification;
 
 pub use authoring::{created_ref, WorthTopologyCreateBatchBuilder};
 pub use minimal_topology::seed_minimal_topology;
@@ -17,6 +18,7 @@ pub use primitive_corpus::{
     WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,
 };
 pub use types::WorthMinimalTopologySeed;
+pub use verification::{verify_topology_intent, verify_topology_intent_on_branch};
 
 #[cfg(test)]
 mod tests;

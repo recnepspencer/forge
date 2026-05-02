@@ -1,0 +1,21 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/runtime_workspace_declaration_builder_constructor_private.rs:4:40
+  |
+4 |     let _ = ForgeQueryLiveViewBuilder::new("tasks.private");
+  |                                        ^^^ private associated function
+  |
+ ::: src/runtime/workspace_declaration.rs
+  |
+  |     pub(in crate::runtime) fn new(surface_name: impl Into<String>) -> Self {
+  |     ---------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/runtime_workspace_declaration_builder_constructor_private.rs:5:40
+  |
+5 |     let _ = ForgeQueryComputedBuilder::new("tasks.private");
+  |                                        ^^^ private associated function
+  |
+ ::: src/runtime/workspace_declaration.rs
+  |
+  |     pub(in crate::runtime) fn new(view_name: impl Into<String>) -> Self {
+  |     ------------------------------------------------------------------- private associated function defined here

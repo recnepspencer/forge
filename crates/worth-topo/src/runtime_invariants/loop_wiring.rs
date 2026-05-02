@@ -81,15 +81,43 @@ impl CustomInvariantRule for LoopWiringRule {
             let next_back = scope.outgoing_kind(&next_target, prev_kind);
             let prev_forward = scope.outgoing_kind(&prev_target, next_kind);
             if next_back.len() != 1 || next_back[0].target != entity_id.clone() {
+                let observed_prev_targets = next_back
+                    .iter()
+                    .map(|record| record.target.clone())
+                    .collect::<Vec<_>>();
+                let planned_prev_targets = scope
+                    .planned_outgoing_kind(&next_target, prev_kind)
+                    .iter()
+                    .map(|record| record.target.clone())
+                    .collect::<Vec<_>>();
+                let planned_prev_updates = scope
+                    .planned_kind(prev_kind)
+                    .iter()
+                    .map(|record| format!("{:?}->{:?}", record.source, record.target))
+                    .collect::<Vec<_>>();
                 return Err(CustomInvariantExecutionError::new(format!(
-                    "halfedge {:?} next/prev symmetry is broken at {:?}",
-                    entity_id, next_target
+                    "halfedge {:?} next/prev symmetry is broken at {:?}; observed prev targets: {:?}; planned prev targets: {:?}; all planned prev updates: {:?}",
+                    entity_id, next_target, observed_prev_targets, planned_prev_targets, planned_prev_updates
                 )));
             }
             if prev_forward.len() != 1 || prev_forward[0].target != entity_id.clone() {
+                let observed_next_targets = prev_forward
+                    .iter()
+                    .map(|record| record.target.clone())
+                    .collect::<Vec<_>>();
+                let planned_next_targets = scope
+                    .planned_outgoing_kind(&prev_target, next_kind)
+                    .iter()
+                    .map(|record| record.target.clone())
+                    .collect::<Vec<_>>();
+                let planned_next_updates = scope
+                    .planned_kind(next_kind)
+                    .iter()
+                    .map(|record| format!("{:?}->{:?}", record.source, record.target))
+                    .collect::<Vec<_>>();
                 return Err(CustomInvariantExecutionError::new(format!(
-                    "halfedge {:?} prev/next symmetry is broken at {:?}",
-                    entity_id, prev_target
+                    "halfedge {:?} prev/next symmetry is broken at {:?}; observed next targets: {:?}; planned next targets: {:?}; all planned next updates: {:?}",
+                    entity_id, prev_target, observed_next_targets, planned_next_targets, planned_next_updates
                 )));
             }
         }

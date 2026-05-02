@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_schema::facade::WorthTopologyAuthority`
+ --> tests/compile_fail/public_authority_not_on_main_facade.rs:1:5
+  |
+1 | use worth_schema::facade::WorthTopologyAuthority;
+  |     ^^^^^^^^^^^^^^^^^^^^^^----------------------
+  |     |                     |
+  |     |                     help: a similar name exists in the module: `WorthTopologyAuthorityError`
+  |     no `WorthTopologyAuthority` in `facade`

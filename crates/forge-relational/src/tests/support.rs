@@ -48,7 +48,7 @@ pub(super) use crate::facade::transactions::{
     BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
     EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
     RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
-    UpdateEntityIntent, WorkerIntentBatch,
+    UpdateEntityIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
 pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;

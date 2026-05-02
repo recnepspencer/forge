@@ -38,7 +38,7 @@ error: cannot construct `ForgeQueryWriteReceiptInspection` with struct literal s
 32 |           inspection_digest: String::new(),
    |           -------------------------------- private field
    |
-   = note: ...and other private fields `mutation_family`, `basis_lane`, `declared_collection`, `declared_entity_identity` and `declared_aspect_operations` that were not provided
+   = note: ...and other private fields that were not provided
 help: you might have meant to use the `new` associated function
    |
  7 -     let _ = ForgeQueryWriteReceiptInspection {

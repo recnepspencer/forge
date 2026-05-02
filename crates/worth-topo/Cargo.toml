@@ -6,6 +6,7 @@ license.workspace = true
 description = "Worth topology materialization and structural interpretation"
 
 [dependencies]
+forge-query.workspace = true
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 serde = { workspace = true, features = ["derive"] }

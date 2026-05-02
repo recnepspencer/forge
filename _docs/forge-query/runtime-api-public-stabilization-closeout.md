@@ -14,7 +14,8 @@ inspectable handles:
 - `workspace.computed(...)`
 - `workspace.effect(...)`
 - `workspace.preview(...)` / `workspace.branch(...)`
-- `workspace.write(...)`
+- aspect-native `workspace.insert(...)`, `workspace.update(...)`,
+  `workspace.delete(...)`, and `workspace.batch(...)`
 - `workspace.read(...)`, `workspace.observe(...)`, and
   `workspace.materialize(...)`
 - `workspace.state(...)`
@@ -26,6 +27,12 @@ inspectable handles:
 
 The public support matrix is the source of truth for whether a family is stable,
 deferred, or unsupported. Method presence is not a support claim.
+
+The runtime API stabilization closeout defines the workspace facade surface
+generally. The mutation-specific dependency contract is further narrowed by the
+aspect finalization closeout: ordinary downstream mutation authoring should use
+the aspect-native workspace mutation methods, while `workspace.write(...)`
+remains a compatibility or expert seam rather than the preferred public story.
 
 `workspace.intent(...)` remains part of the public vocabulary, but it is not in
 the stable compatibility support set yet. Downstream runtimes must gate it
@@ -66,6 +73,13 @@ Compatibility names remain adapters for existing call sites and tests.
 
 `computed_declaration` is intentionally not part of the compatibility surface.
 
+For mutation naming specifically:
+
+- ordinary downstream runtime code should use `insert`, `update`, `delete`,
+  and `batch`
+- `workspace.write(...)` remains available as a lower-level compatibility seam
+  and should not be taught as the daily-driver API for new runtime work
+
 ## Safe To Build Now
 
 Downstream runtimes may build domain-neutral public APIs that:
@@ -73,6 +87,8 @@ Downstream runtimes may build domain-neutral public APIs that:
 - keep the `Workspace` as the public context
 - expose durable live, computed, effect, preview, branch, receipt, state, and
   inspection handles
+- expose aspect-native mutation entrypoints without teaching payload-first
+  authoring as the runtime's public mutation model
 - use aspects to make reads, produces, triggers, and condition inputs auditable
 - use authority lanes to distinguish truth, branch-local truth, preview truth,
   derived runtime state, effect delivery, pending write intent, bridge external
@@ -85,6 +101,10 @@ Downstream runtimes may build domain-neutral public APIs that:
 
 Downstream runtimes must not assume:
 
+- `workspace.write(...)` is the preferred ordinary mutation story for new code
+- the current public mutation contract already closes full authoritative target
+  evidence, existing-truth identity binding, naming writeback evidence, or
+  continuity-sensitive mutation evidence beyond the admitted runtime facade
 - temporal basis execution is implemented
 - async/resource lifecycle execution is implemented
 - mixed truth/time/async delivery is implemented

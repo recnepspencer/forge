@@ -155,6 +155,11 @@ impl<'a> RelationalTransaction<'a> {
                     MutationIntent::Relation(relation_intent) => {
                         intent_counts.relation_mutation_count += 1;
                         match relation_intent {
+                            crate::transactions::data::RelationMutationIntent::UpdateEndpoints(
+                                intent,
+                            ) => {
+                                touched_records.insert(RecordRef::Relation(intent.relation_id));
+                            }
                             crate::transactions::data::RelationMutationIntent::Delete(intent) => {
                                 touched_records.insert(RecordRef::Relation(intent.relation_id));
                             }
@@ -228,6 +233,7 @@ fn bulk_mutation_scope(intents: &[MutationIntent]) -> BulkMutationScope {
             }
             MutationIntent::Entity(EntityMutationIntent::Replace(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
+            | MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 saw_topology_rewrite = true;
             }
@@ -280,7 +286,8 @@ fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutationLocalityFoo
                     .filter(|(source, target)| source.partition_id() != target.partition_id())
                     .count();
             }
-            MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
+            MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
+            | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 relation_target_count += 1;
             }
         }
@@ -316,6 +323,7 @@ fn bulk_mutation_naming(intents: &[MutationIntent]) -> BulkMutationNamingPlan {
             MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
+            | MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {}
         }
     }
@@ -380,6 +388,13 @@ fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan 
             MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
                 transitions.push(PlannedLineageTransition::DeleteEntity {
                     entity_id: spec.entity_id,
+                });
+            }
+            MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                transitions.push(PlannedLineageTransition::UpdateRelationEndpoints {
+                    relation_id: spec.relation_id,
+                    source: spec.source.clone(),
+                    target: spec.target.clone(),
                 });
             }
             MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {

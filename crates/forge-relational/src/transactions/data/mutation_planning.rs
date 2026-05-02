@@ -61,6 +61,11 @@ impl MutationIntent {
                     touched.insert(target.partition_id());
                 }
             }
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                touched.insert(spec.relation_id.partition_id);
+                touched.insert(spec.source.partition_id());
+                touched.insert(spec.target.partition_id());
+            }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
                 touched.insert(spec.relation_id.partition_id);
             }
@@ -107,6 +112,9 @@ impl MutationIntent {
             | Self::Create(CreateIntent::BulkRelations(_)) => {
                 RollbackEffect::DiscardedRelationCreation
             }
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                RollbackEffect::RestoredRelation(spec.relation_id)
+            }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
                 RollbackEffect::RestoredRelation(spec.relation_id)
             }
@@ -126,6 +134,9 @@ impl MutationIntent {
             }
             Self::Entity(EntityMutationIntent::Delete(spec)) => {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
+            }
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                Some(ExistingRecordTarget::Relation(spec.relation_id))
             }
             Self::Relation(RelationMutationIntent::Delete(spec)) => {
                 Some(ExistingRecordTarget::Relation(spec.relation_id))
@@ -156,6 +167,14 @@ impl MutationIntent {
                         target: target.clone(),
                     });
                 }
+            }
+            Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                identities.push(RelationIdentity {
+                    partition_id: spec.relation_id.partition_id,
+                    kind_id: spec.kind_id,
+                    source: spec.source.clone(),
+                    target: spec.target.clone(),
+                });
             }
             _ => {}
         }

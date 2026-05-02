@@ -5192,11 +5192,13 @@ dependencies = [
 name = "worth-schema"
 version = "0.1.0"
 dependencies = [
+ "forge-query",
  "forge-relational",
  "forge-runtime-bridge",
  "forge-signal",
  "serde",
  "serde_json",
+ "sha2",
  "trybuild",
  "worth-math",
 ]
@@ -5205,6 +5207,7 @@ dependencies = [
 name = "worth-topo"
 version = "0.1.0"
 dependencies = [
+ "forge-query",
  "forge-relational",
  "forge-runtime-bridge",
  "serde",

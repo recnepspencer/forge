@@ -4,7 +4,7 @@ error[E0624]: associated function `new` is private
 4 |     let _ = ForgeQueryRuntimeEvidenceAuthority::new();
   |                                                 ^^^ private associated function
   |
- ::: src/runtime/support.rs
+ ::: src/runtime/support/authority_artifacts.rs
   |
   |     pub(crate) fn new() -> Self {
   |     --------------------------- private associated function defined here

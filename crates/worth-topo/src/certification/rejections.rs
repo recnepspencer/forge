@@ -3,9 +3,10 @@ use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{RecordRef, TransactionCommitError};
 use worth_schema::facade::{
-    build_milestone_one_primitive_intent, RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind,
-    WorthEntityReference, WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
-    WorthMutationOrigin, WorthRelationKind, WorthTopologyAuthority, WorthTopologyMutation,
+    build_milestone_one_primitive_intent, verify_topology_intent, RawWorthTopologyIntent,
+    WorthCreateKey, WorthEntityKind, WorthEntityReference,
+    WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase, WorthMutationOrigin,
+    WorthRelationKind, WorthTopologyAuthorityError, WorthTopologyMutation,
     WorthTopologyRelationKind,
 };
 
@@ -43,14 +44,12 @@ pub(crate) fn summarize_primitive_rejection(
 }
 
 pub(crate) fn summarize_authority_rejection(
-    error: &worth_schema::facade::WorthTopologyAuthorityError,
+    error: &WorthTopologyAuthorityError,
     rejection_class_override: Option<&str>,
     validator_family_override: Option<&str>,
 ) -> WorthPrimitiveRejectionReport {
     match error {
-        worth_schema::facade::WorthTopologyAuthorityError::Commit(
-            TransactionCommitError::Conflict { error, .. },
-        ) => {
+        WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { error, .. }) => {
             let (localized_entity_count, localized_relation_count) =
                 summarize_localized_record_counts(&error.context);
             WorthPrimitiveRejectionReport {
@@ -217,10 +216,7 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    let rejection = match WorthTopologyAuthority::new(&mut runtime)
-        .apply_topology_intent_traced(intent)
-        .map(|traced| traced.into_primary_result())
-    {
+    let rejection = match verify_topology_intent(&mut runtime, intent) {
         Ok(_) => {
             return Err(WorthMilestoneOneCertificationError::ReadView(format!(
                 "illegal topology case `{name}` unexpectedly admitted"

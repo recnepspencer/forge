@@ -14,9 +14,8 @@ pub use crate::data::authority::{
     WorthPrecisionBudgetFallbackRecord, WorthPrecisionEscalationCause,
     WorthPrecisionFallbackRecord, WorthPrecisionRegime, WorthShellInterpretationClass,
     WorthShellInterpretationRecord, WorthSurfaceBindingKind, WorthSurfaceRelationKind,
-    WorthTopologyAuthority, WorthTopologyAuthorityError, WorthTopologyClass,
-    WorthTopologyInterpretationRecordSet, WorthTopologyMutation, WorthTopologyMutationBatch,
-    WorthTopologyReadArtifact, WorthTracedTopologyCommit,
+    WorthTopologyAuthorityError, WorthTopologyClass, WorthTopologyInterpretationRecordSet,
+    WorthTopologyMutation, WorthTopologyMutationBatch, WorthTopologyReadArtifact,
     WorthTruthToDerivedInvalidationDeclaration, WorthVertexGeometryProvenanceKind,
     WorthVertexToleranceRegime, WorthWireInterpretationClass, WorthWireInterpretationRecord,
 };
@@ -42,8 +41,13 @@ pub use crate::data::invariants::{
     WorthLineageInvariantGroup, WorthNamingInvariantGroup, WorthTopologyInvariantGroup,
 };
 pub use crate::data::query::{
-    worth_query_aspect_path_strings, worth_query_aspect_paths, worth_query_aspect_paths_from_set,
-    WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection, WorthQuerySchemaBasis,
+    admit_worth_query_mutation_batch, worth_query_aspect_path_strings, worth_query_aspect_paths,
+    worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
+    WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection,
+    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
+    WorthQueryLiveDeclarationBuilder, WorthQueryLiveField, WorthQueryMutationAdmission,
+    WorthQueryMutationAdmissionBlocker, WorthQueryMutationAdmissionReport,
+    WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
 };
 pub use crate::data::relations::{
     WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
@@ -54,10 +58,11 @@ pub use crate::data::seed::{
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
     milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
-    seed_milestone_one_primitive_on_branch, seed_minimal_topology,
-    WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
-    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
-    WorthMilestoneOnePrimitiveScenario, WorthMinimalTopologySeed, WorthTopologyCreateBatchBuilder,
+    seed_milestone_one_primitive_on_branch, seed_minimal_topology, verify_topology_intent,
+    verify_topology_intent_on_branch, WorthMilestoneOnePrimitiveAuthoringError,
+    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
+    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario, WorthMinimalTopologySeed,
+    WorthTopologyCreateBatchBuilder,
 };
 pub use crate::data::tracing::{
     WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,

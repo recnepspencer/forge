@@ -130,17 +130,33 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
                 }
             }
             MutationIntent::Relation(
-                crate::transactions::data::RelationMutationIntent::Delete(spec),
+                crate::transactions::data::RelationMutationIntent::UpdateEndpoints(spec),
             ) => {
+                let relation_id = spec.relation_id;
                 if !crate::authority::intent_merge::relation_exists_in_state(
                     &current_state,
-                    spec.relation_id,
+                    relation_id,
                 ) && relation_exists_in_version_basis(
                     runtime,
                     branch_head.version_id,
-                    spec.relation_id,
+                    relation_id,
                 ) {
-                    relation_ids.insert(spec.relation_id);
+                    relation_ids.insert(relation_id);
+                }
+            }
+            MutationIntent::Relation(
+                crate::transactions::data::RelationMutationIntent::Delete(spec),
+            ) => {
+                let relation_id = spec.relation_id;
+                if !crate::authority::intent_merge::relation_exists_in_state(
+                    &current_state,
+                    relation_id,
+                ) && relation_exists_in_version_basis(
+                    runtime,
+                    branch_head.version_id,
+                    relation_id,
+                ) {
+                    relation_ids.insert(relation_id);
                 }
             }
             MutationIntent::Create(_) | MutationIntent::Entity(_) => {}

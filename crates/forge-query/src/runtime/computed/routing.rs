@@ -81,40 +81,94 @@ pub(in crate::runtime) fn route_derived_view_patches(
     derived_views: &mut BTreeMap<String, ForgeQueryDerivedViewRuntime>,
     dependency_index: &ForgeQueryComputedDependencyIndex,
     candidate_live_view_names: impl IntoIterator<Item = String>,
+    retained_live_rows: &BTreeMap<String, Vec<crate::memory_workspace::ForgeQueryEntity>>,
     receipt: &ForgeQueryMutationReceipt,
+    mutation_metadata: &crate::runtime::ForgeQueryMutationMetadata,
 ) -> ForgeQueryComputedRouteResult {
     let mut affected = Vec::new();
     let mut refresh_fallback = false;
     let mut considered_view_count = 0;
     let mut candidates = dependency_index.live_candidates(candidate_live_view_names);
     let mut emitted_by_view: BTreeMap<String, Vec<ForgeQueryDerivedPatch>> = BTreeMap::new();
+    let mutation = ForgeQueryRetainedMutationContext::new(
+        receipt.commit_identity.clone(),
+        receipt.snapshot_token.clone(),
+        receipt
+            .deltas
+            .iter()
+            .flat_map(|delta| delta.aspect_paths.iter().cloned()),
+        mutation_metadata.clone(),
+    );
 
     for view_name in topological_derived_order(derived_views) {
         if !candidates.contains(&view_name) {
             continue;
         }
-        let Some(view) = derived_views.get_mut(&view_name) else {
+        let Some(view) = derived_views.get(&view_name) else {
             continue;
         };
         considered_view_count += 1;
         let source_deltas = relevant_source_deltas(view, receipt, &emitted_by_view);
+        if source_deltas.is_empty() {
+            continue;
+        }
+
+        if !view.declaration.incremental() {
+            let upstreams =
+                retained_upstream_inputs(&view.declaration, retained_live_rows, derived_views);
+            let Some(view) = derived_views.get_mut(&view_name) else {
+                continue;
+            };
+            affected.push(view.declaration.name().to_string());
+            let mut patch = if let Some(maintainer) = view.maintainer.as_mut() {
+                maintainer
+                    .refresh_from_upstreams(
+                        &view.declaration,
+                        &mutation,
+                        &upstreams,
+                        &mut view.materialization,
+                    )
+                    .unwrap_or_else(|| {
+                        ForgeQueryDerivedPatch::whole_refresh_fallback(
+                            view.declaration.name(),
+                            receipt.commit_identity.clone(),
+                            "derived view declared whole-refresh fallback",
+                        )
+                    })
+            } else {
+                ForgeQueryDerivedPatch::whole_refresh_fallback(
+                    view.declaration.name(),
+                    receipt.commit_identity.clone(),
+                    "derived view declared whole-refresh fallback",
+                )
+            };
+            patch.bind_commit_identity(receipt.commit_identity.clone());
+            if patch.is_refresh_fallback() {
+                refresh_fallback = true;
+            }
+            emitted_by_view
+                .entry(view.declaration.name().to_string())
+                .or_default()
+                .push(patch.clone());
+            view.patches.push(patch);
+            candidates.extend(dependency_index.dependents(&view_name));
+            continue;
+        }
+
+        let Some(view) = derived_views.get_mut(&view_name) else {
+            continue;
+        };
         for delta in source_deltas {
             affected.push(view.declaration.name().to_string());
             let mut patch = if let Some(maintainer) = view.maintainer.as_mut() {
                 maintainer.maintain(&view.declaration, &delta, &mut view.materialization)
-            } else if view.declaration.incremental() {
+            } else {
                 ForgeQueryDerivedPatch::incremental(
                     view.declaration.name(),
                     receipt.commit_identity.clone(),
                     delta.entity_identity.clone(),
                     effective_patch_aspects(&view.declaration, &delta),
                     Value::Null,
-                )
-            } else {
-                ForgeQueryDerivedPatch::whole_refresh_fallback(
-                    view.declaration.name(),
-                    receipt.commit_identity.clone(),
-                    "derived view declared whole-refresh fallback",
                 )
             };
             patch.bind_commit_identity(receipt.commit_identity.clone());
@@ -135,6 +189,58 @@ pub(in crate::runtime) fn route_derived_view_patches(
     affected.sort();
     affected.dedup();
     ForgeQueryComputedRouteResult::new(affected, refresh_fallback, considered_view_count)
+}
+
+pub(in crate::runtime) fn retained_live_view_names_for_candidates(
+    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+    dependency_index: &ForgeQueryComputedDependencyIndex,
+    candidate_live_view_names: impl IntoIterator<Item = String>,
+) -> BTreeSet<String> {
+    let candidate_live_view_names = candidate_live_view_names.into_iter().collect::<Vec<_>>();
+    let mut retained = candidate_live_view_names
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut pending = dependency_index
+        .live_candidates(candidate_live_view_names)
+        .into_iter()
+        .collect::<Vec<_>>();
+    let mut seen_views = BTreeSet::new();
+
+    while let Some(view_name) = pending.pop() {
+        if !seen_views.insert(view_name.clone()) {
+            continue;
+        }
+        let Some(view) = derived_views.get(&view_name) else {
+            continue;
+        };
+        retained.extend(view.declaration.upstream_live_views().iter().cloned());
+        pending.extend(dependency_index.dependents(&view_name));
+    }
+    retained
+}
+
+fn retained_upstream_inputs(
+    declaration: &ForgeQueryDerivedView,
+    retained_live_rows: &BTreeMap<String, Vec<crate::memory_workspace::ForgeQueryEntity>>,
+    derived_views: &BTreeMap<String, ForgeQueryDerivedViewRuntime>,
+) -> ForgeQueryRetainedUpstreamInputs {
+    ForgeQueryRetainedUpstreamInputs::new(
+        declaration.upstream_live_views().iter().filter_map(|name| {
+            retained_live_rows
+                .get(name)
+                .cloned()
+                .map(|rows| (name.clone(), rows))
+        }),
+        declaration
+            .upstream_derived_views()
+            .iter()
+            .filter_map(|name| {
+                derived_views
+                    .get(name)
+                    .map(|view| (name.clone(), view.materialization.rows().to_vec()))
+            }),
+    )
 }
 
 fn reaches_derived_view(

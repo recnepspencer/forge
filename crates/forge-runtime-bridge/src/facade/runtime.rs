@@ -1,5 +1,6 @@
 use super::*;
 
+mod closeout;
 mod debug;
 mod historical_and_replay;
 mod merge;

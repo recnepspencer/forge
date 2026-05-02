@@ -9,8 +9,8 @@
 >
 > **Predecessor:** [runtime-api-next-batch-closeout.md](./runtime-api-next-batch-closeout.md)
 >
-> **Next roadmap family:** Milestones 9.4 through 9.7 temporal/async query
-> semantics
+> **Next roadmap family:** Runtime Authoritative Mutation Evidence Gate,
+> followed by Milestones 9.4 through 9.7 temporal/async query semantics
 >
 > **Purpose:** freeze the ordinary public runtime API shape before temporal
 > and async query semantics land, so domain runtimes can build against a

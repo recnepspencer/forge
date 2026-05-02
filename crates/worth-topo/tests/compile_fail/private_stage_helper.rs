@@ -1,5 +1,5 @@
-use worth_topo::reader::stage_topology_read_from_view_traced;
+use worth_topo::read_stage::stage_topology_read_from_view;
 
 fn main() {
-    let _ = stage_topology_read_from_view_traced;
+    let _ = stage_topology_read_from_view;
 }

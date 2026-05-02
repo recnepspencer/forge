@@ -100,6 +100,30 @@ pub(crate) fn canonical_delta_for_mutation(
             },
             RecordStructuralChange::Created,
         ),
+        RecordMutation::RelationUpdated {
+            relation_id,
+            kind_id,
+            old_source,
+            old_target,
+            new_source,
+            new_target,
+            payload,
+        } => evaluate_relation_delta(
+            workspace,
+            *relation_id,
+            *kind_id,
+            RelationState {
+                source: Some(*old_source),
+                target: Some(*old_target),
+                payload: payload.as_ref(),
+            },
+            RelationState {
+                source: Some(*new_source),
+                target: Some(*new_target),
+                payload: payload.as_ref(),
+            },
+            RecordStructuralChange::Updated,
+        ),
         RecordMutation::RelationDeleted {
             relation_id,
             kind_id,

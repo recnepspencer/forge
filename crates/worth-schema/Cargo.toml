@@ -6,12 +6,14 @@ license.workspace = true
 description = "Worth truth vocabulary, aspects, and invariant declarations"
 
 [dependencies]
+forge-query.workspace = true
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 forge-signal.workspace = true
 worth-math.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+sha2 = "0.10"
 
 [dev-dependencies]
 trybuild.workspace = true

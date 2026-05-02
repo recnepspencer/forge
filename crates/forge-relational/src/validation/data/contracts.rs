@@ -80,6 +80,14 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
+            MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_)) => {
+                InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
+                    .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
+                    .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity))
+                    .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
+                    .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
+            }
             MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 InvariantGroupSet::of(InvariantGroup::AdjacencyIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::StorageCoherence))

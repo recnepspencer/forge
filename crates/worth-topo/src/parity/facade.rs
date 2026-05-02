@@ -1,4 +1,6 @@
-use worth_schema::facade::DerivedTopologyReadBasis;
+use worth_schema::facade::{
+    DerivedTopologyReadBasis, WorthDerivedInvalidationTarget, WorthMutationOrigin,
+};
 
 use crate::certification::WorthDeterministicDigest;
 use crate::diagnostics::triggered_invalidation_targets;
@@ -33,23 +35,53 @@ pub fn build_derived_equivalence_contract(
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
 ) -> WorthDerivedEquivalenceContractReport {
-    WorthDerivedEquivalenceContractReport {
-        authority_snapshot_id: read_basis.snapshot().snapshot_id.0,
-        authority_branch_id: read_basis.branch_id().0.clone(),
-        authoritative_mutation_origin: read_basis.authoritative_mutation_origin(),
-        derivation_origin: read_basis.derivation_origin(),
-        truth_basis_digest_hex: read_basis
+    build_derived_equivalence_contract_report(
+        read_basis.snapshot().snapshot_id.0,
+        read_basis.branch_id().0.clone(),
+        read_basis.authoritative_mutation_origin(),
+        read_basis.derivation_origin(),
+        read_basis
             .authority
             .truth_basis_identity
             .mutation_batch_digest_hex
             .clone(),
-        touched_aspect_count: read_basis
+        read_basis
             .authority
             .truth_basis_identity
             .touched_aspect_count,
-        triggered_invalidation_targets: triggered_invalidation_targets(read_basis),
-        precision_fallback_count: read_basis.precision_fallbacks.len(),
-        precision_budget_fallback_count: read_basis.precision_budget_fallbacks.len(),
+        triggered_invalidation_targets(read_basis),
+        read_basis.precision_fallbacks.len(),
+        read_basis.precision_budget_fallbacks.len(),
+        materialized,
+        interpreted,
+        validation,
+    )
+}
+
+pub fn build_derived_equivalence_contract_report(
+    authority_snapshot_id: u64,
+    authority_branch_id: String,
+    authoritative_mutation_origin: WorthMutationOrigin,
+    derivation_origin: WorthMutationOrigin,
+    truth_basis_digest_hex: String,
+    touched_aspect_count: usize,
+    triggered_invalidation_targets: Vec<WorthDerivedInvalidationTarget>,
+    precision_fallback_count: usize,
+    precision_budget_fallback_count: usize,
+    materialized: &MaterializedTopologyView,
+    interpreted: &InterpretedTopologyView,
+    validation: &DerivedTopologyValidationReport,
+) -> WorthDerivedEquivalenceContractReport {
+    WorthDerivedEquivalenceContractReport {
+        authority_snapshot_id,
+        authority_branch_id,
+        authoritative_mutation_origin,
+        derivation_origin,
+        truth_basis_digest_hex,
+        touched_aspect_count,
+        triggered_invalidation_targets,
+        precision_fallback_count,
+        precision_budget_fallback_count,
         materialized_topology_digest: digest_materialized_topology_view(materialized),
         interpreted_topology_digest: digest_interpreted_topology_view(interpreted),
         derived_validation_digest: digest_derived_validation_report(validation),

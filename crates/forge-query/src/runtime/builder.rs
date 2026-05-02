@@ -64,6 +64,14 @@ impl ForgeQueryRuntimeBuilder {
         self
     }
 
+    pub fn existing_truth_verification(
+        mut self,
+        adapter: impl ForgeQueryRuntimeExistingTruthVerificationAdapter + 'static,
+    ) -> Self {
+        self.backend_parts = self.backend_parts.existing_truth_verification(adapter);
+        self
+    }
+
     pub fn write_authority(
         mut self,
         authority: impl ForgeQueryRuntimeWriteAuthorityAdapter + 'static,

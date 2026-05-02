@@ -33,9 +33,9 @@ pub use crate::validation::data::{
     InvariantDecisionKind, InvariantDecisionRecord, InvariantExecutionPoint,
     InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantRuleDescriptor,
     InvariantRuleId, InvariantSemanticsClass, InvariantViolation, NativeInvariantRuleId,
-    PlannedEntityCreate, PlannedRelationCreate, StructuralCountView, StructuralPayloadView,
-    StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
-    SupportedExecutionPoints, TouchedStructuralSet,
+    PlannedEntityCreate, PlannedRelationCreate, PlannedRelationEndpointUpdate, StructuralCountView,
+    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
+    StructuralTraversalResult, SupportedExecutionPoints, TouchedStructuralSet,
 };
 #[cfg(test)]
 pub use crate::validation::engine::HarnessAuditMode;

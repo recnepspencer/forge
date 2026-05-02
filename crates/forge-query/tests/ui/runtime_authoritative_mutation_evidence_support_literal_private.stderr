@@ -1,0 +1,53 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authoritative_mutation_evidence_support_literal_private.rs:6:41
+  |
+5 |         backend_posture: todo!(),
+  |                          ------- any code following this expression is unreachable
+6 |         declared_resolved_target_model: String::new(),
+  |                                         ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `ForgeQueryAuthoritativeMutationEvidenceSupport` with struct literal syntax due to private fields
+  --> tests/ui/runtime_authoritative_mutation_evidence_support_literal_private.rs:4:13
+   |
+ 4 |     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         backend_posture: todo!(),
+   |         ------------------------ private field
+ 6 |         declared_resolved_target_model: String::new(),
+   |         --------------------------------------------- private field
+ 7 |         existing_truth_binding_families: Vec::new(),
+   |         ------------------------------------------- private field
+ 8 |         symbolic_target_reference_families: Vec::new(),
+   |         ---------------------------------------------- private field
+ 9 |         symbolic_aspect_reference_families: Vec::new(),
+   |         ---------------------------------------------- private field
+10 |         naming_mutation_families: Vec::new(),
+   |         ------------------------------------ private field
+11 |         continuity_mutation_families: Vec::new(),
+   |         ---------------------------------------- private field
+12 |         aggregate_evidence_sections: Vec::new(),
+   |         --------------------------------------- private field
+13 |         fail_closed_denial_classes: Vec::new(),
+   |         -------------------------------------- private field
+14 |         support_digest: String::new(),
+   |         ----------------------------- private field
+   |
+   = note: ...and other private fields `existing_truth_assertion_modes`, `existing_truth_probe_modes`, `existing_truth_verified_mutation_modes`, `bridge_backed_verification_support_rows`, `identity_preserving_update_families` and `graph_composition_families` that were not provided
+help: you might have meant to use the `derive` associated function
+   |
+ 4 -     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport {
+ 5 -         backend_posture: todo!(),
+ 6 -         declared_resolved_target_model: String::new(),
+ 7 -         existing_truth_binding_families: Vec::new(),
+ 8 -         symbolic_target_reference_families: Vec::new(),
+ 9 -         symbolic_aspect_reference_families: Vec::new(),
+10 -         naming_mutation_families: Vec::new(),
+11 -         continuity_mutation_families: Vec::new(),
+12 -         aggregate_evidence_sections: Vec::new(),
+13 -         fail_closed_denial_classes: Vec::new(),
+14 -         support_digest: String::new(),
+15 -     };
+ 4 +     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(_);
+   |

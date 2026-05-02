@@ -160,8 +160,8 @@ pub enum WorthTopologyEditAction {
     AttachBoundaryMembership {
         create_key: WorthCreateKey,
         kind: WorthBoundaryMembershipKind,
-        owner: EntityId,
-        member: EntityId,
+        owner: WorthEntityReference,
+        member: WorthEntityReference,
     },
     DetachBoundaryMembership {
         relation_id: RelationId,
@@ -182,8 +182,8 @@ pub enum WorthTopologyEditAction {
     AttachShellOrWireMembership {
         create_key: WorthCreateKey,
         kind: WorthShellOrWireMembershipKind,
-        owner: EntityId,
-        member: EntityId,
+        owner: WorthEntityReference,
+        member: WorthEntityReference,
     },
     DetachShellOrWireMembership {
         relation_id: RelationId,
@@ -366,9 +366,11 @@ impl WorthTopologyEditContract {
     pub fn attach_boundary_membership(
         create_key: impl Into<String>,
         kind: WorthBoundaryMembershipKind,
-        owner: EntityId,
-        member: EntityId,
+        owner: impl Into<WorthEntityReference>,
+        member: impl Into<WorthEntityReference>,
     ) -> Self {
+        let owner = owner.into();
+        let member = member.into();
         let touched_aspects = BTreeSet::from([
             WorthAspect::Topology(WorthTopologyAspect::Boundary),
             WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
@@ -376,8 +378,8 @@ impl WorthTopologyEditContract {
         let lowered_mutations = vec![WorthTopologyMutation::CreateRelation {
             create_key: WorthCreateKey::new(create_key.into()),
             kind: WorthRelationKind::Topology(kind.relation_kind()),
-            source: WorthEntityReference::Existing(owner),
-            target: WorthEntityReference::Existing(member),
+            source: owner.clone(),
+            target: member.clone(),
         }];
         Self {
             family: WorthTopologyEditFamily::AttachBoundaryMembership,
@@ -517,9 +519,11 @@ impl WorthTopologyEditContract {
     pub fn attach_shell_or_wire_membership(
         create_key: impl Into<String>,
         kind: WorthShellOrWireMembershipKind,
-        owner: EntityId,
-        member: EntityId,
+        owner: impl Into<WorthEntityReference>,
+        member: impl Into<WorthEntityReference>,
     ) -> Self {
+        let owner = owner.into();
+        let member = member.into();
         let touched_aspects = BTreeSet::from([
             WorthAspect::Topology(match kind {
                 WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyAspect::Ownership,
@@ -530,8 +534,8 @@ impl WorthTopologyEditContract {
         let lowered_mutations = vec![WorthTopologyMutation::CreateRelation {
             create_key: WorthCreateKey::new(create_key.into()),
             kind: WorthRelationKind::Topology(kind.relation_kind()),
-            source: WorthEntityReference::Existing(owner),
-            target: WorthEntityReference::Existing(member),
+            source: owner.clone(),
+            target: member.clone(),
         }];
         let changed_scope = match kind {
             WorthShellOrWireMembershipKind::RegionOwnsShell

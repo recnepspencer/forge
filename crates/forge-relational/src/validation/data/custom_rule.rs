@@ -171,12 +171,23 @@ pub struct PlannedRelationCreate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlannedRelationEndpointUpdate {
+    pub relation_id: RelationId,
+    pub kind_id: KindId,
+    pub source: EntityReference,
+    pub target: EntityReference,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TouchedStructuralSet {
     visible_entity_ids: Arc<[EntityId]>,
     visible_relation_ids: Arc<[RelationId]>,
     touched_partitions: Arc<[PartitionId]>,
+    planned_entity_deletes: Arc<[EntityId]>,
     planned_entity_creates: Arc<[PlannedEntityCreate]>,
     planned_relation_creates: Arc<[PlannedRelationCreate]>,
+    planned_relation_deletes: Arc<[RelationId]>,
+    planned_relation_endpoint_updates: Arc<[PlannedRelationEndpointUpdate]>,
 }
 
 impl TouchedStructuralSet {
@@ -192,6 +203,10 @@ impl TouchedStructuralSet {
         &self.touched_partitions
     }
 
+    pub fn planned_entity_deletes(&self) -> &[EntityId] {
+        &self.planned_entity_deletes
+    }
+
     pub fn planned_entity_creates(&self) -> &[PlannedEntityCreate] {
         &self.planned_entity_creates
     }
@@ -200,13 +215,24 @@ impl TouchedStructuralSet {
         &self.planned_relation_creates
     }
 
+    pub fn planned_relation_deletes(&self) -> &[RelationId] {
+        &self.planned_relation_deletes
+    }
+
+    pub fn planned_relation_endpoint_updates(&self) -> &[PlannedRelationEndpointUpdate] {
+        &self.planned_relation_endpoint_updates
+    }
+
     pub(crate) fn provenance_summary(&self) -> CustomInvariantTouchedSummary {
         CustomInvariantTouchedSummary {
             visible_entity_ids: self.visible_entity_ids.clone(),
             visible_relation_ids: self.visible_relation_ids.clone(),
             touched_partition_ids: self.touched_partitions.clone(),
+            planned_entity_delete_count: self.planned_entity_deletes.len(),
             planned_entity_create_count: self.planned_entity_creates.len(),
             planned_relation_create_count: self.planned_relation_creates.len(),
+            planned_relation_delete_count: self.planned_relation_deletes.len(),
+            planned_relation_endpoint_update_count: self.planned_relation_endpoint_updates.len(),
         }
     }
 }
@@ -216,8 +242,11 @@ pub struct CustomInvariantTouchedSummary {
     pub visible_entity_ids: Arc<[EntityId]>,
     pub visible_relation_ids: Arc<[RelationId]>,
     pub touched_partition_ids: Arc<[PartitionId]>,
+    pub planned_entity_delete_count: usize,
     pub planned_entity_create_count: usize,
     pub planned_relation_create_count: usize,
+    pub planned_relation_delete_count: usize,
+    pub planned_relation_endpoint_update_count: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -232,8 +261,11 @@ pub struct StructuralRelationRecord {
 pub struct StructuralCountView {
     visible_entity_count: usize,
     visible_relation_count: usize,
+    planned_entity_delete_count: usize,
     planned_entity_create_count: usize,
     planned_relation_create_count: usize,
+    planned_relation_delete_count: usize,
+    planned_relation_endpoint_update_count: usize,
     touched_partition_count: usize,
 }
 
@@ -250,8 +282,20 @@ impl StructuralCountView {
         self.planned_entity_create_count
     }
 
+    pub fn planned_entity_delete_count(&self) -> usize {
+        self.planned_entity_delete_count
+    }
+
     pub fn planned_relation_create_count(&self) -> usize {
         self.planned_relation_create_count
+    }
+
+    pub fn planned_relation_delete_count(&self) -> usize {
+        self.planned_relation_delete_count
+    }
+
+    pub fn planned_relation_endpoint_update_count(&self) -> usize {
+        self.planned_relation_endpoint_update_count
     }
 
     pub fn touched_partition_count(&self) -> usize {
@@ -554,8 +598,11 @@ impl<'runtime> CustomInvariantScopePlanner<'runtime> {
         let counts = StructuralCountView {
             visible_entity_count: touched.visible_entity_ids.len(),
             visible_relation_count: touched.visible_relation_ids.len(),
+            planned_entity_delete_count: touched.planned_entity_deletes.len(),
             planned_entity_create_count: touched.planned_entity_creates.len(),
             planned_relation_create_count: touched.planned_relation_creates.len(),
+            planned_relation_delete_count: touched.planned_relation_deletes.len(),
+            planned_relation_endpoint_update_count: touched.planned_relation_endpoint_updates.len(),
             touched_partition_count: touched.touched_partitions.len(),
         };
         let payloads = StructuralPayloadView { state_view };
@@ -643,8 +690,11 @@ impl<'runtime> CustomInvariantExecutionContext<'runtime> {
         let counts = StructuralCountView {
             visible_entity_count: touched.visible_entity_ids.len(),
             visible_relation_count: touched.visible_relation_ids.len(),
+            planned_entity_delete_count: touched.planned_entity_deletes.len(),
             planned_entity_create_count: touched.planned_entity_creates.len(),
             planned_relation_create_count: touched.planned_relation_creates.len(),
+            planned_relation_delete_count: touched.planned_relation_deletes.len(),
+            planned_relation_endpoint_update_count: touched.planned_relation_endpoint_updates.len(),
             touched_partition_count: touched.touched_partitions.len(),
         };
         let payloads = StructuralPayloadView { state_view };
@@ -934,8 +984,11 @@ fn collect_touched_structural_set(
     let mut visible_entities = BTreeSet::new();
     let mut visible_relations = BTreeSet::new();
     let mut touched_partitions = BTreeSet::new();
+    let mut planned_entity_deletes = Vec::new();
     let mut planned_entity_creates = Vec::new();
     let mut planned_relation_creates = Vec::new();
+    let mut planned_relation_deletes = Vec::new();
+    let mut planned_relation_endpoint_updates = Vec::new();
 
     if let Some(entity_ids) = state_view.touched_visible_entity_ids() {
         visible_entities.extend(entity_ids);
@@ -1007,9 +1060,29 @@ fn collect_touched_structural_set(
                 }
                 MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
                     visible_entities.insert(spec.entity_id);
+                    planned_entity_deletes.push(spec.entity_id);
+                }
+                MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+                    visible_relations.insert(spec.relation_id);
+                    include_existing_entity_reference(&mut visible_entities, &spec.source);
+                    include_existing_entity_reference(&mut visible_entities, &spec.target);
+                    planned_relation_endpoint_updates.push(PlannedRelationEndpointUpdate {
+                        relation_id: spec.relation_id,
+                        kind_id: spec.kind_id,
+                        source: spec.source.clone(),
+                        target: spec.target.clone(),
+                    });
+                    if let Some(metadata) = state_view.relation_metadata(spec.relation_id) {
+                        include_relation_metadata(
+                            &mut visible_entities,
+                            &mut touched_partitions,
+                            metadata,
+                        );
+                    }
                 }
                 MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
                     visible_relations.insert(spec.relation_id);
+                    planned_relation_deletes.push(spec.relation_id);
                     if let Some(metadata) = state_view.relation_metadata(spec.relation_id) {
                         include_relation_metadata(
                             &mut visible_entities,
@@ -1039,8 +1112,11 @@ fn collect_touched_structural_set(
         visible_entity_ids: visible_entities.into_iter().collect::<Vec<_>>().into(),
         visible_relation_ids: visible_relations.into_iter().collect::<Vec<_>>().into(),
         touched_partitions: touched_partitions.into_iter().collect::<Vec<_>>().into(),
+        planned_entity_deletes: planned_entity_deletes.into(),
         planned_entity_creates: planned_entity_creates.into(),
         planned_relation_creates: planned_relation_creates.into(),
+        planned_relation_deletes: planned_relation_deletes.into(),
+        planned_relation_endpoint_updates: planned_relation_endpoint_updates.into(),
     }
 }
 
@@ -1070,8 +1146,17 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+    use crate::facade::identity::KindId;
     use crate::facade::runtime::RelationalRuntimeApi;
     use crate::facade::schema::RelationalSchemaRegistry;
+    use crate::facade::transactions::{
+        CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent, EntityReference,
+        EntitySpec, MutationIntent, RelationMutationIntent, TransactionOptions,
+        UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    };
+    use crate::payloads::data::RecordPayload;
+    use crate::tests::support::{create_entity, create_relation, runtime_with_test_schema};
+    use crate::transactions::data::MergedCommitPlan;
     use crate::validation::data::{
         CustomInvariantOperationalMetadata, CustomInvariantSemanticIdentity,
         CustomInvariantSemanticVersion, InvariantCostClass, InvariantExecutionPoint,
@@ -1192,5 +1277,169 @@ mod tests {
             .walk_outgoing_from(&large_seed_set, 1)
             .unwrap_err();
         assert!(error.detail().contains("session frontier budget"));
+    }
+
+    #[test]
+    fn touched_scope_tracks_planned_relation_endpoint_updates() {
+        let mut runtime = runtime_with_test_schema();
+        let source = create_entity(&mut runtime, "source");
+        let old_target = create_entity(&mut runtime, "old-target");
+        let new_target = create_entity(&mut runtime, "new-target");
+        let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+        let intent = MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(
+            UpdateRelationEndpointsIntent {
+                relation_id,
+                kind_id: KindId(2),
+                source: EntityReference::Existing(source),
+                target: EntityReference::Existing(new_target),
+            },
+        ));
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()));
+        let merged_plan = MergedCommitPlan {
+            transaction_id: txn.transaction_id,
+            merged_intents: vec![intent],
+        };
+        let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+        let planner = CustomInvariantScopePlanner::new(
+            &runtime,
+            &observation,
+            runtime.current_version_id(),
+            Some(&merged_plan),
+        );
+
+        let updates = planner.touched().planned_relation_endpoint_updates();
+        assert_eq!(updates.len(), 1);
+        assert_eq!(updates[0].relation_id, relation_id);
+        assert_eq!(updates[0].kind_id, KindId(2));
+        assert_eq!(updates[0].source, EntityReference::Existing(source));
+        assert_eq!(updates[0].target, EntityReference::Existing(new_target));
+        assert_eq!(planner.counts().planned_relation_endpoint_update_count(), 1);
+        assert_eq!(
+            planner
+                .touched()
+                .provenance_summary()
+                .planned_relation_endpoint_update_count,
+            1
+        );
+    }
+
+    #[test]
+    fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() {
+        let mut runtime = runtime_with_test_schema();
+        let source = create_entity(&mut runtime, "source");
+        let old_target = create_entity(&mut runtime, "old-target");
+        let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+        let created_target = CreatedEntityRef {
+            partition_id: PartitionId(1),
+            kind_id: KindId(1),
+            client_key: InternedString::Raw("planned-target".to_string()),
+        };
+        let create_target = MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: created_target.partition_id,
+            kind_id: created_target.kind_id,
+            client_key: created_target.client_key.clone(),
+            payload: RecordPayload::OpaqueBytes(Vec::new()),
+        }));
+        let update_relation = MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(
+            UpdateRelationEndpointsIntent {
+                relation_id,
+                kind_id: KindId(2),
+                source: EntityReference::Existing(source),
+                target: EntityReference::Created(created_target.clone()),
+            },
+        ));
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("rewire-to-created")
+                .push(create_target.clone())
+                .push(update_relation.clone()),
+        );
+        let merged_plan = MergedCommitPlan {
+            transaction_id: txn.transaction_id,
+            merged_intents: vec![create_target, update_relation],
+        };
+        let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+        let planner = CustomInvariantScopePlanner::new(
+            &runtime,
+            &observation,
+            runtime.current_version_id(),
+            Some(&merged_plan),
+        );
+
+        let updates = planner.touched().planned_relation_endpoint_updates();
+        assert_eq!(updates.len(), 1);
+        assert_eq!(updates[0].relation_id, relation_id);
+        assert_eq!(updates[0].kind_id, KindId(2));
+        assert_eq!(updates[0].source, EntityReference::Existing(source));
+        assert_eq!(updates[0].target, EntityReference::Created(created_target));
+    }
+
+    #[test]
+    fn touched_scope_tracks_planned_relation_deletes() {
+        let mut runtime = runtime_with_test_schema();
+        let source = create_entity(&mut runtime, "source");
+        let target = create_entity(&mut runtime, "target");
+        let relation_id = create_relation(&mut runtime, source, target, "edge");
+        let intent =
+            MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
+                relation_id,
+            }));
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()));
+        let merged_plan = MergedCommitPlan {
+            transaction_id: txn.transaction_id,
+            merged_intents: vec![intent],
+        };
+        let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+        let planner = CustomInvariantScopePlanner::new(
+            &runtime,
+            &observation,
+            runtime.current_version_id(),
+            Some(&merged_plan),
+        );
+
+        assert_eq!(planner.touched().planned_relation_deletes(), &[relation_id]);
+        assert_eq!(planner.counts().planned_relation_delete_count(), 1);
+        assert_eq!(
+            planner
+                .touched()
+                .provenance_summary()
+                .planned_relation_delete_count,
+            1
+        );
+    }
+
+    #[test]
+    fn touched_scope_tracks_planned_entity_deletes() {
+        let mut runtime = runtime_with_test_schema();
+        let entity_id = create_entity(&mut runtime, "entity");
+        let intent =
+            MutationIntent::Entity(crate::facade::transactions::EntityMutationIntent::Delete(
+                DeleteEntityIntent { entity_id },
+            ));
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()));
+        let merged_plan = MergedCommitPlan {
+            transaction_id: txn.transaction_id,
+            merged_intents: vec![intent],
+        };
+        let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+        let planner = CustomInvariantScopePlanner::new(
+            &runtime,
+            &observation,
+            runtime.current_version_id(),
+            Some(&merged_plan),
+        );
+
+        assert_eq!(planner.touched().planned_entity_deletes(), &[entity_id]);
+        assert_eq!(planner.counts().planned_entity_delete_count(), 1);
+        assert_eq!(
+            planner
+                .touched()
+                .provenance_summary()
+                .planned_entity_delete_count,
+            1
+        );
     }
 }

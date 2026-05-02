@@ -26,6 +26,15 @@ pub(crate) enum RecordMutation {
         target: EntityId,
         payload: Option<RecordPayload>,
     },
+    RelationUpdated {
+        relation_id: RelationId,
+        kind_id: KindId,
+        old_source: EntityId,
+        old_target: EntityId,
+        new_source: EntityId,
+        new_target: EntityId,
+        payload: Option<RecordPayload>,
+    },
     RelationDeleted {
         relation_id: RelationId,
         kind_id: KindId,

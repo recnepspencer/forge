@@ -32,6 +32,18 @@ pub enum WorthEntityReference {
     Created(WorthCreateKey),
 }
 
+impl From<EntityId> for WorthEntityReference {
+    fn from(value: EntityId) -> Self {
+        Self::Existing(value)
+    }
+}
+
+impl From<WorthCreateKey> for WorthEntityReference {
+    fn from(value: WorthCreateKey) -> Self {
+        Self::Created(value)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum WorthMutationOrigin {
     Seed,

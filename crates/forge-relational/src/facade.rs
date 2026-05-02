@@ -1387,7 +1387,8 @@ pub mod runtime {
         CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
         CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
         CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass, InvariantGroup,
-        InvariantGroupSet, StructuralRelationRecord, StructuralRelationView,
+        InvariantGroupSet, PlannedRelationEndpointUpdate, StructuralRelationRecord,
+        StructuralRelationView,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
 }
@@ -1519,7 +1520,8 @@ pub mod transactions {
         PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef,
         RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
         RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityIntent, WorkerIntentBatch,
+        TransactionOptions, UndoRecord, UpdateEntityIntent, UpdateRelationEndpointsIntent,
+        WorkerIntentBatch,
     };
     pub use crate::transactions::logic::RelationalTransaction;
 }

@@ -22,6 +22,15 @@ The governing rule remains:
 - computation stays derived
 - the bridge coordinates without collapsing either runtime into the other
 
+Current cross-runtime hardening gate:
+
+- [../forge-query/runtime-authoritative-mutation-evidence-plan.md](../forge-query/runtime-authoritative-mutation-evidence-plan.md)
+  freezes the shared Query-facing and bridge-facing authority-evidence contract
+  for target identity, causality, provenance, naming/writeback evidence, and
+  continuity-sensitive mutation carry-forward. Downstream write-heavy domains
+  should treat that gate as the public dependency contract rather than assuming
+  the seam is already implicitly closed.
+
 The bridge's only job is to wire the runtimes together. It may translate,
 route, lower, coordinate, and preserve causality across the boundary, but it
 must not define truth semantics that belong to `forge-relational` or execution

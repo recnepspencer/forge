@@ -1,7 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::{
-    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntime, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimePublicApiContract,
 };
 
@@ -136,6 +136,23 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                 )
             })
             .collect::<Vec<_>>();
+
+        rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
+            "authoritative-mutation-evidence-certification",
+            None,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
+            "Runtime Authoritative Mutation Evidence Gate",
+            "must-extend-target-binding-naming-continuity-causality-provenance-contract",
+            true,
+            false,
+            Some(
+                ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
+                    contract.backend_posture(),
+                )
+                .support_digest()
+                .to_string(),
+            ),
+        ));
 
         rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
             "temporal-async-certification",

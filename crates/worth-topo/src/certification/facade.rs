@@ -1,4 +1,4 @@
-use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::{
     DerivedTopologyReadBasis, VerifiedTopologyCommit, WorthMilestoneOnePrimitiveCase,
     WorthMilestoneOnePrimitiveScenario,
@@ -14,26 +14,27 @@ use crate::certification::error::WorthMilestoneOneCertificationError;
 use crate::certification::milestone_two::WorthTracedMilestoneTwoDerivedReadReport;
 use crate::certification::milestone_two::{
     certify_milestone_two_closeout_impl, certify_milestone_two_default_derived_corpus_impl,
-    certify_milestone_two_read_view_traced_impl, certify_milestone_two_verified_commit_traced_impl,
+    certify_milestone_two_read_basis_runtime_traced_impl,
+    certify_milestone_two_verified_commit_traced_impl,
 };
+use crate::certification::read_view::WorthMilestoneOneCertificationHarness;
 use crate::certification::read_view::WorthTracedMilestoneOneCertificationReport;
-use crate::certification::read_view::{
-    certify_milestone_one_read_view_traced_impl, certify_verified_topology_commit_traced_impl,
-};
 use crate::certification::report::{
     WorthMilestoneOneCloseoutReport, WorthMilestoneTwoCloseoutReport,
     WorthMilestoneTwoDerivedCorpusReport, WorthPrimitiveCorpusReport,
 };
 use worth_schema::facade::WorthBoundaryFailure;
 
-pub fn certify_milestone_one_read_view_traced(
-    read_view: &RelationalReadView,
+pub fn certify_milestone_one_read_basis_traced(
+    runtime: &mut RelationalRuntime,
     read_basis: DerivedTopologyReadBasis,
 ) -> Result<
     WorthTracedMilestoneOneCertificationReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    certify_milestone_one_read_view_traced_impl(read_view, read_basis)
+    WorthMilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
+        runtime, read_basis, None, 0,
+    )
 }
 
 pub fn certify_verified_topology_commit_traced(
@@ -43,17 +44,17 @@ pub fn certify_verified_topology_commit_traced(
     WorthTracedMilestoneOneCertificationReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    certify_verified_topology_commit_traced_impl(runtime, verified)
+    WorthMilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
 }
 
-pub fn certify_milestone_two_read_view_traced(
-    read_view: &RelationalReadView,
+pub fn certify_milestone_two_read_basis_traced(
+    runtime: &mut RelationalRuntime,
     read_basis: DerivedTopologyReadBasis,
 ) -> Result<
     WorthTracedMilestoneTwoDerivedReadReport,
     WorthBoundaryFailure<WorthMilestoneOneCertificationError>,
 > {
-    certify_milestone_two_read_view_traced_impl(read_view, read_basis)
+    certify_milestone_two_read_basis_runtime_traced_impl(runtime, read_basis)
 }
 
 pub fn certify_milestone_two_verified_topology_commit_traced(

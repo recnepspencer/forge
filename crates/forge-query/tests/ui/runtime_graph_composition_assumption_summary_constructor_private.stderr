@@ -1,0 +1,38 @@
+error[E0451]: fields `assumption_snapshot_digests`, `verified_precondition_digests`, `verified_step_count`, `verification_read_set_breadth`, `counter_snapshot`, `aggregate_assumption_snapshot_digest`, `aggregate_verified_precondition_digest` and `assumption_summary_digest` of struct `ForgeQueryGraphCompositionAssumptionSummary` are private
+  --> tests/ui/runtime_graph_composition_assumption_summary_constructor_private.rs:6:9
+   |
+ 5 |     let _ = ForgeQueryGraphCompositionAssumptionSummary {
+   |             ------------------------------------------- in this type
+ 6 |         assumption_snapshot_digests: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         verified_precondition_digests: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         verified_step_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         verification_read_set_breadth: ForgeQueryVerificationReadSetBreadth {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+...
+16 |         counter_snapshot: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+17 |         aggregate_assumption_snapshot_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         aggregate_verified_precondition_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         assumption_summary_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `target_binding_count`, `asserted_aspect_count`, `distinct_asserted_aspect_path_count`, `cleared_assertion_count` and `counter_snapshot` of struct `ForgeQueryVerificationReadSetBreadth` are private
+  --> tests/ui/runtime_graph_composition_assumption_summary_constructor_private.rs:10:13
+   |
+ 9 |         verification_read_set_breadth: ForgeQueryVerificationReadSetBreadth {
+   |                                        ------------------------------------ in this type
+10 |             target_binding_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^ private field
+11 |             asserted_aspect_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^ private field
+12 |             distinct_asserted_aspect_path_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |             cleared_assertion_count: 0,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |             counter_snapshot: String::new(),
+   |             ^^^^^^^^^^^^^^^^ private field
