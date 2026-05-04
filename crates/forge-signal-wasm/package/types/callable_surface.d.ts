@@ -582,6 +582,7 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
     id: string,
     builder: GraphBuilder<TPersistence, TInputs, TOutputs>,
   ): PublishedSignalGraph<TOutputs, TInputs>;
+  history(): CallableSignalHistory;
   canonicalId(localId: string): string;
   signalIdentity(localId: string): ScopedSignalIdentity;
   descriptor(): ScopeDescriptor;

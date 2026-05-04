@@ -24,16 +24,12 @@ The standard is:
 
 Read these in this order before running the test QA pass:
 
-1. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_laws.md`
-4. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\perf_laws.md`
+1. `_docs/coding_guidelines/MENTALITY.md`
+2. `_docs/coding_guidelines/arch_laws.md`
+3. `_docs/coding_guidelines/domain_laws.md`
+4. `_docs/coding_guidelines/perf_laws.md`
 
-Then reread:
-5. the governing milestone/spec
-6. the milestone test requirements, if one exists
-7. the relevant test files
-8. the relevant test support / harness files
+Then reread: 5. the governing milestone/spec 6. the milestone test requirements, if one exists 7. the relevant test files 8. the relevant test support / harness files
 
 ## Standard
 
@@ -42,12 +38,14 @@ noisy, duplicated, brittle, under-abstracted, over-abstracted,
 architecturally dishonest, or simply badly written.
 
 The bar is not:
+
 - "the tests pass"
 - "coverage exists"
 - "the assertions are thorough"
 - "the harness is convenient"
 
 The bar is:
+
 - the tests prove the correct thing
 - the tests are adversarial enough
 - the test code itself is clean, decomposed, and maintainable
@@ -71,6 +69,7 @@ If the test suite is messy, the proof surface is messy.
 
 A test harness is not a bag of helpers.
 It is a subsystem that models:
+
 - setup
 - proof
 - adapters
@@ -88,6 +87,7 @@ written exemption exists in the governing spec, roadmap, workspace rule, or
 allowlist.
 
 This applies to:
+
 - test files
 - support files
 - fixture files
@@ -107,6 +107,7 @@ This rule exists because flat file piles destroy domain clarity and encourage
 category-bucket architecture.
 
 If a directory is nearing or above 10 files:
+
 - split it by responsibility
 - create domain folders or proof-surface folders
 - make the structure teach the shape of the domain
@@ -118,6 +119,7 @@ Do not tolerate "we’ll reorganize later."
 A file or folder is not well designed just because its label sounds tidy.
 
 These are suspect by default unless narrowly scoped:
+
 - `helpers`
 - `common`
 - `assertions`
@@ -133,6 +135,7 @@ and teaches one piece of the system.
 
 The goal is not terse cleverness.
 The goal is:
+
 - explicit meaning
 - low noise
 - strong signal
@@ -147,6 +150,7 @@ ad hoc parity checks is not "thorough." It is under-designed.
 This skill is for test and harness QA.
 
 It should focus on:
+
 - adversarial strength of tests
 - architectural honesty of assertions
 - code quality of tests
@@ -173,6 +177,7 @@ If they change for different reasons, they belong in different files and
 probably different folders.
 
 A support tree that mixes:
+
 - fixture construction
 - bridge/runtime adapters
 - assertion helpers
@@ -186,14 +191,16 @@ inside one bucket is a domain-model failure.
 These are usually different subdomains.
 
 Examples of healthy separation:
+
 - `support/proof/...`
 - `support/runtime/...`
 - `support/domains/geometry/...`
 - `support/fixtures/...`
 
 Do not mix:
+
 - how a system is constructed for the test
-with
+  with
 - how its contracts are asserted
 
 ### 3. Domain pressure belongs in domain support
@@ -209,6 +216,7 @@ When multiple tests certify the same runtime contract, and the logic is
 genuinely domain-agnostic, lift it into generic support.
 
 Examples:
+
 - resolution-map snapshot helpers
 - receipt/inspection parity helpers
 - exact digest comparison helpers
@@ -219,6 +227,7 @@ Do not leave obviously generic proof mechanics buried in a single domain test.
 ### 5. Harness honesty is mandatory
 
 A harness must not:
+
 - silently inject support the runtime did not declare
 - collapse unsupported and domain-invalid paths
 - normalize away distinctions the public contract preserves
@@ -246,6 +255,7 @@ If multiple tests certify the same runtime contract and repeat the same proof
 mechanics, that logic belongs in generic test support.
 
 Examples:
+
 - resolution-map snapshot helpers
 - receipt/inspection parity helpers
 - lifecycle snapshot assertion helpers
@@ -270,6 +280,7 @@ Helpers that construct test state and helpers that assert runtime contracts are
 usually separate responsibilities and must not be merged casually.
 
 Examples of healthy separation:
+
 - domain setup helpers
 - runtime substrate helpers
 - proof snapshot helpers
@@ -283,6 +294,7 @@ category bucket, not a responsible design.
 A helper is invalid if it hides distinctions the runtime contract preserves.
 
 Do not let helpers blur:
+
 - lifecycle differences
 - identity vs replacement semantics
 - runtime denial vs domain denial
@@ -297,6 +309,7 @@ Convenience is not allowed to erase auditability.
 Good helpers reduce noise while keeping the proof legible.
 
 Bad helpers:
+
 - hide too much of the assertion surface
 - merge distinct semantics into one API
 - make failures harder to diagnose
@@ -308,6 +321,7 @@ probably the wrong abstraction.
 ### 6. Repetition alone does not justify abstraction
 
 Before abstracting, ask:
+
 - is this actually the same proof surface?
 - is this shared runtime contract or only shared syntax?
 - would lifting this helper merge meanings that should stay distinct?
@@ -317,6 +331,7 @@ The wrong abstraction is worse than some honest repetition.
 ### 7. Harness abstractions must live at the narrowest honest layer
 
 When introducing a helper, decide explicitly whether it belongs in:
+
 - the test file
 - generic test support
 - domain-specific test support
@@ -333,6 +348,7 @@ Use these questions aggressively.
 ### 1. Is the test actually adversarial?
 
 Does it pressure:
+
 - boundary cases
 - near-miss semantics
 - denial paths
@@ -345,6 +361,7 @@ If it only proves the obvious path, it is weak.
 ### 2. Is the test proving behavior or architecture?
 
 Look for whether the test certifies:
+
 - exact lifecycle classification
 - exact resolution-map meaning
 - exact digest / counter / summary output
@@ -357,6 +374,7 @@ If the test only proves "operation succeeded," it is weak by default.
 ### 3. Are the assertions honest?
 
 Tests must not freeze:
+
 - fixture accidents
 - bridge quirks unless the contract is explicitly bridge-specific
 - incidental ordering unless ordering is part of the contract
@@ -383,12 +401,14 @@ That is still a finding.
 ### 5. Is the harness helping or hiding?
 
 A good harness:
+
 - reduces noise
 - centralizes repeated proof mechanics
 - preserves semantic visibility
 - clarifies what is being certified
 
 A bad harness:
+
 - hides meaning behind convenience
 - merges distinct semantics into one helper
 - bakes in fragile fixture assumptions
@@ -397,11 +417,13 @@ A bad harness:
 ### 6. Are abstractions at the correct layer?
 
 Lift to **domain-agnostic test support** only when:
+
 - multiple tests prove the same runtime contract
 - the helper is about proof mechanics, not domain vocabulary
 - the helper does not collapse distinct semantics
 
 Lift to **domain-specific test support** when:
+
 - the shape is genuine domain pressure
 - the helper captures repeated domain fixture construction
 - the semantics are not honestly generic
@@ -412,6 +434,7 @@ policy, or subscription-specific.
 ### 7. Does the directory structure teach the domain?
 
 A directory with many files must be organized by:
+
 - proof surface
 - domain pressure family
 - harness concern
@@ -420,6 +443,7 @@ A directory with many files must be organized by:
 - adapter kind
 
 Bad split axes:
+
 - generic convenience labels
 - undifferentiated support buckets
 - file type alone
@@ -434,6 +458,7 @@ A test DSL or fluent helper is acceptable only if it preserves semantic
 visibility.
 
 Do not let a setup DSL:
+
 - hide lifecycle distinctions
 - hide verification assumptions
 - hide denial classes
@@ -444,6 +469,7 @@ Convenience must never outrank auditability.
 ### 9. Does the test fail loudly and usefully?
 
 When it breaks, can we tell:
+
 - what contract regressed?
 - whether the problem is test drift, harness drift, or substrate drift?
 - whether the failure is about lifecycle, identity, lineage, resolution, or
@@ -497,12 +523,14 @@ Do not stop after creating a helper if it lives at the wrong abstraction layer.
 ## Required output discipline
 
 When reporting findings:
+
 - findings first
 - concrete, not vague
 - no celebration
 - no "overall looks good" opener
 
 For each finding, state:
+
 1. what is wrong
 2. why it matters
 3. what authority it violates
@@ -510,6 +538,7 @@ For each finding, state:
 
 If the finding is about abstraction placement, say explicitly whether the
 correction belongs in:
+
 - the test file
 - generic test support
 - domain-specific test support
@@ -569,17 +598,20 @@ Then continue until no meaningful findings remain.
 When introducing helpers:
 
 ### Lift into generic support only if all are true:
+
 - the helper proves a contract shared by multiple tests
 - the contract is runtime-generic rather than domain-vocabulary-specific
 - the helper does not merge distinct semantic meanings
 - the helper makes tests clearer, not more magical
 
 ### Lift into domain support when:
+
 - the repeated shape is genuine domain pressure
 - the helper captures repeated domain setup or naming
 - the helper would be dishonest if presented as generic
 
 ### Do not abstract if:
+
 - the repetition is small and the helper would hide meaning
 - the tests are similar in syntax but different in semantic contract
 - the abstraction would merge proof surfaces that should stay distinct
@@ -589,6 +621,7 @@ When introducing helpers:
 These are hard gates, not nice-to-haves.
 
 ### File cap
+
 - Default maximum: **400 lines**
 - Applies to:
   - test files
@@ -602,6 +635,7 @@ If a touched file is over the cap and has no written exemption, splitting it is
 mandatory.
 
 ### Directory cap
+
 - Default maximum: **10 files per directory**
 - Applies to:
   - test directories
@@ -613,6 +647,7 @@ If a directory exceeds the cap and has no written exemption, reorganizing it is
 mandatory.
 
 Written exemptions must exist in:
+
 - the governing spec
 - roadmap
 - workspace rule
@@ -623,6 +658,7 @@ No silent exceptions.
 ## Completion rule
 
 The test QA loop is complete only when:
+
 - no meaningful findings remain
 - the tests are adversarial enough for the milestone bar
 - the test code is clean enough for the codebase bar

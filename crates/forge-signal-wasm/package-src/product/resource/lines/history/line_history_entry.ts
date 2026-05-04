@@ -1,0 +1,42 @@
+function createLineHistoryEntry(
+  event,
+  status,
+  freshness,
+  diagnostics,
+  overrides = {},
+) {
+  return Object.freeze({
+    sequence: 0,
+    event,
+    status,
+    freshness,
+    lastOperation: diagnostics.lastOperation,
+    lastOutcome: diagnostics.lastOutcome,
+    pendingOperation: diagnostics.pendingOperation,
+    statusContinuity:
+      "continuity" in status ? status.continuity : null,
+    retryAttemptCount: diagnostics.retryAttemptCount,
+    rejectionCount: diagnostics.rejectionCount,
+    timeoutCount: diagnostics.timeoutCount,
+    supersessionCount: diagnostics.supersessionCount,
+    invalidationCount: diagnostics.invalidationCount,
+    patchCount: diagnostics.patchCount,
+    lastSupersededOperation: diagnostics.lastSupersededOperation,
+    lastInvalidationCause: diagnostics.lastInvalidationCause,
+    lastInvalidationScope: diagnostics.lastInvalidationScope,
+    lastPatchKind: diagnostics.lastPatchKind,
+    lastPatchScope: diagnostics.lastPatchScope,
+    lastPatchedItemId: diagnostics.lastPatchedItemId,
+    lastPatchedAspect: diagnostics.lastPatchedAspect,
+    lastPatchedSummary: diagnostics.lastPatchedSummary,
+    preservedVisibleValueOnLastRejection:
+      diagnostics.preservedVisibleValueOnLastRejection,
+    lastTimeoutOperation: diagnostics.lastTimeoutOperation,
+    lastErrorMessage: diagnostics.lastErrorMessage,
+    visibleValueVersion: diagnostics.visibleValueVersion,
+    supersededOperation: null,
+    ...overrides,
+  });
+}
+
+export { createLineHistoryEntry };

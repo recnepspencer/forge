@@ -1,0 +1,21 @@
+error[E0624]: associated function `mint` is private
+  --> tests/ui/witnesses_are_not_publicly_mintable.rs:12:63
+   |
+12 |     let _authority = AuthorityWitness::<DeploymentAuthority>::mint();
+   |                                                               ^^^^ private associated function
+   |
+  ::: src/proof/witnesses.rs
+   |
+   |     pub(crate) fn mint() -> Self {
+   |     ---------------------------- private associated function defined here
+
+error[E0624]: associated function `mint` is private
+  --> tests/ui/witnesses_are_not_publicly_mintable.rs:13:72
+   |
+13 |     let _capability = CapabilityWitness::<CanonicalizationCapability>::mint();
+   |                                                                        ^^^^ private associated function
+   |
+  ::: src/proof/witnesses.rs
+   |
+   |     pub(crate) fn mint() -> Self {
+   |     ---------------------------- private associated function defined here

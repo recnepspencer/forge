@@ -467,8 +467,8 @@ Engineering spec:
 ### Goal
 
 Build the API surface as a consumer of the completed callback, temporal, async,
-policy, graph, and host-capability semantics while preserving a clean future
-seam to `forge-query` and `forge-server`.
+policy, graph, and host-capability semantics while preserving a clean
+architecture for later external read and delivery systems.
 
 We are not just replacing TanStack Query.
 We are replacing a bunch of the frontend API integration layer too.
@@ -491,8 +491,8 @@ We are replacing a bunch of the frontend API integration layer too.
 - diagnostics, replay, and restore truth for resource-backed application state
 - ergonomics strong enough to replace query-library-shaped usage without
   inventing a second async truth model
-- a compatibility seam for later `forge-query` result-shape backing and
-  `forge-server` delivery
+- a compatibility boundary for later external read-definition and delivery
+  systems
 - request/auth/header/context posture strong enough to simplify common frontend
   API integration instead of leaving it as ambient glue
 - typed upload posture for direct multipart and signed-upload flows that lowers
@@ -504,10 +504,8 @@ We are replacing a bunch of the frontend API integration layer too.
   remain runtime-owned semantics
 - forms and resources share substrate truth rather than carrying separate async
   worlds
-- `forge-query` remains the owner of typed query expression, result shapes, and
-  live read semantics
-- `forge-server` remains the owner of delivery, resume, basis negotiation, and
-  durable subscription semantics
+- later external systems must not split local lifecycle, freshness, or
+  diagnostics truth into a second client engine
 - host-derived revalidation facts flow through host capability rather than ad
   hoc browser checks inside resource callbacks
 - resource ergonomics do not hide broad scans, broad invalidation, or broad
@@ -519,10 +517,10 @@ Milestone 6 includes API-surface-grade resource authoring, request shaping,
 freshness, retry/revalidation semantics, and diagnostics-rich resource state on
 top of the completed substrate.
 
-Milestone 6 does not include turning resources into the semantic owner of query
-definition, server delivery, host-derived facts, async policy, or freshness
-meaning for the rest of the package. Resources must inherit those semantics
-rather than define them.
+Milestone 6 does not include turning resources into the semantic owner of
+external read definition, external delivery, host-derived facts, async policy,
+or freshness meaning for the rest of the package. Resources must inherit those
+semantics rather than define them.
 
 ### Acceptance Evidence
 
@@ -537,8 +535,8 @@ This milestone is complete only when the wasm product surface can prove:
   product lanes
 - resource diagnostics explain freshness, retry, invalidation, and visibility-
   or host-driven revalidation honestly
-- the initial signals-first resource surface preserves a clean convergence path
-  to later query-backed/server-delivered resource lines
+- the initial signals-first surface preserves a clean convergence path to later
+  externally-driven resource lines
 - the API surface meaningfully reduces auth/header/request/callback/redirect
   boilerplate rather than only replacing query-cache usage
 - the package can recommend the resource surface without a giant footnote about

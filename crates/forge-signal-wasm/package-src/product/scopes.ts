@@ -1,5 +1,6 @@
 import { buildControllerContract } from "./controllers.js";
 import { createLinkedSignal } from "./linked.js";
+import { createResourceNamespace } from "./resource/facade.js";
 import {
   DEBUG_NAME,
   GRAPH_LOCAL_ID,
@@ -55,11 +56,22 @@ function collisionMessage(family, canonicalId, scopeId, localId) {
   return `${family} authoring in scope \`${scopeId}\` cannot reuse local id \`${localId}\` because canonical id \`${canonicalId}\` is already owned in this Signals runtime`;
 }
 
-export function reserveAuthoringSignalId(rawSignals, family, canonicalId, scopeId = null, localId = canonicalId) {
-  requireNonEmptyString(canonicalId, `${family} authoring requires a non-empty canonical id`);
+export function reserveAuthoringSignalId(
+  rawSignals,
+  family,
+  canonicalId,
+  scopeId = null,
+  localId = canonicalId,
+) {
+  requireNonEmptyString(
+    canonicalId,
+    `${family} authoring requires a non-empty canonical id`,
+  );
   const state = getAuthoringState(rawSignals);
   if (state.authoredSignalIds.has(canonicalId)) {
-    throw new TypeError(collisionMessage(family, canonicalId, scopeId, localId));
+    throw new TypeError(
+      collisionMessage(family, canonicalId, scopeId, localId),
+    );
   }
   state.authoredSignalIds.add(canonicalId);
   return () => {
@@ -67,7 +79,11 @@ export function reserveAuthoringSignalId(rawSignals, family, canonicalId, scopeI
   };
 }
 
-export function nextGeneratedAuthoringSignalId(rawSignals, family, scopeId = null) {
+export function nextGeneratedAuthoringSignalId(
+  rawSignals,
+  family,
+  scopeId = null,
+) {
   const state = getAuthoringState(rawSignals);
   const counterKey = generatedCounterKey(scopeId, family);
   const next = (state.generatedCounters.get(counterKey) ?? 0) + 1;
@@ -89,7 +105,9 @@ function withPrivateAuthoringId(options, authoringId) {
     };
   }
   if (!isPlainObject(options)) {
-    throw new TypeError("scoped authoring options must be an object when provided");
+    throw new TypeError(
+      "scoped authoring options must be an object when provided",
+    );
   }
   return {
     ...options,
@@ -98,7 +116,11 @@ function withPrivateAuthoringId(options, authoringId) {
 }
 
 function hasExplicitAuthoringIdOption(options) {
-  return isPlainObject(options) && typeof options.id === "string" && options.id.length > 0;
+  return (
+    isPlainObject(options) &&
+    typeof options.id === "string" &&
+    options.id.length > 0
+  );
 }
 
 function stripExplicitAuthoringIdOption(options) {
@@ -111,11 +133,15 @@ function stripExplicitAuthoringIdOption(options) {
 
 function descriptorForScope(scopeId, localScopeId, parentScopeId) {
   const segments = scopeId.split(".");
-  const path = Object.freeze(segments.map((segment, index) => Object.freeze({
-    id: segments.slice(0, index + 1).join("."),
-    localScopeId: segment,
-    depth: index + 1,
-  })));
+  const path = Object.freeze(
+    segments.map((segment, index) =>
+      Object.freeze({
+        id: segments.slice(0, index + 1).join("."),
+        localScopeId: segment,
+        depth: index + 1,
+      }),
+    ),
+  );
   return Object.freeze({
     id: scopeId,
     localScopeId,
@@ -132,7 +158,10 @@ function descriptorForScope(scopeId, localScopeId, parentScopeId) {
 }
 
 function canonicalId(scopeId, localId) {
-  requireNonEmptyString(localId, "scoped authoring requires a non-empty local id");
+  requireNonEmptyString(
+    localId,
+    "scoped authoring requires a non-empty local id",
+  );
   return `${scopeId}.${localId}`;
 }
 
@@ -158,19 +187,24 @@ export function createScopedSignalNamespace(
   parentScope = null,
   explicitGraphOwnerId = undefined,
 ) {
-  requireNonEmptyString(localScopeId, "signals.scope requires a non-empty string scope id");
+  requireNonEmptyString(
+    localScopeId,
+    "signals.scope requires a non-empty string scope id",
+  );
   const parentScopeId = parentScope?.scopeId ?? null;
   const scopeId = joinScopeId(parentScopeId, localScopeId);
-  const graphOwnerId = explicitGraphOwnerId ?? parentScope?.graphOwnerId ?? null;
+  const graphOwnerId =
+    explicitGraphOwnerId ?? parentScope?.graphOwnerId ?? null;
   const descriptor = Object.freeze({
     ...descriptorForScope(scopeId, localScopeId, parentScopeId),
     graphOwnerId,
   });
 
   function tagScopedHandle(handle, localId = null) {
-    const signalIdentity = typeof localId === "string"
-      ? signalIdentityForScope(descriptor, graphOwnerId, localId)
-      : null;
+    const signalIdentity =
+      typeof localId === "string"
+        ? signalIdentityForScope(descriptor, graphOwnerId, localId)
+        : null;
     Object.defineProperties(handle, {
       [GRAPH_SCOPE_ID]: {
         enumerable: false,
@@ -207,10 +241,15 @@ export function createScopedSignalNamespace(
 
   const scopedNamespace = {
     host: callableSignals.host,
+    resource: null,
     spec: Object.freeze({
       input(id, initial, options) {
         return tagScopedHandle(
-          callableSignals.spec.input(canonicalId(scopeId, id), initial, options),
+          callableSignals.spec.input(
+            canonicalId(scopeId, id),
+            initial,
+            options,
+          ),
           id,
         );
       },
@@ -222,7 +261,11 @@ export function createScopedSignalNamespace(
       },
       computedCallback(id, callback, options) {
         return tagScopedHandle(
-          callableSignals.spec.computedCallback(canonicalId(scopeId, id), callback, options),
+          callableSignals.spec.computedCallback(
+            canonicalId(scopeId, id),
+            callback,
+            options,
+          ),
           id,
         );
       },
@@ -234,7 +277,11 @@ export function createScopedSignalNamespace(
       },
       outputCallback(id, callback, options) {
         return tagScopedHandle(
-          callableSignals.spec.outputCallback(canonicalId(scopeId, id), callback, options),
+          callableSignals.spec.outputCallback(
+            canonicalId(scopeId, id),
+            callback,
+            options,
+          ),
           id,
         );
       },
@@ -256,7 +303,11 @@ export function createScopedSignalNamespace(
     input(firstArg, secondArg, thirdArg) {
       if (typeof firstArg === "string" && arguments.length >= 2) {
         return tagScopedHandle(
-          callableSignals.spec.input(canonicalId(scopeId, firstArg), secondArg, thirdArg),
+          callableSignals.spec.input(
+            canonicalId(scopeId, firstArg),
+            secondArg,
+            thirdArg,
+          ),
           firstArg,
         );
       }
@@ -272,30 +323,48 @@ export function createScopedSignalNamespace(
       }
       const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "input");
       return tagScopedHandle(
-        callableSignals.input(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+        callableSignals.input(
+          firstArg,
+          withPrivateAuthoringId(secondArg, authoringId),
+        ),
       );
     },
     linked(sourceOrDefinition, options) {
       return tagScopedHandle(
-        createLinkedSignal(scopedNamespace, rawSignals, sourceOrDefinition, options),
+        createLinkedSignal(
+          scopedNamespace,
+          rawSignals,
+          sourceOrDefinition,
+          options,
+        ),
       );
     },
     computed(firstArg, secondArg, thirdArg) {
       if (typeof firstArg === "string") {
         if (typeof secondArg === "function") {
           if (thirdArg !== undefined) {
-            throw new TypeError("scoped computed callback form does not accept options after an explicit id");
+            throw new TypeError(
+              "scoped computed callback form does not accept options after an explicit id",
+            );
           }
           return tagScopedHandle(
-            callableSignals.spec.computedCallback(canonicalId(scopeId, firstArg), secondArg),
+            callableSignals.spec.computedCallback(
+              canonicalId(scopeId, firstArg),
+              secondArg,
+            ),
             firstArg,
           );
         }
         if (thirdArg !== undefined) {
-          throw new TypeError("scoped computed spec form does not accept a third argument after an explicit id");
+          throw new TypeError(
+            "scoped computed spec form does not accept a third argument after an explicit id",
+          );
         }
         return tagScopedHandle(
-          callableSignals.spec.computed(canonicalId(scopeId, firstArg), secondArg),
+          callableSignals.spec.computed(
+            canonicalId(scopeId, firstArg),
+            secondArg,
+          ),
           firstArg,
         );
       }
@@ -320,27 +389,44 @@ export function createScopedSignalNamespace(
           localId,
         );
       }
-      const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "computed");
+      const authoringId = nextGeneratedScopedId(
+        rawSignals,
+        scopeId,
+        "computed",
+      );
       return tagScopedHandle(
-        callableSignals.computed(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+        callableSignals.computed(
+          firstArg,
+          withPrivateAuthoringId(secondArg, authoringId),
+        ),
       );
     },
     output(firstArg, secondArg, thirdArg) {
       if (typeof firstArg === "string") {
         if (typeof secondArg === "function") {
           if (thirdArg !== undefined) {
-            throw new TypeError("scoped output callback form does not accept options after an explicit id");
+            throw new TypeError(
+              "scoped output callback form does not accept options after an explicit id",
+            );
           }
           return tagScopedHandle(
-            callableSignals.spec.outputCallback(canonicalId(scopeId, firstArg), secondArg),
+            callableSignals.spec.outputCallback(
+              canonicalId(scopeId, firstArg),
+              secondArg,
+            ),
             firstArg,
           );
         }
         if (thirdArg !== undefined) {
-          throw new TypeError("scoped output spec form does not accept a third argument after an explicit id");
+          throw new TypeError(
+            "scoped output spec form does not accept a third argument after an explicit id",
+          );
         }
         return tagScopedHandle(
-          callableSignals.spec.output(canonicalId(scopeId, firstArg), secondArg),
+          callableSignals.spec.output(
+            canonicalId(scopeId, firstArg),
+            secondArg,
+          ),
           firstArg,
         );
       }
@@ -367,15 +453,22 @@ export function createScopedSignalNamespace(
       }
       const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "output");
       return tagScopedHandle(
-        callableSignals.output(firstArg, withPrivateAuthoringId(secondArg, authoringId)),
+        callableSignals.output(
+          firstArg,
+          withPrivateAuthoringId(secondArg, authoringId),
+        ),
       );
     },
     graph: callableSignals.graph.bind(callableSignals),
+    history: callableSignals.history.bind(callableSignals),
     canonicalId(localId) {
       return canonicalId(scopeId, localId);
     },
     signalIdentity(localId) {
-      requireNonEmptyString(localId, "scoped authoring requires a non-empty local id");
+      requireNonEmptyString(
+        localId,
+        "scoped authoring requires a non-empty local id",
+      );
       return signalIdentityForScope(descriptor, graphOwnerId, localId);
     },
     descriptor() {
@@ -395,6 +488,11 @@ export function createScopedSignalNamespace(
     },
     [RAW_SIGNALS]: rawSignals,
   };
+
+  scopedNamespace.resource = createResourceNamespace(
+    scopedNamespace,
+    rawSignals,
+  );
 
   return Object.freeze(scopedNamespace);
 }

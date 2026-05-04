@@ -1423,6 +1423,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-proof"
+version = "0.1.0"
+dependencies = [
+ "trybuild",
+]
+
+[[package]]
 name = "forge-query"
 version = "0.1.0"
 dependencies = [

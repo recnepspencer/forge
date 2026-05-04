@@ -1,0 +1,673 @@
+# Forge Foundational Future Roadmap
+
+## Purpose
+
+This document defines the future work for `forge-foundational`.
+
+It is a future-only roadmap. It does not assume the foundational crate already
+exists, and it does not treat shared truth vocabulary as a grab-bag of helpers.
+It exists to sequence the work required to make Forge speak one shared
+aspect-native, proof-composable, digest-honest, profile-honest, and
+representation-honest language across crates.
+
+The operating rule for this roadmap is:
+
+`standardize shared meaning once, preserve local representation freedom always`
+
+That rule governs every milestone:
+
+1. canonical cross-crate meaning must be encoded in shared types and contracts
+   rather than crate-local folklore
+2. aspect-native value vocabulary must replace JSON-default thinking at
+   canonical boundaries
+3. proof-bearing artifacts from `forge-proof` must compose with shared
+   descriptive surfaces without pulling those surfaces into the proof kernel
+4. diagnostics, lineage, provenance, digests, and receipts must be rich enough
+   to survive cross-crate boundaries without producer-side reinterpretation
+5. identities, handles, basis ids, equivalence claims, and locators must be
+   explicit shared laws rather than crate-local folklore
+6. profiles must control richness, posture, and support semantics explicitly
+7. no milestone may force one hot-path memory layout or one runtime
+   representation across crates that legitimately need AoS, SoA, AoSoA, or
+   custom topology
+8. lowered plans may need to execute at runtime, but shared crates must expose
+   only the proof/composition and descriptive boundary language, not a generic
+   executor
+9. shared boundary vocabulary must not collapse authoritative truth, derived
+   artifacts, and descriptive/forensic surfaces into one generic artifact
+   model
+10. same-family symbolic composition, lifecycle outcomes, and resolution maps
+    should have one descriptive language across crates rather than local
+    receipt folklore
+
+## Adversarial Constraint
+
+`forge-foundational` must survive the following hostile condition:
+
+> Several Forge crates with different authority boundaries, proof-bearing
+> lifecycles, memory layouts, and support surfaces must exchange aspect-native
+> values, patches, diagnostics, lineage/provenance artifacts, profile-bearing
+> reports, and certified receipts such that the same semantic thing has one
+> canonical meaning everywhere, while each crate remains free to keep its own
+> cost-honest internal representation and materialization policy.
+
+If any supported usage:
+
+- treats JSON-shaped payloads as the canonical long-term meaning of boundary
+  values
+- forces `forge-proof` to own descriptive ontology instead of progression law
+- standardizes one in-memory representation where only shared meaning should be
+  shared
+- allows two crates to mean the same thing with different artifact categories,
+  profile semantics, or digest bases
+- makes canonical boundary interpretation depend on producer-side hidden state
+- weakens digest, provenance, or receipt honesty in exchange for convenience
+
+then `forge-foundational` has failed.
+
+## Roadmap Rules
+
+Rules for every remaining foundational item:
+
+- each milestone must establish a real shared semantic capability boundary, not
+  just move utility code into a new crate
+- each milestone must preserve the split:
+  `forge-proof` owns progression law, `forge-foundational` owns shared truth
+  vocabulary, and domain crates own domain semantics plus hot-path
+  representation
+- no milestone is complete until the shared types are strong enough that two
+  crates could exchange the surface without semantic reinterpretation
+- no milestone may hide cost boundaries, failure topologies, or correctness
+  boundaries behind a convenience abstraction
+- every milestone must declare what may remain crate-local on purpose
+- every milestone must define machine-checkable acceptance evidence through
+  canonicalization tests, parity tests, compile-fail tests, digest equivalence,
+  or hostile materialization cases
+- if a capability depends on future `forge-proof` surfaces or future domain
+  migrations, that dependency must remain explicit debt rather than implied
+  completion
+- until `forge-foundational` gains its own dedicated `test-requirements.md`,
+  each milestone's acceptance evidence is authoritative for closure
+
+## Operating Modes
+
+The roadmap preserves these foundational operating modes explicitly:
+
+- `Canonical boundary mode`: values and artifacts are materialized into shared
+  foundational shapes for exchange, persistence, replay, or support
+- `Crate-local optimized mode`: a crate keeps its own AoS, SoA, AoSoA, packed,
+  sparse, or custom representation while conforming to foundational meaning at
+  the boundary
+- `Compatibility bridge mode`: transitional JSON-shaped or legacy local
+  surfaces may remain temporarily, but they must be named debt and lowered into
+  canonical foundational meaning explicitly
+- `Proof-composed mode`: proof-bearing artifacts from `forge-proof` attach
+  foundational profiles, diagnostics, provenance, and receipts without forcing
+  runtime proof registries or descriptive baggage into the proof kernel
+
+## Obligation Surface Convention
+
+Every milestone in this roadmap must be read as four separate obligation
+surfaces, even when a section heading still says `Must Ship` for readability:
+
+- `surface primitives`: the concrete shared types, markers, builders, or
+  materialization contracts that must exist
+- `semantic guarantees`: the meaning those primitives must preserve across
+  crate boundaries
+- `representation boundaries`: what must remain crate-local and must not be
+  flattened into the shared crate
+- `proof obligations`: the parity checks, hostile cases, and machine-checkable
+  evidence required before the milestone is honest
+
+## Standardization Boundary Stance
+
+`forge-foundational` is allowed to standardize:
+
+- boundary-facing vocabulary
+- canonical value forms
+- aspect-state and aspect-patch meaning
+- diagnostics and explanation ontology
+- lineage, provenance, and receipt categories
+- profile semantics
+- digest-basis and canonicalization rules
+- materialized artifact contracts
+- performance and layout vocabulary
+
+`forge-foundational` is not allowed to standardize:
+
+- one runtime container for all values
+- one internal diagnostics store
+- one lineage graph representation
+- one hot-path artifact layout
+- one memory topology for systems with different workload shapes
+- one universal representation that hides O(1) versus O(n) behavior
+
+## Early Cross-Feature Proof Gates
+
+The following gates must be preserved from the first milestone onward:
+
+- the canonical aspect-native value language must be precise about width,
+  precision, temporal basis, and reference kind
+- boundary-facing meaning must not depend on serde-object ordering accidents or
+  crate-local merge folklore
+- compatibility JSON must remain explicit transition debt, not invisible truth
+- shared profiles must be structurally typed rather than string labels floating
+  through crates
+- proof-bearing artifacts must be able to attach foundational surfaces without
+  forcing descriptive concerns into `forge-proof`
+- any shared surface that looks cheap must have an honest materialization
+  boundary rather than concealed hot-path reconstruction
+- shared identity, equivalence, outcome, and locator surfaces must remain
+  explicit enough that comparison, suppression, certification, and debugging do
+  not devolve into local folklore
+- same-family symbolic resolution and lifecycle evidence must remain canonical
+  enough that one coherent family visibility boundary can be described the same
+  way across crates
+- any shared boundary category must preserve whether it is authoritative,
+  derived, planned, descriptive, or receipt-bearing rather than merging those
+  meanings for convenience
+
+## Milestone 1: Aspec-Native Canonical Value And Aspect State Substrate
+
+### Goal
+
+Establish the canonical value language and aspect-state vocabulary that every
+later foundational surface depends on.
+
+### Must Ship
+
+- a shared aspect-native scalar vocabulary with explicit width, precision,
+  temporal basis, and reference kind
+- typed identity/key/handle/basis-id vocabulary for shared boundary surfaces
+- canonical structural aspect vocabulary for:
+  - `AspectKey`
+  - canonical aspect-state maps
+  - authoritative aspect-state wrappers
+  - authoritative aspect patches with explicit `set` and `clear`
+- canonical field/path/locator vocabulary for aspect-native and
+  boundary-facing surfaces
+- explicit patch semantics where `set` dominates overlapping `clear`
+- canonical ordering and equality rules for aspect-state and aspect-patch
+  materialization
+- explicit compatibility-bridge surfaces for transitional JSON-originated
+  inputs where needed
+
+### Semantic Guarantees
+
+- semantically identical aspect-native values and aspect states must mean the
+  same thing regardless of which crate materialized them
+- aspect patches must preserve explicit set-versus-clear semantics rather than
+  relying on object-merge convention
+- compatibility bridges must lower into the same canonical meaning as native
+  aspect construction
+- equal representation must not collapse identity, handle, and basis-id meaning
+- canonical locators must point at the same structural kinds the same way
+  across crates
+
+### Representation Boundaries
+
+- crates may retain local payload/value layouts and materialize canonical
+  foundational forms only at explicit boundaries
+- the shared value language must not require one universal runtime value bag
+- compatibility JSON adapters are boundary shims only, not canonical internal
+  storage law
+- identity and locator vocabulary standardize meaning, not one allocator,
+  one handle lifetime model, or one traversal engine
+
+### Must Preserve
+
+- aspect-native meaning as the canonical long-term truth vocabulary
+- no collapse back to untyped JSON-object semantics
+- no hidden semantic dependence on map iteration accidents or serializer quirks
+- no forced runtime bag-of-values abstraction in hot paths
+- freedom for crates to keep crate-local optimized internal representations and
+  materialize the canonical forms only at boundaries
+
+### Acceptance Evidence
+
+- canonical ordering tests for aspect-state and patch materialization
+- equality and digest-preparation parity tests across independently constructed
+  but semantically identical aspect states
+- hostile patch tests covering overlapping `set`/`clear`, empty patches,
+  no-op patches, and canonical merge behavior
+- compatibility-bridge tests proving transitional JSON-shaped inputs lower into
+  the same canonical aspect-native meaning as native construction
+
+## Milestone 2: Canonical Digest And Canonicalization Substrate
+
+### Goal
+
+Define the shared digest-basis and canonicalization toolkit so boundary
+artifacts can be reproduced, compared, certified, and replayed across crates.
+
+### Must Ship
+
+- canonical digest-basis helpers for aspect-native values, patches, profiles,
+  and boundary artifacts
+- explicit equivalence-basis and mismatch-explanation vocabulary for reuse,
+  suppression, parity, and certification sameness claims
+- shared canonicalization contracts for stable ordering and serialization-ready
+  normalization
+- explicit distinction between canonical semantic form and transport encoding
+- digest-basis extension points for later diagnostics, provenance, receipts,
+  and support artifacts
+- compile-time or strongly typed guardrails preventing semantically unstable
+  digest assembly paths where the crate can enforce them
+
+### Semantic Guarantees
+
+- one semantic thing must imply one canonical digest basis across crates
+- digest sameness claims must rest on explicit equivalence bases rather than
+  incidental field order or transport encoding quirks
+- canonicalization must normalize meaning, not erase meaningful distinctions
+- reuse and suppression claims must be explainable in terms of declared basis,
+  not comparator folklore
+
+### Representation Boundaries
+
+- crates may assemble digest inputs from local structures so long as the
+  resulting basis is canonical
+- the digest toolkit must not require all shared surfaces to share one storage
+  topology before they can be hashed or compared
+- transport encoding remains downstream of canonical semantic form
+- equivalence vocabulary must not imply one comparator engine or one reuse
+  runtime
+
+### Must Preserve
+
+- one semantic thing must hash from one canonical basis across crates
+- no digest meaning may depend on crate-local incidental layout
+- no use of transport-specific object ordering as an authority claim
+- no flattening of profile, provenance, or artifact categories into one generic
+  "hashable blob" surface
+
+### Acceptance Evidence
+
+- cross-construction digest parity tests
+- canonicalization round-trip tests for stable semantic identity
+- hostile ordering tests proving insertion order, temporary builder order, or
+  intermediate container layout cannot change canonical digest output
+- replay-basis tests proving identical semantic inputs produce identical digest
+  bases across independent construction paths
+
+## Milestone 3: Profile And Policy Vocabulary
+
+### Goal
+
+Define the shared profile system for richness, posture, support, compatibility,
+and delivery semantics so crates stop carrying these ideas through unrelated
+local dialects.
+
+### Must Ship
+
+- typed profile vocabulary for diagnostics richness, support posture,
+  compatibility posture, admission/readiness posture, delivery/retention
+  posture, and other truly shared profile families
+- shared profile composition and attachment contracts for boundary artifacts
+- canonical profile digests or profile-basis participation where later
+  certification and support artifacts need reproducible profile identity
+- explicit distinction between profile semantics and domain policy execution
+- room for proof-bearing artifacts to carry foundational profiles without
+  importing descriptive policy execution into `forge-proof`
+
+### Semantic Guarantees
+
+- profile identity must mean the same richness/posture/support contract across
+  crates
+- profile changes may alter descriptive breadth, retention, or support posture
+  but must not silently redefine authoritative domain truth
+- profile semantics must remain explicit enough for digesting, comparison, and
+  support interpretation
+
+### Representation Boundaries
+
+- domain crates keep ownership of actual policy execution and runtime behavior
+- profiles standardize shared meaning, not one engine for applying that meaning
+- profile attachment must not require one internal profile store or one global
+  registry
+
+### Must Preserve
+
+- profile semantics must stay typed and explicit rather than string labels
+- profile richness must not silently widen hot-path work
+- profiles must not collapse domain-specific policy meaning into one fake
+  universal enum when correctness boundaries differ
+- profile attachment must remain boundary-facing; crates retain freedom over how
+  they implement the underlying operational mechanics
+
+### Acceptance Evidence
+
+- profile identity and equality tests
+- profile composition tests for compatible and incompatible combinations
+- hostile tests proving richness/posture changes alter only the allowed
+  descriptive surface and do not change authoritative domain outcome semantics
+- proof-composition tests demonstrating a proof-bearing artifact can attach
+  foundational profiles without needing runtime proof registries
+
+## Milestone 4: Boundary Artifact Taxonomy And Materialization Contracts
+
+### Goal
+
+Standardize the shared artifact categories and the contracts for materializing
+crate-local optimized state into canonical boundary-facing forms.
+
+### Must Ship
+
+- explicit shared categories for:
+  - `Summary`
+  - `Report`
+  - `Artifact`
+  - `Receipt`
+- explicit authoritative/derived/projected/support-only boundary distinctions
+  where crates need them
+- explicit room for plan-shaped artifacts that describe intended runtime work
+  without implying one shared runtime execution representation
+- explicit room for same-family composition artifacts, resolution maps, and
+  lifecycle outcomes where crates need one shared descriptive language
+- typed materialization contracts that let crates expose canonical boundary
+  forms without standardizing their internal storage
+- attachment points for profiles, digest bases, diagnostics, provenance, and
+  performance accounting
+- explicit category boundaries so the same noun means the same thing in every
+  crate
+- guidance-bearing APIs or traits that make boundary crossings mechanically
+  visible instead of looking like cheap getters
+
+### Semantic Guarantees
+
+- `Summary`, `Report`, `Artifact`, and `Receipt` must remain distinct semantic
+  categories across the workspace
+- authoritative, derived, projected, support-only, planned, and receipt-bearing
+  surfaces must remain distinguishable where those differences matter
+- plan-shaped artifacts must describe intended work without being confused for
+  authoritative truth or for receipts of completed work
+- same-family composition artifacts must describe symbolic resolution and
+  lifecycle meaning without being confused for authority execution engines
+- descriptive or support-facing categories must not silently masquerade as
+  canonical authority surfaces
+
+### Representation Boundaries
+
+- foundational category contracts describe boundary meaning, not one storage
+  representation
+- crates may materialize the same category from different internal layouts
+- shared traits or builders must not pressure crates to expose deep internals
+  just to satisfy category shape
+- explicit materialization categories must not force one always-on rich view of
+  authoritative state
+
+### Must Preserve
+
+- no one-category envelope that collapses distinct boundary semantics
+- no concealment of expensive materialization behind cheap-looking accessors
+- no requirement that all crates store summaries, reports, artifacts, or
+  receipts in the same topology
+- no pressure toward a generic execution runtime just because several crates
+  lower plans into runtime-applied work
+- no weakening of facade boundaries by exposing deep internal storage just to
+  satisfy a shared trait
+
+### Acceptance Evidence
+
+- artifact-category distinction tests
+- materialization honesty tests showing boundary crossing is explicit
+- hostile tests proving crate-local optimized structures can materialize shared
+  categories without semantic drift
+- compile-fail or trait-bound tests preventing obviously invalid category
+  substitutions where the API can enforce them
+
+## Milestone 5: Diagnostics And Explanation Ontology
+
+### Goal
+
+Establish one shared vocabulary for diagnostics, explanations, denials,
+advisories, and support-bearing decision context.
+
+### Must Ship
+
+- typed diagnostic categories including codes, scopes, severities, and
+  artifact kinds
+- structured decision/outcome vocabulary for accepted, advisory, denied,
+  deferred, partial, unsupported, mismatch, and related shared families
+- structured explanation and denial vocabulary that supports success,
+  advisory, and violation style outcomes where the crate needs them
+- shared diagnostic attachments for profile, provenance, and digest basis
+- support for proof-bearing outputs to attach diagnostics and explanations
+  without moving diagnostic storage into `forge-proof`
+- materialized diagnostic/report contracts that can be compared across crates
+
+### Semantic Guarantees
+
+- diagnostics must preserve the distinction between success, advisory, denial,
+  and failure-bearing context where the crate needs it
+- explanatory surfaces must remain descriptive rather than authoritative
+- the same diagnostic code/scope/severity combination must mean one thing
+  across crates
+- shared outcome families must remain extensible enough that crates do not have
+  to flatten real correctness differences into one fake universal enum
+
+### Representation Boundaries
+
+- crates remain free to capture and store diagnostics in AoS, SoA, AoSoA, or
+  custom forms
+- foundational diagnostics standardize the boundary language, not one runtime
+  diagnostics engine
+- richness-profile materialization must remain explicit rather than always-on
+- outcome vocabulary standardizes shared categories, not one forced domain
+  result type
+
+### Must Preserve
+
+- diagnostics remain descriptive ontology, not authority over domain outcome
+- binary success/failure surfaces must not erase structured denial context
+- diagnostic richness remains controlled by profiles and materialization policy
+- crates keep freedom to use AoS, SoA, AoSoA, or custom internal storage for
+  diagnostic capture
+
+### Acceptance Evidence
+
+- cross-crate-shaped diagnostic parity tests using shared foundational types
+- explanation/denial topology tests proving advisory versus violation remains
+  distinguishable
+- hostile richness-profile tests proving reduced richness does not change the
+  authoritative operation result
+- materialization tests from multiple internal storage strategies into one
+  canonical diagnostic boundary language
+
+## Milestone 6: Lineage, Provenance, And Receipt Vocabulary
+
+### Goal
+
+Define the shared language for where artifacts came from, under what basis they
+were produced, and what effectful or authority-bearing boundary actually
+happened.
+
+### Must Ship
+
+- shared lineage vocabulary for boundary-facing lineage artifacts and lineage
+  digest participation
+- shared provenance vocabulary for source basis, authority path, profile basis,
+  and supporting context attachments
+- shared receipt vocabulary for effectful or authority-bearing boundaries
+- shared support/certification artifact vocabulary for evidence bundles,
+  certification summaries, parity artifacts, and residual-debt statements
+- shared descriptive seams for "what was planned" versus "what was executed"
+  where runtime-applied plans need canonical boundary explanation
+- shared composition-family vocabulary for symbolic resolution maps, lifecycle
+  outcomes, and coherent family-boundary receipts
+- explicit distinction between lineage, provenance, and receipt semantics so
+  the same underlying fields are not reused to mean different things in
+  different crates
+- proof-composable attachments so proof-bearing outputs can carry foundational
+  provenance and receipt surfaces without moving authority law into the
+  descriptive layer
+
+### Semantic Guarantees
+
+- lineage, provenance, and receipt must remain distinct categories with stable
+  meanings
+- provenance must describe basis and authority path, not replace proof law
+- receipts must attest to completed effectful or authority-bearing boundaries,
+  not merely intention or planning
+- planned-versus-executed descriptive seams must remain explicit
+- same-family resolution and lifecycle evidence must remain explicit enough to
+  describe mixed symbolic and existing-authority programs coherently
+- support and certification artifacts must remain derived proof-of-truth
+  surfaces rather than being confused for authoritative state
+
+### Representation Boundaries
+
+- crates retain their own internal lineage/provenance storage and event shapes
+  until canonical materialization boundaries
+- foundational receipt vocabulary does not imply one executor or one execution
+  record layout
+- proof-bearing artifacts may attach these descriptive surfaces without moving
+  descriptive ownership into `forge-proof`
+- support/certification vocabulary standardizes boundary meaning, not one QA
+  harness or one persistence model
+
+### Must Preserve
+
+- lineage must not degrade into generic event logging theater
+- provenance must remain self-describing enough for consumers that do not know
+  producer internals
+- receipts must testify to actual effectful or authority-bearing boundaries,
+  not merely intent to act
+- no single field or envelope may collapse derivational origin, authority
+  attestation, and replay linkage into one ambiguous meaning
+
+### Acceptance Evidence
+
+- lineage/provenance/receipt category-separation tests
+- digest-basis parity tests for shared lineage/provenance attachments
+- hostile attachment tests proving proof-bearing artifacts can carry
+  provenance/receipt surfaces without mutating proof semantics
+- self-description tests proving a consumer can interpret the boundary artifact
+  without producer-private state
+
+## Milestone 7: Performance And Layout Vocabulary
+
+### Goal
+
+Create one shared language for layout intent, access-pattern claims, and
+performance-contract surfaces without imposing one memory representation across
+crates.
+
+### Must Ship
+
+- shared layout vocabulary for categories such as AoS, SoA, AoSoA, sparse,
+  packed, and custom
+- shared access-pattern or performance-posture vocabulary that lets a crate
+  describe why a representation exists
+- attachment points for structural counters, complexity-contract names, and
+  performance-facing report surfaces where foundational artifacts need them
+- materialization and representation-boundary guidance so shared semantics never
+  accidentally standardize hot-path storage
+- explicit distinction between performance vocabulary and a shared performance
+  runtime container library
+
+### Semantic Guarantees
+
+- layout and performance terms must carry one shared meaning across crates
+- performance-facing boundary artifacts must describe cost posture honestly
+- shared layout vocabulary must never imply cost equivalence between distinct
+  representations
+
+### Representation Boundaries
+
+- foundational performance vocabulary must not become a universal storage or
+  execution abstraction
+- each crate remains free to keep its own topology, access patterns, and
+  hot-path data layout
+- shared counters and performance-facing reports attach at boundaries, not by
+  forcing one internal measurement runtime
+
+### Must Preserve
+
+- no universal container that pretends AoS and SoA are the same thing
+- no abstraction that hides cost topology or failure topology
+- no forcing of `forge-relational`, `forge-signal`, `forge-query`, or
+  `forge-store` into one diagnostics or lineage representation
+- performance claims remain valid only at the boundary they name
+
+### Acceptance Evidence
+
+- layout vocabulary tests
+- hostile representation-boundary tests proving shared meaning does not imply
+  shared storage
+- materialization tests from distinct layout strategies into shared boundary
+  artifacts
+- complexity-attachment tests proving performance accounting can ride shared
+  boundary artifacts without dictating the underlying runtime structure
+
+## Milestone 8: Cross-Crate Migration And Closure
+
+### Goal
+
+Retire the major crate-local dialects that `forge-foundational` was created to
+replace and prove that the shared vocabulary actually converges the stack.
+
+### Must Ship
+
+- migration of the most central aspect/value/digest/profile surfaces in
+  `forge-relational`, `forge-query`, `forge-signal`, and `forge-store` onto the
+  foundational vocabulary
+- migration of the most central identity/equivalence/outcome/locator surfaces
+  in `forge-relational`, `forge-query`, `forge-signal`, and `forge-store` onto
+  the foundational vocabulary
+- migration of the most central same-family composition receipt/lifecycle/
+  resolution surfaces in the crates that need them onto the foundational
+  vocabulary
+- explicit debt accounting for any remaining compatibility JSON, local
+  diagnostic dialects, or local artifact-category drift
+- cross-crate parity harnesses proving that semantically identical boundary
+  artifacts compare, digest, and explain the same way
+- facade-safe adoption paths so domain crates consume foundational vocabulary
+  without leaking internal reorganizations across the workspace
+
+### Semantic Guarantees
+
+- migrated crates must converge on shared meaning, not merely shared wrapper
+  names
+- authoritative, derived, planned, descriptive, and receipt-bearing surfaces
+  must remain distinguishable after migration
+- semantically identical boundary artifacts from different crates must compare
+  and explain the same way
+- identity, equivalence, outcome, and locator surfaces must also converge or
+  remain named debt
+- same-family composition receipts and resolution/lifecycle evidence must also
+  converge or remain named debt
+
+### Representation Boundaries
+
+- migration must not force any crate to give up a cost-honest internal layout
+- adopting the shared vocabulary must not require leaking internal subsystem
+  structure across facades
+- residual crate-local dialects may remain only as named debt, not as silent
+  alternate semantics
+
+### Must Preserve
+
+- migrations must reduce semantic drift rather than merely add wrappers
+- no crate may be forced to abandon a cost-honest internal representation just
+  to "use the shared crate"
+- no milestone closure until the shared vocabulary proves it can replace real
+  crate-local dialects under hostile comparison cases
+- explicit debt must remain explicit; partial migration is not silent closure
+
+### Acceptance Evidence
+
+- cross-crate migration parity tests
+- digest equivalence tests across migrated surfaces
+- hostile support-artifact comparison tests across at least two independently
+  migrated crates
+- documented debt inventory for any remaining non-foundational dialects that
+  still survive by necessity
+
+## Outstanding Future Debt
+
+- dedicated `test-requirements.md` for `forge-foundational`
+- shared certification harness substrate once enough foundational vocabulary has
+  landed to justify it
+- explicit migration closeouts per adopting crate once the first real
+  foundational migrations begin

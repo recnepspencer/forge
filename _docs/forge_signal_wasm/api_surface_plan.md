@@ -5,28 +5,26 @@
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >
 > **Lifecycle prerequisites:**
+>
 > - [opaque_identity_and_ergonomic_authoring_plan.md](./opaque_identity_and_ergonomic_authoring_plan.md)
 >
-> **Core vision:** [_docs/forge_signal/forge_signal_vision.md](../../../_docs/forge_signal/forge_signal_vision.md)
+> **Core vision:** [\_docs/forge_signal/forge_signal_vision.md](../../../_docs/forge_signal/forge_signal_vision.md)
 >
 > **Core async roadmap lineage:**
-> - [_docs/forge_signal/milestone-a-plan.md](../../../_docs/forge_signal/milestone-a-plan.md)
-> - [_docs/forge_signal/milestone-b-plan.md](../../../_docs/forge_signal/milestone-b-plan.md)
-> - [_docs/forge_signal/milestone-c-plan.md](../../../_docs/forge_signal/milestone-c-plan.md)
-> - [_docs/forge_signal/milestone-d-plan.md](../../../_docs/forge_signal/milestone-d-plan.md)
 >
-> **Core test requirements:** [_docs/forge_signal/test-requirements.md](../../../_docs/forge_signal/test-requirements.md)
+> - [\_docs/forge_signal/milestone-a-plan.md](../../../_docs/forge_signal/milestone-a-plan.md)
+> - [\_docs/forge_signal/milestone-b-plan.md](../../../_docs/forge_signal/milestone-b-plan.md)
+> - [\_docs/forge_signal/milestone-c-plan.md](../../../_docs/forge_signal/milestone-c-plan.md)
+> - [\_docs/forge_signal/milestone-d-plan.md](../../../_docs/forge_signal/milestone-d-plan.md)
 >
-> **Adjacent product visions:**
-> - [_docs/forge-query/forge_query_vision.md](../../../_docs/forge-query/forge_query_vision.md)
-> - [_docs/forge-server/forge_server_vision.md](../../../_docs/forge-server/forge_server_vision.md)
+> **Core test requirements:** [\_docs/forge_signal/test-requirements.md](../../../_docs/forge_signal/test-requirements.md)
 
 ## Goal
 
 Build a first-class TypeScript API surface in `forge-signal-wasm` that can
 replace query-library-shaped frontend usage now, simplify a broad slice of the
-frontend API integration layer, and remain structurally aligned with later
-`forge-query` and `forge-server` integration.
+frontend API integration layer, and remain structurally clean enough that later
+network/query systems can be integrated without rewriting the product model.
 
 We are not just replacing TanStack Query.
 We are replacing a bunch of the frontend API integration layer too.
@@ -44,8 +42,9 @@ The target outcome is:
 - structured resource truth can carry binary/asset descriptors, download
   readiness, and live-delivery updates without collapsing structured truth and
   byte transport into one muddy abstraction
-- the initial signals-first resource surface can later consume `forge-query`
-  definitions and `forge-server` delivery without a second client truth engine
+- the initial surface must be architecturally clean enough to accept later
+  external read-definition and delivery systems without a second client truth
+  engine
 - diagnostics, replay, restore, branch, and export surfaces remain honest
 
 This milestone is not a generic fetch-helper layer.
@@ -83,9 +82,9 @@ The intended product direction is:
 - in the same near term, the package should also be able to absorb a large
   amount of routine API-client work such as auth posture, headers/context,
   redirects, callbacks, downloads, and deferred completion
-- in the longer term, the same resource surface must be able to accept
-  `forge-query`-backed read definitions and `forge-server` delivery as the
-  authoritative upstream read lane
+- in the longer term, the same surface should be able to accept richer
+  externally-authored read definitions and external delivery systems without
+  changing its local product semantics
 - the same product surface must also be able to host structured truth that
   references files, exports, attachments, and other binary-backed artifacts
   without forcing app authors into a second file-state or socket-state model
@@ -94,8 +93,8 @@ The milestone therefore has to solve three problems at once:
 
 - make resource authoring pleasant now
 - make routine API integration materially less annoying and less bureaucratic
-- avoid becoming a parallel read/query abstraction that later fights
-  `forge-query`
+- avoid becoming a parallel read/query abstraction that later fights future
+  external read or delivery systems
 
 ## Governing Summaries
 
@@ -150,16 +149,6 @@ The milestone therefore has to solve three problems at once:
   The most important thing it protects is that async capability is attachable
   to arbitrary nodes. Resources therefore must be framed as a productized
   capability surface, not as a separate "resource node species."
-- `forge_query_vision.md`
-  The most important thing it protects is ownership. `forge-query` owns typed
-  query expression, live-promotion semantics, result shapes, and read planning.
-  Wasm resources must be able to consume query-backed upstream definitions later
-  without becoming a rival query DSL now.
-- `forge_server_vision.md`
-  The most important thing it protects is delivery ownership. `forge-server`
-  owns durable subscriptions, cursor resume, basis negotiation, delivery
-  classes, and branch-aware network delivery. Wasm resources must be able to
-  host delivered truth locally without redefining delivery semantics.
 
 ## Adversarial Constraint
 
@@ -167,7 +156,8 @@ This milestone must survive the following hostile condition:
 
 > A long-lived TypeScript application with parameterized resource families,
 > partial item/aspect updates, host-driven revalidation, branch-local drafts,
-> replay/restore activity, and later query/server-backed delivery must converge
+> replay/restore activity, and later externally-driven read/delivery systems
+> must converge
 > to the same committed local resource truth, the same freshness/lifecycle
 > truth, and the same diagnostics/history artifacts regardless of whether the
 > resource line was driven by initial request admission, local refresh,
@@ -183,7 +173,7 @@ Concretely, the design must remain correct when:
 - output continuity must preserve prior visible data while a refresh is pending
 - a branch-local form draft overlays the same underlying resource line
 - diagnostics are requested after retention has pruned rich history
-- later `forge-query`/`forge-server` integration drives the same resource line
+- later external read/delivery integration drives the same resource line
   through shaped patches instead of local callback-issued requests
 
 If the product surface produces:
@@ -226,11 +216,12 @@ then the milestone has failed.
 - resource diagnostics must explain freshness, retry, timeout, supersession,
   visibility/continuity, and invalidation causes without requiring callers to
   inspect lower-level runtime plumbing
-- the initial wasm resource surface may be signals-first, but it must not lock
-  the package into a second query language that competes with `forge-query`
-- future `forge-query` and `forge-server` integration is a required compatibility
-  target; this milestone must leave a clean seam for query-backed resource
-  definitions and server-delivered patch streams
+- the initial wasm API surface may be signals-first, but it must not lock the
+  package into a second query language or delivery model that future external
+  systems would have to route around
+- future external read-definition and delivery systems are a compatibility
+  target; this milestone must leave a clean path for externally-authored
+  definitions and externally-delivered patch streams
 - this milestone must define the resource-side contract for binary descriptors,
   downloads, and live delivery now, even though optimistic write intent and
   multipart submission lifecycle remain the adjacent mutation milestone's
@@ -250,13 +241,13 @@ Normative consequence:
 - any implementation that treats binary asset bytes as interchangeable with
   structured resource truth by default is out of spec
 - any implementation that makes websocket/session delivery semantics the
-  resource layer's private convention instead of an explicit compatibility seam
-  with `forge-server` is out of spec
+  resource layer's private convention instead of an explicit external
+  integration boundary is out of spec
 - any implementation that treats the resource surface as a generic fetch helper
   detached from graph contracts, branch history, replay, or diagnostics is out
   of spec
 - any implementation that lets the initial signals-first resource surface drift
-  semantically from later query-backed resource materialization is out of spec
+  semantically from later externally-driven materialization is out of spec
 
 ## Architectural Model
 
@@ -267,18 +258,16 @@ This milestone freezes the intended ownership boundary:
 1. **`forge-signal`**
    - owns temporal, lifecycle, policy, replay, restore, and diagnostics truth
    - owns async capability and family identity at the execution substrate
-2. **`forge-query`**
-   - owns typed read/query expression, result shapes, live-promotion semantics,
-     and query planning
-3. **`forge-server`**
-   - owns subscription durability, cursor resume, basis negotiation, delivery
-     classes, branch-aware transport, and patch delivery
-4. **`forge-signal-wasm` resources**
+2. **external read/delivery systems**
+   - may later supply richer read-definition, subscription, or delivery input
+     into the local API surface
+   - must not force a second local truth engine or a second lifecycle model
+3. **`forge-signal-wasm` API surface**
    - own TypeScript-facing resource authoring and local resource materialization
    - host materialized resource lines inside the local runtime
    - expose diagnostics/history/freshness/readiness surfaces for app code
-   - may begin signals-first, but must preserve a seam for query/server-backed
-     upstream definitions later
+   - may begin signals-first, but must preserve a clean architecture for later
+     externally-authored definitions and externally-driven delivery
 
 The resource surface is therefore not:
 
@@ -339,8 +328,8 @@ The exact spelling is open, but the spec intent is not:
 
 - the package should be able to distinguish raw parameter objects from
   canonicalized family-member identity at compile time
-- query-backed and server-delivered resource lines should be able to target the
-  same lowered identity artifact later
+- later externally-driven resource lines should be able to target the same
+  lowered identity artifact
 - package authors should not be encouraged to treat ad hoc string assembly as
   the primary public identity story
 
@@ -350,7 +339,10 @@ The desired authoring direction is:
 const product = signals.resource.detail({
   params: resourceParams<{ workspaceId: string; productId: string }>(),
   normalizeParams: ({ workspaceId, productId }) =>
-    resourceParamIdentity({ workspaceId, productId }, `${workspaceId}:${productId}`),
+    resourceParamIdentity(
+      { workspaceId, productId },
+      `${workspaceId}:${productId}`,
+    ),
   load: ({ workspaceId, productId }) => fetchProduct(workspaceId, productId),
 });
 
@@ -361,7 +353,10 @@ const productLine = product.line({ workspaceId: "demo", productId: "p-123" });
 const products = signals.resource.collection({
   params: productParams<{ workspaceId: string; productId: string }>(),
   normalizeParams: ({ workspaceId, productId }) =>
-    resourceParamIdentity({ workspaceId, productId }, `${workspaceId}:${productId}`),
+    resourceParamIdentity(
+      { workspaceId, productId },
+      `${workspaceId}:${productId}`,
+    ),
   itemIdentity: (product) => product.id,
   aspects: productAspects,
   load: ({ workspaceId, productId }) => fetchProducts(workspaceId, productId),
@@ -394,8 +389,7 @@ Each resource line should expose one coherent local materialization package
 through one canonical line facade rather than family-specific mini APIs.
 
 The line facade should be frozen strongly enough that app code, docs, React
-consumers, and later query-backed/server-backed lines all speak the same local
-language.
+consumers, and later externally-driven lines all speak the same local language.
 
 Desired direction:
 
@@ -660,18 +654,18 @@ This also creates room for a stronger frontend visibility and access posture:
 That is the right direction if the package is going to simplify not just query
 replacement, but a broad slice of frontend API integration.
 
-### Query/server compatibility seam
+### External integration compatibility
 
 The first shipped resource surface may be signals-first, but it must reserve a
-clean seam for future query/server-backed resource definitions.
+clean architecture for future external read-definition and delivery systems.
 
 That means the architecture should eventually support two upstream authoring
 sources that converge on one local materialization model:
 
 1. **Signals-first authored resource family**
-   - used before `forge-query`/`forge-server` integration is the default
-2. **Query-backed delivered resource family**
-   - backed by `forge-query` result shapes and `forge-server` patch delivery
+   - used while the package is still the primary authoring surface
+2. **Externally-driven resource family**
+   - backed by richer external read-definition and delivery systems later
 
 Both must converge to:
 
@@ -681,7 +675,8 @@ Both must converge to:
 - the same branch/restore/replay honesty
 
 The downstream local resource line must not care whether its upstream truth was
-born from a local callback-authored load or a server-delivered query result.
+born from a local callback-authored load or an externally-driven delivered
+result.
 
 ### Binary asset and live-delivery model
 
@@ -868,6 +863,141 @@ Phase 1 gate:
   line reuse semantics are fixed strongly enough to support replay and package
   proofs
 
+#### Phase 1 implementation decomposition
+
+Phase 1 must not be implemented through broad bucket files such as:
+
+- `resource_line.ts`
+- `resource_family.ts`
+- `normalization.ts`
+- `materialization.ts`
+- `runtime_bridge.ts`
+
+Those are category labels, not responsibilities.
+
+The implementation resolution for Phase 1 should instead be:
+
+- `resource/facade.ts`
+  Own the public `signals.resource` namespace only.
+- `resource/families/detail_family.ts`
+  Own detail-family declaration and detail-family `line(...)`.
+- `resource/families/collection_family.ts`
+  Own collection-family declaration and collection-family `line(...)`.
+- `resource/families/paged_family.ts`
+  Own paged-family declaration and paged-family `line(...)`.
+- `resource/families/family_kind.ts`
+  Own the finite family-kind vocabulary only.
+- `resource/params/declared_resource_params.ts`
+  Own typed parameter declaration only.
+- `resource/params/canonical_param_identity.ts`
+  Own the branded canonical parameter identity artifact only.
+- `resource/params/param_identity_factory.ts`
+  Own creation of canonical parameter identity only.
+- `resource/lines/line_lookup.ts`
+  Own same-params reuse versus changed-params distinct-line admission only.
+- `resource/lines/line_registry_entry.ts`
+  Own the stored package-local record for one materialized line only.
+- `resource/lines/line_handle.ts`
+  Own the canonical public line facade only.
+- `resource/lines/line_value_read.ts`
+  Own visible line-value reads only.
+- `resource/lines/line_status_read.ts`
+  Own line-status reads only.
+- `resource/lines/line_freshness_read.ts`
+  Own line-freshness reads only.
+- `resource/lines/line_view_factory.ts`
+  Own line-scoped view creation only.
+- `resource/lowering/family_definition_record.ts`
+  Own the lowered family-definition artifact only.
+- `resource/lowering/line_materialization_record.ts`
+  Own the lowered line-materialization artifact only.
+- `resource/lowering/runtime_line_binding.ts`
+  Own the narrow runtime binding for a materialized line only.
+
+Implementation rule:
+
+- if two functions would change for different reasons, they do not belong in
+  the same file
+- if a file name can only be described as a category or a step label, it is
+  still under-decomposed
+
+#### Phase 1 implementation slice A
+
+The first implementation batch for Phase 1 should close the synchronous
+materialization kernel, not the full async resource product.
+
+This slice covers:
+
+- detail / collection / paged family declaration vocabulary
+- typed parameter declaration
+- branded canonical parameter identity
+- stable same-params line reuse
+- changed-params distinct-line behavior
+- one canonical line facade with `value()`, `status()`, `freshness()`, and
+  `view(...)`
+- family-shape compile-time separation
+
+This slice is intentionally out of scope for:
+
+- promise-backed runtime-owned async lifecycle
+- refresh / retry / timeout / continuity
+- request / auth / continuation posture
+- patch reconciliation
+- resource diagnostics/history surfaces
+
+The explicit intent is to build a real family/line/value/view kernel first,
+without pretending that Phase 2 runtime async policy has already been
+productized.
+
+#### Phase 1 implementation slice B
+
+The second implementation batch for Phase 1 should harden identity rather than
+pretend async lifecycle already exists.
+
+This slice covers:
+
+- explicit family identity artifacts
+- explicit runtime line identity artifacts
+- one canonical line descriptor read
+- proof that same params reuse the same line identity
+- proof that changed params produce distinct runtime line identity
+- stable descriptor shape across detail, collection, and paged families
+
+This slice is intentionally out of scope for:
+
+- pending/rejected/superseded lifecycle productization
+- refresh/revalidate commands
+- diagnostics/history resource surfaces
+- graph publication of resource lines
+
+The explicit intent is to make line identity self-describing now, so later
+publication, replay explanation, and diagnostics work can consume an honest
+artifact instead of reverse-engineering closure state.
+
+#### Phase 1 broad-closeout interpretation
+
+If Phase 1 is interpreted broadly rather than only as slices A and B, the
+remaining closeout work is still constrained:
+
+- add one canonical whole-line readable signal surface so a resource line can
+  participate in downstream computed/output/view authoring without leaking
+  write authority
+- add the missing canonical `line.history()` explanation surface for the line's
+  visible value
+- prove that when a resource line is published through `signals.graph`, the
+  graph's explicit public output name remains the boundary contract rather than
+  collapsing to internal resource identity
+
+This broad-closeout interpretation still does **not** pull in:
+
+- runtime-owned async lifecycle productization
+- request/auth/continuation posture
+- patch reconciliation
+- resource-owned upload or deferred-job orchestration
+
+The intent is to finish the broad identity/materialization contract of Phase 1
+without smuggling later-phase policy or transport work into the closeout.
+
 ### Phase 2: Runtime-Lowered Refresh, Revalidation, And Continuity
 
 Attach the resource family substrate to the closed async policy layer.
@@ -890,6 +1020,159 @@ Phase 2 gate:
 - no later phase begins until refresh, retry, timeout, continuity, and
   revalidation are clearly inherited from runtime policy rather than secretly
   package-owned
+
+#### Phase 2 implementation slice A
+
+The first implementation batch for Phase 2 should close the synchronous
+refresh and continuity kernel without pretending that promise-backed async
+lifecycle has already been lowered honestly.
+
+This slice covers:
+
+- `refresh()` and `revalidate()` vocabulary on the canonical line facade
+- rejected-versus-fulfilled line status truth after post-materialization reload
+- stale freshness truth after rejection and under explicit stale policy posture
+- sealed named resource policy profiles for immediate-stale versus stable
+  post-settle behavior
+- continuity behavior that preserves the current visible value when sync
+  refresh or revalidate fails
+- line-scoped diagnostics that explain the last reload operation, counts,
+  preserved-visible-value continuity, and the selected policy profile
+
+This slice is intentionally out of scope for:
+
+- promise-backed pending lifecycle
+- retry / timeout / supersession
+- runtime-owned async policy family lowering
+- replay/history-integrated resource diagnostics
+
+The explicit intent is to move the resource line from static materialization to
+real refresh/revalidate state transitions now, while keeping async denial
+honest until the lower runtime substrate exists in productized form.
+
+#### Phase 2 implementation slice B
+
+The second implementation batch for Phase 2 should close explicit invalidation
+truth before attempting retry, timeout, or other richer async policy claims.
+
+This slice covers:
+
+- `line.invalidate()` on the canonical line facade
+- `family.invalidate(params)` for one canonical family member
+- `family.invalidateAll()` for explicit broad invalidation across materialized
+  lines
+- stale freshness truth that distinguishes line, member, and family-wide
+  invalidation causes
+- line diagnostics that record invalidation count, latest invalidation cause,
+  and invalidation scope
+
+This slice is intentionally out of scope for:
+
+- retry / timeout / supersession
+- pending lifecycle
+- auto-triggered host-driven invalidation
+- partial collection patch narrowing
+
+The explicit intent is to make invalidation breadth and cause first-class now,
+so later narrow patch admission and host-driven revalidation can target honest
+artifacts instead of overloading a generic stale bit.
+
+#### Phase 2 implementation slice C
+
+The third implementation batch for Phase 2 should close pending reload and
+supersession truth for post-materialization reloads before attempting retry or
+timeout policy.
+
+This slice covers:
+
+- promise-backed `refresh()` / `revalidate()` that enter explicit pending
+  status on an existing materialized line
+- visible-value continuity while pending reload is in flight
+- settlement of pending reloads back into fulfilled or rejected line truth
+- supersession guards so older pending completions cannot overwrite newer line
+  state
+- line diagnostics that expose pending operation and supersession count/history
+
+This slice is intentionally out of scope for:
+
+- promise-backed initial line materialization
+- retry policy
+- timeout policy
+- replay/history-integrated reload diagnostics
+
+The explicit intent is to move async reloads out of the “denied forever” lane
+without pretending that all broader runtime policy has already landed.
+
+#### Phase 2 implementation slice D
+
+The fourth implementation batch for Phase 2 should close retry and timeout
+policy truth for post-materialization reloads before attempting broader replay-
+integrated diagnostics.
+
+This slice covers:
+
+- sealed retry-bearing and timeout-bearing resource policy profiles
+- timeout settlement into explicit line status/freshness/diagnostics truth
+- retry attempts for promise-backed pending reloads under declared retry policy
+- diagnostics that expose retry-attempt count and timeout count/cause
+
+This slice is intentionally out of scope for:
+
+- promise-backed initial line materialization
+- replay/history-integrated reload diagnostics
+- host-driven invalidation or auto-refresh policy
+
+The explicit intent is to make retry and timeout visible product truth instead
+of ambient callback behavior.
+
+#### Phase 2 implementation slice E
+
+The fifth implementation batch for Phase 2 should close initial async
+materialization so first admission and later reloads no longer tell different
+lifecycle stories.
+
+This slice covers:
+
+- promise-backed initial line admission that returns a real line immediately
+- pending/rejected/timedOut truth for `initialLoad`
+- honest no-visible-value continuity while first load has not yet produced a
+  value
+- same-params reuse while the initial line is still pending
+- supersession of initial pending load by later refresh/revalidate
+
+This slice is intentionally out of scope for:
+
+- replay/history-integrated diagnostics
+- host-driven invalidation or auto-refresh policy
+
+The explicit intent is to remove the last major Phase 2 split-brain between
+initial admission and post-materialization reload behavior.
+
+#### Phase 2 implementation slice F
+
+The sixth implementation batch for Phase 2 should close history-integrated
+lifecycle diagnostics so a resource line can explain the same reload and
+continuity truth through `line.history()` that it already exposes through
+`line.diagnostics()`.
+
+This slice covers:
+
+- a line-scoped lifecycle trail attached to the canonical history surface
+- history entries for initial admission, pending reload, fulfillment,
+  rejection, timeout, and invalidation transitions
+- history snapshots that preserve continuity, retry, timeout, supersession,
+  invalidation, and visible-value-version truth
+- proof that async initial materialization and later refresh paths converge on
+  one explainable lifecycle history model
+
+This slice is intentionally out of scope for:
+
+- branch restore parity
+- replay-driven reconstruction of retained lifecycle trails
+- host-driven invalidation or auto-refresh policy
+
+The explicit intent is to close Phase 2 on an explainable lifecycle model
+instead of a live-snapshot-only diagnostics surface.
 
 ### Phase 3: Request Context, Auth, And Continuation Posture
 
@@ -919,6 +1202,137 @@ Phase 3 gate:
   declared strongly enough that ordinary API integration, including signed
   upload preparation/finalization, does not escape into ambient app glue
 
+#### Phase 3 implementation slice A
+
+The first implementation batch for Phase 3 should close typed auth posture and
+typed request context posture for the current synchronous resource model before
+attempting continuation or upload orchestration.
+
+This slice covers:
+
+- branded `resourceAuth.*()` posture declarations for anonymous,
+  authenticated, and workspace-scoped reads
+- branded `resourceRequestContext(...)` declarations for headers,
+  correlation ids, branch ids, and basis ids
+- declaration-time or param-derived auth/context posture on resource families
+- lowering of that posture into a canonical line-scoped request descriptor
+- `load(params, request)` admission so synchronous resource loaders can consume
+  lowered request truth without ambient glue
+- canonical `line.request()` visibility for app code
+- line diagnostics that preserve auth/context posture summaries alongside
+  continuity and freshness diagnostics
+
+This slice is intentionally out of scope for:
+
+- redirect continuations
+- callback/webhook completion posture
+- deferred processing jobs
+- upload transport posture
+- promise-backed async lifecycle
+
+The explicit intent is to make request semantics real product truth now, while
+keeping richer transport orchestration deferred until the next Phase 3 slices.
+
+#### Phase 3 implementation slice B
+
+The second implementation batch for Phase 3 should close typed continuation
+posture for the synchronous resource model before attempting deferred jobs or
+upload transport.
+
+This slice covers:
+
+- branded `resourceContinuation.redirect(...)`,
+  `resourceContinuation.callback(...)`, and
+  `resourceContinuation.webhook(...)` posture declarations
+- declaration-time or param-derived continuation posture on resource families
+- lowering continuation posture into the canonical line-scoped request
+  descriptor
+- `load(params, request)` visibility of lowered continuation semantics
+- line diagnostics that preserve continuation summaries alongside auth,
+  request-context, freshness, and continuity truth
+
+This slice is intentionally out of scope for:
+
+- deferred processing jobs
+- upload transport posture
+- signed upload prepare/finalize orchestration
+- promise-backed async lifecycle
+
+The explicit intent is to make redirect/callback/webhook semantics product
+truth now, while keeping higher-order long-running workflow orchestration in the
+remaining Phase 3 slices.
+
+#### Phase 3 implementation slice C
+
+The third implementation batch for Phase 3 should close deferred processing-job
+posture for the synchronous resource model before attempting upload transport.
+
+This slice covers:
+
+- branded `resourceProcessingJob.poll()`,
+  `resourceProcessingJob.callback(...)`, and
+  `resourceProcessingJob.webhook(...)` posture declarations
+- declaration-time or param-derived processing-job posture on resource families
+- lowering processing-job posture into the canonical line-scoped request
+  descriptor
+- branded `resourceProcessingResult.accepted(...)` and
+  `resourceProcessingResult.processing(...)` artifacts for synchronous deferred
+  result admission
+- canonical `line.processing()` visibility for accepted, processing, and ready
+  line-hosted truth
+- line diagnostics that preserve processing-job posture and current processing
+  state alongside request, freshness, and continuity truth
+- denial when a family without declared processing-job posture attempts to emit
+  deferred processing results
+
+This slice is intentionally out of scope for:
+
+- upload transport posture
+- signed upload prepare/finalize orchestration
+- promise-backed async job lifecycle
+- download/binary descriptor semantics
+- host-driven callback/webhook completion ingestion
+
+The explicit intent is to make deferred completion product truth now, while
+keeping byte-transfer and externally-driven completion orchestration in the
+remaining Phase 3 slices.
+
+#### Phase 3 implementation slice D
+
+The fourth implementation batch for Phase 3 should close upload transport
+posture for the synchronous resource model before attempting real network
+orchestration.
+
+This slice covers:
+
+- branded `resourceUploadTransport.directMultipart(...)` and
+  `resourceUploadTransport.signed(...)` posture declarations
+- declaration-time or param-derived upload transport posture on resource
+  families
+- lowering upload transport posture into the canonical line-scoped request
+  descriptor
+- branded `resourceUploadResult.prepared(...)` and
+  `resourceUploadResult.uploaded(...)` artifacts for synchronous upload-side
+  admission
+- canonical `line.upload()` visibility for prepared, uploaded, and ready
+  line-hosted truth
+- line diagnostics that preserve upload transport posture and current upload
+  state alongside request, processing, freshness, and continuity truth
+- denial when a family without declared upload transport attempts to emit
+  upload result artifacts
+
+This slice is intentionally out of scope for:
+
+- actual byte transfer execution
+- signed upload prepare/finalize network orchestration
+- download/binary descriptor semantics
+- host-driven upload completion callbacks/webhooks
+- Phase 4 patch narrowing
+
+The explicit intent is to make upload transport semantics product truth now,
+while keeping real transfer execution and later reconciliation orchestration in
+subsequent work.
+
 ### Phase 4: Partial Patch Reconciliation And Collection Scope Narrowing
 
 Teach resources to be surgically narrow instead of cache-line blunt.
@@ -946,6 +1360,97 @@ Phase 4 gate:
 - no later phase begins until partial updates can be certified as narrower than
   broad whole-line replacement under real diagnostics and history evidence
 
+#### Phase 4 implementation slice A
+
+The first implementation batch for Phase 4 should close collection-first
+reconciliation posture before attempting branch restore parity or host-delivered
+patch streams.
+
+This slice covers:
+
+- branded `resourceItemAspects(...)` and `resourceCollectionShape(...)`
+  declarations for collection and paged families
+- declaration-time reconciliation posture that proves item identity and optional
+  aspect-local write legality
+- canonical read-side `line.patch(...)` admission on collection and paged lines
+- explicit narrow item replacement and item-aspect replacement when declaration
+  truth proves that narrower scope honestly
+- explicit broad whole-line replacement as the honest fallback patch posture
+- denial when a narrow patch is attempted without declared reconciliation truth
+- patch diagnostics and lifecycle history entries that explain patch count,
+  patch kind, patch scope, and the last patched item/aspect
+- proof that detail families remain non-patchable and that narrow patching does
+  not escape into broad refresh folklore
+
+This slice is intentionally out of scope for:
+
+- family-level patch APIs
+- branch restore parity for patched lines
+- host-delivered external patch streams
+- mutation intent or optimistic write semantics
+- binary/download/live-delivery semantics
+
+The explicit intent is to make read-side reconciliation product truth now,
+while preserving a clean boundary between resource patching and the later
+mutation/external-delivery milestones.
+
+#### Phase 4 implementation slice B
+
+The second implementation batch for Phase 4 should close typed and runtime-
+visible reconciliation contracts so declaration truth does not disappear before
+app code reaches the line facade.
+
+This slice covers:
+
+- compile-time flow of declared aspect names and aspect value types into
+  `line.patch(...)`
+- compile-time denial of narrow item or item-aspect patches when a collection
+  or paged family has not declared `reconcile`
+- canonical `line.reconciliation()` visibility for patch-capable lines
+- runtime-visible reconciliation summaries that expose broad-replace fallback,
+  narrow-item admission, and declared aspect names
+- proof that resource patch APIs remain branded reconciliation artifacts rather
+  than arbitrary mutation-shaped partial objects
+
+This slice is intentionally out of scope for:
+
+- family-level patch APIs
+- branch restore parity for patched lines
+- host-delivered patch streams
+- optimistic write or mutation-intent lowering
+
+The explicit intent is to move reconciliation legality out of folklore and into
+the actual line-facing product contract.
+
+#### Phase 4 implementation slice C
+
+The third implementation batch for Phase 4 should close summary reconciliation
+so the line-facing patch model matches the phase promise of item, aspect, and
+summary-local updates.
+
+This slice covers:
+
+- branded `resourceValueSummaries(...)` declarations for collection and paged
+  reconciliation shapes
+- compile-time flow of declared summary names and summary value types into
+  `line.patch(...)`
+- runtime-visible reconciliation summaries that expose declared summary names
+  and whether summary-local patching is admitted
+- explicit `resourcePatch.summary(...)` admission and execution on patch-capable
+  lines
+- diagnostics and lifecycle history that record summary-local patch truth
+
+This slice is intentionally out of scope for:
+
+- family-level patch APIs
+- branch restore parity for patched lines
+- host-delivered patch streams
+- optimistic write or mutation-intent lowering
+
+The explicit intent is to complete the declared Phase 4 item/aspect/summary
+reconciliation vocabulary without leaking value-wide summary edits into broad
+replace folklore.
+
 ### Phase 5: Resource Diagnostics, History, Branch, And Restore Surface
 
 Make the resource product auditable.
@@ -967,6 +1472,58 @@ Phase 5 gate:
 - no later phase begins until replay/restore/branch history can explain a
   resource line honestly instead of merely reproducing its current visible
   value
+
+#### Phase 5 implementation slice A
+
+The first implementation batch for Phase 5 should make resource line history
+branch-aware and explicit about restore availability before attempting richer
+package-boundary export/import posture.
+
+This slice covers:
+
+- branch-aware `line.history()` summaries that expose the current runtime branch
+  identity for the owning line
+- explicit replay/lineage/branch/restore availability posture so missing
+  runtime history capabilities or missing branch snapshots become named product
+  truth instead of accidental exceptions
+- exact-branch-restore availability summaries that tell app code whether the
+  current line can be explained back to a runtime snapshot boundary
+- proofs for both rich-history and history-denied runtimes
+
+This slice is intentionally out of scope for:
+
+- actual resource-line restore actions
+- package-boundary export/import of resource-backed products
+- richer diagnostics retention budgeting beyond line-scoped availability posture
+- binary/download/live-delivery surfaces
+
+The explicit intent is to make a resource line auditable at the branch/restore
+boundary now, while preserving the later package-boundary and transport work as
+separate phases.
+
+#### Phase 5 implementation slice B
+
+The second implementation batch for Phase 5 should close line-scoped
+diagnostics summaries and explicit rich-diagnostics availability so app code can
+understand the line without reverse-engineering raw counters.
+
+This slice covers:
+
+- canonical `line.diagnosticsSummary()` for the current line state
+- grouped lifecycle, freshness, change-count, and last-change summaries derived
+  from the existing diagnostics/status/freshness surfaces
+- explicit explainability availability posture that carries replay/lineage/
+  branch/restore richness into the diagnostics summary
+- proofs for both available and unavailable rich-diagnostics paths
+
+This slice is intentionally out of scope for:
+
+- actual resource-line restore actions
+- package-boundary export/import of resource-backed products
+- binary/download/live-delivery surfaces
+
+The explicit intent is to make the line diagnostics surface understandable on a
+first read, not just mechanically complete.
 
 ### Phase 6: Binary Descriptor, Download, And Live-Delivery Surface
 
@@ -995,23 +1552,24 @@ Phase 6 gate:
 - no later phase begins until binary descriptors, downloads, and live delivered
   patches can be hosted by one resource-line model without semantic drift
 
-### Phase 7: Query And Server Compatibility Surface
+### Phase 7: External Integration Compatibility Surface
 
-Reserve and certify the seam that lets this milestone grow into the larger
-Forge stack cleanly.
+Reserve and certify the architectural boundary that lets this milestone grow
+into larger external systems cleanly.
 
 This phase must ship:
 
-- a resource-definition posture that can later accept `forge-query` result
-  shapes without semantic drift
-- a compatibility contract for server-delivered patches/bases/basis refresh
-- evidence that signals-first and query/server-backed resource lines can
-  converge on one local materialization model
-- docs that state clearly what is already native and what becomes authoritative
-  only when query/server delivery is present
+- a resource-definition posture that can later accept richer externally-authored
+  read definitions without semantic drift
+- a compatibility contract for externally-delivered patches, bases, and basis
+  refresh
+- evidence that signals-first and externally-driven resource lines can converge
+  on one local materialization model
+- docs that state clearly what is already native and what remains an external
+  integration concern
 
-This phase is not full server integration. It is the architectural lock that
-keeps the initial product from becoming a dead end.
+This phase is not full external-system integration. It is the architectural
+lock that keeps the initial product from becoming a dead end.
 
 ## Must Ship
 
@@ -1040,17 +1598,15 @@ keeps the initial product from becoming a dead end.
 - live-delivery ingestion compatibility for pushed structured updates
 - resource-scoped diagnostics/history/branch/replay/restore truth
 - docs and examples that teach one obvious resource story
-- a compatibility seam for future `forge-query`/`forge-server` backing without
-  semantic drift
+- a compatibility boundary for later external read-definition and delivery
+  systems without semantic drift
 
 ## Must Preserve
 
 - `forge-signal` remains the owner of lifecycle, policy, replay, and temporal
   truth
-- `forge-query` remains the owner of typed query expression, result shapes, and
-  live read semantics
-- `forge-server` remains the owner of network delivery, resume, basis
-  negotiation, and durable subscription semantics
+- later external systems must not become an excuse to split local lifecycle,
+  freshness, or diagnostics truth into a second client engine
 - transport lowering may carry headers/auth/method/body details, but the API
   surface owns the typed semantic declaration that drives them
 - wasm resources do not become a second query engine, second async runtime, or
@@ -1082,9 +1638,8 @@ This milestone is complete only when the package can prove:
   invalidation, and continuity honestly
 - branch restore and replay reconstruct the same local resource truth and the
   same lifecycle explanation artifacts
-- the signals-first resource surface can be shown to converge structurally with
-  the later query/server-backed posture instead of requiring a second resource
-  product
+- the signals-first surface can be shown to converge structurally with a later
+  externally-driven posture instead of requiring a second product
 
 Required named proof families:
 
@@ -1107,7 +1662,7 @@ Required named proof families:
 - `The Live Delivery And Local Refresh Convergence Test`
 - `The Resource Diagnostics And History Honesty Test`
 - `The Branch Restore Resource Parity Test`
-- `The Signals First And Query Backed Resource Convergence Test`
+- `The Signals First And External Resource Convergence Test`
 
 ## Architectural Notes
 
@@ -1138,19 +1693,18 @@ Why the current order can still be defended:
 
 - forms can ship first as local/runtime-native draft productization on top of
   existing graph and async substrate
-- the resource milestone can then focus on external/read lifecycle without
-  diluting the forms story
+- the API surface milestone can then focus on external/read lifecycle and API
+  integration without diluting the forms story
 
 Why reordering might become reasonable later:
 
-- `forge-query` is already far enough along that query-backed read language is
-  becoming a stronger near-term dependency than originally assumed
-- if the product direction shifts toward query-backed resources as the default
-  app read lane before forms, the roadmap should be revised explicitly rather
-  than letting implementation drift silently
+- if the product direction shifts toward API-backed reads as the dominant
+  near-term app lane before forms, the roadmap should be revised explicitly
+  rather than letting implementation drift silently
 
 Current judgment:
 
 - write this milestone now
-- preserve the seam to `forge-query` and `forge-server`
+- preserve clean architecture for later external systems without naming them as
+  part of the milestone contract
 - keep roadmap sequencing judgment explicit instead of accidental
