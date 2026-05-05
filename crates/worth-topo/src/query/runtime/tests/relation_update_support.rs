@@ -1,256 +1,194 @@
+use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use serde_json::Value;
+use worth_schema::facade::DerivedTopologyReadBasis;
+use worth_schema::facade::WorthTopologyRelationKind;
+
+use crate::query::domain::parity::{
+    build_domain_query_view_parity_artifact, WorthTopologyDomainQueryParityKind,
+    WorthTopologyDomainQueryViewParityArtifact, WorthTopologyDomainQueryViewRef,
+};
+use crate::query::domain::proof::WorthTopologyDomainQueryProofReport;
+use crate::query::domain::report::WorthTopologyDomainQueryAggregateReport;
+use crate::query::{WorthTopologyDomainQuery, WorthTopologyQueryAssembly};
 
 pub(super) fn query_relation_id_from_row(
     row: &forge_query::facade::ForgeQueryEntity,
 ) -> RelationId {
-    serde_json::from_value(row.payload["lineage"]["provenance"].clone())
-        .expect("query relation provenance should decode")
+    crate::query::query_relation_id_from_row(row).expect("query relation provenance should decode")
 }
 
 pub(super) fn query_entity_id_from_row(row: &forge_query::facade::ForgeQueryEntity) -> EntityId {
-    serde_json::from_value(row.payload["lineage"]["provenance"].clone())
-        .expect("query entity provenance should decode")
+    crate::query::query_entity_id_from_row(row).expect("query entity provenance should decode")
 }
 
-pub(super) fn find_entity_id_by_identity(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    identity: &str,
-) -> EntityId {
-    entity_rows
-        .iter()
-        .find(|row| row.identity == identity)
-        .map(query_entity_id_from_row)
-        .expect("query identity should resolve to one entity")
+pub(super) struct RelationUpdateQuerySupport {
+    domain_query: WorthTopologyDomainQuery,
+    entity_rows: Vec<forge_query::facade::ForgeQueryEntity>,
 }
 
-pub(super) fn alternate_same_edge_half_edge_id(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-    current_target_identity: &str,
-) -> EntityId {
-    let source_edge_identity = outgoing_target_identity(
-        relation_rows,
-        source_identity,
-        WorthTopologyRelationKind::HalfEdgeUsesEdge,
-    );
-    entity_rows
-        .iter()
-        .find(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == WorthTopologyEntityKind::HalfEdge.kind_name())
-                && row.identity != source_identity
-                && row.identity != current_target_identity
-                && outgoing_target_identity(
-                    relation_rows,
-                    row.identity.as_str(),
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
-                ) == source_edge_identity
-        })
-        .map(query_entity_id_from_row)
-        .expect("seeded edge fan should provide an alternate halfedge on the same edge")
-}
-
-pub(super) fn different_edge_half_edge_id(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-) -> EntityId {
-    let source_edge_identity = outgoing_target_identity(
-        relation_rows,
-        source_identity,
-        WorthTopologyRelationKind::HalfEdgeUsesEdge,
-    );
-    entity_rows
-        .iter()
-        .find(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == WorthTopologyEntityKind::HalfEdge.kind_name())
-                && row.identity != source_identity
-                && outgoing_target_identity(
-                    relation_rows,
-                    row.identity.as_str(),
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
-                ) != source_edge_identity
-        })
-        .map(query_entity_id_from_row)
-        .expect("seeded edge fan should provide a halfedge on a different edge")
-}
-
-pub(super) fn relation_id_for_source_kind(
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-    relation_kind: WorthTopologyRelationKind,
-) -> RelationId {
-    relation_rows
-        .iter()
-        .find(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == relation_kind.kind_name())
-                && row
-                    .payload
-                    .get("topology")
-                    .and_then(|value| value.get("source_identity"))
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|value| value == source_identity)
-        })
-        .map(query_relation_id_from_row)
-        .expect("seeded topology should expose requested source/kind relation")
-}
-
-pub(super) fn next_target_half_edge_id(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-) -> EntityId {
-    find_entity_id_by_identity(
-        entity_rows,
-        &outgoing_target_identity(
-            relation_rows,
-            source_identity,
-            WorthTopologyRelationKind::HalfEdgeNext,
-        ),
-    )
-}
-
-pub(super) fn prev_target_half_edge_id(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-) -> EntityId {
-    find_entity_id_by_identity(
-        entity_rows,
-        &outgoing_target_identity(
-            relation_rows,
-            source_identity,
-            WorthTopologyRelationKind::HalfEdgePrev,
-        ),
-    )
-}
-
-pub(super) fn half_edge_identities_for_different_loops(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-) -> (String, String) {
-    let half_edges = entity_rows
-        .iter()
-        .filter(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == WorthTopologyEntityKind::HalfEdge.kind_name())
-        })
-        .collect::<Vec<_>>();
-    for left in &half_edges {
-        let left_loop = incoming_source_identity(
-            relation_rows,
-            left.identity.as_str(),
-            WorthTopologyRelationKind::LoopOwnsHalfEdge,
-        );
-        for right in &half_edges {
-            if left.identity == right.identity {
-                continue;
-            }
-            let right_loop = incoming_source_identity(
-                relation_rows,
-                right.identity.as_str(),
-                WorthTopologyRelationKind::LoopOwnsHalfEdge,
-            );
-            if left_loop != right_loop {
-                return (left.identity.clone(), right.identity.clone());
-            }
+impl RelationUpdateQuerySupport {
+    pub(super) fn load(
+        workspace: &ForgeQueryWorkspace,
+        assembly: &WorthTopologyQueryAssembly,
+    ) -> Self {
+        Self {
+            domain_query: WorthTopologyDomainQuery::load(workspace, assembly)
+                .expect("topology domain query should load for relation update support"),
+            entity_rows: workspace.read::<Value>(assembly.entities()),
         }
     }
-    panic!("seeded topology should expose halfedges on different loops");
-}
 
-pub(super) fn successor_cycle_identities(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    start_identity: &str,
-    count: usize,
-) -> Vec<String> {
-    let mut identities = Vec::with_capacity(count);
-    let mut current_identity = start_identity.to_string();
-    for _ in 0..count {
-        identities.push(current_identity.clone());
-        current_identity = outgoing_target_identity(
-            relation_rows,
-            &current_identity,
-            WorthTopologyRelationKind::HalfEdgeNext,
-        );
-        let _ = find_entity_id_by_identity(entity_rows, &current_identity);
+    pub(super) fn first_source_identity_for_relation_kind(
+        &self,
+        relation_kind: WorthTopologyRelationKind,
+    ) -> String {
+        self.domain_query
+            .first_source_identity_for_relation_kind(relation_kind)
+            .expect("seeded topology should expose requested source relation")
     }
-    identities
-}
 
-fn outgoing_target_identity(
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    source_identity: &str,
-    relation_kind: WorthTopologyRelationKind,
-) -> String {
-    relation_rows
-        .iter()
-        .find(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == relation_kind.kind_name())
-                && row
-                    .payload
-                    .get("topology")
-                    .and_then(|value| value.get("source_identity"))
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|value| value == source_identity)
-        })
-        .and_then(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("target_identity"))
-                .and_then(|value| value.as_str())
-        })
-        .map(str::to_string)
-        .expect("seeded topology should expose target identity for requested relation")
-}
+    pub(super) fn aggregate_report(&self) -> WorthTopologyDomainQueryAggregateReport {
+        self.domain_query.aggregate_report()
+    }
 
-fn incoming_source_identity(
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    target_identity: &str,
-    relation_kind: WorthTopologyRelationKind,
-) -> String {
-    relation_rows
-        .iter()
-        .find(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("kind"))
-                .and_then(|value| value.as_str())
-                .is_some_and(|kind_name| kind_name == relation_kind.kind_name())
-                && row
-                    .payload
-                    .get("topology")
-                    .and_then(|value| value.get("target_identity"))
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|value| value == target_identity)
-        })
-        .and_then(|row| {
-            row.payload
-                .get("topology")
-                .and_then(|value| value.get("source_identity"))
-                .and_then(|value| value.as_str())
-        })
-        .map(str::to_string)
-        .expect("seeded topology should expose source identity for requested incoming relation")
+    pub(super) fn proof_report(&self) -> WorthTopologyDomainQueryProofReport {
+        self.domain_query.proof_report()
+    }
+
+    pub(super) fn record_view_parity(
+        &self,
+        parity_kind: WorthTopologyDomainQueryParityKind,
+        left: &WorthTopologyDomainQueryViewParityArtifact,
+        right: &WorthTopologyDomainQueryViewParityArtifact,
+    ) {
+        let _ = self
+            .domain_query
+            .record_view_parity(parity_kind, left, right);
+    }
+
+    pub(super) fn find_entity_id_by_identity(&self, identity: &str) -> EntityId {
+        self.domain_query
+            .find_entity_id_by_identity(identity)
+            .expect("requested identity should resolve to one entity")
+    }
+
+    pub(super) fn find_entity_identity_by_id(&self, entity_id: EntityId) -> String {
+        self.domain_query
+            .find_entity_identity_by_id(entity_id)
+            .expect("requested entity id should resolve to one identity")
+    }
+
+    pub(super) fn alternate_same_edge_half_edge_id(
+        &self,
+        source_identity: &str,
+        current_target_identity: &str,
+    ) -> EntityId {
+        self.domain_query
+            .radial_half_edge_neighborhood(source_identity)
+            .expect("seeded topology should expose radial neighborhood")
+            .same_edge_half_edge_identities
+            .iter()
+            .find(|identity| {
+                identity.as_str() != source_identity && identity.as_str() != current_target_identity
+            })
+            .map(|identity| self.find_entity_id_by_identity(identity))
+            .expect("seeded edge fan should provide an alternate halfedge on the same edge")
+    }
+
+    pub(super) fn different_edge_half_edge_id(&self, source_identity: &str) -> EntityId {
+        self.domain_query
+            .radial_half_edge_neighborhood(source_identity)
+            .expect("seeded topology should expose radial neighborhood")
+            .different_edge_half_edge_identities
+            .iter()
+            .find(|identity| identity.as_str() != source_identity)
+            .map(|identity| self.find_entity_id_by_identity(identity))
+            .expect("seeded edge fan should provide a halfedge on a different edge")
+    }
+
+    pub(super) fn relation_id_for_source_kind(
+        &self,
+        source_identity: &str,
+        relation_kind: WorthTopologyRelationKind,
+    ) -> RelationId {
+        self.domain_query
+            .relation_id_for_source_kind(source_identity, relation_kind)
+            .expect("seeded topology should expose requested source/kind relation")
+    }
+
+    pub(super) fn next_target_half_edge_id(&self, source_identity: &str) -> EntityId {
+        let local_rewire = self
+            .domain_query
+            .local_rewire_neighborhood(source_identity, 2)
+            .expect("seeded topology should expose local rewire neighborhood");
+        self.find_entity_id_by_identity(&local_rewire.old_successor_identity)
+    }
+
+    pub(super) fn prev_target_half_edge_id(&self, source_identity: &str) -> EntityId {
+        let local_rewire = self
+            .domain_query
+            .local_rewire_neighborhood(source_identity, 2)
+            .expect("seeded topology should expose local rewire neighborhood");
+        self.find_entity_id_by_identity(&local_rewire.old_predecessor_identity)
+    }
+
+    pub(super) fn half_edge_identities_for_different_loops(&self) -> (String, String) {
+        let half_edges = self
+            .entity_rows
+            .iter()
+            .map(|row| row.identity.as_str())
+            .filter(|identity| {
+                self.domain_query
+                    .incoming_source_identity(identity, WorthTopologyRelationKind::LoopOwnsHalfEdge)
+                    .is_ok()
+            })
+            .collect::<Vec<_>>();
+        for left in &half_edges {
+            let left_loop = self
+                .domain_query
+                .incoming_source_identity(left, WorthTopologyRelationKind::LoopOwnsHalfEdge)
+                .expect("seeded topology should expose loop ownership");
+            for right in &half_edges {
+                if left == right {
+                    continue;
+                }
+                let right_loop = self
+                    .domain_query
+                    .incoming_source_identity(right, WorthTopologyRelationKind::LoopOwnsHalfEdge)
+                    .expect("seeded topology should expose loop ownership");
+                if left_loop != right_loop {
+                    return ((*left).to_string(), (*right).to_string());
+                }
+            }
+        }
+        panic!("seeded topology should expose halfedges on different loops");
+    }
+
+    pub(super) fn successor_cycle_identities(
+        &self,
+        start_identity: &str,
+        count: usize,
+    ) -> Vec<String> {
+        self.domain_query
+            .loop_cycle(start_identity, count)
+            .expect("seeded topology should expose a closed successor cycle")
+            .cycle_identities
+    }
+
+    pub(super) fn local_rewire_parity_artifact(
+        &self,
+        read_basis: &DerivedTopologyReadBasis,
+        moved_identity: &str,
+        cycle_count: usize,
+    ) -> WorthTopologyDomainQueryViewParityArtifact {
+        let local_rewire = self
+            .domain_query
+            .local_rewire_neighborhood(moved_identity, cycle_count)
+            .expect("seeded topology should expose local rewire neighborhood");
+        build_domain_query_view_parity_artifact(
+            read_basis,
+            WorthTopologyDomainQueryViewRef::LocalRewire(&local_rewire),
+        )
+    }
 }

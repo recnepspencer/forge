@@ -3,7 +3,13 @@ use crate::facade::worth_milestone_one_runtime_builder;
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
 };
-use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use crate::read_stage::open_topology_read_view;
+use forge_query::facade::ForgeQueryWorkspace;
+use forge_relational::facade::runtime::RelationalRuntime;
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
+use worth_schema::facade::DerivedTopologyReadBasis;
 
 pub(super) fn seeded_sheet_disk_workspace(
     stem: &str,
@@ -41,4 +47,19 @@ pub(super) fn default_query_mutation_evidence(
         precision_fallback_count: 0,
         precision_budget_fallback_count: 0,
     }
+}
+
+pub(super) fn snapshot_basis_workspace(
+    runtime: &RelationalRuntime,
+    stem: &str,
+    read_basis: &DerivedTopologyReadBasis,
+) -> (ForgeQueryWorkspace, WorthTopologyQueryAssembly) {
+    let read_view =
+        open_topology_read_view(runtime, read_basis).expect("snapshot read view should open");
+    let adapters =
+        WorthTopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
+    let mut workspace = worth_topology_runtime(adapters, stem).expect("workspace should build");
+    let assembly =
+        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+    (workspace, assembly)
 }
