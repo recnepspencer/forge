@@ -6,24 +6,28 @@ import {
 import { readLineBasisHistory } from "../history/line_basis_history_read.js";
 import { executeLineHistoryExactReplay } from "../history/line_history_replay.js";
 import { executeLineHistoryExactRestore } from "../history/line_history_restore.js";
+import { readLineHistorySignalId } from "../history/line_history_signal_id.js";
 import { readLineVerificationPackage } from "../history/line_verification_package.js";
 
 function readLineHistory(materialization) {
-  const signalId = materialization.binding.readableValueSignal.id;
   const history = materialization.history;
+  const signalIdRead = readLineHistorySignalId(
+    materialization,
+    "resource line history is unavailable because readableValueSignal.id rejected explainability",
+  );
   const historyAvailability = readLineHistoryAvailability(materialization);
   const lifecycle = materialization.lifecycleHistory.entries();
   const replayRead = readHistoryArtifact(
     history,
     "replay_for",
-    signalId,
+    signalIdRead,
     historyAvailability.availability.replay,
     "resource line replay history is unavailable because replay_for(...) rejected explainability",
   );
   const lineageRead = readHistoryArtifact(
     history,
     "lineage_for",
-    signalId,
+    signalIdRead,
     historyAvailability.availability.lineage,
     "resource line lineage history is unavailable because lineage_for(...) rejected explainability",
   );
@@ -69,7 +73,7 @@ function readLineHistory(materialization) {
 function readHistoryArtifact(
   history,
   methodName,
-  signalId,
+  signalIdRead,
   baseAvailability,
   rejectedPrefix,
 ) {
@@ -79,9 +83,18 @@ function readHistoryArtifact(
       availability: baseAvailability,
     });
   }
+  if (signalIdRead.errorDetail !== null) {
+    return Object.freeze({
+      value: null,
+      availability: createUnavailableHistoryArtifact(
+        "runtimeRejected",
+        `${rejectedPrefix}: ${signalIdRead.errorDetail}`,
+      ),
+    });
+  }
   try {
     return Object.freeze({
-      value: history[methodName](signalId),
+      value: history[methodName](signalIdRead.signalId),
       availability: baseAvailability,
     });
   } catch (error) {

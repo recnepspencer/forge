@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("line invalidation marks freshness stale and records line-scoped diagnostics", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -34,15 +32,14 @@ test("line invalidation marks freshness stale and records line-scoped diagnostic
     );
     assert.equal(line.diagnostics().lastInvalidationScope, "line");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("family invalidation narrows to one existing member without broadening siblings", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -64,15 +61,14 @@ test("family invalidation narrows to one existing member without broadening sibl
     assert.equal(second.diagnostics().invalidationCount, 0);
     assert.equal(detail.invalidate({ productId: "missing" }), false);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("family invalidateAll marks every materialized line and returns the breadth honestly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -96,6 +92,6 @@ test("family invalidateAll marks every materialized line and returns the breadth
     assert.equal(first.diagnostics().lastInvalidationScope, "familyAll");
     assert.equal(second.diagnostics().lastInvalidationScope, "familyAll");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

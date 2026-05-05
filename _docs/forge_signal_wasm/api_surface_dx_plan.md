@@ -25,12 +25,18 @@ It is about making the existing resource line model pleasant enough that a
 serious frontend team would reach for it first instead of feeling forced back
 to TanStack Query plus ad hoc API-client glue.
 
+The governing standard is:
+
+> The DX layer is a declaration compiler. It compresses repetition, but it
+> never shrinks semantic truth.
+
 The target product shape is:
 
 - shared API defaults such as base URL, auth, and headers are declared once
 - request defaults can be layered at app, section, and endpoint scope
 - common declarations start with one obvious route entrypoint: `url(...)`
-- declaration-site types carry the main semantic intent for the common lane
+- route-first semantic finalizers carry the main semantic intent for the
+  common lane
 - explicit ids and explicit route intent remain visible in code
 - path parameters stay readable and explicit
 - request-side URL parameters use `params`, not `query`
@@ -66,6 +72,20 @@ main signal surface:
 - the explicit/spec lane stayed available
 
 The API surface now needs the same treatment.
+
+The practical success condition is not just shorter declarations.
+
+It is that a normal frontend engineer can open a feature module with five to
+ten endpoints and understand:
+
+- shared API posture
+- route shape
+- identity-bearing inputs
+- common line usage
+
+without needing to think in raw family declarations, manual param
+normalization, `resourceParamIdentity(...)`, or handwritten request
+construction unless the module is intentionally escaping the common lane.
 
 ## Governing Summaries
 
@@ -145,8 +165,11 @@ then the milestone has failed.
 - do not add a magical `resource("products")` abstraction as the default lane
 - prefer one small route declaration grammar over giant declaration objects
 - no `.build()` stage is part of the default lane
-- default read/write intent should be expressible from declaration-site types
-  plus `url(...)` without redundant verb or shape restatement
+- default read/write intent should be expressible from `url(...)` plus semantic
+  finalizers without redundant verb or shape restatement
+- the common lane completes declarations through route-first semantic
+  finalizers such as `.detail<User>()`, `.list<User>()`, `.paged<User>()`,
+  `.create<User, Body>()`, `.update<User, Body>()`, and `.remove()`
 - prefer `list` over `index`
 - prefer `params` over `query` for request-side URL parameter vocabulary
 - preserve explicit detail, list, paged, create, update, and remove
@@ -203,34 +226,39 @@ The DX layer is therefore not:
 
 ### Authoring model
 
-The intended ergonomic direction is declaration-site semantic typing plus one
-explicit route entrypoint.
+The intended ergonomic direction is one explicit route entrypoint plus
+route-first semantic finalizers.
 
 Representative shape:
 
 ```ts
-const getUser: Detail<User> = url("/users/:userId");
+const getUser = url("/users/:userId").detail<User>();
 
-const getUsers: List<User> = url("/users")
-  .params<{ search?: string; page?: number }>();
+const getUsers = url("/users")
+  .params<{ search?: string; page?: number }>()
+  .list<User>();
 
-const createUser: Create<User> = url("/users");
+const createUser = url("/users").create<User, CreateUserBody>();
 
-const updateUser: Update<User> = url("/users/:userId");
+const updateUser = url("/users/:userId").update<User, UpdateUserBody>();
 
-const uploadReceipt: Create<PreparedUpload> = url("/receipts/upload")
+const uploadReceipt = url("/receipts/upload")
+  .create<PreparedUpload>()
   .signedUpload({ finalize: true })
   .processing("poll");
 ```
 
 Important constraints:
 
-- the declaration-site type expresses the common semantic intent
+- the route string establishes path-param inference before semantic completion
+- the semantic finalizer closes the family in one obvious place
 - `url(...)` remains explicit and grepable
 - shared defaults are inherited unless overridden
 - weird endpoints stay in the same grammar by adding small explicit modifiers
   instead of switching to a second declaration API
 - the result of the chain is already the usable family
+- the common lane does not rely on declaration-binding annotations to complete
+  family meaning
 
 ### Parameter model
 
@@ -249,11 +277,27 @@ The API must distinguish:
 The authoring goal is:
 
 - infer path params from the URL where possible
-- treat `Detail<T>` as identity-bearing by default instead of requiring
-  repetitive trivial id restatement
+- let semantic finalizers such as `.detail<T>()` and `.list<T>()` complete the
+  common meaning without requiring repetitive identity ceremony
 - keep request params explicit and named as `params`
 - do not force developers to re-declare trivial identity by hand for the 80%
   case
+
+The boundary must also stay explicit:
+
+- path params are not request params
+- request params are not body payload
+- request params are not automatically identity-bearing merely because they are
+  serialized
+
+Normative consequence:
+
+- `params(...)` defines request-side URL parameter vocabulary
+- any request params that affect family identity, freshness partitioning,
+  reconciliation visibility, or cache partitioning must be deterministically
+  included by the lowering rules or explicitly classified by the API lane
+- the DX surface must make it obvious whether `search`, `page`, `sort`, and
+  similar request params create a different line identity
 
 ### Shared-default model
 
@@ -295,13 +339,20 @@ const adminTenantApi = tenantApi.scope({
   }),
 });
 
-const getUser: Detail<User> = tenantApi.url("/users/:userId");
+const getUser = tenantApi.url("/users/:userId").detail<User>();
 
-const exportUsers: Create<ExportJob> = adminTenantApi
+const exportUsers = adminTenantApi
   .url("/users/export")
+  .create<ExportJob>()
   .headers(() => ({
     "x-export-mode": "full",
   }));
+```
+
+The intended common lane is therefore:
+
+```ts
+const getUser = tenantApi.url("/users/:userId").detail<User>();
 ```
 
 Required merge semantics:
@@ -312,6 +363,21 @@ Required merge semantics:
 - collisions resolve deterministically
 - diagnostics and request inspection must reveal what was inherited versus what
   was overridden
+
+Deterministic merging is necessary but not sufficient.
+
+The product must also preserve source explainability. A large application team
+must be able to answer why one line carried a given base URL, header, auth
+posture, or serializer choice without reconstructing scope ancestry by hand.
+
+Representative direction:
+
+```ts
+line.requestSummary();
+```
+
+should be able to explain not just the admitted value, but where that value
+came from across root, scope, and endpoint overrides.
 
 ### Advanced-path model
 
@@ -339,6 +405,208 @@ Not:
 
 1. standard builder path
 2. immediate fall to raw `load(...)`
+
+### Line-consumption model
+
+The DX milestone must not stop at declaration compression.
+
+The shipped product is still line-centered, and a real application team will
+spend more time reading, inspecting, patching, delivering, and publishing
+lines than authoring declarations.
+
+That means the pleasant lane must also improve the normal read path for:
+
+- current state
+- request posture summaries
+- upload, processing, and download summaries
+- first-step diagnostics and explainability
+- collection and paged patching helpers
+
+The intent is not to delete the precise low-level line surface.
+
+It is to ensure the common lane teaches and supports a smaller grouped read
+path so ordinary UI code does not need to stitch together five unrelated calls
+just to answer:
+
+- is this line pending or stale
+- what request posture actually applied
+- what happened last
+- is there upload, processing, or download state I should render
+
+Normative consequence:
+
+- declaration DX without line-consumption DX is incomplete
+- any pleasant declaration lane that still leaves line reads feeling like raw
+  substrate has underdelivered on the product goal
+- every pleasant declaration must imply a pleasant first read
+- cheap-looking grouped line reads must stay honest about cost and must not
+  materialize richer replay or retained-history work accidentally
+
+### Reconciliation and delivery model
+
+The DX lane must treat list-shaped resources as first-class citizens rather
+than as a pleasant detail-read lane plus raw collection escape.
+
+That means collection and paged authoring must eventually support a compressed,
+readable lane for:
+
+- item identity
+- narrow patch capability declaration
+- item-aspect declaration
+- summary declaration
+- family-scoped patch helpers
+- family-scoped delivery helpers
+
+The minimum viable common truth must stay small.
+
+If the line value is already a direct `Task[]`-style list, the pleasant lane
+should not require a mini reconciliation DSL merely to unlock common
+replace/update/delete helper ownership. Envelope-shaped values should pay more;
+plain list-shaped values should stay tiny.
+
+Representative direction:
+
+```ts
+const tasks = api
+  .url("/workspaces/:workspaceId/tasks")
+  .list<Task>()
+  .items((item) => item.id)
+  .reconcile((list) =>
+    list
+      .items((value) => value.items, (value, items) => ({ ...value, items }))
+      .aspect("title", (item) => item.title, (item, title) => ({
+        ...item,
+        title,
+      })),
+  );
+
+line.patch(
+  tasks.patch.itemAspect({
+    itemId: "t1",
+    aspect: "title",
+    value: "Updated",
+  }),
+);
+
+line.deliver(
+  tasks.delivery.patch({
+    packetId: "pkt-1",
+    basisId: null,
+    patch: tasks.patch.itemAspect({
+      itemId: "t1",
+      aspect: "title",
+      value: "Delivered",
+    }),
+  }),
+);
+```
+
+The compatibility lane may remain more explicit and raw than the native lane.
+But native collection/paged delivery must not require global helper soup once a
+family already owns reconciliation truth.
+
+### Binary and download model
+
+The DX lane must explicitly include resource-binary and download-bearing
+resources.
+
+The package docs already teach that value and downloadable artifacts are
+separate first-class surfaces. The hardening work must therefore avoid
+producing a beautiful declaration lane for CRUD reads while leaving downloads
+as a raw-only afterthought.
+
+Representative direction:
+
+```ts
+const reportDetail = api
+  .url("/reports/:reportId")
+  .detail<Report>()
+  .downloads((download) =>
+    download.file("report-pdf", {
+      fileName: ({ reportId }) => `${reportId}.pdf`,
+      mediaType: "application/pdf",
+    }),
+  );
+```
+
+Normative consequence:
+
+- download-bearing resources are in scope for pleasant authoring
+- the pleasant lane must preserve the explicit split between `line.value()` and
+  `line.download()` rather than flattening them into one magical payload
+
+### Feature-module and host-default model
+
+The DX lane must scale beyond isolated endpoint snippets.
+
+That means the milestone must consider how shared API scopes and DX-authored
+families live inside real feature modules, including:
+
+- controller-local API scopes
+- graph publication from resource lines
+- feature-local grouping of related families
+- host-derived auth and header defaults without ambient hidden magic
+
+Representative direction:
+
+```ts
+const workspaceApi = signals.api({
+  baseUrl: "/api",
+  auth: signals.api.auth.sessionToken(() => session.token()),
+  headers: ({ workspaceId }: { workspaceId: string }) => ({
+    "x-workspace-id": workspaceId,
+  }),
+});
+
+const productDetail =
+  workspaceApi.url("/workspaces/:workspaceId/products/:productId").detail<Product>();
+
+const products =
+  workspaceApi.url("/workspaces/:workspaceId/products").list<Product>();
+```
+
+Normative consequence:
+
+- shared defaults must remain explicit and typed even when they are derived
+  from host or session truth
+- the pleasant lane must scale to serious feature-module organization rather
+  than only beautifying isolated examples
+
+## Canonical Before / After
+
+This milestone should be visually defensible in one glance.
+
+Before:
+
+```ts
+const getUser = signals.resource.detail({
+  params: resourceParams<{ userId: string }>(),
+  normalizeParams: ({ userId }) =>
+    resourceParamIdentity({ userId }, userId),
+  auth: resourceAuth.authenticated(),
+  requestContext: resourceRequestContext({
+    headers: {
+      Authorization: `Bearer ${session.token()}`,
+    },
+  }),
+  load: ({ userId }) => fetchUser(userId),
+});
+```
+
+After:
+
+```ts
+const api = signals.api({
+  baseUrl: "/api",
+  auth: sessionAuth,
+});
+
+const getUser = api.url("/users/:userId").detail<User>();
+```
+
+The milestone is only successful if the second form lowers to the same raw
+family truth as the first form while remaining easier to read in a normal
+feature module.
 
 ## Phases
 
@@ -376,15 +644,20 @@ Purpose:
 This phase must ship:
 
 - one standard `url(...)` entrypoint for the common lane
-- declaration-site semantic type families such as `Detail<T>`, `List<T>`,
-  `Paged<T>`, `Create<T>`, `Update<T>`, and `Remove<T>`
-- auto-finalizing declaration chains with no `.build()`
+- semantic finalizers such as `.detail<T>()`, `.list<T>()`, `.paged<T>()`,
+  `.create<T, Body>()`, `.update<T, Body>()`, and `.remove()`
+- semantic type families such as `Detail<T>`, `List<T>`, `Paged<T>`,
+  `Create<T>`, `Update<T>`, and `Remove<T>` remain the conceptual categories
+  expressed by the finalizers rather than by declaration-binding annotations
+- no `.build()` in the common lane
 - preserved explicit endpoint identity and readable call-site naming
 - equivalence with the raw family declaration lane
+- compile-time proof that route-first semantic finalization preserves required
+  path-param inference and `line(...)` call-site pressure
 
 Phase 2 gate:
 
-- no later phase begins until declaration-site-typed `url(...)` authoring and
+- no later phase begins until route-first semantic-finalizer authoring and
   raw-authored conventional declarations can be certified as semantically
   identical
 
@@ -424,13 +697,19 @@ This phase must ship:
   - remove operations
 - support for explicit custom action routes inside the same grammar
 - support for nested workspace, tenant, and project route prefixes
+- a compressed pleasant lane for collection and paged reconciliation authoring,
+  including item identity and narrow patch declarations
+- family-scoped patch helper ownership for DX-authored collection and paged
+  families
 - hostile proof that weird endpoints degrade one step at a time rather than
   forcing immediate raw-lane escape
 
 Phase 4 gate:
 
 - no later phase begins until standard and nonstandard endpoints can coexist in
-  one grammar without semantic or readability collapse
+  one grammar without semantic or readability collapse, and list-shaped
+  resources no longer require raw-only reconciliation ergonomics for the common
+  lane
 
 ### Phase 5: Upload, Processing, And Advanced Transfer Builders
 
@@ -445,6 +724,8 @@ This phase must ship:
 - `multipartUpload(...)`
 - finalize-required upload declaration
 - `processing("poll" | "callback" | "webhook", ...)`
+- pleasant download-bearing declaration support for binary/resource descriptor
+  cases
 - explicit advanced modifiers such as `verb(...)`, `body(...)`, `headers(...)`,
   and related transport-shaping steps for truly nonstandard endpoints
 - equivalence with the existing upload and processing posture semantics
@@ -453,7 +734,8 @@ This phase must ship:
 Phase 5 gate:
 
 - no later phase begins until `url(...)`-authored upload and processing flows
-  can be certified as semantically identical to the raw lane
+  can be certified as semantically identical to the raw lane, and download-
+  bearing resources fit the same pleasant grammar without semantic flattening
 
 ### Phase 6: Escape Hatch, Diagnostics, And Certification Closeout
 
@@ -465,6 +747,11 @@ This phase must ship:
 
 - a clean raw-family escape hatch that remains first-class and documented
 - diagnostics and history parity between builder and raw declarations
+- a compressed line-consumption lane for common state, request-summary, and
+  first-step explainability reads, while preserving the precise low-level line
+  surface
+- family-scoped delivery helper parity for DX-authored native collection and
+  paged resources
 - compile-time and runtime proof that builders do not overclaim capability
 - docs that teach the pleasant lane first and the raw lane second
 
@@ -472,7 +759,8 @@ Phase 6 gate:
 
 - the milestone is not closed until declaration-site-typed `url(...)` and
   raw-authored resource families converge exactly under hostile certification
-  and the docs teach a clear default path
+  and the docs teach a clear default path across declaration, line usage,
+  patching, delivery, transfers, downloads, and explainability
 
 ## Must Ship
 
@@ -483,8 +771,13 @@ Phase 6 gate:
 - explicit `params(...)` request parameter vocabulary
 - path-param inference where possible
 - no `.build()` in the normal lane
+- compressed reconciliation authoring for common collection and paged cases
+- family-scoped patch helpers for DX-authored list-shaped resources
+- native family-scoped delivery helpers for DX-authored list-shaped resources
 - signed upload, multipart upload, and deferred processing builder support
+- pleasant binary/download declaration support
 - custom action and nonstandard endpoint support inside the same grammar
+- a compressed common lane for line state and first-step explainability reads
 - a documented raw-lane escape hatch
 - diagnostics, type, and runtime parity between builder and raw lanes
 
@@ -508,12 +801,18 @@ Phase 6 gate:
 - `The URL And Raw Paged Equivalence Test`
 - `The Declaration Type And Runtime Lowering Equivalence Test`
 - `The URL Path Param Inference And Stable Identity Test`
+- `The Route-First Semantic Finalizer Type Precision Test`
 - `The Request Params Serialization And Identity Boundary Test`
 - `The Conventional CRUD Declarations Parity Test`
 - `The Nonstandard Endpoint Degradation Test`
+- `The Reconciliation Builder And Raw Collection Equivalence Test`
+- `The Family-Scoped Patch Helper Parity Test`
+- `The Native Delivery Builder Parity Test`
 - `The Signed Upload Builder Parity Test`
 - `The Multipart Upload Builder Parity Test`
 - `The Deferred Processing Builder Parity Test`
+- `The Binary Download Builder Parity Test`
+- `The Line Consumption Summary Honesty Test`
 - `The DX Declaration Diagnostics And History Honesty Test`
 - `The DX Declaration Capability Overclaim Compile-Time Boundary Test`
 
@@ -524,19 +823,32 @@ This milestone is complete only when the wasm product surface can prove:
 - shared API defaults lower identically across multiple endpoint families
 - nested API scopes lower identically to their explicit fully-written request
   posture equivalents
-- declaration-site-typed `url(...)` authoring and raw-authored resources
+- route-first semantic-finalizer authoring and raw-authored resources
   converge to the same family identity, line identity, lifecycle truth, and
   diagnostics/history truth
+- a conventional feature module with five to ten endpoints can stay entirely in
+  the pleasant lane without mentioning raw family declarations, manual param
+  normalization, or request construction unless it is intentionally escaping
 - path-param inference and request-param declaration do not destabilize
   canonical identity
+- route-first semantic finalizers preserve `line(...)` call-site correctness
+  for required path params and do not regress TypeScript inference quality
 - conventional CRUD-shaped declarations are materially shorter without semantic
   drift or redundant verb/shape restatement
+- collection and paged reconciliation declarations can be authored through a
+  compressed lane without changing narrow-patch legality or runtime truth
+- family-scoped patch and delivery helpers do not introduce a second mutation
+  or delivery engine
 - adversarial custom endpoints still fit the same grammar without forcing
   immediate raw-lane escape
 - signed upload, multipart upload, and deferred processing builder steps remain
   exact semantic consumers of the closed transfer substrate
+- download-bearing resources fit the pleasant lane without flattening value and
+  artifact semantics together
 - inherited versus overridden request posture is visible enough in diagnostics
   and request inspection that teams can reason about section-local defaults
+- the common line-read lane remains honest about cost and does not materialize
+  richer history or replay work just to provide a cheap-looking summary
 - the docs recommend one obvious pleasant lane while preserving the raw lane as
   the explicit escape hatch
 
@@ -548,6 +860,11 @@ This milestone is complete only when the wasm product surface can prove:
   reviewable
 - the builder layer should prefer additive lowering helpers over a giant
   conversion blob
+- the docs should teach a migration of thought:
+  declare shared posture once, declare route shape, attach semantic intent, use
+  the line, and only drop lower when the endpoint earns it
+- line-consumption DX should prefer grouped read helpers over magical state
+  fusion and must preserve the canonical underlying line surfaces
 - the DX lane should likely become the default teaching lane for the later
   router milestone
 

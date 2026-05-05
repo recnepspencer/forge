@@ -21,16 +21,20 @@ import { resourceUploadTransport } from "./uploads/resource_upload_transport.js"
 import { resourceAuth } from "./requests/resource_auth.js";
 import { resourceContinuation } from "./requests/resource_continuation.js";
 import { resourceRequestContext } from "./requests/request_context.js";
+import { createResourceLineEpoch } from "./lines/state/resource_line_epoch.js";
 
 function createResourceNamespace(signalNamespace, rawSignals) {
+  const resourceLineEpoch = createResourceLineEpoch();
   return Object.freeze({
     compatibility: createResourceCompatibilityNamespace(
       signalNamespace,
       rawSignals,
+      resourceLineEpoch,
     ),
     detail(declaration) {
       return createDetailFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "detail"),
         declaration,
       );
@@ -38,6 +42,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
     collection(declaration) {
       return createCollectionFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "collection"),
         declaration,
       );
@@ -45,6 +50,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
     paged(declaration) {
       return createPagedFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "paged"),
         declaration,
       );

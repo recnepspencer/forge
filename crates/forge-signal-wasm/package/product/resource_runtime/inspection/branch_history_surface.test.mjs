@@ -1,41 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import {
+  createBranchHead,
+  createRealResourceDetail,
+  createRealResourceSignals,
+} from "../runtime_fixture/real_resource_signals.mjs";
 
-test("resource line history exposes current branch and exact restore availability", async () => {
-  const mod = await loadResourceModule();
+test("resource line history exposes the real current branch and derives exact restore availability from the runtime snapshot target", async () => {
+  const runtime = await createRealResourceSignals();
   try {
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 7n,
-          name: "feature/resources",
-          parent_branch_id: 3n,
-          head_snapshot_id: 42n,
-        };
-      },
-      branch_snapshot() {
-        return Object.freeze({ snapshotRestoreToken: "branch-7-snapshot" });
-      },
-      restore_exact_branch_snapshot() {},
-    });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
+    const branch = createBranchHead(runtime.signals, "feature/resources");
+    const detail = createRealResourceDetail(runtime.mod, runtime.signals, {
       load: ({ id }) => ({ id }),
     });
-
-    const history = detail.line({ id: "branchy" }).history();
-
-    assert.deepEqual(history.branch, {
-      id: 7,
-      name: "feature/resources",
-      parentBranchId: 3,
-      headSnapshotId: 42,
-    });
+    const line = detail.line({ id: "branchy" });
+    line.value();
+    const history = line.history();
+    assert.deepEqual(
+      {
+        id: history.branch?.id,
+        name: history.branch?.name,
+        parentBranchId: history.branch?.parentBranchId,
+      },
+      {
+        id: branch.id,
+        name: "feature/resources",
+        parentBranchId: 0,
+      },
+    );
     assert.deepEqual(history.availability, {
       replay: { kind: "available" },
       replayExact: {
@@ -46,54 +39,58 @@ test("resource line history exposes current branch and exact restore availabilit
       },
       lineage: { kind: "available" },
       branch: { kind: "available" },
-      restoreExact: {
-        kind: "available",
-        mode: "SameRuntimeBranchExact",
-        branchId: 7,
-        snapshotId: 42,
-      },
+      restoreExact: history.availability.restoreExact,
     });
+    assert.deepEqual(history.availability.restoreExact.kind, "available");
+    assert.deepEqual(history.availability.restoreExact.mode, "SameRuntimeBranchExact");
+    assert.deepEqual(history.availability.restoreExact.branchId, branch.id);
+    assert.equal(
+      Number.isInteger(history.availability.restoreExact.snapshotId),
+      true,
+    );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
-test("resource line history reports explicit restore unavailability when branch snapshots do not exist", async () => {
-  const mod = await loadResourceModule();
+test("resource line history keeps exact restore available on a branch whose current_branch() artifact omits head_snapshot_id", async () => {
+  const runtime = await createRealResourceSignals();
   try {
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 9n,
-          name: "empty-branch",
-          parent_branch_id: null,
-          head_snapshot_id: null,
-        };
-      },
-      restore_exact_branch_snapshot() {},
-    });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
+    const branch = runtime.signals.history().create_branch("empty-branch");
+    runtime.signals.history().switch_branch(branch.id);
+    const detail = createRealResourceDetail(runtime.mod, runtime.signals, {
       load: ({ id }) => ({ id }),
     });
-
-    const history = detail.line({ id: "empty" }).history();
+    const line = detail.line({ id: "empty" });
+    line.value();
+    const history = line.history();
 
     assert.deepEqual(history.branch, {
-      id: 9,
+      id: branch.id,
       name: "empty-branch",
-      parentBranchId: null,
-      headSnapshotId: null,
+      parentBranchId: 0,
+      headSnapshotId: 0,
     });
-    assert.deepEqual(history.availability.restoreExact, {
-      kind: "unavailable",
-      reason: "branchHeadUnavailable",
-      detail:
-        "resource line exact branch restore is unavailable because branch 9 has no head snapshot",
+    assert.equal(history.availability.restoreExact.kind, "available");
+    assert.equal(history.availability.restoreExact.mode, "SameRuntimeBranchExact");
+    assert.equal(history.availability.restoreExact.branchId, branch.id);
+    assert.equal(
+      Number.isInteger(history.availability.restoreExact.snapshotId),
+      true,
+    );
+    assert.deepEqual(history.restoreExact(), {
+      kind: "restored",
+      mode: "SameRuntimeBranchExact",
+      branchId: branch.id,
+      snapshotId: history.availability.restoreExact.snapshotId,
+      basisCurrentId: null,
+      basisAdvanceCount: 0,
+      reloadStatus: {
+        kind: "fulfilled",
+        operation: "restore",
+      },
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

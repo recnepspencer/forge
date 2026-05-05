@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createPhase1FamilyCases } from "../runtime_fixture/phase1_family_cases.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createPhase1FamilyCases } from "../runtime_fixture/family_cases/phase1_family_cases.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 
 test("resource families reuse one line per canonical parameter identity", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const calls = [];
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -39,15 +37,14 @@ test("resource families reuse one line per canonical parameter identity", async 
       third.descriptor().runtimeLineId,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource param identity snapshots stay stable after caller mutation", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ filters }) =>
@@ -63,15 +60,14 @@ test("resource param identity snapshots stay stable after caller mutation", asyn
       filters: ["open", "ready"],
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("equivalent direct and helper-built declarations preserve the same semantic descriptor story", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const familyCases = createPhase1FamilyCases(resource, mod);
 
     for (const familyCase of familyCases) {
@@ -99,15 +95,14 @@ test("equivalent direct and helper-built declarations preserve the same semantic
       assert.deepEqual(helperArtifact, directArtifact);
     }
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource line descriptors stay stable across family kinds while preserving distinct family identity", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
 
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -147,6 +142,6 @@ test("resource line descriptors stay stable across family kinds while preserving
     assert.equal(collectionDescriptor.canonicalParams.canonicalKey, "a");
     assert.equal(pagedDescriptor.canonicalParams.canonicalKey, "a");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

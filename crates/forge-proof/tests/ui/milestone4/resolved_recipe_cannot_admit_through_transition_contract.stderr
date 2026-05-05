@@ -7,9 +7,9 @@ error[E0308]: mismatched types
 19 |         resolved,
    |         ^^^^^^^^ expected `Recipe<Lowered, _, ...>`, found `Recipe<Resolved, &str, ...>`
    |
-   = note: expected struct `Recipe<Lowered, _, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<_>>>`
-              found struct `Recipe<Resolved, &'static str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>`
-help: the return type of this call is `Recipe<Resolved, &'static str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>` due to the type of the argument passed
+   = note: expected struct `Recipe<forge_proof::Lowered, _, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<_>>>`
+              found struct `Recipe<forge_proof::Resolved, &'static str, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<u8>>>`
+help: the return type of this call is `Recipe<forge_proof::Resolved, &'static str, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<u8>>>` due to the type of the argument passed
   --> tests/ui/milestone4/resolved_recipe_cannot_admit_through_transition_contract.rs:17:13
    |
 17 |       let _ = apply_transition(

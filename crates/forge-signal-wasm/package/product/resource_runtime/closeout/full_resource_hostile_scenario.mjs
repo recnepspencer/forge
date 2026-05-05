@@ -1,8 +1,6 @@
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
 
-function createHostileApp(mod, signalNamespace, restoreState) {
-  const resource = mod.createResourceNamespace(signalNamespace, {});
+function createHostileApp(mod, resource, restoreState) {
   const requestContext = mod.resourceRequestContext({ basisId: "basis-1" });
   const retryDeferreds = [createDeferred(), createDeferred()];
   const transferDeferreds = [createDeferred(), createDeferred()];
@@ -142,6 +140,7 @@ function createHostileApp(mod, signalNamespace, restoreState) {
       }),
     }).line({ workspaceId: "demo" }),
     controls: {
+      externalDelivery: resource.compatibility.delivery,
       retryDeferreds,
       transferDeferreds,
     },
@@ -154,10 +153,6 @@ async function advanceAsyncSettlement() {
 }
 
 async function runHostileScript(lines, mod) {
-  const externalDelivery = mod.createResourceNamespace(
-    createFakeSignalNamespace(),
-    {},
-  ).compatibility.delivery;
   lines.retryDetail.refresh();
   lines.controls.retryDeferreds[0].reject(new Error("temporary retry failure"));
   await lines.controls.retryDeferreds[0].promise.catch(() => {});
@@ -201,7 +196,7 @@ async function runHostileScript(lines, mod) {
     }),
   );
   const staleExternal = lines.externalCollection.deliver(
-    externalDelivery.patch({
+    lines.controls.externalDelivery.patch({
       packetId: "pkt-stale",
       basisId: "basis-2",
       nextBasisId: "basis-3",
@@ -245,14 +240,14 @@ async function runHostileScript(lines, mod) {
     }),
   );
   lines.externalCollection.deliver(
-    externalDelivery.basisRefresh({
+    lines.controls.externalDelivery.basisRefresh({
       packetId: "pkt-external-b2",
       basisId: "basis-1",
       nextBasisId: "basis-2",
     }),
   );
   lines.externalCollection.deliver(
-    externalDelivery.patch({
+    lines.controls.externalDelivery.patch({
       packetId: "pkt-external-b3",
       basisId: "basis-2",
       nextBasisId: "basis-3",
@@ -280,46 +275,21 @@ async function runHostileScript(lines, mod) {
   };
 }
 
-function createHistoryOverrides(restoreState, replayMode) {
-  return {
-    current_branch() {
-      return {
-        id: 201n,
-        name: "suite-0",
-        parent_branch_id: 17n,
-        head_snapshot_id: 301n,
-      };
-    },
-    restore_branch_snapshot_by_id() {
-      restoreState.active = true;
-    },
-    replay_signal_by_id(signalId) {
-      restoreState.replaySignalIds.push(signalId);
-    },
-    replay_availability_for(signalId) {
-      return replayMode === "retained"
-        ? {
-            kind: "unavailable",
-            reason: "runtimeRejected",
-            detail: `retained replay history for ${signalId} was truncated`,
-          }
-        : { kind: "available" };
-    },
-    replay_execution_availability_for(signalId) {
-      return replayMode === "retained"
-        ? {
-            kind: "unavailable",
-            reason: "runtimeRejected",
-            detail:
-              `retained replay execution for ${signalId} is unavailable because replay frames were truncated`,
-          }
-        : { kind: "available" };
-    },
-  };
+function freeHostileApp(lines) {
+  for (const key of [
+    "detail",
+    "retryDetail",
+    "transferDetail",
+    "nativeCollection",
+    "externalCollection",
+    "paged",
+  ]) {
+    lines[key].free();
+  }
 }
 
 export {
-  createHistoryOverrides,
   createHostileApp,
+  freeHostileApp,
   runHostileScript,
 };

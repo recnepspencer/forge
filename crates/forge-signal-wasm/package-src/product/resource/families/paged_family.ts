@@ -4,6 +4,7 @@ import { validatePagedDeclaration } from "./declarations/paged_family_declaratio
 
 function createPagedFamily(
   signalNamespace,
+  resourceLineEpoch,
   familyId,
   declaration,
   compatibility,
@@ -11,6 +12,7 @@ function createPagedFamily(
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.paged,
     signalNamespace,
+    resourceLineEpoch,
     familyId,
     validatePagedDeclaration(declaration),
     compatibility,

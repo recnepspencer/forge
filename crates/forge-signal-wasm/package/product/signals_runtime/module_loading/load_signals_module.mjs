@@ -2,14 +2,14 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.join(moduleDir, "..", "..", "..");
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
 
-export async function loadSignalsModule() {
+export async function loadSignalsModule(options = {}) {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-product-"));
   try {
     const filesToCopy = [
@@ -72,11 +72,23 @@ export async function loadSignalsModule() {
       path.join(tempDir, "product", "resource"),
     );
 
-    await writeFile(
-      path.join(tempDir, "raw_surface.js"),
-      "export function createRawSignals() { throw new Error('createRawSignals should not be used in signals product runtime tests'); }\n",
-      "utf8",
-    );
+    const rawSurfacePath = path.join(tempDir, "raw_surface.js");
+    if (options.rawSurface === "real") {
+      const realRawSurfaceUrl = pathToFileURL(
+        path.join(packageDir, "..", "pkg", "raw_surface.js"),
+      ).href;
+      await writeFile(
+        rawSurfacePath,
+        `export * from ${JSON.stringify(realRawSurfaceUrl)};\n`,
+        "utf8",
+      );
+    } else {
+      await writeFile(
+        rawSurfacePath,
+        "export function createRawSignals() { throw new Error('createRawSignals should not be used in signals product runtime tests'); }\n",
+        "utf8",
+      );
+    }
 
     const moduleUrl = new URL(
       `file:///${path.join(tempDir, "product", "signals.js").replace(/\\/g, "/")}`,

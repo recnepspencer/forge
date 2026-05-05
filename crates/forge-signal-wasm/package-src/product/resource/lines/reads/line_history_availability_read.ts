@@ -7,32 +7,41 @@ import {
   createUnavailableRestoreAvailability,
   readHistoryRuntimeErrorDetail,
 } from "../history/line_history_availability.js";
+import { readLineHistorySignalId } from "../history/line_history_signal_id.js";
 import { readCurrentHistoryBranch } from "../history/line_history_branch.js";
 
 function readLineHistoryAvailability(materialization) {
   const history = materialization.history;
+  const signalIdRead = readLineHistorySignalId(
+    materialization,
+    "resource line history is unavailable because readableValueSignal.id rejected explainability",
+  );
   const replayAvailable = readArtifactAvailability(
     history,
     "replay_for",
     "replay_availability_for",
-    materialization.binding.readableValueSignal.id,
+    signalIdRead,
     "resource line replay history is unavailable because the Signals runtime does not expose replay_for(...)",
     "resource line replay history is unavailable because replay_availability_for(...) rejected explainability",
   );
   const replayExactAvailable = readReplayExecutionAvailability(
     history,
-    materialization.binding.readableValueSignal.id,
+    signalIdRead,
   );
   const lineageAvailable = readArtifactAvailability(
     history,
     "lineage_for",
     "lineage_availability_for",
-    materialization.binding.readableValueSignal.id,
+    signalIdRead,
     "resource line lineage history is unavailable because the Signals runtime does not expose lineage_for(...)",
     "resource line lineage history is unavailable because lineage_availability_for(...) rejected explainability",
   );
   const branchRead = readCurrentHistoryBranch(history);
   const branch = branchRead.branch;
+  const restoreSnapshotRead =
+    branch === null
+      ? null
+      : readRestoreSnapshotAvailability(history, branch);
   return Object.freeze({
     branch,
     availability: Object.freeze({
@@ -61,7 +70,12 @@ function readLineHistoryAvailability(materialization) {
                 "unsupportedByRuntime",
                 "resource line exact branch restore is unavailable because the Signals runtime does not expose current_branch(...)",
               )
-          : branch.headSnapshotId === null
+          : restoreSnapshotRead?.errorDetail != null
+            ? createUnavailableRestoreAvailability(
+                "runtimeRejected",
+                restoreSnapshotRead.errorDetail,
+              )
+          : restoreSnapshotRead?.snapshotId == null
             ? createUnavailableRestoreAvailability(
                 "branchHeadUnavailable",
                 `resource line exact branch restore is unavailable because branch ${branch.id} has no head snapshot`,
@@ -78,13 +92,49 @@ function readLineHistoryAvailability(materialization) {
               : createAvailableRestoreAvailability(
                   "SameRuntimeBranchExact",
                   branch.id,
-                  branch.headSnapshotId,
+                  restoreSnapshotRead.snapshotId,
                 ),
     }),
   });
 }
 
-function readReplayExecutionAvailability(history, signalId) {
+function readRestoreSnapshotAvailability(history, branch) {
+  if (branch.headSnapshotId !== null) {
+    return Object.freeze({
+      snapshotId: branch.headSnapshotId,
+      errorDetail: null,
+    });
+  }
+  if (typeof history.branch_snapshot_id !== "function") {
+    return Object.freeze({
+      snapshotId: null,
+      errorDetail: null,
+    });
+  }
+  try {
+    const snapshotId = history.branch_snapshot_id(branch.id);
+    return Object.freeze({
+      snapshotId: snapshotId === null ? null : Number(snapshotId),
+      errorDetail: null,
+    });
+  } catch (error) {
+    return Object.freeze({
+      snapshotId: null,
+      errorDetail: readHistoryRuntimeErrorDetail(
+        "resource line exact branch restore is unavailable because branch_snapshot_id(...) rejected restore-target lookup",
+        error,
+      ),
+    });
+  }
+}
+
+function readReplayExecutionAvailability(history, signalIdRead) {
+  if (signalIdRead.errorDetail !== null) {
+    return createUnavailableReplayAvailability(
+      "runtimeRejected",
+      `resource line exact replay is unavailable because readableValueSignal.id rejected explainability: ${signalIdRead.errorDetail}`,
+    );
+  }
   if (typeof history.replay_signal_by_id !== "function") {
     return createUnavailableReplayAvailability(
       "unsupportedByRuntime",
@@ -92,17 +142,25 @@ function readReplayExecutionAvailability(history, signalId) {
     );
   }
   if (typeof history.replay_execution_availability_for !== "function") {
-    return createAvailableReplayAvailability("SameRuntimeSignalExact", signalId);
+    return createAvailableReplayAvailability(
+      "SameRuntimeSignalExact",
+      signalIdRead.signalId,
+    );
   }
   try {
-    const availability = history.replay_execution_availability_for(signalId);
+    const availability = history.replay_execution_availability_for(
+      signalIdRead.signalId,
+    );
     return availability?.kind === "unavailable"
       ? createUnavailableReplayAvailability(
           availability.reason ?? "runtimeRejected",
           availability.detail
             ?? "resource line exact replay is unavailable because replay_execution_availability_for(...) rejected replay execution with no detail",
         )
-      : createAvailableReplayAvailability("SameRuntimeSignalExact", signalId);
+      : createAvailableReplayAvailability(
+          "SameRuntimeSignalExact",
+          signalIdRead.signalId,
+        );
   } catch (error) {
     return createUnavailableReplayAvailability(
       "runtimeRejected",
@@ -118,10 +176,16 @@ function readArtifactAvailability(
   history,
   artifactMethodName,
   availabilityMethodName,
-  signalId,
+  signalIdRead,
   missingDetail,
   rejectedPrefix,
 ) {
+  if (signalIdRead.errorDetail !== null) {
+    return createUnavailableHistoryArtifact(
+      "runtimeRejected",
+      `${rejectedPrefix.replace(" rejected explainability", "")}: ${signalIdRead.errorDetail}`,
+    );
+  }
   if (typeof history[artifactMethodName] !== "function") {
     return createUnavailableHistoryArtifact("unsupportedByRuntime", missingDetail);
   }
@@ -129,7 +193,7 @@ function readArtifactAvailability(
     return createAvailableHistoryArtifact();
   }
   try {
-    const availability = history[availabilityMethodName](signalId);
+    const availability = history[availabilityMethodName](signalIdRead.signalId);
     return availability?.kind === "unavailable"
       ? createUnavailableHistoryArtifact(
           availability.reason ?? "runtimeRejected",

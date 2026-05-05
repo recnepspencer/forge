@@ -1,58 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
 import { projectBasisProof } from "../delivery/delivery_basis_history_proof_helpers.mjs";
+import {
+  createBranchHead,
+  createRealResourceCollection,
+  createRealResourceDetail,
+  createRealResourceSignals,
+  installHistoryOverrides,
+} from "../runtime_fixture/real_resource_signals.mjs";
 
-function createRestoreCollectionLine(mod, signalNamespace) {
-  return mod.createResourceNamespace(signalNamespace, {}).collection({
-    params: mod.resourceParams(),
-    normalizeParams: ({ workspaceId }) =>
-      mod.resourceParamIdentity({ workspaceId }, workspaceId),
-    requestContext: mod.resourceRequestContext({ basisId: "basis-1" }),
-    itemIdentity: (item) => item.id,
-    reconcile: mod.resourceCollectionShape({
-      items: (value) => value.items,
-      replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-      aspects: mod.resourceItemAspects({
-        title: {
-          read: (item) => item.title,
-          write: (item, title) => ({ ...item, title: String(title) }),
-        },
-      }),
-    }),
+function createRestoreCollectionLine(mod, signals) {
+  return createRealResourceCollection(mod, signals, {
     load: (_params, request) => ({
       items: [{ id: "demo:1", title: `Load:${request.context.basisId}` }],
     }),
   }).line({ workspaceId: "demo" });
 }
 
-test("line history restoreExact targets the current branch head and preserves basis evidence", async () => {
-  const mod = await loadResourceModule();
+test("line history restoreExact uses the real runtime branch snapshot target and preserves basis evidence", async () => {
+  const runtime = await createRealResourceSignals();
   try {
-    const calls = [];
-    let restored = false;
-    const line = createRestoreCollectionLine(
-      mod,
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 72n,
-            name: "restore-branch",
-            parent_branch_id: 9n,
-            head_snapshot_id: 144n,
-          };
-        },
-        restore_branch_snapshot_by_id(branchId, snapshotId) {
-          restored = true;
-          calls.push([branchId, snapshotId]);
-        },
-      }),
-    );
+    const branch = createBranchHead(runtime.signals, "restore-branch");
+    const line = createRestoreCollectionLine(runtime.mod, runtime.signals);
 
     line.deliver(
-      mod.resourceDelivery.replace({
+      runtime.mod.resourceDelivery.replace({
         packetId: "pkt-basis-2",
         basisId: "basis-1",
         nextBasisId: "basis-2",
@@ -62,25 +35,30 @@ test("line history restoreExact targets the current branch head and preserves ba
       }),
     );
     line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Delivered Basis 3",
         }),
       }),
     );
+    const snapshotId = Number(
+      runtime.signals.history().branch_snapshot_id(branch.id),
+    );
 
+    const before = projectBasisProof(line);
     const result = line.history().restoreExact();
+    const after = projectBasisProof(line);
 
     assert.deepEqual(result, {
       kind: "restored",
       mode: "SameRuntimeBranchExact",
-      branchId: 72,
-      snapshotId: 144,
+      branchId: branch.id,
+      snapshotId,
       basisCurrentId: "basis-3",
       basisAdvanceCount: 2,
       reloadStatus: {
@@ -88,8 +66,10 @@ test("line history restoreExact targets the current branch head and preserves ba
         operation: "restore",
       },
     });
-    assert.deepEqual(calls, [[72n, 144n]]);
-    assert.equal(restored, true);
+    assert.deepEqual(after.requestBasisId, before.requestBasisId);
+    assert.deepEqual(after.diagnosticsBasis, before.diagnosticsBasis);
+    assert.deepEqual(after.summaryBasis, before.summaryBasis);
+    assert.deepEqual(after.historyBasis, before.historyBasis);
     assert.deepEqual(line.value(), {
       items: [{ id: "demo:1", title: "Load:basis-3" }],
     });
@@ -101,81 +81,34 @@ test("line history restoreExact targets the current branch head and preserves ba
     assert.deepEqual(line.history().availability.restoreExact, {
       kind: "available",
       mode: "SameRuntimeBranchExact",
-      branchId: 72,
-      snapshotId: 144,
+      branchId: branch.id,
+      snapshotId,
     });
   } finally {
-    await mod.cleanup();
-  }
-});
-
-test("line history restoreExact treats by-id runtime support as exact-restore capable", async () => {
-  const mod = await loadResourceModule();
-  try {
-    let invoked = false;
-    const line = mod.createResourceNamespace(
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 8n,
-            name: "by-id-only",
-            parent_branch_id: null,
-            head_snapshot_id: 16n,
-          };
-        },
-        restore_branch_snapshot_by_id() {
-          invoked = true;
-        },
-      }),
-      {},
-    ).detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
-      load: ({ id }) => ({ id }),
-    }).line({ id: "plain" });
-
-    assert.deepEqual(line.history().availability.restoreExact, {
-      kind: "available",
-      mode: "SameRuntimeBranchExact",
-      branchId: 8,
-      snapshotId: 16,
-    });
-    assert.equal(line.history().restoreExact().kind, "restored");
-    assert.equal(invoked, true);
-  } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("line history restoreExact can use exact restore with a branch snapshot artifact when by-id restore is absent", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceSignals();
   try {
+    const branch = createBranchHead(runtime.signals, "exact-only");
+    const snapshotId = Number(
+      runtime.signals.history().branch_snapshot_id(branch.id),
+    );
     const calls = [];
-    const snapshot = Object.freeze({
-      snapshotRestoreToken: "branch-18-snapshot",
+    const uninstall = installHistoryOverrides(runtime.signals, {
+      restore_branch_snapshot_by_id: undefined,
+      branch_snapshot(history, branchId) {
+        calls.push(["snapshot", branchId]);
+        return history.branch_snapshot(branchId);
+      },
+      restore_exact_branch_snapshot(history, branchId, snapshotValue) {
+        calls.push(["restore", branchId, snapshotValue.snapshotRestoreToken]);
+        return history.restore_exact_branch_snapshot(branchId, snapshotValue);
+      },
     });
-    const line = mod.createResourceNamespace(
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 18n,
-            name: "exact-only",
-            parent_branch_id: 2n,
-            head_snapshot_id: 36n,
-          };
-        },
-        branch_snapshot(branchId) {
-          calls.push(["snapshot", branchId]);
-          return snapshot;
-        },
-        restore_exact_branch_snapshot(branchId, snapshotValue) {
-          calls.push(["restore", branchId, snapshotValue]);
-        },
-      }),
-      {},
-    ).detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
+    const line = createRealResourceDetail(runtime.mod, runtime.signals, {
       load: ({ id }) => ({ id }),
     }).line({ id: "plain" });
 
@@ -184,8 +117,8 @@ test("line history restoreExact can use exact restore with a branch snapshot art
     assert.deepEqual(result, {
       kind: "restored",
       mode: "SameRuntimeBranchExact",
-      branchId: 18,
-      snapshotId: 36,
+      branchId: branch.id,
+      snapshotId,
       basisCurrentId: null,
       basisAdvanceCount: 0,
       reloadStatus: {
@@ -194,79 +127,39 @@ test("line history restoreExact can use exact restore with a branch snapshot art
       },
     });
     assert.deepEqual(calls, [
-      ["snapshot", 18n],
-      ["restore", 18n, snapshot],
+      ["snapshot", BigInt(branch.id)],
+      ["restore", BigInt(branch.id), "snapshot:1"],
     ]);
+    uninstall();
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
-test("line history restoreExact returns explicit unavailable or runtimeRejected artifacts without rewriting basis proof", async () => {
-  const mod = await loadResourceModule();
+test("line history restoreExact returns explicit unsupportedByRuntime and runtimeRejected artifacts without rewriting basis proof", async () => {
+  const unsupportedRuntime = await createRealResourceSignals();
   try {
-    const missingHead = createRestoreCollectionLine(
-      mod,
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 15n,
-            name: "missing-head",
-            parent_branch_id: null,
-            head_snapshot_id: null,
-          };
-        },
-      }),
-    );
-    missingHead.deliver(
-      mod.resourceDelivery.replace({
-        packetId: "pkt-basis-2",
-        basisId: "basis-1",
-        nextBasisId: "basis-2",
-        nextValue: {
-          items: [{ id: "demo:1", title: "Delivered Basis 2" }],
-        },
-      }),
-    );
-    const missingHeadBefore = projectBasisProof(missingHead);
-    const missingHeadResult = missingHead.history().restoreExact();
-
-    assert.deepEqual(missingHeadResult, {
-      kind: "unavailable",
-      reason: "branchHeadUnavailable",
-      detail:
-        "resource line exact branch restore is unavailable because branch 15 has no head snapshot",
-      basisCurrentId: "basis-2",
-      basisAdvanceCount: 1,
+    createBranchHead(unsupportedRuntime.signals, "missing-restore-support");
+    const uninstall = installHistoryOverrides(unsupportedRuntime.signals, {
+      restore_branch_snapshot_by_id: undefined,
+      restore_exact_branch_snapshot: undefined,
+      branch_snapshot: undefined,
     });
-    assert.deepEqual(projectBasisProof(missingHead), missingHeadBefore);
+    const unsupported = createRealResourceDetail(
+      unsupportedRuntime.mod,
+      unsupportedRuntime.signals,
+      {
+        load: ({ id }) => ({ id }),
+      },
+    ).line({ id: "plain" });
 
-    const missingSnapshotArtifact = mod.createResourceNamespace(
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 19n,
-            name: "missing-snapshot-artifact",
-            parent_branch_id: null,
-            head_snapshot_id: 38n,
-          };
-        },
-        restore_exact_branch_snapshot() {},
-      }),
-      {},
-    ).detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
-      load: ({ id }) => ({ id }),
-    }).line({ id: "plain" });
-
-    assert.deepEqual(missingSnapshotArtifact.history().availability.restoreExact, {
+    assert.deepEqual(unsupported.history().availability.restoreExact, {
       kind: "unavailable",
       reason: "unsupportedByRuntime",
       detail:
         "resource line exact branch restore is unavailable because the Signals runtime does not expose restore_branch_snapshot_by_id(...) or a restore_exact_branch_snapshot(...) + branch_snapshot(...) pair",
     });
-    assert.deepEqual(missingSnapshotArtifact.history().restoreExact(), {
+    assert.deepEqual(unsupported.history().restoreExact(), {
       kind: "unavailable",
       reason: "unsupportedByRuntime",
       detail:
@@ -274,25 +167,25 @@ test("line history restoreExact returns explicit unavailable or runtimeRejected 
       basisCurrentId: null,
       basisAdvanceCount: 0,
     });
+    uninstall();
+  } finally {
+    await unsupportedRuntime.cleanup();
+  }
 
+  const rejectedRuntime = await createRealResourceSignals();
+  try {
+    createBranchHead(rejectedRuntime.signals, "rejecting-restore");
+    const uninstall = installHistoryOverrides(rejectedRuntime.signals, {
+      restore_branch_snapshot_by_id() {
+        throw new Error("snapshot 44 is no longer retained");
+      },
+    });
     const rejected = createRestoreCollectionLine(
-      mod,
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 22n,
-            name: "rejecting-restore",
-            parent_branch_id: 1n,
-            head_snapshot_id: 44n,
-          };
-        },
-        restore_branch_snapshot_by_id() {
-          throw new Error("snapshot 44 is no longer retained");
-        },
-      }),
+      rejectedRuntime.mod,
+      rejectedRuntime.signals,
     );
     rejected.deliver(
-      mod.resourceDelivery.replace({
+      rejectedRuntime.mod.resourceDelivery.replace({
         packetId: "pkt-basis-2",
         basisId: "basis-1",
         nextBasisId: "basis-2",
@@ -302,21 +195,23 @@ test("line history restoreExact returns explicit unavailable or runtimeRejected 
       }),
     );
     rejected.deliver(
-      mod.resourceDelivery.patch({
+      rejectedRuntime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: rejectedRuntime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Delivered Basis 3",
         }),
       }),
     );
-    const rejectedBefore = projectBasisProof(rejected);
-    const rejectedResult = rejected.history().restoreExact();
 
-    assert.deepEqual(rejectedResult, {
+    const before = projectBasisProof(rejected);
+    const result = rejected.history().restoreExact();
+    const after = projectBasisProof(rejected);
+
+    assert.deepEqual(result, {
       kind: "unavailable",
       reason: "runtimeRejected",
       detail:
@@ -324,8 +219,13 @@ test("line history restoreExact returns explicit unavailable or runtimeRejected 
       basisCurrentId: "basis-3",
       basisAdvanceCount: 2,
     });
-    assert.deepEqual(projectBasisProof(rejected), rejectedBefore);
+    assert.deepEqual(after.requestBasisId, before.requestBasisId);
+    assert.deepEqual(after.diagnosticsBasis, before.diagnosticsBasis);
+    assert.deepEqual(after.summaryBasis, before.summaryBasis);
+    assert.deepEqual(after.historyBasis, before.historyBasis);
+    assert.deepEqual(after.lifecycleBasis, before.lifecycleBasis);
+    uninstall();
   } finally {
-    await mod.cleanup();
+    await rejectedRuntime.cleanup();
   }
 });

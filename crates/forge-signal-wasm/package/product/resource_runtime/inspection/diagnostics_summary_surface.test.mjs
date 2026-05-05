@@ -1,21 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import {
+  createBranchHead,
+  createRealResourceNamespace,
+  createRealResourceRuntime,
+} from "../runtime_fixture/real_resource_signals.mjs";
+
+function createDetailLine(resourceMod, signals, historyOverrides = null, id = "detail") {
+  return createRealResourceNamespace(resourceMod, signals, historyOverrides)
+    .detail({
+      params: resourceMod.resourceParams(),
+      normalizeParams: ({ id }) => resourceMod.resourceParamIdentity({ id }, id),
+      load: ({ id }) => ({ id }),
+    })
+    .line({ id });
+}
 
 test("resource line diagnostics summary groups current state and unavailable explainability clearly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
-      load: ({ id }) => ({ id }),
-    });
-
-    const summary = detail.line({ id: "plain" }).diagnosticsSummary();
+    const summary = createDetailLine(
+      runtime.resourceMod,
+      runtime.signals,
+      {
+        current_branch: undefined,
+      },
+      "plain",
+    ).diagnosticsSummary();
 
     assert.deepEqual(summary.current, {
       status: { kind: "fulfilled", operation: "initialLoad" },
@@ -72,82 +84,62 @@ test("resource line diagnostics summary groups current state and unavailable exp
       },
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource line diagnostics summary does not materialize replay or lineage artifacts", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
     let replayReads = 0;
     let lineageReads = 0;
-    const signalNamespace = createFakeSignalNamespace("root", {
-      replay_for() {
-        replayReads += 1;
-        throw new Error("diagnosticsSummary should not call replay_for(...)");
+    const summary = createDetailLine(
+      runtime.resourceMod,
+      runtime.signals,
+      {
+        replay_for() {
+          replayReads += 1;
+          throw new Error("diagnosticsSummary should not call replay_for(...)");
+        },
+        lineage_for() {
+          lineageReads += 1;
+          throw new Error("diagnosticsSummary should not call lineage_for(...)");
+        },
+        current_branch: undefined,
       },
-      lineage_for() {
-        lineageReads += 1;
-        throw new Error("diagnosticsSummary should not call lineage_for(...)");
-      },
-      current_branch() {
-        return {
-          id: 2n,
-          name: "summary-only",
-          parent_branch_id: null,
-          head_snapshot_id: null,
-        };
-      },
-    });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ id }) => mod.resourceParamIdentity({ id }, id),
-      load: ({ id }) => ({ id }),
-    });
-
-    const summary = detail.line({ id: "plain" }).diagnosticsSummary();
+      "plain",
+    ).diagnosticsSummary();
 
     assert.equal(replayReads, 0);
     assert.equal(lineageReads, 0);
-    assert.deepEqual(summary.explainability.restoreExact, {
+    assert.deepEqual(summary.explainability.branch, {
       kind: "unavailable",
-      reason: "branchHeadUnavailable",
+      reason: "unsupportedByRuntime",
       detail:
-        "resource line exact branch restore is unavailable because branch 2 has no head snapshot",
+        "resource line branch history is unavailable because the Signals runtime does not expose current_branch(...)",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
-test("resource line diagnostics summary keeps latest patch truth aligned with explainability availability", async () => {
-  const mod = await loadResourceModule();
+test("resource line diagnostics summary keeps latest patch truth aligned with real explainability availability", async () => {
+  const runtime = await createRealResourceRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 11n,
-          name: "collections",
-          parent_branch_id: 1n,
-          head_snapshot_id: 21n,
-        };
-      },
-      branch_snapshot() {
-        return Object.freeze({ snapshotRestoreToken: "branch-11-snapshot" });
-      },
-      restore_exact_branch_snapshot() {},
-    });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const branch = createBranchHead(runtime.signals, "collections");
+    const resource = createRealResourceNamespace(
+      runtime.resourceMod,
+      runtime.signals,
+    );
     const collection = resource.collection({
-      params: mod.resourceParams(),
+      params: runtime.resourceMod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
-        mod.resourceParamIdentity({ workspaceId }, workspaceId),
+        runtime.resourceMod.resourceParamIdentity({ workspaceId }, workspaceId),
       itemIdentity: (item) => item.id,
-      reconcile: mod.resourceCollectionShape({
+      reconcile: runtime.resourceMod.resourceCollectionShape({
         items: (value) => value.items,
         replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-        aspects: mod.resourceItemAspects({
+        aspects: runtime.resourceMod.resourceItemAspects({
           title: {
             read: (item) => item.title,
             write: (item, title) => ({ ...item, title }),
@@ -161,7 +153,7 @@ test("resource line diagnostics summary keeps latest patch truth aligned with ex
 
     const line = collection.line({ workspaceId: "demo" });
     line.patch(
-      mod.resourcePatch.itemAspect({
+      runtime.resourceMod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",
         value: "Updated",
@@ -196,24 +188,22 @@ test("resource line diagnostics summary keeps latest patch truth aligned with ex
       incompatibleCount: 0,
       descriptors: [],
     });
-    assert.deepEqual(summary.explainability, {
-      replay: { kind: "available" },
-      replayExact: {
-        kind: "unavailable",
-        reason: "unsupportedByRuntime",
-        detail:
-          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
-      },
-      lineage: { kind: "available" },
-      branch: { kind: "available" },
-      restoreExact: {
-        kind: "available",
-        mode: "SameRuntimeBranchExact",
-        branchId: 11,
-        snapshotId: 21,
-      },
+    assert.deepEqual(summary.explainability.replayExact, {
+      kind: "unavailable",
+      reason: "unsupportedByRuntime",
+      detail:
+        "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
     });
+    assert.deepEqual(summary.explainability.lineage, { kind: "available" });
+    assert.deepEqual(summary.explainability.branch, { kind: "available" });
+    assert.equal(summary.explainability.restoreExact.kind, "available");
+    assert.equal(summary.explainability.restoreExact.mode, "SameRuntimeBranchExact");
+    assert.equal(summary.explainability.restoreExact.branchId, branch.id);
+    assert.equal(
+      Number.isInteger(summary.explainability.restoreExact.snapshotId),
+      true,
+    );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

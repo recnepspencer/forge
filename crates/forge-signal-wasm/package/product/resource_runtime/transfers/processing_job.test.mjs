@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealTransferRuntime } from "../runtime_fixture/real_transfer_runtime.mjs";
+
+function normalizeForProof(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 test("resource processing job posture lowers into request truth and diagnostics", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let capturedRequest = null;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -29,13 +31,14 @@ test("resource processing job posture lowers into request truth and diagnostics"
     const line = detail.line({ reportId: "r1" });
 
     assert.deepEqual(
-      line.request().processingJob,
-      mod.resourceProcessingJob.callback({
-        callbackId: "report-ready",
-      }),
+      normalizeForProof(line.request().processingJob),
+      { kind: "callback", callbackId: "report-ready" },
     );
-    assert.deepEqual(capturedRequest, line.request());
-    assert.deepEqual(line.processing(), {
+    assert.deepEqual(
+      normalizeForProof(capturedRequest),
+      normalizeForProof(line.request()),
+    );
+    assert.deepEqual(normalizeForProof(line.processing()), {
       kind: "accepted",
       completionKind: "callback",
       jobId: "job:r1",
@@ -46,15 +49,14 @@ test("resource processing job posture lowers into request truth and diagnostics"
     assert.equal(line.diagnostics().visibleValueVersion, 0);
     assert.equal(line.value(), null);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource processing jobs can move from accepted to ready on refresh", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let callCount = 0;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -80,7 +82,7 @@ test("resource processing jobs can move from accepted to ready on refresh", asyn
       kind: "fulfilled",
       operation: "refresh",
     });
-    assert.deepEqual(line.processing(), {
+    assert.deepEqual(normalizeForProof(line.processing()), {
       kind: "ready",
       completionKind: "poll",
       jobId: null,
@@ -90,15 +92,14 @@ test("resource processing jobs can move from accepted to ready on refresh", asyn
     assert.equal(line.diagnostics().processing.kind, "ready");
     assert.equal(line.diagnostics().visibleValueVersion, 1);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource processing jobs can resolve processing posture from params", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       processingJob: ({ provider, receiptId }) =>
@@ -125,15 +126,14 @@ test("resource processing jobs can resolve processing posture from params", asyn
     assert.equal(line.processing().kind, "processing");
     assert.equal(line.processing().completionKind, "webhook");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource processing results are denied on families without declared processing jobs", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ reportId }) =>
@@ -149,15 +149,14 @@ test("resource processing results are denied on families without declared proces
       /do not admit resourceProcessingResult/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource processing jobs reject invalid function-produced posture truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       processingJob: () => ({ kind: "poll" }),
@@ -171,6 +170,6 @@ test("resource processing jobs reject invalid function-produced posture truth", 
       /processingJob created with resourceProcessingJob/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

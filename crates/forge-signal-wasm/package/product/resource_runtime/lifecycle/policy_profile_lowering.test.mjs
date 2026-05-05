@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("omitted policy and explicit stable policy lower to the same runtime truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
 
     function createDetail(policy) {
       return resource.detail({
@@ -34,15 +32,14 @@ test("omitted policy and explicit stable policy lower to the same runtime truth"
     assert.deepEqual(implicitLine.status(), explicitLine.status());
     assert.deepEqual(implicitLine.freshness(), explicitLine.freshness());
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("named policy profiles lower to distinct lifecycle truth and remain family-agnostic", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const timeoutDeferred = createDeferred();
     let timeoutLoadCount = 0;
 
@@ -98,6 +95,6 @@ test("named policy profiles lower to distinct lifecycle truth and remain family-
       continuity: "preservedVisibleValue",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

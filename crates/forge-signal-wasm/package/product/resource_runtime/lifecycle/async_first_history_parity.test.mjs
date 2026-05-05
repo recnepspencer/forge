@@ -1,19 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createPhase2FamilyCases } from "../runtime_fixture/phase2_family_cases.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createPhase2FamilyCases } from "../runtime_fixture/family_cases/phase2_family_cases.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 import {
   snapshotLifecycleSupersession,
-} from "../runtime_fixture/lifecycle_history_entries.mjs";
+} from "../runtime_fixture/proof/lifecycle_history_entries.mjs";
 
 test("async-first no-visible-value-yet histories stay coherent across family kinds", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const familyCases = createPhase2FamilyCases(resource, mod);
 
     for (const familyCase of familyCases) {
@@ -111,6 +109,6 @@ test("async-first no-visible-value-yet histories stay coherent across family kin
       });
     }
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

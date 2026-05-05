@@ -16,77 +16,94 @@ import { readLineStatus } from "./reads/line_status_read.js";
 import { readLineUpload } from "./reads/line_upload_read.js";
 import { readLineValue } from "./reads/line_value_read.js";
 import { createLineView } from "./line_view_factory.js";
+import { requireCurrentMaterialization } from "./state/line_handle_helpers.js";
 
-function createLineHandle(materialization) {
+function createLineHandle(lineBacking) {
   return Object.freeze({
     value() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "value");
       return readLineValue(materialization);
     },
     signal() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "signal");
       return readLineSignal(materialization);
     },
     descriptor() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       return readLineDescriptor(materialization);
     },
     request() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "request");
       return readLineRequest(materialization);
     },
     download() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "download");
       return readLineDownload(materialization);
     },
     history() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "history");
       return readLineHistory(materialization);
     },
     processing() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "processing");
       return readLineProcessing(materialization);
     },
     upload() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "upload");
       return readLineUpload(materialization);
     },
     diagnostics() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "diagnostics");
       return readLineDiagnostics(materialization);
     },
     diagnosticsSummary() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "diagnosticsSummary");
       return readLineDiagnosticsSummary(materialization);
     },
     free() {
-      releaseLine(materialization);
+      releaseLine(requireCurrentMaterialization(lineBacking));
     },
     invalidate() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "invalidate");
       return invalidateSingleLine(materialization);
     },
     refresh() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "refresh");
       return refreshLine(materialization);
     },
     revalidate() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "revalidate");
       return revalidateLine(materialization);
     },
     [Symbol.dispose]() {
-      releaseLine(materialization);
+      releaseLine(requireCurrentMaterialization(lineBacking));
     },
     status() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "status");
       return readLineStatus(materialization);
     },
     freshness() {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "freshness");
       return readLineFreshness(materialization);
     },
     view(project) {
+      const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "view");
-      return createLineView(materialization, project);
+      return createLineView(lineBacking, project);
     },
   });
 }

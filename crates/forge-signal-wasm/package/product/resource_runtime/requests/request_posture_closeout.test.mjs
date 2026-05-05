@@ -1,18 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
 import {
   assertSecretAbsentFromArtifacts,
   createRequestArtifactDigest,
-} from "../runtime_fixture/request_artifacts.mjs";
+} from "../runtime_fixture/proof/request_artifacts.mjs";
 
 test("equivalent auth and request-context declarations lower to one canonical request story", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const secretToken = "bearer secret-token";
     const direct = resource.detail({
       params: mod.resourceParams(),
@@ -86,15 +84,14 @@ test("equivalent auth and request-context declarations lower to one canonical re
       createRequestArtifactDigest(derivedLine),
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("incompatible auth and request-context posture is denied before load work begins", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let invalidAuthLoadCalled = false;
     let invalidContextLoadCalled = false;
     const invalidAuth = resource.detail({
@@ -129,6 +126,6 @@ test("incompatible auth and request-context posture is denied before load work b
     assert.equal(invalidAuthLoadCalled, false);
     assert.equal(invalidContextLoadCalled, false);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
+
+function normalizeForProof(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 test("resource lines refresh in place and record diagnostics", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let version = 0;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -31,21 +33,29 @@ test("resource lines refresh in place and record diagnostics", async () => {
       operation: "refresh",
     });
     assert.deepEqual(line.freshness(), { kind: "fresh" });
-    assert.deepEqual(line.diagnostics(), {
+    assert.deepEqual(normalizeForProof(line.diagnostics()), {
       policyProfileName: "stable",
       continuity: "preserveVisibleValue",
       freshnessPolicy: "stable",
       request: {
-        auth: mod.resourceAuth.anonymous(),
+        auth: {
+          kind: "anonymous",
+        },
         context: {
           headerNames: [],
           correlationId: null,
           branchId: null,
           basisId: null,
         },
-        continuation: mod.resourceContinuation.none(),
-        processingJob: mod.resourceProcessingJob.none(),
-        uploadTransport: mod.resourceUploadTransport.none(),
+        continuation: {
+          kind: "none",
+        },
+        processingJob: {
+          kind: "none",
+        },
+        uploadTransport: {
+          kind: "none",
+        },
       },
       basis: {
         currentBasisId: null,
@@ -105,15 +115,14 @@ test("resource lines refresh in place and record diagnostics", async () => {
       visibleValueVersion: 2,
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("immediately stale policy keeps freshness honest across revalidation", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let version = 0;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -139,15 +148,14 @@ test("immediately stale policy keeps freshness honest across revalidation", asyn
     assert.equal(line.diagnostics().lastOperation, "revalidate");
     assert.equal(line.diagnostics().revalidateCount, 1);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("refresh rejection preserves the visible value and records stale rejection truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let callCount = 0;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -180,15 +188,14 @@ test("refresh rejection preserves the visible value and records stale rejection 
     assert.equal(line.diagnostics().preservedVisibleValueOnLastRejection, true);
     assert.equal(line.diagnostics().lastErrorMessage, "refresh failed");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("promise-backed refresh enters pending and preserves the visible value until settlement", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let callCount = 0;
     const deferred = createDeferred();
     const detail = resource.detail({
@@ -234,15 +241,14 @@ test("promise-backed refresh enters pending and preserves the visible value unti
     assert.equal(line.diagnostics().refreshCount, 1);
     assert.equal(line.diagnostics().visibleValueVersion, 2);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("superseded pending refresh completions do not overwrite newer reload truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const firstDeferred = createDeferred();
     const secondDeferred = createDeferred();
     let reloadCount = 0;
@@ -288,16 +294,15 @@ test("superseded pending refresh completions do not overwrite newer reload truth
       operation: "refresh",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 
 test("resource lines can be explicitly freed and rematerialized", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -314,15 +319,14 @@ test("resource lines can be explicitly freed and rematerialized", async () => {
     assert.notEqual(first, second);
     assert.notEqual(second.descriptor().runtimeLineId, firstRuntimeLineId);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("freed resource lines reject further operations", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -347,15 +351,14 @@ test("freed resource lines reject further operations", async () => {
       /cannot be used after line\.free/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("line free disposes line-scoped views with the owning lifecycle", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -367,8 +370,8 @@ test("line free disposes line-scoped views with the owning lifecycle", async () 
     const view = line.view((value) => value.label);
     line.free();
 
-    assert.throws(() => view(), /fake signal handle was used after free/);
+    assert.throws(() => view(), /resource line view cannot be used after line\.free/);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

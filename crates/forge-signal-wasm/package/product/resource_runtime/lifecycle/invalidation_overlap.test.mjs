@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("duplicate invalidation and pending invalidation overlap stay breadth-honest", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -51,15 +49,14 @@ test("duplicate invalidation and pending invalidation overlap stay breadth-hones
     assert.deepEqual(line.value(), { id: "p1", version: 2 });
     assert.deepEqual(line.freshness(), { kind: "fresh" });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("family invalidation during pending reload does not silently broaden siblings", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const firstDeferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -93,15 +90,14 @@ test("family invalidation during pending reload does not silently broaden siblin
     assert.deepEqual(first.value(), { id: "p1", version: 2 });
     assert.deepEqual(second.value(), { id: "p2", version: 1 });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("timeout and later invalidation keep stale completion from rewriting the line", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -159,6 +155,6 @@ test("timeout and later invalidation keep stale completion from rewriting the li
       reason: "manualLineInvalidate",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

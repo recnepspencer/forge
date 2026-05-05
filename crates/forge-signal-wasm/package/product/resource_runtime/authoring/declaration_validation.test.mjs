@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 
 test("family declaration validation keeps detail, collection, and paged shapes distinct", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
 
     assert.throws(
       () =>
@@ -202,6 +200,6 @@ test("family declaration validation keeps detail, collection, and paged shapes d
       /uploadTransport created with resourceUploadTransport/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

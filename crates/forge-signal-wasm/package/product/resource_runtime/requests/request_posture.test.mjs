@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
+
+function normalizeForProof(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 test("resource request posture lowers auth and context into line request truth and load input", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let capturedRequest = null;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -29,36 +31,55 @@ test("resource request posture lowers auth and context into line request truth a
 
     const line = detail.line({ productId: "p1" });
 
-    assert.deepEqual(line.request(), {
+    assert.deepEqual(normalizeForProof(line.request()), {
       family: line.descriptor().family,
-      canonicalParams: line.descriptor().canonicalParams,
-      auth: mod.resourceAuth.authenticated(),
-      context: mod.resourceRequestContext({
+      canonicalParams: normalizeForProof(line.descriptor().canonicalParams),
+      auth: {
+        kind: "authenticated",
+      },
+      context: {
         headers: { "x-workspace-id": "demo" },
         correlationId: "trace-7",
         branchId: 42,
         basisId: "basis-1",
-      }),
-      continuation: mod.resourceContinuation.none(),
-      processingJob: mod.resourceProcessingJob.none(),
-      uploadTransport: mod.resourceUploadTransport.none(),
+      },
+      continuation: {
+        kind: "none",
+      },
+      processingJob: {
+        kind: "none",
+      },
+      uploadTransport: {
+        kind: "none",
+      },
     });
-    assert.deepEqual(capturedRequest, line.request());
-    assert.deepEqual(line.diagnostics(), {
+    assert.deepEqual(
+      normalizeForProof(capturedRequest),
+      normalizeForProof(line.request()),
+    );
+    assert.deepEqual(normalizeForProof(line.diagnostics()), {
       policyProfileName: "stable",
       continuity: "preserveVisibleValue",
       freshnessPolicy: "stable",
       request: {
-        auth: mod.resourceAuth.authenticated(),
+        auth: {
+          kind: "authenticated",
+        },
         context: {
           headerNames: ["x-workspace-id"],
           correlationId: "trace-7",
           branchId: 42,
           basisId: "basis-1",
         },
-        continuation: mod.resourceContinuation.none(),
-        processingJob: mod.resourceProcessingJob.none(),
-        uploadTransport: mod.resourceUploadTransport.none(),
+        continuation: {
+          kind: "none",
+        },
+        processingJob: {
+          kind: "none",
+        },
+        uploadTransport: {
+          kind: "none",
+        },
       },
       basis: {
         currentBasisId: "basis-1",
@@ -118,15 +139,14 @@ test("resource request posture lowers auth and context into line request truth a
       visibleValueVersion: 1,
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource request posture can resolve auth and context from params", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       auth: ({ workspaceId }) =>
@@ -163,15 +183,14 @@ test("resource request posture can resolve auth and context from params", async 
     ]);
     assert.equal(line.request().uploadTransport.kind, "none");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource request posture rejects invalid function-produced auth and context", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const invalidAuth = resource.detail({
       params: mod.resourceParams(),
       auth: () => ({ kind: "authenticated" }),
@@ -196,6 +215,6 @@ test("resource request posture rejects invalid function-produced auth and contex
       /requestContext created with resourceRequestContext/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

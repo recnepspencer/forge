@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("diagnostics summary and lifecycle history stay aligned across patch, invalidation, and rejected refresh", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
+    const { mod, resource } = runtime;
     let shouldFail = false;
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
     const collection = resource.collection({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -151,14 +150,14 @@ test("diagnostics summary and lifecycle history stay aligned across patch, inval
       ],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("diagnostics summary and lifecycle history stay aligned across upload processing supersession", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
+    const { mod, resource } = runtime;
     const firstDeferred = createDeferred();
     const secondDeferred = createDeferred();
     let loadCount = 0;
@@ -300,6 +299,6 @@ test("diagnostics summary and lifecycle history stay aligned across upload proce
       ],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

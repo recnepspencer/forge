@@ -84,8 +84,11 @@ Once a line exists, the runtime keeps these pieces aligned:
 5. history
 
 Operations such as `refresh()`, `revalidate()`, `invalidate()`, `patch(...)`,
-`deliver(...)`, `replayExact()`, and `restoreExact()` all update that same line
-state.
+`deliver(...)`, and `restoreExact()` all update that same line state.
+
+The history surface also exposes `replayExact()`, but on the shipped wasm
+Signals runtime that action currently reports typed unavailability rather than
+executing exact replay.
 
 ## Small Example
 
@@ -180,7 +183,8 @@ Use this pattern when:
 - Family docs explain how the line was declared.
 - Request/policy docs explain where auth, headers, retry, and continuation come
   from.
-- Inspection/history docs explain the debugging and replay/restore side.
+- Inspection/history docs explain the debugging side, exact restore behavior,
+  and current exact-replay availability limits.
 
 ## Inspection And Debugging
 
@@ -208,6 +212,11 @@ If that is not enough, move to:
 ## Current Limits
 
 - exact replay and exact restore depend on what the runtime supports
+- exact restore is the currently supported same-runtime exact action on the
+  shipped wasm Signals runtime
+- exact replay is present as a typed history action surface, but currently
+  reports unavailability because the shipped runtime does not yet expose
+  signal-exact replay execution
 - patching and delivery only exist on patch-capable collection and paged lines
 
 ## Related Docs

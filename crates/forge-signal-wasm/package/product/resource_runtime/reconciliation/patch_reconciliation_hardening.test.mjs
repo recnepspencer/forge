@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 import {
   assertLineStateUnchanged,
   captureLineState,
   snapshotPatchMarker,
 } from "./reconciliation_proof_helpers.mjs";
 
-function createCollectionResource(mod, signalNamespace, load) {
-  const resource = mod.createResourceNamespace(signalNamespace, {});
+function createCollectionResource(mod, resource, load) {
   return resource.collection({
     params: mod.resourceParams(),
     normalizeParams: ({ workspaceId }) =>
@@ -37,8 +35,9 @@ function createCollectionResource(mod, signalNamespace, load) {
 }
 
 test("narrow item, aspect, and summary patches converge to the same value truth as broad replace", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     const baseValue = {
       items: [
         { id: "demo:1", title: "First" },
@@ -46,11 +45,10 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
       ],
       total: 2,
     };
-    const signalNamespace = createFakeSignalNamespace();
 
     const itemNarrow = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     itemNarrow.patch(
@@ -62,7 +60,7 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
 
     const itemBroad = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     itemBroad.patch(
@@ -102,7 +100,7 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
 
     const aspectNarrow = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     aspectNarrow.patch(
@@ -115,7 +113,7 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
 
     const aspectBroad = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     aspectBroad.patch(
@@ -136,7 +134,7 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
 
     const summaryNarrow = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     summaryNarrow.patch(
@@ -148,7 +146,7 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
 
     const summaryBroad = createCollectionResource(
       mod,
-      signalNamespace,
+      resource,
       () => structuredClone(baseValue),
     ).line({ workspaceId: "demo" });
     summaryBroad.patch(
@@ -167,15 +165,14 @@ test("narrow item, aspect, and summary patches converge to the same value truth 
     assert.equal(summaryBroad.diagnostics().lastPatchScope, "line");
     assert.equal(summaryBroad.history().lifecycle.at(-1)?.lastPatchScope, "line");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("paged narrow patch denies off-page items without side effects", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const feed = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -211,15 +208,14 @@ test("paged narrow patch denies off-page items without side effects", async () =
 
     assertLineStateUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("paged narrow patch denies duplicated logical items inside one visible accumulated window", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const feed = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -265,16 +261,17 @@ test("paged narrow patch denies duplicated logical items inside one visible accu
 
     assertLineStateUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("narrow item patch denies duplicated visible identities without side effects", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     const line = createCollectionResource(
       mod,
-      createFakeSignalNamespace(),
+      resource,
       () => ({
         items: [
           { id: "demo:dup", title: "First Copy" },
@@ -299,16 +296,17 @@ test("narrow item patch denies duplicated visible identities without side effect
 
     assertLineStateUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("narrow item patch denies identity-changing replacement without side effects", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     const line = createCollectionResource(
       mod,
-      createFakeSignalNamespace(),
+      resource,
       () => ({
         items: [{ id: "demo:1", title: "First" }],
         total: 1,
@@ -330,6 +328,6 @@ test("narrow item patch denies identity-changing replacement without side effect
 
     assertLineStateUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

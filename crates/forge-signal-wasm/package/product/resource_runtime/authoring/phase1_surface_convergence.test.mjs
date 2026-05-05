@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createGraphPublicationRuntime } from "../../signals_runtime/runtime_fixture/graph_publication_runtime.mjs";
 import { loadSignalsModule } from "../../signals_runtime/module_loading/load_signals_module.mjs";
-import { createPhase1FamilyCases } from "../runtime_fixture/phase1_family_cases.mjs";
+import { createPhase1FamilyCases } from "../runtime_fixture/family_cases/phase1_family_cases.mjs";
 
 test("one semantic declaration keeps one Phase 1 identity story across line, view, publication, rematerialization, replay, and release", async () => {
   const {

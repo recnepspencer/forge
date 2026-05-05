@@ -1,43 +1,45 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import {
+  createBranchHead,
+  createRealResourceRuntime,
+} from "../runtime_fixture/real_resource_signals.mjs";
+import {
+  createRealDownloadCollection,
+  createRealDownloadDetail,
+} from "../runtime_fixture/real_download_resources.mjs";
 
 function normalizeForProof(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
 test("descriptor-bearing detail lines keep structured value and download truth distinct", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ assetId }) =>
-        mod.resourceParamIdentity({ assetId }, assetId),
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
       load: ({ assetId }) =>
-        mod.resourceBinaryValue({
+        runtime.mod.resourceBinaryValue({
           value: { id: assetId, title: "Quarterly Report" },
           descriptors: [
-            mod.resourceBinaryDescriptor.file({
+            runtime.mod.resourceBinaryDescriptor.file({
               id: "report-pdf",
               fileName: `${assetId}.pdf`,
               mediaType: "application/pdf",
               byteLength: 2048,
-              download: mod.resourceDownload.ready({
+              download: runtime.mod.resourceDownload.ready({
                 url: `https://downloads.example/${assetId}.pdf`,
                 method: "GET",
                 headers: { authorization: "secret-token" },
                 expiresAt: "2026-05-04T12:00:00Z",
               }),
             }),
-            mod.resourceBinaryDescriptor.media({
+            runtime.mod.resourceBinaryDescriptor.media({
               id: "report-preview",
               fileName: `${assetId}.png`,
               mediaType: "image/png",
               byteLength: 512,
-              download: mod.resourceDownload.unavailable({
+              download: runtime.mod.resourceDownload.unavailable({
                 reason: "notReady",
                 detail: "preview is still rendering",
               }),
@@ -133,41 +135,26 @@ test("descriptor-bearing detail lines keep structured value and download truth d
     assert.equal(line.history().lifecycle.at(-1)?.unavailableDownloadCount, 1);
     assert.equal(line.history().lifecycle.at(-1)?.incompatibleDownloadCount, 0);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("collection patch preserves download descriptors while structured items reconcile narrowly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
-    const collection = resource.collection({
-      params: mod.resourceParams(),
-      normalizeParams: ({ workspaceId }) =>
-        mod.resourceParamIdentity({ workspaceId }, workspaceId),
-      itemIdentity: (item) => item.id,
-      reconcile: mod.resourceCollectionShape({
-        items: (value) => value.items,
-        replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-        aspects: mod.resourceItemAspects({
-          title: {
-            read: (item) => item.title,
-            write: (item, title) => ({ ...item, title: String(title) }),
-          },
-        }),
-      }),
+    const collection = createRealDownloadCollection(runtime.mod, runtime.signals, {
       load: ({ workspaceId }) =>
-        mod.resourceBinaryValue({
+        runtime.mod.resourceBinaryValue({
           value: {
             items: [{ id: `${workspaceId}:1`, title: "First" }],
           },
           descriptors: [
-            mod.resourceBinaryDescriptor.file({
+            runtime.mod.resourceBinaryDescriptor.file({
               id: "export-csv",
               fileName: `${workspaceId}.csv`,
               mediaType: "text/csv",
               byteLength: 128,
-              download: mod.resourceDownload.ready({
+              download: runtime.mod.resourceDownload.ready({
                 url: `https://downloads.example/${workspaceId}.csv`,
                 method: "GET",
               }),
@@ -180,7 +167,7 @@ test("collection patch preserves download descriptors while structured items rec
     const beforeDownload = line.download();
 
     line.patch(
-      mod.resourcePatch.itemAspect({
+      runtime.mod.resourcePatch.itemAspect({
         itemId: "demo:1",
         aspect: "title",
         value: "Updated",
@@ -197,48 +184,74 @@ test("collection patch preserves download descriptors while structured items rec
     assert.equal(line.history().lifecycle.at(-1)?.incompatibleDownloadCount, 0);
     assert.equal(line.history().lifecycle.at(-1)?.visibleValueVersion, 2);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
+  }
+});
+
+test("broad replace patch with semantically equal structured value does not advance visible value version", async () => {
+  const runtime = await createRealResourceRuntime();
+  try {
+    const collection = createRealDownloadCollection(runtime.mod, runtime.signals, {
+      load: ({ workspaceId }) =>
+        runtime.mod.resourceBinaryValue({
+          value: {
+            items: [{ id: `${workspaceId}:1`, title: "First" }],
+          },
+          descriptors: [
+            runtime.mod.resourceBinaryDescriptor.file({
+              id: "export-csv",
+              fileName: `${workspaceId}.csv`,
+              mediaType: "text/csv",
+              byteLength: 128,
+              download: runtime.mod.resourceDownload.ready({
+                url: `https://downloads.example/${workspaceId}.csv`,
+                method: "GET",
+              }),
+            }),
+          ],
+        }),
+    });
+
+    const line = collection.line({ workspaceId: "demo" });
+    const firstVersion = line.diagnostics().visibleValueVersion;
+
+    line.patch(
+      runtime.mod.resourcePatch.replace({
+        items: [{ id: "demo:1", title: "First" }],
+      }),
+    );
+
+    assert.equal(line.diagnostics().visibleValueVersion, firstVersion);
+    assert.equal(line.history().lifecycle.at(-1)?.visibleValueVersion, firstVersion);
+    assert.equal(line.history().lifecycle.at(-1)?.event, "patched");
+    assert.equal(line.diagnostics().lastPatchScope, "line");
+  } finally {
+    await runtime.cleanup();
   }
 });
 
 test("refresh can change download readiness without changing visible structured value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
     const structuredValue = { id: "asset-1", title: "Manual" };
     let downloadReady = false;
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 14n,
-          name: "downloads",
-          parent_branch_id: 3n,
-          head_snapshot_id: 28n,
-        };
-      },
-      branch_snapshot() {
-        return Object.freeze({ snapshotRestoreToken: "branch-14-snapshot" });
-      },
-      restore_exact_branch_snapshot() {},
-    });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ assetId }) =>
-        mod.resourceParamIdentity({ assetId }, assetId),
+    const branch = createBranchHead(runtime.signals, "downloads");
+    const snapshotId = Number(runtime.signals.history().branch_snapshot_id(branch.id));
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
       load: ({ assetId }) =>
-        mod.resourceBinaryValue({
+        runtime.mod.resourceBinaryValue({
           value: structuredValue,
           descriptors: [
-            mod.resourceBinaryDescriptor.file({
+            runtime.mod.resourceBinaryDescriptor.file({
               id: "manual-pdf",
               fileName: `${assetId}.pdf`,
               mediaType: "application/pdf",
               download: downloadReady
-                ? mod.resourceDownload.ready({
+                ? runtime.mod.resourceDownload.ready({
                     url: `https://downloads.example/${assetId}.pdf`,
                     method: "GET",
                   })
-                : mod.resourceDownload.unavailable({
+                : runtime.mod.resourceDownload.unavailable({
                     reason: "notReady",
                     detail: "manual is still generating",
                   }),
@@ -248,7 +261,6 @@ test("refresh can change download readiness without changing visible structured 
     });
 
     const line = detail.line({ assetId: "asset-1" });
-    const signalId = line.signal().id;
     const firstVersion = line.diagnostics().visibleValueVersion;
     downloadReady = true;
     line.refresh();
@@ -260,10 +272,10 @@ test("refresh can change download readiness without changing visible structured 
     assert.equal(line.download().incompatibleCount, 0);
     assert.equal(line.diagnostics().visibleValueVersion, firstVersion);
     assert.deepEqual(history.branch, {
-      id: 14,
+      id: branch.id,
       name: "downloads",
-      parentBranchId: 3,
-      headSnapshotId: 28,
+      parentBranchId: 0,
+      headSnapshotId: snapshotId,
     });
     assert.deepEqual(history.availability, {
       replay: { kind: "available" },
@@ -278,36 +290,78 @@ test("refresh can change download readiness without changing visible structured 
       restoreExact: {
         kind: "available",
         mode: "SameRuntimeBranchExact",
-        branchId: 14,
-        snapshotId: 28,
+        branchId: branch.id,
+        snapshotId,
       },
     });
-    assert.equal(history.replay.id, signalId);
+    assert.ok(Array.isArray(history.replay?.frames));
+    assert.ok(history.replay.frames.length > 0);
     assert.equal(history.lifecycle.at(-1)?.downloadCount, 1);
     assert.equal(history.lifecycle.at(-1)?.readyDownloadCount, 1);
     assert.equal(history.lifecycle.at(-1)?.incompatibleDownloadCount, 0);
     assert.equal(history.lifecycle.at(-1)?.visibleValueVersion, firstVersion);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
+  }
+});
+
+test("refresh with a real nested structured value change still advances visible value version", async () => {
+  const runtime = await createRealResourceRuntime();
+  try {
+    let revision = 1;
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
+      load: ({ assetId }) =>
+        runtime.mod.resourceBinaryValue({
+          value: {
+            id: assetId,
+            sections: [{ id: "summary", title: `Revision ${revision}` }],
+          },
+          descriptors: [
+            runtime.mod.resourceBinaryDescriptor.file({
+              id: "manual-pdf",
+              fileName: `${assetId}.pdf`,
+              mediaType: "application/pdf",
+              download: runtime.mod.resourceDownload.ready({
+                url: `https://downloads.example/${assetId}.pdf`,
+                method: "GET",
+              }),
+            }),
+          ],
+        }),
+    });
+
+    const line = detail.line({ assetId: "asset-2" });
+    const firstVersion = line.diagnostics().visibleValueVersion;
+    revision = 2;
+
+    line.refresh();
+
+    assert.deepEqual(line.value(), {
+      id: "asset-2",
+      sections: [{ id: "summary", title: "Revision 2" }],
+    });
+    assert.equal(line.diagnostics().visibleValueVersion, firstVersion + 1);
+    assert.equal(
+      line.history().lifecycle.at(-1)?.visibleValueVersion,
+      firstVersion + 1,
+    );
+  } finally {
+    await runtime.cleanup();
   }
 });
 
 test("resourceBinaryValue rejects upload or processing result truth wrapped as structured value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      uploadTransport: mod.resourceUploadTransport.signed({
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
+      uploadTransport: runtime.mod.resourceUploadTransport.signed({
         method: "PUT",
         finalizeRequired: true,
       }),
-      normalizeParams: ({ receiptId }) =>
-        mod.resourceParamIdentity({ receiptId }, receiptId),
-      load: ({ receiptId }) =>
-        mod.resourceBinaryValue({
-          value: mod.resourceUploadResult.uploaded({
-            uploadId: `upload:${receiptId}`,
+      load: ({ assetId }) =>
+        runtime.mod.resourceBinaryValue({
+          value: runtime.mod.resourceUploadResult.uploaded({
+            uploadId: `upload:${assetId}`,
             finalizeRequired: true,
             awaitingProcessing: false,
           }),
@@ -315,10 +369,10 @@ test("resourceBinaryValue rejects upload or processing result truth wrapped as s
     });
 
     assert.throws(
-      () => detail.line({ receiptId: "bad-wrap" }),
+      () => detail.line({ assetId: "bad-wrap" }),
       /resourceBinaryValue\(\.\.\.\) cannot wrap resourceProcessingResult\.\*\(\) or resourceUploadResult\.\*\(\)/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

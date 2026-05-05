@@ -2,6 +2,8 @@ import { recordLineHistoryEntry } from "../history/record_line_history_entry.js"
 import { createPatchedDiagnostics } from "../state/line_diagnostics_value.js";
 import { requireResourcePatch } from "../../reconciliation/resource_patch.js";
 
+import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
+
 function executeLinePatch(materialization, patch) {
   const patchValue = requireResourcePatch(
     patch,
@@ -56,9 +58,9 @@ function applyReplacePatch(materialization, patch, currentValue) {
       itemId: null,
       aspect: null,
       summary: null,
-      valueChanged: patch.nextValue !== currentValue,
+      valueChanged: !areLineValuesSemanticallyEqual(patch.nextValue, currentValue),
     }),
-    valueChanged: patch.nextValue !== currentValue,
+    valueChanged: !areLineValuesSemanticallyEqual(patch.nextValue, currentValue),
   });
 }
 
@@ -101,9 +103,9 @@ function applySummaryPatch(materialization, patch, currentValue) {
       itemId: null,
       aspect: null,
       summary: patch.summary,
-      valueChanged: nextValue !== currentValue,
+      valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
     }),
-    valueChanged: nextValue !== currentValue,
+    valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
   });
 }
 

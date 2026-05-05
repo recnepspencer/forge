@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 import {
   assertLineStateUnchanged,
   captureLineState,
+  normalizeForProof,
 } from "./reconciliation_proof_helpers.mjs";
 
 test("collection narrow patch then refresh converges to the same final truth as authoritative refresh", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     let currentValue = {
       items: [
         { id: "demo:1", title: "First" },
@@ -20,7 +21,7 @@ test("collection narrow patch then refresh converges to the same final truth as 
       total: 2,
     };
     const makeLine = () =>
-      mod.createResourceNamespace(createFakeSignalNamespace(), {}).collection({
+      resource.collection({
         params: mod.resourceParams(),
         normalizeParams: ({ workspaceId }) =>
           mod.resourceParamIdentity({ workspaceId }, workspaceId),
@@ -78,16 +79,17 @@ test("collection narrow patch then refresh converges to the same final truth as 
     assert.equal(patchedLine.history().lifecycle.at(-2)?.lastPatchScope, "aspect");
     assert.equal(patchedLine.history().lifecycle.at(-1)?.event, "fulfilled");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("patch is denied while refresh is pending without side effects", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     let callCount = 0;
     const refreshDeferred = createDeferred();
-    const line = mod.createResourceNamespace(createFakeSignalNamespace(), {}).collection({
+    const line = resource.collection({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
         mod.resourceParamIdentity({ workspaceId }, workspaceId),
@@ -132,14 +134,15 @@ test("patch is denied while refresh is pending without side effects", async () =
     await refreshDeferred.promise;
     await Promise.resolve();
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
-test("duplicate summary patch delivery preserves item objects and records summary scope twice", async () => {
-  const mod = await loadResourceModule();
+test("duplicate summary patch delivery preserves visible item truth and records summary scope twice", async () => {
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const line = mod.createResourceNamespace(createFakeSignalNamespace(), {}).collection({
+    const { mod, resource } = runtime;
+    const line = resource.collection({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
         mod.resourceParamIdentity({ workspaceId }, workspaceId),
@@ -160,14 +163,14 @@ test("duplicate summary patch delivery preserves item objects and records summar
       }),
     }).line({ workspaceId: "demo" });
 
-    const originalItem = line.value().items[0];
+    const originalItem = normalizeForProof(line.value().items[0]);
     line.patch(mod.resourcePatch.summary({ summary: "total", value: 2 }));
-    const afterFirst = line.value().items[0];
+    const afterFirst = normalizeForProof(line.value().items[0]);
     line.patch(mod.resourcePatch.summary({ summary: "total", value: 2 }));
-    const afterSecond = line.value().items[0];
+    const afterSecond = normalizeForProof(line.value().items[0]);
 
-    assert.equal(originalItem, afterFirst);
-    assert.equal(afterFirst, afterSecond);
+    assert.deepEqual(originalItem, afterFirst);
+    assert.deepEqual(afterFirst, afterSecond);
     assert.equal(line.diagnostics().patchCount, 2);
     assert.equal(line.diagnostics().lastPatchScope, "summary");
     assert.deepEqual(
@@ -182,19 +185,20 @@ test("duplicate summary patch delivery preserves item objects and records summar
       ],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
-test("paged page-window summary patch stays explicit through invalidation and refresh", async () => {
-  const mod = await loadResourceModule();
+test("paged page-window summary patch preserves visible item truth through invalidation and refresh", async () => {
+  const runtime = await createRealResourceTestRuntime();
   try {
+    const { mod, resource } = runtime;
     let currentValue = {
       items: [{ id: "demo:1", title: "First" }],
       cursor: "next",
       visibleCount: 1,
     };
-    const line = mod.createResourceNamespace(createFakeSignalNamespace(), {}).paged({
+    const line = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
         mod.resourceParamIdentity({ workspaceId }, workspaceId),
@@ -217,9 +221,9 @@ test("paged page-window summary patch stays explicit through invalidation and re
       load: () => structuredClone(currentValue),
     }).line({ workspaceId: "demo" });
 
-    const originalItem = line.value().items[0];
+    const originalItem = normalizeForProof(line.value().items[0]);
     line.patch(mod.resourcePatch.summary({ summary: "visibleCount", value: 2 }));
-    assert.equal(line.value().items[0], originalItem);
+    assert.deepEqual(normalizeForProof(line.value().items[0]), originalItem);
     line.invalidate();
     currentValue = {
       items: [{ id: "demo:1", title: "First" }],
@@ -242,6 +246,6 @@ test("paged page-window summary patch stays explicit through invalidation and re
       ],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

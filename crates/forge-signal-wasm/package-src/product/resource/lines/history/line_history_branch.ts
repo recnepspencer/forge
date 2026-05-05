@@ -17,10 +17,7 @@ function readCurrentHistoryBranch(history) {
           branch.parent_branch_id === null
             ? null
             : Number(branch.parent_branch_id),
-        headSnapshotId:
-          branch.head_snapshot_id === null
-            ? null
-            : Number(branch.head_snapshot_id),
+        headSnapshotId: readCurrentBranchHeadSnapshotId(history, branch),
       }),
       errorDetail: null,
     });
@@ -32,6 +29,21 @@ function readCurrentHistoryBranch(history) {
         error,
       ),
     });
+  }
+}
+
+function readCurrentBranchHeadSnapshotId(history, branch) {
+  if (branch.head_snapshot_id !== null) {
+    return Number(branch.head_snapshot_id);
+  }
+  if (typeof history.branch_snapshot_id !== "function") {
+    return null;
+  }
+  try {
+    const snapshotId = history.branch_snapshot_id(branch.id);
+    return snapshotId === null ? null : Number(snapshotId);
+  } catch {
+    return null;
   }
 }
 

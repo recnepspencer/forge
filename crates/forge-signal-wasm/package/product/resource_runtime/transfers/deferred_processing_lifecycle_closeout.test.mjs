@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealTransferRuntime } from "../runtime_fixture/real_transfer_runtime.mjs";
 
 test("deferred processing stays inside one lifecycle story across callback, poll, and webhook postures", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const cases = [
       {
         kind: "poll",
@@ -84,15 +82,14 @@ test("deferred processing stays inside one lifecycle story across callback, poll
       assert.equal(line.history().lifecycle.at(-1)?.event, "fulfilled");
     }
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("timed-out deferred processing ignores stale completion until a new refresh wins honestly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     let loadCount = 0;
     const detail = resource.detail({
@@ -149,6 +146,6 @@ test("timed-out deferred processing ignores stale completion until a new refresh
       message: null,
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

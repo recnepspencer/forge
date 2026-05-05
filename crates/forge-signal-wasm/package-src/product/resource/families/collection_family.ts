@@ -4,6 +4,7 @@ import { createMaterializedFamily } from "./materialization/materialized_family_
 
 function createCollectionFamily(
   signalNamespace,
+  resourceLineEpoch,
   familyId,
   declaration,
   compatibility,
@@ -11,6 +12,7 @@ function createCollectionFamily(
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.collection,
     signalNamespace,
+    resourceLineEpoch,
     familyId,
     validateCollectionDeclaration(declaration),
     compatibility,

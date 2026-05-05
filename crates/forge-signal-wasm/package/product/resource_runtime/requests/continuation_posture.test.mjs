@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
+
+function normalizeForProof(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 test("resource continuation posture lowers callback continuation into request truth and diagnostics", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let capturedRequest = null;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -27,13 +29,17 @@ test("resource continuation posture lowers callback continuation into request tr
     const line = detail.line({ invoiceId: "inv-1" });
 
     assert.deepEqual(
-      line.request().continuation,
-      mod.resourceContinuation.callback({
+      normalizeForProof(line.request().continuation),
+      {
+        kind: "callback",
         callbackId: "invoice-complete",
         returnTo: "/invoices/1",
-      }),
+      },
     );
-    assert.deepEqual(capturedRequest, line.request());
+    assert.deepEqual(
+      normalizeForProof(capturedRequest),
+      normalizeForProof(line.request()),
+    );
     assert.equal(line.diagnostics().request.continuation.kind, "callback");
     assert.equal(
       line.diagnostics().request.continuation.callbackId,
@@ -45,15 +51,14 @@ test("resource continuation posture lowers callback continuation into request tr
     );
     assert.equal(line.diagnostics().request.continuation.kind, "callback");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource continuation posture can resolve webhook continuation from params", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       continuation: ({ provider, receiptId }) =>
@@ -72,11 +77,12 @@ test("resource continuation posture can resolve webhook continuation from params
     const line = detail.line({ provider: "stripe", receiptId: "rcpt-1" });
 
     assert.deepEqual(
-      line.request().continuation,
-      mod.resourceContinuation.webhook({
+      normalizeForProof(line.request().continuation),
+      {
+        kind: "webhook",
         correlationKey: "stripe:rcpt-1",
         provider: "stripe",
-      }),
+      },
     );
     assert.equal(line.diagnostics().request.continuation.kind, "webhook");
     assert.equal(
@@ -85,15 +91,14 @@ test("resource continuation posture can resolve webhook continuation from params
     );
     assert.equal(line.diagnostics().request.continuation.provider, "stripe");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource continuation posture rejects invalid function-produced continuation truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const invalidContinuation = resource.detail({
       params: mod.resourceParams(),
       continuation: () => ({ kind: "callback", callbackId: "cb-1" }),
@@ -107,6 +112,6 @@ test("resource continuation posture rejects invalid function-produced continuati
       /continuation created with resourceContinuation/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

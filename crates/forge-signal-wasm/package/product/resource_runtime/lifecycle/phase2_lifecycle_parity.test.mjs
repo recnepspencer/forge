@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createPhase2FamilyCases } from "../runtime_fixture/phase2_family_cases.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createPhase2FamilyCases } from "../runtime_fixture/family_cases/phase2_family_cases.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("refresh and revalidate preserve one lifecycle story across detail, collection, and paged lines", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const familyCases = createPhase2FamilyCases(resource, mod);
 
     for (const familyCase of familyCases) {
@@ -66,15 +64,14 @@ test("refresh and revalidate preserve one lifecycle story across detail, collect
       assert.equal(line.diagnostics().pendingOperation, null);
     }
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("repeated retry-bearing failures settle identically across family kinds", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const familyCases = createPhase2FamilyCases(resource, mod);
 
     for (const familyCase of familyCases) {
@@ -115,6 +112,6 @@ test("repeated retry-bearing failures settle identically across family kinds", a
       assert.equal(line.history().lifecycle.at(-1)?.event, "rejected");
     }
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

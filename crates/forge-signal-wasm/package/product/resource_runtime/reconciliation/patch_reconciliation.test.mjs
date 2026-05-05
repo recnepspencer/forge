@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 
 test("collection lines narrow item-aspect patches without broad reload", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let loadCount = 0;
     const products = resource.collection({
       params: mod.resourceParams(),
@@ -81,15 +79,14 @@ test("collection lines narrow item-aspect patches without broad reload", async (
     assert.equal(line.diagnostics().lastPatchedSummary, null);
     assert.equal(line.history().lifecycle.at(-1)?.event, "patched");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("collection lines admit broad replace patch without declared reconcile", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let loadCount = 0;
     const products = resource.collection({
       params: mod.resourceParams(),
@@ -142,15 +139,14 @@ test("collection lines admit broad replace patch without declared reconcile", as
       /resourcePatch\.\*\(\)/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("paged lines admit narrow item patch when reconciliation is declared", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const feed = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -197,15 +193,14 @@ test("paged lines admit narrow item patch when reconciliation is declared", asyn
     });
     assert.equal(line.diagnostics().lastPatchScope, "item");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("collection lines admit summary patch when summaries are declared", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let loadCount = 0;
     const products = resource.collection({
       params: mod.resourceParams(),
@@ -256,15 +251,14 @@ test("collection lines admit summary patch when summaries are declared", async (
     assert.equal(line.diagnostics().lastPatchedSummary, "total");
     assert.equal(line.history().lifecycle.at(-1)?.lastPatchedSummary, "total");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("summary patch is denied when summary write mutates reconciled items", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const products = resource.collection({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -308,15 +302,14 @@ test("summary patch is denied when summary write mutates reconciled items", asyn
     assert.equal(line.diagnostics().patchCount, 0);
     assert.equal(line.history().lifecycle.at(-1)?.event, "materialized");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("detail lines remain non-patchable while collection lines deny undeclared aspects", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -363,6 +356,6 @@ test("detail lines remain non-patchable while collection lines deny undeclared a
       /undeclared summary "total"/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

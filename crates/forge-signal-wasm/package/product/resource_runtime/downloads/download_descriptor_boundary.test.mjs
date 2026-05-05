@@ -1,50 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import {
+  createBranchHead,
+  createRealResourceRuntime,
+} from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealDownloadDetail } from "../runtime_fixture/real_download_resources.mjs";
 
 function normalizeForProof(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
 test("stale descriptor refresh surfaces explicit incompatible download truth without changing structured value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 18n,
-          name: "descriptor-refresh",
-          parent_branch_id: 4n,
-          head_snapshot_id: 29n,
-        };
-      },
-      restore_exact_branch_snapshot() {},
-    });
+    const branch = createBranchHead(runtime.signals, "descriptor-refresh");
+    const snapshotId = Number(runtime.signals.history().branch_snapshot_id(branch.id));
     let staleDescriptor = false;
     const structuredValue = { id: "asset-2", title: "Spec" };
-    const resource = mod.createResourceNamespace(signalNamespace, {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ assetId }) =>
-        mod.resourceParamIdentity({ assetId }, assetId),
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
       load: ({ assetId }) =>
-        mod.resourceBinaryValue({
+        runtime.mod.resourceBinaryValue({
           value: structuredValue,
           descriptors: [
-            mod.resourceBinaryDescriptor.file({
+            runtime.mod.resourceBinaryDescriptor.file({
               id: "spec-download",
               fileName: `${assetId}.pdf`,
               mediaType: "application/pdf",
               byteLength: 640,
               download: staleDescriptor
-                ? mod.resourceDownload.incompatible({
+                ? runtime.mod.resourceDownload.incompatible({
                     reason: "staleDescriptor",
                     detail:
                       "descriptor was issued for an older branch snapshot; refresh before downloading",
                   })
-                : mod.resourceDownload.ready({
+                : runtime.mod.resourceDownload.ready({
                     url: `https://downloads.example/${assetId}.pdf`,
                     method: "GET",
                     expiresAt: "2026-05-04T12:00:00Z",
@@ -86,36 +76,33 @@ test("stale descriptor refresh surfaces explicit incompatible download truth wit
     assert.equal(line.diagnostics().visibleValueVersion, firstVersion);
     assert.equal(line.diagnostics().download.incompatibleCount, 1);
     assert.equal(history.lifecycle.at(-1)?.incompatibleDownloadCount, 1);
-    assert.equal(history.replay.id, line.signal().id);
+    assert.ok(Array.isArray(history.replay?.frames));
+    assert.ok(history.replay.frames.length > 0);
     assert.deepEqual(history.branch, {
-      id: 18,
+      id: branch.id,
       name: "descriptor-refresh",
-      parentBranchId: 4,
-      headSnapshotId: 29,
+      parentBranchId: 0,
+      headSnapshotId: snapshotId,
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("transport-boundary download incompatibility stays self-describing through diagnostics and history", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
-    const detail = resource.detail({
-      params: mod.resourceParams(),
-      normalizeParams: ({ exportId }) =>
-        mod.resourceParamIdentity({ exportId }, exportId),
-      load: ({ exportId }) =>
-        mod.resourceBinaryValue({
-          value: { id: exportId, status: "ready" },
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
+      load: ({ assetId }) =>
+        runtime.mod.resourceBinaryValue({
+          value: { id: assetId, status: "ready" },
           descriptors: [
-            mod.resourceBinaryDescriptor.export({
+            runtime.mod.resourceBinaryDescriptor.export({
               id: "bundle",
-              fileName: `${exportId}.zip`,
+              fileName: `${assetId}.zip`,
               mediaType: "application/zip",
               byteLength: 4096,
-              download: mod.resourceDownload.incompatible({
+              download: runtime.mod.resourceDownload.incompatible({
                 reason: "transportBoundary",
                 detail:
                   "download requires a host-owned session handoff; resource lines expose only the descriptor boundary",
@@ -125,7 +112,7 @@ test("transport-boundary download incompatibility stays self-describing through 
         }),
     });
 
-    const line = detail.line({ exportId: "bundle-7" });
+    const line = detail.line({ assetId: "bundle-7" });
 
     assert.equal(line.download().incompatibleCount, 1);
     assert.equal(line.download().readyCount, 0);
@@ -154,6 +141,6 @@ test("transport-boundary download incompatibility stays self-describing through 
     });
     assert.equal(line.history().lifecycle.at(-1)?.incompatibleDownloadCount, 1);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

@@ -1,48 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceRuntime } from "../runtime_fixture/real_resource_signals.mjs";
+import {
+  createRealCompatibilityDelivery,
+  createRealCompatibilityDeliveryLine,
+} from "../runtime_fixture/real_delivery_resources.mjs";
 import {
   assertDeliveryRequestStateUnchanged,
   captureDeliveryRequestState,
 } from "./delivery_request_proof_helpers.mjs";
 
-function createCollectionLine(mod, load) {
-  return mod.createResourceNamespace(createFakeSignalNamespace(), {}).collection({
-    params: mod.resourceParams(),
-    normalizeParams: ({ workspaceId }) =>
-      mod.resourceParamIdentity({ workspaceId }, workspaceId),
-    requestContext: mod.resourceRequestContext({ basisId: "basis-1" }),
-    itemIdentity: (item) => item.id,
-    reconcile: mod.resourceCollectionShape({
-      items: (value) => value.items,
-      replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-      aspects: mod.resourceItemAspects({
-        title: {
-          read: (item) => item.title,
-          write: (item, title) => ({ ...item, title: String(title) }),
-        },
-      }),
-    }),
-    load,
-  }).line({ workspaceId: "demo" });
-}
-
 test("external basis refresh advances basis and reloads through the same line model", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const line = createCollectionLine(mod, (_params, request) => ({
-      items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
-    }));
+    const line = createRealCompatibilityDeliveryLine(
+      runtime.resourceMod,
+      runtime.signals,
+      (_params, request) => ({
+        items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
+      }),
+    );
 
     const result = line.deliver(
-      mod.createResourceNamespace(createFakeSignalNamespace(), {}).compatibility.delivery
-        .basisRefresh({
-          packetId: "pkt-basis-refresh",
-          basisId: "basis-1",
-          nextBasisId: "basis-2",
-        }),
+      createRealCompatibilityDelivery(
+        runtime.resourceMod,
+        runtime.signals,
+      ).basisRefresh({
+        packetId: "pkt-basis-refresh",
+        basisId: "basis-1",
+        nextBasisId: "basis-2",
+      }),
     );
 
     assert.deepEqual(result, {
@@ -92,22 +80,28 @@ test("external basis refresh advances basis and reloads through the same line mo
     assert.equal(line.history().basis.advances.at(-1)?.deliveryKind, "basisRefresh");
     assert.equal(line.history().basis.advances.at(-1)?.deliveryScope, "basis");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("stale external patch denies until basis refresh repairs compatibility, then converges with local refresh truth", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const compatibilityDelivery =
-      mod.createResourceNamespace(createFakeSignalNamespace(), {}).compatibility.delivery;
+    const compatibilityDelivery = createRealCompatibilityDelivery(
+      runtime.resourceMod,
+      runtime.signals,
+    );
     const seenBasisIds = [];
-    const line = createCollectionLine(mod, (_params, request) => {
-      seenBasisIds.push(request.context.basisId);
-      return {
-        items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
-      };
-    });
+    const line = createRealCompatibilityDeliveryLine(
+      runtime.resourceMod,
+      runtime.signals,
+      (_params, request) => {
+        seenBasisIds.push(request.context.basisId);
+        return {
+          items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
+        };
+      },
+    );
 
     const beforeRejected = captureDeliveryRequestState(line);
     const rejected = line.deliver(
@@ -115,7 +109,7 @@ test("stale external patch denies until basis refresh repairs compatibility, the
         packetId: "pkt-stale-external",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.resourceMod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Should Reject",
@@ -143,7 +137,7 @@ test("stale external patch denies until basis refresh repairs compatibility, the
         packetId: "pkt-current-external",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.resourceMod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "External Patch After Refresh",
@@ -177,25 +171,31 @@ test("stale external patch denies until basis refresh repairs compatibility, the
     assert.deepEqual(seenBasisIds, ["basis-1", "basis-2", "basis-3"]);
     assert.equal(line.request().context.basisId, "basis-3");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("failed external basis refresh does not advance delivery authority before value truth lands", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const compatibilityDelivery =
-      mod.createResourceNamespace(createFakeSignalNamespace(), {}).compatibility.delivery;
+    const compatibilityDelivery = createRealCompatibilityDelivery(
+      runtime.resourceMod,
+      runtime.signals,
+    );
     let loadCount = 0;
-    const line = createCollectionLine(mod, (_params, request) => {
-      loadCount += 1;
-      if (loadCount === 1) {
-        return {
-          items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
-        };
-      }
-      throw new Error(`basis ${request.context.basisId} reload failed`);
-    });
+    const line = createRealCompatibilityDeliveryLine(
+      runtime.resourceMod,
+      runtime.signals,
+      (_params, request) => {
+        loadCount += 1;
+        if (loadCount === 1) {
+          return {
+            items: [{ id: "demo:1", title: `Basis:${request.context.basisId}` }],
+          };
+        }
+        throw new Error(`basis ${request.context.basisId} reload failed`);
+      },
+    );
 
     const beforeRejected = captureDeliveryRequestState(line);
     const refreshed = line.deliver(
@@ -238,7 +238,7 @@ test("failed external basis refresh does not advance delivery authority before v
         packetId: "pkt-should-still-reject",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.resourceMod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Should Still Reject",
@@ -253,6 +253,6 @@ test("failed external basis refresh does not advance delivery authority before v
       actualBasisId: "basis-2",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

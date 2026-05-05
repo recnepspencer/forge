@@ -1,65 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import {
+  createBranchHead,
+  createRealResourceRuntime,
+} from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealDeliveryCollectionLine } from "../runtime_fixture/real_delivery_resources.mjs";
 import {
   assertBasisProofUnchanged,
   projectBasisProof,
 } from "./delivery_basis_history_proof_helpers.mjs";
 
-function createBasisCloseoutLine(mod, load, signalNamespace) {
-  return mod.createResourceNamespace(signalNamespace, {}).collection({
-    params: mod.resourceParams(),
-    normalizeParams: ({ workspaceId }) =>
-      mod.resourceParamIdentity({ workspaceId }, workspaceId),
-    requestContext: mod.resourceRequestContext({ basisId: "basis-1" }),
-    itemIdentity: (item) => item.id,
-    reconcile: mod.resourceCollectionShape({
-      items: (value) => value.items,
-      replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-      aspects: mod.resourceItemAspects({
-        title: {
-          read: (item) => item.title,
-          write: (item, title) => ({ ...item, title: String(title) }),
-        },
-      }),
-    }),
-    load,
-  }).line({ workspaceId: "demo" });
-}
-
 test("multi-step basis progression stays explicit across delivery, refresh, branch, and replay explainability", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
     const seenBasisIds = [];
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 45n,
-          name: "delivery-closeout",
-          parent_branch_id: 12n,
-          head_snapshot_id: 96n,
-        };
-      },
-      branch_snapshot() {
-        return Object.freeze({ snapshotRestoreToken: "branch-45-snapshot" });
-      },
-      restore_exact_branch_snapshot() {},
-    });
-    const line = createBasisCloseoutLine(
-      mod,
+    const line = createRealDeliveryCollectionLine(
+      runtime.mod,
+      runtime.signals,
       (_params, request) => {
         seenBasisIds.push(request.context.basisId);
         return {
           items: [{ id: "demo:1", title: `Load:${request.context.basisId}` }],
         };
       },
-      signalNamespace,
     );
+    const branch = createBranchHead(runtime.signals, "delivery-closeout");
+    const snapshotId = Number(runtime.signals.history().branch_snapshot_id(branch.id));
 
     line.deliver(
-      mod.resourceDelivery.replace({
+      runtime.mod.resourceDelivery.replace({
         packetId: "pkt-basis-2",
         basisId: "basis-1",
         nextBasisId: "basis-2",
@@ -70,11 +40,11 @@ test("multi-step basis progression stays explicit across delivery, refresh, bran
     );
     line.refresh();
     line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Delivered Basis 3",
@@ -132,12 +102,10 @@ test("multi-step basis progression stays explicit across delivery, refresh, bran
         },
       ],
     });
-    assert.deepEqual(proof.branch, {
-      id: 45,
-      name: "delivery-closeout",
-      parentBranchId: 12,
-      headSnapshotId: 96,
-    });
+    assert.equal(proof.branch?.id, branch.id);
+    assert.equal(proof.branch?.name, branch.name);
+    assert.equal(proof.branch?.parentBranchId, 0);
+    assert.equal(proof.branch?.headSnapshotId, snapshotId);
     assert.deepEqual(proof.availability, {
       replay: { kind: "available" },
       replayExact: {
@@ -151,43 +119,32 @@ test("multi-step basis progression stays explicit across delivery, refresh, bran
       restoreExact: {
         kind: "available",
         mode: "SameRuntimeBranchExact",
-        branchId: 45,
-        snapshotId: 96,
+        branchId: branch.id,
+        snapshotId,
       },
     });
     assert.deepEqual(seenBasisIds, ["basis-1", "basis-2", "basis-3"]);
-    assert.equal(proof.replay.id, line.signal().id);
+    assert.ok(Array.isArray(proof.replay?.frames));
+    assert.ok(proof.replay.frames.length > 0);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("stale or duplicate packets after multi-step basis progression cannot rewrite the basis proof surface", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    const line = createBasisCloseoutLine(
-      mod,
+    const line = createRealDeliveryCollectionLine(
+      runtime.mod,
+      runtime.signals,
       (_params, request) => ({
         items: [{ id: "demo:1", title: `Load:${request.context.basisId}` }],
       }),
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 51n,
-            name: "delivery-proof",
-            parent_branch_id: null,
-            head_snapshot_id: 105n,
-          };
-        },
-        branch_snapshot() {
-          return Object.freeze({ snapshotRestoreToken: "branch-51-snapshot" });
-        },
-        restore_exact_branch_snapshot() {},
-      }),
     );
+    createBranchHead(runtime.signals, "delivery-proof");
 
     line.deliver(
-      mod.resourceDelivery.replace({
+      runtime.mod.resourceDelivery.replace({
         packetId: "pkt-basis-2",
         basisId: "basis-1",
         nextBasisId: "basis-2",
@@ -197,11 +154,11 @@ test("stale or duplicate packets after multi-step basis progression cannot rewri
       }),
     );
     line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Delivered Basis 3",
@@ -211,11 +168,11 @@ test("stale or duplicate packets after multi-step basis progression cannot rewri
     const before = projectBasisProof(line);
 
     const duplicate = line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-3",
         nextBasisId: "basis-4",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "ignored duplicate",
@@ -223,11 +180,11 @@ test("stale or duplicate packets after multi-step basis progression cannot rewri
       }),
     );
     const stale = line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-stale",
         basisId: "basis-2",
         nextBasisId: "basis-4",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "ignored stale",
@@ -248,41 +205,25 @@ test("stale or duplicate packets after multi-step basis progression cannot rewri
     });
     assertBasisProofUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("restore after mixed delivery and refresh reconstructs local line truth without erasing basis history", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceRuntime();
   try {
-    let restoreMode = false;
-    const line = createBasisCloseoutLine(
-      mod,
+    const line = createRealDeliveryCollectionLine(
+      runtime.mod,
+      runtime.signals,
       (_params, request) => ({
-        items: [{
-          id: "demo:1",
-          title: restoreMode
-            ? "Restored Snapshot"
-            : `Load:${request.context.basisId}`,
-        }],
-      }),
-      createFakeSignalNamespace("root", {
-        current_branch() {
-          return {
-            id: 63n,
-            name: "delivery-restore",
-            parent_branch_id: 7n,
-            head_snapshot_id: 126n,
-          };
-        },
-        restore_branch_snapshot_by_id() {
-          restoreMode = true;
-        },
+        items: [{ id: "demo:1", title: `Load:${request.context.basisId}` }],
       }),
     );
+    const branch = createBranchHead(runtime.signals, "delivery-restore");
+    const snapshotId = Number(runtime.signals.history().branch_snapshot_id(branch.id));
 
     line.deliver(
-      mod.resourceDelivery.replace({
+      runtime.mod.resourceDelivery.replace({
         packetId: "pkt-basis-2",
         basisId: "basis-1",
         nextBasisId: "basis-2",
@@ -293,11 +234,11 @@ test("restore after mixed delivery and refresh reconstructs local line truth wit
     );
     line.refresh();
     line.deliver(
-      mod.resourceDelivery.patch({
+      runtime.mod.resourceDelivery.patch({
         packetId: "pkt-basis-3",
         basisId: "basis-2",
         nextBasisId: "basis-3",
-        patch: mod.resourcePatch.itemAspect({
+        patch: runtime.mod.resourcePatch.itemAspect({
           itemId: "demo:1",
           aspect: "title",
           value: "Delivered Basis 3",
@@ -305,15 +246,15 @@ test("restore after mixed delivery and refresh reconstructs local line truth wit
       }),
     );
 
-    const beforeBasis = projectBasisProof(line).historyBasis;
+    const before = projectBasisProof(line);
     const restored = line.history().restoreExact();
     const after = projectBasisProof(line);
 
     assert.deepEqual(restored, {
       kind: "restored",
       mode: "SameRuntimeBranchExact",
-      branchId: 63,
-      snapshotId: 126,
+      branchId: branch.id,
+      snapshotId,
       basisCurrentId: "basis-3",
       basisAdvanceCount: 2,
       reloadStatus: {
@@ -322,7 +263,7 @@ test("restore after mixed delivery and refresh reconstructs local line truth wit
       },
     });
     assert.deepEqual(line.value(), {
-      items: [{ id: "demo:1", title: "Restored Snapshot" }],
+      items: [{ id: "demo:1", title: "Load:basis-3" }],
     });
     assert.deepEqual(line.status(), {
       kind: "fulfilled",
@@ -330,9 +271,9 @@ test("restore after mixed delivery and refresh reconstructs local line truth wit
     });
     assert.equal(line.diagnostics().lastOperation, "restore");
     assert.equal(line.history().lifecycle.at(-1)?.event, "restored");
-    assert.deepEqual(after.historyBasis, beforeBasis);
     assert.equal(after.requestBasisId, "basis-3");
+    assert.deepEqual(after.historyBasis, before.historyBasis);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

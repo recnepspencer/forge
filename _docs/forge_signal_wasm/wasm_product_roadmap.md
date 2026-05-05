@@ -551,6 +551,12 @@ This milestone is now closed. The resource/API surface is part of the shipped
 wasm package product line, and later work should treat it as a completed
 dependency rather than future exploratory work.
 
+Follow-on note:
+
+- exact resource-line restore is now a real shipped same-runtime path
+- exact resource-line replay remains a typed unavailable surface until
+  `forge-signal` exposes signal-exact replay execution at the history boundary
+
 ## Milestone 7: API Surface DX Hardening
 
 Engineering spec:
@@ -574,6 +580,8 @@ product without changing the already-certified resource semantics underneath it.
   grammar
 - certified equivalence between `url(...)`-authored and raw-authored resource
   declarations
+- roadmap follow-up for real signal-exact replay capability once the parent
+  runtime exposes the necessary history operations
 
 ### Must Preserve
 

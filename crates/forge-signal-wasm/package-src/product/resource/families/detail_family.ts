@@ -4,6 +4,7 @@ import { validateDetailDeclaration } from "./declarations/detail_family_declarat
 
 function createDetailFamily(
   signalNamespace,
+  resourceLineEpoch,
   familyId,
   declaration,
   compatibility,
@@ -11,6 +12,7 @@ function createDetailFamily(
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.detail,
     signalNamespace,
+    resourceLineEpoch,
     familyId,
     validateDetailDeclaration(declaration),
     compatibility,

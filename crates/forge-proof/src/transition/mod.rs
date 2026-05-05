@@ -14,7 +14,10 @@ pub use checked_recipe::{
     CheckedAdmitRecipeTransition, CheckedLowerRecipeTransition, CheckedResolveRecipeTransition,
     RecipeAdmissionReadiness, RecipeLoweringReadiness, RecipeResolutionGate,
 };
-pub use composition::{compose_success_transition, compose_transition_outcome};
+pub use composition::{
+    compose_join_success_transition, compose_join_transition_outcome, compose_success_transition,
+    compose_transition_outcome,
+};
 pub use contract::{
     apply_contextual_transition, apply_transition, ContextualTransition, Transition,
 };

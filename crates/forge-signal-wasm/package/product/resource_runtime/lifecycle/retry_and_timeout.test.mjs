@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("timeout policy marks pending refresh as timed out while preserving visible value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -44,15 +42,14 @@ test("timeout policy marks pending refresh as timed out while preserving visible
     assert.equal(line.diagnostics().lastTimeoutOperation, "refresh");
     assert.equal(line.diagnostics().lastOutcome, "timedOut");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("retry policy retries one failed pending refresh before succeeding", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const firstDeferred = createDeferred();
     const secondDeferred = createDeferred();
     let callCount = 0;
@@ -88,15 +85,14 @@ test("retry policy retries one failed pending refresh before succeeding", async 
     assert.equal(line.diagnostics().retryAttemptCount, 1);
     assert.equal(line.diagnostics().rejectionCount, 0);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("retry policy also retries synchronous refresh failure before succeeding", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let callCount = 0;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -126,6 +122,6 @@ test("retry policy also retries synchronous refresh failure before succeeding", 
     assert.equal(line.diagnostics().retryAttemptCount, 1);
     assert.equal(line.diagnostics().rejectionCount, 0);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

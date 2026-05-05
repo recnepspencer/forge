@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealTransferRuntime } from "../runtime_fixture/real_transfer_runtime.mjs";
 
 test("upload and downstream processing stay one coherent story under superseded refresh", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const firstDeferred = createDeferred();
     const secondDeferred = createDeferred();
     let loadCount = 0;
@@ -85,15 +83,14 @@ test("upload and downstream processing stay one coherent story under superseded 
       message: null,
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("direct multipart upload posture remains distinct while prepared state keeps transport truth local", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       uploadTransport: mod.resourceUploadTransport.directMultipart({
@@ -137,15 +134,14 @@ test("direct multipart upload posture remains distinct while prepared state keep
       false,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("timed-out upload completion ignores stale ready settlement until a new refresh wins", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealTransferRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     let loadCount = 0;
     const detail = resource.detail({
@@ -204,6 +200,6 @@ test("timed-out upload completion ignores stale ready settlement until a new ref
     assert.equal(line.upload().kind, "ready");
     assert.equal(line.processing().kind, "ready");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

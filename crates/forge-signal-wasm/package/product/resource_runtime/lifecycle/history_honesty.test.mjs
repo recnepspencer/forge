@@ -1,19 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 import {
   snapshotLifecycleCore,
   snapshotLifecycleSupersession,
-} from "../runtime_fixture/lifecycle_history_entries.mjs";
+} from "../runtime_fixture/proof/lifecycle_history_entries.mjs";
 
 test("resource line history carries initial async lifecycle truth through settlement", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -70,15 +68,14 @@ test("resource line history carries initial async lifecycle truth through settle
       }],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource line history records rejection continuity and invalidation causes", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let shouldFail = false;
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -152,15 +149,14 @@ test("resource line history records rejection continuity and invalidation causes
       }],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("resource line history records superseded lifecycle explicitly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const initialDeferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -224,6 +220,6 @@ test("resource line history records superseded lifecycle explicitly", async () =
       }],
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

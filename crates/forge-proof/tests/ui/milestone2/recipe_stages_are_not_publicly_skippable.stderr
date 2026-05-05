@@ -1,4 +1,4 @@
-error[E0599]: no method named `admit_with_authority` found for struct `Recipe<Unresolved, &str>` in the current scope
+error[E0599]: no method named `admit_with_authority` found for struct `Recipe<forge_proof::Unresolved, &str>` in the current scope
   --> tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs:24:31
    |
 24 |     let _skipped = unresolved.admit_with_authority(admission_authority);
@@ -16,14 +16,14 @@ help: there is a method `resolve_with_authority` with a similar name, but with d
    | |         Auth: AuthorityMarker,
    | |______________________________^
 
-error[E0599]: no method named `admit_with_authority` found for struct `Recipe<Resolved, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>` in the current scope
+error[E0599]: no method named `admit_with_authority` found for struct `Recipe<forge_proof::Resolved, &str, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<u8>>>` in the current scope
   --> tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs:25:34
    |
 25 |     let _also_skipped = resolved.admit_with_authority(second_admission_authority);
-   |                                  ^^^^^^^^^^^^^^^^^^^^ method not found in `Recipe<Resolved, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>`
+   |                                  ^^^^^^^^^^^^^^^^^^^^ method not found in `Recipe<forge_proof::Resolved, &str, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<u8>>>`
    |
    = note: the method was found for
-           - `Recipe<Lowered, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>`
+           - `Recipe<forge_proof::Lowered, T, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<B>>>`
 
 error[E0624]: associated function `with_stage` is private
   --> tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs:27:54

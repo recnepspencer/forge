@@ -17,6 +17,7 @@ import {
   createRejectedLineStatus,
   createTimedOutLineStatus,
 } from "../state/line_status_value.js";
+import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
 
 function executeLineReload(materialization, operation, options = "fulfilled") {
@@ -33,12 +34,19 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
           fulfilledEvent: options.fulfilledEvent ?? "fulfilled",
           seedDiagnostics: options.seedDiagnostics ?? null,
           requestDescriptorOverride: options.requestDescriptorOverride ?? null,
+          previousValueOverride:
+            "previousValueOverride" in options
+              ? options.previousValueOverride ?? null
+              : undefined,
           finalizeFulfilledDiagnostics:
             options.finalizeFulfilledDiagnostics ?? null,
           onFulfilled: options.onFulfilled ?? null,
         });
   const reload = materialization.reload;
-  const previousValue = materialization.binding.valueSignal();
+  const previousValue =
+    normalizedOptions.previousValueOverride === undefined
+      ? materialization.binding.valueSignal()
+      : normalizedOptions.previousValueOverride;
   const supersededOperation = materialization.lifecycle.supersedePendingReload();
   if (supersededOperation !== null) {
     recordLineHistoryEntry(
@@ -162,7 +170,9 @@ function applyFulfilledReload(
   finalizeFulfilledDiagnostics = null,
   onFulfilled = null,
 ) {
-  const visibleValueChanged = loaded.hasVisibleValue && loaded.value !== previousValue;
+  const visibleValueChanged =
+    loaded.hasVisibleValue
+    && !areLineValuesSemanticallyEqual(loaded.value, previousValue);
   materialization.binding.valueSignal.set(loaded.value);
   materialization.binding.processingSignal.set(loaded.processing);
   materialization.binding.uploadSignal.set(loaded.upload);

@@ -65,6 +65,8 @@ cross-crate answer to questions like:
 - what digest basis makes a boundary reproducible and auditable?
 - how do we describe layout and performance choices without forcing one memory
   representation?
+- how do we centrally remove optional history, replay, lineage, provenance, or
+  forensic richness from hot paths without refactoring leaf call sites?
 
 It is meant to support:
 
@@ -85,6 +87,7 @@ The technical thesis is the same across all of them:
 - boundary vocabulary should be canonical
 - internal layout may differ, but materialized meaning must not drift
 - profile-driven richness should be standardized
+- profile-driven descriptive elision should be centrally enforceable
 - canonical values should be aspect-native and digest-honest
 - shared boundary categories must not blur authoritative truth, derived
   artifacts, and descriptive/forensic surfaces
@@ -230,21 +233,25 @@ without sharing meaning.
 4. Canonical values must be explicit about width, precision, temporal basis,
    and reference identity.
 5. Profile-driven richness must be a first-class cross-crate language.
-6. Diagnostics, lineage, provenance, and receipts are product contracts, not
+6. Profile-driven descriptive elision must happen at named boundary seams, not
+   by scattering policy branches through domain leaf call sites.
+7. Diagnostics, lineage, provenance, and receipts are product contracts, not
    debug leftovers.
-7. Reports, summaries, artifacts, and receipts must mean distinct things.
-8. Boundary digests must be canonical, stable, and mechanically reproducible.
-9. Shared vocabulary must compose with `forge-proof`, not duplicate it.
-10. Shared vocabulary must preserve cost honesty for crates with different
+8. Reports, summaries, artifacts, and receipts must mean distinct things.
+9. Boundary digests must be canonical, stable, and mechanically reproducible.
+10. Shared vocabulary must compose with `forge-proof`, not duplicate it.
+11. Shared vocabulary must preserve cost honesty for crates with different
     layout strategies.
-11. Shared vocabulary must preserve the authority/derivation boundary instead
+12. Shared vocabulary must preserve the authority/derivation boundary instead
     of flattening canonical truth, lowered intent, support description, and
     execution receipts into one generic artifact story.
-12. Shared sameness, identity, outcome, and locator laws must be explicit
+13. Shared sameness, identity, outcome, and locator laws must be explicit
     enough that reuse, parity, certification, and debugging do not devolve
     into crate-local folklore.
-13. Expensive descriptive materialization must be modeled as an explicit
+14. Expensive descriptive materialization must be modeled as an explicit
     boundary category, not disguised as a cheap view on authoritative truth.
+15. Disabling optional descriptive richness must never change authoritative
+    outcomes or correctness-critical progression law.
 
 ## Foundational Decisions
 
@@ -262,6 +269,9 @@ These are locked architectural decisions:
   is not the long-term canonical truth vocabulary
 - profiles are first-class shared structures, not string labels floating around
   in crate-local code
+- profiles may disable optional descriptive richness, retention, replay, or
+  forensic materialization, but they must not disable correctness-critical
+  truth or proof law
 - equivalence, suppression, parity, and reuse require explicit shared basis
   vocabulary rather than ad hoc comparator folklore
 - equal representation does not imply equal meaning; identity, handles, and
@@ -271,6 +281,9 @@ These are locked architectural decisions:
 - diagnostics, lineage, provenance, and receipts are shared ontologies, but
   their storage remains crate-local unless a specific cross-crate artifact
   requires canonicalization
+- profile-controlled descriptive elision must be expressible centrally through
+  shared foundational policy vocabulary and enforced at boundary materialization
+  and retention seams rather than through domain leaf-call-site branching
 - `forge-proof` remains the home of progression law; `forge-foundational`
   remains the home of shared truth description
 - foundational artifact categories describe boundary meaning only; they do not
@@ -595,11 +608,18 @@ Technical role:
 Forge already uses operational/development/forensic and similar ideas. These
 need a shared profile vocabulary rather than crate-local profile dialects.
 
+The same vocabulary must also be strong enough to remove optional descriptive
+surfaces from hot paths centrally. That includes history-, replay-, lineage-,
+provenance-, and forensic-richness classes where a workload needs the leanest
+possible operational posture.
+
 What this enables:
 
 - one common language for how rich or minimal a surface should be
 - shared profile digests where support or certification artifacts need them
 - clearer boundary between operational hot paths and forensic materialization
+- one cross-crate switch for descriptive elision instead of hundreds of local
+  policy branches
 
 #### Support and posture profiles
 
@@ -621,6 +641,8 @@ What this enables:
 - query support reports, certification support matrices, and store compatibility
   postures can speak one shared language
 - capability and readiness communication becomes more reusable
+- descriptive richness and retention can be reduced centrally without changing
+  correctness-critical domain logic
 
 #### Layout and performance profiles
 
@@ -677,12 +699,20 @@ explicit: hot-path view, boundary materialized form, forensic/support bundle,
 or similar shared boundary distinction. The foundational crate should help make
 those transitions visible rather than letting them masquerade as cheap getters.
 
+This is also where profile-driven descriptive elision must become real.
+Disabling optional history, replay, lineage, provenance, or forensic surfaces
+must happen at named materialization and retention seams. It must not require
+threading ad hoc policy checks through leaf call sites that produce
+authoritative domain truth.
+
 What this enables:
 
 - `forge-relational` can keep truth-optimized internal layouts
 - `forge-signal` can keep diagnostics/runtime layouts tuned for its workload
 - `forge-store` can keep durable-friendly structures
 - all of them can still emit the same canonical boundary shapes when needed
+- all of them can also skip optional descriptive surfaces cleanly when the
+  active profile demands hot-path austerity
 
 ## What This Crate Must Preserve
 
@@ -692,3 +722,5 @@ What this enables:
 - Aspec-native default semantics as the long-term direction
 - explicit compatibility debt where JSON-shaped or other transitional surfaces
   still remain
+- central profile-driven removal of optional descriptive richness without
+  changing authoritative outcomes or polluting leaf call sites

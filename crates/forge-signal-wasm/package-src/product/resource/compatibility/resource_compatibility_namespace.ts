@@ -9,13 +9,14 @@ import {
 } from "./resource_external_definition.js";
 import { resourceExternalDelivery } from "./resource_external_delivery.js";
 
-function createResourceCompatibilityNamespace(signalNamespace, rawSignals) {
+function createResourceCompatibilityNamespace(signalNamespace, rawSignals, resourceLineEpoch) {
   return Object.freeze({
     delivery: resourceExternalDelivery,
     detail(definition) {
       const admitted = admitExternalDetailDefinition(definition);
       return createDetailFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "detail"),
         admitted.declaration,
         admitted.compatibility,
@@ -25,6 +26,7 @@ function createResourceCompatibilityNamespace(signalNamespace, rawSignals) {
       const admitted = admitExternalCollectionDefinition(definition);
       return createCollectionFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "collection"),
         admitted.declaration,
         admitted.compatibility,
@@ -34,6 +36,7 @@ function createResourceCompatibilityNamespace(signalNamespace, rawSignals) {
       const admitted = admitExternalPagedDefinition(definition);
       return createPagedFamily(
         signalNamespace,
+        resourceLineEpoch,
         nextResourceFamilyId(rawSignals, "paged"),
         admitted.declaration,
         admitted.compatibility,

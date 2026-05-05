@@ -27,16 +27,19 @@ That rule governs every milestone:
 5. identities, handles, basis ids, equivalence claims, and locators must be
    explicit shared laws rather than crate-local folklore
 6. profiles must control richness, posture, and support semantics explicitly
-7. no milestone may force one hot-path memory layout or one runtime
+7. profiles must be able to remove optional descriptive richness centrally
+   without changing authoritative outcomes or requiring leaf-call-site policy
+   branching
+8. no milestone may force one hot-path memory layout or one runtime
    representation across crates that legitimately need AoS, SoA, AoSoA, or
    custom topology
-8. lowered plans may need to execute at runtime, but shared crates must expose
+9. lowered plans may need to execute at runtime, but shared crates must expose
    only the proof/composition and descriptive boundary language, not a generic
    executor
-9. shared boundary vocabulary must not collapse authoritative truth, derived
+10. shared boundary vocabulary must not collapse authoritative truth, derived
    artifacts, and descriptive/forensic surfaces into one generic artifact
    model
-10. same-family symbolic composition, lifecycle outcomes, and resolution maps
+11. same-family symbolic composition, lifecycle outcomes, and resolution maps
     should have one descriptive language across crates rather than local
     receipt folklore
 
@@ -157,6 +160,9 @@ The following gates must be preserved from the first milestone onward:
   forcing descriptive concerns into `forge-proof`
 - any shared surface that looks cheap must have an honest materialization
   boundary rather than concealed hot-path reconstruction
+- reduced-richness profiles must be able to suppress optional history, replay,
+  lineage, provenance, or forensic materialization at named seams without
+  changing authoritative outcomes
 - shared identity, equivalence, outcome, and locator surfaces must remain
   explicit enough that comparison, suppression, certification, and debugging do
   not devolve into local folklore
@@ -307,6 +313,8 @@ local dialects.
 - canonical profile digests or profile-basis participation where later
   certification and support artifacts need reproducible profile identity
 - explicit distinction between profile semantics and domain policy execution
+- explicit central elision controls for optional descriptive surfaces such as
+  history, replay, lineage, provenance, and forensic diagnostics
 - room for proof-bearing artifacts to carry foundational profiles without
   importing descriptive policy execution into `forge-proof`
 
@@ -316,6 +324,8 @@ local dialects.
   crates
 - profile changes may alter descriptive breadth, retention, or support posture
   but must not silently redefine authoritative domain truth
+- reduced-richness profiles must preserve authoritative outcomes while removing
+  only the optional descriptive surfaces they explicitly govern
 - profile semantics must remain explicit enough for digesting, comparison, and
   support interpretation
 
@@ -325,11 +335,16 @@ local dialects.
 - profiles standardize shared meaning, not one engine for applying that meaning
 - profile attachment must not require one internal profile store or one global
   registry
+- profile elision decisions must attach at named boundary materialization or
+  retention seams rather than forcing leaf-call-site branching through domain
+  logic
 
 ### Must Preserve
 
 - profile semantics must stay typed and explicit rather than string labels
 - profile richness must not silently widen hot-path work
+- reduced-richness profiles must be able to pull optional descriptive work out
+  of the hot path centrally
 - profiles must not collapse domain-specific policy meaning into one fake
   universal enum when correctness boundaries differ
 - profile attachment must remain boundary-facing; crates retain freedom over how
@@ -341,6 +356,9 @@ local dialects.
 - profile composition tests for compatible and incompatible combinations
 - hostile tests proving richness/posture changes alter only the allowed
   descriptive surface and do not change authoritative domain outcome semantics
+- hostile tests proving a reduced-richness profile can remove optional history,
+  replay, lineage, provenance, or forensic materialization without requiring
+  broad leaf-call-site policy rewrites
 - proof-composition tests demonstrating a proof-bearing artifact can attach
   foundational profiles without needing runtime proof registries
 
@@ -372,6 +390,8 @@ crate-local optimized state into canonical boundary-facing forms.
   crate
 - guidance-bearing APIs or traits that make boundary crossings mechanically
   visible instead of looking like cheap getters
+- explicit materialization and retention seams where reduced-richness profiles
+  may suppress optional descriptive surfaces centrally
 
 ### Semantic Guarantees
 
@@ -385,6 +405,8 @@ crate-local optimized state into canonical boundary-facing forms.
   lifecycle meaning without being confused for authority execution engines
 - descriptive or support-facing categories must not silently masquerade as
   canonical authority surfaces
+- profile-driven descriptive elision must happen at materialization/retention
+  seams rather than by changing authoritative domain logic
 
 ### Representation Boundaries
 
@@ -395,11 +417,15 @@ crate-local optimized state into canonical boundary-facing forms.
   just to satisfy category shape
 - explicit materialization categories must not force one always-on rich view of
   authoritative state
+- reduced-richness behavior must be enforceable at boundary seams, not by
+  rethreading local branch logic through leaf producers
 
 ### Must Preserve
 
 - no one-category envelope that collapses distinct boundary semantics
 - no concealment of expensive materialization behind cheap-looking accessors
+- no requirement that disabling optional descriptive richness be implemented by
+  touching hundreds of leaf call sites
 - no requirement that all crates store summaries, reports, artifacts, or
   receipts in the same topology
 - no pressure toward a generic execution runtime just because several crates
@@ -413,6 +439,9 @@ crate-local optimized state into canonical boundary-facing forms.
 - materialization honesty tests showing boundary crossing is explicit
 - hostile tests proving crate-local optimized structures can materialize shared
   categories without semantic drift
+- hostile tests proving a reduced-richness profile can suppress optional
+  history-, replay-, lineage-, provenance-, or forensic-bearing materialization
+  at named seams while leaving authoritative outputs unchanged
 - compile-fail or trait-bound tests preventing obviously invalid category
   substitutions where the API can enforce them
 
@@ -599,6 +628,9 @@ crates.
   artifacts
 - complexity-attachment tests proving performance accounting can ride shared
   boundary artifacts without dictating the underlying runtime structure
+- adversarial profile-elision tests proving a reduced-richness profile can pull
+  optional history, replay, lineage, provenance, or forensic surfaces out of
+  the certified hot path without changing authoritative outputs
 
 ## Milestone 8: Cross-Crate Migration And Closure
 

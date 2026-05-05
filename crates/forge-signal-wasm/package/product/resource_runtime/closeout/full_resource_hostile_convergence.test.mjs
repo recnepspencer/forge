@@ -1,32 +1,105 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
 import {
-  createHistoryOverrides,
-  createHostileApp,
-  runHostileScript,
-} from "./full_resource_hostile_scenario.mjs";
+  createBranchHead,
+  createRealResourceNamespace,
+  createRealResourceRuntime,
+  installHistoryOverrides,
+} from "../runtime_fixture/real_resource_signals.mjs";
 import {
   normalizeForProof,
   projectAuthoringConvergenceDigest,
-  projectConvergenceDigest,
   projectHostileAppPackage,
-  projectReplayReconstructionDigest,
 } from "./resource_verification_package_helpers.mjs";
+import { projectBehavioralConvergenceDigest } from "./resource_behavioral_convergence_helpers.mjs";
+import {
+  createHostileApp,
+  freeHostileApp,
+  runHostileScript,
+} from "./full_resource_hostile_scenario.mjs";
 
-test("canonical verification packages keep the mixed hostile resource app convergent across native, external, restore, and replay availability modes", async () => {
-  const mod = await loadResourceModule();
+function projectCloseoutSnapshot(appPackage) {
+  return {
+    behavioral: projectBehavioralConvergenceDigest(appPackage),
+    externalCompatibility: normalizeForProof(
+      appPackage.externalCollection.externalCompatibility,
+    ),
+    nativeAuthoring: projectAuthoringConvergenceDigest(appPackage.nativeCollection),
+    externalAuthoring: projectAuthoringConvergenceDigest(
+      appPackage.externalCollection,
+    ),
+    transferProcessing: normalizeForProof(appPackage.transferDetail.processing),
+    transferUpload: normalizeForProof(appPackage.transferDetail.upload),
+    transferLifecycle: {
+      timeoutCount: appPackage.transferDetail.lifecycle.timeoutCount,
+      supersessionCount: appPackage.transferDetail.lifecycle.supersessionCount,
+    },
+    retryLifecycle: {
+      retryAttemptCount: appPackage.retryDetail.lifecycle.retryAttemptCount,
+      rejectionCount: appPackage.retryDetail.lifecycle.rejectionCount,
+    },
+    availability: Object.fromEntries(
+      Object.entries(appPackage).map(([key, pkg]) => [
+        key,
+        {
+          replay: normalizeForProof(pkg.historyReplayRestore.availability.replay),
+          replayExact: normalizeForProof(
+            pkg.historyReplayRestore.availability.replayExact,
+          ),
+          branch: normalizeForProof(pkg.historyReplayRestore.availability.branch),
+          restoreExact: normalizeForProof(
+            pkg.historyReplayRestore.availability.restoreExact,
+          ),
+          typedDenials: {
+            replay: normalizeForProof(pkg.typedDenials.replay),
+            replayExact: normalizeForProof(pkg.typedDenials.replayExact),
+            branch: normalizeForProof(pkg.typedDenials.branch),
+            restoreExact: normalizeForProof(pkg.typedDenials.restoreExact),
+          },
+        },
+      ]),
+    ),
+    transferCommittedValue: normalizeForProof(appPackage.transferDetail.committedValue),
+  };
+}
+
+async function settleRuntime() {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+test(
+  "canonical verification packages keep the hostile resource app convergent across native, external, restore, unsupported replay, and retained branch modes",
+  { concurrency: false },
+  async () => {
+  const runtime = await createRealResourceRuntime();
+  let fullLines = null;
+  let phase = "setup";
   try {
-    const fullRestoreState = { active: false };
-    const fullLines = createHostileApp(
-      mod,
-      createFakeSignalNamespace("root", createHistoryOverrides(fullRestoreState, "full")),
-      fullRestoreState,
+    const restoreState = { active: false };
+    const branch = createBranchHead(runtime.signals, "suite-0");
+    await settleRuntime();
+    const snapshotId = Number(
+      runtime.signals.history().branch_snapshot_id(BigInt(branch.id)),
     );
-    const deliveryResults = await runHostileScript(fullLines, mod);
-    const fullForward = projectHostileAppPackage(fullLines);
+    const uninstallRestoreHook = installHistoryOverrides(runtime.signals, {
+      restore_branch_snapshot_by_id(history, branchId, targetSnapshotId) {
+        restoreState.active = true;
+        return history.restore_branch_snapshot_by_id(branchId, targetSnapshotId);
+      },
+    });
+    const resource = createRealResourceNamespace(
+      runtime.resourceMod,
+      runtime.signals,
+    );
+    fullLines = createHostileApp(runtime.resourceMod, resource, restoreState);
+    phase = "run hostile script";
+    const deliveryResults = await runHostileScript(fullLines, runtime.resourceMod);
+    phase = "forward snapshot";
+    await settleRuntime();
+    const fullForward = projectCloseoutSnapshot(projectHostileAppPackage(fullLines));
+    phase = "restore results";
     const restoreResults = [
       fullLines.detail.history().restoreExact(),
       fullLines.retryDetail.history().restoreExact(),
@@ -35,35 +108,58 @@ test("canonical verification packages keep the mixed hostile resource app conver
       fullLines.externalCollection.history().restoreExact(),
       fullLines.paged.history().restoreExact(),
     ];
-    const fullRestored = projectHostileAppPackage(fullLines);
-
-    const retainedRestoreState = { active: false };
-    const retainedLines = createHostileApp(
-      mod,
-      createFakeSignalNamespace("retained", createHistoryOverrides(retainedRestoreState, "retained")),
-      retainedRestoreState,
-    );
-    await runHostileScript(retainedLines, mod);
-    const retainedForward = projectHostileAppPackage(retainedLines);
-
-    const replayState = { active: false, replaySignalIds: [] };
-    const replayLines = createHostileApp(
-      mod,
-      createFakeSignalNamespace("replay", createHistoryOverrides(replayState, "full")),
-      replayState,
-    );
-    await runHostileScript(replayLines, mod);
-    const replayForward = projectHostileAppPackage(replayLines);
+    phase = "restored snapshot";
+    await settleRuntime();
+    const fullRestored = projectCloseoutSnapshot(projectHostileAppPackage(fullLines));
+    phase = "replay results";
     const replayResults = [
-      replayLines.detail.history().replayExact(),
-      replayLines.retryDetail.history().replayExact(),
-      replayLines.transferDetail.history().replayExact(),
-      replayLines.nativeCollection.history().replayExact(),
-      replayLines.externalCollection.history().replayExact(),
-      replayLines.paged.history().replayExact(),
+      fullLines.detail.history().replayExact(),
+      fullLines.retryDetail.history().replayExact(),
+      fullLines.transferDetail.history().replayExact(),
+      fullLines.nativeCollection.history().replayExact(),
+      fullLines.externalCollection.history().replayExact(),
+      fullLines.paged.history().replayExact(),
     ];
-    const replayed = projectHostileAppPackage(replayLines);
+    phase = "replay stable snapshot";
+    await settleRuntime();
+    const replayStable = projectCloseoutSnapshot(projectHostileAppPackage(fullLines));
+    uninstallRestoreHook();
 
+    const retainedRuntime = await createRealResourceRuntime();
+    let retainedForward;
+    try {
+      const retainedRestoreState = { active: false };
+      createBranchHead(retainedRuntime.signals, "retained-suite-0");
+      await settleRuntime();
+      const uninstallRetained = installHistoryOverrides(retainedRuntime.signals, {
+        current_branch() {
+          throw new Error("retained branch snapshots are unavailable");
+        },
+      });
+      const retainedResource = createRealResourceNamespace(
+        retainedRuntime.resourceMod,
+        retainedRuntime.signals,
+      );
+      const retainedLines = createHostileApp(
+        retainedRuntime.resourceMod,
+        retainedResource,
+        retainedRestoreState,
+      );
+      phase = "retained script";
+      await runHostileScript(retainedLines, retainedRuntime.resourceMod);
+      phase = "retained snapshot";
+      await settleRuntime();
+      retainedForward = projectCloseoutSnapshot(
+        projectHostileAppPackage(retainedLines),
+      );
+      freeHostileApp(retainedLines);
+      uninstallRetained();
+      await settleRuntime();
+    } finally {
+      await retainedRuntime.cleanup();
+    }
+
+    phase = "assertions";
     assert.deepEqual(deliveryResults, {
       duplicateNative: {
         kind: "duplicateIgnored",
@@ -78,7 +174,7 @@ test("canonical verification packages keep the mixed hostile resource app conver
       },
     });
     assert.deepEqual(
-      normalizeForProof(fullForward.externalCollection.externalCompatibility),
+      fullForward.externalCompatibility,
       {
         kind: "externalDefinition",
         version: "forge-resource-external-v1",
@@ -87,17 +183,13 @@ test("canonical verification packages keep the mixed hostile resource app conver
         reconciliationContract: "collection-v1",
       },
     );
-    assert.equal(fullForward.nativeCollection.externalCompatibility.kind, "native");
-    assert.deepEqual(
-      projectAuthoringConvergenceDigest(fullForward.nativeCollection),
-      projectAuthoringConvergenceDigest(fullForward.externalCollection),
-    );
+    assert.deepEqual(fullForward.nativeAuthoring, fullForward.externalAuthoring);
     assert.deepEqual(restoreResults, [
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: null,
         basisAdvanceCount: 0,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
@@ -105,8 +197,8 @@ test("canonical verification packages keep the mixed hostile resource app conver
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: null,
         basisAdvanceCount: 0,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
@@ -114,8 +206,8 @@ test("canonical verification packages keep the mixed hostile resource app conver
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: null,
         basisAdvanceCount: 0,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
@@ -123,8 +215,8 @@ test("canonical verification packages keep the mixed hostile resource app conver
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: "basis-3",
         basisAdvanceCount: 2,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
@@ -132,8 +224,8 @@ test("canonical verification packages keep the mixed hostile resource app conver
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: "basis-3",
         basisAdvanceCount: 2,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
@@ -141,109 +233,48 @@ test("canonical verification packages keep the mixed hostile resource app conver
       {
         kind: "restored",
         mode: "SameRuntimeBranchExact",
-        branchId: 201,
-        snapshotId: 301,
+        branchId: branch.id,
+        snapshotId,
         basisCurrentId: "basis-1",
         basisAdvanceCount: 0,
         reloadStatus: { kind: "fulfilled", operation: "restore" },
       },
     ]);
+    assert.deepEqual(fullRestored.nativeAuthoring, fullRestored.externalAuthoring);
     assert.deepEqual(
-      projectAuthoringConvergenceDigest(fullRestored.nativeCollection),
-      projectAuthoringConvergenceDigest(fullRestored.externalCollection),
-    );
-    assert.deepEqual(
-      replayResults.map((result) => ({
-        kind: result.kind,
-        mode: result.kind === "replayed" ? result.mode : null,
-        reloadKind: result.kind === "replayed" ? result.reloadStatus.kind : null,
-        reloadOperation:
-          result.kind === "replayed" ? result.reloadStatus.operation : null,
-      })),
+      replayResults,
       [
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-        {
-          kind: "replayed",
-          mode: "SameRuntimeSignalExact",
-          reloadKind: "fulfilled",
-          reloadOperation: "replay",
-        },
-      ],
+        fullForward.behavioral.detail,
+        fullForward.behavioral.retryDetail,
+        fullForward.behavioral.transferDetail,
+        fullForward.behavioral.nativeCollection,
+        fullForward.behavioral.externalCollection,
+        fullForward.behavioral.paged,
+      ].map((pkg, index) => ({
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+        basisCurrentId: [
+          null,
+          null,
+          null,
+          "basis-3",
+          "basis-3",
+          "basis-1",
+        ][index],
+        basisAdvanceCount: [0, 0, 0, 2, 2, 0][index],
+      })),
     );
-    assert.equal(replayState.replaySignalIds.length, 6);
-    assert.deepEqual(
-      projectReplayReconstructionDigest(replayForward),
-      projectReplayReconstructionDigest(replayed),
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).detail,
-      projectConvergenceDigest(retainedForward).detail,
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).retryDetail,
-      projectConvergenceDigest(retainedForward).retryDetail,
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).transferDetail,
-      projectConvergenceDigest(retainedForward).transferDetail,
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).nativeCollection,
-      projectConvergenceDigest(retainedForward).nativeCollection,
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).externalCollection,
-      projectConvergenceDigest(retainedForward).externalCollection,
-    );
-    assert.deepEqual(
-      projectConvergenceDigest(fullForward).paged,
-      projectConvergenceDigest(retainedForward).paged,
-    );
-    assert.deepEqual(
-      fullForward.retryDetail.processing,
-      {
-        kind: "ready",
-        completionKind: "none",
-        jobId: null,
-        message: null,
-      },
-    );
-    assert.deepEqual(fullForward.transferDetail.processing, {
+    assert.deepEqual(replayStable.behavioral, fullRestored.behavioral);
+    assert.deepEqual(fullForward.behavioral, retainedForward.behavioral);
+    assert.deepEqual(fullForward.transferProcessing, {
       kind: "ready",
       completionKind: "poll",
       jobId: null,
       message: null,
     });
-    assert.deepEqual(fullForward.transferDetail.upload, {
+    assert.deepEqual(fullForward.transferUpload, {
       kind: "ready",
       transportKind: "signed",
       uploadId: null,
@@ -252,45 +283,50 @@ test("canonical verification packages keep the mixed hostile resource app conver
       message: null,
       hasDescriptor: false,
     });
-    assert.equal(fullForward.transferDetail.lifecycle.timeoutCount, 1);
-    assert.equal(fullForward.transferDetail.lifecycle.supersessionCount, 1);
-    assert.equal(fullForward.retryDetail.lifecycle.retryAttemptCount, 1);
-    assert.equal(fullForward.retryDetail.lifecycle.rejectionCount, 0);
-    for (const replaySensitivePackage of Object.values(retainedForward)) {
-      assert.equal(
-        replaySensitivePackage.historyReplayRestore.availability.replay.kind,
-        "unavailable",
-      );
-      assert.match(
-        replaySensitivePackage.typedDenials.replay.detail,
-        /retained replay history/,
-      );
-      assert.equal(
-        replaySensitivePackage.historyReplayRestore.availability.replayExact.kind,
-        "unavailable",
-      );
-      assert.match(
-        replaySensitivePackage.typedDenials.replayExact.detail,
-        /retained replay execution/,
-      );
+    assert.equal(fullForward.transferLifecycle.timeoutCount, 1);
+    assert.equal(fullForward.transferLifecycle.supersessionCount, 1);
+    assert.equal(fullForward.retryLifecycle.retryAttemptCount, 1);
+    assert.equal(fullForward.retryLifecycle.rejectionCount, 0);
+    for (const retainedPackage of Object.values(retainedForward.availability)) {
+      assert.equal(retainedPackage.replay.kind, "available");
+      assert.equal(retainedPackage.replayExact.kind, "unavailable");
+      assert.equal(retainedPackage.typedDenials.replay, null);
+      assert.deepEqual(retainedPackage.typedDenials.replayExact, {
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+      });
+      assert.equal(retainedPackage.branch.kind, "unavailable");
+      assert.match(retainedPackage.typedDenials.branch.detail, /retained branch snapshots are unavailable/);
+      assert.equal(retainedPackage.restoreExact.kind, "unavailable");
+      assert.match(retainedPackage.typedDenials.restoreExact.detail, /retained branch snapshots are unavailable/);
     }
-    for (const fullReplayPackage of Object.values(fullForward)) {
-      assert.equal(
-        fullReplayPackage.historyReplayRestore.availability.replay.kind,
-        "available",
-      );
-      assert.equal(
-        fullReplayPackage.historyReplayRestore.availability.replayExact.kind,
-        "available",
-      );
-      assert.equal(fullReplayPackage.typedDenials.replay, null);
-      assert.equal(fullReplayPackage.typedDenials.replayExact, null);
+    for (const fullPackage of Object.values(fullForward.availability)) {
+      assert.equal(fullPackage.replay.kind, "available");
+      assert.equal(fullPackage.replayExact.kind, "unavailable");
+      assert.equal(fullPackage.typedDenials.replay, null);
+      assert.deepEqual(fullPackage.typedDenials.replayExact, {
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+      });
+      assert.equal(fullPackage.branch.kind, "available");
+      assert.equal(fullPackage.restoreExact.kind, "available");
     }
-    assert.deepEqual(fullRestored.transferDetail.committedValue, {
+    assert.deepEqual(fullRestored.transferCommittedValue, {
       id: "receipt-1",
       status: "restored-ready",
     });
+  } catch (error) {
+    throw new Error(`closeout phase failed: ${phase}`, { cause: error });
   } finally {
-    await mod.cleanup();
+    if (fullLines !== null) {
+      freeHostileApp(fullLines);
+      await settleRuntime();
+    }
+    await runtime.cleanup();
   }
-});
+  },
+);

@@ -12,7 +12,7 @@ It covers:
 - lifecycle history
 - basis history
 - replay and restore availability
-- exact replay and exact restore actions
+- exact replay and exact restore action surfaces
 - verification packages for deeper comparison
 
 ## Why You Use It
@@ -22,8 +22,8 @@ It covers:
   one place
 - understand whether replay or restore is actually supported on the current
   runtime
-- replay or restore a line through explicit typed actions when the runtime
-  supports it
+- restore a line through an explicit typed action when the runtime supports it
+- inspect exact-replay availability through the same typed history surface
 - compare resource state through one stable verification artifact
 
 ## Stable Entry Points
@@ -64,8 +64,8 @@ Use them like this:
 
 - `diagnostics()` when you want the full current picture
 - `diagnosticsSummary()` when you want the short version
-- `history()` when you want to explain how the line got here or whether it can
-  replay or restore exactly
+- `history()` when you want to explain how the line got here or whether exact
+  replay or exact restore are available on the current runtime
 
 ## How It Executes
 
@@ -80,6 +80,14 @@ As the line changes, the runtime keeps these surfaces aligned:
 
 If the runtime cannot provide exact replay or exact restore, the line reports
 typed unavailability instead of pretending those actions always exist.
+
+Current shipped posture:
+
+- `restoreExact()` is a real supported same-runtime branch-restore path when
+  the runtime exposes the required branch snapshot APIs
+- `replayExact()` is a typed action surface, but the shipped wasm Signals
+  runtime does not currently expose the signal-exact replay capability needed
+  to make it available
 
 ## Small Example
 
@@ -197,7 +205,7 @@ Use `history()` when you need:
 - lifecycle events over time
 - basis advancement history
 - replay and lineage artifacts
-- exact replay or restore actions
+- exact replay availability and exact restore actions
 - proof-grade verification packages
 
 ## Anti-Patterns
@@ -211,6 +219,9 @@ Use `history()` when you need:
 ## Current Limits
 
 - exact replay and exact restore depend on runtime support
+- exact replay currently reports typed unavailability on the shipped wasm
+  Signals runtime because signal-exact replay execution is not yet exposed at
+  the history boundary
 - retained-history and same-runtime-exact support are different capability
   levels and should not be treated as interchangeable
 

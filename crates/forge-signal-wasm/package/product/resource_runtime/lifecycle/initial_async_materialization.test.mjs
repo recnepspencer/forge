@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("promise-backed initial load reuses one pending line and settles in place", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -43,15 +41,14 @@ test("promise-backed initial load reuses one pending line and settles in place",
       operation: "initialLoad",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("initial async timeout remains honest about missing visible value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const deferred = createDeferred();
     const detail = resource.detail({
       params: mod.resourceParams(),
@@ -75,15 +72,14 @@ test("initial async timeout remains honest about missing visible value", async (
       reason: "initialLoadTimedOut",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("refresh can supersede a pending initial load", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealLifecycleRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const initialDeferred = createDeferred();
     let callCount = 0;
     const detail = resource.detail({
@@ -119,6 +115,6 @@ test("refresh can supersede a pending initial load", async () => {
       operation: "refresh",
     });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

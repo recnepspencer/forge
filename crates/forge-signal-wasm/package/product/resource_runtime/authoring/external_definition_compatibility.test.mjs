@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
-import { projectAuthoringConvergenceDigest } from "../closeout/resource_verification_package_helpers.mjs";
+import {
+  createBranchHead,
+  createRealResourceNamespace,
+  createRealResourceRuntime,
+  installHistoryOverrides,
+} from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
+
+async function settleRuntime() {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 function createNativeCollectionDeclaration(mod, restoreState) {
   return {
@@ -45,10 +54,21 @@ function createExternalCollectionDefinition(mod, restoreState) {
 }
 
 function projectExternalConvergenceDigest(line) {
-  return projectAuthoringConvergenceDigest(line.history().verificationPackage());
+  const history = line.history();
+  return {
+    value: line.value(),
+    status: line.status(),
+    freshness: line.freshness(),
+    requestBasisId: line.request().context.basisId,
+    diagnostics: line.diagnosticsSummary(),
+    basis: history.basis,
+    availability: history.availability,
+    lifecycleLength: history.lifecycle.length,
+    lastLifecycleEvent: history.lifecycle.at(-1)?.event ?? null,
+  };
 }
 
-function runMixedHistory(line, mod) {
+function runMixedHistory(line, delivery, mod) {
   line.patch(
     mod.resourcePatch.itemAspect({
       itemId: "demo:1",
@@ -58,7 +78,7 @@ function runMixedHistory(line, mod) {
   );
   line.refresh();
   line.deliver(
-    mod.resourceDelivery.replace({
+    delivery.replace({
       packetId: "pkt-basis-2",
       basisId: "basis-1",
       nextBasisId: "basis-2",
@@ -68,7 +88,7 @@ function runMixedHistory(line, mod) {
     }),
   );
   line.deliver(
-    mod.resourceDelivery.patch({
+    delivery.patch({
       packetId: "pkt-basis-3",
       basisId: "basis-2",
       nextBasisId: "basis-3",
@@ -82,24 +102,27 @@ function runMixedHistory(line, mod) {
   return line.history().restoreExact();
 }
 
-test("native and external collection definitions converge on one line model across refresh, patch, delivery, and restore", async () => {
-  const mod = await loadResourceModule();
+test(
+  "native and external collection definitions converge on one line model across refresh, patch, delivery, and restore",
+  { concurrency: false },
+  async () => {
+  const runtime = await createRealResourceRuntime();
+  let phase = "setup";
   try {
+    const mod = runtime.resourceMod;
     const restoreState = { active: false };
-    const signalNamespace = createFakeSignalNamespace("root", {
-      current_branch() {
-        return {
-          id: 88n,
-          name: "external-compatibility",
-          parent_branch_id: 11n,
-          head_snapshot_id: 177n,
-        };
-      },
-      restore_branch_snapshot_by_id() {
+    const branch = createBranchHead(runtime.signals, "external-compatibility");
+    await settleRuntime();
+    const snapshotId = Number(
+      runtime.signals.history().branch_snapshot_id(BigInt(branch.id)),
+    );
+    const uninstallRestoreHook = installHistoryOverrides(runtime.signals, {
+      restore_branch_snapshot_by_id(history, branchId, targetSnapshotId) {
         restoreState.active = true;
+        return history.restore_branch_snapshot_by_id(branchId, targetSnapshotId);
       },
     });
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const resource = createRealResourceNamespace(mod, runtime.signals);
     const nativeFamily = resource.collection(
       createNativeCollectionDeclaration(mod, restoreState),
     );
@@ -117,15 +140,22 @@ test("native and external collection definitions converge on one line model acro
       reconciliationContract: "collection-v1",
     });
 
-    const nativeRestore = runMixedHistory(nativeLine, mod);
+    phase = "native restore";
+    const nativeRestore = runMixedHistory(nativeLine, mod.resourceDelivery, mod);
     restoreState.active = false;
-    const externalRestore = runMixedHistory(externalLine, mod);
+    phase = "external restore";
+    const externalRestore = runMixedHistory(
+      externalLine,
+      resource.compatibility.delivery,
+      mod,
+    );
 
+    phase = "assert restore";
     assert.deepEqual(nativeRestore, {
       kind: "restored",
       mode: "SameRuntimeBranchExact",
-      branchId: 88,
-      snapshotId: 177,
+      branchId: branch.id,
+      snapshotId,
       basisCurrentId: "basis-3",
       basisAdvanceCount: 2,
       reloadStatus: {
@@ -134,19 +164,43 @@ test("native and external collection definitions converge on one line model acro
       },
     });
     assert.deepEqual(externalRestore, nativeRestore);
-    assert.deepEqual(
-      projectExternalConvergenceDigest(externalLine),
-      projectExternalConvergenceDigest(nativeLine),
-    );
+    phase = "read digests";
+    const nativeDigest = projectExternalConvergenceDigest(nativeLine);
+    const externalDigest = projectExternalConvergenceDigest(externalLine);
+    phase = "assert digests";
+    assert.deepEqual(externalDigest.basis, nativeDigest.basis);
+    assert.deepEqual(externalDigest.availability, nativeDigest.availability);
+    assert.equal(externalDigest.lifecycleLength, nativeDigest.lifecycleLength);
+    assert.equal(externalDigest.lastLifecycleEvent, nativeDigest.lastLifecycleEvent);
+    assert.equal(externalDigest.requestBasisId, "basis-3");
+    assert.deepEqual(externalDigest.status, {
+      kind: "fulfilled",
+      operation: "restore",
+    });
+    assert.deepEqual(externalDigest.value, {
+      items: [{ id: "demo:1", title: "Restored Snapshot" }],
+    });
+    assert.equal(externalDigest.diagnostics.activity.lastOperation, "restore");
+    phase = "free lines";
+    nativeLine.free();
+    externalLine.free();
+    uninstallRestoreHook();
+    phase = "settle";
+    await settleRuntime();
+  } catch (error) {
+    throw new Error(`external compatibility phase failed: ${phase}`, {
+      cause: error,
+    });
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
-});
+  },
+);
 
 test("external resource definitions deny incompatible version or request contracts before materialization", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
+    const { mod, resource } = runtime;
 
     assert.throws(
       () =>
@@ -199,14 +253,14 @@ test("external resource definitions deny incompatible version or request contrac
       /require non-empty definitionId/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("external resource definitions deny unknown reconciliation contracts explicitly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
+    const { mod, resource } = runtime;
 
     assert.throws(
       () =>
@@ -255,6 +309,6 @@ test("external resource definitions deny unknown reconciliation contracts explic
       /reconciliationContract "paged-v1"/,
     );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

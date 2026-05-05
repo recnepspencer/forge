@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 import {
   assertLineStateUnchanged,
   captureLineState,
@@ -10,9 +9,9 @@ import {
 } from "./reconciliation_proof_helpers.mjs";
 
 test("paged lines do not overclaim summary patch admission for line-scoped summaries", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
+    const { mod, resource } = runtime;
     const feed = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -62,14 +61,14 @@ test("paged lines do not overclaim summary patch admission for line-scoped summa
     );
     assertLineStateUnchanged(line, before);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("paged lines admit summary patch when page-window summaries are declared explicitly", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const resource = mod.createResourceNamespace(createFakeSignalNamespace(), {});
+    const { mod, resource } = runtime;
     const feed = resource.paged({
       params: mod.resourceParams(),
       normalizeParams: ({ workspaceId }) =>
@@ -129,6 +128,6 @@ test("paged lines admit summary patch when page-window summaries are declared ex
     assert.equal(line.diagnostics().lastPatchedSummary, "visibleCount");
     assert.equal(line.history().lifecycle.at(-1)?.lastPatchedSummary, "visibleCount");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

@@ -25,6 +25,7 @@ import { recordLineHistoryEntry } from "../../lines/history/record_line_history_
 import { lookupOrCreateLine } from "../../lines/line_lookup.js";
 import { createLineHistoryState } from "../../lines/history/line_history_state.js";
 import { createLineLifecycleState } from "../../lines/state/line_lifecycle_state.js";
+import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
 import { createLineRequestState } from "../../requests/line_request_state.js";
@@ -32,6 +33,7 @@ import { createLineRequestState } from "../../requests/line_request_state.js";
 function createMaterializedFamily(
   kind,
   signalNamespace,
+  resourceLineEpoch,
   familyId,
   declaration,
   compatibility,
@@ -69,6 +71,7 @@ function createMaterializedFamily(
           familyIdentity,
           familyRecord,
           familyScope,
+          resourceLineEpoch,
           () => {
             lineCounter += 1;
             return lineCounter;
@@ -101,7 +104,106 @@ function createMaterializedLine(
   familyIdentity,
   familyRecord,
   familyScope,
+  resourceLineEpoch,
   nextLineCounter,
+) {
+  let sharedRequestState = null;
+  const sharedLifecycleHistory = createLineHistoryState();
+
+  function snapshotContinuity(materialization) {
+    try {
+      return Object.freeze({
+        status: materialization.binding.statusSignal(),
+        freshness: materialization.binding.freshnessSignal(),
+        diagnostics: materialization.binding.diagnosticsSignal(),
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  function restoreContinuity(materialization, continuitySnapshot) {
+    if (continuitySnapshot === null) {
+      return;
+    }
+    materialization.binding.statusSignal.set(continuitySnapshot.status);
+    materialization.binding.freshnessSignal.set(continuitySnapshot.freshness);
+    materialization.binding.diagnosticsSignal.set(continuitySnapshot.diagnostics);
+  }
+
+  function createReplacementMaterialization(requestDescriptorOverride = null) {
+    return createConcreteMaterialization(
+      canonicalParamIdentity,
+      familyIdentity,
+      familyRecord,
+      familyScope,
+      resourceLineEpoch,
+      nextLineCounter,
+      releaseCurrentLine,
+      rematerializeLine,
+      sharedLifecycleHistory,
+      sharedRequestState,
+      requestDescriptorOverride,
+    );
+  }
+
+  const lineBacking = createLineBackingRef(
+    resourceLineEpoch,
+    () => createReplacementMaterialization(),
+    snapshotContinuity,
+    restoreContinuity,
+  );
+  resourceLineEpoch.register(lineBacking);
+  const releaseCurrentLine = createCurrentLineRelease(
+    lineBacking,
+    resourceLineEpoch,
+    linesByCanonicalKey,
+    canonicalParamIdentity.canonicalKey,
+  );
+
+  function rematerializeLine({
+    requestDescriptorOverride = null,
+    invalidateNamespace = false,
+  } = {}) {
+    if (invalidateNamespace) {
+      resourceLineEpoch.invalidateAll();
+    }
+    return lineBacking.forceRematerialize(
+      () => createReplacementMaterialization(requestDescriptorOverride),
+    );
+  }
+
+  const materialization = rematerializeLine();
+  sharedRequestState = materialization.requestState;
+  recordLineHistoryEntry(
+    materialization.lifecycleHistory,
+    materialization.binding,
+    "materialized",
+  );
+  const handle = createMaterializedLineHandle(lineBacking);
+  return createLineRegistryEntry(lineBacking, handle);
+}
+
+function createMaterializedLineHandle(lineBacking) {
+  const baseHandle = createLineHandle(lineBacking);
+  if (lineBacking.current().patch.familyKind === "detail") {
+    return baseHandle;
+  }
+  return createPatchCapableLineHandle(baseHandle, lineBacking);
+}
+
+function createConcreteMaterialization(
+  canonicalParamIdentity,
+  familyIdentity,
+  familyRecord,
+  familyScope,
+  resourceLineEpoch,
+  nextLineCounter,
+  release,
+  rematerialize,
+  lifecycleHistory,
+  requestStateOverride,
+  requestDescriptorOverride = null,
 ) {
   const lineCounter = nextLineCounter();
   const lineScope = familyScope.scope(`line${lineCounter}`);
@@ -113,37 +215,39 @@ function createMaterializedLine(
     lineScope.scopeId,
     familyRecord.compatibility ?? null,
   );
-  const requestDescriptor = createResourceRequestDescriptor(
-    lineIdentity,
-    resolveResourceAuthPosture(
-      familyRecord.auth,
-      canonicalParamIdentity.params,
-      familyRecord.identity.kind,
-    ),
-    resolveResourceRequestContext(
-      familyRecord.requestContext,
-      canonicalParamIdentity.params,
-      familyRecord.identity.kind,
-    ),
-    resolveResourceContinuationPosture(
-      familyRecord.continuation,
-      canonicalParamIdentity.params,
-      familyRecord.identity.kind,
-    ),
-    resolveResourceProcessingJobPosture(
-      familyRecord.processingJob,
-      canonicalParamIdentity.params,
-      familyRecord.identity.kind,
-    ),
-    resolveResourceUploadTransportPosture(
-      familyRecord.uploadTransport,
-      canonicalParamIdentity.params,
-      familyRecord.identity.kind,
-    ),
-  );
+  const requestDescriptor =
+    requestDescriptorOverride
+    ?? createResourceRequestDescriptor(
+      lineIdentity,
+      resolveResourceAuthPosture(
+        familyRecord.auth,
+        canonicalParamIdentity.params,
+        familyRecord.identity.kind,
+      ),
+      resolveResourceRequestContext(
+        familyRecord.requestContext,
+        canonicalParamIdentity.params,
+        familyRecord.identity.kind,
+      ),
+      resolveResourceContinuationPosture(
+        familyRecord.continuation,
+        canonicalParamIdentity.params,
+        familyRecord.identity.kind,
+      ),
+      resolveResourceProcessingJobPosture(
+        familyRecord.processingJob,
+        canonicalParamIdentity.params,
+        familyRecord.identity.kind,
+      ),
+      resolveResourceUploadTransportPosture(
+        familyRecord.uploadTransport,
+        canonicalParamIdentity.params,
+        familyRecord.identity.kind,
+      ),
+    );
   const lifecycle = createLineLifecycleState();
-  const lifecycleHistory = createLineHistoryState();
-  const requestState = createLineRequestState(requestDescriptor);
+  const requestState =
+    requestStateOverride ?? createLineRequestState(requestDescriptor);
   const binding = createBinding(
     canonicalParamIdentity.params,
     lineScope,
@@ -168,13 +272,7 @@ function createMaterializedLine(
     familyRecord.declaration.itemIdentity,
     familyRecord.declaration.reconcile ?? null,
   );
-  const release = createLineRelease(
-    binding,
-    lifecycle,
-    linesByCanonicalKey,
-    canonicalParamIdentity.canonicalKey,
-  );
-  const materialization = createLineMaterializationRecord(
+  return createLineMaterializationRecord(
     lineIdentity,
     requestDescriptor,
     requestState,
@@ -184,21 +282,12 @@ function createMaterializedLine(
     delivery,
     patch,
     lineScope,
-    lifecycle,
-    reload,
-    release,
-  );
-  recordLineHistoryEntry(lifecycleHistory, binding, "materialized");
-  const handle = createMaterializedLineHandle(materialization);
-  return createLineRegistryEntry(materialization, handle);
-}
-
-function createMaterializedLineHandle(materialization) {
-  const baseHandle = createLineHandle(materialization);
-  if (materialization.patch.familyKind === "detail") {
-    return baseHandle;
-  }
-  return createPatchCapableLineHandle(baseHandle, materialization);
+      lifecycle,
+      reload,
+      release,
+      rematerialize,
+      resourceLineEpoch,
+    );
 }
 
 function createBinding(
@@ -223,9 +312,9 @@ function createBinding(
   );
 }
 
-function createLineRelease(
-  binding,
-  lifecycle,
+function createCurrentLineRelease(
+  lineBacking,
+  resourceLineEpoch,
   linesByCanonicalKey,
   canonicalKey,
 ) {
@@ -235,18 +324,29 @@ function createLineRelease(
       return;
     }
     released = true;
-    lifecycle.markReleased();
     linesByCanonicalKey.delete(canonicalKey);
-    lifecycle.releaseOwnedViews();
-    binding.valueSignal.free();
-    binding.readableValueSignal.free();
-    binding.processingSignal.free();
-    binding.uploadSignal.free();
-    binding.downloadSignal.free();
-    binding.statusSignal.free();
-    binding.freshnessSignal.free();
-    binding.diagnosticsSignal.free();
+    resourceLineEpoch.unregister(lineBacking);
+    const materialization = lineBacking.current();
+    if (materialization !== null) {
+      disposeLineMaterialization(materialization);
+    }
+    for (const retiredMaterialization of lineBacking.retired()) {
+      disposeLineMaterialization(retiredMaterialization);
+    }
   };
+}
+
+function disposeLineMaterialization(materialization) {
+  materialization.lifecycle.markReleased();
+  materialization.lifecycle.releaseOwnedViews();
+  materialization.binding.valueSignal.free();
+  materialization.binding.readableValueSignal.free();
+  materialization.binding.processingSignal.free();
+  materialization.binding.uploadSignal.free();
+  materialization.binding.downloadSignal.free();
+  materialization.binding.statusSignal.free();
+  materialization.binding.freshnessSignal.free();
+  materialization.binding.diagnosticsSignal.free();
 }
 
 export { createMaterializedFamily };

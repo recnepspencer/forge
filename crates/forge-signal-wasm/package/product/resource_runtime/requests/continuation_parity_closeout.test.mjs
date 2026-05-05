@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createDeferred } from "../runtime_fixture/deferred.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
-import { createRequestArtifactDigest } from "../runtime_fixture/request_artifacts.mjs";
+import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
+import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
+import { createRequestArtifactDigest } from "../runtime_fixture/proof/request_artifacts.mjs";
 
 test("explicit continuation absence and equivalent callback declarations stay honest across superseded reloads", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const noneFamily = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ invoiceId }) =>
@@ -97,15 +95,14 @@ test("explicit continuation absence and equivalent callback declarations stay ho
     assert.equal(line.request().continuation.callbackId, "invoice-complete");
     assert.equal(typeof line.history().availability.replay.kind, "string");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("invalid function-produced continuation posture is denied before load work begins", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealRequestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     let loadCalled = false;
     const invalidContinuation = resource.detail({
       params: mod.resourceParams(),
@@ -124,6 +121,6 @@ test("invalid function-produced continuation posture is denied before load work 
     );
     assert.equal(loadCalled, false);
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });

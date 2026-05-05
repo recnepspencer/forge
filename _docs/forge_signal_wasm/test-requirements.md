@@ -939,8 +939,8 @@ hidden rich-history materializer.
 What to stress
 
 - repeated summary reads under retained and rich-history conditions
-- fake runtime fixtures where replay or lineage materialization would throw or
-  count if touched
+- runtime-truth harness instrumentation where replay or lineage materialization
+  would throw or count if touched
 - summary reads before and after branch/restore capability is available
 
 What to verify

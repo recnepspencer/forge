@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
-import { createFakeSignalNamespace } from "../runtime_fixture/fake_signal_namespace.mjs";
+import { createRealResourceTestRuntime } from "../runtime_fixture/real_resource_runtime.mjs";
 
 test("resource line views stay attached to the owning line value", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -34,15 +32,14 @@ test("resource line views stay attached to the owning line value", async () => {
     assert.equal(line.descriptor().family.kind, "detail");
     assert.equal(line.descriptor().canonicalParams.canonicalKey, "p1");
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
 
 test("freeing a resource line disposes owned views", async () => {
-  const mod = await loadResourceModule();
+  const runtime = await createRealResourceTestRuntime();
   try {
-    const signalNamespace = createFakeSignalNamespace();
-    const resource = mod.createResourceNamespace(signalNamespace, {});
+    const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
       normalizeParams: ({ productId }) =>
@@ -59,9 +56,15 @@ test("freeing a resource line disposes owned views", async () => {
 
     line.free();
 
-    assert.throws(() => inventoryView(), /fake signal handle was used after free/);
-    assert.throws(() => labelView(), /fake signal handle was used after free/);
+    assert.throws(
+      () => inventoryView(),
+      /resource line view cannot be used after line\.free/,
+    );
+    assert.throws(
+      () => labelView(),
+      /resource line view cannot be used after line\.free/,
+    );
   } finally {
-    await mod.cleanup();
+    await runtime.cleanup();
   }
 });
