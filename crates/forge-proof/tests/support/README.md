@@ -19,6 +19,12 @@ Ownership split:
 - `proof_shapes/`
   - proof-shape digest vocabulary
   - basis digest vocabulary
+- `dx/`
+  - DX-local compile-fail and compile-pass bundle definition
+  - DX-local proof/failure/transition digest derivation
+  - DX-local hot-path codegen-honesty capture
+  - DX-local documentation default-path audit
+  - DX-local residual-debt derivation
 - `milestone1/`
   - Milestone 1 evidence derivation
   - Milestone 1 compile-fail bundle definition

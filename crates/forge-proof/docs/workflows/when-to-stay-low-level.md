@@ -12,6 +12,8 @@ This workflow explains when a caller should keep using the raw `forge-proof` sub
 
 ## Stable Entry Points
 
+- the raw escape hatch:
+  - `use forge_proof::raw::*;`
 - raw transition types such as:
   - `ResolveRecipeTransition`
   - `LowerRecipeTransition`
@@ -42,6 +44,17 @@ That usually means:
 - explicit proof redistribution on composition
 
 These are not places to be cute.
+
+## Raw Escape Hatch
+
+When the pleasant lane stops being semantically obvious, switch deliberately to:
+
+```rust
+use forge_proof::raw::*;
+```
+
+That keeps the semantic substrate first-class without forcing callers to
+reconstruct the crate's internal module topology.
 
 ## How It Executes
 

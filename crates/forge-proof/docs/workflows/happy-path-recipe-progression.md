@@ -18,6 +18,18 @@ Use it when the trusted authority and capability lanes are already available and
 - your current lane is success-only
 - you want a concrete starting point before moving to checked or boundary-bridged flows
 
+## Pleasant Lane First
+
+```rust
+use forge_proof::prelude::*;
+
+let executed = recipe("payload")
+    .resolve_with(resolution_authority, 8_u8)
+    .lower_with(lowering_capability)
+    .ready_with(readiness_authority, "runtime admission")
+    .execute();
+```
+
 ## Stable Entry Points
 
 - `Recipe::<Unresolved, T>::new(...)`
@@ -113,6 +125,29 @@ What is derived here:
 
 - resolved, lowered, ready, and executed forms are all stronger derived forms built from the previous stage
 
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
+
+let resolved = ResolveRecipeTransition.transition(
+    Recipe::<Unresolved, _>::new("payload"),
+    RecipeResolutionContext::new(8_u8, resolution_authority),
+);
+let lowered = LowerRecipeTransition::new(lowering_capability)
+    .transition(resolved.into_value())
+    .into_value();
+let ready = AdmitExecutionReadyRecipeTransition.transition(
+    lowered,
+    ExecutionReadinessContext::new("runtime admission", readiness_authority),
+);
+let executed = ExecuteReadyRecipeTransition.transition(ready.into_value()).into_value();
+```
+
+This is the same proof-bearing law surface as the pleasant lane. Stay pleasant
+by default; drop to raw when the extra explicitness helps more than the
+compression does.
+
 ## How It Relates To Other Features
 
 - Use [Checked Recipe Progression](./checked-recipe-progression.md) when the flow can deny, defer, stale, or require rebinding.
@@ -135,7 +170,7 @@ What is derived here:
 
 - this workflow is intentionally success-path only
 - it does not certify non-success divergence
-- it is explicit rather than builder-driven today
+- use the raw escape hatch when the compressed lane would hide too much
 
 ## Related Docs
 

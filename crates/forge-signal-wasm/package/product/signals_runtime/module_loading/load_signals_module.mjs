@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.join(moduleDir, "..", "..", "..");
 const packageSourceDir = path.join(packageDir, "..", "package-src");
+const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
 
 export async function loadSignalsModule(options = {}) {
@@ -67,6 +68,10 @@ export async function loadSignalsModule(options = {}) {
       );
     }
 
+    await writeConvertedTree(
+      apiSourceDir,
+      path.join(tempDir, "product", "api"),
+    );
     await writeConvertedTree(
       resourceSourceDir,
       path.join(tempDir, "product", "resource"),

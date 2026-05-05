@@ -64,6 +64,12 @@ Most consumers should start with:
 - pleasant ready-join helpers:
   - `join_ready(left, right)`
   - `compose_ready(left_outcome, || right_outcome)`
+- explicit scoped progression defaults:
+  - `proof_flow()`
+  - `.resolution_authority(...)`
+  - `.lowering_capability(...)`
+  - `.readiness_authority(...)`
+  - `.recipe(...).resolve(...).lower().ready(...).execute()`
 - grouped read helpers:
   - `.stage()`
   - `.basis_posture()`
@@ -71,6 +77,8 @@ Most consumers should start with:
   - `joined.summary()`
   - `family_action.kind()`
   - `lowered_family.action_kinds()`
+- the raw escape hatch:
+  - `use forge_proof::raw::*;`
 - `Recipe<Unresolved, T>::new(payload)` when you intentionally want the raw
   substrate spelling for staged recipe progression
 - transition helpers in the facade such as:
@@ -167,6 +175,49 @@ let has_strong_basis = ready_recipe.has_strong_basis();
 let join_summary = joined_ready_recipe.summary();
 let family_kinds = lowered_family.action_kinds();
 ```
+
+Common scoped-default lane:
+
+```rust
+let executed = proof_flow()
+    .resolution_authority(resolution_authority)
+    .lowering_capability(lowering_capability)
+    .readiness_authority(readiness_authority)
+    .recipe("payload")
+    .resolve(7_u8)
+    .lower()
+    .ready("runtime admission")
+    .execute();
+```
+
+Scoped defaults are explicit carriage, not ambient configuration:
+
+- inherited witnesses and capabilities are visible in the code
+- each inherited witness is still consumed exactly once
+- local overrides stay explicit through `.resolve_with(...)`, `.lower_with(...)`, and `.ready_with(...)`
+
+## Raw Escape Hatch
+
+The pleasant lane is the default recommendation, not the only honest surface.
+
+When the domain needs the semantic substrate directly, reach for:
+
+```rust
+use forge_proof::raw::*;
+```
+
+That module keeps the raw proof-bearing surface first-class without asking
+callers to import through internal module topology.
+
+Use the raw escape hatch when:
+
+- a convenience verb would hide a real adversarial boundary
+- a review needs the transition nouns visible
+- a domain helper is still being designed and the compressed lane would guess
+  too much
+
+Do not use it to rebuild stronger forms manually. The raw lane is still the
+same semantic substrate with the same sealed minting and progression law.
 
 ## Core Mental Model
 

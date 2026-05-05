@@ -53,6 +53,26 @@ test("resource lines refresh in place and record diagnostics", async () => {
         processingJob: {
           kind: "none",
         },
+        sources: {
+          auth: {
+            source: "default.auth",
+          },
+          context: {
+            headers: {},
+            correlationId: null,
+            branchId: null,
+            basisId: null,
+          },
+          continuation: {
+            source: "default.continuation",
+          },
+          processingJob: {
+            source: "default.processingJob",
+          },
+          uploadTransport: {
+            source: "default.uploadTransport",
+          },
+        },
         uploadTransport: {
           kind: "none",
         },

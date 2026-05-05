@@ -5,6 +5,7 @@ function createResourceRequestDescriptor(
   continuation,
   processingJob,
   uploadTransport,
+  sources,
 ) {
   return Object.freeze({
     family: lineIdentity.family,
@@ -14,6 +15,7 @@ function createResourceRequestDescriptor(
     continuation,
     processingJob,
     uploadTransport,
+    sources,
   });
 }
 

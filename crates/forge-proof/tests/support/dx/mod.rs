@@ -1,29 +1,45 @@
-use crate::support::compile_pass::{CompilePassBundle, CompilePassCase};
+mod closeout;
+mod codegen;
+mod compile;
+mod digests;
+mod docs;
+mod representatives;
+
+pub fn compile_fail_bundle() -> CompileFailBundle {
+    compile::compile_fail_bundle()
+}
 
 pub fn compile_pass_bundle() -> CompilePassBundle {
-    CompilePassBundle::new(
-        "pleasant_entrypoints_are_additive_guidance",
-        vec![
-            CompilePassCase::new(
-                "prelude-plus-raw-lane",
-                "tests/ui/dx/compile_pass/prelude_plus_raw_lane_compiles.rs",
-            ),
-            CompilePassCase::new(
-                "verb-first-progression",
-                "tests/ui/dx/compile_pass/verb_first_progression_compiles.rs",
-            ),
-            CompilePassCase::new(
-                "checked-and-boundary-progression",
-                "tests/ui/dx/compile_pass/checked_and_boundary_progression_compiles.rs",
-            ),
-            CompilePassCase::new(
-                "composition-and-family-authoring",
-                "tests/ui/dx/compile_pass/composition_and_family_authoring_compiles.rs",
-            ),
-            CompilePassCase::new(
-                "grouped-read-inspectors",
-                "tests/ui/dx/compile_pass/grouped_read_inspectors_compiles.rs",
-            ),
-        ],
-    )
+    compile::compile_pass_bundle()
+}
+
+use crate::support::compile_fail::CompileFailBundle;
+use crate::support::compile_pass::CompilePassBundle;
+use crate::support::proof_shapes::{FailureDigest, ProofShapeDigest, TransitionDigest};
+use crate::support::type_shapes::{CodegenHonestyReport, ResidualDebtReport};
+
+pub use docs::DocumentationDefaultPathAudit;
+
+pub fn proof_shape_digest() -> ProofShapeDigest {
+    digests::proof_shape_digest()
+}
+
+pub fn transition_digest() -> TransitionDigest {
+    digests::transition_digest()
+}
+
+pub fn failure_digest() -> FailureDigest {
+    digests::failure_digest()
+}
+
+pub fn codegen_honesty_report() -> CodegenHonestyReport {
+    codegen::codegen_honesty_report()
+}
+
+pub fn documentation_default_path_audit() -> DocumentationDefaultPathAudit {
+    docs::documentation_default_path_audit()
+}
+
+pub fn residual_debt_report() -> ResidualDebtReport {
+    closeout::residual_debt_report()
 }

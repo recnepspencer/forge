@@ -52,6 +52,40 @@ test("resource request posture lowers auth and context into line request truth a
       uploadTransport: {
         kind: "none",
       },
+      sources: {
+        auth: {
+          source: "endpoint.auth",
+        },
+        context: {
+          headers: {
+            "x-workspace-id": {
+              source: "endpoint.requestContext",
+              overridden: false,
+            },
+          },
+          correlationId: {
+            source: "endpoint.requestContext",
+            overridden: false,
+          },
+          branchId: {
+            source: "endpoint.requestContext",
+            overridden: false,
+          },
+          basisId: {
+            source: "endpoint.requestContext",
+            overridden: false,
+          },
+        },
+        continuation: {
+          source: "default.continuation",
+        },
+        processingJob: {
+          source: "default.processingJob",
+        },
+        uploadTransport: {
+          source: "default.uploadTransport",
+        },
+      },
     });
     assert.deepEqual(
       normalizeForProof(capturedRequest),
@@ -79,6 +113,40 @@ test("resource request posture lowers auth and context into line request truth a
         },
         uploadTransport: {
           kind: "none",
+        },
+        sources: {
+          auth: {
+            source: "endpoint.auth",
+          },
+          context: {
+            headers: {
+              "x-workspace-id": {
+                source: "endpoint.requestContext",
+                overridden: false,
+              },
+            },
+            correlationId: {
+              source: "endpoint.requestContext",
+              overridden: false,
+            },
+            branchId: {
+              source: "endpoint.requestContext",
+              overridden: false,
+            },
+            basisId: {
+              source: "endpoint.requestContext",
+              overridden: false,
+            },
+          },
+          continuation: {
+            source: "default.continuation",
+          },
+          processingJob: {
+            source: "default.processingJob",
+          },
+          uploadTransport: {
+            source: "default.uploadTransport",
+          },
         },
       },
       basis: {
@@ -176,11 +244,22 @@ test("resource request posture can resolve auth and context from params", async 
     assert.deepEqual(line.request().context.headers, {
       "x-workspace-id": "demo",
     });
+    assert.deepEqual(line.request().sources.context.headers, {
+      "x-workspace-id": {
+        source: "endpoint.requestContext",
+        overridden: false,
+      },
+    });
     assert.equal(line.request().context.branchId, 9);
+    assert.equal(line.request().sources.auth.source, "endpoint.auth");
     assert.equal(line.diagnostics().request.auth.kind, "workspace");
     assert.deepEqual(line.diagnostics().request.context.headerNames, [
       "x-workspace-id",
     ]);
+    assert.equal(
+      line.diagnostics().request.sources.context.branchId.source,
+      "endpoint.requestContext",
+    );
     assert.equal(line.request().uploadTransport.kind, "none");
   } finally {
     await runtime.cleanup();

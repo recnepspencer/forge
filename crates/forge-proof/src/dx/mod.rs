@@ -10,10 +10,13 @@ mod execution_progression;
 mod family_authoring;
 mod ready_join;
 mod recipe_progression;
+mod scoped_flow;
 mod stage_reads;
 
 #[cfg(test)]
 mod checked_progression_tests;
+#[cfg(test)]
+mod scoped_flow_tests;
 
 pub use basis_reads::{BasisPostureDxExt, BasisPostureKind};
 pub use boundary_progression::{
@@ -38,4 +41,5 @@ pub use execution_progression::ExecutionReadyRecipeDxExt;
 pub use family_authoring::{create, family_pair, retire, rewrite, supersede, FamilyPairDxExt};
 pub use ready_join::{compose_ready, join_ready};
 pub use recipe_progression::{LoweredRecipeDxExt, ResolvedRecipeDxExt, UnresolvedRecipeDxExt};
+pub use scoped_flow::{proof_flow, ProofFlow};
 pub use stage_reads::{RecipeStageDxExt, RecipeStageKind};

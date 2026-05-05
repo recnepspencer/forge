@@ -8,6 +8,7 @@ function createLineRequestState(requestDescriptor) {
     continuation: requestDescriptor.continuation,
     processingJob: requestDescriptor.processingJob,
     uploadTransport: requestDescriptor.uploadTransport,
+    sources: requestDescriptor.sources,
   });
 
   return Object.freeze({

@@ -239,6 +239,7 @@ function createRequestDiagnostics(requestDescriptor) {
       branchId: requestDescriptor.context.branchId,
       basisId: requestDescriptor.context.basisId,
     }),
+    sources: requestDescriptor.sources,
     continuation: requestDescriptor.continuation,
     processingJob: requestDescriptor.processingJob,
     uploadTransport: requestDescriptor.uploadTransport,

@@ -7,6 +7,7 @@ export async function createRealRequestRuntime(overrides = null) {
   const runtime = await createRealResourceRuntime();
   return {
     ...runtime,
+    signalsMod: runtime.mod,
     mod: runtime.resourceMod,
     resource: createRealResourceNamespace(
       runtime.resourceMod,

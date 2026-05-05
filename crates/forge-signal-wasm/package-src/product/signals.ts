@@ -15,6 +15,7 @@ import {
   visibilityCapability,
 } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
+import { createApiFactory } from "./api/api_namespace.js";
 import {
   createImportedSignalGraph,
   createPublishedSignalGraph,
@@ -333,6 +334,7 @@ export function wrapSignals(rawSignals, options) {
   const callableSignals = {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
+    api: null,
     spec: explicitSpec,
     scope(localScopeId) {
       return createScopedSignalNamespace(
@@ -555,6 +557,7 @@ export function wrapSignals(rawSignals, options) {
     callableSignals,
     rawSignals,
   );
+  callableSignals.api = createApiFactory(callableSignals);
   return callableSignals;
 }
 

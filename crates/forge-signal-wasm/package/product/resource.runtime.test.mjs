@@ -7,6 +7,7 @@ import "./resource_runtime/authoring/phase1_surface_convergence.test.mjs";
 import "./resource_runtime/closeout/full_resource_hostile_convergence.test.mjs";
 import "./resource_runtime/requests/continuation_parity_closeout.test.mjs";
 import "./resource_runtime/requests/continuation_posture.test.mjs";
+import "./resource_runtime/requests/api_scoped_defaults.test.mjs";
 import "./resource_runtime/requests/request_posture_closeout.test.mjs";
 import "./resource_runtime/requests/request_posture.test.mjs";
 import "./resource_runtime/lifecycle/history_honesty.test.mjs";

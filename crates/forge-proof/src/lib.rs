@@ -9,6 +9,7 @@ mod facade;
 mod phase;
 pub mod prelude;
 mod proof;
+pub mod raw;
 mod recipe;
 mod transition;
 

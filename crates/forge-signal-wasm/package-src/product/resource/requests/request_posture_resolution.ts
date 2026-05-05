@@ -6,29 +6,110 @@ import {
   requireResourceRequestContext,
   resourceRequestContext,
 } from "./request_context.js";
+import {
+  readTaggedRequestSourceResolution,
+} from "./request_source_metadata.js";
 
 function resolveResourceAuthPosture(input, params, family) {
   if (input === undefined) {
-    return resourceAuth.anonymous();
+    return Object.freeze({
+      value: resourceAuth.anonymous(),
+      source: Object.freeze({ source: "default.auth" }),
+    });
+  }
+  const tagged = readTaggedRequestSourceResolution(input, params);
+  if (tagged !== null) {
+    return Object.freeze({
+      value: requireResourceAuthPosture(tagged.value, family),
+      source: tagged.source,
+    });
   }
   const value = typeof input === "function" ? input(params) : input;
-  return requireResourceAuthPosture(value, family);
+  return Object.freeze({
+    value: requireResourceAuthPosture(value, family),
+    source: Object.freeze({ source: "endpoint.auth" }),
+  });
 }
 
 function resolveResourceRequestContext(input, params, family) {
   if (input === undefined) {
-    return resourceRequestContext();
+    return Object.freeze({
+      value: resourceRequestContext(),
+      source: Object.freeze({
+        headers: Object.freeze({}),
+        correlationId: null,
+        branchId: null,
+        basisId: null,
+      }),
+    });
+  }
+  const tagged = readTaggedRequestSourceResolution(input, params);
+  if (tagged !== null) {
+    return Object.freeze({
+      value: requireResourceRequestContext(tagged.value, family),
+      source: tagged.source,
+    });
   }
   const value = typeof input === "function" ? input(params) : input;
-  return requireResourceRequestContext(value, family);
+  return Object.freeze({
+    value: requireResourceRequestContext(value, family),
+    source: createDefaultContextSource(value),
+  });
 }
 
 function resolveResourceContinuationPosture(input, params, family) {
   if (input === undefined) {
-    return resourceContinuation.none();
+    return Object.freeze({
+      value: resourceContinuation.none(),
+      source: Object.freeze({ source: "default.continuation" }),
+    });
+  }
+  const tagged = readTaggedRequestSourceResolution(input, params);
+  if (tagged !== null) {
+    return Object.freeze({
+      value: requireResourceContinuationPosture(tagged.value, family),
+      source: tagged.source,
+    });
   }
   const value = typeof input === "function" ? input(params) : input;
-  return requireResourceContinuationPosture(value, family);
+  return Object.freeze({
+    value: requireResourceContinuationPosture(value, family),
+    source: Object.freeze({ source: "endpoint.continuation" }),
+  });
+}
+
+function createDefaultContextSource(context) {
+  const headers = {};
+  for (const name of Object.keys(context.headers)) {
+    headers[name] = Object.freeze({
+      source: "endpoint.requestContext",
+      overridden: false,
+    });
+  }
+  return Object.freeze({
+    headers: Object.freeze(headers),
+    correlationId:
+      context.correlationId === null
+        ? null
+        : Object.freeze({
+            source: "endpoint.requestContext",
+            overridden: false,
+          }),
+    branchId:
+      context.branchId === null
+        ? null
+        : Object.freeze({
+            source: "endpoint.requestContext",
+            overridden: false,
+          }),
+    basisId:
+      context.basisId === null
+        ? null
+        : Object.freeze({
+            source: "endpoint.requestContext",
+            overridden: false,
+          }),
+  });
 }
 
 export {

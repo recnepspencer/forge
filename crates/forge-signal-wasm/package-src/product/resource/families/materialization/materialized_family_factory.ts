@@ -217,33 +217,10 @@ function createConcreteMaterialization(
   );
   const requestDescriptor =
     requestDescriptorOverride
-    ?? createResourceRequestDescriptor(
+    ?? createResolvedRequestDescriptor(
       lineIdentity,
-      resolveResourceAuthPosture(
-        familyRecord.auth,
-        canonicalParamIdentity.params,
-        familyRecord.identity.kind,
-      ),
-      resolveResourceRequestContext(
-        familyRecord.requestContext,
-        canonicalParamIdentity.params,
-        familyRecord.identity.kind,
-      ),
-      resolveResourceContinuationPosture(
-        familyRecord.continuation,
-        canonicalParamIdentity.params,
-        familyRecord.identity.kind,
-      ),
-      resolveResourceProcessingJobPosture(
-        familyRecord.processingJob,
-        canonicalParamIdentity.params,
-        familyRecord.identity.kind,
-      ),
-      resolveResourceUploadTransportPosture(
-        familyRecord.uploadTransport,
-        canonicalParamIdentity.params,
-        familyRecord.identity.kind,
-      ),
+      familyRecord,
+      canonicalParamIdentity.params,
     );
   const lifecycle = createLineLifecycleState();
   const requestState =
@@ -288,6 +265,49 @@ function createConcreteMaterialization(
       rematerialize,
       resourceLineEpoch,
     );
+}
+
+function createResolvedRequestDescriptor(lineIdentity, familyRecord, params) {
+  const auth = resolveResourceAuthPosture(
+    familyRecord.auth,
+    params,
+    familyRecord.identity.kind,
+  );
+  const context = resolveResourceRequestContext(
+    familyRecord.requestContext,
+    params,
+    familyRecord.identity.kind,
+  );
+  const continuation = resolveResourceContinuationPosture(
+    familyRecord.continuation,
+    params,
+    familyRecord.identity.kind,
+  );
+  const processingJob = resolveResourceProcessingJobPosture(
+    familyRecord.processingJob,
+    params,
+    familyRecord.identity.kind,
+  );
+  const uploadTransport = resolveResourceUploadTransportPosture(
+    familyRecord.uploadTransport,
+    params,
+    familyRecord.identity.kind,
+  );
+  return createResourceRequestDescriptor(
+    lineIdentity,
+    auth.value,
+    context.value,
+    continuation.value,
+    processingJob.value,
+    uploadTransport.value,
+    Object.freeze({
+      auth: auth.source,
+      context: context.source,
+      continuation: continuation.source,
+      processingJob: processingJob.source,
+      uploadTransport: uploadTransport.source,
+    }),
+  );
 }
 
 function createBinding(

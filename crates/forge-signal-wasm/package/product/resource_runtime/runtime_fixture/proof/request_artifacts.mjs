@@ -12,6 +12,7 @@ function createRequestArtifactDigest(line) {
       branchId: request.context.branchId,
       basisId: request.context.basisId,
     },
+    sources: request.sources,
     continuation: request.continuation,
     processingJob: request.processingJob,
     uploadTransport: request.uploadTransport,

@@ -1,5 +1,5 @@
 use forge_proof::prelude::*;
-use forge_proof::{resolve_family_symbol, Recipe, Unresolved};
+use forge_proof::raw::{resolve_family_symbol, Recipe, Unresolved};
 
 fn main() {
     let pleasant_recipe = recipe("payload");
