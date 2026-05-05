@@ -27,6 +27,14 @@ Important boundary:
 
 - public code does not mint witnesses directly
 
+## DX Posture
+
+This is mostly substrate/reference material.
+
+- the pleasant lane consumes witnesses through verbs such as `.resolve_with(...)`, `.lower_with(...)`, `.ready_with(...)`, `.readmit_with(...)`, and `proof_flow()`
+- witness definition and witness-bearing signatures remain raw-substrate truth
+- when you work directly with witness types and marker traits, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 A witness is not the same thing as a proof.

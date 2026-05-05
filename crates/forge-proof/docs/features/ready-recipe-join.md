@@ -12,13 +12,17 @@ Ready-recipe join combines two execution-ready recipes into one execution-ready 
 
 ## Stable Entry Points
 
-- `join_ready_recipe_pair(...)`
-- `compose_join_ready_recipe_pair(...)`
-- `JoinInputs2<L, R>`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `join_ready(left, right)`
+  - `compose_ready(left_outcome, || right_outcome)`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `join_ready_recipe_pair(...)`
+  - `compose_join_ready_recipe_pair(...)`
+  - `JoinInputs2<L, R>`
 
 ## Core Mental Model
-
-This feature is narrower than generic artifact join.
 
 Its laws are:
 
@@ -27,49 +31,30 @@ Its laws are:
 - output basis remains a `JoinInputs2<LA, RA>`
 - checked composition short-circuits non-success lanes before evaluating later inputs
 
-It deliberately avoids collapsing two basis lanes into one fake monolithic basis.
-
-## How It Executes
-
-Plain ready join:
-
-1. take `JoinInputs2<ExecutionReadyRecipe<L, LA>, ExecutionReadyRecipe<R, RA>>`
-2. extract both payload and basis positions
-3. return `ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>>`
-
-Composed ready join:
-
-1. take a left `TransitionOutcome<ExecutionReadyRecipe<...>>`
-2. lazily supply the right lane with a closure
-3. join only if the left lane succeeded
-4. preserve non-success categories unchanged otherwise
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{ExecutionReadyRecipe, JoinInputs2};
+use forge_proof::prelude::*;
 
-type Joined = ExecutionReadyRecipe<JoinInputs2<u8, u16>, JoinInputs2<u32, u64>>;
-let _ = std::any::type_name::<Joined>();
+fn join<LA, LB, A, B>(
+    left: forge_proof::ExecutionReadyRecipe<LA, A>,
+    right: forge_proof::ExecutionReadyRecipe<LB, B>,
+) {
+    let joined = join_ready(left, right);
+    let _ = joined.payload().left();
+}
 ```
 
-This is the smallest honest example because public callers normally receive ready recipes from progression rather than minting them directly.
-
-## Real Example
+## Equivalent Raw Surface
 
 ```rust
-use forge_proof::{
-    compose_join_ready_recipe_pair, ExecutionReadyRecipe, JoinInputs2, SuccessfulTransitionOutcome,
-    TransitionOutcome,
-};
+use forge_proof::raw::*;
 
 fn join<LA, LB, A, B>(
     left: ExecutionReadyRecipe<LA, A>,
     right: ExecutionReadyRecipe<LB, B>,
 ) {
-    let joined: TransitionOutcome<
-        ExecutionReadyRecipe<JoinInputs2<LA, LB>, JoinInputs2<A, B>>,
-    > = compose_join_ready_recipe_pair(
+    let joined = compose_join_ready_recipe_pair(
         SuccessfulTransitionOutcome::new(left).into(),
         || SuccessfulTransitionOutcome::new(right).into(),
     );
@@ -77,12 +62,6 @@ fn join<LA, LB, A, B>(
     let _ = joined;
 }
 ```
-
-What this shows:
-
-- the joined ready surface preserves both positions explicitly
-- the join happens at the ready layer, not at raw lowered stage
-- success composition stays lazy and outcome-aware
 
 ## How It Relates To Other Features
 
@@ -101,12 +80,6 @@ What this shows:
 - Do not flatten two basis positions into one ad hoc basis value.
 - Do not join lowered recipes through this surface; it is for ready recipes only.
 - Do not eagerly compute the right lane when the join should short-circuit on earlier non-success.
-
-## Current Limits
-
-- only pairwise ready join exists here
-- the surface is intentionally explicit rather than fluent
-- readiness is assumed, not established, by this feature
 
 ## Related Docs
 

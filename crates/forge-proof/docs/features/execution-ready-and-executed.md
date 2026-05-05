@@ -7,8 +7,6 @@ These wrappers represent the two stronger runtime-adjacent recipe states beyond 
 - `ExecutionReadyRecipe<T, A>`
 - `ExecutedRecipe<T, A>`
 
-They make execution-admitted and post-execution progression explicit without turning `forge-proof` into a runtime engine.
-
 ## Why You Use It
 
 - a lowered recipe is not yet safe to treat as execution-ready
@@ -17,26 +15,25 @@ They make execution-admitted and post-execution progression explicit without tur
 
 ## Stable Entry Points
 
-- `ExecutionReadyRecipe<T, A>`
-- `ExecutionReadyRecipe::payload()`
-- `ExecutionReadyRecipe::basis()`
-- `ExecutionReadyRecipe::into_parts()`
-- `ExecutionReadyRecipe::strong_basis()`
-- `ExecutedRecipe<T, A>`
-- `ExecutedRecipe::payload()`
-- `ExecutedRecipe::basis()`
-- `ExecutedRecipe::into_parts()`
-- `ExecutedRecipe::strong_basis()`
-
-Related transitions live in:
-
-- [Basic Transitions](./basic-transitions.md)
-- [Checked Transitions](./checked-transitions.md)
-- [Runtime Readmission](./runtime-readmission.md)
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `.ready_with(...)`
+  - `.ready(...)`
+  - `.execute()`
+  - `.stage()`
+  - `.basis_posture()`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `ExecutionReadyRecipe<T, A>`
+  - `ExecutedRecipe<T, A>`
+  - `ExecutionReadyRecipe::payload()`
+  - `ExecutionReadyRecipe::basis()`
+  - `ExecutionReadyRecipe::into_parts()`
+  - `ExecutedRecipe::payload()`
+  - `ExecutedRecipe::basis()`
+  - `ExecutedRecipe::into_parts()`
 
 ## Core Mental Model
-
-Execution readiness is not just another label on `Recipe<Lowered, ...>`.
 
 The crate keeps these states distinct:
 
@@ -46,45 +43,39 @@ The crate keeps these states distinct:
 
 That separation matters because a lowered form may still require runtime admission, readmission, or checked readiness handling before execution is legal.
 
-## How It Executes
-
-Typical progression:
-
-1. begin with `Recipe<Lowered, T, A>`
-2. admit it for execution into `ExecutionReadyRecipe<T, A>`
-3. execute it into `ExecutedRecipe<T, A>`
-
-The wrappers preserve the same payload and basis shape, but they tell the compiler and the reader that an additional progression boundary was crossed.
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::ExecutionReadyRecipe;
+use forge_proof::prelude::*;
 
-type ReadyPayload = ExecutionReadyRecipe<&'static str, u8>;
-let _ = std::any::type_name::<ReadyPayload>();
-```
+fn execute(
+    resolution_authority: forge_proof::AuthorityWitness<ResolutionAuthority>,
+    lowering_capability: forge_proof::CapabilityWitness<LoweringCapability>,
+    readiness_authority: forge_proof::AuthorityWitness<ReadinessAuthority>,
+) {
+    let executed = recipe("payload")
+        .resolve_with(resolution_authority, 17_u8)
+        .lower_with(lowering_capability)
+        .ready_with(readiness_authority, "runtime admission")
+        .execute();
 
-This is the smallest honest example because public callers generally receive these wrappers from transitions rather than constructing them directly.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    AdmitExecutionReadyRecipeTransition, AuthorityMarker, AuthorityWitness, CapabilityMarker,
-    CapabilityWitness, ContextualTransition, ExecuteReadyRecipeTransition,
-    ExecutionReadinessContext, LowerRecipeTransition, Recipe, RecipeResolutionContext,
-    ResolveRecipeTransition, Transition, Unresolved,
-};
+    let _ = executed.stage();
+}
 
 struct ResolutionAuthority;
-impl AuthorityMarker for ResolutionAuthority {}
+impl forge_proof::AuthorityMarker for ResolutionAuthority {}
 
 struct LoweringCapability;
-impl CapabilityMarker for LoweringCapability {}
+impl forge_proof::CapabilityMarker for LoweringCapability {}
 
 struct ReadinessAuthority;
-impl AuthorityMarker for ReadinessAuthority {}
+impl forge_proof::AuthorityMarker for ReadinessAuthority {}
+```
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
 
 fn execute(
     resolution_authority: AuthorityWitness<ResolutionAuthority>,
@@ -105,16 +96,24 @@ fn execute(
     );
     let executed = ExecuteReadyRecipeTransition.transition(ready.into_value()).into_value();
 
-    assert_eq!(executed.payload(), &"payload");
-    assert_eq!(executed.strong_basis().value(), &17_u8);
+    let _ = executed.payload();
 }
+
+struct ResolutionAuthority;
+impl AuthorityMarker for ResolutionAuthority {}
+
+struct LoweringCapability;
+impl CapabilityMarker for LoweringCapability {}
+
+struct ReadinessAuthority;
+impl AuthorityMarker for ReadinessAuthority {}
 ```
 
-What this shows:
+Use the raw lane when:
 
-- readiness is a separate progression step
-- execution consumes a ready wrapper, not a raw lowered recipe
-- the executed form still exposes its strong basis honestly
+- you need direct control over readiness context construction
+- you are building a domain-facing runtime progression helper
+- you want the explicit transition types in view
 
 ## How It Relates To Other Features
 
@@ -133,12 +132,6 @@ What this shows:
 - Do not treat `Recipe<Lowered, ...>` as though it were already execution-ready.
 - Do not treat `ExecutionReadyRecipe<T, A>` as equivalent to `ExecutedRecipe<T, A>`.
 - Do not skip readiness by inventing local aliases that erase the wrapper difference.
-
-## Current Limits
-
-- public construction is sealed
-- execution here means proof-bearing progression, not a generic runtime engine
-- these wrappers preserve shape honesty but do not add diagnostics or descriptive reporting
 
 ## Related Docs
 

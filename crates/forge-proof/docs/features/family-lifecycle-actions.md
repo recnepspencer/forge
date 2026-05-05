@@ -12,11 +12,25 @@ Family lifecycle actions are the explicit action vocabulary for same-family comp
 
 ## Stable Entry Points
 
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `create(...)`
+  - `rewrite(...)`
+  - `supersede(...)`
+  - `retire(...)`
+- raw lane:
+  - `use forge_proof::raw::*;`
 - `FamilyLifecycleAction<S, A, P>`
   - `Create { symbol, payload }`
   - `Rewrite { target, payload }`
   - `Supersede { target, replacement, payload }`
   - `Retire { target }`
+
+## DX Posture
+
+- the pleasant helpers build lifecycle intent, not lowered or authoritative truth
+- pattern matching and direct enum construction remain the raw substrate truth
+- use the pleasant helpers when authoring common family flows, and the raw enum when teaching or extending the substrate
 
 ## Core Mental Model
 

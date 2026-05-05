@@ -12,13 +12,22 @@ This workflow shows how to build a same-family composition with symbolic and aut
 
 ## Stable Entry Points
 
-- `CompositionFamilySymbol::new(...)`
-- `AuthoritativeFamilyMember::new(...)`
-- `resolve_family_symbol(...)`
-- `FamilyLifecycleAction`
-- `Pair`
-- `lower_deterministic_family_pair(...)`
-- `LoweredFamilyProgram2`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `create(...)`
+  - `rewrite(...)`
+  - `supersede(...)`
+  - `retire(...)`
+  - `family_pair(left, right)`
+  - `.lower_by(...)`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `CompositionFamilySymbol::new(...)`
+  - `AuthoritativeFamilyMember::new(...)`
+  - `resolve_family_symbol(...)`
+  - `FamilyLifecycleAction`
+  - `Pair`
+  - `lower_deterministic_family_pair(...)`
 
 ## Core Mental Model
 
@@ -31,36 +40,51 @@ The central laws are:
 - lifecycle actions stay explicit
 - deterministic lowering happens before later authority closes over the family
 
-## How It Executes
-
-1. create one or more family symbols
-2. create or obtain authoritative family members
-3. resolve symbol-to-authoritative relationships when needed
-4. build lifecycle actions
-5. place them into a fixed-arity carrier
-6. lower them with a canonical key into `LoweredFamilyProgram2`
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{AuthoritativeFamilyMember, CompositionFamilySymbol};
+use forge_proof::prelude::*;
 
-let symbol = CompositionFamilySymbol::new(2_u8);
-let member = AuthoritativeFamilyMember::new(11_u16);
+fn family_action_key(
+    action: &forge_proof::FamilyLifecycleAction<u8, u16, &'static str>,
+) -> (u8, Option<u8>, Option<u16>) {
+    match action {
+        forge_proof::FamilyLifecycleAction::Retire { target } => {
+            (0, None, Some(*target.value()))
+        }
+        forge_proof::FamilyLifecycleAction::Rewrite { target, .. } => {
+            (1, None, Some(*target.value()))
+        }
+        forge_proof::FamilyLifecycleAction::Supersede { target, .. } => {
+            (2, None, Some(*target.value()))
+        }
+        forge_proof::FamilyLifecycleAction::Create { symbol, .. } => {
+            (3, Some(*symbol.value()), None)
+        }
+    }
+}
 
-assert_eq!(symbol.value(), &2_u8);
-assert_eq!(member.value(), &11_u16);
+fn lower() {
+    let lowered = family_pair(
+        create(sym(2_u8), "create"),
+        supersede(member(11_u16), sym(3_u8), "replace"),
+    )
+    .lower_by(family_action_key);
+
+    let _ = lowered.actions();
+}
 ```
 
-This is the smallest honest example because the entire workflow depends on keeping those two identity lanes distinct from the start.
+What this keeps visible:
 
-## Real Example
+- helper constructors create intent, not lowered truth
+- deterministic lowering still requires an explicit canonical key
+- the pleasant lane stays pair-shaped instead of inventing a dynamic family engine
+
+## Equivalent Raw Surface
 
 ```rust
-use forge_proof::{
-    lower_deterministic_family_pair, resolve_family_symbol, AuthoritativeFamilyMember,
-    CompositionFamilySymbol, FamilyLifecycleAction, Pair,
-};
+use forge_proof::raw::*;
 
 fn family_action_key(
     action: &FamilyLifecycleAction<u8, u16, &'static str>,
@@ -93,16 +117,15 @@ fn lower() {
         family_action_key,
     );
 
-    let _actions = lowered.actions();
-    let _proof = lowered.proof();
+    let _ = lowered.actions();
 }
 ```
 
-What this shows:
+Use the raw lane when:
 
-- symbolic references are preserved until they must become authoritative
-- lifecycle intent is explicit before lowering
-- canonical ordering is caller-defined and then proven
+- you need direct symbolic resolution before intent construction
+- you are building a domain-facing same-family helper
+- the pleasant pair grammar stops being semantically obvious
 
 ## How It Relates To Other Features
 
@@ -121,12 +144,6 @@ What this shows:
 - Do not treat symbolic handles as authoritative identities.
 - Do not lower same-family lifecycle intent without an explicit canonical ordering rule.
 - Do not collapse create, rewrite, supersede, and retire into one generic update abstraction.
-
-## Current Limits
-
-- the stable lowering surface is pair-based
-- canonical ordering policy is caller-supplied
-- this workflow models deterministic lowering, not later execution or descriptive reporting
 
 ## Related Docs
 

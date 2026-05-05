@@ -12,19 +12,24 @@ Recipes are the crate's main staged progression carrier. `Recipe<S, T, A>` lets 
 
 ## Stable Entry Points
 
-- `Recipe<S, T, A>`
-- `Recipe::<Unresolved, T>::new(payload)`
-- `Recipe::payload()`
-- `Recipe::basis()`
-- `Recipe::into_parts()`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `recipe(payload)`
+  - `.resolve_with(...)`
+  - `.lower_with(...)`
+  - `.admit_with(...)`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `Recipe<S, T, A>`
+  - `Recipe::<Unresolved, T>::new(payload)`
+  - `Recipe::payload()`
+  - `Recipe::basis()`
+  - `Recipe::into_parts()`
 - stage markers:
   - `Unresolved`
   - `Resolved`
   - `Lowered`
   - `Admitted`
-- wrappers built on top of recipes:
-  - `ExecutionReadyRecipe<T, A>`
-  - `ExecutedRecipe<T, A>`
 
 ## Core Mental Model
 
@@ -41,46 +46,33 @@ The main stages mean:
 - `Admitted`
   - the lowered form passed admission law
 
-This is the main substrate that later readiness, execution, and checked-transition APIs build on.
-
-## How It Executes
-
-Canonical progression usually looks like:
-
-1. start with `Recipe<Unresolved, T>`
-2. resolve into `Recipe<Resolved, T, ...>`
-3. lower into `Recipe<Lowered, T, ...>`
-4. admit into `Recipe<Admitted, T, ...>`
-5. optionally progress into execution-ready and executed wrappers
-
-Not every workflow must pass through every stage, but the stage distinctions are real and enforced.
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{Recipe, Unresolved};
+use forge_proof::prelude::*;
 
-let unresolved = Recipe::<Unresolved, _>::new("payload");
+fn progress(
+    authority: forge_proof::AuthorityWitness<ResolutionAuthority>,
+    capability: forge_proof::CapabilityWitness<LoweringCapability>,
+) {
+    let lowered = recipe("payload")
+        .resolve_with(authority, 12_u8)
+        .lower_with(capability);
 
-assert_eq!(unresolved.payload(), &"payload");
-```
-
-This is the smallest honest example because only unresolved recipes have a public direct constructor.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness, ContextualTransition,
-    LowerRecipeTransition, Recipe, RecipeResolutionContext, ResolveRecipeTransition, Transition,
-    Unresolved,
-};
+    let _ = lowered.payload();
+}
 
 struct ResolutionAuthority;
-impl AuthorityMarker for ResolutionAuthority {}
+impl forge_proof::AuthorityMarker for ResolutionAuthority {}
 
 struct LoweringCapability;
-impl CapabilityMarker for LoweringCapability {}
+impl forge_proof::CapabilityMarker for LoweringCapability {}
+```
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
 
 fn progress(
     authority: AuthorityWitness<ResolutionAuthority>,
@@ -95,16 +87,21 @@ fn progress(
         .transition(resolved.into_value())
         .into_value();
 
-    let _payload = lowered.payload();
+    let _ = lowered.payload();
 }
+
+struct ResolutionAuthority;
+impl AuthorityMarker for ResolutionAuthority {}
+
+struct LoweringCapability;
+impl CapabilityMarker for LoweringCapability {}
 ```
 
-What this shows:
+Use the raw lane when:
 
-- the recipe starts unresolved
-- authority-backed resolution is explicit
-- capability-backed lowering is explicit
-- the stronger lowered form is not manually constructed by public code
+- you are authoring a domain-specific progression helper
+- you need direct access to transition and context types
+- the pleasant chain stops being semantically obvious
 
 ## How It Relates To Other Features
 
@@ -124,12 +121,6 @@ What this shows:
 - Do not flatten all recipe states into one payload type plus comments.
 - Do not try to skip directly to stronger stages by reconstructing internals manually.
 - Do not use generic artifacts when the real problem is staged progression law.
-
-## Current Limits
-
-- only `Unresolved` has a public direct constructor
-- stronger-stage minting is sealed
-- recipes model staged progression, not rich diagnostics or descriptive reporting
 
 ## Related Docs
 

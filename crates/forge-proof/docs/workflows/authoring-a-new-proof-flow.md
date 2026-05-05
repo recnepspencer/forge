@@ -12,16 +12,26 @@ This workflow explains how a domain crate should build a new progression surface
 
 ## Stable Entry Points
 
-- `Artifact`
-- `Recipe`
-- `Proof`
-- `AuthorityWitness`
-- `CapabilityWitness`
-- `Transition`
-- `ContextualTransition`
-- `TransitionOutcome`
-- `PreConstructionGate`
-- `TransitionReadiness`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `recipe(...)`
+  - `.resolve_with(...)`
+  - `.lower_with(...)`
+  - `.admit_with(...)`
+  - `.ready_with(...)`
+  - `.try_*` checked progression verbs
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `Artifact`
+  - `Recipe`
+  - `Proof`
+  - `AuthorityWitness`
+  - `CapabilityWitness`
+  - `Transition`
+  - `ContextualTransition`
+  - `TransitionOutcome`
+  - `PreConstructionGate`
+  - `TransitionReadiness`
 
 ## Core Mental Model
 
@@ -38,43 +48,44 @@ Ask:
 
 Then compose the domain flow from the existing substrate instead of hiding those answers inside one custom wrapper.
 
-## How It Executes
-
-1. choose whether the flow is artifact-based, recipe-based, or both
-2. decide what proofs, basis wrappers, and witnesses are real
-3. decide whether the workflow is success-only or checked
-4. build the smallest explicit public domain wrapper or helper around those surfaces
-5. add compile-fail or hostile tests for the invariants you care about
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{Recipe, Unresolved};
+use forge_proof::prelude::*;
 
-type DomainDraft = Recipe<Unresolved, &'static str>;
+fn domain_flow(
+    resolution_authority: forge_proof::AuthorityWitness<DomainResolutionAuthority>,
+    lowering_capability: forge_proof::CapabilityWitness<DomainLoweringCapability>,
+    admission_authority: forge_proof::AuthorityWitness<DomainAdmissionAuthority>,
+) {
+    let admitted = recipe("payload")
+        .resolve_with(resolution_authority, 7_u8)
+        .lower_with(lowering_capability)
+        .admit_with(admission_authority);
 
-let _ = std::any::type_name::<DomainDraft>();
-```
-
-This is the smallest honest example because most domain flows start by deciding which base carrier and initial stage actually fit.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    AdmitRecipeTransition, AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness,
-    LowerRecipeTransition, Recipe, RecipeResolutionContext, ResolveRecipeTransition, Transition,
-    Unresolved,
-};
+    let _ = admitted;
+}
 
 struct DomainResolutionAuthority;
-impl AuthorityMarker for DomainResolutionAuthority {}
+impl forge_proof::AuthorityMarker for DomainResolutionAuthority {}
 
 struct DomainLoweringCapability;
-impl CapabilityMarker for DomainLoweringCapability {}
+impl forge_proof::CapabilityMarker for DomainLoweringCapability {}
 
 struct DomainAdmissionAuthority;
-impl AuthorityMarker for DomainAdmissionAuthority {}
+impl forge_proof::AuthorityMarker for DomainAdmissionAuthority {}
+```
+
+This is the right starting point for most new domain flows:
+
+- it reuses the crate's blessed grammar
+- it keeps authority and capability explicit
+- it avoids introducing a second local proof language too early
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
 
 fn domain_flow(
     resolution_authority: AuthorityWitness<DomainResolutionAuthority>,
@@ -95,13 +106,22 @@ fn domain_flow(
 
     let _ = admitted;
 }
+
+struct DomainResolutionAuthority;
+impl AuthorityMarker for DomainResolutionAuthority {}
+
+struct DomainLoweringCapability;
+impl CapabilityMarker for DomainLoweringCapability {}
+
+struct DomainAdmissionAuthority;
+impl AuthorityMarker for DomainAdmissionAuthority {}
 ```
 
-What this demonstrates:
+Use the raw lane when:
 
-- the domain flow reuses the substrate instead of replacing it
-- domain-specific authority and capability names remain domain-owned
-- the proof-bearing progression law stays in `forge-proof`
+- the pleasant lane stops being semantically obvious
+- you need direct access to checked gates or readiness topology
+- you are implementing a domain helper that itself should lower into the substrate
 
 ## How It Relates To Other Features
 
@@ -120,12 +140,6 @@ What this demonstrates:
 - Do not create a second typestate substrate inside a domain crate.
 - Do not use domain-specific builders to hide trust-boundary or witness law.
 - Do not move shared progression law into `forge-foundational`; it belongs in `forge-proof`.
-
-## Current Limits
-
-- this workflow is guidance, not a macro generator
-- the crate still expects domain crates to choose their own marker types and payload semantics
-- AI-friendly higher-level facades are still a future DX refinement, not the current stable public story
 
 ## Related Docs
 

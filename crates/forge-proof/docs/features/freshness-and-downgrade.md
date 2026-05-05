@@ -27,6 +27,14 @@ Freshness and downgrade surfaces let `forge-proof` represent that a form was onc
   - `downgrade_to_rebind_required()`
   - `downgrade_to_authority_revalidation_required()`
 
+## DX Posture
+
+This feature has adjacent pleasant-lane verbs, but the freshness vocabulary itself is still substrate truth.
+
+- pleasant-lane weakening calls are the same downgrade helpers listed above
+- when you work directly with freshness wrapper types, prefer `use forge_proof::raw::*;`
+- the workflow doc [Staleness And Rebind](../workflows/staleness-and-rebind.md) is the pleasant-first teaching surface
+
 ## Core Mental Model
 
 Freshness is not a runtime log detail. It is part of semantic truth.

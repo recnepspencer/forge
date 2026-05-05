@@ -13,17 +13,28 @@ Checked transitions are the progression surfaces you use when non-success catego
 
 ## Stable Entry Points
 
-- `CheckedResolveRecipeTransition`
-- `CheckedLowerRecipeTransition<C>::new()`
-- `CheckedAdmitRecipeTransition<Auth>::new()`
-- `RecipeResolutionGate<B, Auth, D, De>`
-- `RecipeLoweringReadiness<T, B, C, D, De, F>`
-- `RecipeAdmissionReadiness<T, B, Auth, D, De, F>`
-- `resolve_lower_and_admit_recipe(...)`
-- `resolve_checked_lower_and_admit_recipe(...)`
-- `CheckedAdmitExecutionReadyRecipeTransition`
-- `ExecutionReadyAdmissionReadiness<T, B, R, Auth, D, De, F>`
-- `checked_admit_ready_and_execute_recipe(...)`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `.try_resolve(...)`
+  - `.try_resolve_ready(...)`
+  - `.try_lower(...)`
+  - `.try_lower_ready(...)`
+  - `.try_admit(...)`
+  - `.try_admit_ready(...)`
+  - `.try_ready(...)`
+  - `.try_ready_now(...)`
+  - `.try_execute()`
+  - `ProofOutcome`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `CheckedResolveRecipeTransition`
+  - `CheckedLowerRecipeTransition<C>::new()`
+  - `CheckedAdmitRecipeTransition<Auth>::new()`
+  - `RecipeResolutionGate<...>`
+  - `RecipeLoweringReadiness<...>`
+  - `RecipeAdmissionReadiness<...>`
+  - `ExecutionReadyAdmissionReadiness<...>`
+  - `TransitionOutcome`
 
 ## Core Mental Model
 
@@ -42,56 +53,39 @@ Instead, they preserve distinctions such as:
 - rebind-required
 - failed
 
-That makes them the honest surface for adversarial or runtime-sensitive flows.
-
-## How It Executes
-
-Representative checked flow:
-
-1. start with unresolved input
-2. gate resolution with a `PreConstructionGate`
-3. evaluate lowering readiness with `TransitionReadiness`
-4. evaluate admission or execution-readiness with `TransitionReadiness`
-5. receive a `TransitionOutcome<...>` that keeps the exact non-success category
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{
-    PreConstructionGate, RecipeResolutionContext, RecipeResolutionGate,
-};
+use forge_proof::prelude::*;
 
-type Gate = RecipeResolutionGate<u8, ResolutionAuthority, &'static str, &'static str>;
+fn checked_ready_execute(
+    resolution_authority: forge_proof::AuthorityWitness<ResolutionAuthority>,
+    lowering_capability: forge_proof::CapabilityWitness<LoweringCapability>,
+    readiness_authority: forge_proof::AuthorityWitness<ReadinessAuthority>,
+) {
+    let executed = recipe("payload")
+        .try_resolve_ready(12_u8, resolution_authority)
+        .try_lower_ready(lowering_capability)
+        .try_ready_now("runtime admission", readiness_authority)
+        .try_execute();
 
-struct ResolutionAuthority;
-
-let _ = std::any::type_name::<Gate>();
-let _denied = PreConstructionGate::<RecipeResolutionContext<u8, ResolutionAuthority>, _, _>::denied(
-    "denied",
-);
-```
-
-This is the smallest honest example because checked progression starts with explicit gating, not just with the transition type names.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness,
-    CheckedAdmitExecutionReadyRecipeTransition, ContextualTransition,
-    ExecutionReadinessContext, ExecutionReadyAdmissionReadiness, LowerRecipeTransition, Recipe,
-    RecipeResolutionContext, ResolveRecipeTransition, Transition, Unresolved,
-    checked_admit_ready_and_execute_recipe,
-};
+    let _ = executed.kind();
+}
 
 struct ResolutionAuthority;
-impl AuthorityMarker for ResolutionAuthority {}
+impl forge_proof::AuthorityMarker for ResolutionAuthority {}
 
 struct LoweringCapability;
-impl CapabilityMarker for LoweringCapability {}
+impl forge_proof::CapabilityMarker for LoweringCapability {}
 
 struct ReadinessAuthority;
-impl AuthorityMarker for ReadinessAuthority {}
+impl forge_proof::AuthorityMarker for ReadinessAuthority {}
+```
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
 
 type CheckedReadiness = ExecutionReadyAdmissionReadiness<
     &'static str,
@@ -127,13 +121,22 @@ fn checked_ready_execute(
 
     let _ = executed;
 }
+
+struct ResolutionAuthority;
+impl AuthorityMarker for ResolutionAuthority {}
+
+struct LoweringCapability;
+impl CapabilityMarker for LoweringCapability {}
+
+struct ReadinessAuthority;
+impl AuthorityMarker for ReadinessAuthority {}
 ```
 
-What this shows:
+Use the raw lane when:
 
-- checked readiness preserves more than simple success
-- the readiness type names all possible divergence categories
-- the result remains a `TransitionOutcome`, not a flattened boolean
+- you need direct gate and readiness types in the same local view
+- you are building a domain alias over the checked substrate
+- you need exact raw `TransitionOutcome` pattern matching
 
 ## How It Relates To Other Features
 
@@ -143,21 +146,15 @@ What this shows:
 
 ## Inspection And Debugging
 
+- `ProofOutcome::kind()` is the fastest pleasant-lane read
 - checked alias types show the exact divergence topology at the type level
-- `TransitionOutcome` pattern matching is the main way to inspect what happened
-- the helper functions are usually the clearest place to look when a flow appears to "stop early"
+- raw `TransitionOutcome` pattern matching is the main way to inspect what happened when you drop lower
 
 ## Anti-Patterns
 
 - Do not replace checked progression with `Result<T, E>` when stale or rebind categories matter.
 - Do not use checked helpers just to look sophisticated when only the straight success path exists.
 - Do not erase checked outcomes immediately if downstream logic still cares about why progression stopped.
-
-## Current Limits
-
-- checked types can be verbose, especially before domain-specific aliases are added
-- the crate preserves the topology, but domain crates still choose the concrete denial and failure payloads
-- checked progression remains explicit rather than builder-driven today
 
 ## Related Docs
 

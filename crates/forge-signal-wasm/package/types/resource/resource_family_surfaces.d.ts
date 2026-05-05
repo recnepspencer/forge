@@ -14,10 +14,17 @@ import type {
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
 
+type ExactResourceParams<TExpected, TActual extends TExpected> =
+  Exclude<keyof TActual, keyof TExpected> extends never ? TActual : never;
+
 export interface DetailResourceFamily<TParams, TValue> {
-  invalidate(params: TParams): boolean;
+  invalidate<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+  ): boolean;
   invalidateAll(): number;
-  line(params: TParams): ResourceLine<TParams, TValue | null>;
+  line<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+  ): ResourceLine<TParams, TValue | null>;
 }
 
 export interface CollectionResourceFamily<
@@ -32,10 +39,12 @@ export interface CollectionResourceFamily<
     any
   > | undefined = undefined,
 > {
-  invalidate(params: TParams): boolean;
+  invalidate<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+  ): boolean;
   invalidateAll(): number;
-  line(
-    params: TParams,
+  line<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
   ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "collection">;
 }
 
@@ -51,10 +60,12 @@ export interface PagedResourceFamily<
     any
   > | undefined = undefined,
 > {
-  invalidate(params: TParams): boolean;
+  invalidate<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+  ): boolean;
   invalidateAll(): number;
-  line(
-    params: TParams,
+  line<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
   ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "paged">;
 }
 

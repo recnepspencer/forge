@@ -30,6 +30,14 @@ Transition outcomes are the result vocabulary for progression in `forge-proof`. 
   - `TransitionOutcome::is_success()`
   - `TransitionOutcome::map_success(...)`
 
+## DX Posture
+
+This feature has a mixed DX story.
+
+- the pleasant checked lane exposes `ProofOutcome` and `ProofOutcomeKind` as narrow inspectors
+- raw `TransitionOutcome` remains the semantic source of truth
+- when you need full topology or direct pattern matching, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 The outcome type is part of the law.

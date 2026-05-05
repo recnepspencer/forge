@@ -35,6 +35,14 @@ Good to know:
 
 - `DisjointPair` construction is sealed because it carries a real proof fact
 
+## DX Posture
+
+This feature has a partial pleasant lane.
+
+- pleasant helpers exist for `pair(...)` and `non_empty(...)`
+- direct wrapper constructors such as `ExactlyOne::new(...)` and `Pair::new(...)` remain the raw substrate truth
+- when teaching or using the wrappers directly, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 These wrappers are for invariants that deserve to be part of the type, not runtime folklore.

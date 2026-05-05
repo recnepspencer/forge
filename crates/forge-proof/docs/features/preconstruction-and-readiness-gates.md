@@ -26,6 +26,14 @@ Preconstruction and readiness gates are the typed "not yet" surfaces that sit in
 - `TransitionReadiness::failed(...)`
 - `TransitionReadiness::map_ready(...)`
 
+## DX Posture
+
+This is raw-substrate reference material.
+
+- there is no separate pleasant-lane gate type family
+- the pleasant checked lane lowers into these gate types behind verbs such as `.try_resolve_ready(...)` and `.try_ready_now(...)`
+- when you need to author or inspect gates directly, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 These gate types are not just "another result."

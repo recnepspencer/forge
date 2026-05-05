@@ -24,6 +24,14 @@ Family symbol resolution is the surface that keeps temporary same-family symboli
 - `FamilyResolvedReference::into_authoritative()`
 - `resolve_family_symbol(symbol, authoritative)`
 
+## DX Posture
+
+This feature has a mixed DX story.
+
+- pleasant-lane identity constructors exist as `sym(...)` and `member(...)`
+- explicit symbol resolution still uses the raw substrate function `resolve_family_symbol(...)`
+- when you work directly with symbolic versus authoritative identity, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 This feature exists to prevent one of the nastiest same-commit mistakes:

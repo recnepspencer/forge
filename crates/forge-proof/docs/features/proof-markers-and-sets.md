@@ -25,6 +25,14 @@ Important boundary:
 - public code can observe and carry `Proof<P>`
 - public code cannot mint stronger proof-bearing forms directly
 
+## DX Posture
+
+This is raw-substrate reference material.
+
+- there is no separate pleasant-lane proof-construction surface
+- the pleasant lane teaches proof carriage indirectly through stronger forms and grouped reads
+- when you work directly with proof carriers or proof-set structure, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 A proof is not a capability token and not just a marker trait.

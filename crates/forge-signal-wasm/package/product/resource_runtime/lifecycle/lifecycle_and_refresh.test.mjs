@@ -56,6 +56,7 @@ test("resource lines refresh in place and record diagnostics", async () => {
         sources: {
           auth: {
             source: "default.auth",
+            overridden: false,
           },
           context: {
             headers: {},
@@ -65,12 +66,15 @@ test("resource lines refresh in place and record diagnostics", async () => {
           },
           continuation: {
             source: "default.continuation",
+            overridden: false,
           },
           processingJob: {
             source: "default.processingJob",
+            overridden: false,
           },
           uploadTransport: {
             source: "default.uploadTransport",
+            overridden: false,
           },
         },
         uploadTransport: {

@@ -55,6 +55,7 @@ test("resource request posture lowers auth and context into line request truth a
       sources: {
         auth: {
           source: "endpoint.auth",
+          overridden: false,
         },
         context: {
           headers: {
@@ -78,12 +79,15 @@ test("resource request posture lowers auth and context into line request truth a
         },
         continuation: {
           source: "default.continuation",
+          overridden: false,
         },
         processingJob: {
           source: "default.processingJob",
+          overridden: false,
         },
         uploadTransport: {
           source: "default.uploadTransport",
+          overridden: false,
         },
       },
     });
@@ -117,6 +121,7 @@ test("resource request posture lowers auth and context into line request truth a
         sources: {
           auth: {
             source: "endpoint.auth",
+            overridden: false,
           },
           context: {
             headers: {
@@ -140,12 +145,15 @@ test("resource request posture lowers auth and context into line request truth a
           },
           continuation: {
             source: "default.continuation",
+            overridden: false,
           },
           processingJob: {
             source: "default.processingJob",
+            overridden: false,
           },
           uploadTransport: {
             source: "default.uploadTransport",
+            overridden: false,
           },
         },
       },

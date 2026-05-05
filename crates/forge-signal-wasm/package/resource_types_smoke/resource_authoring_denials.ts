@@ -309,9 +309,9 @@ maybeReconciledCollection.line({ workspaceId: "demo" }).patch(
 );
 
 maybeReconciledCollection.line({ workspaceId: "demo" }).deliver(
-  // @ts-expect-error delivered narrow patching must stay denied when reconcile is not definitely present
   resourceDelivery.patch({
     packetId: "pkt-maybe",
+    // @ts-expect-error delivered narrow patching must stay denied when reconcile is not definitely present
     patch: resourcePatch.item({
       itemId: "demo",
       nextItem: { id: "demo", count: 2 },
@@ -450,8 +450,8 @@ pagedPlainSummary.line({ workspaceId: "demo" }).patch(
 
 resourceBinaryDescriptor.file({
   id: "bad-download",
-  // @ts-expect-error incompatible download reason must stay within the declared vocabulary
   download: resourceDownload.incompatible({
+    // @ts-expect-error incompatible download reason must stay within the declared vocabulary
     reason: "expired",
     detail: "wrong",
   }),

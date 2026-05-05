@@ -8,7 +8,10 @@ function resolveResourceProcessingJobPosture(input, params, family) {
   if (input === undefined) {
     return Object.freeze({
       value: resourceProcessingJob.none(),
-      source: Object.freeze({ source: "default.processingJob" }),
+      source: Object.freeze({
+        source: "default.processingJob",
+        overridden: false,
+      }),
     });
   }
   const tagged = readTaggedRequestSourceResolution(input, params);
@@ -21,7 +24,10 @@ function resolveResourceProcessingJobPosture(input, params, family) {
   const value = typeof input === "function" ? input(params) : input;
   return Object.freeze({
     value: requireResourceProcessingJobPosture(value, family),
-    source: Object.freeze({ source: "endpoint.processingJob" }),
+    source: Object.freeze({
+      source: "endpoint.processingJob",
+      overridden: false,
+    }),
   });
 }
 

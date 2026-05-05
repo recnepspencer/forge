@@ -133,21 +133,23 @@ function mergeTaggedInput(
   }
   return createTaggedRequestSourceInput((params) => {
     let resolvedValue = undefined;
-    let source = defaultSource;
+    let source = freezeTaggedSource(defaultSource, false);
+    let resolved = false;
     for (const layer of layers) {
       if (layer[field] === undefined) {
         continue;
       }
       resolvedValue = resolveInputValue(layer[field], params, field);
-      source = `${layer.label}.${field}`;
+      source = freezeTaggedSource(`${layer.label}.${field}`, resolved);
+      resolved = true;
     }
     if (endpointInput !== undefined) {
       resolvedValue = resolveInputValue(endpointInput, params, field);
-      source = `endpoint.${field}`;
+      source = freezeTaggedSource(`endpoint.${field}`, resolved);
     }
     return Object.freeze({
       value: resolvedValue,
-      source: Object.freeze({ source }),
+      source,
     });
   });
 }
@@ -349,6 +351,10 @@ function validatePostureInput(name, input, validator) {
 }
 
 function freezeFieldSource(source, overridden) {
+  return Object.freeze({ source, overridden });
+}
+
+function freezeTaggedSource(source, overridden) {
   return Object.freeze({ source, overridden });
 }
 

@@ -12,12 +12,17 @@ This workflow shows how to weaken a strong basis honestly when freshness is lost
 
 ## Stable Entry Points
 
-- `downgrade_to_stale_readable()`
-- `downgrade_to_rebind_required()`
-- `downgrade_to_authority_revalidation_required()`
-- `StaleReadableBasis<B>`
-- `RebindRequiredBasis<B>`
-- `AuthorityRevalidationRequiredBasis<B>`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `.downgrade_to_stale_readable()`
+  - `.downgrade_to_rebind_required()`
+  - `.downgrade_to_authority_revalidation_required()`
+  - `.rebind_with(authority, basis)`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `StaleReadableBasis<B>`
+  - `RebindRequiredBasis<B>`
+  - `AuthorityRevalidationRequiredBasis<B>`
 
 ## Core Mental Model
 
@@ -31,33 +36,40 @@ The important distinction is:
 
 Those are different states, and the workflow should preserve that.
 
-## How It Executes
-
-1. begin with a current-validity form
-2. choose the correct weakening path
-3. continue only through surfaces that accept the weaker state honestly
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{CurrentValidity, FreshnessScopedBasis, RebindRequiredBasis};
+use forge_proof::prelude::*;
 
-type Current = FreshnessScopedBasis<CurrentValidity, u8>;
-type Rebind = RebindRequiredBasis<u8>;
+fn weaken_and_rebind(
+    resolution_authority: forge_proof::AuthorityWitness<ResolutionAuthority>,
+    readmission_authority: forge_proof::AuthorityWitness<ReadmissionAuthority>,
+) {
+    let rebound = recipe("payload")
+        .resolve_with(resolution_authority, 7_u8)
+        .downgrade_to_rebind_required()
+        .rebind_with(readmission_authority, 9_u16);
 
-let _ = std::any::type_name::<Current>();
-let _ = std::any::type_name::<Rebind>();
+    let _ = rebound.strong_basis();
+}
+
+struct ResolutionAuthority;
+impl forge_proof::AuthorityMarker for ResolutionAuthority {}
+
+struct ReadmissionAuthority;
+impl forge_proof::AuthorityMarker for ReadmissionAuthority {}
 ```
 
-This is the smallest honest example because the workflow begins with understanding the weakened basis shapes.
+What this keeps visible:
 
-## Real Example
+- weakening is explicit
+- rebind is a different operation from readmission-after-bridge
+- basis replacement stays visible at the call site
+
+## Equivalent Raw Surface
 
 ```rust
-use forge_proof::{
-    AssumptionBasis, CurrentValidity, FreshnessScopedBasis, Recipe, Resolved,
-    RebindRequiredBasis,
-};
+use forge_proof::raw::*;
 
 type CurrentResolved =
     Recipe<Resolved, &'static str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>;
@@ -67,11 +79,11 @@ fn weaken(recipe: CurrentResolved) -> Recipe<Resolved, &'static str, RebindRequi
 }
 ```
 
-What is happening here:
+Use the raw lane when:
 
-- the recipe was once current and strong
-- the weakening preserves payload and basis value
-- the type now says rebinding is required before trusted progression can continue
+- you are reasoning directly about basis wrapper types
+- you need a substrate-local type alias for the weakened state
+- you are building a domain-facing freshness helper
 
 ## How It Relates To Other Features
 
@@ -90,12 +102,6 @@ What is happening here:
 - Do not keep treating a downgraded form as though it still had a strong basis.
 - Do not collapse stale, rebind, and authority revalidation into one generic "expired" state.
 - Do not silently replace the basis instead of using an explicit rebind or readmission surface.
-
-## Current Limits
-
-- this workflow explains weakening, not full recovery
-- the crate models freshness law, not every domain-specific cause of freshness loss
-- more complex recovery belongs in the readmission workflows
 
 ## Related Docs
 

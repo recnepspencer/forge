@@ -1,4 +1,5 @@
 import { mergeApiDeclaration, normalizeApiLayer } from "./api_request_defaults.js";
+import { createApiRouteBuilder } from "./api_route_builder.js";
 
 function createApiFactory(signalNamespace) {
   const state = { nextScopeId: 1 };
@@ -14,6 +15,9 @@ function createApiNamespace(signalNamespace, layers, state) {
       const layer = normalizeApiLayer(`apiScope[${state.nextScopeId}]`, options);
       state.nextScopeId += 1;
       return createApiNamespace(signalNamespace, [...layers, layer], state);
+    },
+    url(route) {
+      return createApiRouteBuilder(signalNamespace, layers, route);
     },
     detail(declaration) {
       return signalNamespace.resource.detail(

@@ -14,7 +14,7 @@ function resolveResourceAuthPosture(input, params, family) {
   if (input === undefined) {
     return Object.freeze({
       value: resourceAuth.anonymous(),
-      source: Object.freeze({ source: "default.auth" }),
+      source: Object.freeze({ source: "default.auth", overridden: false }),
     });
   }
   const tagged = readTaggedRequestSourceResolution(input, params);
@@ -27,7 +27,7 @@ function resolveResourceAuthPosture(input, params, family) {
   const value = typeof input === "function" ? input(params) : input;
   return Object.freeze({
     value: requireResourceAuthPosture(value, family),
-    source: Object.freeze({ source: "endpoint.auth" }),
+    source: Object.freeze({ source: "endpoint.auth", overridden: false }),
   });
 }
 
@@ -61,7 +61,10 @@ function resolveResourceContinuationPosture(input, params, family) {
   if (input === undefined) {
     return Object.freeze({
       value: resourceContinuation.none(),
-      source: Object.freeze({ source: "default.continuation" }),
+      source: Object.freeze({
+        source: "default.continuation",
+        overridden: false,
+      }),
     });
   }
   const tagged = readTaggedRequestSourceResolution(input, params);
@@ -74,7 +77,10 @@ function resolveResourceContinuationPosture(input, params, family) {
   const value = typeof input === "function" ? input(params) : input;
   return Object.freeze({
     value: requireResourceContinuationPosture(value, family),
-    source: Object.freeze({ source: "endpoint.continuation" }),
+    source: Object.freeze({
+      source: "endpoint.continuation",
+      overridden: false,
+    }),
   });
 }
 

@@ -8,7 +8,10 @@ function resolveResourceUploadTransportPosture(input, params, family) {
   if (input === undefined) {
     return Object.freeze({
       value: resourceUploadTransport.none(),
-      source: Object.freeze({ source: "default.uploadTransport" }),
+      source: Object.freeze({
+        source: "default.uploadTransport",
+        overridden: false,
+      }),
     });
   }
   const tagged = readTaggedRequestSourceResolution(input, params);
@@ -21,7 +24,10 @@ function resolveResourceUploadTransportPosture(input, params, family) {
   const value = typeof input === "function" ? input(params) : input;
   return Object.freeze({
     value: requireResourceUploadTransportPosture(value, family),
-    source: Object.freeze({ source: "endpoint.uploadTransport" }),
+    source: Object.freeze({
+      source: "endpoint.uploadTransport",
+      overridden: false,
+    }),
   });
 }
 

@@ -1,5 +1,6 @@
 import type { SignalValue } from "../model.js";
 import type { CallableSignals, ScopedSignalNamespace } from "../callable_surface.js";
+import type { ApiFactory } from "./api_namespace.js";
 import type {
   DetailResourceFamily,
   CollectionResourceFamily,
@@ -62,7 +63,8 @@ export interface ResourceCompatibilityNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     definition: ExternalCollectionResourceDefinition<
@@ -80,7 +82,8 @@ export interface ResourceCompatibilityNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     definition: ExternalPagedResourceDefinition<
@@ -114,7 +117,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: ProcessingUploadCollectionResourceDeclaration<
@@ -132,7 +136,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: ProcessingCollectionResourceDeclaration<
@@ -150,7 +155,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: UploadCollectionResourceDeclaration<
@@ -168,7 +174,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: CollectionResourceDeclaration<TParams, TValue, TItem, TReconcile>,
@@ -181,7 +188,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: ProcessingUploadPagedResourceDeclaration<
@@ -199,7 +207,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: ProcessingPagedResourceDeclaration<
@@ -217,7 +226,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: UploadPagedResourceDeclaration<
@@ -235,7 +245,8 @@ export interface ResourceNamespace {
       TValue,
       TItem,
       ResourceItemAspectMap<TItem>,
-      ResourceValueSummaryMap<TValue>
+      ResourceValueSummaryMap<TValue>,
+      any
     > | undefined = undefined,
   >(
     declaration: PagedResourceDeclaration<TParams, TValue, TItem, TReconcile>,
@@ -303,9 +314,11 @@ export function resourceRequestContext(
 declare module "../callable_surface.js" {
   interface CallableSignals<TPersistence = SignalValue> {
     readonly resource: ResourceNamespace;
+    readonly api: ApiFactory;
   }
 
   interface ScopedSignalNamespace<TPersistence = SignalValue> {
     readonly resource: ResourceNamespace;
+    readonly api: ApiFactory;
   }
 }

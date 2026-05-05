@@ -12,12 +12,20 @@ Runtime-readmission surfaces handle the specific case where a lowered recipe cro
 
 ## Stable Entry Points
 
-- `LoweredReadmissionContext<NextB, ReadmitAuth, Runtime, ReadinessAuth>::new(...)`
-- `LoweredReadmissionReadiness<T, PrevB, NextB, ReadmitAuth, Runtime, ReadinessAuth, D, De, F>`
-- `ReadmitLoweredForExecutionReadyTransition`
-- `CheckedReadmitLoweredForExecutionReadyTransition`
-- `readmit_ready_and_execute_recipe(...)`
-- `checked_readmit_ready_and_execute_recipe(...)`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `.bridge_trust_boundary()`
+  - `.readmit_with(authority, basis)`
+  - `.ready_with(authority, runtime)`
+  - `.execute()`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `LoweredReadmissionContext<...>::new(...)`
+  - `LoweredReadmissionReadiness<...>`
+  - `ReadmitLoweredForExecutionReadyTransition`
+  - `CheckedReadmitLoweredForExecutionReadyTransition`
+  - `readmit_ready_and_execute_recipe(...)`
+  - `checked_readmit_ready_and_execute_recipe(...)`
 
 ## Core Mental Model
 
@@ -26,56 +34,45 @@ Runtime readmission is a two-step recovery path:
 1. regain a strong current basis from a boundary-bridged lowered recipe
 2. admit the readmitted lowered recipe back into execution-ready state
 
-The crate treats that as one explicit progression family instead of letting each domain rebuild it locally.
-
-## How It Executes
-
-Representative lifecycle:
-
-1. start with `Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>`
-2. provide a `LoweredReadmissionContext`
-3. readmit with explicit readmission authority
-4. run readiness admission with explicit readiness authority
-5. receive either `ExecutionReadyRecipe` or `ExecutedRecipe`, depending on the helper used
-
-The checked version preserves denial, deferment, stale-bridged, and failure categories.
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::LoweredReadmissionContext;
+use forge_proof::prelude::*;
 
-type Context = LoweredReadmissionContext<u16, ReadmissionAuthority, &'static str, ReadinessAuthority>;
+fn restore_and_execute(
+    resolution_authority: forge_proof::AuthorityWitness<ResolutionAuthority>,
+    lowering_capability: forge_proof::CapabilityWitness<LoweringCapability>,
+    readmission_authority: forge_proof::AuthorityWitness<ReadmissionAuthority>,
+    readiness_authority: forge_proof::AuthorityWitness<ReadinessAuthority>,
+) {
+    let executed = recipe("payload")
+        .resolve_with(resolution_authority, 17_u8)
+        .lower_with(lowering_capability)
+        .bridge_trust_boundary()
+        .readmit_with(readmission_authority, 19_u16)
+        .ready_with(readiness_authority, "runtime admission")
+        .execute();
 
-struct ReadmissionAuthority;
-struct ReadinessAuthority;
-
-let _ = std::any::type_name::<Context>();
-```
-
-This is the smallest honest example because the readmission context is the core stable entrypoint for the feature.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    checked_readmit_ready_and_execute_recipe, AuthorityMarker, AuthorityWitness,
-    CapabilityMarker, CapabilityWitness, ContextualTransition, LowerRecipeTransition,
-    LoweredReadmissionContext, Recipe, RecipeResolutionContext, ResolveRecipeTransition,
-    Transition, Unresolved,
-};
+    let _ = executed;
+}
 
 struct ResolutionAuthority;
-impl AuthorityMarker for ResolutionAuthority {}
+impl forge_proof::AuthorityMarker for ResolutionAuthority {}
 
 struct LoweringCapability;
-impl CapabilityMarker for LoweringCapability {}
+impl forge_proof::CapabilityMarker for LoweringCapability {}
 
 struct ReadmissionAuthority;
-impl AuthorityMarker for ReadmissionAuthority {}
+impl forge_proof::AuthorityMarker for ReadmissionAuthority {}
 
 struct ReadinessAuthority;
-impl AuthorityMarker for ReadinessAuthority {}
+impl forge_proof::AuthorityMarker for ReadinessAuthority {}
+```
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
 
 fn restore_and_execute(
     resolution_authority: AuthorityWitness<ResolutionAuthority>,
@@ -95,7 +92,7 @@ fn restore_and_execute(
 
     let executed = checked_readmit_ready_and_execute_recipe(
         bridged,
-        forge_proof::TransitionReadiness::ready(LoweredReadmissionContext::new(
+        TransitionReadiness::ready(LoweredReadmissionContext::new(
             19_u16,
             readmission_authority,
             "runtime admission",
@@ -105,14 +102,19 @@ fn restore_and_execute(
 
     let _ = executed;
 }
+
+struct ResolutionAuthority;
+impl AuthorityMarker for ResolutionAuthority {}
+
+struct LoweringCapability;
+impl CapabilityMarker for LoweringCapability {}
+
+struct ReadmissionAuthority;
+impl AuthorityMarker for ReadmissionAuthority {}
+
+struct ReadinessAuthority;
+impl AuthorityMarker for ReadinessAuthority {}
 ```
-
-What this shows:
-
-- trust-boundary weakening is explicit
-- readmission authority and readiness authority are distinct
-- the new strong basis can differ from the original one
-- checked execution preserves richer divergence categories if needed
 
 ## How It Relates To Other Features
 
@@ -131,12 +133,6 @@ What this shows:
 - Do not treat a boundary-bridged lowered recipe as though it were still ready for execution.
 - Do not rebuild a strong basis manually outside the explicit readmission surfaces.
 - Do not conflate readmission authority with readiness authority unless your domain intentionally makes them the same lane.
-
-## Current Limits
-
-- the feature is focused on lowered recipe re-entry, not every possible bridged form
-- the crate preserves progression law, not rich runtime diagnostics
-- generic context aliases can still be verbose before domain-specific wrappers exist
 
 ## Related Docs
 

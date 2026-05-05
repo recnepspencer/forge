@@ -25,6 +25,14 @@ These all implement `ProofMarker` and are carried through proof-bearing surfaces
 - `DisjointPair<T>`
 - `LoweredFamilyProgram2<...>`
 
+## DX Posture
+
+This is raw-substrate/reference vocabulary.
+
+- there is no separate pleasant-lane structural-fact constructor story
+- the pleasant lane teaches these facts through carriers like `family_pair(...).lower_by(...)` and ready/proven wrappers
+- when you work directly with structural fact names or proof carriers, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 Structural facts are reusable proof names for "this shape property has already been established."

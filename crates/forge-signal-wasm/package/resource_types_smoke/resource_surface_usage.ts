@@ -252,7 +252,32 @@ const paged = signals.resource.paged({
   itemIdentity: (item: { id: string; title: string }) => item.id,
   reconcile: resourceCollectionShape<
     { items: Array<{ id: string; title: string }>; cursor: string | null; visibleCount: number },
-    { id: string; title: string }
+    { id: string; title: string },
+    {},
+    {
+      visibleCount: {
+        read(
+          value: {
+            items: Array<{ id: string; title: string }>;
+            cursor: string | null;
+            visibleCount: number;
+          },
+        ): number;
+        write(
+          value: {
+            items: Array<{ id: string; title: string }>;
+            cursor: string | null;
+            visibleCount: number;
+          },
+          visibleCount: number,
+        ): {
+          items: Array<{ id: string; title: string }>;
+          cursor: string | null;
+          visibleCount: number;
+        };
+      };
+    },
+    "pageWindow"
   >({
     items: (value: {
       items: Array<{ id: string; title: string }>;
@@ -302,7 +327,7 @@ const paged = signals.resource.paged({
     visibleCount: next.visibleCount,
   }),
   load: ({ workspaceId }) => ({
-    items: [{ id: workspaceId, title: workspaceId }],
+    items: [{ id: String(workspaceId), title: String(workspaceId) }],
     cursor: null,
     visibleCount: 1,
   }),

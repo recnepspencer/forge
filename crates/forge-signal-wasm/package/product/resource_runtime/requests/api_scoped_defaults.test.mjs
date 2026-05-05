@@ -141,6 +141,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
         "x-root": "root",
       },
     }).scope({
+      auth: signalsMod.resourceAuth.workspace(),
       headers: ({ tenantId }) => ({
         authorization: `Bearer ${tenantId}`,
         "x-tenant-id": tenantId,
@@ -159,6 +160,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
 
     const detail = api.detail({
       params: signalsMod.resourceParams(),
+      auth: signalsMod.resourceAuth.anonymous(),
       headers: ({ productId }) => ({
         authorization: `Bearer product:${productId}`,
         "x-product-id": productId,
@@ -177,6 +179,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
 
     const line = detail.line({ tenantId: "acme", productId: "p1" });
 
+    assert.equal(line.request().auth.kind, "anonymous");
     assert.deepEqual(line.request().context.headers, {
       authorization: "Bearer product:p1",
       "x-root": "root",
@@ -193,6 +196,10 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
     assert.deepEqual(line.request().sources.context.headers["x-root"], {
       source: "apiRoot.headers",
       overridden: false,
+    });
+    assert.deepEqual(line.request().sources.auth, {
+      source: "endpoint.auth",
+      overridden: true,
     });
     assert.deepEqual(line.request().sources.context.headers["x-tenant-id"], {
       source: "apiScope[1].headers",
@@ -218,6 +225,37 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
       line.diagnosticsSummary().request.sources,
       line.request().sources,
     );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("scoped signal namespaces carry the api surface for feature-local request defaults", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals, signalsMod } = runtime;
+    const featureSignals = signals.scope("feature");
+    const featureApi = featureSignals.api({
+      headers: {
+        "x-feature": "catalog",
+      },
+    });
+    const detail = featureApi.detail({
+      params: signalsMod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        signalsMod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => ({ id: productId }),
+    });
+
+    const line = detail.line({ productId: "p1" });
+
+    assert.deepEqual(line.request().context.headers, {
+      "x-feature": "catalog",
+    });
+    assert.deepEqual(line.request().sources.context.headers["x-feature"], {
+      source: "apiRoot.headers",
+      overridden: false,
+    });
   } finally {
     await runtime.cleanup();
   }

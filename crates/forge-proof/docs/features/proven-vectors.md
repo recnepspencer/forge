@@ -25,6 +25,14 @@ Important boundary:
 
 - public construction is sealed because these wrappers carry real proof facts
 
+## DX Posture
+
+This is mostly substrate/reference material.
+
+- there is no separate pleasant-lane constructor family for proven vectors today
+- consumers usually receive these wrappers from other proof-bearing flows rather than minting them directly
+- when you work directly with the wrappers, prefer `use forge_proof::raw::*;`
+
 ## Core Mental Model
 
 These are not "nicer vectors." They are vectors whose structure has already been proven.

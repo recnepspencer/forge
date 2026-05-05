@@ -23,6 +23,14 @@ Adjacent surfaces:
 - [Freshness And Downgrade](./freshness-and-downgrade.md) defines the freshness classes and downgrade aliases
 - [Boundary Readmission](./boundary-readmission.md) defines boundary-bridged weakened basis wrappers
 
+## DX Posture
+
+This is mostly substrate/reference material.
+
+- there is no separate pleasant-lane basis constructor family beyond the progression helpers that carry basis implicitly
+- when you work directly with basis wrappers, prefer `use forge_proof::raw::*;`
+- the pleasant lane teaches basis through progression calls such as `.resolve_with(...)`, `.rebind_with(...)`, and `.readmit_with(...)`
+
 ## Core Mental Model
 
 An assumption basis answers the question:

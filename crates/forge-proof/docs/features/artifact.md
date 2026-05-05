@@ -26,6 +26,14 @@ Good to know:
 - `Artifact::with_state(...)` exists only for crate-internal minting and progression
 - public callers use stronger artifact forms returned by other surfaces instead of constructing them directly
 
+## DX Posture
+
+This is mostly substrate/reference material.
+
+- there is no separate pleasant-lane `artifact(...)` flow today
+- when you work directly with `Artifact`, prefer `use forge_proof::raw::*;`
+- if the real problem is staged progression, the pleasant lane starts at `recipe(...)` instead
+
 ## Core Mental Model
 
 An artifact is the most general "typed truth bundle" in `forge-proof`.

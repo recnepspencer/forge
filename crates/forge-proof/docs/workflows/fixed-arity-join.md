@@ -12,12 +12,18 @@ This workflow shows how to split one artifact into two explicit lanes and then j
 
 ## Stable Entry Points
 
-- `fork_artifact_pair(...)`
-- `ForkOutputs2`
-- `join_artifact_pair(...)`
-- `JoinInputs2`
-- `join_ready_recipe_pair(...)`
-- `compose_join_ready_recipe_pair(...)`
+- pleasant lane:
+  - `use forge_proof::prelude::*;`
+  - `join_ready(left, right)`
+  - `compose_ready(left_outcome, || right_outcome)`
+- raw lane:
+  - `use forge_proof::raw::*;`
+  - `fork_artifact_pair(...)`
+  - `ForkOutputs2`
+  - `join_artifact_pair(...)`
+  - `JoinInputs2`
+  - `join_ready_recipe_pair(...)`
+  - `compose_join_ready_recipe_pair(...)`
 
 ## Core Mental Model
 
@@ -30,64 +36,63 @@ The important law is:
 
 This is true both for generic artifacts and for ready-recipe joins.
 
-## How It Executes
-
-1. start with one artifact or two ready recipes
-2. fork or join through the fixed-arity carriers
-3. preserve explicit lane position throughout
-4. produce one joined artifact or one joined ready recipe
-
-## Small Example
+## Pleasant Lane First
 
 ```rust
-use forge_proof::{ForkOutputs2, JoinInputs2};
+use forge_proof::prelude::*;
 
-let outputs = ForkOutputs2::new("left", "right");
-let inputs = JoinInputs2::new("left", "right");
-
-assert_eq!(outputs.left(), &"left");
-assert_eq!(inputs.right(), &"right");
-```
-
-This is the smallest honest example because the lane structure itself is the stable backbone of the workflow.
-
-## Real Example
-
-```rust
-use forge_proof::{
-    fork_artifact_pair, join_artifact_pair, Artifact, ForkOutputs2, JoinInputs2, NoAssumptionBasis,
-    NoProofs, PhaseMarker,
-};
-
-struct RawPhase;
-impl PhaseMarker for RawPhase {}
-
-fn split_and_join() {
-    let source = Artifact::<RawPhase, _>::new((3_u8, 5_u8));
-
-    let forked = fork_artifact_pair(source, |payload, proofs, basis| {
-        let _ = proofs;
-        let _ = basis;
-        ForkOutputs2::new(
-            (payload.0, NoProofs, NoAssumptionBasis),
-            (payload.1, NoProofs, NoAssumptionBasis),
-        )
-    });
-
-    let (left, right) = forked.into_parts();
-    let joined = join_artifact_pair(JoinInputs2::new(left, right), |left, right| {
-        (left.0 + right.0, NoProofs, NoAssumptionBasis)
-    });
-
-    assert_eq!(joined.payload(), &8_u8);
+fn join<LA, LB, A, B>(
+    left: forge_proof::ExecutionReadyRecipe<LA, A>,
+    right: forge_proof::ExecutionReadyRecipe<LB, B>,
+) {
+    let joined = join_ready(left, right);
+    let _ = joined.payload().left();
 }
 ```
 
-What this shows:
+For checked composition:
 
-- forking is explicit redistribution, not magic duplication
-- joining is explicit recomposition, not bag merging
-- the lane carriers keep the topology visible throughout
+```rust
+use forge_proof::prelude::*;
+
+fn checked_join<LA, LB, A, B>(
+    left: forge_proof::TransitionOutcome<forge_proof::ExecutionReadyRecipe<LA, A>, &'static str>,
+    right: forge_proof::ExecutionReadyRecipe<LB, B>,
+) {
+    let joined = compose_ready(left, || forge_proof::TransitionOutcome::success(right));
+    let _ = joined;
+}
+```
+
+What this keeps visible:
+
+- ready-only join remains a distinct API from generic artifact join
+- non-success short-circuiting is still explicit in the checked helper
+- the pleasant lane does not hide fixed-arity position
+
+## Equivalent Raw Surface
+
+```rust
+use forge_proof::raw::*;
+
+fn join<LA, LB, A, B>(
+    left: ExecutionReadyRecipe<LA, A>,
+    right: ExecutionReadyRecipe<LB, B>,
+) {
+    let joined = compose_join_ready_recipe_pair(
+        SuccessfulTransitionOutcome::new(left).into(),
+        || SuccessfulTransitionOutcome::new(right).into(),
+    );
+
+    let _ = joined;
+}
+```
+
+Use the raw lane when:
+
+- you are routing payload, proof, and basis explicitly through `fork_artifact_pair(...)`
+- you need direct access to `ForkOutputs2` or `JoinInputs2`
+- you are building a domain-specific fixed-arity composition helper
 
 ## How It Relates To Other Features
 
@@ -106,12 +111,6 @@ What this shows:
 - Do not duplicate proof or basis lanes implicitly during fork.
 - Do not treat join as a generic merge bag when positional meaning matters.
 - Do not reach for a dynamic composition abstraction when the shape is fixed and explicit.
-
-## Current Limits
-
-- the stable surface is fixed-arity 2
-- actual payload/proof/basis routing remains domain-owned
-- this workflow is static and explicit rather than builder-driven
 
 ## Related Docs
 

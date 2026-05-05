@@ -26,6 +26,14 @@ Fork-and-join surfaces provide the fixed-arity static composition primitives for
 - `fork_artifact_pair(...)`
 - `join_artifact_pair(...)`
 
+## DX Posture
+
+This feature is mostly substrate/reference material.
+
+- the pleasant lane only covers ready-recipe composition through `join_ready(...)` and `compose_ready(...)`
+- generic artifact fork/join remains raw-substrate-first and should be taught with `use forge_proof::raw::*;`
+- if your composition target is ready recipes rather than generic artifacts, prefer [Ready Recipe Join](./ready-recipe-join.md)
+
 ## Core Mental Model
 
 Fork and join here are static composition helpers, not a workflow engine.

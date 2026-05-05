@@ -147,7 +147,8 @@ export interface CollectionResourceDeclaration<
     TValue,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
+    ResourceValueSummaryMap<TValue>,
+    any
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
@@ -179,7 +180,8 @@ export interface ProcessingCollectionResourceDeclaration<
     TValue,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
+    ResourceValueSummaryMap<TValue>,
+    any
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
@@ -214,7 +216,8 @@ export interface UploadCollectionResourceDeclaration<
     TValue,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
+    ResourceValueSummaryMap<TValue>,
+    any
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
@@ -249,7 +252,8 @@ export interface ProcessingUploadCollectionResourceDeclaration<
     TValue,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
+    ResourceValueSummaryMap<TValue>,
+    any
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
@@ -279,149 +283,13 @@ export interface ProcessingUploadCollectionResourceDeclaration<
     | ResourceUploadResultValue;
 }
 
-export interface PagedResourceDeclaration<
-  TParams,
-  TValue,
-  TItem = SignalValue,
-  TReconcile extends ResourceCollectionShape<
-    TValue,
-    TItem,
-    ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
-  > | undefined = undefined,
-> {
-  params: DeclaredResourceParams<TParams>;
-  policy?: ResourcePolicyProfile;
-  auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
-  requestContext?:
-    | ResourceRequestContext
-    | ((params: TParams) => ResourceRequestContext);
-  continuation?:
-    | ResourceContinuationPosture
-    | ((params: TParams) => ResourceContinuationPosture);
-  uploadTransport?:
-    | ResourceUploadTransportPosture
-    | ((params: TParams) => ResourceUploadTransportPosture);
-  reconcile?: TReconcile;
-  normalizeParams(params: TParams): ResourceParamIdentity<TParams>;
-  itemIdentity(item: TItem): string;
-  accumulatePage(existing: TValue, next: TValue): TValue;
-  load(
-    params: TParams,
-    request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryCompatibleValue<TValue>;
-}
-
-export interface ProcessingPagedResourceDeclaration<
-  TParams,
-  TValue,
-  TItem = SignalValue,
-  TReconcile extends ResourceCollectionShape<
-    TValue,
-    TItem,
-    ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
-  > | undefined = undefined,
-> {
-  params: DeclaredResourceParams<TParams>;
-  policy?: ResourcePolicyProfile;
-  auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
-  requestContext?:
-    | ResourceRequestContext
-    | ((params: TParams) => ResourceRequestContext);
-  continuation?:
-    | ResourceContinuationPosture
-    | ((params: TParams) => ResourceContinuationPosture);
-  processingJob:
-    | ResourceProcessingJobPosture
-    | ((params: TParams) => ResourceProcessingJobPosture);
-  uploadTransport?:
-    | ResourceUploadTransportPosture
-    | ((params: TParams) => ResourceUploadTransportPosture);
-  reconcile?: TReconcile;
-  normalizeParams(params: TParams): ResourceParamIdentity<TParams>;
-  itemIdentity(item: TItem): string;
-  accumulatePage(existing: TValue, next: TValue): TValue;
-  load(
-    params: TParams,
-    request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
-}
-
-export interface UploadPagedResourceDeclaration<
-  TParams,
-  TValue,
-  TItem = SignalValue,
-  TReconcile extends ResourceCollectionShape<
-    TValue,
-    TItem,
-    ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
-  > | undefined = undefined,
-> {
-  params: DeclaredResourceParams<TParams>;
-  policy?: ResourcePolicyProfile;
-  auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
-  requestContext?:
-    | ResourceRequestContext
-    | ((params: TParams) => ResourceRequestContext);
-  continuation?:
-    | ResourceContinuationPosture
-    | ((params: TParams) => ResourceContinuationPosture);
-  processingJob?:
-    | ResourceProcessingJobPosture
-    | ((params: TParams) => ResourceProcessingJobPosture);
-  uploadTransport:
-    | ResourceUploadTransportPosture
-    | ((params: TParams) => ResourceUploadTransportPosture);
-  reconcile?: TReconcile;
-  normalizeParams(params: TParams): ResourceParamIdentity<TParams>;
-  itemIdentity(item: TItem): string;
-  accumulatePage(existing: TValue, next: TValue): TValue;
-  load(
-    params: TParams,
-    request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
-}
-
-export interface ProcessingUploadPagedResourceDeclaration<
-  TParams,
-  TValue,
-  TItem = SignalValue,
-  TReconcile extends ResourceCollectionShape<
-    TValue,
-    TItem,
-    ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
-  > | undefined = undefined,
-> {
-  params: DeclaredResourceParams<TParams>;
-  policy?: ResourcePolicyProfile;
-  auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
-  requestContext?:
-    | ResourceRequestContext
-    | ((params: TParams) => ResourceRequestContext);
-  continuation?:
-    | ResourceContinuationPosture
-    | ((params: TParams) => ResourceContinuationPosture);
-  processingJob:
-    | ResourceProcessingJobPosture
-    | ((params: TParams) => ResourceProcessingJobPosture);
-  uploadTransport:
-    | ResourceUploadTransportPosture
-    | ((params: TParams) => ResourceUploadTransportPosture);
-  reconcile?: TReconcile;
-  normalizeParams(params: TParams): ResourceParamIdentity<TParams>;
-  itemIdentity(item: TItem): string;
-  accumulatePage(existing: TValue, next: TValue): TValue;
-  load(
-    params: TParams,
-    request: ResourceRequestDescriptor<TParams>,
-  ):
-    | ResourceBinaryCompatibleValue<TValue>
-    | ResourceProcessingResultValue
-    | ResourceUploadResultValue;
-}
+export type {
+  ExternalPagedResourceDefinition,
+  PagedResourceDeclaration,
+  ProcessingPagedResourceDeclaration,
+  ProcessingUploadPagedResourceDeclaration,
+  UploadPagedResourceDeclaration,
+} from "./resource_paged_declarations.js";
 
 export type ResourceExternalDefinitionVersion =
   "forge-resource-external-v1";
@@ -450,7 +318,8 @@ export interface ExternalCollectionResourceDefinition<
     TValue,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
+    ResourceValueSummaryMap<TValue>,
+    any
   > | undefined = undefined,
 > {
   readonly version: ResourceExternalDefinitionVersion;
@@ -467,22 +336,3 @@ export interface ExternalCollectionResourceDefinition<
   >;
 }
 
-export interface ExternalPagedResourceDefinition<
-  TParams,
-  TValue,
-  TItem = SignalValue,
-  TReconcile extends ResourceCollectionShape<
-    TValue,
-    TItem,
-    ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>
-  > | undefined = undefined,
-> {
-  readonly version: ResourceExternalDefinitionVersion;
-  readonly family: "paged";
-  readonly definitionId: string;
-  readonly requestContract: ResourceExternalRequestContract;
-  readonly reconciliationContract:
-    TReconcile extends undefined ? "none" : "paged-v1";
-  readonly declaration: PagedResourceDeclaration<TParams, TValue, TItem, TReconcile>;
-}
