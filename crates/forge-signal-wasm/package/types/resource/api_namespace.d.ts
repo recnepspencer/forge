@@ -1,11 +1,6 @@
 import type { SignalValue } from "../model.js";
 import type { ResourceNamespace } from "./resource_namespace.js";
 import type {
-  DetailResourceFamily,
-  CollectionResourceFamily,
-  PagedResourceFamily,
-} from "./resource_family_surfaces.js";
-import type {
   DetailResourceDeclaration,
   ProcessingDetailResourceDeclaration,
   UploadDetailResourceDeclaration,
@@ -32,6 +27,14 @@ import type {
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
 import type {
+  ApiCollectionResourceFamily,
+  ApiDetailResourceFamily,
+  ApiPagedResourceFamily,
+  ApiRequestParamsShape,
+  ApiRouteDeclarationParams,
+  ApiRouteParamsConstraint,
+} from "./api_request_params.js";
+import type {
   ApiRouteConstraint,
   RoutePathParams,
 } from "./api_route_types.js";
@@ -43,6 +46,7 @@ type ApiRouteHeaders<TParams> =
 export interface ApiScopedDefaults<
   TParams extends object = Record<string, SignalValue>,
 > {
+  baseUrl?: string | ((params: TParams) => string);
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   headers?: ApiRouteHeaders<TParams>;
   requestContext?:
@@ -67,32 +71,49 @@ type ApiRouteBoundDeclaration<TDeclaration, TParams> =
     baseUrl?: never;
   };
 
-type ApiRouteDetailDeclaration<TRoute extends string, TValue> =
+type ApiRouteDetailDeclaration<
+  TRoute extends string,
+  TValue,
+  TRequestParams extends ApiRequestParamsShape | undefined = undefined,
+> =
   ApiRouteBoundDeclaration<
-    DetailResourceDeclaration<RoutePathParams<TRoute>, TValue>,
-    RoutePathParams<TRoute>
+    DetailResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue>,
+    ApiRouteDeclarationParams<TRoute, TRequestParams>
   >;
 
-type ApiRouteProcessingDetailDeclaration<TRoute extends string, TValue> =
+type ApiRouteProcessingDetailDeclaration<
+  TRoute extends string,
+  TValue,
+  TRequestParams extends ApiRequestParamsShape | undefined = undefined,
+> =
   ApiRouteBoundDeclaration<
-    ProcessingDetailResourceDeclaration<RoutePathParams<TRoute>, TValue>,
-    RoutePathParams<TRoute>
+    ProcessingDetailResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue>,
+    ApiRouteDeclarationParams<TRoute, TRequestParams>
   >;
 
-type ApiRouteUploadDetailDeclaration<TRoute extends string, TValue> =
+type ApiRouteUploadDetailDeclaration<
+  TRoute extends string,
+  TValue,
+  TRequestParams extends ApiRequestParamsShape | undefined = undefined,
+> =
   ApiRouteBoundDeclaration<
-    UploadDetailResourceDeclaration<RoutePathParams<TRoute>, TValue>,
-    RoutePathParams<TRoute>
+    UploadDetailResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue>,
+    ApiRouteDeclarationParams<TRoute, TRequestParams>
   >;
 
-type ApiRouteProcessingUploadDetailDeclaration<TRoute extends string, TValue> =
+type ApiRouteProcessingUploadDetailDeclaration<
+  TRoute extends string,
+  TValue,
+  TRequestParams extends ApiRequestParamsShape | undefined = undefined,
+> =
   ApiRouteBoundDeclaration<
-    ProcessingUploadDetailResourceDeclaration<RoutePathParams<TRoute>, TValue>,
-    RoutePathParams<TRoute>
+    ProcessingUploadDetailResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue>,
+    ApiRouteDeclarationParams<TRoute, TRequestParams>
   >;
 
 type ApiRouteCollectionDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -103,12 +124,13 @@ type ApiRouteCollectionDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  CollectionResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  CollectionResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteProcessingCollectionDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -119,12 +141,13 @@ type ApiRouteProcessingCollectionDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  ProcessingCollectionResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  ProcessingCollectionResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteUploadCollectionDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -135,12 +158,13 @@ type ApiRouteUploadCollectionDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  UploadCollectionResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  UploadCollectionResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteProcessingUploadCollectionDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -151,12 +175,13 @@ type ApiRouteProcessingUploadCollectionDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  ProcessingUploadCollectionResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  ProcessingUploadCollectionResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRoutePagedDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -167,12 +192,13 @@ type ApiRoutePagedDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  PagedResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  PagedResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteProcessingPagedDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -183,12 +209,13 @@ type ApiRouteProcessingPagedDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  ProcessingPagedResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  ProcessingPagedResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteUploadPagedDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -199,12 +226,13 @@ type ApiRouteUploadPagedDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  UploadPagedResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  UploadPagedResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
 type ApiRouteProcessingUploadPagedDeclaration<
   TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
@@ -215,23 +243,39 @@ type ApiRouteProcessingUploadPagedDeclaration<
     any
   > | undefined = undefined,
 > = ApiRouteBoundDeclaration<
-  ProcessingUploadPagedResourceDeclaration<RoutePathParams<TRoute>, TValue, TItem, TReconcile>,
-  RoutePathParams<TRoute>
+  ProcessingUploadPagedResourceDeclaration<ApiRouteDeclarationParams<TRoute, TRequestParams>, TValue, TItem, TReconcile>,
+  ApiRouteDeclarationParams<TRoute, TRequestParams>
 >;
 
-export interface ApiRouteBuilder<TRoute extends string> {
+type ApiRouteBuilderParamsStep<
+  TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+> = [TRequestParams] extends [undefined]
+  ? ApiRouteParamsConstraint<TRoute> extends {
+      readonly __forgeInvalidApiRequestParams__: string;
+    }
+    ? {}
+    : {
+        params<TNextRequestParams extends ApiRequestParamsShape>(): ApiRouteBuilder<TRoute, TNextRequestParams>;
+      }
+  : {};
+
+interface ApiRouteBuilderBase<
+  TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+> {
   detail<TValue>(
-    declaration: ApiRouteProcessingUploadDetailDeclaration<TRoute, TValue>,
-  ): DetailResourceFamily<RoutePathParams<TRoute>, TValue | null>;
+    declaration: ApiRouteProcessingUploadDetailDeclaration<TRoute, TValue, TRequestParams>,
+  ): ApiDetailResourceFamily<TRoute, TRequestParams, TValue | null>;
   detail<TValue>(
-    declaration: ApiRouteProcessingDetailDeclaration<TRoute, TValue>,
-  ): DetailResourceFamily<RoutePathParams<TRoute>, TValue | null>;
+    declaration: ApiRouteProcessingDetailDeclaration<TRoute, TValue, TRequestParams>,
+  ): ApiDetailResourceFamily<TRoute, TRequestParams, TValue | null>;
   detail<TValue>(
-    declaration: ApiRouteUploadDetailDeclaration<TRoute, TValue>,
-  ): DetailResourceFamily<RoutePathParams<TRoute>, TValue | null>;
+    declaration: ApiRouteUploadDetailDeclaration<TRoute, TValue, TRequestParams>,
+  ): ApiDetailResourceFamily<TRoute, TRequestParams, TValue | null>;
   detail<TValue>(
-    declaration: ApiRouteDetailDeclaration<TRoute, TValue>,
-  ): DetailResourceFamily<RoutePathParams<TRoute>, TValue>;
+    declaration: ApiRouteDetailDeclaration<TRoute, TValue, TRequestParams>,
+  ): ApiDetailResourceFamily<TRoute, TRequestParams, TValue>;
   list<
     TValue,
     TItem = SignalValue,
@@ -243,8 +287,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteProcessingUploadCollectionDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): CollectionResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteProcessingUploadCollectionDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiCollectionResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   list<
     TValue,
     TItem = SignalValue,
@@ -256,8 +300,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteProcessingCollectionDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): CollectionResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteProcessingCollectionDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiCollectionResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   list<
     TValue,
     TItem = SignalValue,
@@ -269,8 +313,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteUploadCollectionDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): CollectionResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteUploadCollectionDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiCollectionResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   list<
     TValue,
     TItem = SignalValue,
@@ -282,8 +326,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteCollectionDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): CollectionResourceFamily<RoutePathParams<TRoute>, TValue, TItem, TReconcile>;
+    declaration: ApiRouteCollectionDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiCollectionResourceFamily<TRoute, TRequestParams, TValue, TItem, TReconcile>;
   paged<
     TValue,
     TItem = SignalValue,
@@ -295,8 +339,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteProcessingUploadPagedDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): PagedResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteProcessingUploadPagedDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiPagedResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   paged<
     TValue,
     TItem = SignalValue,
@@ -308,8 +352,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteProcessingPagedDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): PagedResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteProcessingPagedDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiPagedResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   paged<
     TValue,
     TItem = SignalValue,
@@ -321,8 +365,8 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRouteUploadPagedDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): PagedResourceFamily<RoutePathParams<TRoute>, TValue | null, TItem, TReconcile>;
+    declaration: ApiRouteUploadPagedDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiPagedResourceFamily<TRoute, TRequestParams, TValue | null, TItem, TReconcile>;
   paged<
     TValue,
     TItem = SignalValue,
@@ -334,9 +378,15 @@ export interface ApiRouteBuilder<TRoute extends string> {
       any
     > | undefined = undefined,
   >(
-    declaration: ApiRoutePagedDeclaration<TRoute, TValue, TItem, TReconcile>,
-  ): PagedResourceFamily<RoutePathParams<TRoute>, TValue, TItem, TReconcile>;
+    declaration: ApiRoutePagedDeclaration<TRoute, TRequestParams, TValue, TItem, TReconcile>,
+  ): ApiPagedResourceFamily<TRoute, TRequestParams, TValue, TItem, TReconcile>;
 }
+
+export type ApiRouteBuilder<
+  TRoute extends string,
+  TRequestParams extends ApiRequestParamsShape | undefined = undefined,
+> = ApiRouteBuilderBase<TRoute, TRequestParams>
+  & ApiRouteBuilderParamsStep<TRoute, TRequestParams>;
 
 export interface ApiNamespace
   extends Pick<ResourceNamespace, "detail" | "collection" | "paged"> {

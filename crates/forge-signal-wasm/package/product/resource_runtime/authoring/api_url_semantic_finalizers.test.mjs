@@ -19,6 +19,8 @@ function normalizeRequest(request) {
   const snapshot = JSON.parse(JSON.stringify(request));
   delete snapshot.family.familyId;
   delete snapshot.sources;
+  delete snapshot.target;
+  delete snapshot.baseUrl;
   return snapshot;
 }
 
@@ -128,8 +130,92 @@ test("api.url(...) path params form stable canonical identity and deny missing o
     );
     assert.throws(
       () => detail.line({ tenantId: "acme", userId: "u1", search: "x" }),
-      /does not admit undeclared param "search" before params\(\.\.\.\) exists/,
+      /does not admit undeclared path param "search"/,
     );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("api.url(...).params(...) lowers request params into one explicit member shape and canonical identity", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals, signalsMod } = runtime;
+    const apiList = signals.api({})
+      .url("/workspaces/:workspaceId/tasks")
+      .params()
+      .list({
+        itemIdentity: (item) => item.id,
+        load: ({ workspaceId, params }) => [
+          { id: `${workspaceId}:${params.search ?? "all"}:${params.page ?? 1}` },
+        ],
+      });
+    const rawList = signals.resource.collection({
+      params: signalsMod.resourceParams(),
+      normalizeParams: ({ workspaceId, params }) =>
+        signalsMod.resourceParamIdentity(
+          { workspaceId, params },
+          `/workspaces/${encodeURIComponent(String(workspaceId))}/tasks?page=${encodeURIComponent(String(params.page))}&search=${encodeURIComponent(String(params.search))}`,
+        ),
+      itemIdentity: (item) => item.id,
+      load: ({ workspaceId, params }) => [
+        { id: `${workspaceId}:${params.search ?? "all"}:${params.page ?? 1}` },
+      ],
+    });
+
+    const apiLine = apiList.line({
+      workspaceId: "demo",
+      params: {
+        search: "ada",
+        page: 2,
+      },
+    });
+    const rawLine = rawList.line({
+      workspaceId: "demo",
+      params: {
+        search: "ada",
+        page: 2,
+      },
+    });
+
+    assert.deepEqual(normalizeLineArtifact(apiLine), normalizeLineArtifact(rawLine));
+    assert.equal(
+      apiLine.descriptor().canonicalParams.canonicalKey,
+      "/workspaces/demo/tasks?page=2&search=ada",
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("api.url(...) composes request target information from inherited baseUrl and resolved route path", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const detail = runtime.signals.api({
+      baseUrl: "/api",
+    }).scope({
+      baseUrl: "/v2",
+    }).url("/users/:userId").params().detail({
+      load: ({ userId, params }) => ({
+        id: `${userId}:${params.search ?? "all"}`,
+      }),
+    });
+
+    const line = detail.line({
+      userId: "u1",
+      params: {
+        search: "ada",
+      },
+    });
+
+    assert.deepEqual(line.request().target, {
+      baseUrl: "/api/v2",
+      requestPath: "/users/u1?search=ada",
+      url: "/api/v2/users/u1?search=ada",
+    });
+    assert.deepEqual(line.request().sources.baseUrl, {
+      sources: ["apiRoot.baseUrl", "apiScope[1].baseUrl"],
+    });
   } finally {
     await runtime.cleanup();
   }
@@ -210,6 +296,37 @@ test("api.url(...) rejects malformed route structure before lowering", async () 
     assert.throws(
       () => signals.api({}).url("/users/:user-id"),
       /must use :paramName placeholders/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("api.url(...).params(...) rejects missing or malformed request-param input at runtime", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const detail = runtime.signals.api({})
+      .url("/users/:userId")
+      .params()
+      .detail({
+        load: ({ userId, params }) => ({ userId, search: params.search ?? null }),
+      });
+
+    assert.throws(
+      () => detail.line({ userId: "u1" }),
+      /requires an explicit params object when request params are declared/,
+    );
+    assert.throws(
+      () => detail.line({ userId: "u1", params: null }),
+      /requires params to be a plain object/,
+    );
+    assert.throws(
+      () => detail.line({ userId: "u1", params: { search: { bad: true } } }),
+      /request param "search" must be a string, number, boolean, or array of those values/,
+    );
+    assert.throws(
+      () => runtime.signals.api({}).url("/reports/:params").params(),
+      /path param "params" would collide with the request params lane/,
     );
   } finally {
     await runtime.cleanup();

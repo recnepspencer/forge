@@ -9,6 +9,7 @@ const resourceRuntimeDir = path.dirname(supportDir);
 const productDir = path.dirname(resourceRuntimeDir);
 const packageDir = path.dirname(productDir);
 const packageSourceDir = path.join(packageDir, "..", "package-src");
+const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
 
 async function writeConvertedResourceTree(tempDir, sourceDir, outputDir) {
@@ -34,6 +35,11 @@ function replaceTsWithJs(name) {
 async function loadResourceModule() {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-resource-"));
   try {
+    await writeConvertedResourceTree(
+      tempDir,
+      apiSourceDir,
+      path.join(tempDir, "product", "api"),
+    );
     await writeConvertedResourceTree(
       tempDir,
       resourceSourceDir,

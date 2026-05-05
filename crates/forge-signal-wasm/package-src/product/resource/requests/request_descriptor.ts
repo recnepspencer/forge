@@ -1,5 +1,7 @@
 function createResourceRequestDescriptor(
   lineIdentity,
+  target,
+  baseUrl,
   auth,
   context,
   continuation,
@@ -10,6 +12,8 @@ function createResourceRequestDescriptor(
   return Object.freeze({
     family: lineIdentity.family,
     canonicalParams: lineIdentity.canonicalParams,
+    target,
+    baseUrl,
     auth,
     context,
     continuation,

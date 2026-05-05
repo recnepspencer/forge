@@ -63,7 +63,7 @@ type RouteParamNamesFromPath<TPath extends string> =
     ? RouteSegmentParamName<Segment> | RouteParamNamesFromPath<Tail>
     : RouteSegmentParamName<TPath>;
 
-type RouteParamNames<TRoute extends string> =
+export type RouteParamNames<TRoute extends string> =
   string extends TRoute
     ? never
     : TRoute extends `/${infer Rest}`

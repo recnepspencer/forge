@@ -610,7 +610,7 @@ feature module.
 
 ## Phases
 
-### Phase 1: Shared API Root And Inheritance Lock
+### Phase 1: Request Scope Foundation
 
 Purpose:
 
@@ -633,83 +633,93 @@ Phase 1 gate:
   once, nested per section, and proved to lower identically across multiple
   endpoint families
 
-### Phase 2: Declaration-Site Typing And URL Kernel
+### Phase 2: Route Kernel Foundation
 
 Purpose:
 
-- replace giant declaration objects for the common lane
-- freeze the core declaration grammar around declaration-site semantic types
-  plus `url(...)`
+- establish one deterministic route grammar before endpoint semantics,
+  transport modifiers, or router consumption build on top of it
+- freeze the path/request identity boundary early so later DX layers do not
+  reopen it
 
 This phase must ship:
 
 - one standard `url(...)` entrypoint for the common lane
-- semantic finalizers such as `.detail<T>()`, `.list<T>()`, `.paged<T>()`,
-  `.create<T, Body>()`, `.update<T, Body>()`, and `.remove()`
+- structural route parsing rather than regex-shaped string tricks
+- compile-time route validity for segment structure and placeholder legality
+- path-param inference from route placeholders where possible
+- explicit `params(...)` support for request-side URL parameters
+- clear separation between path params, request params, and body payloads
+- canonical lowering into the closed family/member identity model
+- typed and runtime-honest base-URL composition for route-authored families
+- request-target inspection that stays semantically honest enough for later
+  router consumption
+
+Phase 2 gate:
+
+- no later phase begins until URL declaration, path-param inference, request
+  param serialization, and base-URL composition can be certified without
+  hidden identity drift or request-target ambiguity
+
+### Phase 3: Common Endpoint Grammar
+
+Purpose:
+
+- replace giant declaration objects for the common lane
+- make conventional endpoint semantics explicit without reintroducing ceremony
+
+This phase must ship:
+
+- route-first semantic finalizers such as:
+  - `.detail<T>()`
+  - `.list<T>()`
+  - `.paged<T>()`
+  - `.create<T, Body>()`
+  - `.update<T, Body>()`
+  - `.remove()`
 - semantic type families such as `Detail<T>`, `List<T>`, `Paged<T>`,
   `Create<T>`, `Update<T>`, and `Remove<T>` remain the conceptual categories
   expressed by the finalizers rather than by declaration-binding annotations
 - no `.build()` in the common lane
 - preserved explicit endpoint identity and readable call-site naming
-- equivalence with the raw family declaration lane
+- equivalence with the raw family declaration lane for common endpoint shapes
 - compile-time proof that route-first semantic finalization preserves required
-  path-param inference and `line(...)` call-site pressure
-
-Phase 2 gate:
-
-- no later phase begins until route-first semantic-finalizer authoring and
-  raw-authored conventional declarations can be certified as semantically
-  identical
-
-### Phase 3: URL, Path Params, And Request Params Ergonomics
-
-Purpose:
-
-- make routes explicit and readable without repetitive normalization ceremony
-
-This phase must ship:
-
-- `.url(...)` as the standard route declaration step
-- path-param inference from route placeholders where possible
-- explicit `params(...)` support for request-side URL parameters
-- clear separation between path params, request params, and body payloads
-- canonical lowering into the closed family/member identity model
+  `line(...)` call-site pressure and does not weaken path-param inference
+- support for explicit custom action routes inside the same grammar
+- hostile proof that weird endpoints degrade one step at a time rather than
+  forcing immediate raw-lane escape
 
 Phase 3 gate:
 
-- no later phase begins until URL declaration, param inference, and request
-  param serialization can be certified without hidden identity drift
+- no later phase begins until standard and nonstandard endpoint declarations
+  can coexist in one grammar without semantic or readability collapse
 
-### Phase 4: Common CRUD And Adversarial Endpoint Coverage
+### Phase 4: Collection-Owned DX
 
 Purpose:
 
-- make the 90% case pleasant without making the 10% case fall apart
+- make list-shaped resources first-class citizens in the pleasant lane instead
+  of leaving them as a raw-only escape after nice detail reads
 
 This phase must ship:
 
-- first-class common semantic shapes for:
-  - detail reads
-  - list reads
-  - paged reads
-  - create operations
-  - update operations
-  - remove operations
-- support for explicit custom action routes inside the same grammar
-- support for nested workspace, tenant, and project route prefixes
 - a compressed pleasant lane for collection and paged reconciliation authoring,
   including item identity and narrow patch declarations
 - family-scoped patch helper ownership for DX-authored collection and paged
   families
-- hostile proof that weird endpoints degrade one step at a time rather than
-  forcing immediate raw-lane escape
+- family-scoped native delivery helper ownership for DX-authored collection and
+  paged families
+- a tiny common truth for direct `Task[]`-style lists, with richer
+  reconciliation declaration only where envelopes or summaries actually demand
+  it
+- parity between builder-authored collection/paged declarations and raw
+  reconciliation legality
 
 Phase 4 gate:
 
-- no later phase begins until standard and nonstandard endpoints can coexist in
-  one grammar without semantic or readability collapse, and list-shaped
-  resources no longer require raw-only reconciliation ergonomics for the common
-  lane
+- no later phase begins until list-shaped resources no longer require raw-only
+  reconciliation ergonomics for the common lane and builder-authored patch or
+  delivery helpers do not introduce a second mutation or delivery engine
 
 ### Phase 5: Upload, Processing, And Advanced Transfer Builders
 
@@ -737,11 +747,12 @@ Phase 5 gate:
   can be certified as semantically identical to the raw lane, and download-
   bearing resources fit the same pleasant grammar without semantic flattening
 
-### Phase 6: Escape Hatch, Diagnostics, And Certification Closeout
+### Phase 6: Consumption, Escape Hatch, And Closeout
 
 Purpose:
 
 - close the hardening work without trapping the package in one authoring style
+- make the pleasant lane feel pleasant after declaration, not only during it
 
 This phase must ship:
 
@@ -757,16 +768,53 @@ This phase must ship:
 
 Phase 6 gate:
 
-- the milestone is not closed until declaration-site-typed `url(...)` and
-  raw-authored resource families converge exactly under hostile certification
-  and the docs teach a clear default path across declaration, line usage,
-  patching, delivery, transfers, downloads, and explainability
+- the milestone is not closed until route-first `url(...)` declarations and
+  raw-authored resource families converge exactly under hostile certification,
+  the grouped line-consumption lane stays cost-honest, and the docs teach a
+  clear default path across declaration, line usage, patching, delivery,
+  transfers, downloads, and explainability
+
+## Current Progress Snapshot
+
+- `Phase 1: Request Scope Foundation`
+  - status: materially complete
+  - shipped: shared API root, nested scopes, inherited auth/headers/base URL,
+    deterministic overrides, request-source explainability, raw-lane
+    equivalence proofs
+- `Phase 2: Route Kernel Foundation`
+  - status: materially complete
+  - shipped: deterministic `url(...)` route kernel, compile-time route
+    validity, path-param inference, explicit `params(...)`, canonical identity
+    lowering, base-URL composition, semantically honest request-target
+    inspection
+- `Phase 3: Common Endpoint Grammar`
+  - status: partially complete
+  - shipped: route-first read finalizers for `.detail(...)`, `.list(...)`, and
+    `.paged(...)`, plus raw-lane equivalence and hostile route/param proofs
+  - still open: `.create(...)`, `.update(...)`, `.remove()`, and explicit
+    custom action support inside the same pleasant grammar
+- `Phase 4: Collection-Owned DX`
+  - status: started but not close to closed
+  - shipped direction: builder-authored collection and paged families now own
+    phase-specific DX work rather than being treated as a later afterthought
+  - still open: compressed reconciliation authoring, family-scoped patch and
+    delivery ownership, and proof that list-shaped resources no longer require
+    raw-only ergonomics
+- `Phase 5: Upload, Processing, And Advanced Transfer Builders`
+  - status: not started in the DX lane
+  - note: raw transport semantics exist and are certified, but the pleasant
+    authoring grammar is still open work
+- `Phase 6: Consumption, Escape Hatch, And Closeout`
+  - status: not started as a coherent DX phase
+  - note: some parity groundwork exists from the current resource surface, but
+    the grouped consumption lane, raw escape-hatch teaching, and hostile
+    closeout proofs remain open
 
 ## Must Ship
 
 - one shared API root for common auth, headers, base URL, and inheritance
 - nested API scopes for section-specific request defaults
-- declaration-site semantic typing for common read and write intent
+- route-first semantic finalizers for common read and write intent
 - explicit `url(...)` declaration as the common entrypoint
 - explicit `params(...)` request parameter vocabulary
 - path-param inference where possible

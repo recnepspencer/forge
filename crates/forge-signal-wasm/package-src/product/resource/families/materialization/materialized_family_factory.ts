@@ -14,6 +14,7 @@ import { resolveResourceProcessingJobPosture } from "../../processing/processing
 import { createResourceRequestDescriptor } from "../../requests/request_descriptor.js";
 import { resolveResourceUploadTransportPosture } from "../../uploads/upload_transport_resolution.js";
 import {
+  resolveResourceBaseUrlPosture,
   resolveResourceAuthPosture,
   resolveResourceContinuationPosture,
   resolveResourceRequestContext,
@@ -29,6 +30,8 @@ import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
 import { createLineRequestState } from "../../requests/line_request_state.js";
+import { readApiRouteTargetMetadata } from "../../../api/api_route_target_metadata.js";
+import { composeBaseUrlWithRoute } from "../../requests/base_url_resolution.js";
 
 function createMaterializedFamily(
   kind,
@@ -46,11 +49,13 @@ function createMaterializedFamily(
     declaration,
     familyScope,
     policy,
+    declaration.baseUrl,
     declaration.auth,
     declaration.requestContext,
     declaration.continuation,
     declaration.processingJob,
     declaration.uploadTransport,
+    createRequestTargetRecord(declaration),
     compatibility,
   );
   const linesByCanonicalKey = new Map();
@@ -268,6 +273,11 @@ function createConcreteMaterialization(
 }
 
 function createResolvedRequestDescriptor(lineIdentity, familyRecord, params) {
+  const baseUrl = resolveResourceBaseUrlPosture(
+    familyRecord.baseUrl,
+    params,
+    familyRecord.identity.kind,
+  );
   const auth = resolveResourceAuthPosture(
     familyRecord.auth,
     params,
@@ -293,14 +303,22 @@ function createResolvedRequestDescriptor(lineIdentity, familyRecord, params) {
     params,
     familyRecord.identity.kind,
   );
+  const target = createResolvedRequestTarget(
+    familyRecord.requestTarget,
+    lineIdentity.canonicalParams.canonicalKey,
+    baseUrl.value,
+  );
   return createResourceRequestDescriptor(
     lineIdentity,
+    target,
+    baseUrl.value,
     auth.value,
     context.value,
     continuation.value,
     processingJob.value,
     uploadTransport.value,
     Object.freeze({
+      baseUrl: baseUrl.source,
       auth: auth.source,
       context: context.source,
       continuation: continuation.source,
@@ -308,6 +326,34 @@ function createResolvedRequestDescriptor(lineIdentity, familyRecord, params) {
       uploadTransport: uploadTransport.source,
     }),
   );
+}
+
+function createRequestTargetRecord(declaration) {
+  const metadata = readApiRouteTargetMetadata(declaration);
+  if (metadata === null) {
+    return null;
+  }
+  return Object.freeze({
+    requestPathFromCanonicalKey: metadata.requestPathFromCanonicalKey === true,
+  });
+}
+
+function createResolvedRequestTarget(requestTarget, canonicalKey, baseUrl) {
+  if (requestTarget === null) {
+    return Object.freeze({
+      baseUrl,
+      requestPath: null,
+      url: null,
+    });
+  }
+  const requestPath = requestTarget.requestPathFromCanonicalKey
+    ? canonicalKey
+    : null;
+  return Object.freeze({
+    baseUrl,
+    requestPath,
+    url: composeBaseUrlWithRoute(baseUrl, requestPath),
+  });
 }
 
 function createBinding(

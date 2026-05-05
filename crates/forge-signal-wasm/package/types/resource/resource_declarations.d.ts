@@ -49,6 +49,7 @@ type ResourceBinaryUploadCompatibleValue<TValue> =
 
 export interface DetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -69,6 +70,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
 
 export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -92,6 +94,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
 
 export interface UploadDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -115,6 +118,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
 
 export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -152,6 +156,7 @@ export interface CollectionResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -185,6 +190,7 @@ export interface ProcessingCollectionResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -221,6 +227,7 @@ export interface UploadCollectionResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -257,6 +264,7 @@ export interface ProcessingUploadCollectionResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:

@@ -38,6 +38,12 @@ test("resource lines refresh in place and record diagnostics", async () => {
       continuity: "preserveVisibleValue",
       freshnessPolicy: "stable",
       request: {
+        baseUrl: null,
+        target: {
+          baseUrl: null,
+          requestPath: null,
+          url: null,
+        },
         auth: {
           kind: "anonymous",
         },
@@ -54,6 +60,7 @@ test("resource lines refresh in place and record diagnostics", async () => {
           kind: "none",
         },
         sources: {
+          baseUrl: null,
           auth: {
             source: "default.auth",
             overridden: false,

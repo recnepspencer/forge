@@ -25,6 +25,7 @@ test("signals.api shared scoped defaults lower to the same admitted request post
   try {
     const { mod, signals, signalsMod } = runtime;
     const scopedApi = signals.api({
+      baseUrl: "/api",
       auth: signalsMod.resourceAuth.workspace(),
       headers: {
         authorization: "Bearer shared",
@@ -60,6 +61,7 @@ test("signals.api shared scoped defaults lower to the same admitted request post
     });
     const explicitDetail = signals.resource.detail({
       params: signalsMod.resourceParams(),
+      baseUrl: "/api",
       auth: signalsMod.resourceAuth.workspace(),
       requestContext: ({ workspaceId }) =>
         signalsMod.resourceRequestContext({
@@ -105,6 +107,9 @@ test("signals.api shared scoped defaults lower to the same admitted request post
       diagnosticsRequestWithoutSources(explicitLine),
     );
     assert.equal(scopedLine.request().sources.auth.source, "apiRoot.auth");
+    assert.deepEqual(scopedLine.request().sources.baseUrl, {
+      sources: ["apiRoot.baseUrl"],
+    });
     assert.equal(
       scopedLine.request().sources.context.headers.authorization.source,
       "apiRoot.headers",
@@ -135,6 +140,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
   try {
     const { mod, signals, signalsMod } = runtime;
     const api = signals.api({
+      baseUrl: "/api",
       auth: signalsMod.resourceAuth.authenticated(),
       headers: {
         authorization: "Bearer root",
@@ -160,6 +166,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
 
     const detail = api.detail({
       params: signalsMod.resourceParams(),
+      baseUrl: "/products",
       auth: signalsMod.resourceAuth.anonymous(),
       headers: ({ productId }) => ({
         authorization: `Bearer product:${productId}`,
@@ -180,6 +187,7 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
     const line = detail.line({ tenantId: "acme", productId: "p1" });
 
     assert.equal(line.request().auth.kind, "anonymous");
+    assert.equal(line.request().baseUrl, "/api/products");
     assert.deepEqual(line.request().context.headers, {
       authorization: "Bearer product:p1",
       "x-root": "root",
@@ -192,6 +200,9 @@ test("signals.api nested scope and endpoint overrides stay deterministic and exp
     assert.deepEqual(line.request().sources.context.headers.authorization, {
       source: "endpoint.headers",
       overridden: true,
+    });
+    assert.deepEqual(line.request().sources.baseUrl, {
+      sources: ["apiRoot.baseUrl", "endpoint.baseUrl"],
     });
     assert.deepEqual(line.request().sources.context.headers["x-root"], {
       source: "apiRoot.headers",
@@ -261,12 +272,72 @@ test("scoped signal namespaces carry the api surface for feature-local request d
   }
 });
 
-test("signals.api rejects baseUrl before the url kernel exists", async () => {
+test("signals.api composes inherited baseUrl prefixes deterministically and rejects absolute child overrides", async () => {
   const runtime = await createRealRequestRuntime();
   try {
+    const { signals, signalsMod } = runtime;
+    const scopedApi = signals.api({
+      baseUrl: "https://api.example.com",
+    }).scope({
+      baseUrl: "/v1",
+    });
+    const detail = scopedApi.url("/users/:userId").detail({
+      load: ({ userId }) => ({ id: userId }),
+    });
+
+    const line = detail.line({ userId: "u1" });
+
+    assert.deepEqual(line.request().target, {
+      baseUrl: "https://api.example.com/v1",
+      requestPath: "/users/u1",
+      url: "https://api.example.com/v1/users/u1",
+    });
+    assert.deepEqual(line.request().sources.baseUrl, {
+      sources: ["apiRoot.baseUrl", "apiScope[1].baseUrl"],
+    });
+    assert.deepEqual(line.diagnosticsSummary().request.target, {
+      baseUrl: "https://api.example.com/v1",
+      requestPath: "/users/u1",
+      url: "https://api.example.com/v1/users/u1",
+    });
+
     assert.throws(
-      () => runtime.signals.api({ baseUrl: "/api" }),
-      /does not admit baseUrl in the current DX slice/,
+      () =>
+        signals.api({ baseUrl: "/api" }).scope({
+          baseUrl: "https://other.example.com",
+        }).url("/users/:userId").detail({
+          load: ({ userId }) => ({ id: userId }),
+        }).line({ userId: "u1" }),
+      /cannot compose an absolute baseUrl over inherited baseUrl/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("signals.api rejects baseUrl prefixes that bypass route-segment validity", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+
+    assert.throws(
+      () =>
+        signals.api({
+          baseUrl: "/api//v1",
+        }).url("/users/:userId").detail({
+          load: ({ userId }) => ({ id: userId }),
+        }).line({ userId: "u1" }),
+      /baseUrl must not contain empty path segments/,
+    );
+
+    assert.throws(
+      () =>
+        signals.api({
+          baseUrl: "https://api.example.com//v1",
+        }).url("/users/:userId").detail({
+          load: ({ userId }) => ({ id: userId }),
+        }).line({ userId: "u1" }),
+      /baseUrl must not contain empty path segments/,
     );
   } finally {
     await runtime.cleanup();

@@ -3,11 +3,13 @@ function createFamilyDefinitionRecord(
   declaration,
   familyScope,
   policy,
+  baseUrl,
   auth,
   requestContext,
   continuation,
   processingJob,
   uploadTransport,
+  requestTarget,
   compatibility,
 ) {
   return Object.freeze({
@@ -15,11 +17,13 @@ function createFamilyDefinitionRecord(
     declaration,
     familyScope,
     policy,
+    baseUrl,
     auth,
     requestContext,
     continuation,
     processingJob,
     uploadTransport,
+    requestTarget,
     compatibility,
   });
 }

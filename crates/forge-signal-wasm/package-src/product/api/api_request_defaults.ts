@@ -2,6 +2,10 @@ import { isPlainObject } from "../authoring_option_validation.js";
 import {
   createTaggedRequestSourceInput,
 } from "../resource/requests/request_source_metadata.js";
+import {
+  composeResourceBaseUrl,
+  requireResourceBaseUrl,
+} from "../resource/requests/base_url_resolution.js";
 import { requireResourceAuthPosture } from "../resource/requests/auth_posture.js";
 import {
   requireResourceContinuationPosture,
@@ -18,6 +22,7 @@ import {
 } from "../resource/uploads/upload_transport_posture.js";
 
 const API_LAYER_KEYS = new Set([
+  "baseUrl",
   "auth",
   "headers",
   "requestContext",
@@ -30,11 +35,6 @@ function normalizeApiLayer(label, options = {}) {
   if (!isPlainObject(options)) {
     throw new TypeError("signals.api(...) expects a plain object of scoped request defaults");
   }
-  if ("baseUrl" in options) {
-    throw new TypeError(
-      "signals.api(...) does not admit baseUrl in the current DX slice; baseUrl requires the later url(...) route kernel",
-    );
-  }
   for (const key of Object.keys(options)) {
     if (!API_LAYER_KEYS.has(key)) {
       throw new TypeError(
@@ -42,6 +42,7 @@ function normalizeApiLayer(label, options = {}) {
       );
     }
   }
+  validateBaseUrlInput(options.baseUrl);
   validatePostureInput("auth", options.auth, requireResourceAuthPosture);
   validateHeadersInput(options.headers);
   validatePostureInput(
@@ -66,6 +67,7 @@ function normalizeApiLayer(label, options = {}) {
   );
   return Object.freeze({
     label,
+    baseUrl: options.baseUrl,
     auth: options.auth,
     headers: options.headers,
     requestContext: options.requestContext,
@@ -79,14 +81,11 @@ function mergeApiDeclaration(layers, declaration) {
   if (!isPlainObject(declaration)) {
     throw new TypeError("api family declarations must be plain objects");
   }
-  if ("baseUrl" in declaration) {
-    throw new TypeError(
-      "api family declarations do not admit baseUrl in the current DX slice",
-    );
-  }
+  validateBaseUrlInput(declaration.baseUrl);
   validateHeadersInput(declaration.headers);
   const merged = { ...declaration };
   delete merged.headers;
+  merged.baseUrl = mergeBaseUrlInput(layers, declaration.baseUrl);
   merged.auth = mergeTaggedInput(
     layers,
     declaration.auth,
@@ -150,6 +149,44 @@ function mergeTaggedInput(
     return Object.freeze({
       value: resolvedValue,
       source,
+    });
+  });
+}
+
+function mergeBaseUrlInput(layers, endpointInput) {
+  if (
+    endpointInput === undefined
+    && layers.every((layer) => layer.baseUrl === undefined)
+  ) {
+    return undefined;
+  }
+  return createTaggedRequestSourceInput((params) => {
+    let value = null;
+    const sources = [];
+    for (const layer of layers) {
+      if (layer.baseUrl === undefined) {
+        continue;
+      }
+      value = composeResourceBaseUrl(
+        value,
+        requireResourceBaseUrl(resolveInputValue(layer.baseUrl, params, "baseUrl"), "api"),
+        `${layer.label}.baseUrl`,
+      );
+      sources.push(`${layer.label}.baseUrl`);
+    }
+    if (endpointInput !== undefined) {
+      value = composeResourceBaseUrl(
+        value,
+        requireResourceBaseUrl(resolveInputValue(endpointInput, params, "baseUrl"), "api"),
+        "endpoint.baseUrl",
+      );
+      sources.push("endpoint.baseUrl");
+    }
+    return Object.freeze({
+      value,
+      source: Object.freeze({
+        sources: Object.freeze([...sources]),
+      }),
     });
   });
 }
@@ -341,6 +378,16 @@ function validateHeadersInput(input) {
     return;
   }
   resolveHeaderObject(input);
+}
+
+function validateBaseUrlInput(input) {
+  if (
+    input !== undefined
+    && typeof input !== "string"
+    && typeof input !== "function"
+  ) {
+    throw new TypeError("signals.api(...) baseUrl must be a string or function");
+  }
 }
 
 function validatePostureInput(name, input, validator) {

@@ -14,6 +14,7 @@ test("resource request posture lowers auth and context into line request truth a
     let capturedRequest = null;
     const detail = resource.detail({
       params: mod.resourceParams(),
+      baseUrl: "/api",
       auth: mod.resourceAuth.authenticated(),
       requestContext: mod.resourceRequestContext({
         headers: { "x-workspace-id": "demo" },
@@ -34,6 +35,12 @@ test("resource request posture lowers auth and context into line request truth a
     assert.deepEqual(normalizeForProof(line.request()), {
       family: line.descriptor().family,
       canonicalParams: normalizeForProof(line.descriptor().canonicalParams),
+      target: {
+        baseUrl: "/api",
+        requestPath: null,
+        url: null,
+      },
+      baseUrl: "/api",
       auth: {
         kind: "authenticated",
       },
@@ -53,6 +60,9 @@ test("resource request posture lowers auth and context into line request truth a
         kind: "none",
       },
       sources: {
+        baseUrl: {
+          sources: ["endpoint.baseUrl"],
+        },
         auth: {
           source: "endpoint.auth",
           overridden: false,
@@ -100,6 +110,12 @@ test("resource request posture lowers auth and context into line request truth a
       continuity: "preserveVisibleValue",
       freshnessPolicy: "stable",
       request: {
+        baseUrl: "/api",
+        target: {
+          baseUrl: "/api",
+          requestPath: null,
+          url: null,
+        },
         auth: {
           kind: "authenticated",
         },
@@ -119,6 +135,9 @@ test("resource request posture lowers auth and context into line request truth a
           kind: "none",
         },
         sources: {
+          baseUrl: {
+            sources: ["endpoint.baseUrl"],
+          },
           auth: {
             source: "endpoint.auth",
             overridden: false,
@@ -225,6 +244,7 @@ test("resource request posture can resolve auth and context from params", async 
     const { mod, resource } = runtime;
     const detail = resource.detail({
       params: mod.resourceParams(),
+      baseUrl: ({ workspaceId }) => `/tenants/${workspaceId}`,
       auth: ({ workspaceId }) =>
         workspaceId === "demo"
           ? mod.resourceAuth.workspace()
@@ -249,6 +269,10 @@ test("resource request posture can resolve auth and context from params", async 
     });
 
     assert.equal(line.request().auth.kind, "workspace");
+    assert.equal(line.request().baseUrl, "/tenants/demo");
+    assert.deepEqual(line.request().sources.baseUrl, {
+      sources: ["endpoint.baseUrl"],
+    });
     assert.deepEqual(line.request().context.headers, {
       "x-workspace-id": "demo",
     });

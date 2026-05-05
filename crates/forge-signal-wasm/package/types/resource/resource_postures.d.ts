@@ -419,9 +419,17 @@ export interface ResourceLineDescriptor<TParams> {
   readonly compatibility?: Exclude<ResourceLineCompatibilityDigest, { kind: "native" }>;
 }
 
+export interface ResourceRequestTarget {
+  readonly baseUrl: string | null;
+  readonly requestPath: string | null;
+  readonly url: string | null;
+}
+
 export interface ResourceRequestDescriptor<TParams> {
   readonly family: ResourceFamilyIdentity;
   readonly canonicalParams: ResourceParamIdentity<TParams>;
+  readonly target: ResourceRequestTarget;
+  readonly baseUrl: string | null;
   readonly auth: ResourceAuthPosture;
   readonly context: ResourceRequestContext;
   readonly continuation: ResourceContinuationPosture;
@@ -437,6 +445,8 @@ export interface ResourceRequestContextSummary {
 }
 
 export interface ResourceRequestDiagnostics {
+  readonly baseUrl: string | null;
+  readonly target: ResourceRequestTarget;
   readonly auth: ResourceAuthPosture;
   readonly context: ResourceRequestContextSummary;
   readonly continuation: ResourceContinuationPosture;

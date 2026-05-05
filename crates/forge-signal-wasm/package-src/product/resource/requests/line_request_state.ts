@@ -4,6 +4,8 @@ function createLineRequestState(requestDescriptor) {
   const baseDescriptor = Object.freeze({
     family: requestDescriptor.family,
     canonicalParams: requestDescriptor.canonicalParams,
+    target: requestDescriptor.target,
+    baseUrl: requestDescriptor.baseUrl,
     auth: requestDescriptor.auth,
     continuation: requestDescriptor.continuation,
     processingJob: requestDescriptor.processingJob,

@@ -246,6 +246,8 @@ function createRestoreReloadDiagnostics(nextDiagnostics, requestDescriptor) {
   return Object.freeze({
     ...nextDiagnostics,
     request: Object.freeze({
+      baseUrl: requestDescriptor.baseUrl,
+      target: requestDescriptor.target,
       auth: requestDescriptor.auth,
       context: Object.freeze({
         headerNames: Object.freeze(
@@ -258,6 +260,7 @@ function createRestoreReloadDiagnostics(nextDiagnostics, requestDescriptor) {
       continuation: requestDescriptor.continuation,
       processingJob: requestDescriptor.processingJob,
       uploadTransport: requestDescriptor.uploadTransport,
+      sources: requestDescriptor.sources,
     }),
     basis: Object.freeze({
       ...nextDiagnostics.basis,

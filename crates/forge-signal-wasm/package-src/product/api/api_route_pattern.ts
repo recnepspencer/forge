@@ -1,3 +1,8 @@
+import {
+  createRouteQueryString,
+  createRouteRequestParams,
+} from "./api_route_request_params.js";
+
 function parseApiRoutePattern(route) {
   if (typeof route !== "string" || route.length === 0) {
     throw new TypeError("api.url(...) requires a non-empty route string");
@@ -44,12 +49,15 @@ function parseApiRoutePattern(route) {
   });
 }
 
-function createRouteBoundParams(pattern, rawParams) {
+function createRouteBoundParams(pattern, requestParamsState, rawParams) {
   if (!rawParams || typeof rawParams !== "object" || Array.isArray(rawParams)) {
     throw new TypeError(
       `${pattern.route} line(...) requires an object containing exactly the declared path params`,
     );
   }
+  const requestParams = requestParamsState.declared
+    ? requireDeclaredRouteRequestParams(pattern, rawParams)
+    : undefined;
   const params = {};
   for (const name of pattern.pathParamNames) {
     if (!(name in rawParams)) {
@@ -60,20 +68,27 @@ function createRouteBoundParams(pattern, rawParams) {
     params[name] = rawParams[name];
   }
   for (const name of Object.keys(rawParams)) {
+    if (requestParamsState.declared && name === "params") {
+      continue;
+    }
     if (!pattern.pathParamNames.includes(name)) {
       throw new TypeError(
-        `${pattern.route} line(...) does not admit undeclared param "${name}" before params(...) exists`,
+        `${pattern.route} line(...) does not admit undeclared path param "${name}"`,
       );
     }
+  }
+  if (requestParams !== undefined) {
+    params.params = requestParams;
   }
   return Object.freeze(params);
 }
 
 function createRouteCanonicalKey(pattern, params) {
+  const requestParams = params.params;
   if (pattern.tokens.length === 0) {
-    return "/";
+    return `/${createRouteQueryString(pattern.route, requestParams ?? {})}`;
   }
-  return `/${pattern.tokens.map((token) => renderRouteToken(pattern.route, token, params)).join("/")}`;
+  return `/${pattern.tokens.map((token) => renderRouteToken(pattern.route, token, params)).join("/")}${createRouteQueryString(pattern.route, requestParams ?? {})}`;
 }
 
 function encodeRouteParamValue(route, name, value) {
@@ -109,6 +124,15 @@ function validatePathParamName(route, segment, name) {
       );
     }
   }
+}
+
+function requireDeclaredRouteRequestParams(pattern, rawParams) {
+  if ("params" in rawParams) {
+    return createRouteRequestParams(rawParams.params, pattern.route);
+  }
+  throw new TypeError(
+    `${pattern.route} line(...) requires an explicit params object when request params are declared`,
+  );
 }
 
 function isValidParamStart(character) {

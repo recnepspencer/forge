@@ -230,6 +230,8 @@ function createDeliveredBasisDiagnostics(previous, deliveryBasisId, nextBasisId)
 
 function createRequestDiagnostics(requestDescriptor) {
   return Object.freeze({
+    baseUrl: requestDescriptor.baseUrl,
+    target: requestDescriptor.target,
     auth: requestDescriptor.auth,
     context: Object.freeze({
       headerNames: Object.freeze(

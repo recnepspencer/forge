@@ -5,6 +5,8 @@ function createRequestArtifactDigest(line) {
   const diagnostics = line.diagnostics().request;
   const summary = line.diagnosticsSummary().request;
   return JSON.stringify({
+    baseUrl: request.baseUrl,
+    target: request.target,
     auth: request.auth.kind,
     context: {
       headerNames: diagnostics.context.headerNames,

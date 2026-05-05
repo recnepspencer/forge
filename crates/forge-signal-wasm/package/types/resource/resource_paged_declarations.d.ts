@@ -60,6 +60,7 @@ export interface PagedResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -94,6 +95,7 @@ export interface ProcessingPagedResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -131,6 +133,7 @@ export interface UploadPagedResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -168,6 +171,7 @@ export interface ProcessingUploadPagedResourceDeclaration<
   > | undefined = undefined,
 > {
   params: DeclaredResourceParams<TParams>;
+  baseUrl?: string | ((params: TParams) => string);
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:

@@ -1,3 +1,4 @@
+import { resolveResourceBaseUrl } from "./base_url_resolution.js";
 import { requireResourceAuthPosture } from "./auth_posture.js";
 import { requireResourceContinuationPosture } from "./continuation_posture.js";
 import { resourceAuth } from "./resource_auth.js";
@@ -29,6 +30,15 @@ function resolveResourceAuthPosture(input, params, family) {
     value: requireResourceAuthPosture(value, family),
     source: Object.freeze({ source: "endpoint.auth", overridden: false }),
   });
+}
+
+function resolveResourceBaseUrlPosture(input, params, family) {
+  return resolveResourceBaseUrl(
+    input,
+    params,
+    family,
+    readTaggedRequestSourceResolution,
+  );
 }
 
 function resolveResourceRequestContext(input, params, family) {
@@ -119,6 +129,7 @@ function createDefaultContextSource(context) {
 }
 
 export {
+  resolveResourceBaseUrlPosture,
   resolveResourceAuthPosture,
   resolveResourceContinuationPosture,
   resolveResourceRequestContext,
