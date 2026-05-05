@@ -28,9 +28,9 @@ to TanStack Query plus ad hoc API-client glue.
 The target product shape is:
 
 - shared API defaults such as base URL, auth, and headers are declared once
-- common read and request declarations are method-first and obvious
-- builders auto-finalize into usable resource families with no `.build()`
-  ceremony
+- request defaults can be layered at app, section, and endpoint scope
+- common declarations start with one obvious route entrypoint: `url(...)`
+- declaration-site types carry the main semantic intent for the common lane
 - explicit ids and explicit route intent remain visible in code
 - path parameters stay readable and explicit
 - request-side URL parameters use `params`, not `query`
@@ -85,7 +85,7 @@ The API surface now needs the same treatment.
   second request-planning engine behind cheap-looking calls.
 - `domain_laws.md`
   The most important thing it protects is subsystem clarity. Shared API
-  defaults, method-first builder authoring, request parameter serialization,
+  defaults, declaration-site route authoring, request parameter serialization,
   upload posture, and raw-family escape hatches need distinct homes instead of
   one mega-builder.
 - `forge_signal_vision.md`
@@ -126,7 +126,7 @@ This milestone must survive the following hostile condition:
 > non-resourceful backend routes must converge to the same family identity, the
 > same line lifecycle truth, the same diagnostics/history truth, and the same
 > request-shaping truth regardless of whether the resource was authored through
-> the new DX builders or the existing raw family declaration surface.
+> the new DX `url(...)` lane or the existing raw family declaration surface.
 
 If the DX lane can produce:
 
@@ -143,17 +143,21 @@ then the milestone has failed.
 
 - keep explicit endpoint and declaration names visible in application code
 - do not add a magical `resource("products")` abstraction as the default lane
-- prefer builders over giant declaration objects for the common authoring path
-- builders auto-finalize into usable families; no `.build()` stage is part of
-  the default lane
-- start with method intent before URL declaration
+- prefer one small route declaration grammar over giant declaration objects
+- no `.build()` stage is part of the default lane
+- default read/write intent should be expressible from declaration-site types
+  plus `url(...)` without redundant verb or shape restatement
 - prefer `list` over `index`
 - prefer `params` over `query` for request-side URL parameter vocabulary
-- preserve explicit detail, list, and paged shape distinctions
+- preserve explicit detail, list, paged, create, update, and remove
+  distinctions
 - shared API defaults such as base URL, headers, and auth should be declared
   once and inherited automatically
-- the builder lane must degrade one step at a time for weird endpoints rather
-  than forcing an immediate fall through to raw `load(...)`
+- nested API scopes should be able to add section-specific headers, auth, base
+  URL fragments, and request conventions once and have them lower
+  automatically
+- the DX lane must degrade one step at a time for weird endpoints rather than
+  forcing an immediate fall through to raw `load(...)`
 - signed upload, multipart upload, deferred processing, and related advanced
   cases must remain inside the same builder grammar as ordinary reads
 - the raw family declaration lane remains the escape hatch and semantic anchor
@@ -181,9 +185,9 @@ This milestone freezes the intended ownership boundary:
    - remains the semantic authority at the wasm product boundary
    - continues to describe canonical family, line, lifecycle, reconciliation,
      delivery, download, replay, and restore behavior
-2. **API DX builder surface**
-   - owns pleasant authoring, shared defaults, inheritance, path interpolation,
-     and common request vocabulary
+2. **API DX declaration surface**
+   - owns pleasant authoring, shared defaults, scoped inheritance, path
+     interpolation, and common request vocabulary
    - lowers into the raw resource family surface
    - does not define independent lifecycle or cache semantics
 3. **future router surface**
@@ -199,30 +203,33 @@ The DX layer is therefore not:
 
 ### Authoring model
 
-The intended ergonomic direction is method-first and shape-explicit.
+The intended ergonomic direction is declaration-site semantic typing plus one
+explicit route entrypoint.
 
 Representative shape:
 
 ```ts
-const productDetail = api.get.detail<Product>()
-  .url("/products/:productId");
+const getUser: Detail<User> = url("/users/:userId");
 
-const productList = api.get.list<Product>()
-  .url("/products")
+const getUsers: List<User> = url("/users")
   .params<{ search?: string; page?: number }>();
 
-const receiptUpload = api.post.detail<PreparedUpload>()
-  .url("/receipts/upload")
+const createUser: Create<User> = url("/users");
+
+const updateUser: Update<User> = url("/users/:userId");
+
+const uploadReceipt: Create<PreparedUpload> = url("/receipts/upload")
   .signedUpload({ finalize: true })
   .processing("poll");
 ```
 
 Important constraints:
 
-- the declaration starts with intent (`get`, `post`, `patch`, `remove`)
-- shape stays visible (`detail`, `list`, `paged`)
-- the URL remains explicit
+- the declaration-site type expresses the common semantic intent
+- `url(...)` remains explicit and grepable
 - shared defaults are inherited unless overridden
+- weird endpoints stay in the same grammar by adding small explicit modifiers
+  instead of switching to a second declaration API
 - the result of the chain is already the usable family
 
 ### Parameter model
@@ -230,7 +237,7 @@ Important constraints:
 The API must distinguish:
 
 1. **path params**
-   - values consumed by placeholders in `.url("/products/:productId")`
+   - values consumed by placeholders in `url("/products/:productId")`
    - should be inferred where possible
 2. **request params**
    - extra serialized URL parameters for list/search/filter/paging flows
@@ -242,13 +249,16 @@ The API must distinguish:
 The authoring goal is:
 
 - infer path params from the URL where possible
+- treat `Detail<T>` as identity-bearing by default instead of requiring
+  repetitive trivial id restatement
 - keep request params explicit and named as `params`
 - do not force developers to re-declare trivial identity by hand for the 80%
   case
 
 ### Shared-default model
 
-The builder lane must support one explicit API root for shared request posture:
+The DX declaration lane must support one explicit API root for shared request
+posture:
 
 - base URL
 - shared headers
@@ -258,6 +268,50 @@ The builder lane must support one explicit API root for shared request posture:
 
 The intention is that most applications declare headers once and reuse them for
 nearly every endpoint, with only explicit local overrides where needed.
+
+The scoped inheritance model must also support intermediate API sections so
+large apps can define shared request posture once for one part of the product
+without contaminating unrelated routes.
+
+Representative shape:
+
+```ts
+const api = signals.api({
+  baseUrl: "/api",
+  headers: () => ({
+    Authorization: `Bearer ${session.token()}`,
+  }),
+});
+
+const tenantApi = api.scope({
+  headers: ({ tenantId }) => ({
+    "x-tenant-id": tenantId,
+  }),
+});
+
+const adminTenantApi = tenantApi.scope({
+  headers: () => ({
+    "x-admin-area": "true",
+  }),
+});
+
+const getUser: Detail<User> = tenantApi.url("/users/:userId");
+
+const exportUsers: Create<ExportJob> = adminTenantApi
+  .url("/users/export")
+  .headers(() => ({
+    "x-export-mode": "full",
+  }));
+```
+
+Required merge semantics:
+
+- app-root defaults apply first
+- nested API scopes apply in lexical order
+- endpoint-local overrides apply last
+- collisions resolve deterministically
+- diagnostics and request inspection must reveal what was inherited versus what
+  was overridden
 
 ### Advanced-path model
 
@@ -271,12 +325,14 @@ forcing immediate escape:
 - nested tenant/workspace/project routes
 - custom action endpoints
 - nonstandard but still explicit request shapes
+- the occasional brutal endpoint that mixes path params, request params,
+  headers, body, upload preparation, deferred completion, and push delivery
 
 The degradation ladder must be:
 
-1. standard builder path
-2. builder path with one extra override or advanced step
-3. explicit advanced builder shape
+1. standard `url(...)` path
+2. `url(...)` plus one extra override or advanced step
+3. explicit advanced `url(...)` shape with transport modifiers
 4. raw family declaration escape hatch
 
 Not:
@@ -296,34 +352,41 @@ Purpose:
 This phase must ship:
 
 - one explicit API root surface for shared defaults
+- nested API scope surfaces for section- or feature-local defaults
 - inheritance for base URL, auth, and headers
+- inheritance for request-side serializers and related request conventions where
+  declared
 - explicit local override semantics
 - diagnostics-visible evidence of inherited versus overridden request posture
 
 Phase 1 gate:
 
 - no later phase begins until common shared-request posture can be declared
-  once and proved to lower identically across multiple endpoint families
+  once, nested per section, and proved to lower identically across multiple
+  endpoint families
 
-### Phase 2: Method-First Auto-Finalizing Builder Kernel
+### Phase 2: Declaration-Site Typing And URL Kernel
 
 Purpose:
 
 - replace giant declaration objects for the common lane
-- freeze the core builder grammar
+- freeze the core declaration grammar around declaration-site semantic types
+  plus `url(...)`
 
 This phase must ship:
 
-- method-first entrypoints such as `get`, `post`, `patch`, and `remove`
-- shape-explicit builders such as `detail`, `list`, and `paged`
-- auto-finalizing chains with no `.build()`
+- one standard `url(...)` entrypoint for the common lane
+- declaration-site semantic type families such as `Detail<T>`, `List<T>`,
+  `Paged<T>`, `Create<T>`, `Update<T>`, and `Remove<T>`
+- auto-finalizing declaration chains with no `.build()`
 - preserved explicit endpoint identity and readable call-site naming
 - equivalence with the raw family declaration lane
 
 Phase 2 gate:
 
-- no later phase begins until builder-authored and raw-authored conventional
-  reads can be certified as semantically identical
+- no later phase begins until declaration-site-typed `url(...)` authoring and
+  raw-authored conventional declarations can be certified as semantically
+  identical
 
 ### Phase 3: URL, Path Params, And Request Params Ergonomics
 
@@ -352,13 +415,13 @@ Purpose:
 
 This phase must ship:
 
-- first-class common read and request shapes for:
-  - detail
-  - list
-  - paged
-  - create-like POST
-  - patch-like update
-  - remove-like delete
+- first-class common semantic shapes for:
+  - detail reads
+  - list reads
+  - paged reads
+  - create operations
+  - update operations
+  - remove operations
 - support for explicit custom action routes inside the same grammar
 - support for nested workspace, tenant, and project route prefixes
 - hostile proof that weird endpoints degrade one step at a time rather than
@@ -382,13 +445,15 @@ This phase must ship:
 - `multipartUpload(...)`
 - finalize-required upload declaration
 - `processing("poll" | "callback" | "webhook", ...)`
+- explicit advanced modifiers such as `verb(...)`, `body(...)`, `headers(...)`,
+  and related transport-shaping steps for truly nonstandard endpoints
 - equivalence with the existing upload and processing posture semantics
 - denial and diagnostics parity for advanced transfer builders
 
 Phase 5 gate:
 
-- no later phase begins until builder-authored upload and processing flows can
-  be certified as semantically identical to the raw lane
+- no later phase begins until `url(...)`-authored upload and processing flows
+  can be certified as semantically identical to the raw lane
 
 ### Phase 6: Escape Hatch, Diagnostics, And Certification Closeout
 
@@ -405,16 +470,16 @@ This phase must ship:
 
 Phase 6 gate:
 
-- the milestone is not closed until builder-authored and raw-authored resource
-  families converge exactly under hostile certification and the docs teach a
-  clear default path
+- the milestone is not closed until declaration-site-typed `url(...)` and
+  raw-authored resource families converge exactly under hostile certification
+  and the docs teach a clear default path
 
 ## Must Ship
 
 - one shared API root for common auth, headers, base URL, and inheritance
-- method-first builder authoring
-- explicit `detail`, `list`, and `paged` builder shapes
-- explicit `.url(...)` declaration
+- nested API scopes for section-specific request defaults
+- declaration-site semantic typing for common read and write intent
+- explicit `url(...)` declaration as the common entrypoint
 - explicit `params(...)` request parameter vocabulary
 - path-param inference where possible
 - no `.build()` in the normal lane
@@ -436,34 +501,42 @@ Phase 6 gate:
 ## Required Named Proof Families
 
 - `The Shared Request Inheritance Equivalence Test`
-- `The Builder And Raw Detail Equivalence Test`
-- `The Builder And Raw List Equivalence Test`
-- `The Builder And Raw Paged Equivalence Test`
+- `The Scoped Request Defaults Inheritance Equivalence Test`
+- `The Nested Request Defaults Override Honesty Test`
+- `The URL And Raw Detail Equivalence Test`
+- `The URL And Raw List Equivalence Test`
+- `The URL And Raw Paged Equivalence Test`
+- `The Declaration Type And Runtime Lowering Equivalence Test`
 - `The URL Path Param Inference And Stable Identity Test`
 - `The Request Params Serialization And Identity Boundary Test`
-- `The Conventional CRUD Ergonomics Parity Test`
+- `The Conventional CRUD Declarations Parity Test`
 - `The Nonstandard Endpoint Degradation Test`
 - `The Signed Upload Builder Parity Test`
 - `The Multipart Upload Builder Parity Test`
 - `The Deferred Processing Builder Parity Test`
-- `The Builder Diagnostics And History Honesty Test`
-- `The Builder Capability Overclaim Compile-Time Boundary Test`
+- `The DX Declaration Diagnostics And History Honesty Test`
+- `The DX Declaration Capability Overclaim Compile-Time Boundary Test`
 
 ## Acceptance Evidence
 
 This milestone is complete only when the wasm product surface can prove:
 
 - shared API defaults lower identically across multiple endpoint families
-- builder-authored and raw-authored resources converge to the same family
-  identity, line identity, lifecycle truth, and diagnostics/history truth
+- nested API scopes lower identically to their explicit fully-written request
+  posture equivalents
+- declaration-site-typed `url(...)` authoring and raw-authored resources
+  converge to the same family identity, line identity, lifecycle truth, and
+  diagnostics/history truth
 - path-param inference and request-param declaration do not destabilize
   canonical identity
 - conventional CRUD-shaped declarations are materially shorter without semantic
-  drift
+  drift or redundant verb/shape restatement
 - adversarial custom endpoints still fit the same grammar without forcing
   immediate raw-lane escape
 - signed upload, multipart upload, and deferred processing builder steps remain
   exact semantic consumers of the closed transfer substrate
+- inherited versus overridden request posture is visible enough in diagnostics
+  and request inspection that teams can reason about section-local defaults
 - the docs recommend one obvious pleasant lane while preserving the raw lane as
   the explicit escape hatch
 
@@ -475,7 +548,7 @@ This milestone is complete only when the wasm product surface can prove:
   reviewable
 - the builder layer should prefer additive lowering helpers over a giant
   conversion blob
-- the builder lane should likely become the default teaching lane for the later
+- the DX lane should likely become the default teaching lane for the later
   router milestone
 
 ## Sequencing Notes
@@ -491,7 +564,7 @@ This milestone belongs before the router because:
 - the router should consume a pleasant API declaration lane rather than invent
   its own route-local API sugar
 - route-local resources will be much easier to author once shared request
-  defaults and method-first builders already exist
+  defaults and the `url(...)` declaration lane already exist
 
 Current judgment:
 

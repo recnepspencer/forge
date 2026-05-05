@@ -564,14 +564,15 @@ product without changing the already-certified resource semantics underneath it.
 ### Must Ship
 
 - shared API defaults for common auth, headers, base URL, and inheritance
-- method-first builders for the common authoring lane
-- explicit `detail`, `list`, and `paged` builder shapes
-- explicit `.url(...)` route declaration with path-param inference where honest
+- nested API scopes for section-specific inherited request defaults
+- declaration-site semantic types for common read and write intent
+- one explicit `url(...)` declaration lane with path-param inference where
+  honest
 - `params(...)` request-parameter vocabulary
 - signed upload, multipart upload, and deferred processing builder support
 - custom-action and nonstandard endpoint support that stays inside the same
   grammar
-- certified equivalence between builder-authored and raw-authored resource
+- certified equivalence between `url(...)`-authored and raw-authored resource
   declarations
 
 ### Must Preserve
@@ -586,7 +587,8 @@ product without changing the already-certified resource semantics underneath it.
 ### Explicit Boundary
 
 Milestone 7 includes API-surface ergonomics, shared request-default
-inheritance, method-first builders, and advanced-path builder support for the
+inheritance, nested API scopes, declaration-site `url(...)` authoring, and
+advanced-path builder support for the
 already-closed resource line model.
 
 Milestone 7 does not include inventing a new async engine, a magical resource
@@ -597,7 +599,9 @@ convention layer, a second request lifecycle, or router-owned API semantics.
 This milestone is complete only when the wasm product surface can prove:
 
 - shared defaults lower identically across multiple endpoint families
-- builder-authored and raw-authored resources converge to the same family
+- scoped inherited defaults lower identically to explicit endpoint-local
+  request posture
+- `url(...)`-authored and raw-authored resources converge to the same family
   identity, line identity, lifecycle truth, and diagnostics/history truth
 - conventional CRUD-shaped reads are materially less bureaucratic
 - adversarial custom endpoints, uploads, and deferred-processing flows still
