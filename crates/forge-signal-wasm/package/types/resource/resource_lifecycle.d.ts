@@ -11,6 +11,7 @@ import type {
   ResourceLineDescriptor,
   ResourcePolicyProfileName,
   ResourceProcessingCompletionKind,
+  ResourceBinaryDescriptor,
   ResourceRequestDescriptor,
   ResourceRequestDiagnostics,
   ResourceUploadDescriptor,
@@ -20,8 +21,15 @@ import type {
   ResourceItemAspectMap,
   ResourceLineReconciliation,
 } from "./resource_reconciliation.js";
+import type { ResourceLineVerificationPackage } from "./resource_verification.js";
 
-export type ResourceLineOperation = "initialLoad" | "refresh" | "revalidate";
+export type ResourceLineOperation =
+  | "initialLoad"
+  | "refresh"
+  | "revalidate"
+  | "replay"
+  | "restore"
+  | "delivery";
 export type ResourceLineContinuity =
   | "preservedVisibleValue"
   | "noVisibleValueYet";
@@ -73,6 +81,10 @@ export interface ResourceLineStaleFreshness {
     | "revalidatePending"
     | "revalidateRejected"
     | "revalidateTimedOut"
+    | "replayPending"
+    | "replayRejected"
+    | "replayTimedOut"
+    | "deliveryInvalidate"
     | "manualLineInvalidate"
     | "manualFamilyInvalidate"
     | "manualFamilyInvalidateAll";
@@ -188,13 +200,136 @@ export type ResourceLineUploadDiagnostics =
   | ResourceLinePreparedUploadDiagnostics
   | ResourceLineUploadedUploadDiagnostics;
 
+export interface ResourceLineDownloadReadyDescriptor {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "ready";
+    readonly url: string;
+    readonly method: "GET" | "POST";
+    readonly headers: Readonly<Record<string, string>>;
+    readonly expiresAt: string | null;
+  };
+}
+
+export interface ResourceLineDownloadUnavailableDescriptor {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "unavailable";
+    readonly reason: "notReady" | "unavailable";
+    readonly detail: string;
+  };
+}
+
+export interface ResourceLineDownloadIncompatibleDescriptor {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "incompatible";
+    readonly reason: "staleDescriptor" | "transportBoundary";
+    readonly detail: string;
+  };
+}
+
+export type ResourceLineDownloadDescriptor =
+  | ResourceLineDownloadReadyDescriptor
+  | ResourceLineDownloadUnavailableDescriptor
+  | ResourceLineDownloadIncompatibleDescriptor;
+
+export interface ResourceLineDownload {
+  readonly count: number;
+  readonly readyCount: number;
+  readonly unavailableCount: number;
+  readonly incompatibleCount: number;
+  readonly descriptors: readonly ResourceLineDownloadDescriptor[];
+}
+
+export interface ResourceLineDownloadReadyDescriptorDiagnostics {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "ready";
+    readonly url: string;
+    readonly method: "GET" | "POST";
+    readonly headerNames: readonly string[];
+    readonly expiresAt: string | null;
+  };
+}
+
+export interface ResourceLineDownloadUnavailableDescriptorDiagnostics {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "unavailable";
+    readonly reason: "notReady" | "unavailable";
+    readonly detail: string;
+  };
+}
+
+export interface ResourceLineDownloadIncompatibleDescriptorDiagnostics {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: {
+    readonly kind: "incompatible";
+    readonly reason: "staleDescriptor" | "transportBoundary";
+    readonly detail: string;
+  };
+}
+
+export type ResourceLineDownloadDescriptorDiagnostics =
+  | ResourceLineDownloadReadyDescriptorDiagnostics
+  | ResourceLineDownloadUnavailableDescriptorDiagnostics
+  | ResourceLineDownloadIncompatibleDescriptorDiagnostics;
+
+export interface ResourceLineDownloadDiagnostics {
+  readonly count: number;
+  readonly readyCount: number;
+  readonly unavailableCount: number;
+  readonly incompatibleCount: number;
+  readonly descriptors: readonly ResourceLineDownloadDescriptorDiagnostics[];
+}
+
+export interface ResourceLineBasisDiagnostics {
+  readonly currentBasisId: string | null;
+  readonly advanceCount: number;
+  readonly lastAdvanceFromBasisId: string | null;
+  readonly lastAdvanceToBasisId: string | null;
+}
+
 export interface ResourceLineDiagnostics {
   readonly policyProfileName: ResourcePolicyProfileName;
   readonly continuity: "preserveVisibleValue";
   readonly freshnessPolicy: ResourcePolicyProfileName;
   readonly request: ResourceRequestDiagnostics;
+  readonly basis: ResourceLineBasisDiagnostics;
   readonly processing: ResourceLineProcessing;
   readonly upload: ResourceLineUploadDiagnostics;
+  readonly download: ResourceLineDownloadDiagnostics;
   readonly lastOperation: ResourceLineOperation;
   readonly lastOutcome: "fulfilled" | "rejected" | "pending" | "timedOut";
   readonly pendingOperation: ResourceLineOperation | null;
@@ -206,8 +341,10 @@ export interface ResourceLineDiagnostics {
   readonly supersessionCount: number;
   readonly invalidationCount: number;
   readonly patchCount: number;
+  readonly deliveryCount: number;
   readonly lastSupersededOperation: ResourceLineOperation | null;
   readonly lastInvalidationCause:
+    | "deliveryInvalidate"
     | "manualLineInvalidate"
     | "manualFamilyInvalidate"
     | "manualFamilyInvalidateAll"
@@ -218,6 +355,22 @@ export interface ResourceLineDiagnostics {
   readonly lastPatchedItemId: string | null;
   readonly lastPatchedAspect: string | null;
   readonly lastPatchedSummary: string | null;
+  readonly lastDeliveryKind:
+    | "replace"
+    | "patch"
+    | "invalidate"
+    | "basisRefresh"
+    | null;
+  readonly lastDeliveryScope:
+    | "line"
+    | "item"
+    | "aspect"
+    | "summary"
+    | "basis"
+    | "invalidate"
+    | null;
+  readonly lastDeliveryPacketId: string | null;
+  readonly lastDeliveryBasisId: string | null;
   readonly preservedVisibleValueOnLastRejection: boolean;
   readonly lastTimeoutOperation: ResourceLineOperation | null;
   readonly lastErrorMessage: string | null;
@@ -248,6 +401,8 @@ export interface ResourceLineDiagnosticsChangeCountSummary {
   readonly supersessionCount: number;
   readonly invalidationCount: number;
   readonly patchCount: number;
+  readonly deliveryCount: number;
+  readonly basisAdvanceCount: number;
 }
 
 export interface ResourceLineDiagnosticsLatestChangeSummary {
@@ -262,6 +417,25 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly patchedItemId: string | null;
   readonly patchedAspect: string | null;
   readonly patchedSummary: string | null;
+  readonly deliveryKind:
+    | "replace"
+    | "patch"
+    | "invalidate"
+    | "basisRefresh"
+    | null;
+  readonly deliveryScope:
+    | "line"
+    | "item"
+    | "aspect"
+    | "summary"
+    | "basis"
+    | "invalidate"
+    | null;
+  readonly deliveryPacketId: string | null;
+  readonly deliveryBasisId: string | null;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceFromId: string | null;
+  readonly basisAdvanceToId: string | null;
   readonly supersededOperation: ResourceLineOperation | null;
   readonly timeoutOperation: ResourceLineOperation | null;
   readonly errorMessage: string | null;
@@ -276,6 +450,7 @@ export interface ResourceLineDiagnosticsSummary {
   readonly request: ResourceRequestDiagnostics;
   readonly processing: ResourceLineProcessing;
   readonly upload: ResourceLineUploadDiagnostics;
+  readonly download: ResourceLineDownloadDiagnostics;
   readonly explainability: ResourceLineHistoryAvailability;
 }
 
@@ -284,6 +459,9 @@ export type ResourceLineHistoryEvent =
   | "pending"
   | "superseded"
   | "patched"
+  | "delivered"
+  | "replayed"
+  | "restored"
   | "fulfilled"
   | "rejected"
   | "timedOut"
@@ -305,8 +483,10 @@ export interface ResourceLineHistoryEntry {
   readonly supersededOperation: ResourceLineOperation | null;
   readonly invalidationCount: number;
   readonly patchCount: number;
+  readonly deliveryCount: number;
   readonly lastSupersededOperation: ResourceLineOperation | null;
   readonly lastInvalidationCause:
+    | "deliveryInvalidate"
     | "manualLineInvalidate"
     | "manualFamilyInvalidate"
     | "manualFamilyInvalidateAll"
@@ -317,6 +497,30 @@ export interface ResourceLineHistoryEntry {
   readonly lastPatchedItemId: string | null;
   readonly lastPatchedAspect: string | null;
   readonly lastPatchedSummary: string | null;
+  readonly lastDeliveryKind:
+    | "replace"
+    | "patch"
+    | "invalidate"
+    | "basisRefresh"
+    | null;
+  readonly lastDeliveryScope:
+    | "line"
+    | "item"
+    | "aspect"
+    | "summary"
+    | "basis"
+    | "invalidate"
+    | null;
+  readonly lastDeliveryPacketId: string | null;
+  readonly lastDeliveryBasisId: string | null;
+  readonly currentBasisId: string | null;
+  readonly basisAdvanceCount: number;
+  readonly lastBasisAdvanceFromId: string | null;
+  readonly lastBasisAdvanceToId: string | null;
+  readonly downloadCount: number;
+  readonly readyDownloadCount: number;
+  readonly unavailableDownloadCount: number;
+  readonly incompatibleDownloadCount: number;
   readonly preservedVisibleValueOnLastRejection: boolean;
   readonly lastTimeoutOperation: ResourceLineOperation | null;
   readonly lastErrorMessage: string | null;
@@ -330,19 +534,67 @@ export interface ResourceLineBranchSummary {
   readonly headSnapshotId: number | null;
 }
 
+export interface ResourceLineBasisAdvance {
+  readonly sequence: number;
+  readonly event: ResourceLineHistoryEvent;
+  readonly operation: ResourceLineOperation;
+  readonly deliveryKind:
+    | "replace"
+    | "patch"
+    | "invalidate"
+    | "basisRefresh"
+    | null;
+  readonly deliveryScope:
+    | "line"
+    | "item"
+    | "aspect"
+    | "summary"
+    | "invalidate"
+    | null;
+  readonly deliveryPacketId: string | null;
+  readonly deliveryBasisId: string | null;
+  readonly fromBasisId: string | null;
+  readonly toBasisId: string | null;
+  readonly currentBasisId: string | null;
+}
+
+export interface ResourceLineBasisHistory {
+  readonly currentBasisId: string | null;
+  readonly advanceCount: number;
+  readonly lastAdvanceFromId: string | null;
+  readonly lastAdvanceToId: string | null;
+  readonly advances: readonly ResourceLineBasisAdvance[];
+}
+
 export interface ResourceLineHistoryArtifactAvailable {
   readonly kind: "available";
 }
 
 export interface ResourceLineHistoryArtifactUnavailable {
   readonly kind: "unavailable";
-  readonly reason: "unsupportedByRuntime";
+  readonly reason: "unsupportedByRuntime" | "runtimeRejected";
   readonly detail: string;
 }
 
 export type ResourceLineHistoryArtifactAvailability =
   | ResourceLineHistoryArtifactAvailable
   | ResourceLineHistoryArtifactUnavailable;
+
+export interface ResourceLineReplayAvailable {
+  readonly kind: "available";
+  readonly mode: "SameRuntimeSignalExact";
+  readonly signalId: string;
+}
+
+export interface ResourceLineReplayUnavailable {
+  readonly kind: "unavailable";
+  readonly reason: "unsupportedByRuntime" | "runtimeRejected";
+  readonly detail: string;
+}
+
+export type ResourceLineReplayAvailability =
+  | ResourceLineReplayAvailable
+  | ResourceLineReplayUnavailable;
 
 export interface ResourceLineRestoreAvailable {
   readonly kind: "available";
@@ -353,7 +605,10 @@ export interface ResourceLineRestoreAvailable {
 
 export interface ResourceLineRestoreUnavailable {
   readonly kind: "unavailable";
-  readonly reason: "unsupportedByRuntime" | "branchHeadUnavailable";
+  readonly reason:
+    | "unsupportedByRuntime"
+    | "branchHeadUnavailable"
+    | "runtimeRejected";
   readonly detail: string;
 }
 
@@ -361,8 +616,55 @@ export type ResourceLineRestoreAvailability =
   | ResourceLineRestoreAvailable
   | ResourceLineRestoreUnavailable;
 
+export interface ResourceLineExactRestoreResultRestored {
+  readonly kind: "restored";
+  readonly mode: "SameRuntimeBranchExact";
+  readonly branchId: number;
+  readonly snapshotId: number;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+  readonly reloadStatus: ResourceLineStatus;
+}
+
+export interface ResourceLineExactRestoreResultUnavailable {
+  readonly kind: "unavailable";
+  readonly reason:
+    | "unsupportedByRuntime"
+    | "branchHeadUnavailable"
+    | "runtimeRejected";
+  readonly detail: string;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+}
+
+export type ResourceLineExactRestoreResult =
+  | ResourceLineExactRestoreResultRestored
+  | ResourceLineExactRestoreResultUnavailable;
+
+export interface ResourceLineExactReplayResultReplayed {
+  readonly kind: "replayed";
+  readonly mode: "SameRuntimeSignalExact";
+  readonly signalId: string;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+  readonly reloadStatus: ResourceLineStatus;
+}
+
+export interface ResourceLineExactReplayResultUnavailable {
+  readonly kind: "unavailable";
+  readonly reason: "unsupportedByRuntime" | "runtimeRejected";
+  readonly detail: string;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+}
+
+export type ResourceLineExactReplayResult =
+  | ResourceLineExactReplayResultReplayed
+  | ResourceLineExactReplayResultUnavailable;
+
 export interface ResourceLineHistoryAvailability {
   readonly replay: ResourceLineHistoryArtifactAvailability;
+  readonly replayExact: ResourceLineReplayAvailability;
   readonly lineage: ResourceLineHistoryArtifactAvailability;
   readonly branch: ResourceLineHistoryArtifactAvailability;
   readonly restoreExact: ResourceLineRestoreAvailability;
@@ -372,8 +674,12 @@ export interface ResourceLineHistory {
   readonly replay: ReplaySummary | null;
   readonly lineage: LineageSummary | null;
   readonly branch: ResourceLineBranchSummary | null;
+  readonly basis: ResourceLineBasisHistory;
   readonly availability: ResourceLineHistoryAvailability;
   readonly lifecycle: readonly ResourceLineHistoryEntry[];
+  replayExact(): ResourceLineExactReplayResult;
+  restoreExact(): ResourceLineExactRestoreResult;
+  verificationPackage(): ResourceLineVerificationPackage;
 }
 
 export interface ResourceLine<TParams = unknown, TValue = SignalValue> {
@@ -381,6 +687,7 @@ export interface ResourceLine<TParams = unknown, TValue = SignalValue> {
   signal(): ComputedSignalHandle<TValue>;
   descriptor(): ResourceLineDescriptor<TParams>;
   request(): ResourceRequestDescriptor<TParams>;
+  download(): ResourceLineDownload;
   history(): ResourceLineHistory;
   processing(): ResourceLineProcessing;
   upload(): ResourceLineUpload;

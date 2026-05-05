@@ -1,6 +1,8 @@
 # Milestone 2 Engineering Spec: Sealed Minting And Witness Authority
 
-> **Status:** Draft
+> **Status:** Closed
+>
+> **Closeout:** [milestone-2-closeout.md](/C:/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-proof/milestone-2-closeout.md)
 >
 > **Roadmap parent:** [forge_proof_roadmap.md](/C:/Users/shepworth/Documents/programming/forge/_docs/forge-proof/forge_proof_roadmap.md)
 >

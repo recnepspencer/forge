@@ -1,8 +1,10 @@
 # forge-signal-wasm API Surface Plan
 
-> **Status:** Planned engineering spec
+> **Status:** Completed engineering spec
 >
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
+>
+> **Formal closeout:** [api_surface_closeout.md](./api_surface_closeout.md)
 >
 > **Lifecycle prerequisites:**
 >

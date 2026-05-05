@@ -8,6 +8,7 @@ function createFamilyDefinitionRecord(
   continuation,
   processingJob,
   uploadTransport,
+  compatibility,
 ) {
   return Object.freeze({
     identity,
@@ -19,6 +20,7 @@ function createFamilyDefinitionRecord(
     continuation,
     processingJob,
     uploadTransport,
+    compatibility,
   });
 }
 

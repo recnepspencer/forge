@@ -112,9 +112,33 @@ const scopedDescriptorPath = scopedDescriptor.path;
 const scopedDescriptorIdentity = scopedDescriptor.identity;
 const scopedDescriptorGraphOwnerId = scopedDescriptor.graphOwnerId;
 const scopedCount = nestedScopedSignals.input(1, { debugName: "count" });
+const scopedStringValue = nestedScopedSignals.input("value", { debugName: "scopedStringValue" });
 const scopedLabel = nestedScopedSignals.computed(() => `${scopedCount()}`, { debugName: "label" });
 const scopedOutput = nestedScopedSignals.output(() => ({ count: scopedCount() }), { debugName: "panel" });
 const scopedSpecCount = nestedScopedSignals.spec.input("count", 1);
+const scopedSpecComputed: Signal<number> = nestedScopedSignals.computedSpec<number>("doubleCount", {
+  reads: [scopedSpecCount.id],
+  expr: {
+    kind: "multiply",
+    args: [
+      { kind: "read", id: scopedSpecCount.id },
+      { kind: "value", value: 2 },
+    ],
+  },
+});
+const scopedSpecOutput: Signal<{ count: number }> = nestedScopedSignals.outputSpec<{ count: number }>("scopedPanel", {
+  reads: [scopedSpecCount.id],
+  expr: {
+    kind: "object",
+    fields: [
+      ["count", { kind: "read", id: scopedSpecCount.id }],
+    ],
+  },
+});
+const scopedSpecOutputCallback: Signal<string> = nestedScopedSignals.outputCallback(
+  "scopedPanelCallback",
+  () => `${scopedCount()}`,
+);
 const viewport = signals.host.viewport;
 const visibility = signals.host.visibility;
 const online = signals.host.online;

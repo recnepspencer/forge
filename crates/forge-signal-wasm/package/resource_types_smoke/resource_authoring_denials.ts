@@ -1,6 +1,10 @@
 import {
   createSignals,
+  resourceBinaryDescriptor,
+  resourceBinaryValue,
   resourceCollectionShape,
+  resourceDelivery,
+  resourceDownload,
   resourceItemAspects,
   resourceParamIdentity,
   resourceParams,
@@ -22,6 +26,45 @@ const detail = signals.resource.detail({
 });
 
 const detailLine = detail.line({ productId: "p1" });
+const compatibilityDelivery = signals.resource.compatibility.delivery;
+
+compatibilityDelivery.basisRefresh({
+  packetId: "pkt-external-refresh",
+  basisId: "basis-1",
+  // @ts-expect-error external basis refresh requires an explicit nextBasisId
+  nextBasisId: null,
+});
+
+signals.resource.compatibility.detail({
+  version: "forge-resource-external-v1",
+  family: "detail",
+  definitionId: "bad-detail-contract",
+  requestContract: "native-v1",
+  // @ts-expect-error detail external definitions only admit reconciliationContract "none"
+  reconciliationContract: "collection-v1",
+  declaration: {
+    params: resourceParams<{ productId: string }>(),
+    normalizeParams: ({ productId }) =>
+      resourceParamIdentity({ productId }, productId),
+    load: ({ productId }) => ({ id: productId }),
+  },
+});
+
+signals.resource.compatibility.collection({
+  version: "forge-resource-external-v1",
+  // @ts-expect-error collection external definitions must keep the family discriminant honest
+  family: "detail",
+  definitionId: "bad-collection-family",
+  requestContract: "native-v1",
+  reconciliationContract: "none",
+  declaration: {
+    params: resourceParams<{ workspaceId: string }>(),
+    normalizeParams: ({ workspaceId }) =>
+      resourceParamIdentity({ workspaceId }, workspaceId),
+    itemIdentity: (item: { id: string }) => item.id,
+    load: ({ workspaceId }) => [{ id: workspaceId }],
+  },
+});
 
 signals.resource.detail({
   params: resourceParams<{ productId: string }>(),
@@ -137,6 +180,25 @@ signals.resource.detail({
     }),
 });
 
+signals.resource.detail({
+  params: resourceParams<{ receiptId: string }>(),
+  normalizeParams: ({ receiptId }) =>
+    resourceParamIdentity({ receiptId }, receiptId),
+  uploadTransport: resourceUploadTransport.signed({
+    method: "PUT",
+    finalizeRequired: true,
+  }),
+  load: ({ receiptId }) =>
+    // @ts-expect-error resourceBinaryValue must not wrap upload-result truth
+    resourceBinaryValue({
+      value: resourceUploadResult.uploaded({
+        uploadId: `upload:${receiptId}`,
+        finalizeRequired: true,
+        awaitingProcessing: false,
+      }),
+    }),
+});
+
 signals.resource.collection({
   params: resourceParams<{ workspaceId: string }>(),
   normalizeParams: ({ workspaceId }) =>
@@ -246,6 +308,17 @@ maybeReconciledCollection.line({ workspaceId: "demo" }).patch(
   }),
 );
 
+maybeReconciledCollection.line({ workspaceId: "demo" }).deliver(
+  // @ts-expect-error delivered narrow patching must stay denied when reconcile is not definitely present
+  resourceDelivery.patch({
+    packetId: "pkt-maybe",
+    patch: resourcePatch.item({
+      itemId: "demo",
+      nextItem: { id: "demo", count: 2 },
+    }),
+  }),
+);
+
 typedCollection.line({ workspaceId: "demo" }).patch(
   // @ts-expect-error declared aspect values must match the declared aspect type
   resourcePatch.itemAspect({
@@ -308,3 +381,78 @@ summaryTypedCollection.line({ workspaceId: "demo" }).patch(
     value: "wrong",
   }),
 );
+
+const pagedPlainSummary = signals.resource.paged({
+  params: resourceParams<{ workspaceId: string }>(),
+  normalizeParams: ({ workspaceId }) =>
+    resourceParamIdentity({ workspaceId }, workspaceId),
+  itemIdentity: (item: { id: string }) => item.id,
+  reconcile: resourceCollectionShape<
+    { items: Array<{ id: string }>; cursor: string | null; total: number },
+    { id: string },
+    {},
+    {
+      total: {
+        read(value: { items: Array<{ id: string }>; cursor: string | null; total: number }): number;
+        write(
+          value: { items: Array<{ id: string }>; cursor: string | null; total: number },
+          total: number,
+        ): { items: Array<{ id: string }>; cursor: string | null; total: number };
+      };
+    }
+  >({
+    items: (value: { items: Array<{ id: string }>; cursor: string | null; total: number }) =>
+      value.items,
+    replaceItems: (
+      value: { items: Array<{ id: string }>; cursor: string | null; total: number },
+      nextItems: readonly { id: string }[],
+    ) => ({ ...value, items: [...nextItems] }),
+    summaries: resourceValueSummaries({
+      total: {
+        read: (value: {
+          items: Array<{ id: string }>;
+          cursor: string | null;
+          total: number;
+        }) => value.total,
+        write: (
+          value: {
+            items: Array<{ id: string }>;
+            cursor: string | null;
+            total: number;
+          },
+          total: number,
+        ) => ({ ...value, total }),
+      },
+    }),
+  }),
+  accumulatePage: (
+    existing: { items: Array<{ id: string }>; cursor: string | null; total: number },
+    next: { items: Array<{ id: string }>; cursor: string | null; total: number },
+  ) => ({
+    items: [...existing.items, ...next.items],
+    cursor: next.cursor,
+    total: next.total,
+  }),
+  load: ({ workspaceId }) => ({
+    items: [{ id: workspaceId }],
+    cursor: null,
+    total: 1,
+  }),
+});
+
+pagedPlainSummary.line({ workspaceId: "demo" }).patch(
+  // @ts-expect-error paged summary patching requires resourceValueSummaries.pageWindow(...)
+  resourcePatch.summary({
+    summary: "total",
+    value: 2,
+  }),
+);
+
+resourceBinaryDescriptor.file({
+  id: "bad-download",
+  // @ts-expect-error incompatible download reason must stay within the declared vocabulary
+  download: resourceDownload.incompatible({
+    reason: "expired",
+    detail: "wrong",
+  }),
+});

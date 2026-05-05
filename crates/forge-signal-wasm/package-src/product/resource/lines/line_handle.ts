@@ -4,6 +4,7 @@ import { refreshLine } from "./actions/line_refresh.js";
 import { revalidateLine } from "./actions/line_revalidate.js";
 import { releaseLine } from "./actions/line_release.js";
 import { readLineDescriptor } from "./reads/line_descriptor_read.js";
+import { readLineDownload } from "./reads/line_download_read.js";
 import { readLineDiagnostics } from "./reads/line_diagnostics_read.js";
 import { readLineDiagnosticsSummary } from "./reads/line_diagnostics_summary_read.js";
 import { readLineFreshness } from "./reads/line_freshness_read.js";
@@ -32,6 +33,10 @@ function createLineHandle(materialization) {
     request() {
       requireActiveLine(materialization, "request");
       return readLineRequest(materialization);
+    },
+    download() {
+      requireActiveLine(materialization, "download");
+      return readLineDownload(materialization);
     },
     history() {
       requireActiveLine(materialization, "history");

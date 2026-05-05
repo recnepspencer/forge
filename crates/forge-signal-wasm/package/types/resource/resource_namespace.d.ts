@@ -18,9 +18,15 @@ import type {
   ProcessingPagedResourceDeclaration,
   UploadPagedResourceDeclaration,
   ProcessingUploadPagedResourceDeclaration,
+  ExternalDetailResourceDefinition,
+  ExternalCollectionResourceDefinition,
+  ExternalPagedResourceDefinition,
 } from "./resource_declarations.js";
 import type {
   DeclaredResourceParams,
+  ResourceBinaryDescriptorFactory,
+  ResourceBinaryValue,
+  ResourceDownload,
   ResourceAuth,
   ResourceContinuation,
   ResourceParamIdentity,
@@ -34,14 +40,60 @@ import type {
 } from "./resource_postures.js";
 import type {
   ResourceCollectionShape,
+  ResourceDeliveryFactory,
   ResourceItemAspectMap,
   ResourceItemAspects,
   ResourcePatchFactory,
+  ResourceExternalDeliveryFactory,
   ResourceValueSummaryMap,
   ResourceValueSummaries,
 } from "./resource_reconciliation.js";
 
+export interface ResourceCompatibilityNamespace {
+  readonly delivery: ResourceExternalDeliveryFactory;
+  detail<TParams, TValue>(
+    definition: ExternalDetailResourceDefinition<TParams, TValue>,
+  ): DetailResourceFamily<TParams, TValue>;
+  collection<
+    TParams,
+    TValue,
+    TItem = SignalValue,
+    TReconcile extends ResourceCollectionShape<
+      TValue,
+      TItem,
+      ResourceItemAspectMap<TItem>,
+      ResourceValueSummaryMap<TValue>
+    > | undefined = undefined,
+  >(
+    definition: ExternalCollectionResourceDefinition<
+      TParams,
+      TValue,
+      TItem,
+      TReconcile
+    >,
+  ): CollectionResourceFamily<TParams, TValue, TItem, TReconcile>;
+  paged<
+    TParams,
+    TValue,
+    TItem = SignalValue,
+    TReconcile extends ResourceCollectionShape<
+      TValue,
+      TItem,
+      ResourceItemAspectMap<TItem>,
+      ResourceValueSummaryMap<TValue>
+    > | undefined = undefined,
+  >(
+    definition: ExternalPagedResourceDefinition<
+      TParams,
+      TValue,
+      TItem,
+      TReconcile
+    >,
+  ): PagedResourceFamily<TParams, TValue, TItem, TReconcile>;
+}
+
 export interface ResourceNamespace {
+  readonly compatibility: ResourceCompatibilityNamespace;
   detail<TParams, TValue>(
     declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue>,
   ): DetailResourceFamily<TParams, TValue | null>;
@@ -197,8 +249,16 @@ export function resourceParamIdentity<TParams>(
   canonicalKey: string,
 ): ResourceParamIdentity<TParams>;
 
+export function resourceBinaryValue<TValue>(options: {
+  value: TValue;
+  descriptors?: readonly import("./resource_postures.js").ResourceBinaryDescriptor[];
+}): ResourceBinaryValue<TValue>;
+
+export const resourceBinaryDescriptor: ResourceBinaryDescriptorFactory;
+export const resourceDownload: ResourceDownload;
 export const resourceAuth: ResourceAuth;
 export const resourceContinuation: ResourceContinuation;
+export const resourceDelivery: ResourceDeliveryFactory;
 export const resourcePatch: ResourcePatchFactory;
 export const resourcePolicyProfiles: ResourcePolicyProfiles;
 export const resourceProcessingJob: ResourceProcessingJob;
@@ -214,24 +274,27 @@ export function resourceItemAspects<
 export function resourceValueSummaries<
   TValue,
   TSummaryMap extends ResourceValueSummaryMap<TValue>,
->(definitions: TSummaryMap): ResourceValueSummaries<TValue, TSummaryMap>;
+>(definitions: TSummaryMap): ResourceValueSummaries<TValue, TSummaryMap, "line">;
 
-export function resourceValueSummaries<
-  TValue,
-  TSummaryMap extends ResourceValueSummaryMap<TValue>,
->(definitions: TSummaryMap): ResourceValueSummaries<TValue, TSummaryMap>;
+export namespace resourceValueSummaries {
+  function pageWindow<
+    TValue,
+    TSummaryMap extends ResourceValueSummaryMap<TValue>,
+  >(definitions: TSummaryMap): ResourceValueSummaries<TValue, TSummaryMap, "pageWindow">;
+}
 
 export function resourceCollectionShape<
   TValue,
   TItem,
   TAspectMap extends ResourceItemAspectMap<TItem> = {},
   TSummaryMap extends ResourceValueSummaryMap<TValue> = {},
+  TSummaryPatchScope extends "line" | "pageWindow" = "line",
 >(options: {
   items(value: TValue): readonly TItem[];
   replaceItems(value: TValue, nextItems: readonly TItem[]): TValue;
   aspects?: ResourceItemAspects<TItem, TAspectMap>;
-  summaries?: ResourceValueSummaries<TValue, TSummaryMap>;
-}): ResourceCollectionShape<TValue, TItem, TAspectMap, TSummaryMap>;
+  summaries?: ResourceValueSummaries<TValue, TSummaryMap, TSummaryPatchScope>;
+}): ResourceCollectionShape<TValue, TItem, TAspectMap, TSummaryMap, TSummaryPatchScope>;
 
 export function resourceRequestContext(
   options?: ResourceRequestContextOptions,

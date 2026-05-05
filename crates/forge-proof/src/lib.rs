@@ -7,5 +7,6 @@ mod facade;
 mod phase;
 mod proof;
 mod recipe;
+mod transition;
 
 pub use facade::*;

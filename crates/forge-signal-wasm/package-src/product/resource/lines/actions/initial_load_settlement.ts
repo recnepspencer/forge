@@ -1,4 +1,5 @@
 import { bindReloadLineValue } from "../../lowering/runtime_line_binding.js";
+import { createLineDownload } from "../state/line_download_value.js";
 import { createReadyLineProcessing } from "../state/line_processing_value.js";
 import { createReadyLineUpload } from "../state/line_upload_value.js";
 import {
@@ -44,11 +45,15 @@ function createInitialLineBinding(
   const initialUpload = createReadyLineUpload(
     requestDescriptor.uploadTransport.kind,
   );
+  const initialDownload = createLineDownload();
   const processingSignal = lineScope.input(initialProcessing, {
     debugName: `${familyKind}ResourceProcessing`,
   });
   const uploadSignal = lineScope.input(initialUpload, {
     debugName: `${familyKind}ResourceUpload`,
+  });
+  const downloadSignal = lineScope.input(initialDownload, {
+    debugName: `${familyKind}ResourceDownload`,
   });
   const statusSignal = lineScope.input(
     createPendingLineStatus("initialLoad", false),
@@ -67,6 +72,7 @@ function createInitialLineBinding(
     readableValueSignal,
     processingSignal,
     uploadSignal,
+    downloadSignal,
     statusSignal,
     freshnessSignal,
     diagnosticsSignal: lineScope.input(
@@ -75,6 +81,7 @@ function createInitialLineBinding(
         requestDescriptor,
         initialProcessing,
         initialUpload,
+        initialDownload,
         false,
       ),
       {
@@ -171,6 +178,7 @@ function applyFulfilledInitialLoad(
   binding.valueSignal.set(loaded.value);
   binding.processingSignal.set(loaded.processing);
   binding.uploadSignal.set(loaded.upload);
+  binding.downloadSignal.set(loaded.download);
   binding.statusSignal.set(createFulfilledLineStatus("initialLoad"));
   binding.freshnessSignal.set(createFreshnessFromPolicy(policy));
   binding.diagnosticsSignal.set(
@@ -179,6 +187,7 @@ function applyFulfilledInitialLoad(
       "initialLoad",
       loaded.processing,
       loaded.upload,
+      loaded.download,
       loaded.hasVisibleValue,
       retryAttempts,
     ),

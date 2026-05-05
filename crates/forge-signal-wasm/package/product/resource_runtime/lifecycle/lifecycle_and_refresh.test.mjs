@@ -47,6 +47,12 @@ test("resource lines refresh in place and record diagnostics", async () => {
         processingJob: mod.resourceProcessingJob.none(),
         uploadTransport: mod.resourceUploadTransport.none(),
       },
+      basis: {
+        currentBasisId: null,
+        advanceCount: 0,
+        lastAdvanceFromBasisId: null,
+        lastAdvanceToBasisId: null,
+      },
       processing: {
         kind: "ready",
         completionKind: "none",
@@ -62,6 +68,13 @@ test("resource lines refresh in place and record diagnostics", async () => {
         awaitingProcessing: false,
         message: null,
       },
+      download: {
+        count: 0,
+        readyCount: 0,
+        unavailableCount: 0,
+        incompatibleCount: 0,
+        descriptors: [],
+      },
       lastOperation: "refresh",
       lastOutcome: "fulfilled",
       pendingOperation: null,
@@ -73,6 +86,7 @@ test("resource lines refresh in place and record diagnostics", async () => {
       supersessionCount: 0,
       invalidationCount: 0,
       patchCount: 0,
+      deliveryCount: 0,
       lastSupersededOperation: null,
       lastInvalidationCause: null,
       lastInvalidationScope: null,
@@ -81,6 +95,10 @@ test("resource lines refresh in place and record diagnostics", async () => {
       lastPatchedItemId: null,
       lastPatchedAspect: null,
       lastPatchedSummary: null,
+      lastDeliveryKind: null,
+      lastDeliveryScope: null,
+      lastDeliveryPacketId: null,
+      lastDeliveryBasisId: null,
       preservedVisibleValueOnLastRejection: false,
       lastTimeoutOperation: null,
       lastErrorMessage: null,
@@ -319,6 +337,7 @@ test("freed resource lines reject further operations", async () => {
     assert.throws(() => line.status(), /cannot be used after line\.free/);
     assert.throws(() => line.freshness(), /cannot be used after line\.free/);
     assert.throws(() => line.request(), /cannot be used after line\.free/);
+    assert.throws(() => line.download(), /cannot be used after line\.free/);
     assert.throws(() => line.diagnostics(), /cannot be used after line\.free/);
     assert.throws(() => line.invalidate(), /cannot be used after line\.free/);
     assert.throws(() => line.refresh(), /cannot be used after line\.free/);

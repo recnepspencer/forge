@@ -6,7 +6,7 @@ This guide covers how to install, build, verify, and consume the public
 `forge-signal-wasm` package.
 
 Use this when you need the package entrypoints, local package workflow, or the
-smallest honest examples for the shipped surface.
+smallest useful examples for the shipped surface.
 
 ## Why You Use It
 
@@ -16,6 +16,14 @@ smallest honest examples for the shipped surface.
   docs
 - verify that the tarball you are about to publish is internally consistent
 
+If you just want to start coding, you only need:
+
+1. `npm install forge-signal-wasm`
+2. `import { createSignals } from "forge-signal-wasm"`
+3. the small example below
+
+The rest of this guide is for local package work and publishing from this repo.
+
 ## Stable Entry Points
 
 - `createSignals(...)`
@@ -23,6 +31,9 @@ smallest honest examples for the shipped surface.
 - `signals.spec.*`
 - `signals.graph(...)`
 - `signals.importGraph(...)`
+- `signals.resource.detail(...)`
+- `signals.resource.collection(...)`
+- `signals.resource.paged(...)`
 
 Package-preparation and proof entrypoints:
 
@@ -75,7 +86,7 @@ Then consume the local folder:
 
 ## Public Publish Flow
 
-The honest release lane is:
+If you are publishing from this workspace, use this flow:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
@@ -93,10 +104,10 @@ scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 
 Good to know:
 
-- the verifier is not optional ceremony
-- it proves the prepared tarball contains the files the public entrypoints
-  actually reference
-- it also proves a clean consumer can import and type-check the package
+- the verifier is not just a packaging nicety
+- it checks that the built tarball contains the files the public entrypoints
+  actually need
+- it also checks that a clean consumer can import and type-check the package
 
 ## Core Imports
 
@@ -116,6 +127,16 @@ import {
 } from "forge-signal-wasm";
 ```
 
+### Resource helpers
+
+```ts
+import {
+  createSignals,
+  resourceParamIdentity,
+  resourceParams,
+} from "forge-signal-wasm";
+```
+
 ### React adapter
 
 ```ts
@@ -129,7 +150,7 @@ import {
 
 ## Small Example
 
-This is the smallest honest example for the current app lane:
+This is the simplest useful example for the current app lane:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
@@ -146,7 +167,7 @@ signals.transaction((tx) => {
 console.log(doubled());
 ```
 
-Why this is the smallest honest example:
+Why this is the best starting example:
 
 - it uses handle-based local authoring
 - it does not rely on explicit ids
@@ -239,6 +260,8 @@ need structural names because names are part of the contract.
 Add `debugName` only when you want friendlier diagnostics or clearer inspection
 output. It is optional metadata, not part of local identity.
 
+If you are unsure which lane to use, use the normal app lane.
+
 ## Graph Boundaries
 
 When you publish a graph, that is where explicit public names become real:
@@ -309,13 +332,17 @@ const restoredGraph = signals.importGraph(definition, snapshot);
 
 Good to know:
 
-- this is an exact graph-restore lane
+- this is for exact graph restore
 - portable graph import is still denied on this surface
-- `importPosture()` tells you the admitted restore posture directly
+- `importPosture()` tells you what kind of restore is actually admitted
 
 ## What To Read Next
 
 - [app_surface_reference.md](./app_surface_reference.md)
+- [api_resources_overview.md](./api_resources_overview.md)
+- [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
+- [resource_line_reference.md](./resource_line_reference.md)
+- [resource_recipes.md](./resource_recipes.md)
 - [host_capabilities.md](./host_capabilities.md)
 - [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
 - [react_adapter_reference.md](./react_adapter_reference.md)

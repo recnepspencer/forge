@@ -39,9 +39,24 @@ test("resource line diagnostics summary groups current state and unavailable exp
       supersessionCount: 0,
       invalidationCount: 0,
       patchCount: 0,
+      deliveryCount: 0,
+      basisAdvanceCount: 0,
+    });
+    assert.deepEqual(summary.download, {
+      count: 0,
+      readyCount: 0,
+      unavailableCount: 0,
+      incompatibleCount: 0,
+      descriptors: [],
     });
     assert.deepEqual(summary.explainability, {
       replay: { kind: "available" },
+      replayExact: {
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+      },
       lineage: { kind: "available" },
       branch: {
         kind: "unavailable",
@@ -118,6 +133,9 @@ test("resource line diagnostics summary keeps latest patch truth aligned with ex
           head_snapshot_id: 21n,
         };
       },
+      branch_snapshot() {
+        return Object.freeze({ snapshotRestoreToken: "branch-11-snapshot" });
+      },
       restore_exact_branch_snapshot() {},
     });
     const resource = mod.createResourceNamespace(signalNamespace, {});
@@ -159,13 +177,33 @@ test("resource line diagnostics summary keeps latest patch truth aligned with ex
       patchedItemId: "demo:1",
       patchedAspect: "title",
       patchedSummary: null,
+      deliveryKind: null,
+      deliveryScope: null,
+      deliveryPacketId: null,
+      deliveryBasisId: null,
+      basisCurrentId: null,
+      basisAdvanceFromId: null,
+      basisAdvanceToId: null,
       supersededOperation: null,
       timeoutOperation: null,
       errorMessage: null,
       preservedVisibleValueOnLastRejection: false,
     });
+    assert.deepEqual(summary.download, {
+      count: 0,
+      readyCount: 0,
+      unavailableCount: 0,
+      incompatibleCount: 0,
+      descriptors: [],
+    });
     assert.deepEqual(summary.explainability, {
       replay: { kind: "available" },
+      replayExact: {
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+      },
       lineage: { kind: "available" },
       branch: { kind: "available" },
       restoreExact: {

@@ -8,6 +8,10 @@ declare const forgeSignalResourceProcessingJobPostureBrand: unique symbol;
 declare const forgeSignalResourceProcessingResultBrand: unique symbol;
 declare const forgeSignalResourceUploadTransportPostureBrand: unique symbol;
 declare const forgeSignalResourceUploadResultBrand: unique symbol;
+declare const forgeSignalResourceDownloadBrand: unique symbol;
+declare const forgeSignalResourceBinaryDescriptorBrand: unique symbol;
+declare const forgeSignalResourceBinaryValueBrand: unique symbol;
+import type { ResourceLineCompatibilityDigest } from "./resource_verification.js";
 
 export interface DeclaredResourceParams<TParams> {
   readonly [forgeSignalDeclaredResourceParamsBrand]: "declaredResourceParams";
@@ -311,6 +315,95 @@ export interface ResourceUploadResult {
   }): ResourceUploadUploadedResult;
 }
 
+export interface ResourceDownloadReady {
+  readonly kind: "ready";
+  readonly url: string;
+  readonly method: "GET" | "POST";
+  readonly headers: Readonly<Record<string, string>>;
+  readonly expiresAt: string | null;
+  readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
+}
+
+export interface ResourceDownloadUnavailable {
+  readonly kind: "unavailable";
+  readonly reason: "notReady" | "unavailable";
+  readonly detail: string;
+  readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
+}
+
+export interface ResourceDownloadIncompatible {
+  readonly kind: "incompatible";
+  readonly reason: "staleDescriptor" | "transportBoundary";
+  readonly detail: string;
+  readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
+}
+
+export type ResourceDownloadDescriptorState =
+  | ResourceDownloadReady
+  | ResourceDownloadUnavailable
+  | ResourceDownloadIncompatible;
+
+export interface ResourceBinaryDescriptor {
+  readonly kind: "file" | "media" | "export";
+  readonly id: string;
+  readonly label: string | null;
+  readonly fileName: string | null;
+  readonly mediaType: string | null;
+  readonly byteLength: number | null;
+  readonly download: ResourceDownloadDescriptorState;
+  readonly [forgeSignalResourceBinaryDescriptorBrand]: "resourceBinaryDescriptor";
+}
+
+export interface ResourceBinaryValue<TValue> {
+  readonly value: TValue;
+  readonly descriptors: readonly ResourceBinaryDescriptor[];
+  readonly [forgeSignalResourceBinaryValueBrand]: "resourceBinaryValue";
+}
+
+export interface ResourceDownload {
+  ready(options: {
+    url: string;
+    method: "GET" | "POST";
+    headers?: Readonly<Record<string, string>>;
+    expiresAt?: string | null;
+  }): ResourceDownloadReady;
+  unavailable(options: {
+    reason: "notReady" | "unavailable";
+    detail: string;
+  }): ResourceDownloadUnavailable;
+  incompatible(options: {
+    reason: "staleDescriptor" | "transportBoundary";
+    detail: string;
+  }): ResourceDownloadIncompatible;
+}
+
+export interface ResourceBinaryDescriptorFactory {
+  file(options: {
+    id: string;
+    label?: string | null;
+    fileName?: string | null;
+    mediaType?: string | null;
+    byteLength?: number | null;
+    download: ResourceDownloadDescriptorState;
+  }): ResourceBinaryDescriptor;
+  media(options: {
+    id: string;
+    label?: string | null;
+    fileName?: string | null;
+    mediaType?: string | null;
+    byteLength?: number | null;
+    download: ResourceDownloadDescriptorState;
+  }): ResourceBinaryDescriptor;
+  export(options: {
+    id: string;
+    label?: string | null;
+    fileName?: string | null;
+    mediaType?: string | null;
+    byteLength?: number | null;
+    download: ResourceDownloadDescriptorState;
+  }): ResourceBinaryDescriptor;
+}
+
 export type ResourceFamilyKind = "detail" | "collection" | "paged";
 
 export interface ResourceFamilyIdentity {
@@ -323,6 +416,7 @@ export interface ResourceLineDescriptor<TParams> {
   readonly canonicalParams: ResourceParamIdentity<TParams>;
   readonly runtimeLineId: string;
   readonly scopeId: string;
+  readonly compatibility?: Exclude<ResourceLineCompatibilityDigest, { kind: "native" }>;
 }
 
 export interface ResourceRequestDescriptor<TParams> {

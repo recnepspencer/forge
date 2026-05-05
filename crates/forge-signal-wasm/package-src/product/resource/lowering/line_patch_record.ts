@@ -1,10 +1,17 @@
 function createLinePatchRecord(familyKind, itemIdentity, reconcile) {
+  const admitsSummaryNarrowing =
+    reconcile?.summaries !== null
+    && reconcile?.summaries !== undefined
+    && (
+      familyKind !== "paged"
+      || reconcile.summaries.patchScope === "pageWindow"
+    );
   const aspectNames =
     reconcile?.aspects === null || reconcile?.aspects === undefined
       ? Object.freeze([])
       : Object.freeze(Object.keys(reconcile.aspects.definitions).sort());
   const summaryNames =
-    reconcile?.summaries === null || reconcile?.summaries === undefined
+    !admitsSummaryNarrowing
       ? Object.freeze([])
       : Object.freeze(Object.keys(reconcile.summaries.definitions).sort());
   return Object.freeze({
@@ -17,9 +24,7 @@ function createLinePatchRecord(familyKind, itemIdentity, reconcile) {
       && typeof itemIdentity === "function"
       && reconcile !== null,
     narrowSummary:
-      familyKind !== "detail"
-      && reconcile !== null
-      && summaryNames.length > 0,
+      familyKind !== "detail" && summaryNames.length > 0,
     aspectNames,
     summaryNames,
   });

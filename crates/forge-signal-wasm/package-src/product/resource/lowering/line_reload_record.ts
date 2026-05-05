@@ -3,14 +3,14 @@ function createLineReloadRecord(
   familyKind,
   load,
   policy,
-  requestDescriptor,
+  requestState,
 ) {
   return Object.freeze({
     params,
     familyKind,
     load,
     policy,
-    requestDescriptor,
+    requestState,
   });
 }
 

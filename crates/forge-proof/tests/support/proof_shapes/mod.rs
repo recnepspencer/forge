@@ -1,3 +1,3 @@
 mod digest;
 
-pub use digest::{BasisDigest, ProofShapeDigest};
+pub use digest::{BasisDigest, FailureDigest, ProofShapeDigest, TransitionDigest};

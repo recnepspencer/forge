@@ -1,8 +1,12 @@
 import {
   createSignals,
+  resourceBinaryDescriptor,
+  resourceBinaryValue,
   resourceAuth,
   resourceCollectionShape,
   resourceContinuation,
+  resourceDelivery,
+  resourceDownload,
   resourceItemAspects,
   resourceParamIdentity,
   resourceParams,
@@ -34,20 +38,66 @@ const detail = signals.resource.detail({
   }),
   normalizeParams: ({ productId }) =>
     resourceParamIdentity({ productId }, productId),
-  load: ({ productId }, request) => ({
-    id: productId,
-    label: `${request.auth.kind}:${request.continuation.kind}:product:${productId}`,
-  }),
+  load: ({ productId }, request) =>
+    resourceBinaryValue({
+      value: {
+        id: productId,
+        label: `${request.auth.kind}:${request.continuation.kind}:product:${productId}`,
+      },
+      descriptors: [
+        resourceBinaryDescriptor.file({
+          id: "product-sheet",
+          fileName: `${productId}.pdf`,
+          mediaType: "application/pdf",
+          byteLength: 1024,
+          download: resourceDownload.ready({
+            url: `https://downloads.example/${productId}.pdf`,
+            method: "GET",
+          }),
+        }),
+        resourceBinaryDescriptor.export({
+          id: "product-export",
+          fileName: `${productId}.zip`,
+          mediaType: "application/zip",
+          byteLength: 4096,
+          download: resourceDownload.incompatible({
+            reason: "transportBoundary",
+            detail: "host session handoff required",
+          }),
+        }),
+      ],
+    }),
 });
 
+const externalDetail = signals.resource.compatibility.detail({
+  version: "forge-resource-external-v1",
+  family: "detail",
+  definitionId: "external-product-detail",
+  requestContract: "native-v1",
+  reconciliationContract: "none",
+  declaration: {
+    params: resourceParams<{ productId: string }>(),
+    normalizeParams: ({ productId }) =>
+      resourceParamIdentity({ productId }, productId),
+    load: ({ productId }) => ({ id: productId }),
+  },
+});
+const externalCompatibilityDelivery = signals.resource.compatibility.delivery;
+
 const detailLine = detail.line({ productId: "p1" });
+const externalDetailLine = externalDetail.line({ productId: "p2" });
 const detailValue = detailLine.value();
 const detailSignal = detailLine.signal();
 const detailDescriptor = detailLine.descriptor();
 const detailHistory = detailLine.history();
+const detailVerificationPackage = detailHistory.verificationPackage();
 const detailBranch = detailHistory.branch;
+const detailBasisHistory = detailHistory.basis;
 const detailHistoryAvailability = detailHistory.availability;
+const detailReplayExact = detailHistory.replayExact();
+const detailRestoreExact = detailHistory.restoreExact();
 const detailRequest = detailLine.request();
+const detailDownload = detailLine.download();
 const detailDiagnostics = detailLine.diagnostics();
 const detailDiagnosticsSummary = detailLine.diagnosticsSummary();
 const detailInvalidate = detailLine.invalidate();
@@ -175,6 +225,25 @@ const collectionPatchSummary = collectionLine.patch(
     value: 2,
   }),
 );
+const collectionDeliveredPatch = collectionLine.deliver(
+  resourceDelivery.patch({
+    packetId: "pkt-1",
+    basisId: "basis-1",
+    nextBasisId: "basis-2",
+    patch: resourcePatch.itemAspect({
+      itemId: "workspace:demo",
+      aspect: "title",
+      value: "Delivered",
+    }),
+  }),
+);
+const collectionExternalBasisRefresh = collectionLine.deliver(
+  externalCompatibilityDelivery.basisRefresh({
+    packetId: "pkt-basis-refresh",
+    basisId: "basis-2",
+    nextBasisId: "basis-3",
+  }),
+);
 
 const paged = signals.resource.paged({
   params: resourceParams<{ workspaceId: string }>(),
@@ -182,37 +251,60 @@ const paged = signals.resource.paged({
     resourceParamIdentity({ workspaceId }, workspaceId),
   itemIdentity: (item: { id: string; title: string }) => item.id,
   reconcile: resourceCollectionShape<
-    { items: Array<{ id: string; title: string }>; cursor: string | null },
+    { items: Array<{ id: string; title: string }>; cursor: string | null; visibleCount: number },
     { id: string; title: string }
   >({
     items: (value: {
       items: Array<{ id: string; title: string }>;
       cursor: string | null;
+      visibleCount: number;
     }) => value.items,
     replaceItems: (
       value: {
         items: Array<{ id: string; title: string }>;
         cursor: string | null;
+        visibleCount: number;
       },
       nextItems: readonly { id: string; title: string }[],
     ) => ({ ...value, items: [...nextItems] }),
+    summaries: resourceValueSummaries.pageWindow({
+      visibleCount: {
+        read: (value: {
+          items: Array<{ id: string; title: string }>;
+          cursor: string | null;
+          visibleCount: number;
+        }) => value.visibleCount,
+        write: (
+          value: {
+            items: Array<{ id: string; title: string }>;
+            cursor: string | null;
+            visibleCount: number;
+          },
+          visibleCount: number,
+        ) => ({ ...value, visibleCount }),
+      },
+    }),
   }),
   accumulatePage: (
     existing: {
       items: Array<{ id: string; title: string }>;
       cursor: string | null;
+      visibleCount: number;
     },
     next: {
       items: Array<{ id: string; title: string }>;
       cursor: string | null;
+      visibleCount: number;
     },
   ) => ({
     items: [...existing.items, ...next.items],
     cursor: next.cursor,
+    visibleCount: next.visibleCount,
   }),
   load: ({ workspaceId }) => ({
     items: [{ id: workspaceId, title: workspaceId }],
     cursor: null,
+    visibleCount: 1,
   }),
 });
 
@@ -223,6 +315,12 @@ const pagedPatch = pagedLine.patch(
   resourcePatch.item({
     itemId: "demo",
     nextItem: { id: "demo", title: "Paged Updated" },
+  }),
+);
+const pagedSummaryPatch = pagedLine.patch(
+  resourcePatch.summary({
+    summary: "visibleCount",
+    value: 2,
   }),
 );
 
@@ -328,12 +426,28 @@ const receiptPipelineProcessing = receiptPipelineLine.processing();
 const receiptPipelineUpload = receiptPipelineLine.upload();
 
 void detailValue;
+void externalDetailLine.value();
 void detailSignal;
 void detailDescriptor;
 void detailHistory;
+void detailVerificationPackage.committedValue;
+void detailVerificationPackage.externalCompatibility.kind;
+void detailVerificationPackage.processing.kind;
+void detailVerificationPackage.upload.kind;
 void detailBranch;
+void detailBasisHistory.advances;
 void detailHistoryAvailability.restoreExact;
+void detailHistoryAvailability.replayExact;
+void detailReplayExact.kind;
+if (detailReplayExact.kind === "replayed") {
+  void detailReplayExact.reloadStatus.operation;
+}
+void detailRestoreExact.kind;
+if (detailRestoreExact.kind === "restored") {
+  void detailRestoreExact.reloadStatus.operation;
+}
 void detailRequest;
+void detailDownload;
 void detailDiagnostics;
 void detailDiagnosticsSummary.current.status;
 void detailInvalidate;
@@ -351,9 +465,12 @@ void collectionPatchItem;
 void collectionPatchAspect;
 void collectionPatchReplace;
 void collectionPatchSummary;
+void collectionDeliveredPatch;
+void collectionExternalBasisRefresh;
 void pagedItems;
 void pagedReconciliation;
 void pagedPatch;
+void pagedSummaryPatch;
 void retryingDetail;
 void timeoutDetail;
 void reportValue;

@@ -67,23 +67,23 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
         vec![
             (
                 "phase_boundaries",
-                "tests/ui/raw_artifact_cannot_satisfy_validated_api.rs",
+                "tests/ui/milestone1/raw_artifact_cannot_satisfy_validated_api.rs",
             ),
             (
                 "proven_collection_boundaries",
-                "tests/ui/raw_collections_cannot_satisfy_proven_apis.rs",
+                "tests/ui/milestone1/raw_collections_cannot_satisfy_proven_apis.rs",
             ),
             (
                 "fixed_shape_boundaries",
-                "tests/ui/raw_fixed_shapes_cannot_satisfy_fixed_shape_apis.rs",
+                "tests/ui/milestone1/raw_fixed_shapes_cannot_satisfy_fixed_shape_apis.rs",
             ),
             (
                 "constructor_boundaries",
-                "tests/ui/stronger_proof_bearing_constructors_are_not_public.rs",
+                "tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs",
             ),
             (
                 "constructor_boundaries",
-                "tests/ui/observed_proofs_cannot_be_duplicated.rs",
+                "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
             ),
         ]
     );

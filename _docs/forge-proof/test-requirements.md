@@ -420,6 +420,7 @@ requirements. The suite must emit:
 - `compile_fail_bundle`
 - `proof_shape_digest`
 - `failure_digest`
+- `codegen_honesty_report`
 - `residual_debt_report`
 
 ### 3. Assumption, Freshness, Re-Admission, And Downgrade Test

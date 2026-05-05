@@ -19,6 +19,8 @@ function createRejectedFreshness(operation) {
         ? "initialLoadRejected"
         : operation === "refresh"
           ? "refreshRejected"
+          : operation === "replay"
+            ? "replayRejected"
           : "revalidateRejected",
   });
 }
@@ -31,6 +33,8 @@ function createPendingFreshness(operation) {
         ? "initialLoadPending"
         : operation === "refresh"
           ? "refreshPending"
+          : operation === "replay"
+            ? "replayPending"
           : "revalidatePending",
   });
 }
@@ -43,6 +47,8 @@ function createTimedOutFreshness(operation) {
         ? "initialLoadTimedOut"
         : operation === "refresh"
           ? "refreshTimedOut"
+          : operation === "replay"
+            ? "replayTimedOut"
           : "revalidateTimedOut",
   });
 }

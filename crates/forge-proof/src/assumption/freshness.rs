@@ -1,0 +1,62 @@
+use std::marker::PhantomData;
+
+pub trait FreshnessClass: 'static {}
+
+pub struct CurrentValidity;
+impl FreshnessClass for CurrentValidity {}
+
+pub struct StaleReadable;
+impl FreshnessClass for StaleReadable {}
+
+pub struct RebindRequired;
+impl FreshnessClass for RebindRequired {}
+
+pub struct AuthorityRevalidationRequired;
+impl FreshnessClass for AuthorityRevalidationRequired {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FreshnessScopedBasis<F, B> {
+    basis: B,
+    freshness: PhantomData<F>,
+}
+
+impl<F, B> FreshnessScopedBasis<F, B>
+where
+    F: FreshnessClass,
+{
+    pub(crate) fn new(basis: B) -> Self {
+        Self {
+            basis,
+            freshness: PhantomData,
+        }
+    }
+
+    pub fn basis(&self) -> &B {
+        &self.basis
+    }
+
+    pub fn into_basis(self) -> B {
+        self.basis
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::mem::size_of;
+
+    use crate::assumption::{
+        AssumptionBasis, CurrentValidity, FreshnessScopedBasis, StaleReadable,
+    };
+
+    #[test]
+    fn freshness_scoped_basis_is_size_honest_for_underlying_basis() {
+        assert_eq!(
+            size_of::<FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>(),
+            size_of::<AssumptionBasis<u8>>()
+        );
+        assert_eq!(
+            size_of::<FreshnessScopedBasis<StaleReadable, AssumptionBasis<u8>>>(),
+            size_of::<AssumptionBasis<u8>>()
+        );
+    }
+}

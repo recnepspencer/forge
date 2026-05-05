@@ -37,3 +37,23 @@ impl DebtInventory {
         &self.items
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResidualDebtReport {
+    suite: &'static str,
+    items: Vec<DebtItem>,
+}
+
+impl ResidualDebtReport {
+    pub fn new(suite: &'static str, items: Vec<DebtItem>) -> Self {
+        Self { suite, items }
+    }
+
+    pub fn suite(&self) -> &'static str {
+        self.suite
+    }
+
+    pub fn items(&self) -> &[DebtItem] {
+        &self.items
+    }
+}

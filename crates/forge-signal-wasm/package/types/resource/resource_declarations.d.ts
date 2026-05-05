@@ -7,6 +7,7 @@ import type {
   ResourcePolicyProfile,
   ResourceProcessingJobPosture,
   ResourceProcessingResultValue,
+  ResourceBinaryValue,
   ResourceRequestContext,
   ResourceRequestDescriptor,
   ResourceUploadResultValue,
@@ -28,11 +29,23 @@ type ResourcePlainValue<TValue> =
     ? never
     : TValue;
 
+type ResourceBinaryCompatibleValue<TValue> =
+  | ResourcePlainValue<TValue>
+  | ResourceBinaryValue<ResourcePlainValue<TValue>>;
+
 type ResourceProcessingCompatibleValue<TValue> =
   TValue extends ResourceUploadResultValue ? never : TValue;
 
 type ResourceUploadCompatibleValue<TValue> =
   TValue extends ResourceProcessingResultValue ? never : TValue;
+
+type ResourceBinaryProcessingCompatibleValue<TValue> =
+  | ResourceProcessingCompatibleValue<TValue>
+  | ResourceBinaryValue<ResourcePlainValue<ResourceProcessingCompatibleValue<TValue>>>;
+
+type ResourceBinaryUploadCompatibleValue<TValue> =
+  | ResourceUploadCompatibleValue<TValue>
+  | ResourceBinaryValue<ResourcePlainValue<ResourceUploadCompatibleValue<TValue>>>;
 
 export interface DetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
@@ -51,7 +64,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourcePlainValue<TValue>;
+  ): ResourceBinaryCompatibleValue<TValue>;
 }
 
 export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
@@ -74,7 +87,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
+  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
 }
 
 export interface UploadDetailResourceDeclaration<TParams, TValue> {
@@ -97,7 +110,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceUploadCompatibleValue<TValue> | ResourceUploadResultValue;
+  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
 }
 
 export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
@@ -120,7 +133,10 @@ export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): TValue | ResourceProcessingResultValue | ResourceUploadResultValue;
+  ):
+    | ResourceBinaryCompatibleValue<TValue>
+    | ResourceProcessingResultValue
+    | ResourceUploadResultValue;
 }
 
 export interface CollectionResourceDeclaration<
@@ -152,7 +168,7 @@ export interface CollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourcePlainValue<TValue>;
+  ): ResourceBinaryCompatibleValue<TValue>;
 }
 
 export interface ProcessingCollectionResourceDeclaration<
@@ -187,7 +203,7 @@ export interface ProcessingCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
+  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
 }
 
 export interface UploadCollectionResourceDeclaration<
@@ -222,7 +238,7 @@ export interface UploadCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceUploadCompatibleValue<TValue> | ResourceUploadResultValue;
+  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
 }
 
 export interface ProcessingUploadCollectionResourceDeclaration<
@@ -257,7 +273,10 @@ export interface ProcessingUploadCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): TValue | ResourceProcessingResultValue | ResourceUploadResultValue;
+  ):
+    | ResourceBinaryCompatibleValue<TValue>
+    | ResourceProcessingResultValue
+    | ResourceUploadResultValue;
 }
 
 export interface PagedResourceDeclaration<
@@ -290,7 +309,7 @@ export interface PagedResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourcePlainValue<TValue>;
+  ): ResourceBinaryCompatibleValue<TValue>;
 }
 
 export interface ProcessingPagedResourceDeclaration<
@@ -326,7 +345,7 @@ export interface ProcessingPagedResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
+  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
 }
 
 export interface UploadPagedResourceDeclaration<
@@ -362,7 +381,7 @@ export interface UploadPagedResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceUploadCompatibleValue<TValue> | ResourceUploadResultValue;
+  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
 }
 
 export interface ProcessingUploadPagedResourceDeclaration<
@@ -398,5 +417,72 @@ export interface ProcessingUploadPagedResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): TValue | ResourceProcessingResultValue | ResourceUploadResultValue;
+  ):
+    | ResourceBinaryCompatibleValue<TValue>
+    | ResourceProcessingResultValue
+    | ResourceUploadResultValue;
+}
+
+export type ResourceExternalDefinitionVersion =
+  "forge-resource-external-v1";
+
+export type ResourceExternalRequestContract = "native-v1";
+
+export type ResourceExternalReconciliationContract =
+  | "none"
+  | "collection-v1"
+  | "paged-v1";
+
+export interface ExternalDetailResourceDefinition<TParams, TValue> {
+  readonly version: ResourceExternalDefinitionVersion;
+  readonly family: "detail";
+  readonly definitionId: string;
+  readonly requestContract: ResourceExternalRequestContract;
+  readonly reconciliationContract: "none";
+  readonly declaration: DetailResourceDeclaration<TParams, TValue>;
+}
+
+export interface ExternalCollectionResourceDefinition<
+  TParams,
+  TValue,
+  TItem = SignalValue,
+  TReconcile extends ResourceCollectionShape<
+    TValue,
+    TItem,
+    ResourceItemAspectMap<TItem>,
+    ResourceValueSummaryMap<TValue>
+  > | undefined = undefined,
+> {
+  readonly version: ResourceExternalDefinitionVersion;
+  readonly family: "collection";
+  readonly definitionId: string;
+  readonly requestContract: ResourceExternalRequestContract;
+  readonly reconciliationContract:
+    TReconcile extends undefined ? "none" : "collection-v1";
+  readonly declaration: CollectionResourceDeclaration<
+    TParams,
+    TValue,
+    TItem,
+    TReconcile
+  >;
+}
+
+export interface ExternalPagedResourceDefinition<
+  TParams,
+  TValue,
+  TItem = SignalValue,
+  TReconcile extends ResourceCollectionShape<
+    TValue,
+    TItem,
+    ResourceItemAspectMap<TItem>,
+    ResourceValueSummaryMap<TValue>
+  > | undefined = undefined,
+> {
+  readonly version: ResourceExternalDefinitionVersion;
+  readonly family: "paged";
+  readonly definitionId: string;
+  readonly requestContract: ResourceExternalRequestContract;
+  readonly reconciliationContract:
+    TReconcile extends undefined ? "none" : "paged-v1";
+  readonly declaration: PagedResourceDeclaration<TParams, TValue, TItem, TReconcile>;
 }

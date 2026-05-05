@@ -1,6 +1,6 @@
 const RESOURCE_VALUE_SUMMARIES = Symbol("forgeSignal.resourceValueSummaries");
 
-function resourceValueSummaries(definitions) {
+function createResourceValueSummaries(definitions, patchScope) {
   if (!definitions || typeof definitions !== "object" || Array.isArray(definitions)) {
     throw new TypeError("resourceValueSummaries(...) requires a definition object");
   }
@@ -22,9 +22,18 @@ function resourceValueSummaries(definitions) {
   }
   return Object.freeze({
     definitions: Object.freeze(normalizedDefinitions),
+    patchScope,
     [RESOURCE_VALUE_SUMMARIES]: "resourceValueSummaries",
   });
 }
+
+function resourceValueSummaries(definitions) {
+  return createResourceValueSummaries(definitions, "line");
+}
+
+resourceValueSummaries.pageWindow = function pageWindow(definitions) {
+  return createResourceValueSummaries(definitions, "pageWindow");
+};
 
 function requireResourceValueSummaries(value, kind) {
   if (

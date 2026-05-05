@@ -1,0 +1,10 @@
+error[E0599]: no method named `strong_basis` found for struct `Recipe<Lowered, &str, FreshnessScopedBasis<StaleReadable, AssumptionBasis<u8>>>` in the current scope
+  --> tests/ui/milestone3/stale_readable_recipe_rejects_strong_basis_api.rs:19:24
+   |
+19 |     let _basis = stale.strong_basis();
+   |                        ^^^^^^^^^^^^ method not found in `Recipe<Lowered, &str, FreshnessScopedBasis<StaleReadable, AssumptionBasis<u8>>>`
+   |
+   = note: the method was found for
+           - `Recipe<Admitted, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>`
+           - `Recipe<Lowered, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>`
+           - `Recipe<Resolved, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>`

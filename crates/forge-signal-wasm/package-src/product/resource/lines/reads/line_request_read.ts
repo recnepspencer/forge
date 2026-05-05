@@ -1,5 +1,5 @@
 function readLineRequest(materialization) {
-  return materialization.requestDescriptor;
+  return materialization.requestState.readDescriptor();
 }
 
 export { readLineRequest };

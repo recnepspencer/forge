@@ -26,12 +26,15 @@ import { lookupOrCreateLine } from "../../lines/line_lookup.js";
 import { createLineHistoryState } from "../../lines/history/line_history_state.js";
 import { createLineLifecycleState } from "../../lines/state/line_lifecycle_state.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
+import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
+import { createLineRequestState } from "../../requests/line_request_state.js";
 
 function createMaterializedFamily(
   kind,
   signalNamespace,
   familyId,
   declaration,
+  compatibility,
 ) {
   const familyScope = signalNamespace.scope(familyId);
   const familyIdentity = createFamilyIdentity(kind, familyId);
@@ -46,6 +49,7 @@ function createMaterializedFamily(
     declaration.continuation,
     declaration.processingJob,
     declaration.uploadTransport,
+    compatibility,
   );
   const linesByCanonicalKey = new Map();
   let lineCounter = 0;
@@ -107,6 +111,7 @@ function createMaterializedLine(
     canonicalParamIdentity,
     runtimeLineId,
     lineScope.scopeId,
+    familyRecord.compatibility ?? null,
   );
   const requestDescriptor = createResourceRequestDescriptor(
     lineIdentity,
@@ -138,6 +143,7 @@ function createMaterializedLine(
   );
   const lifecycle = createLineLifecycleState();
   const lifecycleHistory = createLineHistoryState();
+  const requestState = createLineRequestState(requestDescriptor);
   const binding = createBinding(
     canonicalParamIdentity.params,
     lineScope,
@@ -153,9 +159,10 @@ function createMaterializedLine(
     familyRecord.identity.kind,
     familyRecord.declaration.load,
     familyRecord.policy,
-    requestDescriptor,
+    requestState,
   );
   const history = familyScope.history();
+  const delivery = createLineDeliveryState();
   const patch = createLinePatchRecord(
     familyRecord.identity.kind,
     familyRecord.declaration.itemIdentity,
@@ -170,9 +177,11 @@ function createMaterializedLine(
   const materialization = createLineMaterializationRecord(
     lineIdentity,
     requestDescriptor,
+    requestState,
     binding,
     history,
     lifecycleHistory,
+    delivery,
     patch,
     lineScope,
     lifecycle,
@@ -233,6 +242,7 @@ function createLineRelease(
     binding.readableValueSignal.free();
     binding.processingSignal.free();
     binding.uploadSignal.free();
+    binding.downloadSignal.free();
     binding.statusSignal.free();
     binding.freshnessSignal.free();
     binding.diagnosticsSignal.free();

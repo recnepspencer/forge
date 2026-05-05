@@ -4,15 +4,19 @@ use crate::assumption::NoAssumptionBasis;
 
 pub trait RecipeStageMarker: 'static {}
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Unresolved;
 impl RecipeStageMarker for Unresolved {}
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Resolved;
 impl RecipeStageMarker for Resolved {}
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Lowered;
 impl RecipeStageMarker for Lowered {}
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Admitted;
 impl RecipeStageMarker for Admitted {}
 

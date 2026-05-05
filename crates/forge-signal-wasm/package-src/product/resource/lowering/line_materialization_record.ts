@@ -1,9 +1,11 @@
 function createLineMaterializationRecord(
   lineIdentity,
   requestDescriptor,
+  requestState,
   binding,
   history,
   lifecycleHistory,
+  delivery,
   patch,
   lineScope,
   lifecycle,
@@ -13,9 +15,11 @@ function createLineMaterializationRecord(
   return Object.freeze({
     lineIdentity,
     requestDescriptor,
+    requestState,
     binding,
     history,
     lifecycleHistory,
+    delivery,
     patch,
     lineScope,
     lifecycle,

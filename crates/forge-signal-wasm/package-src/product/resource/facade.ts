@@ -1,7 +1,12 @@
 import { createCollectionFamily } from "./families/collection_family.js";
+import { createResourceCompatibilityNamespace } from "./compatibility/resource_compatibility_namespace.js";
 import { createDetailFamily } from "./families/detail_family.js";
+import { resourceDelivery } from "./delivery/resource_delivery.js";
 import { nextResourceFamilyId } from "./families/family_id_sequence.js";
 import { createPagedFamily } from "./families/paged_family.js";
+import { resourceBinaryDescriptor } from "./downloads/resource_binary_descriptor.js";
+import { resourceBinaryValue } from "./downloads/resource_binary_value.js";
+import { resourceDownload } from "./downloads/resource_download.js";
 import { resourceParamIdentity } from "./params/param_identity_factory.js";
 import { resourceParams } from "./params/declared_resource_params.js";
 import { resourcePolicyProfiles } from "./policies/resource_policy_profiles.js";
@@ -19,6 +24,10 @@ import { resourceRequestContext } from "./requests/request_context.js";
 
 function createResourceNamespace(signalNamespace, rawSignals) {
   return Object.freeze({
+    compatibility: createResourceCompatibilityNamespace(
+      signalNamespace,
+      rawSignals,
+    ),
     detail(declaration) {
       return createDetailFamily(
         signalNamespace,
@@ -45,9 +54,13 @@ function createResourceNamespace(signalNamespace, rawSignals) {
 
 export {
   createResourceNamespace,
+  resourceBinaryDescriptor,
+  resourceBinaryValue,
   resourceAuth,
   resourceCollectionShape,
   resourceContinuation,
+  resourceDelivery,
+  resourceDownload,
   resourceItemAspects,
   resourceParamIdentity,
   resourcePatch,

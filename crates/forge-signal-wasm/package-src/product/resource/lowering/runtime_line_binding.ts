@@ -9,6 +9,8 @@ import {
   createReadyLineUpload,
   createUploadedLineUpload,
 } from "../lines/state/line_upload_value.js";
+import { createLineDownload } from "../lines/state/line_download_value.js";
+import { isResourceBinaryValue } from "../downloads/resource_binary_value.js";
 import {
   isProcessingResult,
   requireDeclaredProcessingJob,
@@ -41,6 +43,7 @@ function bindSynchronousLineValue(
         requestDescriptor.processingJob.kind,
       ),
       upload: createReadyLineUpload(requestDescriptor.uploadTransport.kind),
+      download: createLineDownload(),
     });
   }
   if (isUploadResult(value)) {
@@ -57,13 +60,16 @@ function bindSynchronousLineValue(
         value,
         requestDescriptor.uploadTransport.kind,
       ),
+      download: createLineDownload(),
     });
   }
+  const binaryValue = unwrapBinaryValue(value);
   return Object.freeze({
-    value,
+    value: binaryValue.value,
     hasVisibleValue: true,
     processing: createReadyLineProcessing(requestDescriptor.processingJob.kind),
     upload: createReadyLineUpload(requestDescriptor.uploadTransport.kind),
+    download: createLineDownload(binaryValue.descriptors),
   });
 }
 
@@ -207,6 +213,7 @@ function resolveLoadedLineValue(
         requestDescriptor.processingJob.kind,
       ),
       upload: createReadyLineUpload(requestDescriptor.uploadTransport.kind),
+      download: createLineDownload(),
     });
   }
   if (isUploadResult(value)) {
@@ -223,14 +230,32 @@ function resolveLoadedLineValue(
         value,
         requestDescriptor.uploadTransport.kind,
       ),
+      download: createLineDownload(),
     });
   }
+  const binaryValue = unwrapBinaryValue(value);
   return Object.freeze({
-    value,
+    value: binaryValue.value,
     hasVisibleValue: true,
     processing: createReadyLineProcessing(requestDescriptor.processingJob.kind),
     upload: createReadyLineUpload(requestDescriptor.uploadTransport.kind),
+    download: createLineDownload(binaryValue.descriptors),
   });
+}
+
+function unwrapBinaryValue(value) {
+  if (!isResourceBinaryValue(value)) {
+    return Object.freeze({
+      value,
+      descriptors: Object.freeze([]),
+    });
+  }
+  if (isProcessingResult(value.value) || isUploadResult(value.value)) {
+    throw new TypeError(
+      "resourceBinaryValue(...) cannot wrap resourceProcessingResult.*() or resourceUploadResult.*()",
+    );
+  }
+  return value;
 }
 
 function createDeferredLineProcessing(result, completionKind) {

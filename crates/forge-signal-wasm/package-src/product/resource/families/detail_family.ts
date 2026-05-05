@@ -2,12 +2,18 @@ import { createMaterializedFamily } from "./materialization/materialized_family_
 import { RESOURCE_FAMILY_KINDS } from "./family_kind.js";
 import { validateDetailDeclaration } from "./declarations/detail_family_declaration.js";
 
-function createDetailFamily(signalNamespace, familyId, declaration) {
+function createDetailFamily(
+  signalNamespace,
+  familyId,
+  declaration,
+  compatibility,
+) {
   return createMaterializedFamily(
     RESOURCE_FAMILY_KINDS.detail,
     signalNamespace,
     familyId,
     validateDetailDeclaration(declaration),
+    compatibility,
   );
 }
 

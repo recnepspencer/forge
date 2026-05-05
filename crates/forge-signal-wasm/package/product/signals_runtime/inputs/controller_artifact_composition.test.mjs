@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { loadSignalsModule } from "../module_loading/load_signals_module.mjs";
 import { createGraphPublicationRuntime } from "../runtime_fixture/graph_publication_runtime.mjs";
+import { createRawReadableHandle } from "../runtime_fixture/raw_readable_handle.mjs";
 
 test("The Controller Artifact Composition Test", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
@@ -211,6 +212,92 @@ test("The Controller Artifact Composition Test", async () => {
           },
         }),
       /controller\.inputs\.`notAnInput` must be an input handle or signals\.publicInput/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("nested controller scopes support computedSpec and outputSpec without crashing", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const calls = [];
+    const rawSignals = {
+      input(id, initial, options) {
+        calls.push(["input", id, initial, options]);
+        return createRawReadableHandle(id, initial);
+      },
+      computedSpec(id, spec) {
+        calls.push(["computedSpec", id, spec]);
+        return createRawReadableHandle(id, { family: "computedSpec", spec });
+      },
+      computedCallback() {
+        throw new Error("computedCallback not needed");
+      },
+      outputSpec(id, spec) {
+        calls.push(["outputSpec", id, spec]);
+        return createRawReadableHandle(id, { family: "outputSpec", spec });
+      },
+      read(target) {
+        return typeof target === "string" ? target : target.id;
+      },
+      watch() {
+        throw new Error("watch not needed");
+      },
+      effect() {
+        throw new Error("effect not needed");
+      },
+      transaction() {
+        throw new Error("transaction not needed");
+      },
+      batch() {
+        throw new Error("batch not needed");
+      },
+      nuke() {
+        return true;
+      },
+      diagnostics() {
+        throw new Error("diagnostics not needed");
+      },
+      history() {
+        throw new Error("history not needed");
+      },
+      specialist() {
+        throw new Error("specialist not needed");
+      },
+      adapters() {
+        throw new Error("adapters not needed");
+      },
+      compatibilityApp() {
+        throw new Error("compatibilityApp not needed");
+      },
+      compatibilityRuntime() {
+        throw new Error("compatibilityRuntime not needed");
+      },
+      free() {},
+    };
+
+    const signals = wrapSignals(rawSignals);
+    const controller = signals.controller((surface) => {
+      const nested = surface.scope("nested");
+      const count = nested.input(1, { id: "count" });
+      const label = nested.computedSpec("label", { kind: "literal", value: "ok" });
+      const panel = nested.outputSpec("panel", { kind: "literal", value: "done" });
+      return {
+        inputs: { count },
+        outputs: { label, panel },
+      };
+    });
+
+    assert.equal(controller.outputs.label.id, "nested.label");
+    assert.equal(controller.outputs.panel.id, "nested.panel");
+    assert.deepEqual(
+      calls.map(([kind, id]) => [kind, id]),
+      [
+        ["input", "nested.count"],
+        ["computedSpec", "nested.label"],
+        ["outputSpec", "nested.panel"],
+      ],
     );
   } finally {
     await cleanup();

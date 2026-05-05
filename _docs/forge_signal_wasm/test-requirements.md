@@ -1,10 +1,12 @@
 # forge-signal-wasm Test Requirements
 
-> **Status:** Planned certification spec
+> **Status:** Completed certification spec
 >
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >
 > **Milestone parent:** [api_surface_plan.md](./api_surface_plan.md)
+>
+> **Formal closeout:** [api_surface_closeout.md](./api_surface_closeout.md)
 >
 > **Core lineage:** [\_docs/forge_signal/test-requirements.md](../../../_docs/forge_signal/test-requirements.md)
 

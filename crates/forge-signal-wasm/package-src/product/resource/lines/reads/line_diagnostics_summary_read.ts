@@ -29,6 +29,8 @@ function readLineDiagnosticsSummary(materialization) {
       supersessionCount: diagnostics.supersessionCount,
       invalidationCount: diagnostics.invalidationCount,
       patchCount: diagnostics.patchCount,
+      deliveryCount: diagnostics.deliveryCount,
+      basisAdvanceCount: diagnostics.basis.advanceCount,
     }),
     latest: Object.freeze({
       invalidationCause: diagnostics.lastInvalidationCause,
@@ -38,6 +40,13 @@ function readLineDiagnosticsSummary(materialization) {
       patchedItemId: diagnostics.lastPatchedItemId,
       patchedAspect: diagnostics.lastPatchedAspect,
       patchedSummary: diagnostics.lastPatchedSummary,
+      deliveryKind: diagnostics.lastDeliveryKind,
+      deliveryScope: diagnostics.lastDeliveryScope,
+      deliveryPacketId: diagnostics.lastDeliveryPacketId,
+      deliveryBasisId: diagnostics.lastDeliveryBasisId,
+      basisCurrentId: diagnostics.basis.currentBasisId,
+      basisAdvanceFromId: diagnostics.basis.lastAdvanceFromBasisId,
+      basisAdvanceToId: diagnostics.basis.lastAdvanceToBasisId,
       supersededOperation: diagnostics.lastSupersededOperation,
       timeoutOperation: diagnostics.lastTimeoutOperation,
       errorMessage: diagnostics.lastErrorMessage,
@@ -47,6 +56,7 @@ function readLineDiagnosticsSummary(materialization) {
     request: diagnostics.request,
     processing: diagnostics.processing,
     upload: diagnostics.upload,
+    download: diagnostics.download,
     explainability: history.availability,
   });
 }

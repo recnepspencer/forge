@@ -16,6 +16,9 @@ test("resource line history exposes current branch and exact restore availabilit
           head_snapshot_id: 42n,
         };
       },
+      branch_snapshot() {
+        return Object.freeze({ snapshotRestoreToken: "branch-7-snapshot" });
+      },
       restore_exact_branch_snapshot() {},
     });
     const resource = mod.createResourceNamespace(signalNamespace, {});
@@ -35,6 +38,12 @@ test("resource line history exposes current branch and exact restore availabilit
     });
     assert.deepEqual(history.availability, {
       replay: { kind: "available" },
+      replayExact: {
+        kind: "unavailable",
+        reason: "unsupportedByRuntime",
+        detail:
+          "resource line exact replay is unavailable because the Signals runtime does not expose replay_signal_by_id(...)",
+      },
       lineage: { kind: "available" },
       branch: { kind: "available" },
       restoreExact: {

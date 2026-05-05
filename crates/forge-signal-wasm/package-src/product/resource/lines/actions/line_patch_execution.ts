@@ -19,11 +19,7 @@ function executeLinePatch(materialization, patch) {
     );
   }
   const patchOutcome =
-    patchValue.kind === "replace"
-      ? applyReplacePatch(materialization, patchValue, currentValue)
-      : patchValue.kind === "summary"
-        ? applySummaryPatch(materialization, patchValue, currentValue)
-        : applyItemScopedPatch(materialization, patchValue, currentValue);
+    applyPatchValue(materialization, patchValue, currentValue);
   const diagnostics = createPatchedDiagnostics(
     materialization.binding.diagnosticsSignal(),
     patchValue,
@@ -36,6 +32,14 @@ function executeLinePatch(materialization, patch) {
     "patched",
   );
   return patchOutcome.result;
+}
+
+function applyPatchValue(materialization, patchValue, currentValue) {
+  return patchValue.kind === "replace"
+    ? applyReplacePatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "summary"
+      ? applySummaryPatch(materialization, patchValue, currentValue)
+      : applyItemScopedPatch(materialization, patchValue, currentValue);
 }
 
 function applyReplacePatch(materialization, patch, currentValue) {
@@ -61,6 +65,12 @@ function applyReplacePatch(materialization, patch, currentValue) {
 function applySummaryPatch(materialization, patch, currentValue) {
   const patchRecord = materialization.patch;
   const summaryDefinitions = patchRecord.reconcile?.summaries?.definitions ?? null;
+  const summaryPatchScope = patchRecord.reconcile?.summaries?.patchScope ?? null;
+  if (patchRecord.familyKind === "paged" && summaryPatchScope !== "pageWindow") {
+    throw new TypeError(
+      'paged resource lines require resourceValueSummaries.pageWindow(...) for narrow summary patch(...) admission',
+    );
+  }
   if (summaryDefinitions === null || !(patch.summary in summaryDefinitions)) {
     throw new TypeError(
       `${patchRecord.familyKind} resource lines do not admit summary patch(...) for undeclared summary "${patch.summary}"`,
@@ -136,15 +146,30 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
     );
   }
   const currentItems = [...patchRecord.reconcile.items(currentValue)];
-  const itemIndex = currentItems.findIndex(
-    (item) => patchRecord.itemIdentity(item) === patch.itemId,
-  );
-  if (itemIndex === -1) {
+  const matchingIndexes = [];
+  for (let index = 0; index < currentItems.length; index += 1) {
+    if (patchRecord.itemIdentity(currentItems[index]) === patch.itemId) {
+      matchingIndexes.push(index);
+    }
+  }
+  if (matchingIndexes.length === 0) {
     throw new RangeError(
       `${patchRecord.familyKind} resource lines could not find itemId "${patch.itemId}" for patch(...)`,
     );
   }
+  if (matchingIndexes.length > 1) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines cannot admit narrow patch(...) for duplicated visible itemId "${patch.itemId}"; use resourcePatch.replace(...) when item identity is ambiguous`,
+    );
+  }
+  const [itemIndex] = matchingIndexes;
   if (patch.kind === "item") {
+    const nextItemId = patchRecord.itemIdentity(patch.nextItem);
+    if (nextItemId !== patch.itemId) {
+      throw new TypeError(
+        `${patchRecord.familyKind} resource lines require resourcePatch.item(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when the patch changes identity to "${nextItemId}"`,
+      );
+    }
     currentItems[itemIndex] = patch.nextItem;
     materialization.binding.valueSignal.set(
       patchRecord.reconcile.replaceItems(currentValue, currentItems),
@@ -197,4 +222,4 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
   });
 }
 
-export { executeLinePatch };
+export { applyPatchValue, executeLinePatch };

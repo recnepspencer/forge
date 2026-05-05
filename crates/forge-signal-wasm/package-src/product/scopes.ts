@@ -301,16 +301,6 @@ export function createScopedSignalNamespace(
       return callableSignals.publicInput(handle, options);
     },
     input(firstArg, secondArg, thirdArg) {
-      if (typeof firstArg === "string" && arguments.length >= 2) {
-        return tagScopedHandle(
-          callableSignals.spec.input(
-            canonicalId(scopeId, firstArg),
-            secondArg,
-            thirdArg,
-          ),
-          firstArg,
-        );
-      }
       if (hasExplicitAuthoringIdOption(secondArg)) {
         return tagScopedHandle(
           callableSignals.spec.input(
@@ -327,6 +317,16 @@ export function createScopedSignalNamespace(
           firstArg,
           withPrivateAuthoringId(secondArg, authoringId),
         ),
+      );
+    },
+    computedSpec(id, spec, options) {
+      return tagScopedHandle(
+        callableSignals.spec.computed(
+          canonicalId(scopeId, id),
+          spec,
+          options,
+        ),
+        id,
       );
     },
     linked(sourceOrDefinition, options) {
@@ -401,6 +401,16 @@ export function createScopedSignalNamespace(
         ),
       );
     },
+    outputSpec(id, spec, options) {
+      return tagScopedHandle(
+        callableSignals.spec.output(
+          canonicalId(scopeId, id),
+          spec,
+          options,
+        ),
+        id,
+      );
+    },
     output(firstArg, secondArg, thirdArg) {
       if (typeof firstArg === "string") {
         if (typeof secondArg === "function") {
@@ -457,6 +467,16 @@ export function createScopedSignalNamespace(
           firstArg,
           withPrivateAuthoringId(secondArg, authoringId),
         ),
+      );
+    },
+    outputCallback(id, callback, options) {
+      return tagScopedHandle(
+        callableSignals.spec.outputCallback(
+          canonicalId(scopeId, id),
+          callback,
+          options,
+        ),
+        id,
       );
     },
     graph: callableSignals.graph.bind(callableSignals),

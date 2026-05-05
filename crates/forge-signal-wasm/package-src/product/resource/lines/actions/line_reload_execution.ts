@@ -19,7 +19,24 @@ import {
 } from "../state/line_status_value.js";
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
 
-function executeLineReload(materialization, operation) {
+function executeLineReload(materialization, operation, options = "fulfilled") {
+  const normalizedOptions =
+    typeof options === "string"
+      ? Object.freeze({
+          fulfilledEvent: options,
+          seedDiagnostics: null,
+          requestDescriptorOverride: null,
+          finalizeFulfilledDiagnostics: null,
+          onFulfilled: null,
+        })
+      : Object.freeze({
+          fulfilledEvent: options.fulfilledEvent ?? "fulfilled",
+          seedDiagnostics: options.seedDiagnostics ?? null,
+          requestDescriptorOverride: options.requestDescriptorOverride ?? null,
+          finalizeFulfilledDiagnostics:
+            options.finalizeFulfilledDiagnostics ?? null,
+          onFulfilled: options.onFulfilled ?? null,
+        });
   const reload = materialization.reload;
   const previousValue = materialization.binding.valueSignal();
   const supersededOperation = materialization.lifecycle.supersedePendingReload();
@@ -31,12 +48,23 @@ function executeLineReload(materialization, operation) {
       { supersededOperation },
     );
   }
+  if (normalizedOptions.seedDiagnostics !== null) {
+    materialization.binding.diagnosticsSignal.set(
+      normalizedOptions.seedDiagnostics(
+        materialization.binding.diagnosticsSignal(),
+        supersededOperation,
+      ),
+    );
+  }
   try {
+    const requestDescriptor =
+      normalizedOptions.requestDescriptorOverride
+      ?? reload.requestState.readDescriptor();
     const bindingResult = bindReloadLineValue(
       reload.load,
       reload.params,
       reload.familyKind,
-      reload.requestDescriptor,
+      requestDescriptor,
       previousValue,
       reload.policy.retryLimit,
     );
@@ -90,6 +118,9 @@ function executeLineReload(materialization, operation) {
             previousValue,
             loaded.loaded,
             loaded.retryAttempts,
+            normalizedOptions.fulfilledEvent,
+            normalizedOptions.finalizeFulfilledDiagnostics,
+            normalizedOptions.onFulfilled,
           );
         },
         (error) => {
@@ -111,6 +142,9 @@ function executeLineReload(materialization, operation) {
       previousValue,
       bindingResult.loaded,
       bindingResult.retryAttempts,
+      normalizedOptions.fulfilledEvent,
+      normalizedOptions.finalizeFulfilledDiagnostics,
+      normalizedOptions.onFulfilled,
     );
   } catch (error) {
     return applyRejectedReload(materialization, operation, error);
@@ -124,29 +158,41 @@ function applyFulfilledReload(
   previousValue,
   loaded,
   retryAttempts = 0,
+  fulfilledEvent = "fulfilled",
+  finalizeFulfilledDiagnostics = null,
+  onFulfilled = null,
 ) {
   const visibleValueChanged = loaded.hasVisibleValue && loaded.value !== previousValue;
   materialization.binding.valueSignal.set(loaded.value);
   materialization.binding.processingSignal.set(loaded.processing);
   materialization.binding.uploadSignal.set(loaded.upload);
+  materialization.binding.downloadSignal.set(loaded.download);
   const status = createFulfilledLineStatus(operation);
   const freshness = createFreshnessFromPolicy(reload.policy);
-  const diagnostics = createReloadFulfilledDiagnostics(
+  const nextDiagnostics = createReloadFulfilledDiagnostics(
     materialization.binding.diagnosticsSignal(),
     operation,
     loaded.processing,
     loaded.upload,
+    loaded.download,
     visibleValueChanged,
     retryAttempts,
   );
+  const diagnostics =
+    finalizeFulfilledDiagnostics === null
+      ? nextDiagnostics
+      : finalizeFulfilledDiagnostics(nextDiagnostics);
   materialization.binding.statusSignal.set(status);
   materialization.binding.freshnessSignal.set(freshness);
   materialization.binding.diagnosticsSignal.set(diagnostics);
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
-    "fulfilled",
+    fulfilledEvent,
   );
+  if (onFulfilled !== null) {
+    onFulfilled();
+  }
   return status;
 }
 
