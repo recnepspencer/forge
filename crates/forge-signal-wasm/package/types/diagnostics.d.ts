@@ -2,6 +2,7 @@ import type {
   KeyedRecipeFamilySpec,
   KeyedSourceFamilySpec,
   RecipeSpec,
+  SignalValue,
   SourceSpec,
 } from "./model.js";
 

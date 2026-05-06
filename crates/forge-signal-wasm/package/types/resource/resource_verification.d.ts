@@ -1,14 +1,18 @@
 import type {
+  ResourceLineFreshness,
+  ResourceLineStatus,
+} from "./resource_lifecycle.js";
+import type {
+  ResourceLineBasisHistory,
   ResourceLineBranchSummary,
+  ResourceLineHistoryAvailability,
+} from "./resource_line_history.js";
+import type {
   ResourceLineDiagnosticsActivitySummary,
   ResourceLineDiagnosticsChangeCountSummary,
   ResourceLineDiagnosticsCurrentSummary,
   ResourceLineDiagnosticsLatestChangeSummary,
-  ResourceLineFreshness,
-  ResourceLineHistoryAvailability,
-  ResourceLineStatus,
-  ResourceLineBasisHistory,
-} from "./resource_lifecycle.js";
+} from "./resource_line_summary.js";
 
 export interface ResourceLineNativeCompatibilityDigest {
   readonly kind: "native";

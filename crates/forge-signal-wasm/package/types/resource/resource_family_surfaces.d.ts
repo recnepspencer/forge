@@ -17,6 +17,18 @@ import type {
 type ExactResourceParams<TExpected, TActual extends TExpected> =
   Exclude<keyof TActual, keyof TExpected> extends never ? TActual : never;
 
+type ResourceLineAspectMapFor<
+  TItem,
+  TReconcile,
+> = ResourceReconcileAspectMap<TReconcile> extends ResourceItemAspectMap<TItem>
+  ? ResourceReconcileAspectMap<TReconcile>
+  : {};
+
+type ResourceLineSummaryMapFor<TReconcile> =
+  ResourceReconcileSummaryMap<TReconcile> extends ResourceValueSummaryMap<any>
+    ? ResourceReconcileSummaryMap<TReconcile>
+    : {};
+
 export interface DetailResourceFamily<TParams, TValue> {
   invalidate<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
@@ -90,8 +102,8 @@ export interface ResourcePatchCapableLine<
   ): ResourceDeliveryResult;
   reconciliation(): ResourceLineReconciliation<
     TItem,
-    ResourceReconcileAspectMap<TReconcile>,
-    ResourceReconcileSummaryMap<TReconcile>,
+    ResourceLineAspectMapFor<TItem, TReconcile>,
+    ResourceLineSummaryMapFor<TReconcile>,
     [TReconcile] extends [ResourceCollectionShape<any, any, any, any>] ? true : false,
     TFamilyKind extends "paged"
       ? ResourceReconcileSummaryPatchScope<TReconcile> extends "pageWindow"

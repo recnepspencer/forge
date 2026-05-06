@@ -11,10 +11,11 @@ Use this skill after implementation work appears complete enough for hostile rev
 
 Read these in this order before running the QA loop:
 
-1. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_laws.md`
-4. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\perf_laws.md`
+1. `_docs/coding_guidelines/MENTALITY.md`
+2. `_docs/coding_guidelines/arch_laws.md`
+3. `_docs/coding_guidelines/composition_laws.md` if it is populated
+4. `_docs/coding_guidelines/domain_structure_laws.md`
+5. `_docs/coding_guidelines/perf_laws.md`
 
 Then reread the governing milestone or implementation spec for the work under review.
 
@@ -80,7 +81,8 @@ Perform a brutal QA of this phase.
 Evaluate the phase against:
 - the implementation spec
 - `arch_laws.md`
-- `domain_laws.md`
+- `composition_laws.md`, if it is populated
+- `domain_structure_laws.md`
 - `perf_laws.md`
 - the spirit of the system vision, not merely literal checkbox compliance
 

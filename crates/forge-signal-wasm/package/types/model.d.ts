@@ -224,19 +224,3 @@ export interface WebObservationNotice {
   triggerMatched: boolean;
 }
 
-export interface ObservationBoundaryEventSummary {
-  observerId: number;
-  handleId: number;
-  matchedNodes: ReadonlyArray<string>;
-  touched: boolean;
-  recomputed: boolean;
-  meaningfulChange: boolean;
-  triggerMatched: boolean;
-}
-
-export interface ObservationBoundarySummary {
-  branchId: number;
-  deliveredEventCount: number;
-  rollbackSuppressedEventCount: number;
-  boundaryEvents: ReadonlyArray<ObservationBoundaryEventSummary>;
-}

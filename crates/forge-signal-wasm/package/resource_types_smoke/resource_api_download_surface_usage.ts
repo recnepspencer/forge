@@ -65,7 +65,7 @@ const multipartReport = api.url("/reports/:reportId")
     }),
   ])
   .detail({
-    load: ({ reportId }) => ({ id: reportId }),
+    load: ({ reportId }) => ({ id: String(reportId) }),
   });
 
 void multipartReport.line({ reportId: "report-q2" }).download();

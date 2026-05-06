@@ -26,8 +26,9 @@ Read these in this order before running the test QA pass:
 
 1. `_docs/coding_guidelines/MENTALITY.md`
 2. `_docs/coding_guidelines/arch_laws.md`
-3. `_docs/coding_guidelines/domain_laws.md`
-4. `_docs/coding_guidelines/perf_laws.md`
+3. `_docs/coding_guidelines/composition_laws.md` if it is populated
+4. `_docs/coding_guidelines/domain_structure_laws.md`
+5. `_docs/coding_guidelines/perf_laws.md`
 
 Then reread: 5. the governing milestone/spec 6. the milestone test requirements, if one exists 7. the relevant test files 8. the relevant test support / harness files
 
@@ -556,7 +557,8 @@ Evaluate them against:
 - the governing implementation spec
 - the milestone test requirements
 - `arch_laws.md`
-- `domain_laws.md`
+- `composition_laws.md`, if it is populated
+- `domain_structure_laws.md`
 - `perf_laws.md`
 - the standard that test code and harness code must be as clean as production code
 

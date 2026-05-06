@@ -88,7 +88,9 @@ function enqueueMicrotask(callback: () => void): void {
   Promise.resolve().then(callback);
 }
 
-export function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore {
+export function createReactSignalsStore<TSignals extends SignalsLike>(
+  signals: TSignals,
+): ReactSignalsStore<TSignals> {
   const signalEntries = new Map<string, SignalEntry>();
   const diagnosticsListeners = new Set<() => void>();
   let diagnosticsRuntimeHandle: DisposableHandleLike | null = null;

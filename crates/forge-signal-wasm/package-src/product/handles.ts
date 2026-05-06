@@ -239,6 +239,12 @@ export function wrapReadableSignal(rawHandle, rawSignals, kind = "signal", debug
         return rawHandle.get();
       },
     },
+    value: {
+      enumerable: false,
+      value() {
+        return signal.get();
+      },
+    },
     peek: {
       enumerable: false,
       value() {

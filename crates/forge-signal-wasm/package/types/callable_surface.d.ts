@@ -10,6 +10,7 @@ import type {
 } from "./model.js";
 import type {
   BranchStateProofReport,
+  HostCapabilityCompatibility,
   LineageSummary,
   MergePlanArtifact,
   MergePlanProofEnvelope,
@@ -83,11 +84,20 @@ declare const forgeSignalPersistenceCapabilityHandleBrand: unique symbol;
 export interface Signal<T = SignalValue> {
   (): T;
   get(): T;
+  value(): T;
   free(): void;
   [Symbol.dispose](): void;
   readonly id: string;
   readonly debugName: string | null;
   readonly [forgeSignalBrand]: "signal";
+}
+
+export interface NamedComputedCallbackDefinition<T = SignalValue> {
+  compute: () => T;
+}
+
+export interface NamedOutputCallbackDefinition<T = SignalValue> {
+  compute: () => T;
 }
 
 type PatchSignalValue<T> = T extends ReadonlyArray<infer U>
@@ -153,12 +163,6 @@ export interface ComputedSignalHandle<T = SignalValue> extends Signal<T> {
 export interface OutputSignalHandle<T = SignalValue> extends Signal<T> {
   readonly [forgeSignalOutputBrand]: "output";
 }
-
-export type HostCapabilityCompatibility =
-  | "LiveOnly"
-  | "Reattachable"
-  | "SnapshotPortable"
-  | "ImportDenied";
 
 export type HostCapabilitySubscription =
   | void
@@ -287,13 +291,21 @@ export interface CallbackSignalAuthoringOptions {
 
 export interface ExplicitSignalSpecNamespace {
   input<T = SignalValue>(id: string, initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
-  computed<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computed<T = SignalValue>(
+    id: string,
+    spec: ComputedSpec | NamedComputedCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
   computedCallback<T = SignalValue>(
     id: string,
     compute: () => T,
     options?: CallbackSignalAuthoringOptions,
   ): ComputedSignalHandle<T>;
-  output<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  output<T = SignalValue>(
+    id: string,
+    spec: OutputSpec | NamedOutputCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
   outputCallback<T = SignalValue>(
     id: string,
     compute: () => T,
@@ -557,10 +569,18 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   linked<TSource = SignalValue, TValue = TSource>(
     definition: LinkedComputedSignalDefinition<TSource, TValue>,
   ): LinkedSignalHandle<TValue, TSource>;
-  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computedSpec<T = SignalValue>(
+    id: string,
+    spec: ComputedSpec | NamedComputedCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
   computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
-  outputSpec<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputSpec<T = SignalValue>(
+    id: string,
+    spec: OutputSpec | NamedOutputCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
   output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   outputCallback<T = SignalValue>(
@@ -617,10 +637,18 @@ export interface CallableSignals<TPersistence = SignalValue> {
   linked<TSource = SignalValue, TValue = TSource>(
     definition: LinkedComputedSignalDefinition<TSource, TValue>,
   ): LinkedSignalHandle<TValue, TSource>;
-  computedSpec<T = SignalValue>(id: string, spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computedSpec<T = SignalValue>(
+    id: string,
+    spec: ComputedSpec | NamedComputedCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
   computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
-  outputSpec<T = SignalValue>(id: string, spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputSpec<T = SignalValue>(
+    id: string,
+    spec: OutputSpec | NamedOutputCallbackDefinition<T>,
+    options?: SignalAuthoringOptions,
+  ): OutputSignalHandle<T>;
   output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   outputCallback<T = SignalValue>(
@@ -670,7 +698,7 @@ export function visibilityCapability(options: VisibilityCapabilityOptions): Visi
 export function onlineCapability(options: OnlineCapabilityOptions): OnlineCapabilityRegistration;
 export function clockCapability(options: ClockCapabilityOptions): ClockCapabilityRegistration;
 export function persistenceCapability<T = SignalValue>(options: PersistenceCapabilityOptions<T>): PersistenceCapabilityRegistration<T>;
-export function hostCapabilityPlan<TPersistence = SignalValue>(input: HostCapabilityPlanInput<TPersistence>): HostCapabilityPlan<TPersistence>;
+export function hostCapabilityPlan<TPersistence = SignalValue>(input?: HostCapabilityPlanInput<TPersistence>): HostCapabilityPlan<TPersistence>;
 export function createSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
 export function createCallableSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
 export function wrapSignals<TPersistence = SignalValue>(signals: Signals, options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;

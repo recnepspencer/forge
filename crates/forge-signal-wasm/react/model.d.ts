@@ -2,7 +2,7 @@ import type {
   FlowSurfaceSummary,
   ObservationSurfaceSummary,
   WebPerformanceSummary,
-} from "../package/types/diagnostics.js";
+} from "../types/diagnostics.js";
 
 export interface SignalsDiagnosticsSnapshot {
   latestObservation: ObservationSurfaceSummary | null;

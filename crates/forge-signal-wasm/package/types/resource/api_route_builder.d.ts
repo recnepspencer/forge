@@ -10,9 +10,11 @@ import type {
   ApiRouteBuilderParamsStep,
   ApiRouteBuilderRequestShapeStep,
   ApiRouteBuilderTransferStep,
+} from "./api_route_builder_steps.js";
+import type {
   ApiRouteProcessingKind,
   ApiRouteUploadKind,
-} from "./api_route_builder_steps.js";
+} from "./api_route_transfer_kinds.js";
 import type { ResourceRequestMethod } from "./resource_postures.js";
 import type {
   ApiRouteCollectionDeclarationForState,
@@ -36,16 +38,12 @@ interface ApiRouteBuilderBase<
   THeadersOwned extends boolean = false,
 > {
   detail<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -57,23 +55,26 @@ interface ApiRouteBuilderBase<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>,
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
     TBody
   >;
   list<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
     TItem = SignalValue,
-    TReconcile extends ApiRouteReconcile<TValue, TItem> | undefined = undefined,
+    TReconcile extends ApiRouteReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TItem
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRouteCollectionDeclarationForState<
         TRoute,
         TRequestParams,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TItem,
         TReconcile,
         TProcessingKind,
@@ -86,25 +87,28 @@ interface ApiRouteBuilderBase<
   ): ApiCollectionResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>,
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
     TItem,
     TReconcile,
     TBody
   >;
   paged<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
     TItem = SignalValue,
-    TReconcile extends ApiRouteReconcile<TValue, TItem> | undefined = undefined,
+    TReconcile extends ApiRouteReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TItem
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRoutePagedDeclarationForState<
         TRoute,
         TRequestParams,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TItem,
         TReconcile,
         TProcessingKind,
@@ -117,7 +121,11 @@ interface ApiRouteBuilderBase<
   ): ApiPagedResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>,
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
     TItem,
     TReconcile,
     TBody
@@ -134,17 +142,13 @@ interface ApiRouteBuilderStandardFinalizers<
   THeadersOwned extends boolean = false,
 > {
   create<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
     TBody,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TBody,
         TRequestParams,
         TProcessingKind,
@@ -156,21 +160,21 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>,
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
     TBody
   >;
   update<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
     TBody,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TBody,
         TRequestParams,
         TProcessingKind,
@@ -182,20 +186,20 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>,
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
     TBody
   >;
   remove<
-    TValue extends ApiRouteResolvedDownloadValue<
-      TValue,
-      TDownloadValue,
-      TDownloadsOwned
-    >,
+    TValue,
   >(
     declaration: ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
-        TValue,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -206,7 +210,11 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<TValue, TProcessingKind, TUploadKind>
+    ApiRouteTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >
   >;
 }
 

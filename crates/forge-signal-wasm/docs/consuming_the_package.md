@@ -8,6 +8,12 @@ This guide covers how to install, build, verify, and consume the public
 Use this when you need the package entrypoints, local package workflow, or the
 smallest useful examples for the shipped surface.
 
+The root package is intentionally mixed:
+
+- `import init from "forge-signal-wasm"` gives the raw wasm init entry
+- named imports like `createSignals` and `hostCapabilityPlan` give the modern
+  app-facing surface
+
 ## Why You Use It
 
 - install the npm package cleanly
@@ -23,6 +29,12 @@ If you just want to start coding, you only need:
 3. the small example below
 
 The rest of this guide is for local package work and publishing from this repo.
+
+Package contract note:
+
+- the published package is ESM-first
+- `import` and bundler resolution are the supported consumer paths
+- CommonJS callers should use dynamic `import(...)` instead of `require(...)`
 
 ## Stable Entry Points
 

@@ -75,6 +75,8 @@ Rules for every remaining wasm product item:
   or async lifecycle meaning is truly defined
 - package APIs, diagnostics, and type surfaces must remain clean, explicit, and
   library-grade rather than becoming bags of host-specific flags
+- later package products must not require main-thread execution for graph work
+  that does not actually depend on browser-owned host boundaries
 
 ## Critical Path
 
@@ -118,6 +120,8 @@ The intended dependency order is:
 7. wasm product work adds API surface
 8. wasm product work hardens API-surface developer ergonomics
 9. wasm product work adds router and navigation projection
+10. wasm product work adds worker-first runtime placement and main-thread host
+    bridge truth
 
 That order is normative for this roadmap.
 
@@ -724,6 +728,122 @@ Why it belongs here:
   resulting route/navigation substrate where needed, not become the place where
   route semantics are first solved
 
+## Milestone 9: Worker-First Runtime Placement And Main-Thread Host Bridge
+
+Engineering spec:
+[worker_runtime_placement_plan.md](./worker_runtime_placement_plan.md)
+
+### Goal
+
+Make dedicated web-worker deployment the preferred execution posture for
+`forge-signal-wasm` so most invalidation, recomputation, async/resource
+lifecycle, routing/resource/forms continuity, and diagnostics/history work
+leave the UI thread, while browser-only host facts and host-side effects remain
+explicit main-thread boundaries.
+
+This milestone exists because the package is no longer just choosing a nicer
+API shape. It now has enough real product surface that leaving the bulk of
+runtime work on the main thread would turn correctness-success into UI-freeze
+failure under load.
+
+### Must Ship
+
+- one worker-owned runtime posture for graph state, invalidation,
+  recomputation, async/resource lifecycle, route/resource/forms continuity,
+  history, replay/restore coordination, and diagnostics production
+- one typed main-thread/worker bridge for:
+  - committed transaction submission
+  - typed host-capability delivery into the runtime
+  - committed output and observation delivery back to the UI thread
+  - host-effect requests that must execute on the main thread
+  - diagnostics/history/export/import requests
+  - disposal, detach, and capability-lifecycle updates
+- one explicit worker-admissibility taxonomy for authored work, so the package
+  can distinguish:
+  - worker-executable runtime work
+  - main-thread-only host work
+  - typed unavailable or denied work
+- an honest lowering path for the dominant app lane so ordinary computed,
+  resource, router, and graph work can execute in the worker without pretending
+  that live JavaScript closures are portable runtime data
+- bounded batching/coalescing rules for host-capability updates, transaction
+  submission, output delivery, and diagnostics reads so the bridge does not
+  become a hidden per-node chatter channel
+- counters and certification surfaces that expose:
+  - main-thread bridge breadth
+  - worker evaluation breadth
+  - host-capability delivery breadth
+  - output delivery breadth
+  - worker/main-thread round-trip counts
+  - typed fallback or denial counts
+- docs and examples that teach worker-first as the recommended heavy-app
+  deployment posture and main-thread execution as an explicit compatibility or
+  host-boundary posture
+
+### Must Preserve
+
+- runtime truth remains singular; worker placement must not create a second
+  cache, store, scheduler, or lifecycle authority on the main thread
+- browser-only host facts remain typed host-capability inputs rather than
+  ambient worker access to DOM/window state
+- host effects that mutate DOM, browser APIs, framework state, or imperative
+  platform objects remain explicit main-thread work
+- live callback closures remain process-local host capabilities; the milestone
+  must not lie that arbitrary authored closures can be migrated into a worker
+- replay, restore, diagnostics, and compatibility artifacts must remain honest
+  about whether work was worker-executable, main-thread-hosted, or unavailable
+
+### Explicit Boundary
+
+Milestone 9 includes moving the runtime-owned work of invalidation, planning,
+recomputation, async/resource lifecycle, route/resource/forms continuity, and
+diagnostics/history production behind a worker-owned execution boundary when
+the authored graph admits that lowering honestly.
+
+Milestone 9 does not include:
+
+- granting workers ambient access to DOM, `window`, or framework-owned objects
+- pretending ordinary main-thread closure capture is portable worker data
+- silently pinning an entire application graph to the main thread because one
+  node or effect was worker-ineligible
+- redefining host capability, router, resource, or form semantics just to make
+  the worker boundary convenient
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- the same semantically equivalent graph converges to the same committed truth,
+  lifecycle truth, and diagnostics/history truth in both:
+  - main-thread compatibility mode
+  - worker-first deployment mode
+- recompute storms, invalidation bursts, route churn, and resource-refresh
+  pressure leave the main thread responsible only for host-boundary and public
+  delivery work rather than full internal graph breadth
+- browser-history, viewport, visibility, online/offline, timers, persistence,
+  and similar admitted host-capability families remain typed main-thread lanes
+  rather than being reintroduced as ambient reads from worker code
+- worker-ineligible callbacks, resources, or effects emit explicit typed
+  fallback, denial, or unavailability artifacts instead of silently weakening
+  the placement contract
+- replay, restore, export/import, and branch histories preserve the worker/main
+  thread capability story explicitly and never pretend that live worker-hosted
+  or main-thread-hosted callbacks were portable when they were not
+- named counters prove that main-thread bridge cost scales with changed host and
+  public-delivery surface, not with total graph size or total dependency count
+
+Why it belongs here:
+
+- it comes after composition, graph-owned lifecycle, API/resource closeout, and
+  router work because the worker split needs stable public graph boundaries and
+  stable product semantics to move wholesale instead of asking each feature area
+  to invent its own background engine
+- it comes after host capability because main-thread-only browser facts must
+  already exist as typed runtime inputs before worker execution can stay honest
+- it belongs before roadmap completion because keeping most non-host work off
+  the UI thread is a product boundary for serious web apps, not an optional
+  post-roadmap optimization
+
 ## Roadmap Done When
 
 This roadmap is complete only when:
@@ -736,5 +856,8 @@ This roadmap is complete only when:
   require substrate-shaped ceremony
 - route and navigation products consume URL, browser-history, branch, and
   resource continuity truth without creating a second state machine
+- worker-first deployment keeps most runtime work off the UI thread while
+  preserving explicit main-thread host boundaries and one canonical runtime
+  truth
 - no milestone creates a second reactive or async truth engine beside the
   runtime

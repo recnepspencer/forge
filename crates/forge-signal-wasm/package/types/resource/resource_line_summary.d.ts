@@ -10,8 +10,8 @@ import type {
   ResourceLineStatus,
   ResourceLineUpload,
   ResourceLineUploadDiagnostics,
-  ResourcePolicyProfileName,
 } from "./resource_lifecycle.js";
+import type { ResourcePolicyProfileName } from "./resource_postures.js";
 import type { ResourceLineHistoryAvailability } from "./resource_line_history.js";
 
 export interface ResourceLineDiagnosticsCurrentSummary {

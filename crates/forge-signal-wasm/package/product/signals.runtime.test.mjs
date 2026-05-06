@@ -1,6 +1,7 @@
 import "./signals_runtime/authoring/linked_writable_derived_state.test.mjs";
 import "./signals_runtime/authoring/portable_lane_explicit_naming.test.mjs";
 import "./signals_runtime/authoring/wrap_signals_callback_metadata_validation.test.mjs";
+import "./signals_runtime/authoring/wrap_signals_named_spec_shorthand.test.mjs";
 import "./signals_runtime/authoring/wrap_signals_string_metadata_parsing.test.mjs";
 import "./signals_runtime/authoring/runtime_boundary_validation.test.mjs";
 import "./signals_runtime/publication/graph_publication_contract_surface.test.mjs";

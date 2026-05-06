@@ -197,6 +197,46 @@ function parseOpaqueSpecOptions(
   };
 }
 
+function isNamedCallbackDefinition(spec) {
+  return isPlainObject(spec) && typeof spec.compute === "function";
+}
+
+function createExplicitNamedSignal(rawSignals, family, id, specOrCallback, debugName) {
+  if (isNamedCallbackDefinition(specOrCallback)) {
+    const callback = withComputedCallbackFrame(rawSignals, specOrCallback.compute);
+    if (family === "computed") {
+      return wrapReadableSignal(
+        rawSignals.computedCallback(id, callback),
+        rawSignals,
+        "computed",
+        debugName,
+      );
+    }
+    const hiddenComputedId = nextOutputProjectionId(rawSignals, id);
+    rawSignals.computedCallback(hiddenComputedId, callback);
+    return wrapReadableSignal(
+      rawSignals.outputSpec(id, outputProjectionSpec(hiddenComputedId)),
+      rawSignals,
+      "output",
+      debugName,
+    );
+  }
+  if (family === "computed") {
+    return wrapReadableSignal(
+      rawSignals.computedSpec(id, specOrCallback),
+      rawSignals,
+      "computed",
+      debugName,
+    );
+  }
+  return wrapReadableSignal(
+    rawSignals.outputSpec(id, specOrCallback),
+    rawSignals,
+    "output",
+    debugName,
+  );
+}
+
 function explicitSignalSpecNamespace(rawSignals) {
   return Object.freeze({
     input(id, initial, options) {
@@ -229,15 +269,10 @@ function explicitSignalSpecNamespace(rawSignals) {
           ? undefined
           : requireAuthoringOptions("computed", options);
       const debugName = specOptions
-        ? requireOptionalDebugName("computed", specOptions)
-        : null;
+          ? requireOptionalDebugName("computed", specOptions)
+          : null;
       return withReservedSignalId(rawSignals, "computed", id, () =>
-        wrapReadableSignal(
-          rawSignals.computedSpec(id, spec),
-          rawSignals,
-          "computed",
-          debugName,
-        ),
+        createExplicitNamedSignal(rawSignals, "computed", id, spec, debugName),
       );
     },
     computedCallback(id, callback, options) {
@@ -266,15 +301,10 @@ function explicitSignalSpecNamespace(rawSignals) {
           ? undefined
           : requireAuthoringOptions("output", options);
       const debugName = specOptions
-        ? requireOptionalDebugName("output", specOptions)
-        : null;
+          ? requireOptionalDebugName("output", specOptions)
+          : null;
       return withReservedSignalId(rawSignals, "output", id, () =>
-        wrapReadableSignal(
-          rawSignals.outputSpec(id, spec),
-          rawSignals,
-          "output",
-          debugName,
-        ),
+        createExplicitNamedSignal(rawSignals, "output", id, spec, debugName),
       );
     },
     outputCallback(id, callback, options) {

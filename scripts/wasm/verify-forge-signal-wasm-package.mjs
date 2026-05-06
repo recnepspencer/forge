@@ -163,9 +163,11 @@ async function runTypeSmoke(tempDir, packageName) {
     "--noEmit",
     "--strict",
     "--target", "ES2022",
-    "--module", "NodeNext",
-    "--moduleResolution", "NodeNext",
-    "--skipLibCheck",
+    "--module", "ESNext",
+    "--moduleResolution", "Bundler",
+    "--skipLibCheck", "false",
+    "--lib", "ESNext,DOM,ESNext.Disposable",
+    "--jsx", "react-jsx",
     smokeTypePath,
   ];
   await execFileAsync(process.execPath, args, { cwd: tempDir });
@@ -178,9 +180,11 @@ async function main() {
 
   assert.equal(packageJson.main, "./index.js");
   assert.equal(packageJson.module, "./index.js");
-  assert.equal(packageJson.types, "./forge_signal_wasm.d.ts");
+  assert.equal(packageJson.types, "./index.d.ts");
   assert.equal(packageJson.exports["."].import, "./index.js");
+  assert.equal(packageJson.exports["."].types, "./index.d.ts");
   assert.equal(packageJson.exports["./react"].import, "./react/index.js");
+  assert.equal(packageJson.exports["./react"].types, "./react/index.d.ts");
 
   await rm(tarballPath, { force: true });
   await runNpm(["pack"], { cwd: pkgDir });
@@ -190,6 +194,7 @@ async function main() {
   const requiredEntries = [
     "package/index.js",
     "package/index.d.ts",
+    "package/raw_surface.d.ts",
     "package/raw_surface.js",
     "package/product/signals.js",
     "package/product/host_capabilities.js",
@@ -202,13 +207,19 @@ async function main() {
     "package/types/graph_surface.d.ts",
     "package/types/model.d.ts",
     "package/types/raw_surface.d.ts",
-    "package/forge_signal_wasm.d.ts",
+    "package/types/resource/api_namespace.d.ts",
+    "package/types/resource/api_route_builder.d.ts",
+    "package/types/resource/resource_namespace.d.ts",
     "package/react/index.js",
     "package/react/index.d.ts",
+    "package/react/model.d.ts",
     "package/README.md",
     "package/docs/consuming_the_package.md",
     "package/docs/app_surface_reference.md",
     "package/docs/diagnostics_and_history_reference.md",
+  ];
+  const forbiddenEntries = [
+    "package/forge_signal_wasm.d.ts",
   ];
   for (const requiredEntry of requiredEntries) {
     assert.equal(
@@ -217,6 +228,21 @@ async function main() {
       `expected tarball to contain ${requiredEntry}`,
     );
   }
+  for (const forbiddenEntry of forbiddenEntries) {
+    assert.equal(
+      entries.includes(forbiddenEntry),
+      false,
+      `expected tarball to exclude ${forbiddenEntry}`,
+    );
+  }
+  const staleProductModules = entries.filter(
+    (entry) => entry.startsWith("package/product/") && entry.endsWith(".mjs"),
+  );
+  assert.deepEqual(
+    staleProductModules,
+    [],
+    "expected tarball to exclude stale product-side .mjs artifacts",
+  );
 
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-wasm-package-verify-"));
   try {

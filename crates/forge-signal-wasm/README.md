@@ -12,6 +12,16 @@ You can use it for ordinary signal-style state, larger controller and graph
 composition, and resource lines that own loading, freshness, uploads,
 downloads, diagnostics, and history.
 
+The root package is a mixed umbrella entrypoint:
+
+- the default export initializes the raw wasm module
+- named exports expose the modern callable, graph, resource, and host-capability
+  surfaces
+
+The published npm package is ESM-first. `import` and bundler resolution are the
+supported consumer paths. CommonJS callers should use dynamic `import(...)`
+instead of `require(...)`.
+
 ## Install
 
 ```bash
